@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: mercon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mercon_user
+      POSTGRES_PASSWORD: mercon_password
+      POSTGRES_DB: mercon_db
+    ports:
+      - '15432:5432' # Exposed for Beekeeper Studio on a safe port
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mercon-api:
+    build: .
+    container_name: mercon-api
+    restart: unless-stopped
+    ports:
+      - '3050:3000' # Exposed for Nginx proxy on a safe port
+    environment:
+      DATABASE_URL: "postgresql://mercon_user:mercon_password@postgres-db:5432/mercon_db?schema=public"
+      JWT_SECRET: "your_super_secret_jwt_key_here_change_in_production"
+      PORT: 3000
+    volumes:
+      - ./uploads:/app/uploads # Local VPS storage for files
+    depends_on:
+      - postgres-db
+
+volumes:
+  pgdata:

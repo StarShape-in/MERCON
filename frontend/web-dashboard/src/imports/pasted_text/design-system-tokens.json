@@ -1,0 +1,736 @@
+# MASTER PROMPT — Generate Complete Design System from Existing Logistics App
+
+## ROLE
+
+You are a Senior Product Designer at Apple, Stripe, Linear, Notion and Uber Freight.
+
+Analyze all uploaded screenshots and reverse engineer the complete design language into a production-ready Design System for a logistics SaaS ecosystem.
+
+Do NOT redesign the product from scratch.
+
+Instead:
+
+• Preserve the existing visual identity
+• Improve consistency
+• Standardize every component
+• Create scalable tokens
+• Prepare everything for development
+
+The result should feel like an enterprise logistics platform used by companies such as DHL, Maersk, Uber Freight, Amazon Logistics, and SAP.
+
+---
+
+# GOAL
+
+Generate a complete Design System in Figma that will become the foundation for:
+
+* Operator Mobile App
+* Driver Mobile App
+* Web Dashboard
+* Future Tablet Version
+
+Every screen should be able to use reusable components.
+
+No duplicated elements.
+
+Everything must be Auto Layout based.
+
+Everything must use Variables.
+
+---
+
+# STEP 1 — Analyze Existing UI
+
+Study every uploaded screenshot.
+
+Identify:
+
+* Color usage
+* Typography hierarchy
+* Card styles
+* Navigation
+* Buttons
+* Input fields
+* Tables
+* Status badges
+* Statistics cards
+* Graph styles
+* Progress indicators
+* Maps
+* Bottom Navigation
+* Floating Action Button
+* Empty states
+* Success states
+* Icons
+* Spacing rhythm
+* Border radius
+* Shadows
+
+Extract the design language instead of copying pixels.
+
+---
+
+# STEP 2 — Create Design Tokens
+
+Build a professional token system.
+
+## Color Tokens
+
+Primary
+
+Primary 50
+Primary 100
+Primary 200
+Primary 300
+Primary 400
+Primary 500
+Primary 600
+Primary 700
+Primary 800
+Primary 900
+
+Neutral
+
+Gray 0
+Gray 25
+Gray 50
+Gray 100
+Gray 200
+Gray 300
+Gray 400
+Gray 500
+Gray 600
+Gray 700
+Gray 800
+Gray 900
+
+Semantic
+
+Success
+Warning
+Danger
+Info
+
+Background
+
+Primary Background
+
+Secondary Background
+
+Card Background
+
+Overlay
+
+Surface
+
+Text
+
+Primary
+
+Secondary
+
+Tertiary
+
+Disabled
+
+Border
+
+Light
+
+Medium
+
+Dark
+
+---
+
+# STEP 3 — Typography
+
+Create a complete typography system.
+
+Display Large
+
+Display Medium
+
+Display Small
+
+Heading XL
+
+Heading L
+
+Heading M
+
+Heading S
+
+Title
+
+Subtitle
+
+Body Large
+
+Body Medium
+
+Body Small
+
+Caption
+
+Overline
+
+Button Large
+
+Button Medium
+
+Button Small
+
+Use consistent:
+
+Weight
+
+Line Height
+
+Letter Spacing
+
+Scale
+
+---
+
+# STEP 4 — Spacing System
+
+Create an 8pt grid.
+
+Spacing Tokens
+
+2
+
+4
+
+8
+
+12
+
+16
+
+20
+
+24
+
+32
+
+40
+
+48
+
+56
+
+64
+
+80
+
+96
+
+128
+
+Margins
+
+Container padding
+
+Card spacing
+
+Section spacing
+
+Screen spacing
+
+---
+
+# STEP 5 — Radius
+
+Create radius tokens.
+
+4
+
+8
+
+12
+
+16
+
+20
+
+24
+
+32
+
+Circular
+
+---
+
+# STEP 6 — Shadows
+
+Small
+
+Medium
+
+Large
+
+Floating
+
+Navigation
+
+Modal
+
+---
+
+# STEP 7 — Icon System
+
+Create icon sizing.
+
+16
+
+20
+
+24
+
+28
+
+32
+
+40
+
+48
+
+State variants
+
+Filled
+
+Outline
+
+Disabled
+
+Active
+
+---
+
+# STEP 8 — Grid System
+
+Mobile
+
+375
+
+390
+
+393
+
+430
+
+Tablet
+
+768
+
+Desktop
+
+1440
+
+Use Auto Layout.
+
+Responsive constraints.
+
+---
+
+# STEP 9 — Components
+
+Build reusable production-ready components.
+
+## Buttons
+
+Primary
+
+Secondary
+
+Outline
+
+Ghost
+
+Icon
+
+Danger
+
+Success
+
+Loading
+
+Disabled
+
+Small
+
+Medium
+
+Large
+
+---
+
+## Inputs
+
+Text Field
+
+Dropdown
+
+Date Picker
+
+Time Picker
+
+Search
+
+Phone
+
+Password
+
+OTP
+
+Multiline
+
+Read Only
+
+Disabled
+
+Focused
+
+Error
+
+Success
+
+---
+
+## Chips
+
+Status
+
+Filter
+
+Selection
+
+Removable
+
+---
+
+## Badges
+
+Success
+
+Warning
+
+Danger
+
+Info
+
+Live
+
+Pending
+
+Completed
+
+---
+
+## Cards
+
+Stat Card
+
+Trip Card
+
+Driver Card
+
+Vehicle Card
+
+Customer Card
+
+Branch Card
+
+Invoice Card
+
+Billing Card
+
+Document Card
+
+Notification Card
+
+Route Card
+
+Map Card
+
+Graph Card
+
+Information Card
+
+Quick Action Card
+
+---
+
+## Navigation
+
+Top Bar
+
+Bottom Navigation
+
+Tab Bar
+
+Stepper
+
+Sidebar
+
+Breadcrumb
+
+Segment Control
+
+---
+
+## Tables
+
+Desktop Table
+
+Mobile Table
+
+Pagination
+
+Sorting
+
+Filters
+
+Expandable Rows
+
+Sticky Header
+
+---
+
+## Lists
+
+Trip List
+
+Driver List
+
+Vehicle List
+
+Customer List
+
+Notification List
+
+Document List
+
+Invoice List
+
+---
+
+## Charts
+
+Line Chart
+
+Area Chart
+
+Bar Chart
+
+Pie Chart
+
+Donut Chart
+
+Progress Ring
+
+Statistics Widget
+
+---
+
+## Modals
+
+Confirmation
+
+Delete
+
+Success
+
+Error
+
+Information
+
+Loading
+
+Bottom Sheet
+
+---
+
+## Upload
+
+Image Upload
+
+PDF Upload
+
+Document Upload
+
+Drag Drop
+
+Progress
+
+---
+
+## Map Components
+
+Route
+
+Live Driver
+
+Pickup Marker
+
+Drop Marker
+
+Cluster Marker
+
+Current Location
+
+---
+
+# STEP 10 — States
+
+Every component should have
+
+Default
+
+Hover
+
+Pressed
+
+Focused
+
+Disabled
+
+Loading
+
+Selected
+
+Error
+
+Success
+
+---
+
+# STEP 11 — Variables
+
+Create Variables for
+
+Colors
+
+Spacing
+
+Radius
+
+Typography
+
+Opacity
+
+Stroke
+
+Elevation
+
+Icons
+
+---
+
+# STEP 12 — Naming Convention
+
+Follow enterprise naming.
+
+Example
+
+Button/Primary/Large/Default
+
+Card/Driver/Selected
+
+Input/Text/Error
+
+Badge/Success
+
+Navigation/Bottom/Active
+
+Typography/H1
+
+Color/Primary/500
+
+Spacing/24
+
+Radius/16
+
+---
+
+# STEP 13 — Auto Layout Rules
+
+Every component must
+
+Use Auto Layout
+
+Resize correctly
+
+Support dynamic content
+
+Be responsive
+
+Have proper constraints
+
+Support localization
+
+Support RTL
+
+---
+
+# STEP 14 — Documentation
+
+Create dedicated pages inside Figma.
+
+00 Cover
+
+01 Foundations
+
+02 Colors
+
+03 Typography
+
+04 Icons
+
+05 Components
+
+06 Patterns
+
+07 Mobile Templates
+
+08 Desktop Templates
+
+09 Variables
+
+10 Documentation
+
+11 Playground
+
+---
+
+# STYLE DIRECTION
+
+Keep the same visual identity as the uploaded designs.
+
+However, improve consistency and enterprise quality.
+
+Target aesthetic:
+
+• Apple Human Interface Guidelines
+• Stripe Dashboard
+• Linear
+• Notion
+• Uber Freight
+• Arc Browser
+• Vercel
+• Material 3
+• Modern B2B SaaS
+
+The interface should feel:
+
+* Premium
+* Minimal
+* Spacious
+* Professional
+* Operational
+* Data-focused
+* Logistics-first
+
+Use rounded cards, subtle shadows, generous whitespace, high readability, and clear visual hierarchy. Preserve the orange-and-black brand language while ensuring accessibility and scalability.
