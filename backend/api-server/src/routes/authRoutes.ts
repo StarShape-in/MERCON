@@ -1,17 +1,13 @@
 import { Router } from 'express';
-import { requestOtp, verifyOtp, operatorLogin, getMe } from '../controllers/authController';
+import { login, getMe } from '../controllers/authController';
 import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
 
-// Driver OTP flow (mobile app)
-router.post('/request-otp', requestOtp);
-router.post('/verify-otp', verifyOtp);
+// Unified login for all roles (Admin, Operator, Driver)
+router.post('/login', login);
 
-// Operator web dashboard login (email + password)
-router.post('/operator/login', operatorLogin);
-
-// Get current authenticated user profile (works for both driver JWT and operator JWT)
+// Get current authenticated user profile
 router.get('/me', authenticateJWT, getMe);
 
 export default router;

@@ -7,11 +7,12 @@ const TOKEN_KEY  = 'mercon_token';
 const USER_KEY   = 'mercon_user';
 
 export interface AuthUser {
-  id:    string;
-  email: string;
-  phone: string;
-  name?: string;
-  role:  'Admin' | 'Operator' | 'driver';
+  id:       string;
+  username: string;
+  email?:   string;
+  phone?:   string;
+  name?:    string;
+  role:     'Admin' | 'Operator' | 'driver';
 }
 
 export const authStore = {

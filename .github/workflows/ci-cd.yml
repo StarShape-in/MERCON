@@ -59,21 +59,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Copy project files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          source: "."
-          target: "${{ secrets.VPS_PROJECT_PATH || '/root/mercon' }}"
-          
-      - name: Restart Docker Containers
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -82,7 +68,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
-            # Default to /root/mercon if the path secret isn't provided
             PROJECT_PATH="${{ secrets.VPS_PROJECT_PATH }}"
             if [ -z "$PROJECT_PATH" ]; then
               PROJECT_PATH="/root/mercon"
@@ -90,6 +75,14 @@ jobs:
             
             echo "Navigating to $PROJECT_PATH"
             cd $PROJECT_PATH
+            
+            echo "Pulling latest code from GitHub..."
+            # Fix dubious ownership issue
+            git config --global --add safe.directory $PROJECT_PATH
+            
+            # Reset any local changes and pull
+            git fetch origin main
+            git reset --hard origin/main
             
             echo "Rebuilding and restarting backend services..."
             cd backend/api-server

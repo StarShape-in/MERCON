@@ -92,9 +92,10 @@ enum PaymentStatus {
 // 1. ORGANIZATION (Simplified)
 // -----------------------------------------
 model User {
-  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  email         String  @unique
-  phone         String  @unique
+  id            String  @id @default(uuid()) @db.Uuid
+  username      String  @unique
+  email         String? @unique
+  phone         String? @unique
   password_hash String?
   name          String?
   role          Role    @default(Operator)
@@ -110,10 +111,11 @@ model User {
 
   verifiedDocs     Document[] @relation("VerifiedBy")
   approvedPayments Trip[]     @relation("PaymentApprovedBy")
+  driver           Driver?
 }
 
 model Customer {
-  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id            String @id @default(uuid()) @db.Uuid
   name          String
   contact_phone String
   credit_limit  Float  @default(0)
@@ -135,11 +137,13 @@ model Customer {
 // 2. FLEET MANAGEMENT (Merged Vehicle/Trailer)
 // -----------------------------------------
 model Driver {
-  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String?      @unique @db.Uuid
+  user           User?        @relation(fields: [userId], references: [id])
   ref_id         String?      @unique
   first_name     String
   last_name      String
-  phone_primary  String       @unique
+  phone_primary  String?      @unique
   status         DriverStatus @default(Available)
   license_number String
   license_expiry DateTime     @db.Timestamptz
@@ -158,7 +162,7 @@ model Driver {
 }
 
 model Vehicle {
-  id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id               String      @id @default(uuid()) @db.Uuid
   ref_id           String?     @unique
   plate_number     String      @unique
   asset_type       AssetType
@@ -191,7 +195,7 @@ model Vehicle {
 // 3. LOGISTICS ENGINE (Trips & Payments)
 // -----------------------------------------
 model Trip {
-  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id         String   @id @default(uuid()) @db.Uuid
   ref_id     String?  @unique
   customerId String   @db.Uuid
   customer   Customer @relation(fields: [customerId], references: [id])
@@ -232,7 +236,7 @@ model Trip {
 }
 
 model TripStop {
-  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id              String    @id @default(uuid()) @db.Uuid
   tripId          String    @db.Uuid
   trip            Trip      @relation(fields: [tripId], references: [id])
   stop_sequence   Int
@@ -254,7 +258,7 @@ model TripStop {
 // 4. ENTERPRISE DMS (Document Management)
 // -----------------------------------------
 model Document {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
   entity_type String // "Driver", "Vehicle", "Trip", "MaintenanceRecord"
   entity_id   String    @db.Uuid
   doc_type    DocType
@@ -288,7 +292,7 @@ model Document {
 // 5. MAINTENANCE (External Workflow)
 // -----------------------------------------
 model MaintenanceRecord {
-  id        String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id        String  @id @default(uuid()) @db.Uuid
   vehicleId String  @db.Uuid
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
 
@@ -319,7 +323,7 @@ model MaintenanceRecord {
 // 6. FINANCIALS (Simplified Tax-Free)
 // -----------------------------------------
 model Invoice {
-  id         String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id         String        @id @default(uuid()) @db.Uuid
   ref_id     String?       @unique
   tripId     String        @db.Uuid
   trip       Trip          @relation(fields: [tripId], references: [id])

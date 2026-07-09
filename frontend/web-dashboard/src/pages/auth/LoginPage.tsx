@@ -5,7 +5,7 @@ import { authService } from '@/services/authService';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,7 +16,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await authService.login({ email, password });
+      await authService.login({ username, password });
       navigate('/');
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || 'Login failed. Please check your credentials.';
@@ -51,18 +51,18 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Username</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                   <Mail size={18} />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white focus:ring-4 focus:ring-[#E8450F]/10 rounded-xl outline-none transition-all"
-                  placeholder="admin@mercon.sa"
+                  placeholder="admin"
                 />
               </div>
             </div>

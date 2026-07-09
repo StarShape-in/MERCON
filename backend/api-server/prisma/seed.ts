@@ -7,27 +7,42 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   // 1. Create default Operator User
-  const email = 'admin@mercon.sa';
-  const phone = '0500000000';
   const password = 'password123';
   const password_hash = await bcrypt.hash(password, 10);
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    await prisma.user.delete({ where: { email } });
-  }
+  // Clean existing users
+  await prisma.user.deleteMany({});
 
   const user = await prisma.user.create({
     data: {
-      email,
-      phone,
+      username: 'admin',
       password_hash,
       name: 'Mercon Admin',
       role: Role.Operator,
       isActive: true
     }
   });
-  console.log(`👤 Created Operator User: ${user.email} (Password: ${password})`);
+  console.log(`👤 Created Operator User: ${user.username} (Password: ${password})`);
+
+  const driverUser1 = await prisma.user.create({
+    data: {
+      username: 'driver1',
+      password_hash,
+      name: 'Ahmed Al-Harbi',
+      role: Role.Driver,
+      isActive: true
+    }
+  });
+
+  const driverUser2 = await prisma.user.create({
+    data: {
+      username: 'driver2',
+      password_hash,
+      name: 'Khalid Al-Otaibi',
+      role: Role.Driver,
+      isActive: true
+    }
+  });
 
   // 2. Create Customers
   const customer1 = await prisma.customer.create({
@@ -52,10 +67,10 @@ async function main() {
   // 3. Create Drivers
   const driver1 = await prisma.driver.create({
     data: {
+      userId: driverUser1.id,
       ref_id: 'DRV-1001',
       first_name: 'Ahmed',
       last_name: 'Al-Harbi',
-      phone_primary: '0533333333',
       status: DriverStatus.Available,
       license_number: 'LIC1001',
       license_expiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
@@ -66,10 +81,10 @@ async function main() {
 
   const driver2 = await prisma.driver.create({
     data: {
+      userId: driverUser2.id,
       ref_id: 'DRV-1002',
       first_name: 'Khalid',
       last_name: 'Al-Otaibi',
-      phone_primary: '0544444444',
       status: DriverStatus.OnTrip,
       license_number: 'LIC1002',
       license_expiry: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
