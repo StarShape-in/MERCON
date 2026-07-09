@@ -37,11 +37,9 @@ export default function InvoicePrintTemplate() {
       <div className="max-w-4xl mx-auto p-10 bg-white" style={{ width: '210mm', minHeight: '297mm' }}>
         
         {/* Header */}
-        <div className="flex justify-between items-start border-b-2 border-[#E8450F] pb-8 mb-8">
+        <div className="flex justify-between items-start border-b-2 border-[#E8450F] pb-6 mb-8">
           <div>
-            <img src="/logo.jpeg" alt="MERCON Logo" className="h-12 w-auto mb-2 object-contain" />
-            <h1 className="text-3xl font-black tracking-tight text-[#E8450F] mb-1">MERCON</h1>
-            <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Logistics & Transport</p>
+            <img src="/invoice-logo.png" alt="MERCON Logo" className="h-16 w-auto mb-2 object-contain" />
             <div className="mt-4 text-sm text-gray-600">
               <p>Riyadh, Saudi Arabia</p>
               <p>info@mercon.com</p>
