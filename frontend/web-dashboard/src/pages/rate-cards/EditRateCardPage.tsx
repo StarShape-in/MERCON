@@ -1,39 +1,83 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Save, ArrowLeft } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import FormSection from '@/components/ui/FormSection';
 import FormInput from '@/components/ui/FormInput';
 import Btn from '@/components/ui/Btn';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { rateCardService } from '@/services/rateCardService';
+import { customerService } from '@/services/customerService';
 
 export default function EditRateCardPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-
-  // Mock initial data fetch
   const [formData, setFormData] = useState({
-    customerId: '1',
-    cargoType: 'Hazardous',
-    baseRate: '1200',
-    pricePerKm: '2.50',
-    minDistance: '150',
-    hazmatSurcharge: '25',
+    name: '',
+    customerId: '',
+    route_origin: '',
+    route_destination: '',
+    base_price: '',
+    currency: 'SAR',
+    is_active: true,
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch rate card details
+  const { data: rateCard, isLoading: isFetching } = useQuery({
+    queryKey: ['rate-card', id],
+    queryFn: () => rateCardService.getById(id!),
+    enabled: !!id,
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  // Sync with form
+  useEffect(() => {
+    if (rateCard) {
+      setFormData({
+        name: rateCard.name || '',
+        customerId: rateCard.customerId || '',
+        route_origin: rateCard.route_origin || '',
+        route_destination: rateCard.route_destination || '',
+        base_price: rateCard.base_price?.toString() || '',
+        currency: rateCard.currency || 'SAR',
+        is_active: rateCard.is_active,
+      });
+    }
+  }, [rateCard]);
+
+  // Fetch active customers
+  const { data: customersResponse } = useQuery({
+    queryKey: ['customers', 'Active'],
+    queryFn: () => customerService.getAll({ is_active: true })
+  });
+  const customers = customersResponse?.data || [];
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => rateCardService.update(id!, data),
+    onSuccess: () => {
+      navigate('/rate-cards');
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.error?.message || err.message || 'Failed to update rate card');
+    }
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Mock save
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('/rate-cards');
-    }, 800);
+    setError(null);
+    updateMutation.mutate({
+      name: formData.name,
+      customerId: formData.customerId,
+      route_origin: formData.route_origin,
+      route_destination: formData.route_destination,
+      base_price: parseFloat(formData.base_price),
+      currency: formData.currency,
+      is_active: formData.is_active,
+    });
   };
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -45,8 +89,8 @@ export default function EditRateCardPage() {
       pageTitle={`Edit Rate Card: ${id}`} 
       actions={
         <div className="flex gap-2">
-          <Btn label="Cancel" variant="ghost" onClick={() => navigate('/rate-cards')} />
-          <Btn label="Update Rate Card" icon={<Save size={14} />} onClick={handleSubmit} isLoading={isLoading} />
+          <Btn label="Cancel" variant="ghost" onClick={() => navigate('/rate-cards')} disabled={updateMutation.isPending} />
+          <Btn label="Save Changes" icon={<Save size={14} />} onClick={handleSubmit} isLoading={updateMutation.isPending} />
         </div>
       }
     >
@@ -58,82 +102,104 @@ export default function EditRateCardPage() {
           <ArrowLeft size={16} /> Back to Rate Cards
         </button>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <FormSection title="Customer & Cargo Type" description="Assign this rate card to a specific customer and cargo category.">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-[#111] mb-1.5">Customer / Client</label>
-                <select 
-                  className="w-full bg-[#F5F5F7] border border-black/[0.08] text-[#6E6E80] rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed"
-                  value={formData.customerId}
-                  disabled
-                >
-                  <option value="1">SABIC</option>
-                  <option value="2">Saudi Aramco</option>
-                </select>
-                <p className="text-[10px] text-[#9898A4] mt-1">Customer cannot be changed on an existing rate card.</p>
+        {isFetching ? (
+          <div className="py-20 flex justify-center"><div className="w-6 h-6 border-2 border-[#E8450F] border-t-transparent rounded-full animate-spin"></div></div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <FormSection title="General Details" description="Assign this rate card to a specific customer and name the agreement.">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <FormInput
+                  label="Rate Card Name"
+                  placeholder="e.g. SABIC Dammam Route 2024"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  required
+                />
+                <div>
+                  <label className="block text-xs font-bold text-[#111] mb-1.5">Customer / Client</label>
+                  <select 
+                    className="w-full bg-white border border-black/[0.08] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#E8450F] transition-all"
+                    value={formData.customerId}
+                    onChange={(e) => handleChange('customerId', e.target.value)}
+                    required
+                  >
+                    <option value="" disabled>Select a customer</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
+            </FormSection>
 
-              <div>
-                <label className="block text-xs font-bold text-[#111] mb-1.5">Cargo Type applicability</label>
-                <select 
-                  className="w-full bg-white border border-black/[0.08] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#E8450F] transition-all"
-                  value={formData.cargoType}
-                  onChange={(e) => handleChange('cargoType', e.target.value)}
+            <FormSection title="Route & Pricing" description="Define the origin, destination, and fixed price.">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <FormInput
+                  label="Route Origin"
+                  placeholder="e.g. Riyadh"
+                  value={formData.route_origin}
+                  onChange={(e) => handleChange('route_origin', e.target.value)}
+                  required
+                />
+                <FormInput
+                  label="Route Destination"
+                  placeholder="e.g. Dammam"
+                  value={formData.route_destination}
+                  onChange={(e) => handleChange('route_destination', e.target.value)}
+                  required
+                />
+                <FormInput
+                  label="Base Price"
+                  type="number"
+                  step="0.01"
+                  placeholder="e.g. 1500.00"
+                  value={formData.base_price}
+                  onChange={(e) => handleChange('base_price', e.target.value)}
+                  required
+                />
+                <div>
+                  <label className="block text-xs font-bold text-[#111] mb-1.5">Currency</label>
+                  <select 
+                    className="w-full bg-[#F5F5F7] border border-transparent rounded-xl px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
+                    value={formData.currency}
+                    onChange={(e) => handleChange('currency', e.target.value)}
+                    required
+                  >
+                    <option value="SAR">SAR (Saudi Riyal)</option>
+                    <option value="USD">USD (US Dollar)</option>
+                  </select>
+                </div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Status" description="Activate or deactivate this rate card.">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleChange('is_active', !formData.is_active)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.is_active ? 'bg-[#E8450F]' : 'bg-gray-200'}`}
                 >
-                  <option value="General Cargo">General Cargo</option>
-                  <option value="Refrigerated">Refrigerated / Cold Chain</option>
-                  <option value="Hazardous">Hazardous Materials (Hazmat)</option>
-                  <option value="Liquid Bulk">Liquid Bulk</option>
-                </select>
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className="text-sm font-semibold text-[#111]">{formData.is_active ? 'Active' : 'Inactive'}</span>
+              </div>
+            </FormSection>
+
+            {error && (
+              <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-semibold border border-red-100">
+                {error}
+              </div>
+            )}
+
+            <div className="bg-[#FEF9C3] border border-[#CA8A04]/20 rounded-2xl p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-[#CA8A04] mb-1">Pricing Example Preview</h3>
+              <p className="text-xs text-[#CA8A04]/80 mb-3">This route will cost exactly:</p>
+              <div className="text-2xl font-bold text-[#CA8A04]">
+                {formData.currency} {parseFloat(formData.base_price || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
             </div>
-          </FormSection>
-
-          <FormSection title="Pricing Structure" description="Define the base rates and distance-based pricing.">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <FormInput
-                label="Base Rate (SAR)"
-                type="number"
-                placeholder="e.g. 500"
-                value={formData.baseRate}
-                onChange={(e) => handleChange('baseRate', e.target.value)}
-                required
-              />
-              <FormInput
-                label="Price per Km (SAR)"
-                type="number"
-                step="0.01"
-                placeholder="e.g. 1.20"
-                value={formData.pricePerKm}
-                onChange={(e) => handleChange('pricePerKm', e.target.value)}
-                required
-              />
-              <FormInput
-                label="Minimum Distance (Km)"
-                type="number"
-                placeholder="e.g. 100"
-                value={formData.minDistance}
-                onChange={(e) => handleChange('minDistance', e.target.value)}
-              />
-              <FormInput
-                label="Hazmat / Special Surcharge (%)"
-                type="number"
-                placeholder="e.g. 15"
-                value={formData.hazmatSurcharge}
-                onChange={(e) => handleChange('hazmatSurcharge', e.target.value)}
-              />
-            </div>
-          </FormSection>
-
-          <div className="bg-[#FEF9C3] border border-[#CA8A04]/20 rounded-2xl p-5 shadow-sm">
-            <h3 className="text-sm font-bold text-[#CA8A04] mb-1">Pricing Example Preview</h3>
-            <p className="text-xs text-[#CA8A04]/80 mb-3">A 500 km trip would cost approximately:</p>
-            <div className="text-2xl font-bold text-[#CA8A04]">
-              SAR {((parseFloat(formData.baseRate) || 0) + (500 * (parseFloat(formData.pricePerKm) || 0))).toLocaleString()}
-            </div>
-          </div>
-        </form>
+          </form>
+        )}
 
       </div>
     </DashboardLayout>

@@ -12,6 +12,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import FormInput from '@/components/ui/FormInput';
+import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { tripService, TripStatus } from '@/services/tripService';
 
 export default function TripDetailsPage() {
@@ -23,6 +24,7 @@ export default function TripDetailsPage() {
   const [paymentReason, setPaymentReason] = useState('');
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [nextStatus, setNextStatus] = useState<TripStatus>('Draft');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   // Fetch single trip
   const { data: trip, isLoading } = useQuery({
@@ -108,6 +110,14 @@ export default function TripDetailsPage() {
                 setNextStatus(nextStatusOption);
                 setIsStatusModalOpen(true);
               }} 
+            />
+          )}
+          {trip.status === 'Completed' && (
+            <Btn 
+              label="Upload POD" 
+              size="sm" 
+              icon={<ReceiptText size={13} />} 
+              onClick={() => setIsUploadModalOpen(true)} 
             />
           )}
         </div>
@@ -322,6 +332,21 @@ export default function TripDetailsPage() {
           updateStatusMutation.mutate(nextStatus);
         }}
       />
+
+      {/* Upload Document Modal */}
+      {trip && (
+        <UploadDocumentModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          entityType="Trip"
+          entityId={trip.id}
+          docType="POD"
+          onUploadSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['trip', id] });
+            // Show toast or something here optionally
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 }

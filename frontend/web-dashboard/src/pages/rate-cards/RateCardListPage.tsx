@@ -6,21 +6,26 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import Btn from '@/components/ui/Btn';
 
-// Mock Data
-const MOCK_RATE_CARDS = [
-  { id: 'RC-101', name: 'Almarai Dammam Route', customer: 'Almarai Logistics', valid_until: '2024-12-31', status: 'Active' },
-  { id: 'RC-102', name: 'SABIC Riyadh Route', customer: 'SABIC', valid_until: '2024-12-31', status: 'Active' },
-  { id: 'RC-103', name: 'Jeddah Port Standard', customer: 'General Port', valid_until: '2023-12-31', status: 'Expired' },
-];
+import { useQuery } from '@tanstack/react-query';
+import { rateCardService } from '@/services/rateCardService';
 
 export default function RateCardListPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState('');
 
-  const filteredData = MOCK_RATE_CARDS.filter(rc => 
+  const { data: response, isLoading } = useQuery({
+    queryKey: ['rate-cards', currentPage, search],
+    queryFn: () => rateCardService.getAll(),
+  });
+
+  const rateCards = response?.data || [];
+  const meta = response?.meta || { total_pages: 1 };
+  
+  // Client side filtering since API doesn't support search yet
+  const filteredData = rateCards.filter(rc => 
     rc.name.toLowerCase().includes(search.toLowerCase()) || 
-    rc.customer.toLowerCase().includes(search.toLowerCase())
+    rc.customer?.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const columns = [
@@ -43,23 +48,23 @@ export default function RateCardListPage() {
     {
       header: 'Customer',
       accessor: (row: any) => (
-        <span className="text-xs text-[#444] font-medium">{row.customer}</span>
+        <span className="text-xs text-[#444] font-medium">{row.customer?.name || 'N/A'}</span>
       ),
     },
     {
-      header: 'Valid Until',
+      header: 'Route',
       accessor: (row: any) => (
         <span className="text-xs text-[#6E6E80] font-medium">
-          {new Date(row.valid_until).toLocaleDateString()}
+          {row.route_origin} → {row.route_destination}
         </span>
       ),
     },
     {
       header: 'Status',
       accessor: (row: any) => (
-        row.status === 'Active' 
+        row.is_active 
           ? <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Active</span>
-          : <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Expired</span>
+          : <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Inactive</span>
       ),
     },
     {
@@ -94,28 +99,21 @@ export default function RateCardListPage() {
           <Btn 
             label="Create Rate Card" 
             icon={<Plus size={14} />} 
+            onClick={() => navigate('/rate-cards/create')}
           />
         </>
       }
     >
-      <div className="px-6 mb-6">
-        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 text-blue-800 text-sm font-medium">
-          <Banknote size={20} className="shrink-0" />
-          <p>
-            The Rate Card module backend API is currently in development. This page displays mock data for demonstration purposes.
-          </p>
-        </div>
-      </div>
 
       <div className="px-6 pb-6">
         <DataTable
           columns={columns}
           data={filteredData}
-          isLoading={false}
+          isLoading={isLoading}
           searchPlaceholder="Search by name or customer..."
           onSearchChange={setSearch}
           currentPage={currentPage}
-          totalPages={1}
+          totalPages={meta.total_pages}
           onPageChange={setCurrentPage}
         />
       </div>
