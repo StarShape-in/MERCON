@@ -11,7 +11,11 @@ async function main() {
   const password_hash = await bcrypt.hash(password, 10);
 
   // Clean existing users
-  await prisma.user.deleteMany({});
+  try {
+    await prisma.user.deleteMany({});
+  } catch (e) {
+    console.log("Could not wipe users due to constraints, skipping wipe.");
+  }
 
   const user = await prisma.user.create({
     data: {

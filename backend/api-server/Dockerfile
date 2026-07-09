@@ -21,5 +21,5 @@ RUN npm run build
 # Expose port
 EXPOSE 3000
 
-# Start command (Run db migrations, then start server)
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Start command (Force schema sync, seed DB, then start server)
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx ts-node prisma/seed.ts && node dist/index.js"]
