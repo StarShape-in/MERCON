@@ -50,6 +50,7 @@ const RateCardDocsPage        = lazy(() => import('@/pages/rate-cards/RateCardDo
 // Invoices
 const InvoiceListPage         = lazy(() => import('@/pages/invoices/InvoiceListPage'));
 const InvoiceDetailsPage      = lazy(() => import('@/pages/invoices/InvoiceDetailsPage'));
+const InvoicePrintTemplate    = lazy(() => import('@/pages/invoices/InvoicePrintTemplate'));
 const CreateInvoicePage       = lazy(() => import('@/pages/invoices/CreateInvoicePage'));
 const PaymentStatusPage       = lazy(() => import('@/pages/invoices/PaymentStatusPage'));
 
@@ -130,6 +131,7 @@ export default function AppRouter() {
           <Route path="/invoices"                 element={<ProtectedRoute><InvoiceListPage /></ProtectedRoute>} />
           <Route path="/invoices/new"             element={<ProtectedRoute><CreateInvoicePage /></ProtectedRoute>} />
           <Route path="/invoices/:id"             element={<ProtectedRoute><InvoiceDetailsPage /></ProtectedRoute>} />
+          <Route path="/invoices/:id/print"       element={<ProtectedRoute><InvoicePrintTemplate /></ProtectedRoute>} />
           <Route path="/invoices/:id/payment"     element={<ProtectedRoute><PaymentStatusPage /></ProtectedRoute>} />
 
           {/* Documents */}
