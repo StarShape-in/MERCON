@@ -29,5 +29,13 @@ services:
     depends_on:
       - postgres-db
 
+  mercon-frontend:
+    build: 
+      context: ../../frontend/web-dashboard
+    container_name: mercon-frontend
+    restart: unless-stopped
+    ports:
+      - '3060:80' # Exposed for Nginx proxy on a safe port
+
 volumes:
   pgdata:

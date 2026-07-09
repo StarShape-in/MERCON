@@ -93,5 +93,5 @@ jobs:
             
             echo "Rebuilding and restarting backend services..."
             cd backend/api-server
-            docker rm -f mercon-postgres mercon-api || true
+            docker rm -f mercon-postgres mercon-api mercon-frontend || true
             docker-compose up -d --build
