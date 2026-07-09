@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { io, Socket } from 'socket.io-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Navigation, NavigationOff, ShieldCheck } from 'lucide-react';
 
@@ -17,6 +19,24 @@ export default function TripTrackingPage() {
     enabled: !!id,
   });
 
+  const [gpsData, setGpsData] = useState<{ lat: number; lng: number; speed: number } | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    
+    // Connect to websocket backend
+    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000');
+
+    socket.on(`trip:location_update:${id}`, (data: { lat: number; lng: number; speed: number }) => {
+      console.log('Received live GPS update:', data);
+      setGpsData(data);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [id]);
+
   if (isLoading || !trip) {
     return (
       <DashboardLayout active="Trips" title="Live Tracking">
@@ -31,8 +51,10 @@ export default function TripTrackingPage() {
   const pickup = trip.stops?.find(s => s.stop_type === 'Pickup');
   const dropoff = trip.stops?.find(s => s.stop_type === 'Dropoff');
 
-  const latCenter = pickup ? pickup.location_lat : 24.7136;
-  const lngCenter = pickup ? pickup.location_lng : 46.6753;
+  // Lat/Lng centers (use live GPS if available, fallback to pickup)
+  const latCenter = gpsData ? gpsData.lat : (pickup ? pickup.location_lat : 24.7136);
+  const lngCenter = gpsData ? gpsData.lng : (pickup ? pickup.location_lng : 46.6753);
+  const currentSpeed = gpsData ? gpsData.speed : 0;
 
   return (
     <DashboardLayout 
@@ -118,7 +140,7 @@ export default function TripTrackingPage() {
             </div>
             <div className="text-right">
               <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Speed</p>
-              <p className="text-xs font-bold text-[#111] mt-0.5">85 km/h</p>
+              <p className="text-xs font-bold text-[#111] mt-0.5">{currentSpeed} km/h</p>
             </div>
           </div>
         </div>
