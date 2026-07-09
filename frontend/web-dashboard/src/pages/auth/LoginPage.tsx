@@ -43,8 +43,8 @@ export default function LoginPage() {
         <div className="bg-white rounded-[24px] shadow-lg border border-gray-100 p-8 sm:p-10">
           
           <div className="mb-8 text-center">
-            <div className="w-14 h-14 bg-[#E8450F] text-white flex items-center justify-center rounded-xl mx-auto mb-4 font-bold text-xl tracking-wider shadow-md shadow-[#E8450F]/20">
-              M
+            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+              <img src="/logo.jpeg" alt="MERCON Logo" className="w-full h-full object-contain rounded-xl" />
             </div>
             <h1 className="text-2xl font-bold text-[#1C1C2E]">MERCON Operator</h1>
             <p className="text-gray-500 text-sm mt-1">Sign in to manage the platform</p>

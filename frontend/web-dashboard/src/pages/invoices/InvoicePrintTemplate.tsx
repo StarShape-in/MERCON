@@ -39,7 +39,8 @@ export default function InvoicePrintTemplate() {
         {/* Header */}
         <div className="flex justify-between items-start border-b-2 border-[#E8450F] pb-8 mb-8">
           <div>
-            <h1 className="text-4xl font-black tracking-tight text-[#E8450F] mb-1">MERCON</h1>
+            <img src="/logo.jpeg" alt="MERCON Logo" className="h-12 w-auto mb-2 object-contain" />
+            <h1 className="text-3xl font-black tracking-tight text-[#E8450F] mb-1">MERCON</h1>
             <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest">Logistics & Transport</p>
             <div className="mt-4 text-sm text-gray-600">
               <p>Riyadh, Saudi Arabia</p>
