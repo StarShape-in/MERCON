@@ -15,7 +15,14 @@ let speed = 65;
 socket.on('connect', () => {
   console.log('Driver connected to Socket.io');
   
-  setInterval(() => {
+  let count = 0;
+  const interval = setInterval(() => {
+    count++;
+    if (count > 15) {
+      console.log('Finished simulating GPS trip');
+      process.exit(0);
+    }
+
     lat += 0.0001;
     lng += 0.0001;
     speed = Math.floor(Math.random() * 20) + 70; // 70-90 km/h

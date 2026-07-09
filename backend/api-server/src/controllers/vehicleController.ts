@@ -73,7 +73,8 @@ export const createVehicle = async (req: Request, res: Response) => {
       trailer_number,
       trailer_type,
       trailer_capacity_kg,
-      gps_device_id
+      gps_device_id,
+      icces_device_id
     } = req.body;
 
     const vehicle = await prisma.vehicle.create({
@@ -86,6 +87,7 @@ export const createVehicle = async (req: Request, res: Response) => {
         trailer_type: trailer_type ? (trailer_type as AssetType) : null,
         trailer_capacity_kg,
         gps_device_id,
+        icces_device_id,
         created_by: (req as any).user?.id
       }
     });

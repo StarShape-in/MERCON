@@ -15,6 +15,7 @@ export interface Vehicle {
   trailer_number: string | null;
   trailer_type: AssetType | null;
   trailer_capacity_kg: number | null;
+  icces_device_id: string | null;
   isActive: boolean;
   createdAt: string;
   documents?: import('./documentService').MerconDocument[];
@@ -28,6 +29,7 @@ export interface CreateVehiclePayload {
   trailer_type?: AssetType;
   trailer_capacity_kg?: number;
   gps_device_id?: string;
+  icces_device_id?: string;
 }
 
 export interface VehicleFilters {

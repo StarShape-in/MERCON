@@ -21,6 +21,7 @@ export default function AddVehiclePage() {
     trailer_type: 'Flatbed' as AssetType,
     trailer_capacity_kg: '',
     gps_device_id: '',
+    icces_device_id: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -105,6 +106,14 @@ export default function AddVehiclePage() {
                 placeholder="GPS-XXXX" 
                 icon={<Navigation size={16} />} 
                 value={formData.gps_device_id}
+                onChange={handleChange}
+              />
+              <FormInput 
+                label="ICCES Tracker ID (Optional)" 
+                name="icces_device_id" 
+                placeholder="351777..." 
+                icon={<Activity size={16} />} 
+                value={formData.icces_device_id}
                 onChange={handleChange}
               />
             </div>

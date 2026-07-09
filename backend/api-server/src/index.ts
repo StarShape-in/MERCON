@@ -31,6 +31,7 @@ import mobileTripRoutes from './routes/mobileTripRoutes';
 import rateCardRoutes from './routes/rateCardRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import uploadRoutes from './routes/uploadRoutes';
+import { initCronJobs } from './services/cronJobs';
 
 // Middleware
 app.use(cors());
@@ -76,6 +77,9 @@ io.on('connection', (socket) => {
 app.get('/health', (req: Request, res: Response) => {
   res.json({ success: true, message: 'MERCON API is running perfectly!' });
 });
+
+// Initialize Background Workers
+initCronJobs();
 
 httpServer.listen(port, () => {
   console.log(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);

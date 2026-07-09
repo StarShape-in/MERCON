@@ -29,6 +29,7 @@ export default function EditVehiclePage() {
     trailer_type: 'Flatbed' as AssetType,
     trailer_capacity_kg: '',
     gps_device_id: '',
+    icces_device_id: '',
     status: 'Available' as AssetStatus,
   });
 
@@ -42,6 +43,7 @@ export default function EditVehiclePage() {
         trailer_type: vehicle.trailer_type || 'Flatbed',
         trailer_capacity_kg: vehicle.trailer_capacity_kg?.toString() || '',
         gps_device_id: vehicle.gps_device_id || '',
+        icces_device_id: vehicle.icces_device_id || '',
         status: vehicle.status,
       });
     }
@@ -65,6 +67,7 @@ export default function EditVehiclePage() {
         capacity_kg: Number(formData.capacity_kg),
         status: formData.status,
         gps_device_id: formData.gps_device_id || null,
+        icces_device_id: formData.icces_device_id || null,
         trailer_number: formData.trailer_number || null,
         trailer_type: formData.trailer_number ? formData.trailer_type : null,
         trailer_capacity_kg: formData.trailer_capacity_kg ? Number(formData.trailer_capacity_kg) : null,
@@ -155,8 +158,17 @@ export default function EditVehiclePage() {
               <FormInput 
                 label="GPS Device ID (Optional)" 
                 name="gps_device_id" 
+                placeholder="GPS-XXXX" 
                 icon={<Navigation size={16} />} 
                 value={formData.gps_device_id}
+                onChange={handleChange}
+              />
+              <FormInput 
+                label="ICCES Tracker ID (Optional)" 
+                name="icces_device_id" 
+                placeholder="351777..." 
+                icon={<Activity size={16} />} 
+                value={formData.icces_device_id}
                 onChange={handleChange}
               />
             </div>
