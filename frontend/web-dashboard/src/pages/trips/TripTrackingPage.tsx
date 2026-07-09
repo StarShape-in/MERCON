@@ -3,11 +3,31 @@ import { useQuery } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Navigation, NavigationOff, ShieldCheck } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Btn from '@/components/ui/Btn';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { tripService } from '@/services/tripService';
+
+// Custom Leaflet marker using HTML
+const truckIcon = L.divIcon({
+  html: `<div style="background-color: #E8450F; color: white; padding: 6px; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 28px; height: 28px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></div>`,
+  className: '',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
+
+// Component to dynamically update map center when GPS moves
+function MapUpdater({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo([lat, lng], map.getZoom(), { animate: true });
+  }, [lat, lng, map]);
+  return null;
+}
 
 export default function TripTrackingPage() {
   const { id } = useParams<{ id: string }>();
@@ -83,57 +103,59 @@ export default function TripTrackingPage() {
     >
       <div className="px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 h-[calc(100vh-170px)] animate-fade-in">
         
-        {/* Mock Map panel */}
-        <div className="lg:col-span-2 bg-[#EBEBED] rounded-[24px] border border-black/[0.06] shadow-sm relative overflow-hidden flex flex-col justify-between p-5 min-h-[300px]">
-          {/* Mock Map Background Grid */}
-          <div className="absolute inset-0 bg-white bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-70" />
-          
-          {/* Simulated Route Line */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            <path 
-              d="M 150 150 Q 300 200 450 350" 
-              fill="none" 
-              stroke="#E8450F" 
-              strokeWidth="4" 
-              strokeDasharray="8,6" 
-              className="opacity-70 animate-pulse"
+        {/* Map panel */}
+        <div className="lg:col-span-2 bg-[#EBEBED] rounded-[24px] border border-black/[0.06] shadow-sm relative overflow-hidden flex flex-col min-h-[400px] z-0">
+          <MapContainer 
+            center={[latCenter, lngCenter]} 
+            zoom={13} 
+            scrollWheelZoom={true} 
+            style={{ height: '100%', width: '100%', zIndex: 0 }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-          </svg>
+            
+            <MapUpdater lat={latCenter} lng={lngCenter} />
 
-          {/* GPS Pin 1 (Pickup) */}
-          <div className="absolute left-[150px] top-[150px] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center select-none z-10">
-            <div className="bg-[#E8450F] text-white p-1.5 rounded-full shadow-lg">
-              <Navigation size={14} className="rotate-45" />
-            </div>
-            <span className="text-[10px] font-bold bg-[#1C1C2E] text-white px-2 py-0.5 rounded shadow mt-1">
-              Pickup (Riyadh)
-            </span>
-          </div>
-
-          {/* GPS Pin 2 (Dropoff) */}
-          <div className="absolute left-[450px] top-[350px] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center select-none z-10">
-            <div className="bg-[#16A34A] text-white p-1.5 rounded-full shadow-lg">
-              <Navigation size={14} className="rotate-180" />
-            </div>
-            <span className="text-[10px] font-bold bg-[#1C1C2E] text-white px-2 py-0.5 rounded shadow mt-1">
-              Jeddah Port
-            </span>
-          </div>
+            <Marker position={[latCenter, lngCenter]} icon={truckIcon}>
+              <Popup>
+                <div className="text-center">
+                  <p className="font-bold text-[#111]">{trip.vehicle?.plate_number || 'Truck'}</p>
+                  <p className="text-xs text-gray-500">Speed: {currentSpeed} km/h</p>
+                </div>
+              </Popup>
+            </Marker>
+            
+            {/* If pickup exists, show it */}
+            {pickup && (
+              <Marker position={[pickup.location_lat, pickup.location_lng]}>
+                <Popup>Pickup Location</Popup>
+              </Marker>
+            )}
+            
+            {/* If dropoff exists, show it */}
+            {dropoff && (
+              <Marker position={[dropoff.location_lat, dropoff.location_lng]}>
+                <Popup>Dropoff Location</Popup>
+              </Marker>
+            )}
+          </MapContainer>
 
           {/* Map Overlay Controls */}
-          <div className="relative z-10 flex justify-between items-start w-full">
-            <div className="bg-white/95 backdrop-blur px-3 py-2 rounded-xl shadow-sm border border-black/[0.06] flex items-center gap-2">
+          <div className="absolute top-4 left-4 right-4 z-[400] flex justify-between items-start pointer-events-none">
+            <div className="bg-white/95 backdrop-blur px-3 py-2 rounded-xl shadow-sm border border-black/[0.06] flex items-center gap-2 pointer-events-auto">
               <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
               <span className="text-[10px] font-bold text-[#111]">Active GPS Signal</span>
             </div>
             
-            <div className="bg-[#1C1C2E] text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2">
+            <div className="bg-[#1C1C2E] text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2 pointer-events-auto">
               <ShieldCheck size={14} className="text-green-400" />
               <span>Secure Route Protocol Enforced</span>
             </div>
           </div>
 
-          <div className="relative z-10 mt-auto bg-white/95 backdrop-blur p-4 rounded-2xl shadow-md border border-black/[0.06] flex items-center justify-between max-w-sm">
+          <div className="absolute bottom-4 left-4 z-[400] bg-white/95 backdrop-blur p-4 rounded-2xl shadow-md border border-black/[0.06] flex items-center justify-between gap-6 pointer-events-auto">
             <div>
               <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Current GPS Coords</p>
               <p className="text-xs font-mono font-bold text-[#111] mt-0.5">{latCenter.toFixed(5)}, {lngCenter.toFixed(5)}</p>
