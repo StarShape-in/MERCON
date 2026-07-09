@@ -65,7 +65,7 @@ export default function Sidebar({ active }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center px-4 py-4 border-b border-white/10 shrink-0 justify-center">
         <div className="bg-white rounded-lg p-2 w-full flex items-center justify-center">
-          <img src="/sidebar-logo.png" alt="MERCON Logo" className="h-8 w-auto object-contain" />
+          <img src="/invoice-logo.png" alt="MERCON Logo" className="h-8 w-auto object-contain" />
         </div>
       </div>
 
