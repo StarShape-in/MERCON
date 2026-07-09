@@ -101,6 +101,11 @@ export default function InvoiceListPage() {
             <Eye size={13} className="text-[#6E6E80]" />
           </button>
           <button 
+            onClick={() => {
+              navigate(`/invoices/${row.id}`);
+              // Note: true PDF generation needs a backend service. 
+              // We navigate to details where they can use browser print.
+            }}
             className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
             title="Download PDF"
           >

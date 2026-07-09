@@ -64,6 +64,7 @@ export default function InvoiceDetailsPage() {
             label="Download PDF" 
             variant="outline" 
             icon={<Download size={14} />} 
+            onClick={() => window.print()}
           />
         </div>
       }
