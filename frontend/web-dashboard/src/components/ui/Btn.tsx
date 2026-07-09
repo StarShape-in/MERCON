@@ -5,6 +5,7 @@ interface BtnProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
   size?: 'sm' | 'md';
+  isLoading?: boolean;
 }
 
 export default function Btn({
@@ -12,6 +13,7 @@ export default function Btn({
   icon,
   variant = 'primary',
   size = 'md',
+  isLoading = false,
   className = '',
   ...props
 }: BtnProps) {
@@ -26,9 +28,9 @@ export default function Btn({
         : "text-[#E8450F] hover:bg-[#FFF0EB]";
 
   return (
-    <button className={`${base} ${sz} ${col} ${className}`} {...props}>
-      {icon}
-      <span>{label}</span>
+    <button className={`${base} ${sz} ${col} ${className}`} disabled={isLoading || props.disabled} {...props}>
+      {isLoading ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : icon}
+      <span>{isLoading ? 'Loading...' : label}</span>
     </button>
   );
 }
