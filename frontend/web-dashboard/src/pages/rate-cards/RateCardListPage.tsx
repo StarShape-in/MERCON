@@ -99,7 +99,7 @@ export default function RateCardListPage() {
           <Btn 
             label="Create Rate Card" 
             icon={<Plus size={14} />} 
-            onClick={() => navigate('/rate-cards/create')}
+            onClick={() => navigate('/rate-cards/new')}
           />
         </>
       }
