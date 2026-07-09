@@ -18,7 +18,7 @@ export interface Trip {
   payment_status: string | null;
   createdAt: string;
   customer?: { id: string; name: string; contact_phone: string };
-  driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string } | null;
+  driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; ai_risk_score?: number } | null;
   vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string } | null;
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];

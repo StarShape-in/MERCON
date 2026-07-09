@@ -9,6 +9,7 @@ interface KpiCardProps {
   icon: React.ElementType;
   color?: string;
   bg?: string;
+  subtitle?: string;
 }
 
 export default function KpiCard({
@@ -19,6 +20,7 @@ export default function KpiCard({
   icon: Icon,
   color = '#E8450F',
   bg = '#FFF0EB',
+  subtitle,
 }: KpiCardProps) {
   const showDelta = delta !== undefined && delta !== null;
   const isUp = up === true || (typeof delta === 'number' && delta >= 0);
@@ -51,6 +53,7 @@ export default function KpiCard({
       <div>
         <p className="text-2xl font-bold text-[#111] leading-none tracking-tight">{value}</p>
         <p className="text-xs text-[#6E6E80] mt-1.5 font-medium">{label}</p>
+        {subtitle && <p className="text-[10px] text-[#9898A4] mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );

@@ -64,35 +64,35 @@ export default function ReportsDashboardPage() {
         {/* Top KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KpiCard
-            title="Total Revenue (Month)"
+            label="Total Revenue (Month)"
             value={`SAR ${kpis?.revenue_this_month?.value?.toLocaleString() || '0'}`}
-            trend={kpis?.revenue_this_month?.delta}
-            icon={<TrendingUp size={16} />}
-            iconColor="#16A34A"
-            iconBg="#F0FDF4"
+            delta={kpis?.revenue_this_month?.delta}
+            icon={TrendingUp}
+            color="#16A34A"
+            bg="#F0FDF4"
           />
           <KpiCard
-            title="Total Trips"
+            label="Total Trips"
             value={kpis?.total_trips?.value?.toString() || '0'}
-            trend={kpis?.total_trips?.delta}
-            icon={<Truck size={16} />}
-            iconColor="#E8450F"
-            iconBg="#E8450F1A"
+            delta={kpis?.total_trips?.delta}
+            icon={Truck}
+            color="#E8450F"
+            bg="#E8450F1A"
           />
           <KpiCard
-            title="Fleet Available"
+            label="Fleet Available"
             value={kpis?.fleet_available?.value?.toString() || '0'}
             subtitle={`${kpis?.fleet_on_trip?.value || 0} Currently on Trip`}
-            icon={<Truck size={16} />}
-            iconColor="#2563EB"
-            iconBg="#EFF6FF"
+            icon={Truck}
+            color="#2563EB"
+            bg="#EFF6FF"
           />
           <KpiCard
-            title="Active Drivers"
+            label="Active Drivers"
             value={kpis?.active_drivers?.value?.toString() || '0'}
-            icon={<Users size={16} />}
-            iconColor="#CA8A04"
-            iconBg="#FEF9C3"
+            icon={Users}
+            color="#CA8A04"
+            bg="#FEF9C3"
           />
         </div>
 
