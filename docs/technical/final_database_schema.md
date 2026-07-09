@@ -1,34 +1,6 @@
 # MERCON Logistics - Final Practical Database Schema
 
-This document contains the definitive, production-ready backend schema tailored exactly to our logistics business operations. It focuses on performance, simplicity, and maintainability without unnecessary ERP bloat, while still retaining tier-1 audit capabilities (UUIDs, UTC, Soft Deletes).
-
-## 1. Core Principles
-* **Full Audit Trail:** Every single table tracks exactly *when* an action happened (`createdAt`, `updatedAt`, `deletedAt`) and *who* performed it (`created_by`, `updated_by`, `deleted_by`).
-* **Single Branch:** Removed multi-branch/multi-tenant complexity.
-* **Merged Trailers:** Trailer info is embedded inside the `Vehicle` table to eliminate slow SQL JOIN queries.
-* **External Maintenance:** We do not manage internal mechanics or parts inventory. We only log external workshop receipts.
-* **Driver Payments:** Trips have built-in fields for on-the-ground cash payments (loading/unloading).
-* **Tax-Free Billing:** Invoices are straightforward `subtotal` + `extra_charges` = `total_amount`.
-
----
-
-## 2. Table Explanations
-
-| Table | Purpose & Details |
-| :--- | :--- |
-| **`User`** | Internal staff members. Roles are strictly limited to `Admin`, `Operator`, and `Driver`. |
-| **`Customer`** | B2B clients who pay us to move their freight. They are the recipients of `Invoices`. |
-| **`Driver`** | The human operators. Contains license info, phone numbers, and an AI risk score. |
-| **`Vehicle`** | The master asset table. It now includes optional trailer attributes (`trailer_number`, `trailer_type`, `trailer_capacity_kg`), making dispatching a single-table lookup. |
-| **`Trip`** | The core freight job linking Customer, Driver, and Vehicle. Now includes `extra_driver_payment` workflow for cash payouts. |
-| **`TripStop`** | The granular routing engine (Stop 1: Pickup, Stop 2: Dropoff) tracking planned vs. actual arrivals. |
-| **`Document`** | The centralized file vault. Uses `entity_type` + `entity_id` to attach photos, PODs, and licenses to *any* record in the system. |
-| **`MaintenanceRecord`** | Replaces bloated ERP modules. Simply logs external workshop costs, dates, odometer readings, and receipt uploads. |
-| **`Invoice`** | The billing engine. Generates a flat `total_amount` due from the Customer once a trip is complete. |
-
----
-
-## 3. The Prisma Schema Code
+This document contains the definitive, production-ready backend schema tailored exactly to our logistics business operations.
 
 ```prisma
 generator client {
@@ -145,6 +117,7 @@ model User {
   verifiedDocs     Document[] @relation("VerifiedBy")
   approvedPayments Trip[]     @relation("PaymentApprovedBy")
   driver           Driver?
+  notifications    Notification[]
 }
 
 model Customer {
@@ -162,8 +135,9 @@ model Customer {
   isActive   Boolean   @default(true)
   version    Int       @default(1)
 
-  trips    Trip[]
-  invoices Invoice[]
+  trips     Trip[]
+  invoices  Invoice[]
+  rateCards RateCard[]
 }
 
 // -----------------------------------------
@@ -378,5 +352,48 @@ model Invoice {
   deletedAt  DateTime? @db.Timestamptz
   isActive   Boolean   @default(true)
   version    Int       @default(1)
+}
+
+// -----------------------------------------
+// 7. PRICING & QUOTATIONS (Rate Cards)
+// -----------------------------------------
+model RateCard {
+  id               String    @id @default(uuid()) @db.Uuid
+  name             String
+  route_origin     String
+  route_destination String
+  base_price       Float
+  currency         String    @default("SAR")
+  
+  customerId       String?   @db.Uuid // If null, it's a default/standard rate card
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  
+  is_active        Boolean   @default(true)
+  
+  created_by   String?   @db.Uuid
+  updated_by   String?   @db.Uuid
+  deleted_by   String?   @db.Uuid
+  createdAt    DateTime  @default(now()) @db.Timestamptz
+  updatedAt    DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt    DateTime? @db.Timestamptz
+  version      Int       @default(1)
+}
+
+// -----------------------------------------
+// 8. SYSTEM ALERTS (Notifications)
+// -----------------------------------------
+model Notification {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  user         User      @relation(fields: [userId], references: [id])
+  
+  title        String
+  message      String    @db.Text
+  type         String    // "Emergency", "Trip", "Document", "System"
+  is_read      Boolean   @default(false)
+  entity_type  String?   // "Trip", "Driver", "Vehicle"
+  entity_id    String?   @db.Uuid
+  
+  createdAt    DateTime  @default(now()) @db.Timestamptz
 }
 ```

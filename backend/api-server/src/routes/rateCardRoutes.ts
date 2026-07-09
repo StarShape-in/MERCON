@@ -1,0 +1,22 @@
+import { Router } from 'express';
+import { 
+  createRateCard, 
+  getRateCards, 
+  getRateCardById, 
+  updateRateCard, 
+  deleteRateCard 
+} from '../controllers/rateCardController';
+import { authenticateJWT } from '../middlewares/auth';
+
+const router = Router();
+
+// All RateCard routes are protected
+router.use(authenticateJWT);
+
+router.post('/', createRateCard);
+router.get('/', getRateCards);
+router.get('/:id', getRateCardById);
+router.put('/:id', updateRateCard);
+router.delete('/:id', deleteRateCard);
+
+export default router;

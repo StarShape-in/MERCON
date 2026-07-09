@@ -9,7 +9,7 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST', 'PATCH'] }
 });
 
@@ -28,6 +28,9 @@ import reportsRoutes from './routes/reportsRoutes';
 import trackingRoutes from './routes/trackingRoutes';
 import mobileAuthRoutes from './routes/mobileAuthRoutes';
 import mobileTripRoutes from './routes/mobileTripRoutes';
+import rateCardRoutes from './routes/rateCardRoutes';
+import notificationRoutes from './routes/notificationRoutes';
+import uploadRoutes from './routes/uploadRoutes';
 
 // Middleware
 app.use(cors());
@@ -45,6 +48,9 @@ app.use('/maintenance', maintenanceRoutes);
 app.use('/reports', reportsRoutes);
 app.use('/tracking', trackingRoutes);
 app.use('/documents', documentRoutes);
+app.use('/rate-cards', rateCardRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/upload', uploadRoutes);
 
 // Mobile API Routes
 app.use('/mobile/auth', mobileAuthRoutes);
