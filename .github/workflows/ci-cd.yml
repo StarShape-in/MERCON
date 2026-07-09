@@ -24,10 +24,4 @@ jobs:
           # Build and start services in detached mode
           docker-compose up -d --build
 
-      - name: Update Nginx Configuration
-        run: |
-          echo "Updating Nginx configuration..."
-          cd backend/api-server
-          cp mercon.tech.conf /etc/nginx/sites-available/mercon.tech.conf
-          ln -sf /etc/nginx/sites-available/mercon.tech.conf /etc/nginx/sites-enabled/
-          nginx -t && systemctl reload nginx
+
