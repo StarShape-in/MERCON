@@ -10,11 +10,10 @@ async function main() {
   const password = 'password123';
   const password_hash = await bcrypt.hash(password, 10);
 
-  // Clean existing users
-  try {
-    await prisma.user.deleteMany({});
-  } catch (e) {
-    console.log("Could not wipe users due to constraints, skipping wipe.");
+  const existingAdmin = await prisma.user.findUnique({ where: { username: 'admin' } });
+  if (existingAdmin) {
+    console.log("Database already seeded. Skipping.");
+    return;
   }
 
   const user = await prisma.user.create({
