@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
-import { TripStatus, StopType, PaymentStatus } from '@prisma/client';
+import { TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 
 export const getTrips = async (req: Request, res: Response) => {
   try {
@@ -139,5 +139,183 @@ export const approveDriverPayment = async (req: Request, res: Response) => {
     res.json({ success: true, data: trip });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to approve payment' } });
+  }
+};
+
+// ==========================================
+// PHASE 1: DISPATCH & ASSIGNMENT
+// ==========================================
+
+export const dispatchTrip = async (req: Request, res: Response) => {
+  try {
+    const { driver_id, vehicle_id } = req.body;
+    const tripId = req.params.id as string;
+
+    if (!driver_id || !vehicle_id) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'driver_id and vehicle_id required' } });
+    }
+
+    // Run in a transaction to ensure atomic state updates
+    const result = await prisma.$transaction(async (tx) => {
+      const driver = await tx.driver.findUnique({ where: { id: driver_id } });
+      const vehicle = await tx.vehicle.findUnique({ where: { id: vehicle_id } });
+
+      if (!driver || driver.status !== 'Available') {
+        throw new Error('DRIVER_UNAVAILABLE');
+      }
+      if (!vehicle || vehicle.status !== 'Available') {
+        throw new Error('VEHICLE_UNAVAILABLE');
+      }
+
+      await tx.driver.update({ where: { id: driver_id }, data: { status: 'OnTrip' } });
+      await tx.vehicle.update({ where: { id: vehicle_id }, data: { status: 'OnTrip' } });
+
+      const updatedTrip = await tx.trip.update({
+        where: { id: tripId },
+        data: {
+          driverId: driver_id,
+          vehicleId: vehicle_id,
+          status: 'Dispatched',
+          updated_by: (req as any).user?.id
+        }
+      });
+
+      return updatedTrip;
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    if (error.message === 'DRIVER_UNAVAILABLE' || error.message === 'VEHICLE_UNAVAILABLE') {
+      return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
+    }
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to dispatch trip' } });
+  }
+};
+
+export const replaceDriver = async (req: Request, res: Response) => {
+  try {
+    const { new_driver_id } = req.body;
+    const tripId = req.params.id as string;
+
+    if (!new_driver_id) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'new_driver_id required' } });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({ where: { id: tripId } });
+      if (!trip || !trip.driverId) throw new Error('TRIP_OR_DRIVER_NOT_FOUND');
+
+      const newDriver = await tx.driver.findUnique({ where: { id: new_driver_id } });
+      if (!newDriver || newDriver.status !== 'Available') throw new Error('NEW_DRIVER_UNAVAILABLE');
+
+      // Free old driver
+      await tx.driver.update({ where: { id: trip.driverId }, data: { status: 'Available' } });
+      // Lock new driver
+      await tx.driver.update({ where: { id: new_driver_id }, data: { status: 'OnTrip' } });
+
+      const updatedTrip = await tx.trip.update({
+        where: { id: tripId },
+        data: {
+          driverId: new_driver_id,
+          updated_by: (req as any).user?.id
+        }
+      });
+
+      return updatedTrip;
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    if (['TRIP_OR_DRIVER_NOT_FOUND', 'NEW_DRIVER_UNAVAILABLE'].includes(error.message)) {
+      return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
+    }
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to replace driver' } });
+  }
+};
+
+// ==========================================
+// PHASE 2: DRIVER WORKFLOW
+// ==========================================
+
+export const pickupArrive = async (req: Request, res: Response) => {
+  try {
+    const tripId = req.params.id as string;
+    
+    const trip = await prisma.trip.findUnique({ where: { id: tripId }, include: { stops: true } });
+    if (!trip) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+
+    const pickupStop = trip.stops.find(s => s.stop_type === 'Pickup');
+    if (pickupStop) {
+      await prisma.tripStop.update({
+        where: { id: pickupStop.id },
+        data: { actual_arrival: new Date() }
+      });
+    }
+
+    const updatedTrip = await prisma.trip.update({
+      where: { id: tripId },
+      data: { status: 'AtPickup', updated_by: (req as any).user?.id }
+    });
+
+    res.json({ success: true, data: updatedTrip });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to record pickup arrival' } });
+  }
+};
+
+export const pickupVerify = async (req: Request, res: Response) => {
+  try {
+    const tripId = req.params.id as string;
+    
+    const updatedTrip = await prisma.trip.update({
+      where: { id: tripId },
+      data: { 
+        status: 'InTransit', 
+        actual_start: new Date(),
+        updated_by: (req as any).user?.id 
+      }
+    });
+
+    res.json({ success: true, data: updatedTrip });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to verify pickup' } });
+  }
+};
+
+export const deliveryVerify = async (req: Request, res: Response) => {
+  try {
+    const tripId = req.params.id as string;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({ where: { id: tripId }, include: { stops: true } });
+      if (!trip) throw new Error('NOT_FOUND');
+
+      const dropoffStop = trip.stops.find(s => s.stop_type === 'Dropoff');
+      if (dropoffStop) {
+        await tx.tripStop.update({
+          where: { id: dropoffStop.id },
+          data: { actual_arrival: new Date() }
+        });
+      }
+
+      const updatedTrip = await tx.trip.update({
+        where: { id: tripId },
+        data: { 
+          status: 'Completed', 
+          actual_end: new Date(),
+          updated_by: (req as any).user?.id 
+        }
+      });
+
+      // Free assets
+      if (trip.driverId) await tx.driver.update({ where: { id: trip.driverId }, data: { status: 'Available' } });
+      if (trip.vehicleId) await tx.vehicle.update({ where: { id: trip.vehicleId }, data: { status: 'Available' } });
+
+      return updatedTrip;
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to verify delivery' } });
   }
 };

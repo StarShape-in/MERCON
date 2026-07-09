@@ -77,3 +77,34 @@ export const createCustomer = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create customer' } });
   }
 };
+
+export const updateCustomer = async (req: Request, res: Response) => {
+  try {
+    const updated = await prisma.customer.update({
+      where: { id: req.params.id as string },
+      data: {
+        ...req.body,
+        updated_by: (req as any).user?.id
+      }
+    });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update customer' } });
+  }
+};
+
+export const deleteCustomer = async (req: Request, res: Response) => {
+  try {
+    await prisma.customer.update({
+      where: { id: req.params.id as string },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        deleted_by: (req as any).user?.id
+      }
+    });
+    res.json({ success: true, data: { message: 'Customer deleted successfully' } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete customer' } });
+  }
+};

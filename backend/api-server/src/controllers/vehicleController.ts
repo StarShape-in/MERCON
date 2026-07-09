@@ -98,3 +98,36 @@ export const createVehicle = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create vehicle' } });
   }
 };
+
+export const updateVehicle = async (req: Request, res: Response) => {
+  try {
+    const updated = await prisma.vehicle.update({
+      where: { id: req.params.id as string },
+      data: {
+        ...req.body,
+        asset_type: req.body.asset_type ? (req.body.asset_type as AssetType) : undefined,
+        trailer_type: req.body.trailer_type ? (req.body.trailer_type as AssetType) : undefined,
+        updated_by: (req as any).user?.id
+      }
+    });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update vehicle' } });
+  }
+};
+
+export const deleteVehicle = async (req: Request, res: Response) => {
+  try {
+    await prisma.vehicle.update({
+      where: { id: req.params.id as string },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        deleted_by: (req as any).user?.id
+      }
+    });
+    res.json({ success: true, data: { message: 'Vehicle deleted successfully' } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete vehicle' } });
+  }
+};

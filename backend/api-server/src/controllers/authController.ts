@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { prisma } from '../index';
 
 // In-memory store for OTPs (For production, consider Redis or a DB table)
@@ -38,6 +39,77 @@ export const requestOtp = async (req: Request, res: Response) => {
       resend_after: 30
     }
   });
+};
+
+/* ─── Operator Login (email + password) ──────────────────────────────────── */
+export const operatorLogin = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Email and password are required' }
+    });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' }
+      });
+    }
+
+    // password_hash field – if not yet present, we check a placeholder for now
+    const passwordHash: string = (user as any).password_hash || '';
+    const isValid = passwordHash ? await bcrypt.compare(password, passwordHash) : false;
+
+    if (!isValid) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' }
+      });
+    }
+
+    const jwtPayload = { id: user.id, email: user.email, role: user.role };
+    const token = jwt.sign(jwtPayload, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+
+    return res.json({
+      success: true,
+      data: {
+        token,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        user: { id: user.id, email: user.email, phone: user.phone, role: user.role }
+      }
+    });
+  } catch (error) {
+    console.error('Operator login error:', error);
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
+  }
+};
+
+/* ─── Get current operator profile ───────────────────────────────────────── */
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const role   = (req as any).user?.role;
+
+    if (role === 'driver') {
+      // JWT came from driver OTP flow
+      const driver = await prisma.driver.findUnique({ where: { id: userId } });
+      if (!driver) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Driver not found' } });
+      return res.json({ success: true, data: { id: driver.id, name: `${driver.first_name} ${driver.last_name}`, phone: driver.phone_primary, role: 'driver' } });
+    }
+
+    // Operator / Admin JWT
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+    return res.json({ success: true, data: { id: user.id, email: user.email, phone: user.phone, role: user.role } });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
+  }
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {

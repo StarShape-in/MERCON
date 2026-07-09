@@ -16,6 +16,9 @@ import customerRoutes from './routes/customerRoutes';
 import tripRoutes from './routes/tripRoutes';
 import invoiceRoutes from './routes/invoiceRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
+import documentRoutes from './routes/documentRoutes';
+import reportsRoutes from './routes/reportsRoutes';
+import trackingRoutes from './routes/trackingRoutes';
 
 // Middleware
 app.use(cors());
@@ -30,6 +33,9 @@ app.use('/customers', customerRoutes);
 app.use('/trips', tripRoutes);
 app.use('/invoices', invoiceRoutes);
 app.use('/maintenance', maintenanceRoutes);
+app.use('/reports', reportsRoutes);
+app.use('/tracking', trackingRoutes);
+app.use('/documents', documentRoutes);
 
 // Healthcheck endpoint
 app.get('/health', (req: Request, res: Response) => {

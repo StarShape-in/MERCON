@@ -112,3 +112,19 @@ export const updateDriver = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update driver' } });
   }
 };
+
+export const deleteDriver = async (req: Request, res: Response) => {
+  try {
+    await prisma.driver.update({
+      where: { id: req.params.id as string },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        deleted_by: (req as any).user?.id
+      }
+    });
+    res.json({ success: true, data: { message: 'Driver deleted successfully' } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete driver' } });
+  }
+};

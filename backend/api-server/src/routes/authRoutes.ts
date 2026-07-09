@@ -1,15 +1,17 @@
 import { Router } from 'express';
-import { requestOtp, verifyOtp } from '../controllers/authController';
+import { requestOtp, verifyOtp, operatorLogin, getMe } from '../controllers/authController';
 import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
 
+// Driver OTP flow (mobile app)
 router.post('/request-otp', requestOtp);
 router.post('/verify-otp', verifyOtp);
 
-// Example of a protected route using JWT middleware
-router.get('/me', authenticateJWT, (req, res) => {
-  res.json({ success: true, data: { user: (req as any).user } });
-});
+// Operator web dashboard login (email + password)
+router.post('/operator/login', operatorLogin);
+
+// Get current authenticated user profile (works for both driver JWT and operator JWT)
+router.get('/me', authenticateJWT, getMe);
 
 export default router;

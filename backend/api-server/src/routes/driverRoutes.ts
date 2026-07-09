@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDrivers, getDriverById, createDriver, updateDriver } from '../controllers/driverController';
+import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver } from '../controllers/driverController';
 import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
@@ -11,5 +11,6 @@ router.get('/', getDrivers);
 router.post('/', createDriver);
 router.get('/:id', getDriverById);
 router.patch('/:id', updateDriver);
+router.delete('/:id', deleteDriver);
 
 export default router;

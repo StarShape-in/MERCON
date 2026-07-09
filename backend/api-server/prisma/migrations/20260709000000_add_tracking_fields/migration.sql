@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Vehicle" ADD COLUMN "last_lat" DOUBLE PRECISION,
+ADD COLUMN "last_lng" DOUBLE PRECISION;
