@@ -85,7 +85,7 @@ export default function DriverListPage() {
     {
       header: 'Risk Score',
       accessor: (row: Driver) => {
-        const score = row.ai_risk_score;
+        const score = row.ai_risk_score || 0;
         let color = '#16A34A'; // Green
         if (score > 3) color = '#EAB308'; // Yellow
         if (score > 7) color = '#DC2626'; // Red

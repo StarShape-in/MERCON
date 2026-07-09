@@ -99,9 +99,9 @@ export default function VehicleDetailsPage() {
             </div>
             <div>
               <p className="text-xs text-[#6E6E80] font-medium mb-1">Capacity</p>
-              <div className="text-sm font-semibold text-[#444]">
-                {(vehicle.capacity_kg / 1000).toFixed(1)} Tons
-              </div>
+              <p className="text-sm font-bold text-[#111] mt-1">
+                {((vehicle.capacity_kg || 0) / 1000).toFixed(1)} Tons
+              </p>
             </div>
             <div>
               <p className="text-xs text-[#6E6E80] font-medium mb-1">Odometer</p>
@@ -135,8 +135,8 @@ export default function VehicleDetailsPage() {
                 {vehicle.trailer_number && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-[#6E6E80] font-medium">Trailer Type / Cap</span>
-                    <span className="text-sm font-semibold text-[#111]">
-                      {vehicle.trailer_type} / {vehicle.trailer_capacity_kg ? (vehicle.trailer_capacity_kg / 1000).toFixed(1) + 't' : 'N/A'}
+                    <span className="text-xs font-semibold text-[#111] text-right">
+                      {vehicle.trailer_type} / {vehicle.trailer_capacity_kg ? ((vehicle.trailer_capacity_kg || 0) / 1000).toFixed(1) + 't' : 'N/A'}
                     </span>
                   </div>
                 )}

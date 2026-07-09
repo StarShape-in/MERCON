@@ -124,7 +124,7 @@ export default function DashboardPage() {
           />
           <KpiCard 
             label="Total Revenue" 
-            value={`SAR ${(kpis.revenue_this_month.value / 1000).toFixed(1)}K`} 
+            value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`} 
             delta={kpis.revenue_this_month.delta !== null ? `${kpis.revenue_this_month.delta}%` : undefined}
             up={kpis.revenue_this_month.delta !== null ? kpis.revenue_this_month.delta >= 0 : undefined}
             icon={DollarSign} 

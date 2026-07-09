@@ -62,8 +62,8 @@ export default function VehicleListPage() {
     {
       header: 'Capacity',
       accessor: (row: Vehicle) => (
-        <span className="text-xs text-[#6E6E80] font-semibold">
-          {(row.capacity_kg / 1000).toFixed(1)}t
+        <span className="font-medium text-[#444]">
+          {((row.capacity_kg || 0) / 1000).toFixed(1)}t
         </span>
       ),
     },

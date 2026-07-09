@@ -127,8 +127,8 @@ export default function DriverDetailsPage() {
                 <div className="flex justify-between items-center pb-4 border-b border-black/[0.04]">
                   <span className="text-sm text-[#6E6E80] font-medium">AI Risk Score</span>
                   <div className="flex items-center gap-1.5">
-                    <span className={`text-sm font-bold ${driver.ai_risk_score > 7 ? 'text-red-500' : driver.ai_risk_score > 3 ? 'text-yellow-500' : 'text-green-500'}`}>
-                      {driver.ai_risk_score.toFixed(1)} / 10
+                    <span className={`text-sm font-bold ${(driver.ai_risk_score || 0) > 7 ? 'text-red-500' : (driver.ai_risk_score || 0) > 3 ? 'text-yellow-500' : 'text-green-500'}`}>
+                      {(driver.ai_risk_score || 0).toFixed(1)} / 10
                     </span>
                   </div>
                 </div>
