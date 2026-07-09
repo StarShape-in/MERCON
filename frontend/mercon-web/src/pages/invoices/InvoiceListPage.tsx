@@ -1,0 +1,184 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Eye, DollarSign, Receipt, Download } from 'lucide-react';
+
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import DataTable from '@/components/ui/DataTable';
+import Btn from '@/components/ui/Btn';
+import { invoiceService, Invoice, InvoiceStatus } from '@/services/invoiceService';
+
+export default function InvoiceListPage() {
+  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStatus, setSelectedStatus] = useState<InvoiceStatus | 'All'>('All');
+
+  // Fetch invoices using React Query
+  const { data: invoicesRes, isLoading } = useQuery({
+    queryKey: ['invoices', selectedStatus, currentPage],
+    queryFn: () => invoiceService.getAll({
+      status: selectedStatus === 'All' ? undefined : selectedStatus,
+      page: currentPage,
+      per_page: 10,
+    }),
+  });
+
+  const invoices = invoicesRes?.data || [];
+  const totalPages = invoicesRes?.meta?.total_pages || 1;
+
+  // Stats
+  const stats = [
+    { label: 'Total Invoices', value: invoicesRes?.meta?.total || invoices.length, bg: '#F5F5F7', color: '#111' },
+    { label: 'Pending', value: invoices.filter(i => i.status === 'Pending').length, bg: '#FEF9C3', color: '#CA8A04' },
+    { label: 'Overdue', value: invoices.filter(i => i.status === 'Overdue').length, bg: '#FEF2F2', color: '#DC2626' },
+  ];
+
+  const getStatusBadge = (status: InvoiceStatus) => {
+    switch (status) {
+      case 'Paid': return <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Paid</span>;
+      case 'Pending': return <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Pending</span>;
+      case 'Overdue': return <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Overdue</span>;
+      case 'Cancelled': return <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Cancelled</span>;
+      default: return <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Draft</span>;
+    }
+  };
+
+  const columns = [
+    {
+      header: 'Invoice ID',
+      accessor: (row: Invoice) => (
+        <span className="font-mono text-xs font-bold text-[#E8450F]">
+          {row.ref_id || row.id.split('-')[0].toUpperCase()}
+        </span>
+      ),
+    },
+    {
+      header: 'Customer',
+      accessor: (row: Invoice) => (
+        <div className="font-semibold text-[#111]">
+          {row.customer?.name || '—'}
+        </div>
+      ),
+    },
+    {
+      header: 'Trip Ref',
+      accessor: (row: Invoice) => (
+        <span className="text-xs text-[#444] font-medium font-mono">{row.trip?.ref_id || '—'}</span>
+      ),
+    },
+    {
+      header: 'Total Amount',
+      accessor: (row: Invoice) => (
+        <span className="text-xs text-[#111] font-bold">
+          {row.currency} {row.total_amount.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      header: 'Due Date',
+      accessor: (row: Invoice) => {
+        const isOverdue = new Date(row.due_date) < new Date() && row.status !== 'Paid';
+        return (
+          <span className={`text-xs font-medium ${isOverdue ? 'text-red-500 font-bold' : 'text-[#6E6E80]'}`}>
+            {new Date(row.due_date).toLocaleDateString()}
+          </span>
+        );
+      },
+    },
+    {
+      header: 'Status',
+      accessor: (row: Invoice) => getStatusBadge(row.status),
+    },
+    {
+      header: 'Actions',
+      accessor: (row: Invoice) => (
+        <div className="flex gap-1">
+          <button 
+            onClick={() => navigate(`/invoices/${row.id}`)}
+            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            title="View Details"
+          >
+            <Eye size={13} className="text-[#6E6E80]" />
+          </button>
+          <button 
+            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            title="Download PDF"
+          >
+            <Download size={13} className="text-[#6E6E80]" />
+          </button>
+          {row.status === 'Pending' && (
+            <button 
+              onClick={() => navigate(`/invoices/${row.id}/payment`)}
+              className="w-7 h-7 rounded-lg bg-[#F0FDF4] hover:bg-[#DCFCE7] flex items-center justify-center transition-colors"
+              title="Record Payment"
+            >
+              <DollarSign size={13} className="text-green-600" />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <DashboardLayout 
+      active="Invoices" 
+      title="Invoices" 
+      pageTitle="Billing & Invoicing" 
+      pageSub="Manage customer invoices and track payments"
+      actions={
+        <>
+          <Btn 
+            label="Create Invoice" 
+            icon={<Plus size={14} />} 
+            onClick={() => navigate('/invoices/new')}
+          />
+        </>
+      }
+    >
+      <div className="px-6 mb-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="bg-white rounded-2xl p-4 border border-black/[0.06] shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-xs text-[#6E6E80] mt-0.5 font-medium">{s.label}</p>
+            </div>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: s.bg }}>
+              <Receipt size={16} style={{ color: s.color }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="px-6 pb-6">
+        <DataTable
+          columns={columns}
+          data={invoices}
+          isLoading={isLoading}
+          searchPlaceholder="Search invoices..."
+          onSearchChange={() => {}}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          filterElement={
+            <select
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value as InvoiceStatus | 'All');
+                setCurrentPage(1);
+              }}
+              className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-xl outline-none focus:border-[#E8450F] transition-colors"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Draft">Draft</option>
+              <option value="Pending">Pending</option>
+              <option value="Paid">Paid</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          }
+        />
+      </div>
+    </DashboardLayout>
+  );
+}

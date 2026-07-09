@@ -1,0 +1,156 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Eye, Edit2, FileText, Building2 } from 'lucide-react';
+
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import DataTable from '@/components/ui/DataTable';
+import Btn from '@/components/ui/Btn';
+import { customerService, Customer } from '@/services/customerService';
+
+export default function CustomerListPage() {
+  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+
+  // Fetch customers using React Query
+  const { data: customersRes, isLoading } = useQuery({
+    queryKey: ['customers', search, currentPage],
+    queryFn: () => customerService.getAll({
+      search: search || undefined,
+      page: currentPage,
+      per_page: 10,
+    }),
+  });
+
+  const customers = customersRes?.data || [];
+  const totalPages = customersRes?.meta?.total_pages || 1;
+
+  // Stats
+  const stats = [
+    { label: 'Total', value: customersRes?.meta?.total || customers.length, bg: '#F5F5F7', color: '#111' },
+    { label: 'Active', value: customers.filter(c => c.isActive).length, bg: '#F0FDF4', color: '#16A34A' },
+  ];
+
+  const columns = [
+    {
+      header: 'Customer ID',
+      accessor: (row: Customer) => (
+        <span className="font-mono text-xs font-bold text-[#E8450F]">
+          {row.id.split('-')[0].toUpperCase()}
+        </span>
+      ),
+    },
+    {
+      header: 'Company Name',
+      accessor: (row: Customer) => (
+        <div className="font-semibold text-[#111]">
+          {row.name}
+        </div>
+      ),
+    },
+    {
+      header: 'Contact Phone',
+      accessor: (row: Customer) => (
+        <span className="text-xs text-[#444] font-medium">{row.contact_phone}</span>
+      ),
+    },
+    {
+      header: 'Credit Limit',
+      accessor: (row: Customer) => (
+        <span className="text-xs text-[#6E6E80] font-semibold">
+          SAR {row.credit_limit.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      header: 'Status',
+      accessor: (row: Customer) => (
+        row.isActive 
+          ? <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Active</span>
+          : <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Inactive</span>
+      ),
+    },
+    {
+      header: 'Joined',
+      accessor: (row: Customer) => (
+        <span className="text-xs text-[#6E6E80] font-medium">
+          {new Date(row.createdAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      header: 'Actions',
+      accessor: (row: Customer) => (
+        <div className="flex gap-1">
+          <button 
+            onClick={() => navigate(`/customers/${row.id}`)}
+            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            title="View Details"
+          >
+            <Eye size={13} className="text-[#6E6E80]" />
+          </button>
+          <button 
+            onClick={() => navigate(`/customers/${row.id}/edit`)}
+            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            title="Edit Customer"
+          >
+            <Edit2 size={13} className="text-[#6E6E80]" />
+          </button>
+          <button 
+            onClick={() => navigate(`/customers/${row.id}/contracts`)}
+            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            title="Contracts"
+          >
+            <FileText size={13} className="text-[#6E6E80]" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <DashboardLayout 
+      active="Customers" 
+      title="Customers" 
+      pageTitle="Client Management" 
+      pageSub="Manage corporate clients and credit limits"
+      actions={
+        <>
+          <Btn 
+            label="Add Customer" 
+            icon={<Plus size={14} />} 
+            onClick={() => navigate('/customers/new')}
+          />
+        </>
+      }
+    >
+      <div className="px-6 mb-4 grid grid-cols-2 gap-3 max-w-lg">
+        {stats.map((s) => (
+          <div key={s.label} className="bg-white rounded-2xl p-4 border border-black/[0.06] shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-xs text-[#6E6E80] mt-0.5 font-medium">{s.label} Clients</p>
+            </div>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: s.bg }}>
+              <Building2 size={16} style={{ color: s.color }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="px-6 pb-6">
+        <DataTable
+          columns={columns}
+          data={customers}
+          isLoading={isLoading}
+          searchPlaceholder="Search by name or phone..."
+          onSearchChange={setSearch}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
+    </DashboardLayout>
+  );
+}
