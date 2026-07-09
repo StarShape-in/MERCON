@@ -95,3 +95,8 @@ jobs:
             cd backend/api-server
             docker rm -f mercon-postgres mercon-api mercon-frontend || true
             docker-compose up -d --build
+
+            echo "Updating Nginx configuration..."
+            sudo cp mercon.tech.conf /etc/nginx/sites-available/mercon.tech.conf
+            sudo ln -sf /etc/nginx/sites-available/mercon.tech.conf /etc/nginx/sites-enabled/
+            sudo nginx -t && sudo systemctl reload nginx
