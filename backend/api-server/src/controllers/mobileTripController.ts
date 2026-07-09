@@ -34,7 +34,7 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
 
 export const updateTripStatus = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { status } = req.body;
 
   if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
