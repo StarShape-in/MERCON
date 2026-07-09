@@ -54,7 +54,7 @@ export const driverService = {
     return res.data.data;
   },
 
-  async delete(id: string): Promise<void> {
-    await api.delete(`/drivers/${id}`);
+  async delete(id: string, password?: string): Promise<void> {
+    await api.delete(`/drivers/${id}`, { data: { password } });
   },
 };

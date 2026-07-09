@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { DriverStatus } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 export const getDrivers = async (req: Request, res: Response) => {
   try {
@@ -115,12 +116,29 @@ export const updateDriver = async (req: Request, res: Response) => {
 
 export const deleteDriver = async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).user?.id;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Password is required to confirm deletion' } });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.password_hash) {
+      return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'User not found or missing password' } });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: { code: 'INVALID_CREDENTIALS', message: 'Incorrect password' } });
+    }
+
     await prisma.driver.update({
       where: { id: req.params.id as string },
       data: {
         deletedAt: new Date(),
         isActive: false,
-        deleted_by: (req as any).user?.id
+        deleted_by: userId
       }
     });
     res.json({ success: true, data: { message: 'Driver deleted successfully' } });

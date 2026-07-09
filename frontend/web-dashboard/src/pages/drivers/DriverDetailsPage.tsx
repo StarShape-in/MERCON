@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Edit2, FileText, Phone, MapPin, Calendar, Activity, Star, AlertTriangle, Eye } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Edit2, FileText, Phone, MapPin, Calendar, Activity, Star, AlertTriangle, Eye, Trash2 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -10,12 +11,36 @@ import { driverService } from '@/services/driverService';
 export default function DriverDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [password, setPassword] = useState('');
 
   const { data: driver, isLoading, error } = useQuery({
     queryKey: ['driver', id],
     queryFn: () => driverService.getById(id!),
     enabled: !!id,
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (pwd: string) => driverService.delete(id!, pwd),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      navigate('/drivers');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.error?.message || 'Failed to delete driver');
+    },
+  });
+
+  const handleDelete = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password) {
+      alert('Password is required');
+      return;
+    }
+    deleteMutation.mutate(password);
+  };
 
   if (isLoading) {
     return (
@@ -51,6 +76,12 @@ export default function DriverDetailsPage() {
       title={`Driver: ${driver.ref_id || 'N/A'}`}
       actions={
         <div className="flex gap-2">
+          <Btn 
+            label="Delete" 
+            variant="ghost" 
+            icon={<Trash2 size={14} className="text-red-500" />} 
+            onClick={() => setIsDeleteModalOpen(true)}
+          />
           <Btn 
             label="Documents" 
             variant="outline" 
@@ -153,7 +184,6 @@ export default function DriverDetailsPage() {
                 <FileText size={16} className="text-[#E8450F]" /> Documents Status
               </h3>
               
-              {/* Mock Document Statuses */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between bg-[#F0FDF4] border border-green-200 px-3 py-2 rounded-lg">
                   <span className="text-xs font-semibold text-green-800">Driver License</span>
@@ -235,6 +265,54 @@ export default function DriverDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-black/[0.08]">
+              <h3 className="text-lg font-bold text-red-600 flex items-center gap-2">
+                <AlertTriangle size={20} />
+                Delete Driver
+              </h3>
+              <p className="text-sm text-[#6E6E80] mt-2">
+                Are you sure you want to delete this driver? This action will disable their account. Please enter your password to confirm.
+              </p>
+            </div>
+            <form onSubmit={handleDelete} className="p-6">
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-[#111] mb-2">Your Password</label>
+                <input 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-white border border-black/[0.08] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500 transition-all"
+                  placeholder="Enter your admin password"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <Btn 
+                  label="Cancel" 
+                  variant="ghost" 
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setPassword('');
+                  }} 
+                />
+                <button 
+                  type="submit"
+                  disabled={deleteMutation.isPending}
+                  className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center min-w-[100px]"
+                >
+                  {deleteMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
