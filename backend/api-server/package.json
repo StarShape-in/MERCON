@@ -1,5 +1,5 @@
 {
-  "name": "api-server",
+  "name": "@mercon/api-server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -25,6 +25,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@mercon/shared-types": "*",
     "@prisma/client": "^5.22.0",
     "axios": "^1.18.1",
     "bcrypt": "^6.0.0",

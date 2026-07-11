@@ -11,3 +11,5 @@ pnpm-debug.log*
 .vscode/
 *.tar.gz
 *.zip
+reference/
+.env.production
