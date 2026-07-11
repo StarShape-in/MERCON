@@ -1,4 +1,4 @@
-import { PrismaClient, Role, DriverStatus, AssetStatus, AssetType, TripStatus, StopType, InvoiceStatus, DocType, DocStatus } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -6,31 +6,40 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // 1. Create default Operator User
   const password = 'password123';
   const password_hash = await bcrypt.hash(password, 10);
 
-  const existingAdmin = await prisma.user.findUnique({ where: { username: 'admin' } });
-  if (existingAdmin) {
-    console.log("Database already seeded. Skipping.");
-    return;
-  }
-
-  const user = await prisma.user.create({
-    data: {
+  // Upsert the admin user. If it already exists (e.g. seeded by an older
+  // version with the wrong role), fix its role without touching the password.
+  const admin = await prisma.user.upsert({
+    where: { username: 'admin' },
+    update: { role: Role.Admin, isActive: true },
+    create: {
       username: 'admin',
       password_hash,
       name: 'Mercon Admin',
+      role: Role.Admin,
+      isActive: true
+    }
+  });
+  console.log(`👤 Admin user ready: ${admin.username} (role: ${admin.role})`);
+
+  // Create a default operator user if one doesn't exist yet.
+  // Only the role is enforced on updates so a changed password is preserved.
+  const operator = await prisma.user.upsert({
+    where: { username: 'operator' },
+    update: { role: Role.Operator, isActive: true },
+    create: {
+      username: 'operator',
+      password_hash,
+      name: 'Mercon Operator',
       role: Role.Operator,
       isActive: true
     }
   });
-  console.log(`👤 Created Operator User: ${user.username} (Password: ${password})`);
+  console.log(`👤 Operator user ready: ${operator.username} (role: ${operator.role})`);
 
-  // We have removed the fake data seeding for drivers, trips, customers, etc.
-  // The database will now remain empty aside from the admin user above.
-
-  console.log('✅ Database seeded successfully with only the admin user!');
+  console.log('✅ Database seeded successfully!');
 }
 
 main()
