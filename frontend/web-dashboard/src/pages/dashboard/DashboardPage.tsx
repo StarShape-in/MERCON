@@ -54,37 +54,22 @@ export default function DashboardPage() {
     docs_expiring_soon: { value: 0, delta: null },
   };
 
-  const trendData = (summary?.monthly_revenue_chart || []).length > 0 
-    ? summary?.monthly_revenue_chart 
-    : [
-        { month: 'Jan', revenue: 4000 },
-        { month: 'Feb', revenue: 3000 },
-        { month: 'Mar', revenue: 2000 },
-        { month: 'Apr', revenue: 2780 },
-        { month: 'May', revenue: 1890 },
-        { month: 'Jun', revenue: 2390 },
-      ];
+  const trendData = summary?.monthly_revenue_chart || [];
 
   const pieDataRaw = summary?.trip_status_distribution || {};
-  const pieData = Object.keys(pieDataRaw).length > 0 
-    ? Object.keys(pieDataRaw).map((key) => {
-        let color = '#9898A4';
-        if (key === 'Completed') color = '#16A34A';
-        if (key === 'InTransit') color = '#D97706';
-        if (key === 'Draft') color = '#2563EB';
-        if (key === 'Cancelled') color = '#DC2626';
+  const pieData = Object.keys(pieDataRaw).map((key) => {
+    let color = '#9898A4';
+    if (key === 'Completed') color = '#16A34A';
+    if (key === 'InTransit') color = '#D97706';
+    if (key === 'Draft') color = '#2563EB';
+    if (key === 'Cancelled') color = '#DC2626';
 
-        return {
-          name: key,
-          value: pieDataRaw[key],
-          color,
-        };
-      })
-    : [
-        { name: 'Completed', value: 4, color: '#16A34A' },
-        { name: 'In Transit', value: 2, color: '#D97706' },
-        { name: 'Draft', value: 1, color: '#2563EB' },
-      ];
+    return {
+      name: key,
+      value: pieDataRaw[key],
+      color,
+    };
+  });
 
   return (
     <DashboardLayout 
