@@ -50,4 +50,12 @@ export const invoiceService = {
     const res = await api.patch<ApiResponse<Invoice>>(`/invoices/${id}/status`, { status });
     return res.data.data;
   },
+
+  async bulkDelete(ids: string[]): Promise<void> {
+    await api.post('/invoices/bulk-delete', { ids });
+  },
+
+  async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
+    await api.post('/invoices/bulk-update-status', { ids, status });
+  },
 };

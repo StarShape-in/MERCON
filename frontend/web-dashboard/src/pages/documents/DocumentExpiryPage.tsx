@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { FileText, Eye, AlertTriangle, Calendar, Clock } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FileText, AlertTriangle, Calendar, Clock, CheckCircle, XCircle, Trash2, Download } from 'lucide-react';
+
+import { downloadCSV } from '@/utils/exportUtils';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import { documentService, MerconDocument, DocStatus } from '@/services/documentService';
 
 export default function DocumentExpiryPage() {
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [expiryFilter, setExpiryFilter] = useState<'30' | '60' | '90' | 'All'>('30');
 
@@ -98,19 +101,56 @@ export default function DocumentExpiryPage() {
         const fileUrl = row.file_url.startsWith('http') ? row.file_url : `${import.meta.env.VITE_API_URL}${row.file_url}`;
         return (
           <div className="flex gap-1">
-            <a 
-              href={fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
-              title="View File"
-            >
-              <Eye size={13} className="text-[#6E6E80]" />
-            </a>
           </div>
         );
       },
     },
+  ];
+
+  const bulkActions = [
+    {
+      label: 'Verify Selected',
+      icon: <CheckCircle size={13} />,
+      onClick: async (selectedRows: MerconDocument[]) => {
+        if (!confirm(`Verify ${selectedRows.length} documents?`)) return;
+        try {
+          await documentService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Verified');
+          queryClient.invalidateQueries({ queryKey: ['documents'] });
+        } catch (e) { alert('Failed to update status'); }
+      }
+    },
+    {
+      label: 'Reject Selected',
+      icon: <XCircle size={13} />,
+      variant: 'secondary' as const,
+      onClick: async (selectedRows: MerconDocument[]) => {
+        if (!confirm(`Reject ${selectedRows.length} documents?`)) return;
+        try {
+          await documentService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Rejected');
+          queryClient.invalidateQueries({ queryKey: ['documents'] });
+        } catch (e) { alert('Failed to update status'); }
+      }
+    },
+    {
+      label: 'Export CSV',
+      icon: <Download size={13} />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: MerconDocument[]) => {
+        downloadCSV(selectedRows, 'documents_expiry_export.csv');
+      }
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 size={13} />,
+      variant: 'danger' as const,
+      onClick: async (selectedRows: MerconDocument[]) => {
+        if (!confirm(`Are you sure you want to delete ${selectedRows.length} documents?`)) return;
+        try {
+          await documentService.bulkDelete(selectedRows.map(r => r.id));
+          queryClient.invalidateQueries({ queryKey: ['documents'] });
+        } catch (e) { alert('Failed to delete documents'); }
+      }
+    }
   ];
 
   return (
@@ -138,12 +178,17 @@ export default function DocumentExpiryPage() {
         <DataTable
           columns={columns}
           data={documents}
+          bulkActions={bulkActions}
           isLoading={isLoading}
           searchPlaceholder="Search by ID..."
           onSearchChange={() => {}}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
+          onRowClick={(row) => {
+            const fileUrl = row.file_url.startsWith('http') ? row.file_url : `${import.meta.env.VITE_API_URL}${row.file_url}`;
+            window.open(fileUrl, '_blank');
+          }}
           filterElement={
             <div className="flex gap-2">
               <select

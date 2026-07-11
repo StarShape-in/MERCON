@@ -77,4 +77,12 @@ export const tripService = {
     const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/payment/approve`, { amount, reason });
     return res.data.data;
   },
+
+  async bulkDelete(ids: string[]): Promise<void> {
+    await api.post('/trips/bulk-delete', { ids });
+  },
+
+  async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
+    await api.post('/trips/bulk-update-status', { ids, status });
+  },
 };

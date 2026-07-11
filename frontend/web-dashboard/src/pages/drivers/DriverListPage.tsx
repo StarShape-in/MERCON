@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Edit2, FileText, User } from 'lucide-react';
+import { Plus, Edit2, FileText, User, Trash2, CheckCircle, XCircle, Send, Download } from 'lucide-react';
+
+import { downloadCSV } from '@/utils/exportUtils';
+import { notificationService } from '@/services/notificationService';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -11,6 +14,7 @@ import { driverService, Driver, DriverStatus } from '@/services/driverService';
 
 export default function DriverListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState<DriverStatus | 'All'>('All');
   const [search, setSearch] = useState('');
@@ -104,13 +108,6 @@ export default function DriverListPage() {
       accessor: (row: Driver) => (
         <div className="flex gap-1">
           <button 
-            onClick={() => navigate(`/drivers/${row.id}`)}
-            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
-            title="View Details"
-          >
-            <Eye size={13} className="text-[#6E6E80]" />
-          </button>
-          <button 
             onClick={() => navigate(`/drivers/${row.id}/edit`)}
             className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
             title="Edit Driver"
@@ -129,6 +126,71 @@ export default function DriverListPage() {
     },
   ];
 
+  const bulkActions = [
+    {
+      label: 'Mark Available',
+      icon: <CheckCircle size={13} />,
+      onClick: async (selectedRows: Driver[]) => {
+        if (!confirm(`Mark ${selectedRows.length} drivers as Available?`)) return;
+        try {
+          await driverService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Available');
+          queryClient.invalidateQueries({ queryKey: ['drivers'] });
+        } catch (e) { alert('Failed to update status'); }
+      }
+    },
+    {
+      label: 'Mark Inactive',
+      icon: <XCircle size={13} />,
+      variant: 'secondary' as const,
+      onClick: async (selectedRows: Driver[]) => {
+        if (!confirm(`Mark ${selectedRows.length} drivers as Inactive?`)) return;
+        try {
+          await driverService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Inactive');
+          queryClient.invalidateQueries({ queryKey: ['drivers'] });
+        } catch (e) { alert('Failed to update status'); }
+      }
+    },
+    {
+      label: 'Send Message',
+      icon: <Send size={13} />,
+      variant: 'secondary' as const,
+      onClick: async (selectedRows: Driver[]) => {
+        const msg = prompt('Enter message to send via SMS to selected drivers:');
+        if (!msg) return;
+        try {
+          await notificationService.sendBulkCommunication({
+            entity_type: 'Driver',
+            ids: selectedRows.map(r => r.id),
+            method: 'sms',
+            subject: 'Dashboard Update',
+            message: msg
+          });
+          alert('Messages queued successfully (simulated).');
+        } catch (e) { alert('Failed to send messages'); }
+      }
+    },
+    {
+      label: 'Export CSV',
+      icon: <Download size={13} />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: Driver[]) => {
+        downloadCSV(selectedRows, 'drivers_export.csv');
+      }
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 size={13} />,
+      variant: 'danger' as const,
+      onClick: async (selectedRows: Driver[]) => {
+        if (!confirm(`Are you sure you want to delete ${selectedRows.length} drivers?`)) return;
+        try {
+          await driverService.bulkDelete(selectedRows.map(r => r.id));
+          queryClient.invalidateQueries({ queryKey: ['drivers'] });
+        } catch (e) { alert('Failed to delete drivers'); }
+      }
+    }
+  ];
+
   return (
     <DashboardLayout 
       active="Drivers" 
@@ -145,30 +207,31 @@ export default function DriverListPage() {
         </>
       }
     >
-      <div className="px-6 mb-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 border border-black/[0.06] shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-xs text-[#6E6E80] mt-0.5 font-medium">{s.label} Drivers</p>
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
+        <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
+          {stats.map((s) => (
+            <div key={s.label} className="bg-white rounded-3xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center w-[160px] h-[160px] shrink-0 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
+                <User size={24} style={{ color: s.color }} />
+              </div>
+              <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5 text-center" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider text-center px-1 leading-tight">{s.label} Drivers</p>
             </div>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: s.bg }}>
-              <User size={16} style={{ color: s.color }} />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <div className="px-6 pb-6">
+        <div className="px-6 pb-6">
         <DataTable
           columns={columns}
           data={drivers}
+          bulkActions={bulkActions}
           isLoading={isLoading}
           searchPlaceholder="Search drivers by name or phone..."
           onSearchChange={setSearch}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
+          onRowClick={(row) => navigate(`/drivers/${row.id}`)}
           filterElement={
             <select
               value={selectedStatus}
@@ -186,6 +249,7 @@ export default function DriverListPage() {
             </select>
           }
         />
+        </div>
       </div>
     </DashboardLayout>
   );

@@ -1,10 +1,13 @@
 import { Router } from 'express';
-import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle } from '../controllers/vehicleController';
+import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus} from '../controllers/vehicleController';
 import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
 
 router.use(authenticateJWT);
+router.post('/bulk-delete', bulkDeleteVehicles);
+router.post('/bulk-update-status', bulkUpdateVehicleStatus);
+
 
 router.get('/', getVehicles);
 router.post('/', createVehicle);

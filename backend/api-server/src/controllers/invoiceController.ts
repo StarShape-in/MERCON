@@ -110,3 +110,49 @@ export const updateInvoiceStatus = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update invoice status' } });
   }
 };
+
+
+export const bulkDeleteInvoices = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
+    }
+
+    await prisma.invoice.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        deleted_by: userId
+      }
+    });
+    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} invoices` } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete invoices` } });
+  }
+};
+
+export const bulkUpdateInvoiceStatus = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { ids, status } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0 || !status) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'IDs and status are required' } });
+    }
+
+    await prisma.invoice.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        status: status as InvoiceStatus,
+        updated_by: userId
+      }
+    });
+    res.json({ success: true, data: { message: `Successfully updated ${ids.length} invoices` } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update invoices` } });
+  }
+};

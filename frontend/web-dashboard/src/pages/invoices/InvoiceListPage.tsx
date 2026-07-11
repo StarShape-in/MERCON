@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, DollarSign, Receipt, Download } from 'lucide-react';
+import { Plus, DollarSign, Receipt, Download, Trash2, CheckCircle } from 'lucide-react';
+
+import { downloadCSV } from '@/utils/exportUtils';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -10,6 +12,7 @@ import { invoiceService, Invoice, InvoiceStatus } from '@/services/invoiceServic
 
 export default function InvoiceListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState<InvoiceStatus | 'All'>('All');
 
@@ -94,13 +97,6 @@ export default function InvoiceListPage() {
       accessor: (row: Invoice) => (
         <div className="flex gap-1">
           <button 
-            onClick={() => navigate(`/invoices/${row.id}`)}
-            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
-            title="View Details"
-          >
-            <Eye size={13} className="text-[#6E6E80]" />
-          </button>
-          <button 
             onClick={() => window.open(`/invoices/${row.id}/print`, '_blank')}
             className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
             title="Download PDF"
@@ -121,6 +117,40 @@ export default function InvoiceListPage() {
     },
   ];
 
+  const bulkActions = [
+    {
+      label: 'Mark Paid',
+      icon: <CheckCircle size={13} />,
+      onClick: async (selectedRows: Invoice[]) => {
+        if (!confirm(`Mark ${selectedRows.length} invoices as Paid?`)) return;
+        try {
+          await invoiceService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Paid');
+          queryClient.invalidateQueries({ queryKey: ['invoices'] });
+        } catch (e) { alert('Failed to update status'); }
+      }
+    },
+    {
+      label: 'Export CSV',
+      icon: <Download size={13} />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: Invoice[]) => {
+        downloadCSV(selectedRows, 'invoices_export.csv');
+      }
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 size={13} />,
+      variant: 'danger' as const,
+      onClick: async (selectedRows: Invoice[]) => {
+        if (!confirm(`Are you sure you want to delete ${selectedRows.length} invoices?`)) return;
+        try {
+          await invoiceService.bulkDelete(selectedRows.map(r => r.id));
+          queryClient.invalidateQueries({ queryKey: ['invoices'] });
+        } catch (e) { alert('Failed to delete invoices'); }
+      }
+    }
+  ];
+
   return (
     <DashboardLayout 
       active="Invoices" 
@@ -137,30 +167,31 @@ export default function InvoiceListPage() {
         </>
       }
     >
-      <div className="px-6 mb-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 border border-black/[0.06] shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-xs text-[#6E6E80] mt-0.5 font-medium">{s.label}</p>
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
+        <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
+          {stats.map((s) => (
+            <div key={s.label} className="bg-white rounded-3xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center w-[160px] h-[160px] shrink-0 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
+                <Receipt size={24} style={{ color: s.color }} />
+              </div>
+              <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5 text-center" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider text-center px-1 leading-tight">{s.label}</p>
             </div>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: s.bg }}>
-              <Receipt size={16} style={{ color: s.color }} />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <div className="px-6 pb-6">
+        <div className="flex-1 min-h-0 flex flex-col">
         <DataTable
           columns={columns}
           data={invoices}
+          bulkActions={bulkActions}
           isLoading={isLoading}
           searchPlaceholder="Search invoices..."
           onSearchChange={() => {}}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
+          onRowClick={(row) => navigate(`/invoices/${row.id}`)}
           filterElement={
             <select
               value={selectedStatus}
@@ -179,6 +210,7 @@ export default function InvoiceListPage() {
             </select>
           }
         />
+        </div>
       </div>
     </DashboardLayout>
   );

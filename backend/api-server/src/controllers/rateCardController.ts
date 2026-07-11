@@ -105,3 +105,27 @@ export const deleteRateCard = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 };
+
+
+export const bulkDeleteRateCards = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
+    }
+
+    await prisma.rateCard.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        deletedAt: new Date(),
+        is_active: false,
+        deleted_by: userId
+      }
+    });
+    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} ratecards` } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete ratecards` } });
+  }
+};

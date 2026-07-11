@@ -2,12 +2,15 @@ import { Router } from 'express';
 import { 
   getTrips, getTripById, createTrip, updateTripStatus, approveDriverPayment,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify
-} from '../controllers/tripController';
+, bulkDeleteTrips, bulkUpdateTripStatus} from '../controllers/tripController';
 import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
 
 router.use(authenticateJWT);
+router.post('/bulk-delete', bulkDeleteTrips);
+router.post('/bulk-update-status', bulkUpdateTripStatus);
+
 
 router.get('/', getTrips);
 router.post('/', createTrip);

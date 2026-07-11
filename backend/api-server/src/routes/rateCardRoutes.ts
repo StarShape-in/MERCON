@@ -5,13 +5,15 @@ import {
   getRateCardById, 
   updateRateCard, 
   deleteRateCard 
-} from '../controllers/rateCardController';
+, bulkDeleteRateCards} from '../controllers/rateCardController';
 import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
 
 // All RateCard routes are protected
 router.use(authenticateJWT);
+router.post('/bulk-delete', bulkDeleteRateCards);
+
 
 router.post('/', createRateCard);
 router.get('/', getRateCards);

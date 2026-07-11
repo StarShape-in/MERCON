@@ -42,6 +42,34 @@ export const markAsRead = async (req: Request, res: Response) => {
   }
 };
 
+export const sendBulkCommunication = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { entity_type, ids, method, subject, message } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0 || !method || !message) {
+      return res.status(400).json({ success: false, error: { message: 'Validation error: Missing fields' } });
+    }
+
+    // In a real scenario, this would integrate with SendGrid or Twilio
+    console.log(`[SIMULATION] Sending ${method} to ${ids.length} ${entity_type}s. Subject: ${subject}`);
+    
+    // We can also create a notification for the current user confirming the batch sent
+    if (userId) {
+      await createNotification(
+        userId,
+        `Bulk ${method} Sent`,
+        `Successfully sent communication to ${ids.length} ${entity_type}(s).`,
+        'system'
+      );
+    }
+
+    res.json({ success: true, data: { message: `Simulated sending ${method} to ${ids.length} recipients` } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: 'Failed to send bulk communication' } });
+  }
+};
+
 export const createNotification = async (
   userId: string, 
   title: string, 

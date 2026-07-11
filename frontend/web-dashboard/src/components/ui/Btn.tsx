@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 interface BtnProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   label: string;
   icon?: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger';
   size?: 'sm' | 'md';
   isLoading?: boolean;
 }
@@ -24,7 +24,8 @@ export default function Btn({
   const shadcnVariant = 
     variant === 'primary' ? 'default' :
     variant === 'secondary' ? 'secondary' :
-    variant === 'outline' ? 'outline' : 'ghost';
+    variant === 'outline' ? 'outline' :
+    variant === 'danger' ? 'destructive' : 'ghost';
 
   const shadcnSize = size === 'sm' ? 'sm' : 'default';
 

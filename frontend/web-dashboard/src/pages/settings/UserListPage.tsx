@@ -88,26 +88,28 @@ export default function UserListPage() {
         <Btn label="Invite User" icon={<Plus size={14} />} />
       }
     >
-      <div className="px-6 mb-6">
-        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 text-blue-800 text-sm font-medium">
-          <Users size={20} className="shrink-0" />
-          <p>
-            The User Management API endpoints are not yet fully implemented in the backend. Showing mock data.
-          </p>
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
+        <div className="mb-4 shrink-0">
+          <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 text-blue-800 text-sm font-medium">
+            <Users size={20} className="shrink-0" />
+            <p>
+              The User Management API endpoints are not yet fully implemented in the backend. Showing mock data.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="px-6 pb-6">
-        <DataTable
-          columns={columns}
-          data={filteredUsers}
-          isLoading={false}
-          searchPlaceholder="Search by name or email..."
-          onSearchChange={setSearch}
-          currentPage={currentPage}
-          totalPages={1}
-          onPageChange={setCurrentPage}
-        />
+        <div className="flex-1 min-h-0 flex flex-col">
+          <DataTable
+            columns={columns}
+            data={filteredUsers}
+            isLoading={false}
+            searchPlaceholder="Search by name or email..."
+            onSearchChange={setSearch}
+            currentPage={currentPage}
+            totalPages={1}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );

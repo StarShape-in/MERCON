@@ -63,4 +63,12 @@ export const vehicleService = {
   async delete(id: string): Promise<void> {
     await api.delete(`/vehicles/${id}`);
   },
+
+  async bulkDelete(ids: string[]): Promise<void> {
+    await api.post('/vehicles/bulk-delete', { ids });
+  },
+
+  async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
+    await api.post('/vehicles/bulk-update-status', { ids, status });
+  },
 };

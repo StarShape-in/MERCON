@@ -146,3 +146,49 @@ export const deleteDriver = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete driver' } });
   }
 };
+
+
+export const bulkDeleteDrivers = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
+    }
+
+    await prisma.driver.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        deleted_by: userId
+      }
+    });
+    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} drivers` } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete drivers` } });
+  }
+};
+
+export const bulkUpdateDriverStatus = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { ids, status } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0 || !status) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'IDs and status are required' } });
+    }
+
+    await prisma.driver.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        status: status as DriverStatus,
+        updated_by: userId
+      }
+    });
+    res.json({ success: true, data: { message: `Successfully updated ${ids.length} drivers` } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update drivers` } });
+  }
+};

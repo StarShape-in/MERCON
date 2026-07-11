@@ -54,4 +54,12 @@ export const documentService = {
   async delete(id: string): Promise<void> {
     await api.delete(`/documents/${id}`);
   },
+
+  async bulkDelete(ids: string[]): Promise<void> {
+    await api.post('/documents/bulk-delete', { ids });
+  },
+
+  async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
+    await api.post('/documents/bulk-update-status', { ids, status });
+  },
 };

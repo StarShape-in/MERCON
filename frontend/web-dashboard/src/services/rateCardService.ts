@@ -47,4 +47,8 @@ export const rateCardService = {
   async delete(id: string): Promise<void> {
     await api.delete(`/rate-cards/${id}`);
   },
+
+  async bulkDelete(ids: string[]): Promise<void> {
+    await api.post('/rate-cards/bulk-delete', { ids });
+  },
 };

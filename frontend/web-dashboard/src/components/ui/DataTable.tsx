@@ -9,6 +9,13 @@ interface Column<T> {
   accessor: (row: T) => React.ReactNode;
 }
 
+export interface BulkAction<T> {
+  label: string;
+  icon?: React.ReactNode;
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger';
+  onClick: (selectedRows: T[]) => void | Promise<void>;
+}
+
 interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
@@ -27,6 +34,10 @@ interface DataTableProps<T> {
   // Selection
   enableSelection?: boolean;
   onSelectionChange?: (selectedIndices: number[]) => void;
+  // Row Click
+  onRowClick?: (row: T) => void;
+  // Bulk Actions
+  bulkActions?: BulkAction<T>[];
 }
 
 export default function DataTable<T>({
@@ -43,6 +54,8 @@ export default function DataTable<T>({
   onPageChange,
   enableSelection = true,
   onSelectionChange,
+  onRowClick,
+  bulkActions = [],
 }: DataTableProps<T>) {
   const showToolbar = onSearchChange !== undefined || filterElement !== undefined || onExport !== undefined || enableSelection;
 
@@ -75,39 +88,72 @@ export default function DataTable<T>({
       {/* Table Toolbar */}
       {showToolbar && (
         <div className="shrink-0 p-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FAFAFA]">
-          <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-            {enableSelection && (
-              <Btn
-                label={selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}
-                variant="secondary"
-                size="sm"
-                icon={<CheckSquare size={13} />}
-                onClick={handleSelectAll}
-                className="whitespace-nowrap"
-              />
-            )}
-            {onSearchChange !== undefined && (
-              <div className="relative flex-1 max-w-sm">
-                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9898A4]" />
-                <Input
-                  type="text"
-                  placeholder={searchPlaceholder}
-                  value={searchValue}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-full pl-9 bg-white border-black/[0.07] focus-visible:ring-[#E8450F]/20 rounded-xl"
-                />
+          {selectedIndices.size > 0 && bulkActions.length > 0 ? (
+            <div className="flex items-center gap-3 w-full bg-blue-50/50 p-1 rounded-xl">
+              <span className="text-sm font-semibold text-blue-700 px-2">
+                {selectedIndices.size} selected
+              </span>
+              <div className="h-4 w-[1px] bg-blue-200" />
+              <div className="flex items-center gap-2 flex-1 flex-wrap">
+                {bulkActions.map((action, i) => (
+                  <Btn
+                    key={i}
+                    label={action.label}
+                    icon={action.icon}
+                    variant={action.variant || 'secondary'}
+                    size="sm"
+                    onClick={() => {
+                      const selectedRows = Array.from(selectedIndices).map(idx => data[idx]);
+                      action.onClick(selectedRows);
+                    }}
+                  />
+                ))}
               </div>
-            )}
-            {filterElement}
-          </div>
-          {onExport && (
-            <Btn
-              label="Export"
-              variant="secondary"
-              size="sm"
-              icon={<Download size={13} />}
-              onClick={onExport}
-            />
+              <Btn
+                label="Clear"
+                variant="ghost"
+                size="sm"
+                onClick={handleSelectAll}
+                className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+              />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                {enableSelection && (
+                  <Btn
+                    label={selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}
+                    variant="secondary"
+                    size="sm"
+                    icon={<CheckSquare size={13} />}
+                    onClick={handleSelectAll}
+                    className="whitespace-nowrap"
+                  />
+                )}
+                {onSearchChange !== undefined && (
+                  <div className="relative flex-1 max-w-sm">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9898A4]" />
+                    <Input
+                      type="text"
+                      placeholder={searchPlaceholder}
+                      value={searchValue}
+                      onChange={(e) => onSearchChange(e.target.value)}
+                      className="w-full pl-9 bg-white border-black/[0.07] focus-visible:ring-[#E8450F]/20 rounded-xl"
+                    />
+                  </div>
+                )}
+                {filterElement}
+              </div>
+              {onExport && (
+                <Btn
+                  label="Export"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Download size={13} />}
+                  onClick={onExport}
+                />
+              )}
+            </>
           )}
         </div>
       )}
@@ -165,7 +211,23 @@ export default function DataTable<T>({
             ) : (
               // Data Rows
               data.map((row, rowIndex) => (
-                <TableRow key={rowIndex} className="animate-fade-in hover:bg-[#FAFAFA] transition-colors" style={{ animationDelay: `${rowIndex * 0.03}s` }}>
+                <TableRow
+                  key={rowIndex}
+                  className={`animate-fade-in transition-colors ${onRowClick ? 'cursor-pointer hover:bg-[#F0F0F0]' : 'hover:bg-[#FAFAFA]'}`}
+                  style={{ animationDelay: `${rowIndex * 0.03}s` }}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (
+                      target.tagName.toLowerCase() === 'input' ||
+                      target.tagName.toLowerCase() === 'button' ||
+                      target.closest('button') ||
+                      target.closest('a')
+                    ) {
+                      return;
+                    }
+                    onRowClick?.(row);
+                  }}
+                >
                   {enableSelection && (
                     <TableCell className="px-5 py-3 border-b border-[#F5F5F7] w-[40px]">
                       <input

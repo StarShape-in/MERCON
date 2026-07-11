@@ -57,4 +57,12 @@ export const driverService = {
   async delete(id: string, password?: string): Promise<void> {
     await api.delete(`/drivers/${id}`, { data: { password } });
   },
+
+  async bulkDelete(ids: string[]): Promise<void> {
+    await api.post('/drivers/bulk-delete', { ids });
+  },
+
+  async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
+    await api.post('/drivers/bulk-update-status', { ids, status });
+  },
 };

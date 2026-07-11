@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Edit2, FileText, Banknote } from 'lucide-react';
+import { Plus, Edit2, FileText, Banknote, Download, Trash2 } from 'lucide-react';
+
+import { downloadCSV } from '@/utils/exportUtils';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import Btn from '@/components/ui/Btn';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { rateCardService } from '@/services/rateCardService';
 
 export default function RateCardListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState('');
 
@@ -73,12 +76,6 @@ export default function RateCardListPage() {
         <div className="flex gap-1">
           <button 
             className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
-            title="View Details"
-          >
-            <Eye size={13} className="text-[#6E6E80]" />
-          </button>
-          <button 
-            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
             title="Edit Rate Card"
           >
             <Edit2 size={13} className="text-[#6E6E80]" />
@@ -86,6 +83,29 @@ export default function RateCardListPage() {
         </div>
       ),
     },
+  ];
+
+  const bulkActions = [
+    {
+      label: 'Export CSV',
+      icon: <Download size={13} />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: any[]) => {
+        downloadCSV(selectedRows, 'rate_cards_export.csv');
+      }
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 size={13} />,
+      variant: 'danger' as const,
+      onClick: async (selectedRows: any[]) => {
+        if (!confirm(`Are you sure you want to delete ${selectedRows.length} rate cards?`)) return;
+        try {
+          await rateCardService.bulkDelete(selectedRows.map(r => r.id));
+          queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+        } catch (e) { alert('Failed to delete rate cards'); }
+      }
+    }
   ];
 
   return (
@@ -104,18 +124,21 @@ export default function RateCardListPage() {
         </>
       }
     >
-
-      <div className="px-6 pb-6">
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          isLoading={isLoading}
-          searchPlaceholder="Search by name or customer..."
-          onSearchChange={setSearch}
-          currentPage={currentPage}
-          totalPages={meta.total_pages}
-          onPageChange={setCurrentPage}
-        />
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
+        <div className="flex-1 min-h-0 flex flex-col">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            bulkActions={bulkActions}
+            isLoading={isLoading}
+            searchPlaceholder="Search by name or customer..."
+            onSearchChange={setSearch}
+            currentPage={currentPage}
+            totalPages={meta.total_pages}
+            onPageChange={setCurrentPage}
+            onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );

@@ -87,10 +87,10 @@ export default function DashboardPage() {
         />
       }
     >
-      <div className="px-6 pb-6 space-y-5 animate-fade-in">
+      <div className="px-6 pb-6 h-full flex flex-col gap-5 animate-fade-in">
         
         {/* KPI Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
           <KpiCard 
             label="Total Trips" 
             value={kpis.total_trips.value} 
@@ -128,7 +128,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0">
           {/* Revenue / Trip Trend */}
           <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4 shrink-0">
@@ -196,7 +196,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Trips Table */}
-        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F2] shrink-0">
             <p className="text-sm font-bold text-[#111]">Recent Operations Trips</p>
             <button 
