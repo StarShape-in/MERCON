@@ -103,8 +103,7 @@ export default function UserManagementPage() {
       accessor: (row: UserDTO) => {
         let bg = 'bg-[#F5F5F7]', text = 'text-[#444]';
         if (row.role === 'Admin') { bg = 'bg-[#FEF2F2]'; text = 'text-[#DC2626]'; }
-        else if (row.role === 'Dispatcher' || row.role === 'Operator') { bg = 'bg-[#EFF6FF]'; text = 'text-[#2563EB]'; }
-        else if (row.role === 'Accountant') { bg = 'bg-[#F0FDF4]'; text = 'text-[#16A34A]'; }
+        else if (row.role === 'Operator') { bg = 'bg-[#EFF6FF]'; text = 'text-[#2563EB]'; }
 
         return (
           <span className={`px-2 py-0.5 rounded text-xs font-bold ${bg} ${text} inline-flex items-center gap-1`}>

@@ -6,13 +6,7 @@
 
 // ─── Enums / unions ──────────────────────────────────────────────
 /** Mirrors the Prisma `Role` enum in backend/api-server/prisma/schema.prisma */
-export type UserRole =
-  | 'Admin'
-  | 'Operator'
-  | 'Driver'
-  | 'Dispatcher'
-  | 'Accountant'
-  | 'Viewer';
+export type UserRole = 'Admin' | 'Operator' | 'Driver';
 export type UserStatus = 'Active' | 'Inactive';
 
 // ─── Domain entities ─────────────────────────────────────────────

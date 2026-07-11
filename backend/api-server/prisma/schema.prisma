@@ -14,9 +14,6 @@ enum Role {
   Admin
   Operator
   Driver
-  Dispatcher
-  Accountant
-  Viewer
 }
 
 enum DriverStatus {

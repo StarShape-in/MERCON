@@ -62,9 +62,6 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
             >
               <option value="Admin">Admin</option>
               <option value="Operator">Operator</option>
-              <option value="Dispatcher">Dispatcher</option>
-              <option value="Accountant">Accountant</option>
-              <option value="Viewer">Viewer</option>
             </select>
           </div>
 
