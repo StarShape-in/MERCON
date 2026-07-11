@@ -154,7 +154,7 @@ export default function TripListPage() {
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
         <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
           {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-3xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center w-[160px] h-[160px] shrink-0 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+            <div key={s.label} className="bg-white rounded-3xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
                 <Truck size={24} style={{ color: s.color }} />
               </div>
