@@ -114,16 +114,38 @@ Could be faster with AI doing the heavy lifting, but phone testing, GPS-in-backg
 
 ---
 
-## Part 4: Questions I need you to answer
+## Part 4: Decisions made (July 11, 2026)
 
-1. **Is there a promised date to MERCON?** If yes, when? This decides whether we cut more scope.
-2. **Android only, or also iPhone?** What phones do the drivers actually use? (iPhone means an Apple developer account, $99/year, and more testing time.)
-3. **How will drivers install the app?** Direct APK link (fast, free) or Google Play (takes days for review, needs a $25 developer account)?
-4. **Do you have real ICCES credentials?** The code uses demo values (`demo`/`demo123`). Without real ones, the vehicle-tracker fallback can't be tested.
-5. **Map budget:** is a paid map (Google Maps / Mapbox, needs a credit card + API key) okay, or should the tracking page stay with the current basic map for v1?
-6. **The operator mobile app** — do you agree to cut it from v1, or did you promise it to the client?
-7. **Who creates the drivers in the system?** (I assume: operator creates them on the web dashboard, then drivers just log in on the phone — confirm.)
+| Question | Decision |
+|---|---|
+| Deadline | **~1 month** — tight, so Phase 4 is trimmed (see below) |
+| Phones | **Android + iPhone** (Expo builds both from one codebase) |
+| Operator mobile app | **Cut from v1** — web dashboard covers it |
+| Map | **Keep the basic map** for v1, upgrade later |
+
+**Because of the 1-month deadline, these move to *after* handover:**
+- Notifications screen, Documents screen, profile editing (profile becomes view-only)
+- Map upgrade, push notifications, operator mobile app
+
+**Do these TODAY (they take calendar days, not work days):**
+- [ ] Enroll in the Apple Developer Program ($99/year) — verification takes 1–2 days
+- [ ] Rotate `JWT_SECRET` on the VPS (the old one is in git history)
+
+## Part 5: The 4-week schedule
+
+| Week | Goal | Done when… |
+|---|---|---|
+| **1** | App skeleton: packages, API client, real login, real navigation | I can log in as a driver on a phone and land on a real home screen |
+| **2** | Trip workflow: current trip, status updates, cargo + POD photos (+ the missing backend endpoints) | A driver can do a full trip from the phone, photos show on the web |
+| **3** | Live GPS over socket.io + trip history + emergency button | The truck moves on the web dashboard map while I drive around |
+| **4** | Real-phone testing (Android + iPhone), EAS release builds, fix the mock user list on web, backup test, mini user guide | MERCON can use it without me in the room |
+
+## Part 6: Questions still open (answer when you can)
+
+1. **Do you have real ICCES credentials?** The code uses demo values (`demo`/`demo123`). Without real ones, the vehicle-tracker fallback stays untested at handover.
+2. **How will drivers install the app?** Direct APK link for Android (fast, free) — but iPhone needs TestFlight either way. Google Play can come later.
+3. **Who creates the drivers in the system?** I assume: operator creates them on the web dashboard, then drivers just log in on the phone — confirm.
 
 ---
 
-*Answer the questions, then we start Phase 1.*
+*Next step: start Week 1 (Phase 1) — driver app skeleton.*
