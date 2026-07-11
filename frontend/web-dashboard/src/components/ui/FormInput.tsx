@@ -31,8 +31,8 @@ export default function FormInput({
       {isSelect ? (
         <select
           className={cn(
-            "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm bg-[#F5F5F7] border-transparent focus:border-[#E8450F]/30 focus:bg-white pr-10 cursor-pointer",
-            error && 'border-red-500 focus:border-red-500 focus-visible:ring-red-100',
+            "flex h-9 w-full rounded-none bg-[#F5F5F7] border border-transparent px-3 py-2 text-sm shadow-none transition-colors focus-visible:outline-none focus-visible:bg-white focus-visible:border-[#E8450F]/30 disabled:cursor-not-allowed disabled:opacity-50 pr-10 cursor-pointer appearance-none",
+            error && 'border-red-500 focus-visible:border-red-500 bg-white',
             className
           )}
           {...(props as React.SelectHTMLAttributes<HTMLSelectElement>)}
@@ -47,8 +47,8 @@ export default function FormInput({
         <textarea
           rows={3}
           className={cn(
-            "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm bg-[#F5F5F7] border-transparent focus:border-[#E8450F]/30 focus:bg-white resize-none",
-            error && 'border-red-500 focus:border-red-500 focus-visible:ring-red-100',
+            "flex min-h-[80px] w-full rounded-none bg-[#F5F5F7] border border-transparent px-3 py-2 text-sm shadow-none transition-colors focus-visible:outline-none focus-visible:bg-white focus-visible:border-[#E8450F]/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none",
+            error && 'border-red-500 focus-visible:border-red-500 bg-white',
             className
           )}
           {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
@@ -57,8 +57,8 @@ export default function FormInput({
         <Input
           type={type}
           className={cn(
-            "bg-[#F5F5F7] border-transparent focus-visible:border-[#E8450F]/30 focus-visible:bg-white focus-visible:ring-0",
-            error && 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-100',
+            "bg-[#F5F5F7] border border-transparent shadow-none focus-visible:border-[#E8450F]/30 focus-visible:bg-white focus-visible:ring-0",
+            error && 'border-red-500 focus-visible:border-red-500 bg-white',
             className
           )}
           {...(props as React.InputHTMLAttributes<HTMLInputElement>)}
