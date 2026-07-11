@@ -64,6 +64,12 @@ Management.
   everything else → web dashboard (port 3060).
 - The repo is npm workspaces; Docker builds use the **repo root** as build
   context. Shared types must build first (`npm run build:types`).
+- **Never add `prepare`/`install` lifecycle scripts to workspace packages.**
+  The Docker images copy only `package.json` manifests before `npm install`
+  (for layer caching), and npm runs workspace `prepare` scripts during
+  install even with `--ignore-scripts` — with no sources present the script
+  fails and the whole deploy breaks (this happened; see git history).
+  Builds are invoked explicitly in the Dockerfiles instead.
 
 ## General conduct
 
