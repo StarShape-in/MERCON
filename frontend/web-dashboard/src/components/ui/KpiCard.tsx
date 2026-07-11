@@ -1,58 +1,186 @@
-import React from 'react';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import * as React from 'react'
+import { Area, AreaChart } from 'recharts'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartContainer } from '@/components/ui/chart'
+import { cn } from '@/lib/utils'
 
-interface KpiCardProps {
-  label: string;
-  value: string | number;
-  delta?: string | number | null;
-  up?: boolean | null;
-  icon: React.ElementType;
-  color?: string;
-  bg?: string;
-  subtitle?: string;
+export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 'value'> {
+  title?: string
+  label?: string
+  value: React.ReactNode
+  description?: React.ReactNode
+  subtitle?: string
+  icon?: React.ReactNode | React.ElementType
+  trend?: 'up' | 'down' | 'neutral'
+  trendValue?: string
+  chartData?: (number | { value: number; [key: string]: any })[]
+  
+  // Backward compatibility
+  delta?: string | number | null
+  up?: boolean | null
+  color?: string
+  bg?: string
 }
 
+const trendColor = {
+  up: 'text-emerald-600 dark:text-emerald-400',
+  down: 'text-rose-600 dark:text-rose-400',
+  neutral: 'text-muted-foreground',
+} as const
+
+const trendAccent = {
+  up: 'bg-emerald-500/50 group-hover:bg-emerald-500',
+  down: 'bg-rose-500/50 group-hover:bg-rose-500',
+  neutral: 'bg-border/50 group-hover:bg-border',
+} as const
+
+const trendIconContainer = {
+  up: 'bg-emerald-500/8 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/15',
+  down: 'bg-rose-500/8 border-rose-500/20 text-rose-600 dark:text-rose-400 group-hover:border-rose-500/40 group-hover:bg-rose-500/15',
+  neutral: 'bg-muted/40 border-border/50 text-muted-foreground group-hover:border-border group-hover:text-foreground',
+} as const
+
+const trendGlyph = {
+  up: '↑',
+  down: '↓',
+  neutral: '→',
+} as const
+
 export default function KpiCard({
+  title,
   label,
   value,
+  description,
+  subtitle,
+  icon,
+  trend,
+  trendValue,
+  chartData,
+  className,
   delta,
   up,
-  icon: Icon,
-  color = '#E8450F',
-  bg = '#FFF0EB',
-  subtitle,
+  color,
+  bg,
+  ...props
 }: KpiCardProps) {
-  const showDelta = delta !== undefined && delta !== null;
-  const isUp = up === true || (typeof delta === 'number' && delta >= 0);
+  const displayTitle = title || label || '';
+  const displayDescription = description || subtitle;
+  
+  let computedTrend = trend;
+  let computedTrendValue = trendValue;
+
+  if (!computedTrend && delta !== undefined && delta !== null) {
+    const isUp = up === true || (typeof delta === 'number' && delta >= 0);
+    computedTrend = isUp ? 'up' : 'down';
+    if (!computedTrendValue) {
+      computedTrendValue = typeof delta === 'number' ? `${Math.abs(delta)}%` : String(delta).replace(/^[+-]/, '');
+    }
+  }
+
+  const hasChart = chartData && chartData.length > 0
+  const normalizedChartData = React.useMemo(() => {
+    if (!hasChart) return []
+    return chartData.map((item, i) => {
+      if (typeof item === 'number') {
+        return { index: i, value: item }
+      }
+      return { index: i, ...item }
+    })
+  }, [chartData, hasChart])
+
+  let renderedIcon = icon;
+  if (icon && !React.isValidElement(icon)) {
+    // Treat as component type
+    renderedIcon = React.createElement(icon as React.ElementType, { className: 'size-3.5', style: color ? { color } : undefined });
+  } else if (React.isValidElement(icon)) {
+    renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: 'size-3.5' });
+  }
 
   return (
-    <div className="bg-white rounded-3xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center w-[170px] h-[170px] shrink-0 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-      <div 
-        className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110 shrink-0" 
-        style={{ backgroundColor: bg }}
-      >
-        <Icon size={24} style={{ color }} />
-      </div>
-      
-      <p className="text-2xl font-extrabold text-[#111] leading-none tracking-tight mb-1.5 text-center truncate w-full">{value}</p>
-      <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider text-center px-1 leading-tight line-clamp-2">
-        {label}
-      </p>
-      
-      {showDelta && (
-        <div 
-          className={`absolute top-3 right-3 flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-            isUp 
-              ? 'text-[#16A34A] bg-[#F0FDF4]' 
-              : 'text-[#DC2626] bg-[#FEF2F2]'
-          }`}
-        >
-          {isUp ? <ArrowUp size={10} className="stroke-[2.5]" /> : <ArrowDown size={10} className="stroke-[2.5]" />}
-          <span>
-            {typeof delta === 'number' ? `${Math.abs(delta)}%` : delta}
-          </span>
-        </div>
+    <Card
+      className={cn(
+        'flex-1 w-full group relative rounded-none bg-white border border-black/[0.06] shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 py-4 gap-0',
+
+        className
       )}
-    </div>
-  );
+      {...props}
+    >
+      {/* Top accent rule — visible but quiet by default, lights up on hover */}
+      <div
+        className={cn(
+          'absolute inset-x-0 top-0 h-px opacity-40 transition-opacity duration-200 group-hover:opacity-100',
+          computedTrend ? trendAccent[computedTrend] : 'bg-border'
+        )}
+      />
+
+      {/* Corner ticks — signature detail, instrument-panel reference */}
+      <span className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-border/20 transition-colors duration-200 group-hover:border-border" />
+      <span className="pointer-events-none absolute bottom-0 right-0 h-2 w-2 border-b border-r border-border/20 transition-colors duration-200 group-hover:border-border" />
+
+      <CardHeader className="flex flex-row items-center justify-between gap-4 px-4 pb-2.5 pt-0">
+        <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {displayTitle}
+        </CardTitle>
+        {renderedIcon && (
+          <div className={cn(
+            "flex h-6 w-6 shrink-0 items-center justify-center border transition-all duration-200",
+            computedTrend ? trendIconContainer[computedTrend] : trendIconContainer.neutral
+          )} style={bg ? { backgroundColor: bg } : undefined}>
+            {renderedIcon as React.ReactNode}
+          </div>
+        )}
+      </CardHeader>
+
+      <div className="mx-4 h-px bg-border/60" />
+
+      <CardContent className="flex flex-col gap-1.5 px-4 pt-2.5 pb-0">
+        <div className="font-mono text-2xl font-semibold leading-none tracking-tight text-foreground tabular-nums truncate">
+          {value as any}
+        </div>
+
+        {(displayDescription || computedTrendValue) && (
+          <div className="flex items-baseline gap-1.5 text-[11px]">
+            {computedTrend && computedTrendValue && (
+              <span className={cn('inline-flex items-center gap-0.5 font-mono font-medium tabular-nums', trendColor[computedTrend])}>
+                <span aria-hidden="true">{trendGlyph[computedTrend]}</span>
+                {computedTrendValue}
+              </span>
+            )}
+            {displayDescription && (
+              <span className="text-muted-foreground">{displayDescription}</span>
+            )}
+          </div>
+        )}
+
+        {hasChart && (
+          <div className={cn(
+            "mt-2 -mx-4 -mb-4 h-8 overflow-hidden",
+            computedTrend === 'up' && "text-emerald-500/80 dark:text-emerald-400/80",
+            computedTrend === 'down' && "text-rose-500/80 dark:text-rose-400/80",
+            (!computedTrend || computedTrend === 'neutral') && "text-muted-foreground/30"
+          )}>
+            <ChartContainer
+              config={{
+                value: {
+                  label: 'Value',
+                },
+              }}
+              className="aspect-auto h-full w-full"
+            >
+              <AreaChart data={normalizedChartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="currentColor"
+                  strokeWidth={1}
+                  fill="currentColor"
+                  fillOpacity={0.04}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 }

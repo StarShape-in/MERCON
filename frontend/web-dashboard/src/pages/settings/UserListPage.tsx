@@ -100,13 +100,13 @@ export default function UserListPage() {
       accessor: (row: any) => (
         <div className="flex gap-1">
           <button 
-            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-none bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
             title="Edit User"
           >
             <Edit2 size={13} className="text-[#6E6E80]" />
           </button>
           <button 
-            className="w-7 h-7 rounded-lg bg-[#FEF2F2] hover:bg-[#FEE2E2] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-none bg-[#FEF2F2] hover:bg-[#FEE2E2] flex items-center justify-center transition-colors"
             title="Disable User"
           >
             <Trash2 size={13} className="text-red-500" />
@@ -129,30 +129,30 @@ export default function UserListPage() {
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
         {/* User Summary Widget */}
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5 shrink-0">
-          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-xl">
+          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-none">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Total Users</span>
             <span className="text-lg font-bold font-mono text-[#111]">{MOCK_USERS.length}</span>
           </div>
-          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-xl">
+          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-none">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Active Users</span>
             <span className="text-lg font-bold font-mono text-green-600">{MOCK_USERS.filter(u => u.status === 'Active').length}</span>
           </div>
-          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-xl">
+          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-none">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Inactive / Suspended</span>
             <span className="text-lg font-bold font-mono text-red-600">{MOCK_USERS.filter(u => u.status !== 'Active').length}</span>
           </div>
-          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-xl">
+          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-none">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Mapped WhatsApp</span>
             <span className="text-lg font-bold font-mono text-blue-600">{MOCK_USERS.filter(u => u.whatsapp).length}</span>
           </div>
-          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-xl">
+          <div className="bg-white border border-black/[0.06] shadow-sm p-3 rounded-none">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Unmapped WhatsApp</span>
             <span className="text-lg font-bold font-mono text-[#444]">{MOCK_USERS.filter(u => !u.whatsapp).length}</span>
           </div>
         </div>
 
         <div className="mb-4 shrink-0">
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 text-blue-800 text-sm font-medium">
+          <div className="bg-blue-50 border border-blue-100 p-4 rounded-none flex gap-3 text-blue-800 text-sm font-medium">
             <Users size={20} className="shrink-0" />
             <p>
               The User Management API endpoints are not yet fully implemented in the backend. Showing mock data.

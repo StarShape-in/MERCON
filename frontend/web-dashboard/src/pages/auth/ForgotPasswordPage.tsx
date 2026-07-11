@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
             </svg>
           </div>
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-full max-w-[200px] flex items-center justify-center bg-white rounded-xl p-0 mb-4 shadow-md overflow-hidden h-16">
+            <div className="w-full max-w-[200px] flex items-center justify-center bg-white rounded-none p-0 mb-4 shadow-md overflow-hidden h-16">
               <img src="/invoice-logo.png" alt="MERCON Logo" className="w-full h-full object-cover scale-[1.35] origin-center" />
             </div>
             <h1 className="text-white text-2xl font-bold tracking-tight">Forgot Password</h1>
@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading || !email}
-                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

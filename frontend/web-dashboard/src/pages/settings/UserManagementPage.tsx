@@ -86,10 +86,10 @@ export default function UserManagementPage() {
       header: 'Actions',
       accessor: () => (
         <div className="flex gap-1">
-          <button className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors">
+          <button className="w-7 h-7 rounded-none bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors">
             <Edit2 size={13} className="text-[#6E6E80]" />
           </button>
-          <button className="w-7 h-7 rounded-lg bg-[#FEF2F2] hover:bg-[#FEE2E2] flex items-center justify-center transition-colors">
+          <button className="w-7 h-7 rounded-none bg-[#FEF2F2] hover:bg-[#FEE2E2] flex items-center justify-center transition-colors">
             <Trash2 size={13} className="text-[#DC2626]" />
           </button>
         </div>
@@ -112,7 +112,7 @@ export default function UserManagementPage() {
       }
     >
       <div className="px-6 pb-6">
-        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm overflow-hidden mb-6">
+        <div className="bg-white rounded-none border border-black/[0.06] shadow-sm overflow-hidden mb-6">
           <div className="p-5 border-b border-black/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-sm font-bold text-[#111]">Active Users</h3>
             
@@ -123,7 +123,7 @@ export default function UserManagementPage() {
                 placeholder="Search by name or email..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#F9F9FB] border border-black/[0.05] rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:bg-white focus:border-[#E8450F] transition-all"
+                className="w-full bg-[#F9F9FB] border border-black/[0.05] rounded-none pl-9 pr-4 py-2 text-xs outline-none focus:bg-white focus:border-[#E8450F] transition-all"
               />
             </div>
           </div>

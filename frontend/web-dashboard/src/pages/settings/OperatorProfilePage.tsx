@@ -55,7 +55,7 @@ export default function OperatorProfilePage() {
         
         {/* Left Column: Avatar & Summary */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-6 shadow-sm text-center relative overflow-hidden">
+          <div className="bg-white border border-black/[0.08] rounded-none p-6 shadow-sm text-center relative overflow-hidden">
             {/* Background Accent */}
             <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-br from-[#E8450F]/20 to-transparent"></div>
             
@@ -97,7 +97,7 @@ export default function OperatorProfilePage() {
             </div>
           </div>
           
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
             <h3 className="text-sm font-bold text-[#111] mb-4 flex items-center gap-2">
               <Shield size={16} className="text-[#E8450F]" /> Security & Access
             </h3>
@@ -119,7 +119,7 @@ export default function OperatorProfilePage() {
 
         {/* Right Column: Form Details */}
         <div className="lg:col-span-2">
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-6 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-none p-6 shadow-sm">
             <h3 className="text-lg font-bold text-[#111] mb-6 flex items-center gap-2 pb-4 border-b border-black/[0.04]">
               <User size={18} className="text-[#E8450F]" /> Personal Information
             </h3>

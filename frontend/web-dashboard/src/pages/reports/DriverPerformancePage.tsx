@@ -95,7 +95,7 @@ export default function DriverPerformancePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           
           {/* Driver Scores Bar Chart */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="text-sm font-bold text-[#111]">Driver Performance Scores</h3>
@@ -117,7 +117,7 @@ export default function DriverPerformancePage() {
           </div>
 
           {/* Safety Incidents Scatter */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="text-sm font-bold text-[#111]">Safety vs Trip Volume</h3>
@@ -142,7 +142,7 @@ export default function DriverPerformancePage() {
         </div>
 
         {/* Top Drivers Table */}
-        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm overflow-hidden">
+        <div className="bg-white rounded-none border border-black/[0.06] shadow-sm overflow-hidden">
           <div className="p-5 border-b border-black/[0.04] bg-[#FAFAFA]">
             <h3 className="text-sm font-bold text-[#111]">Top Performers This Month</h3>
           </div>

@@ -144,7 +144,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* List */}
-        <div className="bg-white border border-black/[0.08] rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-black/[0.08] rounded-none shadow-sm overflow-hidden">
           {filteredNotifications.length === 0 ? (
             <div className="p-12 text-center text-[#6E6E80]">
               <CheckCircle2 size={40} className="mx-auto mb-3 text-[#16A34A]/50" />
@@ -163,7 +163,7 @@ export default function NotificationsPage() {
                     if (!notif.isRead) markAsRead(notif.id);
                   }}
                 >
-                  <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center border ${getBg(notif.type)}`}>
+                  <div className={`w-10 h-10 shrink-0 rounded-none flex items-center justify-center border ${getBg(notif.type)}`}>
                     {getIcon(notif.type)}
                   </div>
                   

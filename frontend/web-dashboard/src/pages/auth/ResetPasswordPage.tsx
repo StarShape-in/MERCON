@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
           </p>
           <button
             onClick={() => navigate('/forgot-password')}
-            className="bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3 px-6 rounded-xl transition-all"
+            className="bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3 px-6 rounded-none transition-all"
           >
             Request New Link
           </button>
@@ -68,7 +68,7 @@ export default function ResetPasswordPage() {
             <ShieldCheck size={120} className="text-white" />
           </div>
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-full max-w-[200px] flex items-center justify-center bg-white rounded-xl p-0 mb-4 shadow-md overflow-hidden h-16">
+            <div className="w-full max-w-[200px] flex items-center justify-center bg-white rounded-none p-0 mb-4 shadow-md overflow-hidden h-16">
               <img src="/invoice-logo.png" alt="MERCON Logo" className="w-full h-full object-cover scale-[1.35] origin-center" />
             </div>
             <h1 className="text-white text-2xl font-bold tracking-tight">Set New Password</h1>
@@ -82,7 +82,7 @@ export default function ResetPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               
               {error && (
-                <div className="bg-[#FEF2F2] border border-[#DC2626]/20 text-[#DC2626] p-3 rounded-xl text-sm font-bold flex items-center gap-2">
+                <div className="bg-[#FEF2F2] border border-[#DC2626]/20 text-[#DC2626] p-3 rounded-none text-sm font-bold flex items-center gap-2">
                   <Lock size={14} /> {error}
                 </div>
               )}
@@ -108,7 +108,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading || !password || !confirmPassword}
-                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -128,7 +128,7 @@ export default function ResetPasswordPage() {
               </p>
               <button
                 onClick={() => navigate('/login')}
-                className="bg-[#111] hover:bg-black text-white font-bold py-3 px-6 rounded-xl transition-all w-full"
+                className="bg-[#111] hover:bg-black text-white font-bold py-3 px-6 rounded-none transition-all w-full"
               >
                 Go to Login
               </button>

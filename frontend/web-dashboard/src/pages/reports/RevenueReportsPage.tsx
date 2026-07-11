@@ -89,7 +89,7 @@ export default function RevenueReportsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           
           {/* Revenue vs Cost Area Chart */}
-          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-2xl p-5 shadow-sm">
+          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="text-sm font-bold text-[#111]">Revenue & Profit Trajectory</h3>
@@ -98,7 +98,7 @@ export default function RevenueReportsPage() {
               <select 
                 value={timeRange} 
                 onChange={e => setTimeRange(e.target.value)}
-                className="text-xs font-semibold bg-[#F5F5F7] border-0 px-3 py-1.5 rounded-lg outline-none cursor-pointer"
+                className="text-xs font-semibold bg-[#F5F5F7] border-0 px-3 py-1.5 rounded-none outline-none cursor-pointer"
               >
                 <option value="6M">Last 6 Months</option>
                 <option value="1Y">Last Year</option>
@@ -131,7 +131,7 @@ export default function RevenueReportsPage() {
           </div>
 
           {/* Top Customers Bar Chart */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
             <div className="mb-6">
               <h3 className="text-sm font-bold text-[#111]">Revenue by Customer</h3>
               <p className="text-xs text-[#6E6E80]">Top clients this month</p>

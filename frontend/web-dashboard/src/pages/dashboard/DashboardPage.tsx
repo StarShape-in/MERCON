@@ -130,7 +130,7 @@ export default function DashboardPage() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0">
           {/* Revenue / Trip Trend */}
-          <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-between">
+          <div className="lg:col-span-2 bg-white rounded-none p-5 border border-black/[0.06] shadow-sm flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4 shrink-0">
               <div>
                 <p className="text-sm font-bold text-[#111]">Revenue Trend</p>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Trip Status distribution */}
-          <div className="bg-white rounded-2xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-between">
+          <div className="bg-white rounded-none p-5 border border-black/[0.06] shadow-sm flex flex-col justify-between">
             <div className="shrink-0">
               <p className="text-sm font-bold text-[#111] mb-1">Trip Status</p>
               <p className="text-xs text-[#6E6E80] mb-3">Distribution this month</p>
@@ -196,7 +196,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Trips Table */}
-        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+        <div className="bg-white rounded-none border border-black/[0.06] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F2] shrink-0">
             <p className="text-sm font-bold text-[#111]">Recent Operations Trips</p>
             <button 

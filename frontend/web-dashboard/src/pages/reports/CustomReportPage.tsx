@@ -123,14 +123,14 @@ export default function CustomReportPage() {
     >
       <div className="p-6">
         {/* Filters Section */}
-        <div className="bg-white rounded-2xl border border-black/[0.08] p-6 mb-6 shadow-sm">
+        <div className="bg-white rounded-none border border-black/[0.08] p-6 mb-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-xs font-bold text-[#111] mb-2">Time Range</label>
               <select 
                 value={preset} 
                 onChange={(e) => setPreset(e.target.value as DatePreset)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                className="w-full bg-gray-50 border border-gray-200 rounded-none px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
               >
                 <option value="this_week">This Week</option>
                 <option value="this_month">This Month</option>
@@ -147,7 +147,7 @@ export default function CustomReportPage() {
                     type="date"
                     value={customStart}
                     onChange={e => setCustomStart(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-none px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
                   />
                 </div>
                 <div>
@@ -156,7 +156,7 @@ export default function CustomReportPage() {
                     type="date"
                     value={customEnd}
                     onChange={e => setCustomEnd(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-none px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
                   />
                 </div>
               </>
@@ -167,7 +167,7 @@ export default function CustomReportPage() {
               <select 
                 value={customerId} 
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                className="w-full bg-gray-50 border border-gray-200 rounded-none px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
               >
                 <option value="all">All Customers</option>
                 {customers.map((c: any) => (
@@ -187,9 +187,9 @@ export default function CustomReportPage() {
         {/* KPIs */}
         {(isLoading || isFetching) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 animate-pulse">
-            <div className="h-28 bg-black/5 rounded-2xl"></div>
-            <div className="h-28 bg-black/5 rounded-2xl"></div>
-            <div className="h-28 bg-black/5 rounded-2xl"></div>
+            <div className="h-28 bg-black/5 rounded-none"></div>
+            <div className="h-28 bg-black/5 rounded-none"></div>
+            <div className="h-28 bg-black/5 rounded-none"></div>
           </div>
         ) : reportData ? (
           <>
@@ -208,8 +208,8 @@ export default function CustomReportPage() {
                 color="#16A34A"
                 bg="#F0FDF4"
               />
-              <div className="bg-white border border-black/[0.08] rounded-2xl p-4 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600">
+              <div className="bg-white border border-black/[0.08] rounded-none p-4 shadow-sm flex items-center gap-4">
+                <div className="w-12 h-12 rounded-none flex items-center justify-center bg-blue-50 text-blue-600">
                   <FileText size={20} />
                 </div>
                 <div>

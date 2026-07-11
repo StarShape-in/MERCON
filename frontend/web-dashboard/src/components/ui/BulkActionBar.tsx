@@ -22,7 +22,7 @@ export default function BulkActionBar({
     <div 
       className={cn(
         "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up",
-        "bg-white border border-black/[0.08] shadow-2xl rounded-2xl p-2",
+        "bg-white border border-black/[0.08] shadow-2xl rounded-none p-2",
         "flex items-center gap-4 transition-all duration-300",
         className
       )}

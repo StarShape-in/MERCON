@@ -102,7 +102,7 @@ export default function AddInvoicePage() {
                     name="trip_id"
                     value={formData.trip_id}
                     onChange={handleTripChange}
-                    className="w-full bg-[#F5F5F7] border border-transparent rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium text-[#111] outline-none"
+                    className="w-full bg-[#F5F5F7] border border-transparent rounded-none pl-11 pr-4 py-2.5 text-sm font-medium text-[#111] outline-none"
                     required
                   >
                     <option value="">Select a Trip</option>
@@ -123,7 +123,7 @@ export default function AddInvoicePage() {
                     name="customer_id"
                     value={formData.customer_id}
                     onChange={handleChange}
-                    className="w-full bg-[#F5F5F7] border border-transparent rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium text-[#111] outline-none"
+                    className="w-full bg-[#F5F5F7] border border-transparent rounded-none pl-11 pr-4 py-2.5 text-sm font-medium text-[#111] outline-none"
                     required
                   >
                     <option value="">Select Customer</option>
@@ -174,7 +174,7 @@ export default function AddInvoicePage() {
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-red-50 text-red-600 rounded-none text-sm font-semibold border border-red-100">
               {error}
             </div>
           )}

@@ -162,12 +162,12 @@ export default function DocumentExpiryPage() {
     >
       <div className="px-6 mb-4 grid grid-cols-2 gap-3 max-w-lg">
         {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 border border-black/[0.06] shadow-sm flex items-center justify-between">
+          <div key={s.label} className="bg-white rounded-none p-4 border border-black/[0.06] shadow-sm flex items-center justify-between">
             <div>
               <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
               <p className="text-xs text-[#6E6E80] mt-0.5 font-medium">{s.label}</p>
             </div>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: s.bg }}>
+            <div className="w-8 h-8 rounded-none flex items-center justify-center" style={{ backgroundColor: s.bg }}>
               <Clock size={16} style={{ color: s.color }} />
             </div>
           </div>
@@ -197,7 +197,7 @@ export default function DocumentExpiryPage() {
                   setExpiryFilter(e.target.value as '30' | '60' | '90' | 'All');
                   setCurrentPage(1);
                 }}
-                className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-xl outline-none focus:border-[#E8450F] transition-colors"
+                className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-none outline-none focus:border-[#E8450F] transition-colors"
               >
                 <option value="30">Expiring &lt; 30 Days</option>
                 <option value="60">Expiring &lt; 60 Days</option>

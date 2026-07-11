@@ -88,10 +88,10 @@ export default function ExpiryManagementPage() {
       header: 'Actions',
       accessor: () => (
         <div className="flex gap-2">
-          <button className="text-xs font-bold text-[#2563EB] bg-[#EFF6FF] px-3 py-1.5 rounded-lg hover:bg-[#DBEAFE] transition-colors">
+          <button className="text-xs font-bold text-[#2563EB] bg-[#EFF6FF] px-3 py-1.5 rounded-none hover:bg-[#DBEAFE] transition-colors">
             Update Doc
           </button>
-          <button className="text-xs font-bold text-[#6E6E80] bg-[#F5F5F7] px-3 py-1.5 rounded-lg hover:bg-[#EBEBEF] transition-colors flex items-center gap-1">
+          <button className="text-xs font-bold text-[#6E6E80] bg-[#F5F5F7] px-3 py-1.5 rounded-none hover:bg-[#EBEBEF] transition-colors flex items-center gap-1">
             <Mail size={12} /> Remind
           </button>
         </div>
@@ -117,7 +117,7 @@ export default function ExpiryManagementPage() {
         
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-[#FEF2F2] border border-[#DC2626]/20 rounded-2xl p-5 shadow-sm">
+          <div className="bg-[#FEF2F2] border border-[#DC2626]/20 rounded-none p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-full bg-[#DC2626]/10 flex items-center justify-center text-[#DC2626]">
                 <ShieldAlert size={16} />
@@ -127,7 +127,7 @@ export default function ExpiryManagementPage() {
             <p className="text-3xl font-bold text-[#DC2626] ml-11">{expiredCount}</p>
           </div>
           
-          <div className="bg-[#FFFBEB] border border-[#D97706]/20 rounded-2xl p-5 shadow-sm">
+          <div className="bg-[#FFFBEB] border border-[#D97706]/20 rounded-none p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-full bg-[#D97706]/10 flex items-center justify-center text-[#D97706]">
                 <AlertTriangle size={16} />
@@ -137,7 +137,7 @@ export default function ExpiryManagementPage() {
             <p className="text-3xl font-bold text-[#D97706] ml-11">{criticalCount}</p>
           </div>
 
-          <div className="bg-[#F5F5F7] border border-black/[0.05] rounded-2xl p-5 shadow-sm">
+          <div className="bg-[#F5F5F7] border border-black/[0.05] rounded-none p-5 shadow-sm">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center text-[#6E6E80]">
                 <Clock size={16} />
@@ -149,12 +149,12 @@ export default function ExpiryManagementPage() {
         </div>
 
         {/* Data Table */}
-        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm overflow-hidden">
+        <div className="bg-white rounded-none border border-black/[0.06] shadow-sm overflow-hidden">
           <div className="p-5 border-b border-black/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAFAFA]">
             <h3 className="text-sm font-bold text-[#111]">Action Required</h3>
             
             <div className="flex items-center gap-2">
-              <button className="bg-white border border-black/[0.08] text-[#444] px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-[#F5F5F7] transition-colors">
+              <button className="bg-white border border-black/[0.08] text-[#444] px-3 py-2 rounded-none text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-[#F5F5F7] transition-colors">
                 <Filter size={14} /> Filter
               </button>
               <div className="relative max-w-xs w-full">
@@ -164,7 +164,7 @@ export default function ExpiryManagementPage() {
                   placeholder="Search entity..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-white border border-black/[0.08] rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-[#E8450F] shadow-sm transition-all"
+                  className="w-full bg-white border border-black/[0.08] rounded-none pl-9 pr-4 py-2 text-xs outline-none focus:border-[#E8450F] shadow-sm transition-all"
                 />
               </div>
             </div>

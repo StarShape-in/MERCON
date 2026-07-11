@@ -30,10 +30,10 @@ export default function SettingsPage() {
         
         {/* Settings Sidebar Nav */}
         <div className="w-full md:w-64 shrink-0">
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-2 shadow-sm flex flex-col gap-1">
+          <div className="bg-white border border-black/[0.08] rounded-none p-2 shadow-sm flex flex-col gap-1">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-none text-sm font-semibold transition-colors ${
                 activeTab === 'profile' 
                   ? 'bg-[#E8450F]/10 text-[#E8450F]' 
                   : 'text-[#6E6E80] hover:bg-black/[0.02] hover:text-[#111]'
@@ -43,7 +43,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={() => setActiveTab('company')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-none text-sm font-semibold transition-colors ${
                 activeTab === 'company' 
                   ? 'bg-[#E8450F]/10 text-[#E8450F]' 
                   : 'text-[#6E6E80] hover:bg-black/[0.02] hover:text-[#111]'
@@ -53,7 +53,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={() => setActiveTab('security')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-none text-sm font-semibold transition-colors ${
                 activeTab === 'security' 
                   ? 'bg-[#E8450F]/10 text-[#E8450F]' 
                   : 'text-[#6E6E80] hover:bg-black/[0.02] hover:text-[#111]'

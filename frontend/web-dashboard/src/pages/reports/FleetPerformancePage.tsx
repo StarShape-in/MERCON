@@ -90,7 +90,7 @@ export default function FleetPerformancePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           
           {/* Utilization Chart */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="text-sm font-bold text-[#111]">Fleet Utilization Breakdown</h3>
@@ -99,7 +99,7 @@ export default function FleetPerformancePage() {
               <select 
                 value={timeRange} 
                 onChange={e => setTimeRange(e.target.value)}
-                className="text-xs font-semibold bg-[#F5F5F7] border-0 px-3 py-1.5 rounded-lg outline-none cursor-pointer"
+                className="text-xs font-semibold bg-[#F5F5F7] border-0 px-3 py-1.5 rounded-none outline-none cursor-pointer"
               >
                 <option value="3M">Last 3 Months</option>
                 <option value="6M">Last 6 Months</option>
@@ -124,7 +124,7 @@ export default function FleetPerformancePage() {
           </div>
 
           {/* Maintenance Cost Trend */}
-          <div className="bg-white border border-black/[0.08] rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="text-sm font-bold text-[#111]">Maintenance Cost Trend</h3>

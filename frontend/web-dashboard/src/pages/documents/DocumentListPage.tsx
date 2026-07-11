@@ -164,8 +164,8 @@ export default function DocumentListPage() {
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
         <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
           {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-3xl p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
+            <div key={s.label} className="bg-white rounded-none p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-none flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
                 <FileText size={24} style={{ color: s.color }} />
               </div>
               <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5 text-center" style={{ color: s.color }}>{s.value}</p>
@@ -197,7 +197,7 @@ export default function DocumentListPage() {
                   setSelectedType(e.target.value as DocType | 'All');
                   setCurrentPage(1);
                 }}
-                className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-xl outline-none focus:border-[#E8450F] transition-colors"
+                className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-none outline-none focus:border-[#E8450F] transition-colors"
               >
                 <option value="All">All Types</option>
                 <option value="DriverLicense">Driver License</option>
@@ -214,7 +214,7 @@ export default function DocumentListPage() {
                   setSelectedStatus(e.target.value as DocStatus | 'All');
                   setCurrentPage(1);
                 }}
-                className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-xl outline-none focus:border-[#E8450F] transition-colors"
+                className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-none outline-none focus:border-[#E8450F] transition-colors"
               >
                 <option value="All">All Statuses</option>
                 <option value="PendingReview">Pending Review</option>

@@ -49,12 +49,12 @@ export default function DocumentsCenterPage() {
         
         {/* Search & Filter Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-          <div className="flex items-center gap-2 p-1 bg-[#F5F5F7] rounded-xl w-full sm:w-auto overflow-x-auto">
+          <div className="flex items-center gap-2 p-1 bg-[#F5F5F7] rounded-none w-full sm:w-auto overflow-x-auto">
             {['All', 'Drivers', 'Vehicles', 'Company'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat as DocCategory)}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                className={`px-4 py-1.5 text-xs font-bold rounded-none transition-all ${
                   activeCategory === cat 
                     ? 'bg-white text-[#111] shadow-sm' 
                     : 'text-[#6E6E80] hover:text-[#111]'
@@ -72,7 +72,7 @@ export default function DocumentsCenterPage() {
               placeholder="Search documents by name or ID..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-black/[0.08] rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-[#E8450F] shadow-sm transition-all"
+              className="w-full bg-white border border-black/[0.08] rounded-none pl-9 pr-4 py-2 text-xs outline-none focus:border-[#E8450F] shadow-sm transition-all"
             />
           </div>
         </div>
@@ -83,11 +83,11 @@ export default function DocumentsCenterPage() {
           {filteredFolders.map((folder, idx) => (
             <div 
               key={idx} 
-              className="bg-white border border-black/[0.06] rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+              className="bg-white border border-black/[0.06] rounded-none p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
               onClick={() => navigate('/documents/list')}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${folder.bg}`}>
+                <div className={`w-10 h-10 rounded-none flex items-center justify-center ${folder.bg}`}>
                   {folder.icon}
                 </div>
                 <span className="text-[10px] font-bold text-[#6E6E80] bg-[#F5F5F7] px-2 py-0.5 rounded-full group-hover:bg-[#111] group-hover:text-white transition-colors">
@@ -101,7 +101,7 @@ export default function DocumentsCenterPage() {
         </div>
 
         {/* Recent Files Table */}
-        <div className="bg-white border border-black/[0.06] rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-black/[0.06] rounded-none shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-black/[0.04] flex justify-between items-center bg-[#FAFAFA]">
             <h3 className="text-sm font-bold text-[#111]">Recently Added Documents</h3>
             <button 
@@ -127,7 +127,7 @@ export default function DocumentsCenterPage() {
                 <tr key={doc.id} className="border-b border-black/[0.04] hover:bg-[#FAFAFA] transition-colors last:border-0">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-none bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center shrink-0">
                         <FileText size={14} />
                       </div>
                       <span className="font-semibold text-[#111] truncate max-w-[200px]">{doc.name}</span>
@@ -142,13 +142,13 @@ export default function DocumentsCenterPage() {
                   <td className="px-5 py-3.5 text-xs text-[#6E6E80] font-medium">{doc.date}</td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button className="w-8 h-8 rounded-lg hover:bg-[#F5F5F7] flex items-center justify-center text-[#6E6E80] transition-colors" title="View">
+                      <button className="w-8 h-8 rounded-none hover:bg-[#F5F5F7] flex items-center justify-center text-[#6E6E80] transition-colors" title="View">
                         <Eye size={14} />
                       </button>
-                      <button className="w-8 h-8 rounded-lg hover:bg-[#F5F5F7] flex items-center justify-center text-[#6E6E80] transition-colors" title="Download">
+                      <button className="w-8 h-8 rounded-none hover:bg-[#F5F5F7] flex items-center justify-center text-[#6E6E80] transition-colors" title="Download">
                         <Download size={14} />
                       </button>
-                      <button className="w-8 h-8 rounded-lg hover:bg-[#F5F5F7] flex items-center justify-center text-[#6E6E80] transition-colors">
+                      <button className="w-8 h-8 rounded-none hover:bg-[#F5F5F7] flex items-center justify-center text-[#6E6E80] transition-colors">
                         <MoreVertical size={14} />
                       </button>
                     </div>

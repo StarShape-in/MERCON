@@ -43,7 +43,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-[24px] shadow-lg border border-gray-100 p-8 sm:p-10">
           
           <div className="mb-8 text-center">
-            <div className="w-full max-w-[240px] mx-auto flex items-center justify-center bg-white rounded-xl p-0 mb-6 shadow-sm border border-gray-100 overflow-hidden h-[72px]">
+            <div className="w-full max-w-[240px] mx-auto flex items-center justify-center bg-white rounded-none p-0 mb-6 shadow-sm border border-gray-100 overflow-hidden h-[72px]">
               <img src="/invoice-logo.png" alt="MERCON Logo" className="w-full h-full object-cover scale-[1.35] origin-center" />
             </div>
             <h1 className="text-2xl font-bold text-[#1C1C2E]">Operator Portal</h1>
@@ -51,7 +51,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-medium mb-6 border border-red-100 animate-slide-in">
+            <div className="bg-red-50 text-red-600 p-3 rounded-none text-sm font-medium mb-6 border border-red-100 animate-slide-in">
               {error}
             </div>
           )}
@@ -68,7 +68,7 @@ export default function LoginPage() {
                   required
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white focus:ring-4 focus:ring-[#E8450F]/10 rounded-xl outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white focus:ring-4 focus:ring-[#E8450F]/10 rounded-none outline-none transition-all"
                   placeholder="admin"
                 />
               </div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white focus:ring-4 focus:ring-[#E8450F]/10 rounded-xl outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white focus:ring-4 focus:ring-[#E8450F]/10 rounded-none outline-none transition-all"
                   placeholder="••••••••"
                 />
               </div>
@@ -97,7 +97,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#E8450F] hover:bg-[#C7380A] text-white font-semibold py-3.5 rounded-xl transition-colors shadow-md shadow-[#E8450F]/20 flex items-center justify-center gap-2 disabled:opacity-70"
+              className="w-full bg-[#E8450F] hover:bg-[#C7380A] text-white font-semibold py-3.5 rounded-none transition-colors shadow-md shadow-[#E8450F]/20 flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {isLoading ? (
                 <Loader2 size={20} className="animate-spin" />

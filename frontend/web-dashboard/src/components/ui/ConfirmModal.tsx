@@ -33,7 +33,7 @@ export default function ConfirmModal({
     }}>
       <DialogContent className="w-full max-w-sm rounded-[24px] p-6 border-black/[0.08] shadow-2xl overflow-hidden [&>button]:right-4 [&>button]:top-4 [&>button]:text-gray-400">
         <div className="flex flex-col items-center text-center mt-2">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${
+          <div className={`w-12 h-12 rounded-none flex items-center justify-center mb-4 ${
             isDestructive ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-500'
           }`}>
             <AlertTriangle size={24} className="stroke-[2.2]" />

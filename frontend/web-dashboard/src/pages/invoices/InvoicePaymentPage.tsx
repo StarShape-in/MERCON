@@ -43,7 +43,7 @@ export default function InvoicePaymentPage() {
     return (
       <DashboardLayout active="Invoices" title="Record Payment">
         <div className="p-6">
-          <div className="animate-pulse h-64 bg-black/5 rounded-2xl"></div>
+          <div className="animate-pulse h-64 bg-black/5 rounded-none"></div>
         </div>
       </DashboardLayout>
     );
@@ -61,7 +61,7 @@ export default function InvoicePaymentPage() {
           <ArrowLeft size={16} /> Back to Invoices
         </button>
 
-        <div className="bg-white border border-black/[0.08] rounded-2xl p-6 shadow-sm">
+        <div className="bg-white border border-black/[0.08] rounded-none p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6 pb-6 border-b border-black/[0.04]">
             <div>
               <h2 className="text-xl font-bold text-[#111]">Invoice {invoice.ref_id || invoice.id.split('-')[0].toUpperCase()}</h2>
@@ -73,7 +73,7 @@ export default function InvoicePaymentPage() {
             </div>
           </div>
 
-          <div className="bg-green-50 border border-green-100 rounded-xl p-5 mb-6 flex gap-4 items-start">
+          <div className="bg-green-50 border border-green-100 rounded-none p-5 mb-6 flex gap-4 items-start">
             <CheckCircle className="text-green-600 shrink-0 mt-0.5" />
             <div>
               <h4 className="font-bold text-green-900 mb-1">Confirm Payment Receipt</h4>
@@ -84,7 +84,7 @@ export default function InvoicePaymentPage() {
           </div>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-semibold border border-red-100 mb-6 flex items-center gap-2">
+            <div className="p-4 bg-red-50 text-red-600 rounded-none text-sm font-semibold border border-red-100 mb-6 flex items-center gap-2">
               <AlertTriangle size={16} /> {error}
             </div>
           )}

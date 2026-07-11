@@ -20,8 +20,8 @@ export default function InvoiceDetailsPage() {
     return (
       <DashboardLayout active="Invoices" title="Invoice Details">
         <div className="p-6 animate-pulse flex flex-col gap-6">
-          <div className="h-20 bg-black/5 rounded-2xl"></div>
-          <div className="h-64 bg-black/5 rounded-2xl"></div>
+          <div className="h-20 bg-black/5 rounded-none"></div>
+          <div className="h-64 bg-black/5 rounded-none"></div>
         </div>
       </DashboardLayout>
     );
@@ -77,7 +77,7 @@ export default function InvoiceDetailsPage() {
           <ArrowLeft size={16} /> Back to Invoices
         </button>
 
-        <div className="bg-white border border-black/[0.08] rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-black/[0.08] rounded-none shadow-sm overflow-hidden">
           {/* Header */}
           <div className="p-6 md:p-8 border-b border-black/[0.04] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -133,7 +133,7 @@ export default function InvoiceDetailsPage() {
           {/* Line Items Mock */}
           <div className="p-6 md:p-8 bg-[#F9F9FB] border-t border-black/[0.04]">
             <h3 className="text-sm font-bold text-[#111] mb-4">Line Items</h3>
-            <div className="bg-white border border-black/[0.06] rounded-xl overflow-hidden">
+            <div className="bg-white border border-black/[0.06] rounded-none overflow-hidden">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-black/[0.04] bg-[#F5F5F7]">
