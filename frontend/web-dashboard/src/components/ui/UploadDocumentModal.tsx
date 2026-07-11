@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
-import { X, UploadCloud, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentService, DocType } from '@/services/documentService';
 import Btn from './Btn';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
 
 interface UploadDocumentModalProps {
   isOpen: boolean;
@@ -43,8 +44,6 @@ export default function UploadDocumentModal({
     }
   });
 
-  if (!isOpen) return null;
-
   const handleClose = () => {
     setSelectedFile(null);
     setIssueDate('');
@@ -81,19 +80,15 @@ export default function UploadDocumentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open && !uploadMutation.isPending) handleClose();
+    }}>
+      <DialogContent className="w-full max-w-md rounded-2xl p-0 border-gray-100 shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900">Upload Document</h2>
-          <button 
-            onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        <DialogHeader className="px-6 py-4 border-b border-gray-100 m-0">
+          <DialogTitle className="text-lg font-bold text-gray-900">Upload Document</DialogTitle>
+        </DialogHeader>
 
         {/* Content */}
         <div className="p-6 overflow-y-auto">
@@ -212,7 +207,7 @@ export default function UploadDocumentModal({
           />
         </div>
 
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -89,8 +89,48 @@ export const initCronJobs = () => {
   
   // 3. Alerts Sync (Runs every 1 minute)
   cron.schedule('* * * * *', async () => {
-    // Note: To fully implement, we would fetch alerts and cross-reference with our fleet
-    // and write to prisma.notification.
-    // For MVP, we simulate the structure based on the PDF.
+    // console.log('🔄 Running ICCES Alerts Sync...');
+    try {
+      const alertsResponse = await iccesService.getAlerts();
+      // Depending on actual API payload, typically it's an array or wrapped in data
+      const alerts = Array.isArray(alertsResponse) ? alertsResponse : (alertsResponse?.data || []);
+      
+      if (alerts && alerts.length > 0) {
+        // Fetch users who should receive notifications
+        const operatorsAndAdmins = await prisma.user.findMany({
+          where: { role: { in: ['Admin', 'Operator'] }, isActive: true }
+        });
+
+        for (const alert of alerts) {
+          if (alert.deviceID) {
+            const vehicle = await prisma.vehicle.findUnique({
+              where: { icces_device_id: alert.deviceID }
+            });
+
+            if (vehicle) {
+              const message = `ICCES Alert on ${vehicle.plate_number}: ${alert.alertType || 'Critical Tracking Issue'}`;
+              
+              for (const user of operatorsAndAdmins) {
+                const newNotification = await prisma.notification.create({
+                  data: {
+                    userId: user.id,
+                    title: 'Hardware Alert',
+                    message,
+                    type: 'Emergency',
+                    entity_type: 'Vehicle',
+                    entity_id: vehicle.id
+                  }
+                });
+                
+                // Broadcast for real-time toaster
+                io.emit('system:notification', newNotification);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[CRON] Error in Alerts Sync:', error);
+    }
   });
 };

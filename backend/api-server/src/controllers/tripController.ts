@@ -311,6 +311,36 @@ export const deliveryVerify = async (req: Request, res: Response) => {
       if (trip.driverId) await tx.driver.update({ where: { id: trip.driverId }, data: { status: 'Available' } });
       if (trip.vehicleId) await tx.vehicle.update({ where: { id: trip.vehicleId }, data: { status: 'Available' } });
 
+      // Generate Automated Invoice
+      const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
+      if (!existingInvoice) {
+        let rateCard = await tx.rateCard.findFirst({
+          where: { customerId: trip.customerId, is_active: true }
+        });
+        
+        if (!rateCard) {
+          rateCard = await tx.rateCard.findFirst({
+            where: { customerId: null, is_active: true }
+          });
+        }
+
+        const subtotal = rateCard ? rateCard.base_price : 1000.0;
+        
+        await tx.invoice.create({
+          data: {
+            ref_id: 'INV-' + Math.floor(1000 + Math.random() * 9000).toString(),
+            tripId: trip.id,
+            customerId: trip.customerId,
+            status: 'Draft',
+            currency: rateCard ? rateCard.currency : 'SAR',
+            subtotal: subtotal,
+            total_amount: subtotal,
+            due_date: new Date(new Date().setDate(new Date().getDate() + 30)), // Net 30
+            created_by: (req as any).user?.id
+          }
+        });
+      }
+
       return updatedTrip;
     });
 

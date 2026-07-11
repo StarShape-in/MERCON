@@ -1,4 +1,6 @@
-import { Check, Clock, AlertTriangle, AlertCircle, XCircle } from 'lucide-react';
+import { Check, Clock, AlertTriangle, XCircle } from 'lucide-react';
+import { Badge } from './badge';
+import { cn } from '@/lib/utils';
 
 interface StatusBadgeProps {
   status: string;
@@ -58,12 +60,13 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
   }
 
   return (
-    <span 
-      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full select-none" 
+    <Badge 
+      variant="outline"
+      className={cn("gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full select-none border-transparent")} 
       style={{ color, backgroundColor: bg }}
     >
       <Icon size={12} className="stroke-[2.5]" />
       <span>{status}</span>
-    </span>
+    </Badge>
   );
 }

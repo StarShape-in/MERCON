@@ -9,7 +9,10 @@ import { reportsService } from '@/services/reportsService';
 
 const CHART_COLORS = ['#E8450F', '#111111', '#16A34A', '#2563EB', '#CA8A04', '#9898A4'];
 
+import { useNavigate } from 'react-router-dom';
+
 export default function ReportsDashboardPage() {
+  const navigate = useNavigate();
   const { data: summary, isLoading, error } = useQuery({
     queryKey: ['reports-summary'],
     queryFn: reportsService.getSummary,
@@ -53,11 +56,18 @@ export default function ReportsDashboardPage() {
       pageTitle="Business Performance" 
       pageSub="Key metrics and operational analytics"
       actions={
-        <Btn 
-          label="Export Report" 
-          variant="outline" 
-          icon={<Download size={14} />} 
-        />
+        <div className="flex gap-3">
+          <Btn 
+            label="Build Custom Report" 
+            variant="outline" 
+            onClick={() => navigate('/reports/custom')}
+          />
+          <Btn 
+            label="Export Report" 
+            variant="primary" 
+            icon={<Download size={14} />} 
+          />
+        </div>
       }
     >
       <div className="px-6 pb-6">

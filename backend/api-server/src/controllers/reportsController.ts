@@ -204,3 +204,89 @@ export const getRevenueReport = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to get revenue report' } });
   }
 };
+
+/* ─── Custom report ───────────────────────────────────────────────────────── */
+export const getCustomReport = async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate, customerId } = req.query;
+    
+    const whereClause: any = { deletedAt: null };
+    
+    if (startDate) {
+      whereClause.createdAt = { ...whereClause.createdAt, gte: new Date(startDate as string) };
+    }
+    if (endDate) {
+      // Add time to cover the whole end day
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      whereClause.createdAt = { ...whereClause.createdAt, lte: end };
+    }
+    if (customerId && customerId !== 'all') {
+      whereClause.customerId = customerId;
+    }
+
+    const [
+      totalTrips,
+      tripsByStatus,
+      recentTrips
+    ] = await Promise.all([
+      prisma.trip.count({ where: whereClause }),
+      prisma.trip.groupBy({
+        by: ['status'],
+        where: whereClause,
+        _count: { status: true }
+      }),
+      prisma.trip.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        take: 100, // Limit to 100 for the table
+        include: {
+          customer: { select: { name: true } },
+          driver: { select: { first_name: true, last_name: true } },
+          vehicle: { select: { plate_number: true } }
+        }
+      })
+    ]);
+
+    // For revenue, we filter invoices based on the same criteria
+    const invoiceWhere: any = { deletedAt: null, status: InvoiceStatus.Paid };
+    if (startDate) invoiceWhere.createdAt = { ...invoiceWhere.createdAt, gte: new Date(startDate as string) };
+    if (endDate) {
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      invoiceWhere.createdAt = { ...invoiceWhere.createdAt, lte: end };
+    }
+    if (customerId && customerId !== 'all') invoiceWhere.customerId = customerId;
+
+    const totalRevenue = await prisma.invoice.aggregate({
+      where: invoiceWhere,
+      _sum: { total_amount: true }
+    });
+
+    const statusMap: Record<string, number> = {};
+    tripsByStatus.forEach((row) => { statusMap[row.status] = row._count.status; });
+
+    res.json({
+      success: true,
+      data: {
+        kpis: {
+          total_trips: totalTrips,
+          total_revenue: totalRevenue._sum.total_amount ?? 0,
+        },
+        trip_status_distribution: statusMap,
+        trips: recentTrips.map(t => ({
+          id: t.id,
+          ref_id: t.ref_id,
+          customer: t.customer?.name || 'N/A',
+          driver: t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'N/A',
+          vehicle: t.vehicle?.plate_number || 'N/A',
+          status: t.status,
+          date: t.createdAt
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Custom report error:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to generate custom report' } });
+  }
+};

@@ -61,19 +61,17 @@ export default function Sidebar({ active }: SidebarProps) {
   ];
 
   return (
-    <div className="flex flex-col w-[220px] shrink-0 h-full bg-[#1C1C2E] border-r border-white/5">
+    <div className="flex flex-col w-[220px] shrink-0 h-full bg-[#1C1C2E] border-r border-white/10">
       {/* Logo */}
-      <div className="flex items-center px-3 py-4 border-b border-white/10 shrink-0 justify-center">
-        <div className="bg-white rounded-xl p-0 overflow-hidden w-full flex items-center justify-center h-16">
-          <img src="/invoice-logo.png" alt="MERCON Logo" className="w-full h-full object-cover scale-[1.35] origin-center" />
-        </div>
+      <div className="flex items-center shrink-0 justify-center bg-[#1C1C2E] border-b border-white/10 h-[88px] overflow-hidden">
+        <img src="/navbar-logo-final.png" alt="MERCON Logo" className="w-full h-full object-contain scale-[2.5] origin-center" />
       </div>
 
       {/* Nav groups */}
       <div className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
         {groups.map((g) => (
           <div key={g.label}>
-            <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-3 mb-2">{g.label}</p>
+            <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest px-3 mb-2">{g.label}</p>
             <div className="space-y-0.5">
               {g.items.map((item) => (
                 <NavLink
@@ -84,7 +82,7 @@ export default function Sidebar({ active }: SidebarProps) {
                     flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition-all duration-150 group
                     ${isActive 
                       ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15' 
-                      : 'text-white/50 hover:bg-white/5 hover:text-white'
+                      : 'text-white/60 hover:bg-white/5 hover:text-white'
                     }
                   `}
                 >
@@ -110,17 +108,17 @@ export default function Sidebar({ active }: SidebarProps) {
       </div>
 
       {/* User footer */}
-      <div className="px-4 py-3.5 border-t border-white/10 flex items-center gap-2.5 bg-black/10 shrink-0">
-        <div className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-white/10 shadow-sm shadow-[#E8450F]/20 select-none">
+      <div className="px-4 py-3.5 border-t border-white/10 flex items-center gap-2.5 bg-black/20 shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none">
           {initials}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-white truncate">{user?.name || 'Mohammed Al-Harbi'}</p>
-          <p className="text-[9px] text-white/40 truncate">{user?.email || 'operator@mercon.sa'}</p>
+          <p className="text-[9px] text-white/50 truncate">{user?.email || 'operator@mercon.sa'}</p>
         </div>
         <button 
           onClick={handleLogout}
-          className="text-white/30 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+          className="text-white/50 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
           title="Logout"
         >
           <LogOut size={14} />

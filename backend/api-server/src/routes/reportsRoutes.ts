@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSummary, getFleetPerformance, getDriverPerformance, getRevenueReport } from '../controllers/reportsController';
+import { getSummary, getFleetPerformance, getDriverPerformance, getRevenueReport, getCustomReport } from '../controllers/reportsController';
 import { authenticateJWT } from '../middlewares/auth';
 
 const router = Router();
@@ -17,5 +17,8 @@ router.get('/drivers', getDriverPerformance);
 
 // Revenue breakdown by month
 router.get('/revenue', getRevenueReport);
+
+// Instant Custom Reports
+router.get('/custom', getCustomReport);
 
 export default router;

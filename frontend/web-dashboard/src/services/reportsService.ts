@@ -13,6 +13,29 @@ export interface ReportsSummary {
   monthly_revenue_chart: { month: string; revenue: number }[];
 }
 
+export interface CustomReportFilters {
+  startDate?: string;
+  endDate?: string;
+  customerId?: string;
+}
+
+export interface CustomReportData {
+  kpis: {
+    total_trips: number;
+    total_revenue: number;
+  };
+  trip_status_distribution: Record<string, number>;
+  trips: {
+    id: string;
+    ref_id: string;
+    customer: string;
+    driver: string;
+    vehicle: string;
+    status: string;
+    date: string;
+  }[];
+}
+
 export const reportsService = {
   async getSummary(): Promise<ReportsSummary> {
     const res = await api.get<ApiResponse<ReportsSummary>>('/reports/summary');
@@ -32,5 +55,10 @@ export const reportsService = {
   async getRevenueReport(months = 6): Promise<ApiResponse<unknown>> {
     const res = await api.get<ApiResponse<unknown>>('/reports/revenue', { params: { months } });
     return res.data;
+  },
+
+  async getCustomReport(filters: CustomReportFilters): Promise<CustomReportData> {
+    const res = await api.get<ApiResponse<CustomReportData>>('/reports/custom', { params: filters });
+    return res.data.data;
   },
 };

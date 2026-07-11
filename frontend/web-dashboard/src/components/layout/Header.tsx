@@ -34,19 +34,25 @@ export default function Header({ title, breadcrumb, actions }: HeaderProps) {
   };
 
   return (
-    <div className="shrink-0 bg-white border-b border-black/[0.07] px-6 h-14 flex items-center gap-4 relative z-20">
+    <div className="shrink-0 bg-white border-b border-black/[0.08] px-6 h-[88px] flex items-center gap-4 relative z-20">
       {breadcrumb ? (
-        <div className="text-xs text-[#9898A4] flex items-center gap-1">
+        <div className="text-sm text-gray-500 flex items-center gap-2">
           <span>{breadcrumb}</span>
-          <span className="text-[#9898A4]/60">/</span>
-          <span className="text-[#111] font-semibold">{title}</span>
+          <span className="text-gray-300">/</span>
+          <span className="text-[#111] font-bold text-2xl">{title}</span>
         </div>
       ) : (
-        <p className="text-sm font-bold text-[#111] flex-1">{title}</p>
+        <p className="text-2xl font-bold text-[#111] flex-1">{title}</p>
       )}
 
       {/* Action Buttons if any (pushed left if no breadcrumb) */}
       <div className="flex-1"></div>
+
+      {actions && (
+        <div className="flex items-center mr-2">
+          {actions}
+        </div>
+      )}
 
       {/* Search box */}
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#F5F5F7]" style={{ width: 220 }}>
@@ -74,7 +80,7 @@ export default function Header({ title, breadcrumb, actions }: HeaderProps) {
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#F5F5F7] hover:bg-[#EBEBEF] transition-colors"
         >
-          <div className="w-5 h-5 rounded-full bg-[#1C1C2E] flex items-center justify-center text-white text-[9px] font-bold select-none">
+          <div className="w-5 h-5 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[9px] font-bold select-none">
             {initials}
           </div>
           <span className="text-xs font-semibold text-[#111] max-w-[80px] truncate">{firstName}</span>
@@ -118,8 +124,6 @@ export default function Header({ title, breadcrumb, actions }: HeaderProps) {
           </div>
         )}
       </div>
-
-      {actions}
     </div>
   );
 }

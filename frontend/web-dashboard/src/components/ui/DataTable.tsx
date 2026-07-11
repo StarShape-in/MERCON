@@ -1,6 +1,8 @@
 import React from 'react';
 import { Search, SlidersHorizontal, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import Btn from './Btn';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
+import { Input } from './input';
 
 interface Column<T> {
   header: string;
@@ -48,12 +50,12 @@ export default function DataTable<T>({
             {onSearchChange !== undefined && (
               <div className="relative flex-1 max-w-sm">
                 <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9898A4]" />
-                <input
+                <Input
                   type="text"
                   placeholder={searchPlaceholder}
                   value={searchValue}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white border border-black/[0.07] focus:border-[#E8450F]/30 focus:ring-4 focus:ring-[#E8450F]/5 rounded-xl text-xs outline-none transition-all"
+                  className="w-full pl-9 bg-white border-black/[0.07] focus-visible:ring-[#E8450F]/20 rounded-xl"
                 />
               </div>
             )}
@@ -73,49 +75,53 @@ export default function DataTable<T>({
 
       {/* Main Table Content */}
       <div className="flex-1 overflow-auto min-h-0">
-        <table className="data-table">
-          <thead>
-            <tr>
+        <Table className="min-w-full">
+          <TableHeader>
+            <TableRow className="bg-[#FAFAFA] hover:bg-[#FAFAFA]">
               {columns.map((c, i) => (
-                <th key={i}>{c.header}</th>
+                <TableHead key={i} className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] h-10 px-5">
+                  {c.header}
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {isLoading ? (
               // Loading state skeleton rows
               Array.from({ length: 5 }).map((_, rowIndex) => (
-                <tr key={rowIndex}>
+                <TableRow key={rowIndex}>
                   {columns.map((_, colIndex) => (
-                    <td key={colIndex}>
+                    <TableCell key={colIndex} className="px-5 py-3">
                       <div className="h-4 skeleton w-full max-w-[120px]"></div>
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))
             ) : data.length === 0 ? (
               // Empty State
-              <tr>
-                <td colSpan={columns.length} className="text-center py-12">
+              <TableRow>
+                <TableCell colSpan={columns.length} className="text-center py-12">
                   <div className="flex flex-col items-center justify-center gap-2 max-w-xs mx-auto">
                     <SlidersHorizontal size={36} className="text-gray-300 stroke-[1.5]" />
                     <p className="text-sm font-bold text-[#111] mt-2">No Records Found</p>
                     <p className="text-xs text-[#6E6E80] text-center">There are no entries matching your current filters or search query.</p>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               // Data Rows
               data.map((row, rowIndex) => (
-                <tr key={rowIndex} className="animate-fade-in" style={{ animationDelay: `${rowIndex * 0.03}s` }}>
+                <TableRow key={rowIndex} className="animate-fade-in hover:bg-[#FAFAFA] transition-colors" style={{ animationDelay: `${rowIndex * 0.03}s` }}>
                   {columns.map((col, colIndex) => (
-                    <td key={colIndex}>{col.accessor(row)}</td>
+                    <TableCell key={colIndex} className="px-5 py-3 text-[13px] border-b border-[#F5F5F7]">
+                      {col.accessor(row)}
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination Footer */}

@@ -31,8 +31,8 @@ export default function ForgotPasswordPage() {
             </svg>
           </div>
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-12 h-12 bg-[#E8450F] rounded-xl flex items-center justify-center mb-4">
-              <span className="text-white font-bold text-xl tracking-tighter">M.</span>
+            <div className="w-full max-w-[200px] flex items-center justify-center bg-white rounded-xl p-0 mb-4 shadow-md overflow-hidden h-16">
+              <img src="/invoice-logo.png" alt="MERCON Logo" className="w-full h-full object-cover scale-[1.35] origin-center" />
             </div>
             <h1 className="text-white text-2xl font-bold tracking-tight">Forgot Password</h1>
             <p className="text-[#9898A4] text-sm mt-2 font-medium">Reset your operator account access</p>

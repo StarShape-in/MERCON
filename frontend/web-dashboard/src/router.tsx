@@ -63,6 +63,7 @@ const ReportsDashboardPage    = lazy(() => import('@/pages/reports/ReportsDashbo
 const FleetPerformancePage    = lazy(() => import('@/pages/reports/FleetPerformancePage'));
 const RevenueReportsPage      = lazy(() => import('@/pages/reports/RevenueReportsPage'));
 const DriverPerformancePage   = lazy(() => import('@/pages/reports/DriverPerformancePage'));
+const CustomReportPage        = lazy(() => import('@/pages/reports/CustomReportPage'));
 
 // Settings
 const OperatorProfilePage     = lazy(() => import('@/pages/settings/OperatorProfilePage'));
@@ -140,6 +141,7 @@ export default function AppRouter() {
 
           {/* Reports */}
           <Route path="/reports"                  element={<ProtectedRoute><ReportsDashboardPage /></ProtectedRoute>} />
+          <Route path="/reports/custom"           element={<ProtectedRoute><CustomReportPage /></ProtectedRoute>} />
           <Route path="/reports/fleet"            element={<ProtectedRoute><FleetPerformancePage /></ProtectedRoute>} />
           <Route path="/reports/revenue"          element={<ProtectedRoute><RevenueReportsPage /></ProtectedRoute>} />
           <Route path="/reports/drivers"          element={<ProtectedRoute><DriverPerformancePage /></ProtectedRoute>} />
