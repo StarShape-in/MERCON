@@ -51,11 +51,13 @@ export default function OperatorProfilePage() {
         </div>
       }
     >
-      <div className="px-6 pb-6 max-w-5xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="px-6 pb-6 max-w-5xl mx-auto w-full flex flex-col gap-6">
         
-        {/* Left Column: Avatar & Summary */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white border border-black/[0.08] rounded-none p-6 shadow-sm text-center relative overflow-hidden">
+        {/* Top Box: Avatar + Personal Info */}
+        <div className="bg-white border border-black/[0.08] rounded-none shadow-sm flex flex-col lg:flex-row">
+          
+          {/* Avatar Section (Left) */}
+          <div className="w-full lg:w-1/3 p-6 border-b lg:border-b-0 lg:border-r border-black/[0.08] text-center relative overflow-hidden flex flex-col">
             {/* Background Accent */}
             <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-br from-[#E8450F]/20 to-transparent"></div>
             
@@ -81,7 +83,7 @@ export default function OperatorProfilePage() {
               </span>
             </div>
 
-            <div className="border-t border-black/[0.04] pt-4 space-y-3 text-left">
+            <div className="border-t border-black/[0.04] pt-4 space-y-3 text-left mt-auto">
               <div className="flex items-center gap-3 text-sm text-[#444]">
                 <Mail size={14} className="text-[#9898A4]" />
                 <span className="truncate">{formData.email}</span>
@@ -96,35 +98,14 @@ export default function OperatorProfilePage() {
               </div>
             </div>
           </div>
-          
-          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
-            <h3 className="text-sm font-bold text-[#111] mb-4 flex items-center gap-2">
-              <Shield size={16} className="text-[#E8450F]" /> Security & Access
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-black/[0.04]">
-                <span className="text-xs font-semibold text-[#6E6E80]">Last Login</span>
-                <span className="text-xs font-medium text-[#111]">Today, 08:45 AM</span>
-              </div>
-              <div className="flex justify-between items-center pb-3 border-b border-black/[0.04]">
-                <span className="text-xs font-semibold text-[#6E6E80]">Password Last Changed</span>
-                <span className="text-xs font-medium text-[#111]">45 days ago</span>
-              </div>
-              <button className="text-xs font-bold text-[#E8450F] hover:underline">
-                Update Password
-              </button>
-            </div>
-          </div>
-        </div>
 
-        {/* Right Column: Form Details */}
-        <div className="lg:col-span-2">
-          <div className="bg-white border border-black/[0.08] rounded-none p-6 shadow-sm">
+          {/* Personal Information (Right) */}
+          <div className="w-full lg:w-2/3 p-6 flex flex-col">
             <h3 className="text-lg font-bold text-[#111] mb-6 flex items-center gap-2 pb-4 border-b border-black/[0.04]">
               <User size={18} className="text-[#E8450F]" /> Personal Information
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1 content-start">
               <FormInput
                 label="First Name"
                 value={formData.firstName}
@@ -151,16 +132,43 @@ export default function OperatorProfilePage() {
                 disabled={!isEditing}
               />
             </div>
+          </div>
+        </div>
 
-            <h3 className="text-lg font-bold text-[#111] mb-6 flex items-center gap-2 pb-4 border-b border-black/[0.04] mt-8">
+        {/* Bottom Row: Security (Left) + Professional Details (Right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Security & Access Box */}
+          <div className="lg:col-span-1 bg-white border border-black/[0.08] rounded-none p-6 shadow-sm h-full flex flex-col">
+            <h3 className="text-lg font-bold text-[#111] mb-6 flex items-center gap-2 pb-4 border-b border-black/[0.04]">
+              <Shield size={18} className="text-[#E8450F]" /> Security & Access
+            </h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-black/[0.04]">
+                <span className="text-xs font-semibold text-[#6E6E80]">Last Login</span>
+                <span className="text-xs font-medium text-[#111]">Today, 08:45 AM</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-black/[0.04]">
+                <span className="text-xs font-semibold text-[#6E6E80]">Password Last Changed</span>
+                <span className="text-xs font-medium text-[#111]">45 days ago</span>
+              </div>
+              <button className="text-xs font-bold text-[#E8450F] hover:underline mt-2">
+                Update Password
+              </button>
+            </div>
+          </div>
+
+          {/* Professional Details Box */}
+          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-none p-6 shadow-sm h-full flex flex-col">
+            <h3 className="text-lg font-bold text-[#111] mb-6 flex items-center gap-2 pb-4 border-b border-black/[0.04]">
               <Building2 size={18} className="text-[#E8450F]" /> Professional Details
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1 content-start">
               <FormInput
                 label="System Role"
                 value={formData.role}
-                disabled={true} // Usually roles are uneditable by the user themselves
+                disabled={true} 
               />
               <FormInput
                 label="Department"
@@ -177,10 +185,9 @@ export default function OperatorProfilePage() {
                 />
               </div>
             </div>
-            
           </div>
-        </div>
 
+        </div>
       </div>
     </DashboardLayout>
   );

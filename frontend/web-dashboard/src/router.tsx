@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 import FullPageSpinner from '@/components/ui/FullPageSpinner';
+import RequireRole from '@/components/auth/RequireRole';
 
 /* ─── Auth pages (eager — small, always needed) ──────────────────────────── */
 import LoginPage         from '@/pages/auth/LoginPage';
@@ -149,7 +150,7 @@ export default function AppRouter() {
           {/* Settings */}
           <Route path="/settings"                 element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/settings/profile"         element={<ProtectedRoute><OperatorProfilePage /></ProtectedRoute>} />
-          <Route path="/settings/users"           element={<ProtectedRoute><UserManagementPage /></ProtectedRoute>} />
+          <Route path="/settings/users"           element={<ProtectedRoute><RequireRole roles={['Admin']}><UserManagementPage /></RequireRole></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

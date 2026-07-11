@@ -31,6 +31,7 @@ import mobileTripRoutes from './routes/mobileTripRoutes';
 import rateCardRoutes from './routes/rateCardRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import uploadRoutes from './routes/uploadRoutes';
+import userRoutes from './routes/userRoutes';
 import { initCronJobs } from './services/cronJobs';
 
 // Middleware
@@ -52,6 +53,7 @@ app.use('/documents', documentRoutes);
 app.use('/rate-cards', rateCardRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/upload', uploadRoutes);
+app.use('/users', userRoutes);
 
 // Mobile API Routes
 app.use('/mobile/auth', mobileAuthRoutes);

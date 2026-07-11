@@ -56,6 +56,7 @@ export default function Sidebar({ active }: SidebarProps) {
       items: [
         { icon: Settings, label: 'Settings', path: '/settings' },
         { icon: User, label: 'Profile', path: '/settings/profile' },
+        ...(user?.role === 'Admin' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
       ],
     },
   ];
