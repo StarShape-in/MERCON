@@ -1,11 +1,11 @@
 import axios from 'axios';
+import { env } from '../config/env';
 
 const ICCES_BASE_URL = 'https://fleet.icces.com:8443/iccWebService1.2';
 
-// In production, these should come from process.env
-const ICCES_USER = process.env.ICCES_USER || 'demo';
-const ICCES_PASS = process.env.ICCES_PASS || 'demo123';
-const ICCES_ACCT = process.env.ICCES_ACCT || 'demo_account';
+const ICCES_USER = env.ICCES_USER;
+const ICCES_PASS = env.ICCES_PASS;
+const ICCES_ACCT = env.ICCES_ACCT;
 
 // Base64 encode <user>:<password>:<account>
 const getAuthHeader = () => {

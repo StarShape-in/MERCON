@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { env } from '../config/env';
 import jwt from 'jsonwebtoken';
 
 export interface AuthenticatedRequest extends Request {
@@ -11,7 +12,7 @@ export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
 
-    jwt.verify(token, process.env.JWT_SECRET as string, (err, user) => {
+    jwt.verify(token, env.JWT_SECRET, (err, user) => {
       if (err) {
         return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Invalid or expired token' } });
       }

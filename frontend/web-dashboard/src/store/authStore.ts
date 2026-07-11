@@ -3,17 +3,13 @@
  * Provides simple helpers consumed across the app.
  */
 
+import type { User } from '@mercon/shared-types';
+
 const TOKEN_KEY  = 'mercon_token';
 const USER_KEY   = 'mercon_user';
 
-export interface AuthUser {
-  id:       string;
-  username: string;
-  email?:   string;
-  phone?:   string;
-  name?:    string;
-  role:     'Admin' | 'Operator' | 'driver';
-}
+/** @deprecated alias kept for existing imports — use `User` from @mercon/shared-types */
+export type AuthUser = User;
 
 export const authStore = {
   getToken(): string | null {

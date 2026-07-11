@@ -1,14 +1,8 @@
 import { api } from '@/lib/api';
+import type { User } from '@mercon/shared-types';
 
-export interface UserDTO {
-  id: string;
-  name: string;
-  email: string;
-  username: string;
-  role: string;
-  status: 'Active' | 'Inactive';
-  lastLogin: string;
-}
+/** @deprecated alias kept for existing imports — use `User` from @mercon/shared-types */
+export type UserDTO = User;
 
 export const userService = {
   getUsers: async (): Promise<UserDTO[]> => {

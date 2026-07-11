@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../index';
+import { env } from '../config/env';
 
 export const mobileLogin = async (req: Request, res: Response) => {
   const { phone_primary, license_number } = req.body;
@@ -39,7 +40,7 @@ export const mobileLogin = async (req: Request, res: Response) => {
         driver_id: driver.id,
         role: 'Driver' 
       },
-      process.env.JWT_SECRET || 'fallback_secret',
+      env.JWT_SECRET,
       { expiresIn: '30d' }
     );
 

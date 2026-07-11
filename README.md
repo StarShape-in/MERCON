@@ -56,23 +56,40 @@ One of the most advanced features is the real-time tracking engine:
 - **Driver Mobile App**: Build the React Native mobile application for the drivers to capture Proof of Delivery (POD) photos and trigger the live GPS engine.
 - **Automated Invoicing**: Generate automated PDF invoices upon Trip Completion.
 
+## 📁 Repository Structure (npm workspaces)
+
+```
+mercon/
+├── package.json               # Root — npm workspaces + shared scripts
+├── docker-compose.yml         # Workspace-aware container builds
+├── backend/api-server/        # @mercon/api-server    — Express + Prisma API
+├── frontend/
+│   ├── web-dashboard/         # @mercon/web-dashboard — React + Vite dashboard
+│   └── mobile-app/mercon-app/ # @mercon/mobile-app    — Expo app (standalone install)
+├── packages/shared-types/     # @mercon/shared-types  — DTOs shared API ↔ dashboard
+├── deploy/                    # Nginx / VPS configs
+└── docs/                      # Business & technical documentation
+```
+
+The API server, web dashboard, and shared-types are **npm workspaces** — one `npm install` at the root installs and links everything. The **mobile app is intentionally standalone** (Expo/Metro does not play well with hoisted node_modules); install it separately.
+
 ## 🏃‍♂️ Getting Started Locally
 
-1. **Start Database**
-   Ensure PostgreSQL is running locally and the `DATABASE_URL` is set in `.env`.
-   
-2. **Start Backend**
+1. **Install everything** (from the repo root)
    ```bash
-   cd backend/api-server
    npm install
-   npm run dev
    ```
 
-3. **Start Frontend**
+2. **Configure env** — copy `backend/api-server/.env.example` → `.env` and set `DATABASE_URL` / `JWT_SECRET` (the server fails fast if these are missing). For the dashboard, copy `frontend/web-dashboard/.env.example` → `.env`.
+
+3. **Run the apps**
    ```bash
-   cd frontend/web-dashboard
-   npm install
-   npm run dev
+   npm run dev:api    # Express API  (backend/api-server)
+   npm run dev:web    # Web dashboard (frontend/web-dashboard)
+   npm run mobile     # Expo dev server (installs standalone)
    ```
 
-*(This documentation was automatically generated upon the completion of Phase 3).*
+4. **Build for production**
+   ```bash
+   npm run build      # shared-types → api-server → web-dashboard
+   ```

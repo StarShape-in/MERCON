@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { env } from '../config/env';
 import { prisma } from '../index';
 import { DocType, DocStatus } from '@prisma/client';
 import path from 'path';
@@ -94,7 +95,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
     }
 
     // Build the public URL for the uploaded file
-    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const baseUrl = env.BASE_URL || `http://localhost:${env.PORT}`;
     const file_url = `${baseUrl}/uploads/${req.file.filename}`;
 
     const document = await prisma.document.create({

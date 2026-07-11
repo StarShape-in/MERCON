@@ -16,8 +16,8 @@ jobs:
       - name: Rebuild and Restart Docker Containers
         run: |
           echo "Rebuilding backend and frontend services..."
-          cd backend/api-server
-          
+          # docker-compose.yml lives at the repo root (workspace-aware builds)
+
           # Remove old containers to force clean restart
           docker rm -f mercon-postgres mercon-api mercon-frontend || true
           

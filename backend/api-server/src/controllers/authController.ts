@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { env } from '../config/env';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { prisma } from '../index';
@@ -44,7 +45,7 @@ export const login = async (req: Request, res: Response) => {
       driver_id: user.driver?.id 
     };
     
-    const token = jwt.sign(jwtPayload, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+    const token = jwt.sign(jwtPayload, env.JWT_SECRET, { expiresIn: '7d' });
 
     return res.json({
       success: true,

@@ -2,10 +2,8 @@ import express, { Request, Response } from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
-
-dotenv.config();
+import { env } from './config/env';
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,7 +11,7 @@ export const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST', 'PATCH'] }
 });
 
-const port = process.env.PORT || 3000;
+const port = env.PORT;
 export const prisma = new PrismaClient();
 
 import authRoutes from './routes/authRoutes';

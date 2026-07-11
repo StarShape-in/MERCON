@@ -1,24 +1,31 @@
+# Build from the repo root: docker build -f backend/api-server/Dockerfile .
 FROM node:18-alpine
 
 RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# Install dependencies first (for caching)
-COPY package.json package-lock.json* ./
-RUN npm install
+# Workspace manifests first (for layer caching)
+COPY package.json package-lock.json ./
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY backend/api-server/package.json ./backend/api-server/
+COPY frontend/web-dashboard/package.json ./frontend/web-dashboard/
+RUN npm install --ignore-scripts
 
-# Copy Prisma schema and generate client
-COPY prisma ./prisma/
-RUN npx prisma generate
+# Shared types (built explicitly since --ignore-scripts skips prepare)
+COPY packages/shared-types ./packages/shared-types
+RUN npm run build -w @mercon/shared-types
 
-# Copy source code
-COPY . .
+# Prisma client
+COPY backend/api-server/prisma ./backend/api-server/prisma
+RUN cd backend/api-server && npx prisma generate
 
-# Build TypeScript
-RUN npm run build
+# API source + build
+COPY backend/api-server ./backend/api-server
+RUN npm run build -w @mercon/api-server
 
-# Expose port
+WORKDIR /app/backend/api-server
+
 EXPOSE 3000
 
 # Start command (Force schema sync, seed DB, then start server)
