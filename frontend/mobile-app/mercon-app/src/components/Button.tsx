@@ -9,7 +9,9 @@ type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 
 type ButtonSize    = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
-  label: string;
+  /** Button text. `title` is accepted as an alias (the screens use it). */
+  label?: string;
+  title?: string;
   onPress?: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -22,11 +24,12 @@ interface ButtonProps {
 }
 
 export function Button({
-  label, onPress, variant = 'primary', size = 'md',
+  label, title, onPress, variant = 'primary', size = 'md',
   disabled, loading, iconLeft, iconRight, fullWidth, style,
 }: ButtonProps) {
   const s = styles[variant];
   const sz = sizeStyles[size];
+  const text = label ?? title ?? '';
 
   return (
     <TouchableOpacity
@@ -48,7 +51,7 @@ export function Button({
       ) : (
         <>
           {iconLeft && <View style={base.iconLeft}>{iconLeft}</View>}
-          <Text style={[sz.text, s.text]}>{label}</Text>
+          <Text style={[sz.text, s.text]}>{text}</Text>
           {iconRight && <View style={base.iconRight}>{iconRight}</View>}
         </>
       )}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, TextInput, Text, TouchableOpacity,
-  StyleSheet, ViewStyle, TextStyle, KeyboardTypeOptions,
+  StyleSheet, ViewStyle, TextStyle, KeyboardTypeOptions, TextInputProps,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography } from '../theme/tokens';
 
@@ -19,6 +19,8 @@ interface InputProps {
   iconRight?: React.ReactNode;
   secureTextEntry?: boolean;
   keyboardType?: KeyboardTypeOptions;
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+  autoCorrect?: boolean;
   multiline?: boolean;
   numberOfLines?: number;
   style?: ViewStyle;
@@ -27,7 +29,7 @@ interface InputProps {
 export function Input({
   label, value, onChangeText, placeholder, state = 'default',
   errorText, successText, iconLeft, iconRight, secureTextEntry,
-  keyboardType, multiline, numberOfLines, style,
+  keyboardType, autoCapitalize, autoCorrect, multiline, numberOfLines, style,
 }: InputProps) {
   const [focused, setFocused] = useState(false);
   const effectiveState = state === 'default' && focused ? 'focused' : state;
@@ -42,7 +44,7 @@ export function Input({
           style={[
             styles.input,
             multiline && styles.multiline,
-            iconLeft && { paddingLeft: 0 },
+            iconLeft ? { paddingLeft: 0 } : null,
           ]}
           value={value}
           onChangeText={onChangeText}
@@ -53,6 +55,8 @@ export function Input({
           editable={!isDisabled}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
           multiline={multiline}
           numberOfLines={numberOfLines}
         />

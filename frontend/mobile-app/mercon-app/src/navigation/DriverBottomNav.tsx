@@ -13,7 +13,7 @@ import { Colors, Spacing, Radius, Shadows } from '../theme/tokens';
 export type DriverTab = 'Home' | 'Trips' | 'Profile';
 
 interface DriverBottomNavProps {
-  activeTab: DriverTab;
+  activeTab: DriverTab | string;
   onTabPress: (tab: DriverTab) => void;
 }
 

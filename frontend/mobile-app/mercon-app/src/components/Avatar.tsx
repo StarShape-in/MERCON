@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Colors, Radius, Typography } from '../theme/tokens';
 
-type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
+type AvatarSize = 'sm' | 'md' | 'lg' | 'xl' | number;
 type OnlineStatus = 'online' | 'busy' | 'offline';
 
 interface AvatarProps {
@@ -13,9 +13,10 @@ interface AvatarProps {
   style?: ViewStyle;
 }
 
-const SIZE_MAP: Record<AvatarSize, number> = { sm: 28, md: 36, lg: 48, xl: 64 };
-const FONT_MAP: Record<AvatarSize, number> = { sm: 10, md: 12, lg: 14, xl: 18 };
-const DOT_MAP:  Record<AvatarSize, number> = { sm: 8,  md: 10, lg: 12, xl: 14 };
+type NamedSize = 'sm' | 'md' | 'lg' | 'xl';
+const SIZE_MAP: Record<NamedSize, number> = { sm: 28, md: 36, lg: 48, xl: 64 };
+const FONT_MAP: Record<NamedSize, number> = { sm: 10, md: 12, lg: 14, xl: 18 };
+const DOT_MAP:  Record<NamedSize, number> = { sm: 8,  md: 10, lg: 12, xl: 14 };
 
 const STATUS_COLORS: Record<OnlineStatus, string> = {
   online:  Colors.success,
@@ -24,13 +25,15 @@ const STATUS_COLORS: Record<OnlineStatus, string> = {
 };
 
 export function Avatar({ initials, color = Colors.primary, size = 'md', onlineStatus, style }: AvatarProps) {
-  const diameter = SIZE_MAP[size];
-  const dotSize  = DOT_MAP[size];
+  const isNum = typeof size === 'number';
+  const diameter = isNum ? size : SIZE_MAP[size];
+  const dotSize  = isNum ? Math.round(size * 0.28) : DOT_MAP[size];
+  const fontSize = isNum ? Math.round(size * 0.36) : FONT_MAP[size];
 
   return (
     <View style={[{ position: 'relative', width: diameter, height: diameter }, style]}>
       <View style={[styles.avatar, { width: diameter, height: diameter, borderRadius: diameter / 2, backgroundColor: color }]}>
-        <Text style={{ fontSize: FONT_MAP[size], fontWeight: '700', color: Colors.white }}>
+        <Text style={{ fontSize, fontWeight: '700', color: Colors.white }}>
           {initials}
         </Text>
       </View>

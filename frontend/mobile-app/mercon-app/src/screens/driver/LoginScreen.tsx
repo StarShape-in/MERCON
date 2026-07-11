@@ -1,21 +1,35 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, SafeAreaView, StatusBar,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Input } from '../../components';
+import { useAuth } from '../../lib/auth-context';
+import { getApiErrorMessage } from '../../lib/api';
 
-const LoginScreen = ({ navigation }: any) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const LoginScreen = () => {
+  const { signIn } = useAuth();
+  const [phone, setPhone] = useState('');
+  const [license, setLicense] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
+    if (!phone.trim() || !license.trim()) {
+      setError('Please enter your phone number and license number.');
+      return;
+    }
+    setError(null);
     setLoading(true);
-    // TODO: implement auth
-    setTimeout(() => setLoading(false), 1500);
+    try {
+      await signIn(phone.trim(), license.trim());
+      // Success: the auth guard in app/_layout.tsx switches to the home screen.
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,28 +51,23 @@ const LoginScreen = ({ navigation }: any) => {
 
           <View style={styles.form}>
             <Input
-              label="Email Address"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="driver@mercon.sa"
-              keyboardType="email-address"
+              label="Mobile Number"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+9665XXXXXXXX"
+              keyboardType="phone-pad"
               autoCapitalize="none"
             />
             <Input
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter your password"
+              label="License Number"
+              value={license}
+              onChangeText={setLicense}
+              placeholder="Enter your license number"
+              autoCapitalize="characters"
               secureTextEntry
             />
 
-            <TouchableOpacity
-              style={styles.forgotBtn}
-              activeOpacity={0.8}
-              onPress={() => {}}
-            >
-              <Text style={styles.forgotText}>Forgot Password?</Text>
-            </TouchableOpacity>
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             <Button
               title={loading ? 'Signing In...' : 'Sign In'}
@@ -136,14 +145,10 @@ const styles = StyleSheet.create({
   form: {
     gap: Spacing.md,
   },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginTop: -Spacing.xs,
-  },
-  forgotText: {
+  errorText: {
     fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: '600',
+    color: '#DC2626',
+    marginTop: -Spacing.xs,
   },
   footer: {
     textAlign: 'center',

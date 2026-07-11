@@ -51,6 +51,12 @@ export const Colors = {
   statusCancelledBg: '#FEF2F2',
   statusPending:     '#6E6E80',
   statusPendingBg:   '#F5F5F7',
+
+  // Aliases used by screens (kept for compatibility with the generated UI)
+  gray800:        '#27272A',
+  gray600:        '#52525B',
+  error:          '#DC2626',
+  errorLight:     '#FEF2F2',
 } as const;
 
 // ─── Spacing (8pt grid) ───────────────────────────────────────────────────────
@@ -108,6 +114,16 @@ export const Typography = {
 
   // Mono (for IDs, codes)
   mono:          { fontSize: 12, fontFamily: 'monospace' as const, fontWeight: '600' as const },
+
+  // Numeric font-size scale — screens use these as `fontSize: Typography.sm`
+  xs:            12,
+  sm:            14,
+  md:            15,
+  base:          16,
+  lg:            18,
+  xl:            20,
+  '2xl':         24,
+  '3xl':         28,
 } as const;
 
 // ─── Shadows ──────────────────────────────────────────────────────────────────
@@ -132,6 +148,13 @@ export const Shadows = {
     shadowOpacity: 0.12,
     shadowRadius: 24,
     elevation: 8,
+  },
+  xl: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 32,
+    elevation: 12,
   },
   primary: {
     shadowColor: '#E8450F',

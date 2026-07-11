@@ -10,7 +10,7 @@ import { Colors, Spacing, Radius, Shadows } from '../theme/tokens';
 export type OperatorTab = 'Home' | 'Trips' | 'Drivers' | 'More';
 
 interface OperatorBottomNavProps {
-  activeTab: OperatorTab;
+  activeTab: OperatorTab | string;
   onTabPress: (tab: OperatorTab) => void;
   onFabPress?: () => void;
 }

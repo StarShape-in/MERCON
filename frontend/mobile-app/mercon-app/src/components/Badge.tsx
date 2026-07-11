@@ -2,16 +2,31 @@ import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Colors, Spacing, Radius, Typography, getStatusColors } from '../theme/tokens';
 
+type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+
+const VARIANT_COLORS: Record<BadgeVariant, { color: string; bg: string }> = {
+  success: { color: Colors.success, bg: Colors.successLight },
+  warning: { color: Colors.warning, bg: Colors.warningLight },
+  danger:  { color: Colors.danger,  bg: Colors.dangerLight  },
+  info:    { color: Colors.info,    bg: Colors.infoLight    },
+  neutral: { color: Colors.statusPending, bg: Colors.statusPendingBg },
+};
+
 interface BadgeProps {
   label: string;
+  /** Shorthand for a color+bg pair; overridden by explicit color/bg. */
+  variant?: BadgeVariant;
   color?: string;
   bg?: string;
   dot?: boolean;
   style?: ViewStyle;
 }
 
-/** Generic badge — pass color + bg or use StatusBadge for automatic status colors */
-export function Badge({ label, color = Colors.statusPending, bg = Colors.statusPendingBg, dot, style }: BadgeProps) {
+/** Generic badge — pass variant, or color + bg, or use StatusBadge for automatic status colors */
+export function Badge({ label, variant, color, bg, dot, style }: BadgeProps) {
+  const v = variant ? VARIANT_COLORS[variant] : null;
+  color = color ?? v?.color ?? Colors.statusPending;
+  bg = bg ?? v?.bg ?? Colors.statusPendingBg;
   return (
     <View style={[styles.badge, { backgroundColor: bg }, style]}>
       {dot && <View style={[styles.dot, { backgroundColor: color }]} />}
@@ -21,7 +36,7 @@ export function Badge({ label, color = Colors.statusPending, bg = Colors.statusP
 }
 
 /** Automatically picks colors based on trip/vehicle/document status string */
-export function StatusBadge({ status, dot, style }: { status: string; dot?: boolean; style?: ViewStyle }) {
+export function StatusBadge({ status, dot, style }: { status: string; label?: string; dot?: boolean; style?: ViewStyle }) {
   const { color, bg } = getStatusColors(status);
   return <Badge label={status} color={color} bg={bg} dot={dot} style={style} />;
 }
