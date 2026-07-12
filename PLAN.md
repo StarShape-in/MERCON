@@ -140,9 +140,11 @@ The deadline is ~1 month. Two apps in one month, solo, is **tight but doable** b
 **Still push past handover:** map upgrade, push notifications.
 
 **Do this soon (calendar, not work days):**
-- [ ] Rotate `JWT_SECRET` (the old one is in git history) — **in progress:** moving it to a
-      GitHub Actions secret injected at deploy, and removing the leaked fallback from
-      `docker-compose.yml`. All existing logins will need to sign in again once rotated.
+- [x] ✅ Rotate `JWT_SECRET` — **done July 12, 2026.** Now a GitHub Actions secret
+      injected at deploy; the leaked fallback is gone from `docker-compose.yml`
+      (compose hard-fails if the secret is missing). Verified live: fresh logins work,
+      and a token forged with the old git secret is rejected (403). All prior sessions
+      were invalidated, so everyone must log in again.
 
 ## Part 5: The ~4-week schedule (both apps)
 
