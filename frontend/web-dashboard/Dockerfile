@@ -2,8 +2,13 @@
 # Build stage
 FROM node:22-alpine as build
 WORKDIR /app
-# Workspace manifests first (for layer caching)
-COPY package.json package-lock.json ./
+# Workspace manifests first (for layer caching).
+# NOTE: the lockfile is intentionally NOT copied. It is generated on macOS
+# (darwin-arm64), and npm's optional-dependencies bug (npm/cli#4828) then
+# skips the Linux rolldown native binding Vite 8 needs, breaking the build
+# with "Cannot find module '@rolldown/binding-linux-x64-musl'". Installing
+# without the lockfile lets npm resolve the correct binding for this platform.
+COPY package.json ./
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY backend/api-server/package.json ./backend/api-server/
 COPY frontend/web-dashboard/package.json ./frontend/web-dashboard/
