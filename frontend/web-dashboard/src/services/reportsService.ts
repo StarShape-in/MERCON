@@ -13,6 +13,15 @@ export interface ReportsSummary {
   monthly_revenue_chart: { month: string; revenue: number }[];
 }
 
+export interface RevenueReport {
+  monthly_breakdown: { month: string; revenue: number; count: number }[];
+  total_all_time: number;
+  outstanding_total: number;
+  paid_invoice_count: number;
+  avg_per_invoice: number;
+  top_customers: { name: string; value: number }[];
+}
+
 export interface CustomReportFilters {
   startDate?: string;
   endDate?: string;
@@ -52,9 +61,9 @@ export const reportsService = {
     return res.data;
   },
 
-  async getRevenueReport(months = 6): Promise<ApiResponse<unknown>> {
-    const res = await api.get<ApiResponse<unknown>>('/reports/revenue', { params: { months } });
-    return res.data;
+  async getRevenueReport(months = 6): Promise<RevenueReport> {
+    const res = await api.get<ApiResponse<RevenueReport>>('/reports/revenue', { params: { months } });
+    return res.data.data;
   },
 
   async getCustomReport(filters: CustomReportFilters): Promise<CustomReportData> {

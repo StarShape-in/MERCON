@@ -178,8 +178,8 @@ export const getRevenueReport = async (req: Request, res: Response) => {
     const rows = await prisma.$queryRaw<{ month: string; revenue: number; count: number }[]>`
       SELECT
         TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon YYYY') AS month,
-        COALESCE(SUM("total_amount"), 0) AS revenue,
-        COUNT(*) AS count
+        COALESCE(SUM("total_amount"), 0)::float8 AS revenue,
+        COUNT(*)::int AS count
       FROM "Invoice"
       WHERE "deletedAt" IS NULL
         AND status = 'Paid'
@@ -190,14 +190,46 @@ export const getRevenueReport = async (req: Request, res: Response) => {
 
     const totalRevenue = await prisma.invoice.aggregate({
       where: { deletedAt: null, status: InvoiceStatus.Paid },
+      _sum: { total_amount: true },
+      _count: true
+    });
+
+    // Outstanding = issued but not yet settled (Pending + Overdue)
+    const outstanding = await prisma.invoice.aggregate({
+      where: { deletedAt: null, status: { in: [InvoiceStatus.Pending, InvoiceStatus.Overdue] } },
       _sum: { total_amount: true }
     });
+
+    // Top customers by paid revenue
+    const grouped = await prisma.invoice.groupBy({
+      by: ['customerId'],
+      where: { deletedAt: null, status: InvoiceStatus.Paid },
+      _sum: { total_amount: true },
+      orderBy: { _sum: { total_amount: 'desc' } },
+      take: 5
+    });
+    const customers = await prisma.customer.findMany({
+      where: { id: { in: grouped.map((g) => g.customerId) } },
+      select: { id: true, name: true }
+    });
+    const nameById = new Map(customers.map((c) => [c.id, c.name]));
+    const top_customers = grouped.map((g) => ({
+      name: nameById.get(g.customerId) ?? 'Unknown',
+      value: g._sum.total_amount ?? 0
+    }));
+
+    const paidCount = totalRevenue._count;
+    const paidTotal = totalRevenue._sum.total_amount ?? 0;
 
     res.json({
       success: true,
       data: {
         monthly_breakdown: rows,
-        total_all_time: totalRevenue._sum.total_amount ?? 0
+        total_all_time: paidTotal,
+        outstanding_total: outstanding._sum.total_amount ?? 0,
+        paid_invoice_count: paidCount,
+        avg_per_invoice: paidCount > 0 ? paidTotal / paidCount : 0,
+        top_customers
       }
     });
   } catch (error) {

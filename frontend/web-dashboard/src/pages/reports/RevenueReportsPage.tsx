@@ -1,41 +1,50 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Download, Filter, TrendingUp, DollarSign, Activity, FileText } from 'lucide-react';
-import { 
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
-  CartesianGrid, Tooltip, Legend, AreaChart, Area
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, AreaChart, Area
 } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import Btn from '@/components/ui/Btn';
+import { reportsService } from '@/services/reportsService';
 
-const mockRevenueData = [
-  { month: 'Jan', revenue: 45000, cost: 32000, profit: 13000 },
-  { month: 'Feb', revenue: 52000, cost: 35000, profit: 17000 },
-  { month: 'Mar', revenue: 48000, cost: 33000, profit: 15000 },
-  { month: 'Apr', revenue: 61000, cost: 40000, profit: 21000 },
-  { month: 'May', revenue: 59000, cost: 38000, profit: 21000 },
-  { month: 'Jun', revenue: 68000, cost: 42000, profit: 26000 },
-];
-
-const mockCustomerData = [
-  { name: 'SABIC', value: 34000 },
-  { name: 'Aramco', value: 28000 },
-  { name: 'Almarai', value: 15000 },
-  { name: 'FMCG Corp', value: 12000 },
-  { name: 'Other', value: 9000 },
-];
+/** Compact SAR formatter: 333000 -> "SAR 333K", 2450 -> "SAR 2,450" */
+function sar(value: number): string {
+  if (Math.abs(value) >= 1000) {
+    return `SAR ${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
+  }
+  return `SAR ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
 
 export default function RevenueReportsPage() {
-  const [timeRange, setTimeRange] = useState('6M');
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['reports', 'revenue'],
+    queryFn: () => reportsService.getRevenueReport(6),
+  });
+
+  // Recharts needs plain numbers; raw SQL can hand back numeric strings.
+  const revenueData = useMemo(
+    () => (data?.monthly_breakdown ?? []).map((r) => ({
+      month: r.month,
+      revenue: Number(r.revenue),
+    })),
+    [data],
+  );
+  const customerData = useMemo(
+    () => (data?.top_customers ?? []).map((c) => ({ name: c.name, value: Number(c.value) })),
+    [data],
+  );
 
   return (
-    <DashboardLayout 
-      active="Reports" 
+    <DashboardLayout
+      active="Reports"
       breadcrumb="Reports"
-      title="Revenue Analytics" 
-      pageTitle="Financial & Revenue Reports" 
-      pageSub="Track gross revenue, operational costs, and profit margins."
+      title="Revenue Analytics"
+      pageTitle="Financial & Revenue Reports"
+      pageSub="Track gross revenue from paid invoices and outstanding balances."
       actions={
         <div className="flex gap-2">
           <Btn label="Filter" variant="outline" icon={<Filter size={14} />} />
@@ -44,89 +53,73 @@ export default function RevenueReportsPage() {
       }
     >
       <div className="px-6 pb-6">
-        
+
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KpiCard 
-            label="Gross Revenue (YTD)" 
-            value="SAR 333K" 
-            delta={12.5}
-            up={true}
-            icon={DollarSign} 
-            color="#16A34A" 
-            bg="#F0FDF4" 
+          <KpiCard
+            label="Gross Revenue (Paid)"
+            value={isLoading ? '—' : sar(data?.total_all_time ?? 0)}
+            icon={DollarSign}
+            color="#16A34A"
+            bg="#F0FDF4"
           />
-          <KpiCard 
-            label="Net Profit Margin" 
-            value="34.2%" 
-            delta={2.1}
-            up={true}
-            icon={TrendingUp} 
-            color="#2563EB" 
-            bg="#EFF6FF" 
+          <KpiCard
+            label="Outstanding (Unpaid)"
+            value={isLoading ? '—' : sar(data?.outstanding_total ?? 0)}
+            icon={FileText}
+            color="#DC2626"
+            bg="#FEF2F2"
           />
-          <KpiCard 
-            label="Avg Revenue / Trip" 
-            value="SAR 2,450" 
-            delta={-1.5}
-            up={false}
-            icon={Activity} 
-            color="#D97706" 
-            bg="#FFFBEB" 
+          <KpiCard
+            label="Avg Revenue / Invoice"
+            value={isLoading ? '—' : sar(data?.avg_per_invoice ?? 0)}
+            icon={Activity}
+            color="#D97706"
+            bg="#FFFBEB"
           />
-          <KpiCard 
-            label="Unpaid Invoices" 
-            value="SAR 45K" 
-            delta={10}
-            up={false}
-            icon={FileText} 
-            color="#DC2626" 
-            bg="#FEF2F2" 
+          <KpiCard
+            label="Paid Invoices"
+            value={isLoading ? '—' : (data?.paid_invoice_count ?? 0).toLocaleString('en-US')}
+            icon={TrendingUp}
+            color="#2563EB"
+            bg="#EFF6FF"
           />
         </div>
 
         {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          
-          {/* Revenue vs Cost Area Chart */}
+
+          {/* Monthly Revenue Area Chart */}
           <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-sm font-bold text-[#111]">Revenue & Profit Trajectory</h3>
-                <p className="text-xs text-[#6E6E80]">Monthly comparison of gross revenue and net profit</p>
-              </div>
-              <select 
-                value={timeRange} 
-                onChange={e => setTimeRange(e.target.value)}
-                className="text-xs font-semibold bg-[#F5F5F7] border-0 px-3 py-1.5 rounded-none outline-none cursor-pointer"
-              >
-                <option value="6M">Last 6 Months</option>
-                <option value="1Y">Last Year</option>
-              </select>
+            <div className="mb-6">
+              <h3 className="text-sm font-bold text-[#111]">Monthly Revenue</h3>
+              <p className="text-xs text-[#6E6E80]">Gross revenue from paid invoices — last 6 months</p>
             </div>
-            
+
             <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockRevenueData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#16A34A" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#16A34A" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563EB" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F2" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000}k`} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-                  <Area type="monotone" dataKey="revenue" name="Gross Revenue" stroke="#16A34A" strokeWidth={2} fillOpacity={1} fill="url(#colorRev)" />
-                  <Area type="monotone" dataKey="profit" name="Net Profit" stroke="#2563EB" strokeWidth={2} fillOpacity={1} fill="url(#colorProfit)" />
-                </AreaChart>
-              </ResponsiveContainer>
+              {isLoading ? (
+                <div className="h-full flex items-center justify-center text-xs text-[#9898A4]">Loading…</div>
+              ) : isError ? (
+                <div className="h-full flex items-center justify-center text-xs text-[#DC2626]">Failed to load revenue data.</div>
+              ) : revenueData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-[#9898A4]">No paid invoices yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueData} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#16A34A" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#16A34A" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F2" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000}k`} />
+                    <Tooltip formatter={(val) => sar(Number(val))} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Area type="monotone" dataKey="revenue" name="Gross Revenue" stroke="#16A34A" strokeWidth={2} fillOpacity={1} fill="url(#colorRev)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
@@ -134,19 +127,25 @@ export default function RevenueReportsPage() {
           <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
             <div className="mb-6">
               <h3 className="text-sm font-bold text-[#111]">Revenue by Customer</h3>
-              <p className="text-xs text-[#6E6E80]">Top clients this month</p>
+              <p className="text-xs text-[#6E6E80]">Top clients by paid revenue</p>
             </div>
-            
+
             <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={mockCustomerData} margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F0F0F2" />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: '#444', fontWeight: 600 }} axisLine={false} tickLine={false} width={80} />
-                  <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Bar dataKey="value" name="Revenue (SAR)" fill="#E8450F" radius={[0, 4, 4, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
+              {isLoading ? (
+                <div className="h-full flex items-center justify-center text-xs text-[#9898A4]">Loading…</div>
+              ) : customerData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-[#9898A4]">No paid invoices yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart layout="vertical" data={customerData} margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F0F0F2" />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: '#444', fontWeight: 600 }} axisLine={false} tickLine={false} width={80} />
+                    <Tooltip cursor={{ fill: 'transparent' }} formatter={(val) => sar(Number(val))} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="value" name="Revenue (SAR)" fill="#E8450F" radius={[0, 4, 4, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
