@@ -6,6 +6,8 @@ export interface Notification {
   message: string;
   type: string;
   is_read: boolean;
+  entity_type?: string | null;
+  entity_id?: string | null;
   createdAt: string;
 }
 
