@@ -1,152 +1,125 @@
-import { useState } from 'react';
-import { Download, Filter, TrendingUp, AlertTriangle, Settings, Activity } from 'lucide-react';
-import { 
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
-  CartesianGrid, Tooltip, Legend, LineChart, Line 
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Download, Settings, Activity, Truck, Wrench } from 'lucide-react';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import Btn from '@/components/ui/Btn';
+import { reportsService } from '@/services/reportsService';
 
-const mockUtilizationData = [
-  { month: 'Jan', utilized: 85, idle: 15, maintenance: 5 },
-  { month: 'Feb', utilized: 88, idle: 12, maintenance: 6 },
-  { month: 'Mar', utilized: 92, idle: 8, maintenance: 4 },
-  { month: 'Apr', utilized: 80, idle: 20, maintenance: 8 },
-  { month: 'May', utilized: 95, idle: 5, maintenance: 3 },
-  { month: 'Jun', utilized: 90, idle: 10, maintenance: 5 },
-];
-
-const mockMaintenanceData = [
-  { month: 'Jan', cost: 12000 },
-  { month: 'Feb', cost: 15000 },
-  { month: 'Mar', cost: 9000 },
-  { month: 'Apr', cost: 18000 },
-  { month: 'May', cost: 11000 },
-  { month: 'Jun', cost: 13500 },
-];
+function sar(value: number): string {
+  if (Math.abs(value) >= 1000) return `SAR ${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
+  return `SAR ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
 
 export default function FleetPerformancePage() {
-  const [timeRange, setTimeRange] = useState('6M');
+  const { data: rows = [], isLoading, isError } = useQuery({
+    queryKey: ['reports', 'fleet'],
+    queryFn: reportsService.getFleetPerformance,
+  });
+
+  const kpis = useMemo(() => {
+    const totalVehicles = rows.length;
+    const inMaintenance = rows.filter((v) => v.status === 'Maintenance').length;
+    const totalMaintenanceCost = rows.reduce((s, v) => s + (v.maintenance_cost ?? 0), 0);
+    const totalTrips = rows.reduce((s, v) => s + v.total_trips, 0);
+    const completed = rows.reduce((s, v) => s + v.completed_trips, 0);
+    const completionRate = totalTrips > 0 ? Math.round((completed / totalTrips) * 100) : 0;
+    return { totalVehicles, inMaintenance, totalMaintenanceCost, completionRate };
+  }, [rows]);
+
+  const tripsByVehicle = useMemo(
+    () => [...rows]
+      .sort((a, b) => b.total_trips - a.total_trips)
+      .slice(0, 8)
+      .map((v) => ({ name: v.plate_number || v.ref_id || '—', Completed: v.completed_trips, Total: v.total_trips })),
+    [rows],
+  );
+
+  const maintenanceByVehicle = useMemo(
+    () => [...rows]
+      .filter((v) => (v.maintenance_cost ?? 0) > 0)
+      .sort((a, b) => b.maintenance_cost - a.maintenance_cost)
+      .slice(0, 8)
+      .map((v) => ({ name: v.plate_number || v.ref_id || '—', cost: v.maintenance_cost })),
+    [rows],
+  );
+
+  const chartState = isLoading ? 'loading' : isError ? 'error' : 'ready';
+  const ChartFallback = ({ empty }: { empty: boolean }) => (
+    <div className="h-full flex items-center justify-center text-xs text-[#9898A4]">
+      {chartState === 'loading' ? 'Loading…' : chartState === 'error' ? 'Failed to load.' : empty ? 'No data yet.' : ''}
+    </div>
+  );
 
   return (
-    <DashboardLayout 
-      active="Reports" 
+    <DashboardLayout
+      active="Reports"
       breadcrumb="Reports"
-      title="Fleet Performance" 
-      pageTitle="Fleet Performance Analytics" 
-      pageSub="Monitor vehicle utilization, maintenance costs, and asset efficiency."
-      actions={
-        <div className="flex gap-2">
-          <Btn label="Filter" variant="outline" icon={<Filter size={14} />} />
-          <Btn label="Export PDF" icon={<Download size={14} />} />
-        </div>
-      }
+      title="Fleet Performance"
+      pageTitle="Fleet Performance Analytics"
+      pageSub="Trips handled and maintenance spend per vehicle."
+      actions={<Btn label="Export" variant="outline" icon={<Download size={14} />} />}
     >
       <div className="px-6 pb-6">
-        
+
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KpiCard 
-            label="Avg. Utilization Rate" 
-            value="88.3%" 
-            delta={2.1}
-            up={true}
-            icon={Activity} 
-            color="#2563EB" 
-            bg="#EFF6FF" 
-          />
-          <KpiCard 
-            label="Total Maintenance Cost" 
-            value="SAR 78.5K" 
-            delta={5.4}
-            up={false} // Cost going up is bad, but UI handles arrow logic
-            icon={Settings} 
-            color="#DC2626" 
-            bg="#FEF2F2" 
-          />
-          <KpiCard 
-            label="Vehicles in Shop" 
-            value="4" 
-            delta={-1}
-            up={true}
-            icon={AlertTriangle} 
-            color="#D97706" 
-            bg="#FFFBEB" 
-          />
-          <KpiCard 
-            label="Cost per Km (Avg)" 
-            value="SAR 1.12" 
-            delta={-0.05}
-            up={true}
-            icon={TrendingUp} 
-            color="#16A34A" 
-            bg="#F0FDF4" 
-          />
+          <KpiCard label="Total Vehicles" value={isLoading ? '—' : kpis.totalVehicles.toString()} icon={Truck} color="#2563EB" bg="#EFF6FF" />
+          <KpiCard label="Trip Completion Rate" value={isLoading ? '—' : `${kpis.completionRate}%`} icon={Activity} color="#16A34A" bg="#F0FDF4" />
+          <KpiCard label="In Maintenance" value={isLoading ? '—' : kpis.inMaintenance.toString()} icon={Wrench} color="#D97706" bg="#FFFBEB" />
+          <KpiCard label="Total Maintenance Cost" value={isLoading ? '—' : sar(kpis.totalMaintenanceCost)} icon={Settings} color="#DC2626" bg="#FEF2F2" />
         </div>
 
-        {/* Charts Row 1 */}
+        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          
-          {/* Utilization Chart */}
+
           <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-sm font-bold text-[#111]">Fleet Utilization Breakdown</h3>
-                <p className="text-xs text-[#6E6E80]">Percentage of days utilized vs idle</p>
-              </div>
-              <select 
-                value={timeRange} 
-                onChange={e => setTimeRange(e.target.value)}
-                className="text-xs font-semibold bg-[#F5F5F7] border-0 px-3 py-1.5 rounded-none outline-none cursor-pointer"
-              >
-                <option value="3M">Last 3 Months</option>
-                <option value="6M">Last 6 Months</option>
-                <option value="1Y">Last Year</option>
-              </select>
+            <div className="mb-6">
+              <h3 className="text-sm font-bold text-[#111]">Trips per Vehicle</h3>
+              <p className="text-xs text-[#6E6E80]">Completed vs total trips — busiest 8 vehicles</p>
             </div>
-            
             <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockUtilizationData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F2" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: '#F5F5F7' }} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-                  <Bar dataKey="utilized" name="Active (%)" stackId="a" fill="#2563EB" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="idle" name="Idle (%)" stackId="a" fill="#CBD5E1" />
-                  <Bar dataKey="maintenance" name="Maintenance (%)" stackId="a" fill="#F87171" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {chartState === 'ready' && tripsByVehicle.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={tripsByVehicle} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F2" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9898A4' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip cursor={{ fill: '#F5F5F7' }} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+                    <Bar dataKey="Total" fill="#CBD5E1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Completed" fill="#2563EB" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <ChartFallback empty={tripsByVehicle.length === 0} />}
             </div>
           </div>
 
-          {/* Maintenance Cost Trend */}
           <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-sm font-bold text-[#111]">Maintenance Cost Trend</h3>
-                <p className="text-xs text-[#6E6E80]">Monthly repair and service expenses (SAR)</p>
-              </div>
+            <div className="mb-6">
+              <h3 className="text-sm font-bold text-[#111]">Maintenance Cost per Vehicle</h3>
+              <p className="text-xs text-[#6E6E80]">Total recorded maintenance spend (SAR)</p>
             </div>
-            
             <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockMaintenanceData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F2" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000}k`} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Line type="monotone" dataKey="cost" name="Cost (SAR)" stroke="#DC2626" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              {chartState === 'ready' && maintenanceByVehicle.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={maintenanceByVehicle} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F2" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9898A4' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v / 1000}k`} />
+                    <Tooltip formatter={(v) => sar(Number(v))} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="cost" name="Maintenance (SAR)" fill="#DC2626" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : <ChartFallback empty={maintenanceByVehicle.length === 0} />}
             </div>
           </div>
 
         </div>
-
       </div>
     </DashboardLayout>
   );

@@ -1,22 +1,27 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Send } from 'lucide-react';
 import FormInput from '@/components/ui/FormInput';
+import { authService } from '@/services/authService';
 
 export default function ForgotPasswordPage() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Mock API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Always resolves generically — the API never reveals whether the email exists.
+      await authService.forgotPassword(email);
       setIsSent(true);
-    }, 1500);
+    } catch {
+      // Show the same confirmation regardless, to avoid leaking account existence.
+      setIsSent(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

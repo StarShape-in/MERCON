@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, CheckCircle2, ShieldCheck } from 'lucide-react';
 import FormInput from '@/components/ui/FormInput';
+import { authService } from '@/services/authService';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function ResetPasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -29,11 +30,14 @@ export default function ResetPasswordPage() {
     }
 
     setIsLoading(true);
-    // Mock API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await authService.resetPassword(token!, password);
       setIsSuccess(true);
-    }, 1500);
+    } catch (err: any) {
+      setError(err?.response?.data?.error?.message || 'This reset link is invalid or has expired.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!token) {

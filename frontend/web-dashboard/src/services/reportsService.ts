@@ -22,6 +22,27 @@ export interface RevenueReport {
   top_customers: { name: string; value: number }[];
 }
 
+export interface FleetPerfRow {
+  id: string;
+  ref_id: string | null;
+  plate_number: string;
+  status: string;
+  total_trips: number;
+  completed_trips: number;
+  odometer: number | null;
+  maintenance_cost: number;
+}
+
+export interface DriverPerfRow {
+  id: string;
+  ref_id: string | null;
+  name: string;
+  status: string;
+  total_trips: number;
+  completed_trips: number;
+  ai_risk_score: number | null;
+}
+
 export interface CustomReportFilters {
   startDate?: string;
   endDate?: string;
@@ -51,14 +72,14 @@ export const reportsService = {
     return res.data.data;
   },
 
-  async getFleetPerformance(): Promise<ApiResponse<unknown[]>> {
-    const res = await api.get<ApiResponse<unknown[]>>('/reports/fleet');
-    return res.data;
+  async getFleetPerformance(): Promise<FleetPerfRow[]> {
+    const res = await api.get<ApiResponse<FleetPerfRow[]>>('/reports/fleet');
+    return res.data.data;
   },
 
-  async getDriverPerformance(): Promise<ApiResponse<unknown[]>> {
-    const res = await api.get<ApiResponse<unknown[]>>('/reports/drivers');
-    return res.data;
+  async getDriverPerformance(): Promise<DriverPerfRow[]> {
+    const res = await api.get<ApiResponse<DriverPerfRow[]>>('/reports/drivers');
+    return res.data.data;
   },
 
   async getRevenueReport(months = 6): Promise<RevenueReport> {
