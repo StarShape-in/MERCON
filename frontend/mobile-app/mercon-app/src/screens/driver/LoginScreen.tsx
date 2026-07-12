@@ -6,14 +6,31 @@ import {
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Input } from '../../components';
 import { useAuth } from '../../lib/auth-context';
-import { getApiErrorMessage } from '../../lib/api';
+import { api, getApiErrorMessage } from '../../lib/api';
 
 const LoginScreen = () => {
   const { signIn } = useAuth();
   const [phone, setPhone] = useState('');
   const [license, setLicense] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const handleForgot = async () => {
+    setError(null);
+    setNotice(null);
+    if (!phone.trim()) {
+      setError('Enter your mobile number first, then tap "Can\'t log in?" again.');
+      return;
+    }
+    try {
+      // Notifies all operators/admins that this driver needs a reset.
+      await api.post('/auth/request-reset', { identifier: `Driver ${phone.trim()}` });
+      setNotice('Your operator has been notified. They will help you log in.');
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    }
+  };
 
   const handleSignIn = async () => {
     if (!phone.trim() || !license.trim()) {
@@ -68,12 +85,17 @@ const LoginScreen = () => {
             />
 
             {error && <Text style={styles.errorText}>{error}</Text>}
+            {notice && <Text style={styles.noticeText}>{notice}</Text>}
 
             <Button
               title={loading ? 'Signing In...' : 'Sign In'}
               onPress={handleSignIn}
               disabled={loading}
             />
+
+            <TouchableOpacity onPress={handleForgot} activeOpacity={0.7} style={styles.forgotBtn}>
+              <Text style={styles.forgotText}>Can't log in? Notify my operator</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -149,6 +171,20 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: '#DC2626',
     marginTop: -Spacing.xs,
+  },
+  noticeText: {
+    fontSize: Typography.sm,
+    color: Colors.success,
+    marginTop: -Spacing.xs,
+  },
+  forgotBtn: {
+    alignSelf: 'center',
+    marginTop: Spacing.sm,
+  },
+  forgotText: {
+    fontSize: Typography.sm,
+    color: Colors.primary,
+    fontWeight: '600',
   },
   footer: {
     textAlign: 'center',

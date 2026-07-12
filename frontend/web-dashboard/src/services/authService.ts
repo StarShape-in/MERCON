@@ -35,6 +35,11 @@ export const authService = {
     await api.post('/auth/change-password', { current_password, new_password });
   },
 
+  /** Notify all operators/admins that this user needs a password reset. */
+  async requestPasswordReset(identifier: string): Promise<void> {
+    await api.post('/auth/request-reset', { identifier });
+  },
+
   logout() {
     authStore.clearSession();
     window.location.href = '/login';

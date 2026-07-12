@@ -1,7 +1,28 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, LifeBuoy } from 'lucide-react';
+import { ArrowLeft, LifeBuoy, Send, CheckCircle2 } from 'lucide-react';
+import FormInput from '@/components/ui/FormInput';
+import { authService } from '@/services/authService';
 
 export default function ForgotPasswordPage() {
+  const [identifier, setIdentifier] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await authService.requestPasswordReset(identifier);
+      setIsSent(true);
+    } catch {
+      // Show the same confirmation regardless — never reveal whether the account exists.
+      setIsSent(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-[24px] shadow-sm border border-black/[0.08] overflow-hidden">
@@ -24,25 +45,50 @@ export default function ForgotPasswordPage() {
 
         {/* Body */}
         <div className="p-8">
-          <div className="text-center py-4">
-            <div className="w-16 h-16 bg-[#FFF0EB] text-[#E8450F] rounded-full flex items-center justify-center mx-auto mb-5">
-              <LifeBuoy size={26} />
-            </div>
-            <h3 className="text-xl font-bold text-[#111] mb-3">Contact your operator</h3>
-            <p className="text-sm text-[#6E6E80] font-medium leading-relaxed">
-              Passwords are reset by your operator or administrator. Please reach out to
-              them and they will set a new password for your account.
-            </p>
+          {!isSent ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="flex items-start gap-3 bg-[#FFF0EB] border border-[#E8450F]/15 rounded-none p-4">
+                <LifeBuoy size={18} className="text-[#E8450F] shrink-0 mt-0.5" />
+                <p className="text-xs text-[#6E6E80] font-medium leading-relaxed">
+                  Passwords are reset by your operator or administrator. Enter your username
+                  or email and we'll notify them to reset it for you.
+                </p>
+              </div>
 
-            <div className="mt-6 bg-[#F5F5F7] border border-black/[0.06] rounded-none p-4 text-left">
-              <p className="text-[11px] uppercase tracking-wider font-bold text-[#9898A4] mb-1">Support</p>
-              <a href="mailto:support@mercon.sa" className="text-sm font-bold text-[#E8450F] hover:underline">
-                support@mercon.sa
-              </a>
-            </div>
-          </div>
+              <FormInput
+                label="Username or Email"
+                placeholder="you@mercon.sa"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                required
+              />
 
-          <div className="mt-6 text-center border-t border-black/[0.04] pt-6">
+              <button
+                type="submit"
+                disabled={isLoading || !identifier.trim()}
+                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>Notify my operator <Send size={16} /></>
+                )}
+              </button>
+            </form>
+          ) : (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 bg-[#F0FDF4] text-[#16A34A] rounded-full flex items-center justify-center mx-auto mb-5">
+                <CheckCircle2 size={26} />
+              </div>
+              <h3 className="text-xl font-bold text-[#111] mb-3">Request sent</h3>
+              <p className="text-sm text-[#6E6E80] font-medium leading-relaxed">
+                Your operator and administrator have been notified. They'll reset your
+                password and get in touch with you.
+              </p>
+            </div>
+          )}
+
+          <div className="mt-8 text-center border-t border-black/[0.04] pt-6">
             <Link to="/login" className="inline-flex items-center gap-2 text-sm font-bold text-[#6E6E80] hover:text-[#111] transition-colors">
               <ArrowLeft size={16} /> Back to Login
             </Link>

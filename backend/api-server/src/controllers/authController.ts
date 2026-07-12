@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
+import { Role } from '@prisma/client';
 import { env } from '../config/env';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { prisma } from '../index';
+import { createNotification } from './notificationController';
 
 /* ─── Unified Login (username + password) ──────────────────────────────────── */
 export const login = async (req: Request, res: Response) => {
@@ -155,6 +157,35 @@ export const changePassword = async (req: Request, res: Response) => {
     return res.json({ success: true, data: { message: 'Password updated' } });
   } catch (error) {
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to change password' } });
+  }
+};
+
+/* ─── Request a password reset: notify every Admin + Operator ────────────────── */
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { identifier } = req.body;
+    const who = identifier ? String(identifier).trim() : 'A user';
+
+    const staff = await prisma.user.findMany({
+      where: { role: { in: [Role.Admin, Role.Operator] }, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+
+    await Promise.all(
+      staff.map((u) =>
+        createNotification(
+          u.id,
+          'Password Reset Request',
+          `${who} requested a password reset. Reset it in User Management (web users) or the Drivers module (drivers).`,
+          'Security',
+        ),
+      ),
+    );
+
+    // Generic response — don't reveal whether the identifier matched an account.
+    return res.json({ success: true, data: { message: 'Your operator and admin have been notified.' } });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to submit request' } });
   }
 };
 
