@@ -14,13 +14,23 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Rebuild and Restart Docker Containers
+        env:
+          # Injected into docker-compose interpolation; stored as a GitHub
+          # Actions secret, never committed. Rotating it invalidates all
+          # existing JWTs (everyone must log in again).
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           echo "Rebuilding backend and frontend services..."
           # docker-compose.yml lives at the repo root (workspace-aware builds)
 
+          if [ -z "$JWT_SECRET" ]; then
+            echo "ERROR: JWT_SECRET secret is not set in the repo. Aborting deploy." >&2
+            exit 1
+          fi
+
           # Remove old containers to force clean restart
           docker rm -f mercon-postgres mercon-api mercon-frontend || true
-          
+
           # Build and start services in detached mode
           docker-compose up -d --build
 

@@ -32,7 +32,7 @@ This is genuinely finished and connected to the real API. 46 routes, all pages f
 - Role-based access (admin-only pages)
 
 **Small things left:**
-- The user list in Settings still shows fake data (`MOCK_USERS` in `UserListPage.tsx`) — needs to be connected to the real `/users` API
+- ✅ The Settings user list is now real — it uses `UserManagementPage.tsx` wired to the `/users` API. The old fake `MOCK_USERS` page (`UserListPage.tsx`) was deleted (commit `3da2b27`).
 - The tracking map is basic (no Google Maps / Mapbox yet)
 
 ### ❌ Mobile App — NOT BUILT (only the design exists)
@@ -101,7 +101,7 @@ The operator side is easier — it is mostly reading data and one create form. A
 4. Build the release APK (Android) and iOS build with EAS — the GitHub Action already exists
 
 ### Phase 6 — Finish the web + handover (≈ 1 week)
-1. Connect the fake user list in Settings to the real API
+1. ✅ Connect the user list in Settings to the real API (done — see Part 1)
 2. Full end-to-end test: operator creates a trip (on web OR phone) → driver does it on the phone → invoice appears
 3. Database backup set up and tested once
 4. Rotate the JWT secret on the server (the old one was in git)
@@ -140,7 +140,9 @@ The deadline is ~1 month. Two apps in one month, solo, is **tight but doable** b
 **Still push past handover:** map upgrade, push notifications.
 
 **Do this soon (calendar, not work days):**
-- [ ] Rotate `JWT_SECRET` on the VPS (the old one is in git history)
+- [ ] Rotate `JWT_SECRET` (the old one is in git history) — **in progress:** moving it to a
+      GitHub Actions secret injected at deploy, and removing the leaked fallback from
+      `docker-compose.yml`. All existing logins will need to sign in again once rotated.
 
 ## Part 5: The ~4-week schedule (both apps)
 

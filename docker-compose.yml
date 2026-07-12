@@ -24,7 +24,7 @@ services:
       - '3050:3000' # Exposed for Nginx proxy on a safe port
     environment:
       DATABASE_URL: "postgresql://mercon_user:mercon_password@postgres-db:5432/mercon_db?schema=public"
-      JWT_SECRET: "${JWT_SECRET:-your_super_secret_jwt_key_here_change_in_production}"
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be provided (set it as a GitHub Actions secret / env var)}"
       PORT: 3000
     volumes:
       - ./backend/api-server/uploads:/app/backend/api-server/uploads # Local VPS storage for files
