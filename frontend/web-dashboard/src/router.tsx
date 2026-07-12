@@ -7,7 +7,6 @@ import RequireRole from '@/components/auth/RequireRole';
 /* ─── Auth pages (eager — small, always needed) ──────────────────────────── */
 import LoginPage         from '@/pages/auth/LoginPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
-import ResetPasswordPage  from '@/pages/auth/ResetPasswordPage';
 
 /* ─── Protected pages (lazy) ────────────────────────────────────────────── */
 const DashboardPage           = lazy(() => import('@/pages/dashboard/DashboardPage'));
@@ -88,7 +87,6 @@ export default function AppRouter() {
           {/* ── Auth (public) ──────────────────────────────────── */}
           <Route path="/login"           element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
           {/* ── Protected ────────────────────────────────────── */}
           <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

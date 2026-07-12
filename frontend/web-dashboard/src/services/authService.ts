@@ -35,14 +35,6 @@ export const authService = {
     await api.post('/auth/change-password', { current_password, new_password });
   },
 
-  async forgotPassword(email: string): Promise<void> {
-    await api.post('/auth/forgot-password', { email });
-  },
-
-  async resetPassword(token: string, new_password: string): Promise<void> {
-    await api.post('/auth/reset-password', { token, new_password });
-  },
-
   logout() {
     authStore.clearSession();
     window.location.href = '/login';

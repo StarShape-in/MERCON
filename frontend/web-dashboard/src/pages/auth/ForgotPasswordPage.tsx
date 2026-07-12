@@ -1,33 +1,11 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowLeft, Send } from 'lucide-react';
-import FormInput from '@/components/ui/FormInput';
-import { authService } from '@/services/authService';
+import { ArrowLeft, LifeBuoy } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSent, setIsSent] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      // Always resolves generically — the API never reveals whether the email exists.
-      await authService.forgotPassword(email);
-      setIsSent(true);
-    } catch {
-      // Show the same confirmation regardless, to avoid leaking account existence.
-      setIsSent(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-[24px] shadow-sm border border-black/[0.08] overflow-hidden">
-        
+
         {/* Header */}
         <div className="bg-[#111] p-8 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
@@ -40,59 +18,31 @@ export default function ForgotPasswordPage() {
               <img src="/invoice-logo.png" alt="MERCON Logo" className="w-full h-full object-cover scale-[1.35] origin-center" />
             </div>
             <h1 className="text-white text-2xl font-bold tracking-tight">Forgot Password</h1>
-            <p className="text-[#9898A4] text-sm mt-2 font-medium">Reset your operator account access</p>
+            <p className="text-[#9898A4] text-sm mt-2 font-medium">Reset your account access</p>
           </div>
         </div>
 
-        {/* Form Body */}
+        {/* Body */}
         <div className="p-8">
-          {!isSent ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <p className="text-sm text-[#6E6E80] font-medium leading-relaxed">
-                Enter the email address associated with your MERCON account and we'll send you a link to reset your password.
-              </p>
-              
-              <FormInput
-                label="Email Address"
-                type="email"
-                placeholder="operator@mercon.sa"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                icon={<Mail size={16} className="text-[#9898A4]" />}
-              />
-
-              <button
-                type="submit"
-                disabled={isLoading || !email}
-                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>Send Reset Link <Send size={16} /></>
-                )}
-              </button>
-            </form>
-          ) : (
-            <div className="text-center py-6">
-              <div className="w-16 h-16 bg-[#F0FDF4] text-[#16A34A] rounded-full flex items-center justify-center mx-auto mb-4">
-                <Send size={24} />
-              </div>
-              <h3 className="text-xl font-bold text-[#111] mb-2">Check your email</h3>
-              <p className="text-sm text-[#6E6E80] font-medium leading-relaxed mb-6">
-                We've sent password reset instructions to <span className="text-[#111] font-bold">{email}</span>.
-              </p>
-              <button
-                onClick={() => setIsSent(false)}
-                className="text-[#E8450F] text-sm font-bold hover:underline"
-              >
-                Try another email
-              </button>
+          <div className="text-center py-4">
+            <div className="w-16 h-16 bg-[#FFF0EB] text-[#E8450F] rounded-full flex items-center justify-center mx-auto mb-5">
+              <LifeBuoy size={26} />
             </div>
-          )}
+            <h3 className="text-xl font-bold text-[#111] mb-3">Contact your operator</h3>
+            <p className="text-sm text-[#6E6E80] font-medium leading-relaxed">
+              Passwords are reset by your operator or administrator. Please reach out to
+              them and they will set a new password for your account.
+            </p>
 
-          <div className="mt-8 text-center border-t border-black/[0.04] pt-6">
+            <div className="mt-6 bg-[#F5F5F7] border border-black/[0.06] rounded-none p-4 text-left">
+              <p className="text-[11px] uppercase tracking-wider font-bold text-[#9898A4] mb-1">Support</p>
+              <a href="mailto:support@mercon.sa" className="text-sm font-bold text-[#E8450F] hover:underline">
+                support@mercon.sa
+              </a>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center border-t border-black/[0.04] pt-6">
             <Link to="/login" className="inline-flex items-center gap-2 text-sm font-bold text-[#6E6E80] hover:text-[#111] transition-colors">
               <ArrowLeft size={16} /> Back to Login
             </Link>
