@@ -55,97 +55,102 @@ So the mobile work is not "polish" — it is **the main remaining build**.
 
 ## Part 2: The plan (in order)
 
-The one big goal: **turn the driver app from a mockup into a working app.**
-My recommendation: **drop the operator mobile app from version 1.** The web dashboard already does everything an operator needs. Building two apps alone will double your time for little gain.
+The big goal: **one mobile app that serves BOTH drivers and operators.**
 
-### Phase 1 — Driver app skeleton (≈ 1 week)
-Make the app "alive": screens connected, login working for real.
+**How the login works:** there is ONE login screen. The user types their credentials, the backend checks them and sends back the person's role. The app then opens the right experience:
+- **Driver** → driver screens (my trip, photos, navigation, GPS)
+- **Operator** → operator screens (dashboard, trips, create trip, live tracking)
 
-1. Install the needed packages: axios, socket.io-client, expo-secure-store, expo-location, expo-image-picker, react-navigation (or wire up expo-router properly)
-2. Build a small API client (base URL, attach token to every request)
-3. Real login: call `POST /api/mobile/auth/login` (phone + license number), save the token, auto-login on app start
-4. Real navigation: splash → login → home → trip screens, with the token deciding where you land
+So "whatever they input decides where they land" — same screen, different app after login.
 
-### Phase 2 — Trip workflow (≈ 1–1.5 weeks)
-The heart of the app: a driver can actually do a trip.
+### Phase 1 — Shared skeleton + unified login (≈ 1 week) — MOSTLY DONE
+Make the app "alive": packages installed, API client, login working for real.
+
+1. ✅ Install packages (axios, socket.io-client, expo-secure-store, expo-location, expo-image-picker) — done
+2. ✅ API client + token storage + auth context — done
+3. ✅ Real driver login (phone + license) — done
+4. **Still to do:** unified login — also accept operator credentials, read the role the backend returns, and route to driver screens or operator screens accordingly
+5. **Backend work needed:** one mobile login that handles both driver and operator, and returns the role (today driver login and operator/web login are separate)
+
+### Phase 2 — Driver trip workflow (≈ 1–1.5 weeks)
+The heart of the driver side: a driver can actually do a trip.
 
 1. Home screen: load the real current trip from `GET /api/mobile/trips/current`
 2. Start trip / arrive / deliver: call `POST /api/mobile/trips/:id/status`
 3. Cargo photos at pickup + delivery photos (POD): camera → upload to the existing upload endpoint
 4. **Backend work needed:** new endpoints for trip history, emergency alert, driver notifications, and linking photos to trips
 
-### Phase 3 — Live GPS (≈ 1 week)
+### Phase 3 — Operator app screens (≈ 1 week)
+The operator side is easier — it is mostly reading data and one create form. All the endpoints already exist (the web dashboard uses them).
+
+1. Operator dashboard: live trips, today's trips, alerts (read from the API)
+2. Trip list + trip details + live tracking map (read + socket)
+3. Create trip (the multi-step form) — reuse the same endpoints the web uses
+4. No GPS sending and no camera here, so this is faster than the driver side
+
+### Phase 4 — Live GPS (driver) (≈ 1 week)
 1. When a trip is active, read GPS with expo-location every 10 seconds
 2. Send `driver:location_update` over socket.io (backend already handles it — this connects the last wire)
-3. Test it end to end: drive around, watch the truck move on the web dashboard
+3. Test it end to end: drive around, watch the truck move on the operator's screen
 4. Handle the hard parts: app in background, phone locked, network drops
 
-### Phase 4 — Remaining driver screens (≈ 1 week)
-Trip history, notifications, emergency button, profile, documents, settings — each one: replace fake data with a real API call.
-
-### Phase 5 — Real phone testing + release build (≈ 1 week)
-1. Test on real Android phones (and iPhone if needed — see questions below)
-2. Fix crashes, slow screens, GPS battery drain
-3. Build the release APK with EAS (the GitHub Action for this already exists)
-4. Decide distribution: direct APK to drivers, or Google Play
+### Phase 5 — Remaining screens + real-phone testing (≈ 1 week)
+1. Fill in the rest: driver trip history, notifications, emergency button, profile, documents, settings — swap fake data for real API calls
+2. Test on real Android phones AND iPhones (both roles: log in as a driver, log in as an operator)
+3. Fix crashes, slow screens, GPS battery drain
+4. Build the release APK (Android) and iOS build with EAS — the GitHub Action already exists
 
 ### Phase 6 — Finish the web + handover (≈ 1 week)
 1. Connect the fake user list in Settings to the real API
-2. (Optional) proper map (Google Maps / Mapbox) on the tracking page
-3. Full end-to-end test: operator creates trip on web → driver does it on the phone → invoice appears
-4. Database backup set up and tested once
-5. Rotate the JWT secret on the server (the old one was in git)
-6. A short user guide (a few pages with screenshots) for the operator and the drivers
-7. Hand it over
+2. Full end-to-end test: operator creates a trip (on web OR phone) → driver does it on the phone → invoice appears
+3. Database backup set up and tested once
+4. Rotate the JWT secret on the server (the old one was in git)
+5. A short user guide (a few pages with screenshots) for operators and drivers
+6. Hand it over
 
-### Total: about 6–7 weeks of solo work
+### Total: about 5–6 weeks of solo work
 
-Could be faster with AI doing the heavy lifting, but phone testing, GPS-in-background, and photo upload always eat more time than expected. Plan for 6–7, be happy at 5.
+The deadline is ~1 month. Two apps in one month, solo, is **tight but doable** because the operator side is mostly read-only and reuses endpoints that already work. If time runs short, the safe cut is to ship the **driver app first** and let operators keep using the web dashboard for a few extra days — the operator mobile app can follow right after. Plan for 5–6 weeks, aim for 4.
 
 ---
 
 ## Part 3: What NOT to do (to protect your time)
 
-- ❌ Don't build the operator mobile app now — the web dashboard covers it
-- ❌ Don't add push notifications (FCM) in v1 — the app checks for its trip when opened; that is enough to start
+- ❌ Don't add push notifications (FCM) in v1 — the app checks for its trip/data when opened; that is enough to start
 - ❌ Don't write a big automated test suite now — one solo dev, changing code daily; test the main flow by hand instead
-- ❌ Don't add OTP SMS login — phone + license number login already exists and works
+- ❌ Don't add OTP SMS login — the existing credential login is enough
 - ❌ Don't chase the icon TODOs in the mobile screens until the app actually works
+- ❌ Don't upgrade the map yet — the basic map is fine for v1
 
 ---
 
-## Part 4: Decisions made (July 11, 2026)
+## Part 4: Decisions made (updated July 12, 2026)
 
 | Question | Decision |
 |---|---|
-| Deadline | **~1 month** — tight, so Phase 4 is trimmed (see below) |
+| Deadline | **~1 month** — tight; ship driver app first if needed |
 | Phones | **Android + iPhone** (Expo builds both from one codebase) |
-| Operator mobile app | **Cut from v1** — web dashboard covers it |
+| Mobile app scope | **Both driver AND operator** in one app, unified login by role |
+| Apple Developer account | **Already have it** ✅ (no waiting) |
 | Map | **Keep the basic map** for v1, upgrade later |
+| Install method | **Android:** share the APK file directly. **iPhone:** TestFlight |
+| Who creates drivers | **Operators and Admins** (both, on the web dashboard) |
+| ICCES credentials | **Not yet** — will add the env vars later; fallback stays untested until then |
 
-**Because of the 1-month deadline, these move to *after* handover:**
-- Notifications screen, Documents screen, profile editing (profile becomes view-only)
-- Map upgrade, push notifications, operator mobile app
+**Still push past handover:** map upgrade, push notifications.
 
-**Do these TODAY (they take calendar days, not work days):**
-- [ ] Enroll in the Apple Developer Program ($99/year) — verification takes 1–2 days
+**Do this soon (calendar, not work days):**
 - [ ] Rotate `JWT_SECRET` on the VPS (the old one is in git history)
 
-## Part 5: The 4-week schedule
+## Part 5: The ~4-week schedule (both apps)
 
 | Week | Goal | Done when… |
 |---|---|---|
-| **1** | App skeleton: packages, API client, real login, real navigation | I can log in as a driver on a phone and land on a real home screen |
-| **2** | Trip workflow: current trip, status updates, cargo + POD photos (+ the missing backend endpoints) | A driver can do a full trip from the phone, photos show on the web |
-| **3** | Live GPS over socket.io + trip history + emergency button | The truck moves on the web dashboard map while I drive around |
-| **4** | Real-phone testing (Android + iPhone), EAS release builds, fix the mock user list on web, backup test, mini user guide | MERCON can use it without me in the room |
-
-## Part 6: Questions still open (answer when you can)
-
-1. **Do you have real ICCES credentials?** The code uses demo values (`demo`/`demo123`). Without real ones, the vehicle-tracker fallback stays untested at handover.
-2. **How will drivers install the app?** Direct APK link for Android (fast, free) — but iPhone needs TestFlight either way. Google Play can come later.
-3. **Who creates the drivers in the system?** I assume: operator creates them on the web dashboard, then drivers just log in on the phone — confirm.
+| **1** ✅ | Shared skeleton + driver login (done) → finish unified login + role routing | I can log in and land on the driver OR operator side based on my account |
+| **2** | Driver trip workflow: current trip, status updates, cargo + POD photos (+ the missing backend endpoints) | A driver can do a full trip from the phone, photos show on the web |
+| **3** | Operator app screens (dashboard, trips, create trip, live tracking) + start driver live GPS | An operator can run the day from the phone; a truck moves live on screen |
+| **4** | Remaining driver screens, real-phone testing (both roles, Android + iPhone), EAS builds (APK + TestFlight), fix web user list, backup, mini guide | MERCON can use it without me in the room |
 
 ---
 
-*Next step: start Week 1 (Phase 1) — driver app skeleton.*
+*Next step: finish Phase 1 — make the login unified (accept operator accounts too) and route by role.*
