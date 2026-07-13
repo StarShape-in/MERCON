@@ -1,3 +1,11 @@
+/**
+ * Shared MERCON login screen (drivers AND operators).
+ * A toggle at the top picks the mode:
+ *   Driver   → phone + license  → signInDriver
+ *   Operator → username + password → signInOperator
+ * After sign-in, the auth guard in app/_layout.tsx + role routing in
+ * app/index.tsx send the user to the correct home screen.
+ */
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
@@ -8,13 +16,29 @@ import { Button, Input } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { api, getApiErrorMessage } from '../../lib/api';
 
+type Mode = 'Driver' | 'Operator';
+
 const LoginScreen = () => {
-  const { signIn } = useAuth();
+  const { signInDriver, signInOperator } = useAuth();
+  const [mode, setMode] = useState<Mode>('Driver');
+
+  // Driver fields
   const [phone, setPhone] = useState('');
   const [license, setLicense] = useState('');
+  // Operator fields
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const switchMode = (next: Mode) => {
+    if (next === mode) return;
+    setMode(next);
+    setError(null);
+    setNotice(null);
+  };
 
   const handleForgot = async () => {
     setError(null);
@@ -33,15 +57,23 @@ const LoginScreen = () => {
   };
 
   const handleSignIn = async () => {
-    if (!phone.trim() || !license.trim()) {
+    if (mode === 'Driver' && (!phone.trim() || !license.trim())) {
       setError('Please enter your phone number and license number.');
+      return;
+    }
+    if (mode === 'Operator' && (!username.trim() || !password.trim())) {
+      setError('Please enter your username and password.');
       return;
     }
     setError(null);
     setLoading(true);
     try {
-      await signIn(phone.trim(), license.trim());
-      // Success: the auth guard in app/_layout.tsx switches to the home screen.
+      if (mode === 'Driver') {
+        await signInDriver(phone.trim(), license.trim());
+      } else {
+        await signInOperator(username.trim(), password);
+      }
+      // Success: the auth guard in app/_layout.tsx switches away from login.
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -63,26 +95,67 @@ const LoginScreen = () => {
         </View>
 
         <View style={styles.card}>
+          {/* Driver / Operator toggle */}
+          <View style={styles.toggle}>
+            {(['Driver', 'Operator'] as Mode[]).map((m) => {
+              const active = mode === m;
+              return (
+                <TouchableOpacity
+                  key={m}
+                  onPress={() => switchMode(m)}
+                  activeOpacity={0.8}
+                  style={[styles.toggleTab, active && styles.toggleTabActive]}
+                >
+                  <Text style={[styles.toggleLabel, active && styles.toggleLabelActive]}>{m}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           <Text style={styles.heading}>Welcome Back</Text>
-          <Text style={styles.subheading}>Sign in to your driver account</Text>
+          <Text style={styles.subheading}>
+            {mode === 'Driver' ? 'Sign in to your driver account' : 'Sign in to your operator account'}
+          </Text>
 
           <View style={styles.form}>
-            <Input
-              label="Mobile Number"
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+9665XXXXXXXX"
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-            />
-            <Input
-              label="License Number"
-              value={license}
-              onChangeText={setLicense}
-              placeholder="Enter your license number"
-              autoCapitalize="characters"
-              secureTextEntry
-            />
+            {mode === 'Driver' ? (
+              <>
+                <Input
+                  label="Mobile Number"
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="+9665XXXXXXXX"
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                />
+                <Input
+                  label="License Number"
+                  value={license}
+                  onChangeText={setLicense}
+                  placeholder="Enter your license number"
+                  autoCapitalize="characters"
+                  secureTextEntry
+                />
+              </>
+            ) : (
+              <>
+                <Input
+                  label="Username"
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder="Enter your username"
+                  autoCapitalize="none"
+                />
+                <Input
+                  label="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password"
+                  autoCapitalize="none"
+                  secureTextEntry
+                />
+              </>
+            )}
 
             {error && <Text style={styles.errorText}>{error}</Text>}
             {notice && <Text style={styles.noticeText}>{notice}</Text>}
@@ -93,9 +166,11 @@ const LoginScreen = () => {
               disabled={loading}
             />
 
-            <TouchableOpacity onPress={handleForgot} activeOpacity={0.7} style={styles.forgotBtn}>
-              <Text style={styles.forgotText}>Can't log in? Notify my operator</Text>
-            </TouchableOpacity>
+            {mode === 'Driver' && (
+              <TouchableOpacity onPress={handleForgot} activeOpacity={0.7} style={styles.forgotBtn}>
+                <Text style={styles.forgotText}>Can't log in? Notify my operator</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -152,6 +227,31 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl,
     padding: Spacing.xl,
     ...Shadows.md,
+  },
+  toggle: {
+    flexDirection: 'row',
+    backgroundColor: Colors.gray100,
+    borderRadius: Radius.lg,
+    padding: 4,
+    marginBottom: Spacing.xl,
+  },
+  toggleTab: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: Radius.md,
+  },
+  toggleTabActive: {
+    backgroundColor: Colors.white,
+    ...Shadows.sm,
+  },
+  toggleLabel: {
+    fontSize: Typography.sm,
+    fontWeight: '600',
+    color: Colors.gray500,
+  },
+  toggleLabelActive: {
+    color: Colors.gray900,
   },
   heading: {
     fontSize: Typography['2xl'],
