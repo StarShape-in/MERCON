@@ -33,7 +33,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "MERCON uses the camera to capture cargo and proof-of-delivery photos for your trips."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

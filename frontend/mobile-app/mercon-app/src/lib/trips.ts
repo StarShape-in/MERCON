@@ -41,6 +41,31 @@ export const tripService = {
     const { data } = await api.post(`/mobile/trips/${id}/status`, { status });
     return data.data as MobileTrip;
   },
+
+  /** Upload a cargo (pickup) or POD (delivery) photo and attach it to the trip. */
+  async uploadPhoto(
+    id: string,
+    kind: 'cargo' | 'pod',
+    asset: { uri: string; mimeType?: string | null; fileName?: string | null },
+  ): Promise<void> {
+    const form = new FormData();
+    form.append('file', {
+      uri: asset.uri,
+      name: asset.fileName ?? `${kind}.jpg`,
+      type: asset.mimeType ?? 'image/jpeg',
+      // React Native's FormData file shape isn't in the DOM lib types.
+    } as unknown as Blob);
+    form.append('kind', kind);
+    await api.post(`/mobile/trips/${id}/photo`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
+/** Which transitions require a photo first (business rules BR-006 / BR-009). */
+export const PHOTO_FOR: Partial<Record<TripStatus, 'cargo' | 'pod'>> = {
+  InTransit: 'cargo', // cargo photo required before moving to In Transit
+  Completed: 'pod',   // POD photo required before completing
 };
 
 /** The next step a driver can take from the current status (null = nothing to do). */

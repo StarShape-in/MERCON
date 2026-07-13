@@ -8,7 +8,8 @@ import { Badge, DarkCard } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, NEXT_STEP, statusLabel, type TripStatus } from '../../lib/trips';
+import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, type TripStatus } from '../../lib/trips';
+import { capturePhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
 /** Badge colour by trip status. */
@@ -29,25 +30,36 @@ const HomeScreen = () => {
 
   const next = trip ? NEXT_STEP[trip.status] : undefined;
 
+  const doAdvance = async () => {
+    if (!trip || !next) return;
+    const photoKind = PHOTO_FOR[next.to];
+    setAdvancing(true);
+    try {
+      // Some transitions require a photo first (cargo before In Transit, POD before Completed).
+      if (photoKind) {
+        const photo = await capturePhoto();
+        if (!photo) { setAdvancing(false); return; } // user cancelled the camera
+        await tripService.uploadPhoto(trip.id, photoKind, photo);
+      }
+      const updated = await tripService.updateStatus(trip.id, next.to);
+      // Completed trips drop out of "current", so clear the card.
+      setTrip(updated.status === 'Completed' ? null : updated);
+    } catch (e) {
+      Alert.alert('Could not update', getApiErrorMessage(e));
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
   const advance = () => {
     if (!trip || !next) return;
-    Alert.alert('Confirm', `Mark this trip as "${statusLabel(next.to)}"?`, [
+    const photoKind = PHOTO_FOR[next.to];
+    const msg = photoKind
+      ? `You'll take a ${photoKind === 'pod' ? 'delivery (POD)' : 'cargo'} photo, then mark the trip as "${statusLabel(next.to)}".`
+      : `Mark this trip as "${statusLabel(next.to)}"?`;
+    Alert.alert('Confirm', msg, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Confirm',
-        onPress: async () => {
-          setAdvancing(true);
-          try {
-            const updated = await tripService.updateStatus(trip.id, next.to);
-            // Completed trips drop out of "current", so clear the card.
-            setTrip(updated.status === 'Completed' ? null : updated);
-          } catch (e) {
-            Alert.alert('Could not update', getApiErrorMessage(e));
-          } finally {
-            setAdvancing(false);
-          }
-        },
-      },
+      { text: 'Continue', onPress: doAdvance },
     ]);
   };
 

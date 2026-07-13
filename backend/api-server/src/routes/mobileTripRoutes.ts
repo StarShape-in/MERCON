@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { getCurrentTrip, updateTripStatus } from '../controllers/mobileTripController';
+import { getCurrentTrip, updateTripStatus, uploadTripPhoto } from '../controllers/mobileTripController';
 import { authenticateJWT } from '../middlewares/auth';
+import { upload } from '../middlewares/upload';
 
 const router = Router();
 
@@ -8,5 +9,6 @@ router.use(authenticateJWT);
 
 router.get('/current', getCurrentTrip);
 router.post('/:id/status', updateTripStatus);
+router.post('/:id/photo', upload.single('file'), uploadTripPhoto);
 
 export default router;
