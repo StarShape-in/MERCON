@@ -1,111 +1,134 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, SafeAreaView, StatusBar, RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, Badge, Card, DarkCard } from '../../components';
+import { Badge, DarkCard } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
+import { useAuth } from '../../lib/auth-context';
+import { useCurrentTrip } from '../../lib/use-current-trip';
+import { tripService, NEXT_STEP, statusLabel, type TripStatus } from '../../lib/trips';
+import { getApiErrorMessage } from '../../lib/api';
 
-const HomeScreen = ({ navigation }: any) => {
+/** Badge colour by trip status. */
+function statusVariant(s: TripStatus): 'warning' | 'success' | 'info' | 'neutral' {
+  if (s === 'InTransit') return 'warning';
+  if (s === 'Completed') return 'success';
+  if (s === 'AtPickup' || s === 'AtDelivery') return 'info';
+  return 'neutral';
+}
+
+const HomeScreen = () => {
+  const { profile, signOut } = useAuth();
+  const { trip, loading, error, refetch, setTrip } = useCurrentTrip();
   const [activeTab, setActiveTab] = useState('Home');
+  const [advancing, setAdvancing] = useState(false);
+
+  const firstName = (profile?.name || 'Driver').split(' ')[0];
+
+  const next = trip ? NEXT_STEP[trip.status] : undefined;
+
+  const advance = () => {
+    if (!trip || !next) return;
+    Alert.alert('Confirm', `Mark this trip as "${statusLabel(next.to)}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Confirm',
+        onPress: async () => {
+          setAdvancing(true);
+          try {
+            const updated = await tripService.updateStatus(trip.id, next.to);
+            // Completed trips drop out of "current", so clear the card.
+            setTrip(updated.status === 'Completed' ? null : updated);
+          } catch (e) {
+            Alert.alert('Could not update', getApiErrorMessage(e));
+          } finally {
+            setAdvancing(false);
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={Colors.primary} />}
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good Morning,</Text>
-            <Text style={styles.driverName}>Ahmed Al-Rashidi 👋</Text>
+            <Text style={styles.greeting}>Welcome back,</Text>
+            <Text style={styles.driverName}>{firstName} 👋</Text>
           </View>
-          <TouchableOpacity style={styles.bellBtn} activeOpacity={0.8} onPress={() => {}}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.bellIcon}>🔔</Text>
-            <View style={styles.bellBadge} />
+          <TouchableOpacity onPress={signOut} activeOpacity={0.7} style={styles.signOutBtn}>
+            <Text style={styles.signOutText}>Sign out</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Active Job Card */}
-        <DarkCard style={styles.jobCard}>
-          <View style={styles.jobHeader}>
-            <View>
-              <Text style={styles.jobLabel}>ACTIVE TRIP</Text>
-              <Text style={styles.jobId}>#TRP-2024-0891</Text>
-            </View>
-            <Badge label="In Transit" variant="warning" />
+        {/* Active trip */}
+        {loading && !trip ? (
+          <View style={styles.centerBox}>
+            <ActivityIndicator color={Colors.primary} />
           </View>
-
-          <View style={styles.routeRow}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.routeIcon}>📍</Text>
-            <View style={styles.routeLine} />
-            <Text style={styles.routeText}>Riyadh → Jeddah</Text>
+        ) : error ? (
+          <View style={styles.centerBox}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
           </View>
-
-          <View style={styles.jobMeta}>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>Cargo</Text>
-              <Text style={styles.metaValue}>Electronics (2.4T)</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>ETA</Text>
-              <Text style={styles.metaValue}>14:30 AST</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>Distance</Text>
-              <Text style={styles.metaValue}>950 km</Text>
-            </View>
+        ) : !trip ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>No active trip</Text>
+            <Text style={styles.emptySub}>You're all caught up. Waiting for your next assignment.</Text>
           </View>
-
-          <TouchableOpacity
-            style={styles.startBtn}
-            activeOpacity={0.8}
-            onPress={() => navigation?.navigate('LiveNavigation')}
-          >
-            <Text style={styles.startBtnText}>▶  Continue Trip</Text>
-          </TouchableOpacity>
-        </DarkCard>
-
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <Card style={styles.statCard}>
-            <Text style={styles.statValue}>24</Text>
-            <Text style={styles.statLabel}>Trips This Month</Text>
-            <Text style={styles.statTrend}>↑ +3 vs last month</Text>
-          </Card>
-          <Card style={styles.statCard}>
-            <Text style={styles.statValue}>96%</Text>
-            <Text style={styles.statLabel}>On-Time Rate</Text>
-            <Text style={styles.statTrend}>↑ +2% vs last month</Text>
-          </Card>
-        </View>
-
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.actionsRow}>
-          {[
-            { icon: '🗺️', label: 'Navigate' },
-            { icon: '📷', label: 'Verify' },
-            { icon: '🚨', label: 'Emergency' },
-            { icon: '📄', label: 'Documents' },
-          ].map((action) => (
-            <TouchableOpacity
-              key={action.label}
-              style={styles.actionItem}
-              activeOpacity={0.8}
-              onPress={() => {}}
-            >
-              {/* TODO: replace icon placeholders with lucide-react-native */}
-              <View style={styles.actionIcon}>
-                <Text style={styles.actionEmoji}>{action.icon}</Text>
+        ) : (
+          <DarkCard style={styles.jobCard}>
+            <View style={styles.jobHeader}>
+              <View>
+                <Text style={styles.jobLabel}>ACTIVE TRIP</Text>
+                <Text style={styles.jobId}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
               </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+              <Badge label={statusLabel(trip.status)} variant={statusVariant(trip.status)} />
+            </View>
+
+            <View style={styles.routeRow}>
+              <Text style={styles.routeIcon}>📍</Text>
+              <View style={styles.routeLine} />
+              <Text style={styles.routeText}>Pickup → Delivery</Text>
+            </View>
+
+            <View style={styles.jobMeta}>
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Customer</Text>
+                <Text style={styles.metaValue}>{trip.customer?.name ?? '—'}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Cargo</Text>
+                <Text style={styles.metaValue}>{trip.cargo_type}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Text style={styles.metaLabel}>Distance</Text>
+                <Text style={styles.metaValue}>{trip.planned_distance ? `${trip.planned_distance} km` : '—'}</Text>
+              </View>
+            </View>
+
+            {next ? (
+              <TouchableOpacity
+                style={[styles.startBtn, advancing && { opacity: 0.6 }]}
+                activeOpacity={0.8}
+                onPress={advance}
+                disabled={advancing}
+              >
+                <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.doneNote}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>
+            )}
+          </DarkCard>
+        )}
       </ScrollView>
       <DriverBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
@@ -116,6 +139,7 @@ const styles = StyleSheet.create({
   scroll: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',
@@ -123,161 +147,45 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: Spacing.xl,
   },
-  greeting: {
-    fontSize: Typography.sm,
-    color: Colors.gray500,
-  },
-  driverName: {
-    fontSize: Typography.xl,
-    fontWeight: '700',
-    color: Colors.gray900,
-  },
-  bellBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.full,
+  greeting: { fontSize: Typography.sm, color: Colors.gray500 },
+  driverName: { fontSize: Typography.xl, fontWeight: '700', color: Colors.gray900 },
+  signOutBtn: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
+  signOutText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: '600' },
+
+  centerBox: { paddingVertical: Spacing['3xl'], alignItems: 'center', gap: Spacing.sm },
+  errorText: { fontSize: Typography.sm, color: Colors.error, textAlign: 'center' },
+  retryText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: '600' },
+
+  emptyCard: {
     backgroundColor: Colors.white,
+    borderRadius: Radius.xl,
+    padding: Spacing.xl,
     alignItems: 'center',
-    justifyContent: 'center',
     ...Shadows.sm,
   },
-  bellIcon: {
-    fontSize: 20,
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.error,
-    borderWidth: 1.5,
-    borderColor: Colors.white,
-  },
-  jobCard: {
-    marginBottom: Spacing.lg,
-  },
+  emptyTitle: { fontSize: Typography.lg, fontWeight: '700', color: Colors.gray900, marginBottom: Spacing.xs },
+  emptySub: { fontSize: Typography.sm, color: Colors.gray500, textAlign: 'center' },
+
+  jobCard: { marginBottom: Spacing.lg },
   jobHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: Spacing.md,
   },
-  jobLabel: {
-    fontSize: Typography.xs,
-    color: Colors.gray400,
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-  jobId: {
-    fontSize: Typography.lg,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
-  routeIcon: {
-    fontSize: 16,
-  },
-  routeLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.gray700,
-    marginHorizontal: Spacing.xs,
-  },
-  routeText: {
-    fontSize: Typography.base,
-    fontWeight: '600',
-    color: Colors.white,
-  },
-  jobMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-  },
-  metaItem: {
-    flex: 1,
-  },
-  metaLabel: {
-    fontSize: Typography.xs,
-    color: Colors.gray400,
-    marginBottom: 2,
-  },
-  metaValue: {
-    fontSize: Typography.sm,
-    color: Colors.white,
-    fontWeight: '600',
-  },
-  startBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-  },
-  startBtnText: {
-    color: Colors.white,
-    fontWeight: '700',
-    fontSize: Typography.base,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  statCard: {
-    flex: 1,
-  },
-  statValue: {
-    fontSize: Typography['2xl'],
-    fontWeight: '800',
-    color: Colors.gray900,
-  },
-  statLabel: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
-    marginBottom: Spacing.xs,
-  },
-  statTrend: {
-    fontSize: Typography.xs,
-    color: Colors.success,
-    fontWeight: '600',
-  },
-  sectionTitle: {
-    fontSize: Typography.base,
-    fontWeight: '700',
-    color: Colors.gray900,
-    marginBottom: Spacing.md,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actionItem: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  actionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  actionEmoji: {
-    fontSize: 24,
-  },
-  actionLabel: {
-    fontSize: Typography.xs,
-    color: Colors.gray600,
-    fontWeight: '600',
-  },
+  jobLabel: { fontSize: Typography.xs, color: Colors.gray400, letterSpacing: 1, fontWeight: '600' },
+  jobId: { fontSize: Typography.lg, fontWeight: '700', color: Colors.white },
+  routeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md, gap: Spacing.xs },
+  routeIcon: { fontSize: 16 },
+  routeLine: { flex: 1, height: 1, backgroundColor: Colors.gray700, marginHorizontal: Spacing.xs },
+  routeText: { fontSize: Typography.base, fontWeight: '600', color: Colors.white },
+  jobMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.lg },
+  metaItem: { flex: 1 },
+  metaLabel: { fontSize: Typography.xs, color: Colors.gray400, marginBottom: 2 },
+  metaValue: { fontSize: Typography.sm, color: Colors.white, fontWeight: '600' },
+  startBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: Spacing.md, alignItems: 'center' },
+  startBtnText: { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
+  doneNote: { color: Colors.gray400, fontSize: Typography.sm, textAlign: 'center' },
 });
 
 export default HomeScreen;
