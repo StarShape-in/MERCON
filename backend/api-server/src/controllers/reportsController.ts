@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logger } from '../utils/logger';
 import { prisma } from '../index';
 import { TripStatus, InvoiceStatus, DriverStatus, AssetStatus } from '@prisma/client';
 
@@ -98,7 +99,7 @@ export const getSummary = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Reports summary error:', error);
+    logger.error({ err: error }, 'Reports summary error:');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to generate summary report' } });
   }
 };
@@ -318,7 +319,7 @@ export const getCustomReport = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Custom report error:', error);
+    logger.error({ err: error }, 'Custom report error:');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to generate custom report' } });
   }
 };

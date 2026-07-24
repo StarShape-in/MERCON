@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '../utils/logger';
 import { env } from '../config/env';
 
 const ICCES_BASE_URL = 'https://fleet.icces.com:8443/iccWebService1.2';
@@ -25,7 +26,7 @@ export const iccesService = {
       });
       return response.data;
     } catch (error) {
-      console.error('[ICCES API] Error fetching vehicles:', error);
+      logger.error({ err: error }, '[ICCES API] Error fetching vehicles:');
       return null;
     }
   },
@@ -53,7 +54,7 @@ export const iccesService = {
       }
       return null;
     } catch (error) {
-      console.error(`[ICCES API] Error fetching tracking for device ${deviceId}:`, error);
+      logger.error({ err: error }, `[ICCES API] Error fetching tracking for device ${deviceId}:`);
       return null;
     }
   },
@@ -73,7 +74,7 @@ export const iccesService = {
       });
       return response.data;
     } catch (error) {
-      console.error('[ICCES API] Error fetching alerts:', error);
+      logger.error({ err: error }, '[ICCES API] Error fetching alerts:');
       return null;
     }
   }

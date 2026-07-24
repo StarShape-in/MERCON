@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logger } from '../utils/logger';
 import { prisma, io } from '../index';
 
 export const getNotifications = async (req: Request, res: Response) => {
@@ -52,7 +53,7 @@ export const sendBulkCommunication = async (req: Request, res: Response) => {
     }
 
     // In a real scenario, this would integrate with SendGrid or Twilio
-    console.log(`[SIMULATION] Sending ${method} to ${ids.length} ${entity_type}s. Subject: ${subject}`);
+    logger.info(`[SIMULATION] Sending ${method} to ${ids.length} ${entity_type}s. Subject: ${subject}`);
     
     // We can also create a notification for the current user confirming the batch sent
     if (userId) {
@@ -95,6 +96,6 @@ export const createNotification = async (
     
     return notification;
   } catch (error) {
-    console.error('Failed to create notification', error);
+    logger.error({ err: error }, 'Failed to create notification');
   }
 };

@@ -1,9 +1,10 @@
 import cron from 'node-cron';
+import { logger } from '../utils/logger';
 import { prisma, io } from '../index';
 import { iccesService } from './iccesService';
 
 export const initCronJobs = () => {
-  console.log('🔄 Initializing ICCES Cron Jobs...');
+  logger.info('🔄 Initializing ICCES Cron Jobs...');
 
   // 1. Telemetry Sync (Runs every 30 seconds)
   // Pulls ICCES GPS data and broadcasts to WebSockets as a fallback
@@ -52,20 +53,20 @@ export const initCronJobs = () => {
 
                 // Broadcast to live tracking dashboard
                 io.emit(`trip:location_update:${trip.id}`, gpsData);
-                // console.log(`[ICCES] Broadcasted location for Trip ${trip.ref_id}`);
+                // logger.info(`[ICCES] Broadcasted location for Trip ${trip.ref_id}`);
               }
             }
           }
         }
       }
     } catch (error) {
-      console.error('[CRON] Error in Telemetry Sync:', error);
+      logger.error({ err: error }, '[CRON] Error in Telemetry Sync:');
     }
   });
 
   // 2. Daily Vehicle Status Sync (Runs at 2 AM every day)
   cron.schedule('0 2 * * *', async () => {
-    console.log('🔄 Running Daily ICCES Vehicle Sync...');
+    logger.info('🔄 Running Daily ICCES Vehicle Sync...');
     try {
       const vehicles = await iccesService.getVehicles();
       if (Array.isArray(vehicles)) {
@@ -80,16 +81,16 @@ export const initCronJobs = () => {
             });
           }
         }
-        console.log(`✅ Synced ${vehicles.length} vehicles from ICCES.`);
+        logger.info(`✅ Synced ${vehicles.length} vehicles from ICCES.`);
       }
     } catch (error) {
-      console.error('[CRON] Error in Daily Vehicle Sync:', error);
+      logger.error({ err: error }, '[CRON] Error in Daily Vehicle Sync:');
     }
   });
   
   // 3. Alerts Sync (Runs every 1 minute)
   cron.schedule('* * * * *', async () => {
-    // console.log('🔄 Running ICCES Alerts Sync...');
+    // logger.info('🔄 Running ICCES Alerts Sync...');
     try {
       const alertsResponse = await iccesService.getAlerts();
       // Depending on actual API payload, typically it's an array or wrapped in data
@@ -130,7 +131,7 @@ export const initCronJobs = () => {
         }
       }
     } catch (error) {
-      console.error('[CRON] Error in Alerts Sync:', error);
+      logger.error({ err: error }, '[CRON] Error in Alerts Sync:');
     }
   });
 };

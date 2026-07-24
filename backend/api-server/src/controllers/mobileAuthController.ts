@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logger } from '../utils/logger';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../index';
 import { env } from '../config/env';
@@ -57,7 +58,7 @@ export const mobileLogin = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Mobile login error:', error);
+    logger.error({ err: error }, 'Mobile login error:');
     res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Internal server error' }

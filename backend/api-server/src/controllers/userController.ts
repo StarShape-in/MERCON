@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logger } from '../utils/logger';
 import { prisma } from '../index';
 import bcrypt from 'bcrypt';
 
@@ -28,7 +29,7 @@ export const getUsers = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: formattedUsers });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    logger.error({ err: error }, 'Error fetching users:');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 };
@@ -68,7 +69,7 @@ export const createUser = async (req: Request, res: Response) => {
       data: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, status: 'Active' }
     });
   } catch (error) {
-    console.error('Error creating user:', error);
+    logger.error({ err: error }, 'Error creating user:');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 };
@@ -101,7 +102,7 @@ export const updateUser = async (req: Request, res: Response) => {
       data: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email, role: updatedUser.role, status: updatedUser.isActive ? 'Active' : 'Inactive' }
     });
   } catch (error) {
-    console.error('Error updating user:', error);
+    logger.error({ err: error }, 'Error updating user:');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 };
@@ -124,7 +125,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
     res.json({ success: true, message: 'User deactivated successfully' });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    logger.error({ err: error }, 'Error deleting user:');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 };

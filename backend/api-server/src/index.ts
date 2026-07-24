@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { logger } from './utils/logger';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -59,7 +60,7 @@ app.use('/mobile/trips', mobileTripRoutes);
 
 // Socket.io Telemetry WebSockets
 io.on('connection', (socket) => {
-  console.log(`📡 WebSocket connected: ${socket.id}`);
+  logger.info(`📡 WebSocket connected: ${socket.id}`);
 
   // Driver sends GPS update
   socket.on('driver:location_update', (data) => {
@@ -69,7 +70,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`📡 WebSocket disconnected: ${socket.id}`);
+    logger.info(`📡 WebSocket disconnected: ${socket.id}`);
   });
 });
 
@@ -82,5 +83,5 @@ app.get('/health', (req: Request, res: Response) => {
 initCronJobs();
 
 httpServer.listen(port, () => {
-  console.log(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
+  logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);
 });

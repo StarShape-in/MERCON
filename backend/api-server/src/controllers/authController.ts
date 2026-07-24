@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logger } from '../utils/logger';
 import { Role } from '@prisma/client';
 import { env } from '../config/env';
 import jwt from 'jsonwebtoken';
@@ -68,7 +69,7 @@ export const login = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error({ err: error }, 'Login error:');
     return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 };
