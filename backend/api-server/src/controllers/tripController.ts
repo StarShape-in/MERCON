@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { generateRefId } from '../utils/refId';
 import { TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 
 export const getTrips = async (req: Request, res: Response) => {
@@ -66,9 +67,12 @@ export const createTrip = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required trip fields or stops' } });
     }
 
+    const ref_id = await generateRefId('TRP', (c) =>
+      prisma.trip.findUnique({ where: { ref_id: c } }).then(Boolean));
+
     const trip = await prisma.trip.create({
       data: {
-        ref_id: 'TRP-' + Math.floor(1000 + Math.random() * 9000).toString(),
+        ref_id,
         customerId: customer_id,
         driverId: driver_id,
         vehicleId: vehicle_id,
@@ -325,10 +329,13 @@ export const deliveryVerify = async (req: Request, res: Response) => {
         }
 
         const subtotal = rateCard ? rateCard.base_price : 1000.0;
-        
+
+        const invoiceRefId = await generateRefId('INV', (c) =>
+          tx.invoice.findUnique({ where: { ref_id: c } }).then(Boolean), { year: true });
+
         await tx.invoice.create({
           data: {
-            ref_id: 'INV-' + Math.floor(1000 + Math.random() * 9000).toString(),
+            ref_id: invoiceRefId,
             tripId: trip.id,
             customerId: trip.customerId,
             status: 'Draft',

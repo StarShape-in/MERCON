@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { generateRefId } from '../utils/refId';
 import { DriverStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
@@ -75,7 +76,8 @@ export const createDriver = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields' } });
     }
 
-    const ref_id = 'DRV-' + Math.floor(1000 + Math.random() * 9000).toString();
+    const ref_id = await generateRefId('DRV', (c) =>
+      prisma.driver.findUnique({ where: { ref_id: c } }).then(Boolean));
 
     const newDriver = await prisma.driver.create({
       data: {

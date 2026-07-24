@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { generateRefId } from '../utils/refId';
 import { InvoiceStatus } from '@prisma/client';
 
 export const getInvoices = async (req: Request, res: Response) => {
@@ -48,7 +49,8 @@ export const createInvoice = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required invoice fields' } });
     }
 
-    const ref_id = 'INV-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900);
+    const ref_id = await generateRefId('INV', (c) =>
+      prisma.invoice.findUnique({ where: { ref_id: c } }).then(Boolean), { year: true });
 
     const invoice = await prisma.invoice.create({
       data: {

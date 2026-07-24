@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { generateRefId } from '../utils/refId';
 import { AssetStatus, AssetType } from '@prisma/client';
 
 export const getVehicles = async (req: Request, res: Response) => {
@@ -77,9 +78,12 @@ export const createVehicle = async (req: Request, res: Response) => {
       icces_device_id
     } = req.body;
 
+    const ref_id = await generateRefId('TRK', (c) =>
+      prisma.vehicle.findUnique({ where: { ref_id: c } }).then(Boolean));
+
     const vehicle = await prisma.vehicle.create({
       data: {
-        ref_id: 'TRK-' + Math.floor(1000 + Math.random() * 9000).toString(),
+        ref_id,
         plate_number,
         asset_type: asset_type as AssetType,
         capacity_kg,
