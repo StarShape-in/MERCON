@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { getDocuments, getDocumentById, uploadDocument, updateDocumentStatus, deleteDocument , bulkDeleteDocuments, bulkUpdateDocumentStatus} from '../controllers/documentController';
 import { authenticateJWT } from '../middlewares/auth';
+import { authorizeRoles } from '../middlewares/rbac';
 import { upload } from '../middlewares/upload';
 
 const router = Router();
 
 router.use(authenticateJWT);
+router.use(authorizeRoles('Admin', 'Operator'));
 router.post('/bulk-delete', bulkDeleteDocuments);
 router.post('/bulk-update-status', bulkUpdateDocumentStatus);
 

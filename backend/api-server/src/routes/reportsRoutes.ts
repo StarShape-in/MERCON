@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { getSummary, getFleetPerformance, getDriverPerformance, getRevenueReport, getCustomReport } from '../controllers/reportsController';
 import { authenticateJWT } from '../middlewares/auth';
+import { authorizeRoles } from '../middlewares/rbac';
 
 const router = Router();
 
 router.use(authenticateJWT);
+router.use(authorizeRoles('Admin', 'Operator'));
 
 // Dashboard summary KPIs + trip distribution + monthly revenue chart
 router.get('/summary', getSummary);

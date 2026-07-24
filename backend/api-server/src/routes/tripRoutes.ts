@@ -4,10 +4,12 @@ import {
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify
 , bulkDeleteTrips, bulkUpdateTripStatus} from '../controllers/tripController';
 import { authenticateJWT } from '../middlewares/auth';
+import { authorizeRoles } from '../middlewares/rbac';
 
 const router = Router();
 
 router.use(authenticateJWT);
+router.use(authorizeRoles('Admin', 'Operator'));
 router.post('/bulk-delete', bulkDeleteTrips);
 router.post('/bulk-update-status', bulkUpdateTripStatus);
 
