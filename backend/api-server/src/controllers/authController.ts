@@ -9,14 +9,7 @@ import { createNotification } from './notificationController';
 
 /* ─── Unified Login (username + password) ──────────────────────────────────── */
 export const login = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({
-      success: false,
-      error: { code: 'VALIDATION_ERROR', message: 'Username and password are required' }
-    });
-  }
+  const { username, password } = req.body; // validated by loginBody
 
   try {
     const user = await prisma.user.findUnique({ 

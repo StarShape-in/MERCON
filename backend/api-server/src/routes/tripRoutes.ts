@@ -5,6 +5,8 @@ import {
 , bulkDeleteTrips, bulkUpdateTripStatus} from '../controllers/tripController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
+import { validate } from '../middlewares/validate';
+import { createTripBody, listQuery } from '../schemas';
 
 const router = Router();
 
@@ -14,8 +16,8 @@ router.post('/bulk-delete', bulkDeleteTrips);
 router.post('/bulk-update-status', bulkUpdateTripStatus);
 
 
-router.get('/', getTrips);
-router.post('/', createTrip);
+router.get('/', validate({ query: listQuery }), getTrips);
+router.post('/', validate({ body: createTripBody }), createTrip);
 router.get('/:id', getTripById);
 router.patch('/:id/status', updateTripStatus);
 router.post('/:id/payment/approve', approveDriverPayment);

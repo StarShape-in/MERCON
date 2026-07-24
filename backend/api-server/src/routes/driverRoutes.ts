@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus} from '../controllers/driverController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
+import { validate } from '../middlewares/validate';
+import { createDriverBody, listQuery } from '../schemas';
 
 const router = Router();
 
@@ -12,8 +14,8 @@ router.post('/bulk-delete', bulkDeleteDrivers);
 router.post('/bulk-update-status', bulkUpdateDriverStatus);
 
 
-router.get('/', getDrivers);
-router.post('/', createDriver);
+router.get('/', validate({ query: listQuery }), getDrivers);
+router.post('/', validate({ body: createDriverBody }), createDriver);
 router.get('/:id', getDriverById);
 router.patch('/:id', updateDriver);
 router.delete('/:id', deleteDriver);

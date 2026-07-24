@@ -43,11 +43,7 @@ export const getInvoices = async (req: Request, res: Response) => {
 
 export const createInvoice = async (req: Request, res: Response) => {
   try {
-    const { trip_id, customer_id, subtotal, total_amount, due_date } = req.body;
-
-    if (!trip_id || !customer_id || !subtotal || !total_amount || !due_date) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required invoice fields' } });
-    }
+    const { trip_id, customer_id, subtotal, total_amount, due_date } = req.body; // validated & coerced by createInvoiceBody
 
     const ref_id = await generateRefId('INV', (c) =>
       prisma.invoice.findUnique({ where: { ref_id: c } }).then(Boolean), { year: true });
@@ -57,9 +53,9 @@ export const createInvoice = async (req: Request, res: Response) => {
         ref_id,
         tripId: trip_id,
         customerId: customer_id,
-        subtotal: parseFloat(subtotal),
-        total_amount: parseFloat(total_amount),
-        due_date: new Date(due_date),
+        subtotal,
+        total_amount,
+        due_date,
         status: InvoiceStatus.Draft,
         created_by: (req as any).user?.id
       }

@@ -70,11 +70,7 @@ export const getDriverById = async (req: Request, res: Response) => {
 
 export const createDriver = async (req: Request, res: Response) => {
   try {
-    const { first_name, last_name, phone_primary, license_number, license_expiry } = req.body;
-
-    if (!first_name || !last_name || !phone_primary || !license_number || !license_expiry) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required fields' } });
-    }
+    const { first_name, last_name, phone_primary, license_number, license_expiry } = req.body; // validated by createDriverBody
 
     const ref_id = await generateRefId('DRV', (c) =>
       prisma.driver.findUnique({ where: { ref_id: c } }).then(Boolean));

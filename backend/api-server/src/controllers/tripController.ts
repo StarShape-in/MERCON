@@ -61,11 +61,7 @@ export const getTripById = async (req: Request, res: Response) => {
 
 export const createTrip = async (req: Request, res: Response) => {
   try {
-    const { customer_id, driver_id, vehicle_id, cargo_type, hazmat_flag, planned_start, stops } = req.body;
-
-    if (!customer_id || !cargo_type || !stops || stops.length < 2) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required trip fields or stops' } });
-    }
+    const { customer_id, driver_id, vehicle_id, cargo_type, hazmat_flag, planned_start, stops } = req.body; // validated by createTripBody
 
     const ref_id = await generateRefId('TRP', (c) =>
       prisma.trip.findUnique({ where: { ref_id: c } }).then(Boolean));
