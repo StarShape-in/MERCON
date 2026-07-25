@@ -161,6 +161,7 @@ model Driver {
   version    Int       @default(1)
 
   trips Trip[]
+  notifications Notification[]
 }
 
 model Vehicle {
@@ -382,9 +383,12 @@ model RateCard {
 // -----------------------------------------
 model Notification {
   id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @db.Uuid
-  user         User      @relation(fields: [userId], references: [id])
-  
+  // Recipient is either a User (web: admin/operator) or a Driver (mobile). Exactly one is set.
+  userId       String?   @db.Uuid
+  user         User?     @relation(fields: [userId], references: [id])
+  driverId     String?   @db.Uuid
+  driver       Driver?   @relation(fields: [driverId], references: [id])
+
   title        String
   message      String    @db.Text
   type         String    // "Emergency", "Trip", "Document", "System"

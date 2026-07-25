@@ -93,9 +93,32 @@ export const createNotification = async (
 
     // Broadcast the notification to the specific user via WebSocket
     io.emit(`user:notification:${userId}`, notification);
-    
+
     return notification;
   } catch (error) {
     logger.error({ err: error }, 'Failed to create notification');
+  }
+};
+
+/** Create a notification addressed to a Driver (mobile). Mirrors createNotification
+ *  but keys off driverId instead of userId. */
+export const createDriverNotification = async (
+  driverId: string,
+  title: string,
+  message: string,
+  type: string,
+  entity_type?: string,
+  entity_id?: string
+) => {
+  try {
+    const notification = await prisma.notification.create({
+      data: { driverId, title, message, type, entity_type, entity_id }
+    });
+
+    io.emit(`driver:notification:${driverId}`, notification);
+
+    return notification;
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to create driver notification');
   }
 };

@@ -1,21 +1,19 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
-import { createNotification } from './notificationController';
+import { createDriverNotification } from './notificationController';
 import { TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 
 /**
- * Notify a driver they've been assigned a trip. Notifications key off User id,
- * so this only fires when the driver has a linked user (driverUserId non-null).
- * Call after the assignment transaction commits.
+ * Notify a driver they've been assigned a trip. Notifications target the driver
+ * directly (Notification.driverId). Call after the assignment transaction commits.
  */
 async function notifyDriverAssigned(
-  driverUserId: string | null,
+  driverId: string,
   trip: { id: string; ref_id: string | null },
 ) {
-  if (!driverUserId) return;
-  await createNotification(
-    driverUserId,
+  await createDriverNotification(
+    driverId,
     'Trip Assignment',
     `You've been assigned trip ${trip.ref_id ?? ''}. Open the app to start.`.replace('  ', ' '),
     'Trip',
@@ -208,13 +206,13 @@ export const dispatchTrip = async (req: Request, res: Response) => {
         }
       });
 
-      return { trip: updatedTrip, driverUserId: driver.userId };
+      return updatedTrip;
     });
 
-    // Notify the driver after the dispatch commits (skips if no linked user).
-    await notifyDriverAssigned(result.driverUserId, result.trip);
+    // Notify the driver after the dispatch commits.
+    await notifyDriverAssigned(driver_id, result);
 
-    res.json({ success: true, data: result.trip });
+    res.json({ success: true, data: result });
   } catch (error: any) {
     if (error.message === 'DRIVER_UNAVAILABLE' || error.message === 'VEHICLE_UNAVAILABLE') {
       return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
@@ -252,13 +250,13 @@ export const replaceDriver = async (req: Request, res: Response) => {
         }
       });
 
-      return { trip: updatedTrip, driverUserId: newDriver.userId };
+      return updatedTrip;
     });
 
     // Notify the newly-assigned driver after the swap commits.
-    await notifyDriverAssigned(result.driverUserId, result.trip);
+    await notifyDriverAssigned(new_driver_id, result);
 
-    res.json({ success: true, data: result.trip });
+    res.json({ success: true, data: result });
   } catch (error: any) {
     if (['TRIP_OR_DRIVER_NOT_FOUND', 'NEW_DRIVER_UNAVAILABLE'].includes(error.message)) {
       return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });

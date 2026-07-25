@@ -70,8 +70,8 @@ live GPS, and 4 mobile backend endpoints are still to do, then real-phone testin
 | `POST /mobile/trips/:id/status` | ✅ |
 | `POST /mobile/trips/:id/photo` | ✅ |
 | `GET /mobile/trips/history` (past trips, `?limit`) | ✅ |
-| `GET /mobile/notifications` + `POST /:id/read` (driver, via `Driver.userId`) | ✅ |
-| Driver "Trip Assignment" notification on dispatch + driver-replace | 🔄 code done, **inert** |
+| `GET /mobile/notifications` + `POST /:id/read` (driver, keyed by `Notification.driverId`) | ✅ |
+| Driver "Trip Assignment" notification on dispatch + driver-replace | ✅ delivers |
 
 ---
 
@@ -123,13 +123,11 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ⬜ Short user guide (operator + driver, with screenshots)
 - ⬜ Full end-to-end acceptance: create trip → driver runs it → invoice appears
 
-### ⚠️ Open decision — driver notifications delivery
-Notifications key off `User.id`, but drivers authenticate as `Driver` records and
-**`Driver.userId` is never populated** — so the notifications feed and the trip-assignment
-trigger currently reach no one. To make them work, pick one:
-- **A. Add `driverId` to `Notification`** (schema change → prod `db push`; notifications target drivers directly)
-- **B. Link each driver to a `User`** (role `Driver`) and set `Driver.userId` on driver create/backfill
-- **C. Leave inert for now** (feed stays empty until decided)
+### Schema note — driver notifications (resolved 2026-07-25, Option A)
+`Notification` now has a nullable `userId` **or** `driverId` recipient (added `driverId`,
+made `userId` optional). Web notifications still key off `userId`; driver notifications
+key off `driverId`. `createDriverNotification()` + the trip-assignment trigger use it.
+**Schema change deploys via `prisma db push --accept-data-loss` — additive/widening, no data loss.**
 
 ### Deferred (not v1)
 - Push notifications (FCM) · map upgrade (Google/Mapbox) · OTP SMS login · big automated test suite · ICCES live creds (env vars pending)
