@@ -1,108 +1,42 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
+  FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
+import { useNotifications } from '../../lib/use-notifications';
+import { notificationIcon, timeAgo, type MobileNotification } from '../../lib/notifications';
 
-const NOTIFICATIONS = [
-  {
-    id: '1',
-    icon: '🚛',
-    title: 'Trip Assignment',
-    body: 'You have been assigned trip #TRP-2024-0892 — Riyadh to Taif. Departure: Tomorrow 07:00.',
-    time: '5 min ago',
-    unread: true,
-    type: 'trip',
-  },
-  {
-    id: '2',
-    icon: '⚠️',
-    title: 'Route Alert',
-    body: 'Traffic congestion reported on King Fahd Road near Exit 14. Alternative route available.',
-    time: '1 hr ago',
-    unread: true,
-    type: 'alert',
-  },
-  {
-    id: '3',
-    icon: '💰',
-    title: 'Earnings Credited',
-    body: 'SAR 420.00 has been credited for trip #TRP-2024-0891 — Riyadh to Jeddah.',
-    time: '3 hr ago',
-    unread: false,
-    type: 'payment',
-  },
-  {
-    id: '4',
-    icon: '📋',
-    title: 'Document Expiry',
-    body: 'Your Driving License expires in 15 days. Please renew before 20 Jul 2024.',
-    time: 'Yesterday',
-    unread: false,
-    type: 'doc',
-  },
-  {
-    id: '5',
-    icon: '⭐',
-    title: 'Rating Received',
-    body: 'Customer Saudi Electronics Co. rated your trip 5 stars. Keep up the great work!',
-    time: 'Yesterday',
-    unread: false,
-    type: 'rating',
-  },
-  {
-    id: '6',
-    icon: '🔧',
-    title: 'Vehicle Service Due',
-    body: 'TRK-2041 is due for scheduled maintenance in 2 days. Contact fleet manager.',
-    time: '2 days ago',
-    unread: false,
-    type: 'vehicle',
-  },
-  {
-    id: '7',
-    icon: '📍',
-    title: 'Geofence Alert',
-    body: 'You have entered the Jeddah Port zone. Proceed to Gate 7 for cargo delivery.',
-    time: '3 days ago',
-    unread: false,
-    type: 'geo',
-  },
-];
-
-const NotificationCard = ({ item, onPress }: any) => (
-  <TouchableOpacity
-    style={[styles.card, item.unread ? styles.cardUnread : null]}
-    activeOpacity={0.8}
-    onPress={onPress}
-  >
-    <View style={[styles.iconBox, item.unread ? styles.iconBoxUnread : null]}>
-      {/* TODO: replace icon placeholders with lucide-react-native */}
-      <Text style={styles.iconText}>{item.icon}</Text>
-    </View>
-    <View style={styles.content}>
-      <View style={styles.contentHeader}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.time}>{item.time}</Text>
+const NotificationCard = ({ item, onPress }: { item: MobileNotification; onPress: () => void }) => {
+  const unread = !item.is_read;
+  return (
+    <TouchableOpacity
+      style={[styles.card, unread ? styles.cardUnread : null]}
+      activeOpacity={0.8}
+      onPress={onPress}
+    >
+      <View style={[styles.iconBox, unread ? styles.iconBoxUnread : null]}>
+        {/* TODO: replace icon placeholders with lucide-react-native */}
+        <Text style={styles.iconText}>{notificationIcon(item.type)}</Text>
       </View>
-      <Text style={styles.body} numberOfLines={2}>{item.body}</Text>
-    </View>
-    {item.unread && <View style={styles.unreadDot} />}
-  </TouchableOpacity>
-);
+      <View style={styles.content}>
+        <View style={styles.contentHeader}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
+        </View>
+        <Text style={styles.body} numberOfLines={2}>{item.message}</Text>
+      </View>
+      {unread && <View style={styles.unreadDot} />}
+    </TouchableOpacity>
+  );
+};
 
 const NotificationsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Home');
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const { items, loading, error, refetch, markRead, markAll } = useNotifications();
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
-
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-  };
+  const unreadCount = items.filter((n) => !n.is_read).length;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
@@ -115,32 +49,40 @@ const NotificationsScreen = ({ navigation }: any) => {
           )}
         </View>
         {unreadCount > 0 && (
-          <TouchableOpacity style={styles.markAllBtn} activeOpacity={0.8} onPress={markAllRead}>
+          <TouchableOpacity style={styles.markAllBtn} activeOpacity={0.8} onPress={markAll}>
             <Text style={styles.markAllText}>Mark all read</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <FlatList
-        data={notifications}
+        data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={loading && items.length > 0} onRefresh={refetch} />
+        }
         renderItem={({ item }) => (
-          <NotificationCard
-            item={item}
-            onPress={() =>
-              setNotifications((prev) =>
-                prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
-              )
-            }
-          />
+          <NotificationCard item={item} onPress={() => markRead(item.id)} />
         )}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🔔</Text>
-            <Text style={styles.emptyTitle}>All Caught Up</Text>
-            <Text style={styles.emptyText}>No new notifications.</Text>
-          </View>
+          loading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator color={Colors.primary} />
+            </View>
+          ) : error ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>⚠️</Text>
+              <Text style={styles.emptyTitle}>Couldn't load notifications</Text>
+              <Text style={styles.emptyText}>{error}</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>🔔</Text>
+              <Text style={styles.emptyTitle}>All Caught Up</Text>
+              <Text style={styles.emptyText}>No new notifications.</Text>
+            </View>
+          )
         }
       />
       <DriverBottomNav activeTab={activeTab} onTabPress={setActiveTab} />

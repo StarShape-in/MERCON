@@ -70,6 +70,7 @@ live GPS, and 4 mobile backend endpoints are still to do, then real-phone testin
 | `POST /mobile/trips/:id/status` | ✅ |
 | `POST /mobile/trips/:id/photo` | ✅ |
 | `GET /mobile/trips/history` (past trips, `?limit`) | ✅ |
+| `GET /mobile/notifications` + `POST /:id/read` (driver, via `Driver.userId`) | ✅ |
 
 ---
 
@@ -80,7 +81,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 ### Milestone 1 — Finish driver trip workflow
 **Backend endpoints (missing):**
 - ✅ `GET /mobile/trips/history` — driver's past trips
-- ⬜ `GET /mobile/notifications` — driver notifications
+- ✅ `GET /mobile/notifications` (+ `POST /:id/read`) — driver notifications
 - ⬜ `POST /mobile/emergency` — emergency alert
 - ⬜ `GET /mobile/profile` — driver profile
 
@@ -90,7 +91,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ⬜ `DestinationReachedScreen`
 - ⬜ `TripCompletedScreen`
 - ✅ `TripsScreen` (history) — real Active/Upcoming/Completed tabs
-- ⬜ `NotificationsScreen`
+- ✅ `NotificationsScreen` — real feed + mark read / mark all
 - ⬜ `ProfileScreen`
 - ⬜ `DocumentsScreen`
 - ⬜ `AssignedVehicleScreen`
@@ -133,10 +134,11 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 | LoginScreen | shared | ✅ |
 | HomeScreen (trip flow + photos) | driver | ✅ |
 | TripsScreen (history + active/upcoming tabs) | driver | ✅ |
-| Pickup/Delivery/DestinationReached/TripCompleted/Notifications/Profile/Documents/AssignedVehicle/Emergency/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| NotificationsScreen (feed + mark read/all) | driver | ✅ |
+| Pickup/Delivery/DestinationReached/TripCompleted/Profile/Documents/AssignedVehicle/Emergency/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 3 / 24 screens.**
+**Wired: 4 / 24 screens.**
 
 ---
 
