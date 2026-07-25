@@ -25,7 +25,10 @@ export interface MobileTrip {
   status: TripStatus;
   cargo_type: string;
   planned_distance: number | null;
+  planned_start?: string | null;
+  actual_start?: string | null;
   planned_end: string | null;
+  actual_end?: string | null;
   customer?: { id: string; name: string } | null;
   vehicle?: { id: string; plate_number: string } | null;
   stops: TripStop[];
@@ -35,6 +38,12 @@ export const tripService = {
   async getCurrent(): Promise<MobileTrip | null> {
     const { data } = await api.get('/mobile/trips/current');
     return data.data as MobileTrip | null;
+  },
+
+  /** Past trips (completed / invoiced / cancelled), newest first. */
+  async getHistory(limit = 30): Promise<MobileTrip[]> {
+    const { data } = await api.get('/mobile/trips/history', { params: { limit } });
+    return (data.data ?? []) as MobileTrip[];
   },
 
   async updateStatus(id: string, status: TripStatus): Promise<MobileTrip> {

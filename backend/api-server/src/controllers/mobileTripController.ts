@@ -32,6 +32,39 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Past trips for the logged-in driver: finished, invoiced, or cancelled,
+ * newest first. Supports ?limit (default 30, max 100).
+ */
+export const getTripHistory = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+
+  const parsedLimit = parseInt(String(req.query.limit ?? ''), 10);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 100) : 30;
+
+  try {
+    const trips = await prisma.trip.findMany({
+      where: {
+        driverId,
+        deletedAt: null,
+        status: { in: [TripStatus.Completed, TripStatus.Invoiced, TripStatus.Cancelled] },
+      },
+      include: {
+        customer: true,
+        vehicle: true,
+        stops: { orderBy: { stop_sequence: 'asc' } },
+      },
+      orderBy: [{ actual_end: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+    });
+
+    res.json({ success: true, data: trips });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+};
+
 export const updateTripStatus = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
   const id = req.params.id as string;

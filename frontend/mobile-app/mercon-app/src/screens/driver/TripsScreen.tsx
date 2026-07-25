@@ -1,78 +1,61 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
+  FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Badge, StatusBadge, SearchInput } from '../../components';
+import { StatusBadge, SearchInput } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
+import { useCurrentTrip } from '../../lib/use-current-trip';
+import { useTripHistory } from '../../lib/use-trip-history';
+import { statusLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
 
-const TABS = ['Active', 'Upcoming', 'Completed'];
+const TABS = ['Active', 'Upcoming', 'Completed'] as const;
+type Tab = typeof TABS[number];
 
-const TRIPS = [
-  {
-    id: 'TRP-2024-0891',
-    route: 'Riyadh → Jeddah',
-    driver: 'Ahmed Al-Rashidi',
-    status: 'in_transit',
-    statusLabel: 'In Transit',
-    date: 'Today, 06:00',
-    cargo: 'Electronics (2.4T)',
-    tab: 'Active',
-  },
-  {
-    id: 'TRP-2024-0890',
-    route: 'Dammam → Riyadh',
-    driver: 'Ahmed Al-Rashidi',
-    status: 'scheduled',
-    statusLabel: 'Scheduled',
-    date: 'Tomorrow, 08:00',
-    cargo: 'Auto Parts (1.8T)',
-    tab: 'Upcoming',
-  },
-  {
-    id: 'TRP-2024-0889',
-    route: 'Riyadh → Makkah',
-    driver: 'Ahmed Al-Rashidi',
-    status: 'completed',
-    statusLabel: 'Completed',
-    date: '05 Jul 2024',
-    cargo: 'FMCG (3.0T)',
-    tab: 'Upcoming',
-  },
-  {
-    id: 'TRP-2024-0885',
-    route: 'Jeddah → Madinah',
-    driver: 'Ahmed Al-Rashidi',
-    status: 'completed',
-    statusLabel: 'Completed',
-    date: '02 Jul 2024',
-    cargo: 'Pharmaceuticals (0.5T)',
-    tab: 'Completed',
-  },
-  {
-    id: 'TRP-2024-0880',
-    route: 'Riyadh → Dammam',
-    driver: 'Ahmed Al-Rashidi',
-    status: 'completed',
-    statusLabel: 'Completed',
-    date: '28 Jun 2024',
-    cargo: 'Steel Pipes (5.2T)',
-    tab: 'Completed',
-  },
-];
+/** Statuses that count as an in-progress ("Active") trip. */
+const ACTIVE_STATUSES: TripStatus[] = ['AtPickup', 'InTransit', 'AtDelivery'];
 
-const TripCard = ({ item, onPress }: any) => (
+function formatDate(iso?: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+interface CardData {
+  key: string;
+  tripId: string;
+  displayId: string;
+  title: string;
+  statusText: string;
+  cargo: string;
+  date: string;
+}
+
+function toCard(t: MobileTrip): CardData {
+  const dateSource = t.actual_end ?? t.planned_end ?? t.actual_start ?? t.planned_start ?? null;
+  return {
+    key: t.id,
+    tripId: t.id,
+    displayId: t.ref_id ?? t.id.slice(0, 8),
+    title: t.customer?.name ?? 'Unassigned customer',
+    statusText: statusLabel(t.status),
+    cargo: t.cargo_type,
+    date: formatDate(dateSource),
+  };
+}
+
+const TripCard = ({ item, onPress }: { item: CardData; onPress: () => void }) => (
   <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
     <View style={styles.cardHeader}>
-      <Text style={styles.cardId}>#{item.id}</Text>
-      <StatusBadge status={item.status} label={item.statusLabel} />
+      <Text style={styles.cardId}>#{item.displayId}</Text>
+      <StatusBadge status={item.statusText} />
     </View>
     <View style={styles.cardRoute}>
       {/* TODO: replace icon placeholders with lucide-react-native */}
-      <Text style={styles.routeIcon}>🗺️</Text>
-      <Text style={styles.routeText}>{item.route}</Text>
+      <Text style={styles.routeIcon}>🏢</Text>
+      <Text style={styles.routeText}>{item.title}</Text>
     </View>
     <View style={styles.cardMeta}>
       <View style={styles.metaItem}>
@@ -89,15 +72,39 @@ const TripCard = ({ item, onPress }: any) => (
 
 const TripsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Trips');
-  const [selectedTab, setSelectedTab] = useState('Active');
+  const [selectedTab, setSelectedTab] = useState<Tab>('Active');
   const [search, setSearch] = useState('');
 
-  const filtered = TRIPS.filter(
-    (t) =>
-      t.tab === selectedTab &&
-      (t.id.toLowerCase().includes(search.toLowerCase()) ||
-        t.route.toLowerCase().includes(search.toLowerCase()))
-  );
+  const { trip: current, loading: loadingCurrent, refetch: refetchCurrent } = useCurrentTrip();
+  const { trips: history, loading: loadingHistory, error, refetch: refetchHistory } = useTripHistory();
+
+  const loading = loadingCurrent || loadingHistory;
+
+  const cards = useMemo(() => {
+    let source: MobileTrip[] = [];
+    if (selectedTab === 'Active') {
+      source = current && ACTIVE_STATUSES.includes(current.status) ? [current] : [];
+    } else if (selectedTab === 'Upcoming') {
+      source = current && current.status === 'Dispatched' ? [current] : [];
+    } else {
+      source = history;
+    }
+    const q = search.trim().toLowerCase();
+    return source
+      .map(toCard)
+      .filter(
+        (c) =>
+          !q ||
+          c.displayId.toLowerCase().includes(q) ||
+          c.title.toLowerCase().includes(q) ||
+          c.cargo.toLowerCase().includes(q)
+      );
+  }, [selectedTab, current, history, search]);
+
+  const onRefresh = () => {
+    refetchCurrent();
+    refetchHistory();
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
@@ -109,7 +116,7 @@ const TripsScreen = ({ navigation }: any) => {
       <SearchInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search by trip ID or route..."
+        placeholder="Search by trip ID, customer or cargo..."
         style={styles.search}
       />
 
@@ -130,21 +137,38 @@ const TripsScreen = ({ navigation }: any) => {
       </View>
 
       <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
+        data={cards}
+        keyExtractor={(item) => item.key}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={loading && cards.length > 0} onRefresh={onRefresh} />
+        }
         renderItem={({ item }) => (
           <TripCard
             item={item}
-            onPress={() => navigation?.navigate('TripDetails', { tripId: item.id })}
+            onPress={() => navigation?.navigate('TripDetails', { tripId: item.tripId })}
           />
         )}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>No {selectedTab} Trips</Text>
-            <Text style={styles.emptyText}>You have no {selectedTab.toLowerCase()} trips at this time.</Text>
-          </View>
+          loading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator color={Colors.primary} />
+            </View>
+          ) : error ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>⚠️</Text>
+              <Text style={styles.emptyTitle}>Couldn't load trips</Text>
+              <Text style={styles.emptyText}>{error}</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>📋</Text>
+              <Text style={styles.emptyTitle}>No {selectedTab} Trips</Text>
+              <Text style={styles.emptyText}>
+                You have no {selectedTab.toLowerCase()} trips at this time.
+              </Text>
+            </View>
+          )
         }
       />
       <DriverBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
