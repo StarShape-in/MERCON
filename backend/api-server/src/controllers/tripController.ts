@@ -1,7 +1,28 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
+import { createNotification } from './notificationController';
 import { TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
+
+/**
+ * Notify a driver they've been assigned a trip. Notifications key off User id,
+ * so this only fires when the driver has a linked user (driverUserId non-null).
+ * Call after the assignment transaction commits.
+ */
+async function notifyDriverAssigned(
+  driverUserId: string | null,
+  trip: { id: string; ref_id: string | null },
+) {
+  if (!driverUserId) return;
+  await createNotification(
+    driverUserId,
+    'Trip Assignment',
+    `You've been assigned trip ${trip.ref_id ?? ''}. Open the app to start.`.replace('  ', ' '),
+    'Trip',
+    'Trip',
+    trip.id,
+  );
+}
 
 export const getTrips = async (req: Request, res: Response) => {
   try {
@@ -187,10 +208,13 @@ export const dispatchTrip = async (req: Request, res: Response) => {
         }
       });
 
-      return updatedTrip;
+      return { trip: updatedTrip, driverUserId: driver.userId };
     });
 
-    res.json({ success: true, data: result });
+    // Notify the driver after the dispatch commits (skips if no linked user).
+    await notifyDriverAssigned(result.driverUserId, result.trip);
+
+    res.json({ success: true, data: result.trip });
   } catch (error: any) {
     if (error.message === 'DRIVER_UNAVAILABLE' || error.message === 'VEHICLE_UNAVAILABLE') {
       return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
@@ -228,10 +252,13 @@ export const replaceDriver = async (req: Request, res: Response) => {
         }
       });
 
-      return updatedTrip;
+      return { trip: updatedTrip, driverUserId: newDriver.userId };
     });
 
-    res.json({ success: true, data: result });
+    // Notify the newly-assigned driver after the swap commits.
+    await notifyDriverAssigned(result.driverUserId, result.trip);
+
+    res.json({ success: true, data: result.trip });
   } catch (error: any) {
     if (['TRIP_OR_DRIVER_NOT_FOUND', 'NEW_DRIVER_UNAVAILABLE'].includes(error.message)) {
       return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
