@@ -29,6 +29,7 @@ import mobileAuthRoutes from './routes/mobileAuthRoutes';
 import mobileTripRoutes from './routes/mobileTripRoutes';
 import mobileNotificationRoutes from './routes/mobileNotificationRoutes';
 import mobileProfileRoutes from './routes/mobileProfileRoutes';
+import mobileEmergencyRoutes from './routes/mobileEmergencyRoutes';
 import rateCardRoutes from './routes/rateCardRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import uploadRoutes from './routes/uploadRoutes';
@@ -61,6 +62,7 @@ app.use('/mobile/auth', mobileAuthRoutes);
 app.use('/mobile/trips', mobileTripRoutes);
 app.use('/mobile/notifications', mobileNotificationRoutes);
 app.use('/mobile/profile', mobileProfileRoutes);
+app.use('/mobile/emergency', mobileEmergencyRoutes);
 
 // Socket.io Telemetry WebSockets
 io.on('connection', (socket) => {

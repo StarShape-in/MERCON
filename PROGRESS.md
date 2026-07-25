@@ -73,6 +73,7 @@ live GPS, and 4 mobile backend endpoints are still to do, then real-phone testin
 | `GET /mobile/notifications` + `POST /:id/read` (driver, keyed by `Notification.driverId`) | ✅ |
 | Driver "Trip Assignment" notification on dispatch + driver-replace | ✅ delivers |
 | `GET /mobile/profile` (identity, license, phone, active-trip vehicle) | ✅ |
+| `POST /mobile/emergency` (alerts all active Admins + Operators) | ✅ |
 
 ---
 
@@ -84,7 +85,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 **Backend endpoints (missing):**
 - ✅ `GET /mobile/trips/history` — driver's past trips
 - ✅ `GET /mobile/notifications` (+ `POST /:id/read`) — driver notifications
-- ⬜ `POST /mobile/emergency` — emergency alert
+- ✅ `POST /mobile/emergency` — emergency alert (notifies operators/admins)
 - ✅ `GET /mobile/profile` — driver profile
 
 **Wire driver screens (currently static UI):**
@@ -97,7 +98,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `ProfileScreen` — real identity/license/vehicle + working logout
 - ⬜ `DocumentsScreen`
 - ⬜ `AssignedVehicleScreen`
-- ⬜ `EmergencyScreen`
+- ✅ `EmergencyScreen` → `POST /mobile/emergency` (incident type + notes; photos & GPS deferred to M2)
 - ⬜ `SettingsScreen` (logout)
 - ⬜ `LiveNavigationScreen` / `ReplacementDriverScreen` / `SplashScreen` (as needed)
 
@@ -144,10 +145,11 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | TripsScreen (history + active/upcoming tabs) | driver | ✅ |
 | NotificationsScreen (feed + mark read/all) | driver | ✅ |
 | ProfileScreen (identity/license/vehicle + logout) | driver | ✅ |
-| Pickup/Delivery/DestinationReached/TripCompleted/Documents/AssignedVehicle/Emergency/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| EmergencyScreen (alert → operators/admins) | driver | ✅ |
+| Pickup/Delivery/DestinationReached/TripCompleted/Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 5 / 24 screens.**
+**Wired: 6 / 24 screens.**
 
 ---
 

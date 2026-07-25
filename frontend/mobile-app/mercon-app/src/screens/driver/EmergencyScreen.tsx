@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  StyleSheet, SafeAreaView, StatusBar, Image, Alert,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button } from '../../components';
+import { emergencyService } from '../../lib/emergency';
+import { getApiErrorMessage } from '../../lib/api';
 
 const EmergencyScreen = ({ navigation }: any) => {
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [incidentType, setIncidentType] = useState('');
+  const [sending, setSending] = useState(false);
 
   const incidentTypes = [
     { id: 'accident', label: 'Road Accident', icon: '💥' },
@@ -18,6 +20,33 @@ const EmergencyScreen = ({ navigation }: any) => {
     { id: 'medical', label: 'Medical Emergency', icon: '🏥' },
     { id: 'security', label: 'Security Threat', icon: '🛡️' },
   ];
+
+  const send = async () => {
+    if (sending) return;
+    const selected = incidentTypes.find((t) => t.id === incidentType);
+    if (!selected) {
+      Alert.alert('Select an incident type', 'Please choose what kind of emergency this is.');
+      return;
+    }
+    setSending(true);
+    try {
+      const { notified } = await emergencyService.raise({
+        incident_type: selected.label,
+        notes: notes.trim() || undefined,
+      });
+      Alert.alert(
+        'Emergency sent',
+        notified > 0
+          ? `Your operator has been alerted (${notified} notified).`
+          : 'Your report was recorded.',
+        [{ text: 'OK', onPress: () => navigation?.goBack() }],
+      );
+    } catch (e) {
+      Alert.alert('Could not send', getApiErrorMessage(e));
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.error }}>
@@ -32,7 +61,7 @@ const EmergencyScreen = ({ navigation }: any) => {
           <View style={styles.headerCenter}>
             <Text style={styles.headerIcon}>🚨</Text>
             <Text style={styles.headerTitle}>Emergency Report</Text>
-            <Text style={styles.headerSub}>Your location is being shared with operator</Text>
+            <Text style={styles.headerSub}>Your operator will be alerted immediately</Text>
           </View>
           <View style={styles.placeholder} />
         </View>
@@ -103,14 +132,14 @@ const EmergencyScreen = ({ navigation }: any) => {
           <View style={styles.locationCard}>
             <Text style={styles.locationIcon}>📍</Text>
             <View>
-              <Text style={styles.locationLabel}>Current Location (GPS)</Text>
-              <Text style={styles.locationValue}>King Fahd Road, Riyadh · 24.7136° N, 46.6753° E</Text>
+              <Text style={styles.locationLabel}>Location</Text>
+              <Text style={styles.locationValue}>Live location sharing turns on with GPS (coming soon)</Text>
             </View>
           </View>
 
           <Button
-            title="Send Emergency Report"
-            onPress={() => {}}
+            title={sending ? 'Sending…' : 'Send Emergency Report'}
+            onPress={send}
             style={styles.sendBtn}
           />
         </View>
