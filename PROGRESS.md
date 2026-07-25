@@ -72,6 +72,7 @@ live GPS, and 4 mobile backend endpoints are still to do, then real-phone testin
 | `GET /mobile/trips/history` (past trips, `?limit`) | ✅ |
 | `GET /mobile/notifications` + `POST /:id/read` (driver, keyed by `Notification.driverId`) | ✅ |
 | Driver "Trip Assignment" notification on dispatch + driver-replace | ✅ delivers |
+| `GET /mobile/profile` (identity, license, phone, active-trip vehicle) | ✅ |
 
 ---
 
@@ -84,7 +85,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `GET /mobile/trips/history` — driver's past trips
 - ✅ `GET /mobile/notifications` (+ `POST /:id/read`) — driver notifications
 - ⬜ `POST /mobile/emergency` — emergency alert
-- ⬜ `GET /mobile/profile` — driver profile
+- ✅ `GET /mobile/profile` — driver profile
 
 **Wire driver screens (currently static UI):**
 - ⬜ `PickupVerificationScreen` → status + cargo photo
@@ -93,7 +94,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ⬜ `TripCompletedScreen`
 - ✅ `TripsScreen` (history) — real Active/Upcoming/Completed tabs
 - ✅ `NotificationsScreen` — real feed + mark read / mark all
-- ⬜ `ProfileScreen`
+- ✅ `ProfileScreen` — real identity/license/vehicle + working logout
 - ⬜ `DocumentsScreen`
 - ⬜ `AssignedVehicleScreen`
 - ⬜ `EmergencyScreen`
@@ -142,10 +143,11 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | HomeScreen (trip flow + photos) | driver | ✅ |
 | TripsScreen (history + active/upcoming tabs) | driver | ✅ |
 | NotificationsScreen (feed + mark read/all) | driver | ✅ |
-| Pickup/Delivery/DestinationReached/TripCompleted/Profile/Documents/AssignedVehicle/Emergency/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| ProfileScreen (identity/license/vehicle + logout) | driver | ✅ |
+| Pickup/Delivery/DestinationReached/TripCompleted/Documents/AssignedVehicle/Emergency/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 4 / 24 screens.**
+**Wired: 5 / 24 screens.**
 
 ---
 
