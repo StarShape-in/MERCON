@@ -58,7 +58,8 @@ const HomeScreen = () => {
 
   const advance = () => {
     if (!trip || !next) return;
-    // The "arrived at delivery" step has its own screen.
+    // The pickup and arrival steps have their own screens.
+    if (trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
     if (trip.status === 'InTransit') { router.push('/trip/arrived'); return; }
     const photoKind = PHOTO_FOR[next.to];
     const msg = photoKind

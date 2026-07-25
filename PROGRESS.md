@@ -89,7 +89,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `GET /mobile/profile` — driver profile
 
 **Wire driver screens (currently static UI):**
-- ⬜ `PickupVerificationScreen` → status + cargo photo
+- ✅ `PickupVerificationScreen` → cargo photo + `AtPickup → InTransit` (`/trip/pickup`)
 - ⬜ `DeliveryVerificationScreen` → status + POD photo
 - ✅ `DestinationReachedScreen` → `InTransit → AtDelivery` (expo-router `/trip/arrived`, Home routes in)
 - ⬜ `TripCompletedScreen`
@@ -147,14 +147,15 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | ProfileScreen (identity/license/vehicle + logout) | driver | ✅ |
 | EmergencyScreen (alert → operators/admins) | driver | ✅ |
 | DestinationReachedScreen (arrived → AtDelivery) | driver | ✅ |
-| Pickup/Delivery/TripCompleted/Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| PickupVerificationScreen (cargo photo → InTransit) | driver | ✅ |
+| Delivery/TripCompleted/Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 7 / 24 screens.**
+**Wired: 8 / 24 screens.**
 
-**Driver nav:** expo-router routes now exist under `src/app/trip/*` (first: `/trip/arrived`);
-Home routes into the step screen by status and refetches on focus. Pickup / Delivery /
-TripCompleted routes come in the next pushes; until then Home advances those inline.
+**Driver nav:** expo-router routes under `src/app/trip/*` (`/trip/pickup`, `/trip/arrived`);
+Home routes into the step screen by status (AtPickup→pickup, InTransit→arrived) and refetches
+on focus. Delivery / TripCompleted routes come next; until then Home advances those inline.
 
 ---
 
