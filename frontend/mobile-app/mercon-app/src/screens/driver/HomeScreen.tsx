@@ -61,6 +61,7 @@ const HomeScreen = () => {
     // The pickup and arrival steps have their own screens.
     if (trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
     if (trip.status === 'InTransit') { router.push('/trip/arrived'); return; }
+    if (trip.status === 'AtDelivery') { router.push('/trip/delivery'); return; }
     const photoKind = PHOTO_FOR[next.to];
     const msg = photoKind
       ? `You'll take a ${photoKind === 'pod' ? 'delivery (POD)' : 'cargo'} photo, then mark the trip as "${statusLabel(next.to)}".`

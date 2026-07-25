@@ -23,6 +23,7 @@ function RootNavigator() {
         <Stack.Screen name="index" />
         <Stack.Screen name="trip/pickup" />
         <Stack.Screen name="trip/arrived" />
+        <Stack.Screen name="trip/delivery" />
       </Stack.Protected>
 
       <Stack.Protected guard={!isLoggedIn}>

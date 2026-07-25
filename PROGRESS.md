@@ -90,7 +90,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 
 **Wire driver screens (currently static UI):**
 - ✅ `PickupVerificationScreen` → cargo photo + `AtPickup → InTransit` (`/trip/pickup`)
-- ⬜ `DeliveryVerificationScreen` → status + POD photo
+- ✅ `DeliveryVerificationScreen` → POD photo + `AtDelivery → Completed` (`/trip/delivery`); receiver-name/signature dropped (no schema field — owner decision)
 - ✅ `DestinationReachedScreen` → `InTransit → AtDelivery` (expo-router `/trip/arrived`, Home routes in)
 - ⬜ `TripCompletedScreen`
 - ✅ `TripsScreen` (history) — real Active/Upcoming/Completed tabs
@@ -148,14 +148,16 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | EmergencyScreen (alert → operators/admins) | driver | ✅ |
 | DestinationReachedScreen (arrived → AtDelivery) | driver | ✅ |
 | PickupVerificationScreen (cargo photo → InTransit) | driver | ✅ |
-| Delivery/TripCompleted/Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| DeliveryVerificationScreen (POD photo → Completed) | driver | ✅ |
+| TripCompleted/Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 8 / 24 screens.**
+**Wired: 9 / 24 screens.**
 
-**Driver nav:** expo-router routes under `src/app/trip/*` (`/trip/pickup`, `/trip/arrived`);
-Home routes into the step screen by status (AtPickup→pickup, InTransit→arrived) and refetches
-on focus. Delivery / TripCompleted routes come next; until then Home advances those inline.
+**Driver nav:** expo-router routes under `src/app/trip/*` (`/trip/pickup`, `/trip/arrived`,
+`/trip/delivery`). Home routes into the step screen by status (AtPickup→pickup,
+InTransit→arrived, AtDelivery→delivery) and refetches on focus. Only Dispatched→AtPickup
+(no photo) still advances inline. TripCompleted summary route comes next.
 
 ---
 

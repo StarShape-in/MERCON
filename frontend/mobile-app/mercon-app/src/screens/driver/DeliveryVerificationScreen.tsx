@@ -1,16 +1,50 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
+  StatusBar, Image, Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, Input } from '../../components';
+import { Button } from '../../components';
+import { useCurrentTrip } from '../../lib/use-current-trip';
+import { tripService } from '../../lib/trips';
+import { capturePhoto, type CapturedPhoto } from '../../lib/camera';
+import { getApiErrorMessage } from '../../lib/api';
 
-const DeliveryVerificationScreen = ({ navigation }: any) => {
+const DeliveryVerificationScreen = () => {
+  const router = useRouter();
+  const { trip, loading } = useCurrentTrip();
   const [step, setStep] = useState(1);
-  const [receiverName, setReceiverName] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const addPhoto = async () => {
+    try {
+      const photo = await capturePhoto();
+      if (photo) setPhotos((prev) => [...prev, photo].slice(0, 4));
+    } catch (e) {
+      Alert.alert('Camera', getApiErrorMessage(e));
+    }
+  };
+
+  const canComplete =
+    !!trip && trip.status === 'AtDelivery' && photos.length >= 1 && !submitting && !loading;
+
+  const complete = async () => {
+    if (!trip || !canComplete) return;
+    setSubmitting(true);
+    try {
+      for (const photo of photos) {
+        await tripService.uploadPhoto(trip.id, 'pod', photo);
+      }
+      await tripService.updateStatus(trip.id, 'Completed');
+      router.back();
+    } catch (e) {
+      Alert.alert('Could not complete', getApiErrorMessage(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
@@ -18,7 +52,7 @@ const DeliveryVerificationScreen = ({ navigation }: any) => {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
+          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             {/* TODO: replace icon placeholders with lucide-react-native */}
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -47,18 +81,18 @@ const DeliveryVerificationScreen = ({ navigation }: any) => {
         </View>
         <View style={styles.stepLabels}>
           <Text style={[styles.stepLabel, step === 1 ? styles.stepLabelActive : null]}>
-            Cargo Photos
+            Delivery Photos
           </Text>
           <Text style={[styles.stepLabel, step === 2 ? styles.stepLabelActive : null]}>
-            Signature & Receiver
+            Review & Complete
           </Text>
         </View>
 
         {step === 1 && (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Document Delivered Cargo</Text>
+            <Text style={styles.stepTitle}>Proof of Delivery</Text>
             <Text style={styles.stepSub}>
-              Take photos of the cargo upon delivery at Jeddah Port.
+              Take at least one photo of the delivered cargo (POD).
             </Text>
             <View style={styles.photoGrid}>
               {[0, 1, 2, 3].map((i) => (
@@ -66,10 +100,10 @@ const DeliveryVerificationScreen = ({ navigation }: any) => {
                   key={i}
                   style={[styles.photoSlot, photos[i] ? styles.photoFilled : null]}
                   activeOpacity={0.8}
-                  onPress={() => {}}
+                  onPress={photos[i] ? undefined : addPhoto}
                 >
                   {photos[i] ? (
-                    <Image source={{ uri: photos[i] }} style={styles.photoImg} />
+                    <Image source={{ uri: photos[i].uri }} style={styles.photoImg} />
                   ) : (
                     <View style={styles.photoEmpty}>
                       <Text style={styles.photoEmoji}>📷</Text>
@@ -79,57 +113,56 @@ const DeliveryVerificationScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={styles.addPhotoBtn} activeOpacity={0.8} onPress={() => {}}>
+            <TouchableOpacity style={styles.addPhotoBtn} activeOpacity={0.8} onPress={addPhoto}>
               <Text style={styles.addPhotoText}>+ Add Photo</Text>
             </TouchableOpacity>
             <View style={styles.notice}>
               <Text style={styles.noticeText}>
-                📋 Ensure all cargo items (12 pallets of electronics) are visible and accounted for.
+                📋 Ensure the delivered cargo is clearly visible in the photo.
               </Text>
             </View>
-            <Button title="Continue to Signature" onPress={() => setStep(2)} />
+            <Button
+              title="Continue to Review"
+              onPress={() => setStep(2)}
+              disabled={photos.length < 1}
+            />
           </View>
         )}
 
         {step === 2 && (
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>Receiver Signature</Text>
+            <Text style={styles.stepTitle}>Review &amp; Complete</Text>
             <Text style={styles.stepSub}>
-              Have the receiver sign below and enter their name.
+              Confirm the delivery details, then complete the trip.
             </Text>
 
-            {/* Signature Box */}
-            <View style={styles.signatureBox}>
-              <View style={styles.signatureArea}>
-                <Text style={styles.signaturePlaceholder}>Tap to sign</Text>
-                <View style={styles.signatureLine} />
-              </View>
-              <Text style={styles.signatureLabel}>Receiver Signature</Text>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Trip</Text>
+              <Text style={styles.timestampValue}>#{trip?.ref_id ?? '—'}</Text>
             </View>
-
-            <Input
-              label="Receiver Full Name"
-              value={receiverName}
-              onChangeText={setReceiverName}
-              placeholder="e.g. Abdullah Al-Hamdan"
-            />
-
-            <Input
-              label="Receiver ID / Company"
-              placeholder="e.g. Saudi Electronics Co. — ID: 1234567890"
-            />
-
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Customer</Text>
+              <Text style={styles.timestampValue}>{trip?.customer?.name ?? '—'}</Text>
+            </View>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Cargo</Text>
+              <Text style={styles.timestampValue}>{trip?.cargo_type ?? '—'}</Text>
+            </View>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>POD Photos</Text>
+              <Text style={styles.timestampValue}>{photos.length}</Text>
+            </View>
             <View style={styles.timestampRow}>
               <Text style={styles.timestampLabel}>Delivery Time</Text>
               <Text style={styles.timestampValue}>
-                {new Date().toLocaleString('en-SA', { dateStyle: 'medium', timeStyle: 'short' })}
+                {new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
               </Text>
             </View>
 
             <Button
-              title="Complete Trip"
-              onPress={() => navigation?.navigate('TripCompleted')}
-              disabled={!receiverName}
+              title={submitting ? 'Completing…' : 'Complete Delivery'}
+              onPress={complete}
+              disabled={!canComplete}
             />
           </View>
         )}
