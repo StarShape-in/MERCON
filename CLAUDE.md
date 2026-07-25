@@ -9,6 +9,16 @@ Read the existing code, schema, and docs relevant to your task **before**
 editing. Do not invent features, fields, enum values, pages, or roles that
 are not already in the codebase or explicitly requested by the owner.
 
+## Rule 0.5: Keep PROGRESS.md in sync
+
+`PROGRESS.md` (repo root) is the single source of truth for "where is the
+project." Whenever you change code, schema, an endpoint, or wire a screen — or
+finish a step — **update `PROGRESS.md` in the same change**: flip the ⬜/🔄/✅
+marker, move the row between Completed and Next, bump `Last updated`, and adjust
+the TL;DR % if an area crossed a threshold. Never mark ✅ from intent alone —
+verify against code. This lets the owner ask "where are we?" and get a correct
+answer without re-reading the codebase.
+
 ## Roles — EXACTLY THREE, never add more
 
 There are exactly **3 user roles**: `Admin`, `Operator`, `Driver`.
