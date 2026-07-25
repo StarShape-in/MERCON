@@ -5,6 +5,7 @@ import { Plus, Edit2, FileText, User, Trash2, CheckCircle, XCircle, Send, Downlo
 
 import { downloadCSV } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -18,13 +19,14 @@ export default function DriverListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState<DriverStatus | 'All'>('All');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch drivers using React Query
   const { data: driversRes, isLoading } = useQuery({
-    queryKey: ['drivers', selectedStatus, search, currentPage],
+    queryKey: ['drivers', selectedStatus, debouncedSearch, currentPage],
     queryFn: () => driverService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       page: currentPage,
       per_page: 10,
     }),

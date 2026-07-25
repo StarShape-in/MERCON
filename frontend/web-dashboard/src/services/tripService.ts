@@ -48,6 +48,7 @@ export interface TripFilters {
   status?: TripStatus;
   driver_id?: string;
   customer_id?: string;
+  search?: string;
   page?: number;
   per_page?: number;
 }

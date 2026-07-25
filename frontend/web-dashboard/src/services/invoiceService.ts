@@ -26,6 +26,7 @@ export interface CreateInvoicePayload {
 export interface InvoiceFilters {
   status?: InvoiceStatus;
   customer_id?: string;
+  search?: string;
   page?: number;
   per_page?: number;
 }

@@ -5,8 +5,8 @@ import { TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '
 
 export const getTrips = async (req: Request, res: Response) => {
   try {
-    const { status, driver_id, customer_id, page = '1', per_page = '20' } = req.query;
-    
+    const { status, driver_id, customer_id, search, page = '1', per_page = '20' } = req.query;
+
     const pageNumber = parseInt(page as string);
     const limit = parseInt(per_page as string);
     const skip = (pageNumber - 1) * limit;
@@ -15,6 +15,13 @@ export const getTrips = async (req: Request, res: Response) => {
     if (status) whereClause.status = status as TripStatus;
     if (driver_id) whereClause.driverId = driver_id as string;
     if (customer_id) whereClause.customerId = customer_id as string;
+    if (search) {
+      whereClause.OR = [
+        { ref_id: { contains: search as string, mode: 'insensitive' } },
+        { cargo_type: { contains: search as string, mode: 'insensitive' } },
+        { customer: { name: { contains: search as string, mode: 'insensitive' } } },
+      ];
+    }
 
     const [trips, total] = await Promise.all([
       prisma.trip.findMany({

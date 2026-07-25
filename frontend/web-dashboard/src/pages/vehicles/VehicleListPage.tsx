@@ -5,6 +5,7 @@ import { Plus, Edit2, FileText, Truck, Trash2, CheckCircle, XCircle, Send, Downl
 
 import { downloadCSV } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -18,13 +19,14 @@ export default function VehicleListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | 'All'>('All');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch vehicles using React Query
   const { data: vehiclesRes, isLoading } = useQuery({
-    queryKey: ['vehicles', selectedStatus, search, currentPage],
+    queryKey: ['vehicles', selectedStatus, debouncedSearch, currentPage],
     queryFn: () => vehicleService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       page: currentPage,
       per_page: 10,
     }),

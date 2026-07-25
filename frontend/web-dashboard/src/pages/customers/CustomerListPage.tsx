@@ -7,17 +7,19 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import Btn from '@/components/ui/Btn';
 import { customerService, Customer } from '@/services/customerService';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 export default function CustomerListPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch customers using React Query
   const { data: customersRes, isLoading } = useQuery({
-    queryKey: ['customers', search, currentPage],
+    queryKey: ['customers', debouncedSearch, currentPage],
     queryFn: () => customerService.getAll({
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       page: currentPage,
       per_page: 10,
     }),

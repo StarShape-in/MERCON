@@ -5,8 +5,8 @@ import { InvoiceStatus } from '@prisma/client';
 
 export const getInvoices = async (req: Request, res: Response) => {
   try {
-    const { status, customer_id, page = '1', per_page = '20' } = req.query;
-    
+    const { status, customer_id, search, page = '1', per_page = '20' } = req.query;
+
     const pageNumber = parseInt(page as string);
     const limit = parseInt(per_page as string);
     const skip = (pageNumber - 1) * limit;
@@ -14,6 +14,12 @@ export const getInvoices = async (req: Request, res: Response) => {
     const whereClause: any = { deletedAt: null };
     if (status) whereClause.status = status as InvoiceStatus;
     if (customer_id) whereClause.customerId = customer_id as string;
+    if (search) {
+      whereClause.OR = [
+        { ref_id: { contains: search as string, mode: 'insensitive' } },
+        { customer: { name: { contains: search as string, mode: 'insensitive' } } },
+      ];
+    }
 
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
