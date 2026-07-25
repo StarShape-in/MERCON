@@ -92,7 +92,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `PickupVerificationScreen` → cargo photo + `AtPickup → InTransit` (`/trip/pickup`)
 - ✅ `DeliveryVerificationScreen` → POD photo + `AtDelivery → Completed` (`/trip/delivery`); receiver-name/signature dropped (no schema field — owner decision)
 - ✅ `DestinationReachedScreen` → `InTransit → AtDelivery` (expo-router `/trip/arrived`, Home routes in)
-- ⬜ `TripCompletedScreen`
+- ✅ `TripCompletedScreen` → real summary of the latest completed trip (`/trip/completed`)
 - ✅ `TripsScreen` (history) — real Active/Upcoming/Completed tabs
 - ✅ `NotificationsScreen` — real feed + mark read / mark all
 - ✅ `ProfileScreen` — real identity/license/vehicle + working logout
@@ -149,15 +149,16 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | DestinationReachedScreen (arrived → AtDelivery) | driver | ✅ |
 | PickupVerificationScreen (cargo photo → InTransit) | driver | ✅ |
 | DeliveryVerificationScreen (POD photo → Completed) | driver | ✅ |
-| TripCompleted/Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| TripCompletedScreen (completion summary) | driver | ✅ |
+| Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 9 / 24 screens.**
+**Wired: 10 / 24 screens.**
 
-**Driver nav:** expo-router routes under `src/app/trip/*` (`/trip/pickup`, `/trip/arrived`,
-`/trip/delivery`). Home routes into the step screen by status (AtPickup→pickup,
-InTransit→arrived, AtDelivery→delivery) and refetches on focus. Only Dispatched→AtPickup
-(no photo) still advances inline. TripCompleted summary route comes next.
+**Driver trip flow — fully wired end to end** via expo-router (`src/app/trip/*`):
+Dispatched →(inline)→ AtPickup →`/trip/pickup` (cargo photo)→ InTransit →`/trip/arrived`→
+AtDelivery →`/trip/delivery` (POD photo)→ Completed →`/trip/completed` (summary). Home routes
+into each step by status and refetches on focus.
 
 ---
 

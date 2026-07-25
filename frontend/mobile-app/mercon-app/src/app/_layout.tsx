@@ -24,6 +24,7 @@ function RootNavigator() {
         <Stack.Screen name="trip/pickup" />
         <Stack.Screen name="trip/arrived" />
         <Stack.Screen name="trip/delivery" />
+        <Stack.Screen name="trip/completed" />
       </Stack.Protected>
 
       <Stack.Protected guard={!isLoggedIn}>

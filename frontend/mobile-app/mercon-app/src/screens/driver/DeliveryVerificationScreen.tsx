@@ -38,7 +38,7 @@ const DeliveryVerificationScreen = () => {
         await tripService.uploadPhoto(trip.id, 'pod', photo);
       }
       await tripService.updateStatus(trip.id, 'Completed');
-      router.back();
+      router.replace('/trip/completed');
     } catch (e) {
       Alert.alert('Could not complete', getApiErrorMessage(e));
     } finally {
