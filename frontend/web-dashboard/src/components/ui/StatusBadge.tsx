@@ -10,8 +10,10 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
   // Common theme mapping matching s_dashboard status indicators
   const normalized = status.toLowerCase().replace(/\s+/g, '');
   
-  let color = '#6E6E80';
-  let bg = '#F0F0F2';
+  // Reference the centralized design tokens (see :root in index.css) rather than
+  // hard-coded hex, so status colors stay consistent with the palette.
+  let color = 'var(--color-subtle)';
+  let bg = 'var(--color-border-soft)';
   let Icon = Clock;
 
   switch (normalized) {
@@ -21,8 +23,8 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
     case 'paid':
     case 'verified':
     case 'ontime':
-      color = '#16A34A';
-      bg = '#F0FDF4';
+      color = 'var(--color-success)';
+      bg = 'var(--color-success-bg)';
       Icon = Check;
       break;
     case 'ontrip':
@@ -32,15 +34,15 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
     case 'atdelivery':
     case 'pending':
     case 'pendingreview':
-      color = '#D97706';
-      bg = '#FFFBEB';
+      color = 'var(--color-warning)';
+      bg = 'var(--color-warning-bg)';
       Icon = Clock;
       break;
     case 'maintenance':
     case 'offduty':
     case 'draft':
-      color = '#2563EB';
-      bg = '#EFF6FF';
+      color = 'var(--color-info)';
+      bg = 'var(--color-info-bg)';
       Icon = Clock;
       break;
     case 'overdue':
@@ -48,13 +50,13 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
     case 'rejected':
     case 'inactive':
     case 'highrisk':
-      color = '#DC2626';
-      bg = '#FEF2F2';
+      color = 'var(--color-error)';
+      bg = 'var(--color-error-bg)';
       Icon = AlertTriangle;
       break;
     case 'cancelled':
-      color = '#7C3AED';
-      bg = '#F5F3FF';
+      color = 'var(--color-purple)';
+      bg = 'var(--color-purple-bg)';
       Icon = XCircle;
       break;
   }

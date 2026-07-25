@@ -213,6 +213,26 @@ body {
 }
 
 @theme inline {
+  /* MERCON brand + semantic palette → Tailwind utilities (bg-brand, text-success, …).
+     Values mirror the CSS vars in :root, so utilities render identically to the
+     previous hard-coded hex classes they replace. */
+  --color-brand:          var(--color-brand);
+  --color-brand-hover:    var(--color-brand-hover);
+  --color-brand-light:    var(--color-brand-light);
+  --color-canvas:         var(--color-bg);
+  --color-ink:            var(--color-dark);
+  --color-ink-soft:       var(--color-text-secondary);
+  --color-subtle:         var(--color-subtle);
+  --color-faint:          var(--color-muted);
+  --color-success:        var(--color-success);
+  --color-success-bg:     var(--color-success-bg);
+  --color-warning:        var(--color-warning);
+  --color-warning-bg:     var(--color-warning-bg);
+  --color-danger:         var(--color-error);
+  --color-danger-bg:      var(--color-error-bg);
+  --color-info:           var(--color-info);
+  --color-info-bg:        var(--color-info-bg);
+
   --font-heading:        var(--font-sans);
   --font-sans:        'Geist Mono Numbers', 'Geist Variable', sans-serif;
   --color-sidebar-ring:        var(--sidebar-ring);
