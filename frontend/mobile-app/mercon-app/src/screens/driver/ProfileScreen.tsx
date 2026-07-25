@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, StatusBar, ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Avatar, Badge } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
@@ -10,7 +11,8 @@ import { useAuth } from '../../lib/auth-context';
 import { useProfile } from '../../lib/use-profile';
 import { initialsOf } from '../../lib/profile';
 
-const SETTING_ROWS = [
+const SETTING_ROWS: { icon: string; label: string; value?: string; arrow?: boolean; route?: string }[] = [
+  { icon: '🔔', label: 'Notifications', route: '/notifications', arrow: true },
   { icon: '🌐', label: 'Language', value: 'English', arrow: true },
   { icon: '🔒', label: 'Privacy Policy', arrow: true },
   { icon: '📖', label: 'About MERCON', arrow: true },
@@ -35,6 +37,7 @@ function formatDate(iso?: string | null): string {
 
 const ProfileScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState('Profile');
+  const router = useRouter();
   const { profile: authProfile, signOut } = useAuth();
   const { profile, loading, error } = useProfile();
 
@@ -71,15 +74,15 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           {[
-            { icon: '📄', label: 'Documents', screen: 'Documents' },
-            { icon: '🚛', label: 'Vehicle', screen: 'AssignedVehicle' },
-            { icon: '⚙️', label: 'Settings', screen: 'Settings' },
+            { icon: '📄', label: 'Documents', route: '/documents' },
+            { icon: '🚛', label: 'Vehicle', route: '/vehicle' },
+            { icon: '⚙️', label: 'Settings', route: '/settings' },
           ].map((action) => (
             <TouchableOpacity
               key={action.label}
               style={styles.quickCard}
               activeOpacity={0.8}
-              onPress={() => navigation?.navigate(action.screen)}
+              onPress={() => router.push(action.route as any)}
             >
               <Text style={styles.quickIcon}>{action.icon}</Text>
               <Text style={styles.quickLabel}>{action.label}</Text>
@@ -118,7 +121,7 @@ const ProfileScreen = ({ navigation }: any) => {
               key={row.label}
               style={[styles.settingRow, i < SETTING_ROWS.length - 1 ? styles.settingRowBorder : null]}
               activeOpacity={0.8}
-              onPress={() => {}}
+              onPress={() => row.route && router.push(row.route as any)}
             >
               <View style={styles.settingLeft}>
                 {/* TODO: replace icon placeholders with lucide-react-native */}

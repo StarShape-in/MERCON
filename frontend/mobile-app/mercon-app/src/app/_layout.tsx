@@ -21,6 +21,12 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={isLoggedIn}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="trips" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="documents" />
+        <Stack.Screen name="vehicle" />
+        <Stack.Screen name="settings" />
         <Stack.Screen name="trip/pickup" />
         <Stack.Screen name="trip/arrived" />
         <Stack.Screen name="trip/delivery" />

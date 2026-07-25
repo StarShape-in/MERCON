@@ -4,10 +4,14 @@ import {
   StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
   Dimensions, Switch,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
+import { useAuth } from '../../lib/auth-context';
 
 const SettingsScreen = ({ navigation }: any) => {
+  const router = useRouter();
+  const { signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('Profile');
   const [pushNotifications, setPushNotifications] = useState(true);
   const [biometric, setBiometric] = useState(false);
@@ -67,7 +71,7 @@ const SettingsScreen = ({ navigation }: any) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
+        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
           {/* TODO: replace icon placeholders with lucide-react-native */}
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
@@ -157,7 +161,7 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={() => {}}>
+        <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={() => signOut()}>
           <Text style={styles.logoutIcon}>🚪</Text>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>

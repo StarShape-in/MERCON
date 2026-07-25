@@ -96,10 +96,10 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `TripsScreen` (history) — real Active/Upcoming/Completed tabs
 - ✅ `NotificationsScreen` — real feed + mark read / mark all
 - ✅ `ProfileScreen` — real identity/license/vehicle + working logout
-- ⬜ `DocumentsScreen`
-- ⬜ `AssignedVehicleScreen`
+- 🔄 `DocumentsScreen` — reachable (`/documents`), data still static (needs driver-docs endpoint)
+- 🔄 `AssignedVehicleScreen` — reachable (`/vehicle`), data still static (wire to active-trip vehicle)
 - ✅ `EmergencyScreen` → `POST /mobile/emergency` (incident type + notes; photos & GPS deferred to M2)
-- ⬜ `SettingsScreen` (logout)
+- ✅ `SettingsScreen` — real logout (toggles are local-only); reachable (`/settings`)
 - ⬜ `LiveNavigationScreen` / `ReplacementDriverScreen` / `SplashScreen` (as needed)
 
 ### Milestone 2 — Driver live GPS
@@ -150,10 +150,17 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | PickupVerificationScreen (cargo photo → InTransit) | driver | ✅ |
 | DeliveryVerificationScreen (POD photo → Completed) | driver | ✅ |
 | TripCompletedScreen (completion summary) | driver | ✅ |
-| Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| SettingsScreen (logout) | driver | ✅ |
+| DocumentsScreen / AssignedVehicleScreen | driver | 🔄 reachable, static data |
+| LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 10 / 24 screens.**
+**Wired: 11 / 24 screens.**
+
+**Driver navigation now works** (expo-router): the bottom nav (Home/Trips/Profile) and Profile's
+quick actions + Notifications link actually navigate — so the already-wired Trips, Notifications,
+and Profile screens are reachable in the running app for the first time. Routes live at
+`src/app/{trips,profile,notifications,documents,vehicle,settings}.tsx`.
 
 **Driver trip flow — fully wired end to end** via expo-router (`src/app/trip/*`):
 Dispatched →(inline)→ AtPickup →`/trip/pickup` (cargo photo)→ InTransit →`/trip/arrived`→

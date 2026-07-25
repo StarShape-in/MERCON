@@ -1,42 +1,44 @@
 /**
  * Driver App Bottom Navigation
- * Dark floating pill with 3 items: Home, Trips, Profile
- * Active item → orange icon + orange label
+ * Dark floating pill with 3 items: Home, Trips, Profile.
+ * Route-based (expo-router): the active item reflects the current path.
  */
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Shadows } from '../theme/tokens';
-
-// Replace these with lucide-react-native or @expo/vector-icons equivalents
-// import { Home, Truck, User } from 'lucide-react-native';
 
 export type DriverTab = 'Home' | 'Trips' | 'Profile';
 
 interface DriverBottomNavProps {
-  activeTab: DriverTab | string;
-  onTabPress: (tab: DriverTab) => void;
+  // Kept optional for backwards compatibility with screens that still pass them;
+  // navigation is now driven by the router, so these are ignored.
+  activeTab?: DriverTab | string;
+  onTabPress?: (tab: DriverTab) => void;
 }
 
-const TABS: { label: DriverTab; icon: string }[] = [
-  { label: 'Home',    icon: '⌂' },
-  { label: 'Trips',   icon: '🚛' },
-  { label: 'Profile', icon: '👤' },
+const TABS: { label: DriverTab; icon: string; route: string }[] = [
+  { label: 'Home',    icon: '⌂',  route: '/' },
+  { label: 'Trips',   icon: '🚛', route: '/trips' },
+  { label: 'Profile', icon: '👤', route: '/profile' },
 ];
 
-export function DriverBottomNav({ activeTab, onTabPress }: DriverBottomNavProps) {
+export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   return (
     <View style={styles.wrapper}>
       <View style={[styles.pill, Shadows.nav]}>
-        {TABS.map(({ label, icon }) => {
-          const active = label === activeTab;
+        {TABS.map(({ label, icon, route }) => {
+          const active = route === '/' ? pathname === '/' : pathname.startsWith(route);
           return (
             <TouchableOpacity
               key={label}
-              onPress={() => onTabPress(label)}
+              onPress={() => { if (!active) router.navigate(route as any); }}
               activeOpacity={0.7}
               style={styles.tab}
             >
-              {/* Swap the Text below with your icon component */}
               <Text style={[styles.icon, { color: active ? Colors.primary : 'rgba(255,255,255,0.45)' }]}>
                 {icon}
               </Text>
