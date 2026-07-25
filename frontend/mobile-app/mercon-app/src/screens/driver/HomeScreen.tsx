@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, StatusBar, RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
@@ -25,6 +26,10 @@ const HomeScreen = () => {
   const { trip, loading, error, refetch, setTrip } = useCurrentTrip();
   const [activeTab, setActiveTab] = useState('Home');
   const [advancing, setAdvancing] = useState(false);
+  const router = useRouter();
+
+  // Refresh the trip whenever Home regains focus (e.g. returning from a step screen).
+  useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
 
   const firstName = (profile?.name || 'Driver').split(' ')[0];
 
@@ -53,6 +58,8 @@ const HomeScreen = () => {
 
   const advance = () => {
     if (!trip || !next) return;
+    // The "arrived at delivery" step has its own screen.
+    if (trip.status === 'InTransit') { router.push('/trip/arrived'); return; }
     const photoKind = PHOTO_FOR[next.to];
     const msg = photoKind
       ? `You'll take a ${photoKind === 'pod' ? 'delivery (POD)' : 'cargo'} photo, then mark the trip as "${statusLabel(next.to)}".`

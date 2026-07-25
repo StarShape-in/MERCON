@@ -1,15 +1,36 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
+  Alert, Dimensions,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button } from '../../components';
+import { useCurrentTrip } from '../../lib/use-current-trip';
+import { tripService } from '../../lib/trips';
+import { getApiErrorMessage } from '../../lib/api';
 
 const { width, height } = Dimensions.get('window');
 
-const DestinationReachedScreen = ({ navigation }: any) => {
+const DestinationReachedScreen = () => {
+  const router = useRouter();
+  const { trip, loading } = useCurrentTrip();
+  const [submitting, setSubmitting] = useState(false);
+
+  const canConfirm = !!trip && trip.status === 'InTransit' && !submitting && !loading;
+
+  const confirmArrival = async () => {
+    if (!trip || !canConfirm) return;
+    setSubmitting(true);
+    try {
+      await tripService.updateStatus(trip.id, 'AtDelivery');
+      router.back(); // back to Home, which refetches on focus
+    } catch (e) {
+      Alert.alert('Could not update', getApiErrorMessage(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1A2B1A" />
@@ -20,8 +41,7 @@ const DestinationReachedScreen = ({ navigation }: any) => {
           <View style={styles.roadV} />
           <View style={styles.roadH} />
           <Text style={styles.destinationFlag}>🏁</Text>
-          <Text style={styles.mapLabel}>JEDDAH PORT</Text>
-          <Text style={styles.mapCoords}>21.4858° N, 39.1925° E</Text>
+          <Text style={styles.mapLabel}>{trip?.customer?.name ?? 'DESTINATION'}</Text>
         </View>
         <View style={styles.darkOverlay} />
       </View>
@@ -39,51 +59,57 @@ const DestinationReachedScreen = ({ navigation }: any) => {
 
         <Text style={styles.arrivedTitle}>You Have Arrived!</Text>
         <Text style={styles.arrivedSub}>
-          You have reached your destination at Jeddah Port, Gate 7.
-          Please proceed with delivery verification.
+          {trip
+            ? 'Confirm you have arrived at the delivery location to proceed.'
+            : 'No active trip to update.'}
         </Text>
 
         {/* Trip Summary */}
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryIcon}>🕒</Text>
-            <Text style={styles.summaryValue}>8h 45m</Text>
-            <Text style={styles.summaryLabel}>Travel Time</Text>
+            <Text style={styles.summaryIcon}>🧾</Text>
+            <Text style={styles.summaryValue}>{trip?.ref_id ?? '—'}</Text>
+            <Text style={styles.summaryLabel}>Trip</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryIcon}>📦</Text>
+            <Text style={styles.summaryValue}>{trip?.cargo_type ?? '—'}</Text>
+            <Text style={styles.summaryLabel}>Cargo</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
             <Text style={styles.summaryIcon}>📏</Text>
-            <Text style={styles.summaryValue}>950 km</Text>
+            <Text style={styles.summaryValue}>
+              {trip?.planned_distance ? `${trip.planned_distance} km` : '—'}
+            </Text>
             <Text style={styles.summaryLabel}>Distance</Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryIcon}>⛽</Text>
-            <Text style={styles.summaryValue}>142 L</Text>
-            <Text style={styles.summaryLabel}>Fuel Used</Text>
           </View>
         </View>
 
         {/* Location Confirmation */}
         <View style={styles.locationRow}>
           <View style={styles.locationDot} />
-          <Text style={styles.locationText}>Jeddah Port, Industrial Area, Gate 7</Text>
+          <Text style={styles.locationText}>{trip?.customer?.name ?? 'Delivery location'}</Text>
         </View>
 
         <TouchableOpacity
-          style={styles.endTripBtn}
+          style={[styles.endTripBtn, !canConfirm && { opacity: 0.6 }]}
           activeOpacity={0.8}
-          onPress={() => navigation?.navigate('DeliveryVerification')}
+          onPress={confirmArrival}
+          disabled={!canConfirm}
         >
-          <Text style={styles.endTripText}>End Trip & Verify Delivery</Text>
+          <Text style={styles.endTripText}>
+            {submitting ? 'Updating…' : 'Confirm Arrival at Delivery'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.cancelBtn}
           activeOpacity={0.8}
-          onPress={() => navigation?.goBack()}
+          onPress={() => router.back()}
         >
-          <Text style={styles.cancelText}>Not Yet — Continue Navigation</Text>
+          <Text style={styles.cancelText}>Not Yet — Go Back</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

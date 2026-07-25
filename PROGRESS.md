@@ -91,7 +91,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 **Wire driver screens (currently static UI):**
 - ⬜ `PickupVerificationScreen` → status + cargo photo
 - ⬜ `DeliveryVerificationScreen` → status + POD photo
-- ⬜ `DestinationReachedScreen`
+- ✅ `DestinationReachedScreen` → `InTransit → AtDelivery` (expo-router `/trip/arrived`, Home routes in)
 - ⬜ `TripCompletedScreen`
 - ✅ `TripsScreen` (history) — real Active/Upcoming/Completed tabs
 - ✅ `NotificationsScreen` — real feed + mark read / mark all
@@ -146,10 +146,15 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | NotificationsScreen (feed + mark read/all) | driver | ✅ |
 | ProfileScreen (identity/license/vehicle + logout) | driver | ✅ |
 | EmergencyScreen (alert → operators/admins) | driver | ✅ |
-| Pickup/Delivery/DestinationReached/TripCompleted/Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| DestinationReachedScreen (arrived → AtDelivery) | driver | ✅ |
+| Pickup/Delivery/TripCompleted/Documents/AssignedVehicle/Settings/LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 6 / 24 screens.**
+**Wired: 7 / 24 screens.**
+
+**Driver nav:** expo-router routes now exist under `src/app/trip/*` (first: `/trip/arrived`);
+Home routes into the step screen by status and refetches on focus. Pickup / Delivery /
+TripCompleted routes come in the next pushes; until then Home advances those inline.
 
 ---
 
