@@ -30,6 +30,7 @@ import mobileTripRoutes from './routes/mobileTripRoutes';
 import mobileNotificationRoutes from './routes/mobileNotificationRoutes';
 import mobileProfileRoutes from './routes/mobileProfileRoutes';
 import mobileEmergencyRoutes from './routes/mobileEmergencyRoutes';
+import mobileMiscRoutes from './routes/mobileMiscRoutes';
 import rateCardRoutes from './routes/rateCardRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import uploadRoutes from './routes/uploadRoutes';
@@ -63,6 +64,7 @@ app.use('/mobile/trips', mobileTripRoutes);
 app.use('/mobile/notifications', mobileNotificationRoutes);
 app.use('/mobile/profile', mobileProfileRoutes);
 app.use('/mobile/emergency', mobileEmergencyRoutes);
+app.use('/mobile', mobileMiscRoutes); // /mobile/documents, /mobile/vehicle
 
 // Socket.io Telemetry WebSockets
 io.on('connection', (socket) => {

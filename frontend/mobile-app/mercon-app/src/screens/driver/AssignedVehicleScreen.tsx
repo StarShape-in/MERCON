@@ -1,38 +1,37 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
+  StatusBar, ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, Badge } from '../../components';
+import { useAssignedVehicle } from '../../lib/vehicle';
 
-const VEHICLE_DOCS = [
-  { id: '1', label: 'Istimara (Registration)', status: 'valid', statusLabel: 'Valid', expiry: '12 Mar 2025' },
-  { id: '2', label: 'Insurance Certificate', status: 'valid', statusLabel: 'Valid', expiry: '30 Jun 2025' },
-  { id: '3', label: 'Annual Inspection', status: 'expiring', statusLabel: 'Due Soon', expiry: '25 Jul 2024' },
-  { id: '4', label: 'Load Permit', status: 'valid', statusLabel: 'Valid', expiry: '31 Dec 2024' },
-];
+const AssignedVehicleScreen = () => {
+  const router = useRouter();
+  const { vehicle, loading, error } = useAssignedVehicle();
 
-const SPECS = [
-  { label: 'Make', value: 'Mercedes-Benz Actros' },
-  { label: 'Year', value: '2022' },
-  { label: 'Plate', value: 'أ ب ج 1234' },
-  { label: 'VIN', value: 'WDB9634031L1234567' },
-  { label: 'Engine', value: 'OM 471 — 510 HP' },
-  { label: 'Capacity', value: '25,000 kg GVW' },
-  { label: 'Fuel', value: 'Diesel' },
-  { label: 'Mileage', value: '187,420 km' },
-];
+  const specs = vehicle
+    ? [
+        { label: 'Plate', value: vehicle.plate_number },
+        { label: 'Type', value: vehicle.asset_type },
+        { label: 'Status', value: vehicle.status },
+        { label: 'Capacity', value: `${vehicle.capacity_kg.toLocaleString()} kg` },
+        { label: 'Odometer', value: `${Math.round(vehicle.current_odometer).toLocaleString()} km` },
+        ...(vehicle.trailer_number
+          ? [{ label: 'Trailer', value: `${vehicle.trailer_number}${vehicle.trailer_type ? ` (${vehicle.trailer_type})` : ''}` }]
+          : []),
+        ...(vehicle.trip_ref_id ? [{ label: 'On Trip', value: `#${vehicle.trip_ref_id}` }] : []),
+      ]
+    : [];
 
-const AssignedVehicleScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Dark Header */}
         <View style={styles.darkHeader}>
-          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
+          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             {/* TODO: replace icon placeholders with lucide-react-native */}
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
@@ -40,93 +39,50 @@ const AssignedVehicleScreen = ({ navigation }: any) => {
             <View style={styles.vehicleIconBox}>
               <Text style={styles.vehicleEmoji}>🚛</Text>
             </View>
-            <Text style={styles.vehicleId}>TRK-2041</Text>
-            <Text style={styles.vehicleModel}>Mercedes-Benz Actros 2022</Text>
-            <View style={styles.headerBadges}>
-              <View style={styles.statusChip}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusChipText}>Active</Text>
-              </View>
-              <View style={styles.plateChip}>
-                <Text style={styles.plateText}>أ ب ج 1234</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Quick Stats */}
-        <View style={styles.statsRow}>
-          {[
-            { icon: '📏', label: 'Total KM', value: '187,420' },
-            { icon: '🛣️', label: 'This Month', value: '12,450' },
-            { icon: '⛽', label: 'Avg Fuel', value: '28 L/100' },
-          ].map((stat) => (
-            <View key={stat.label} style={styles.statCard}>
-              <Text style={styles.statIcon}>{stat.icon}</Text>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Vehicle Specs */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Vehicle Specifications</Text>
-          <View style={styles.specsGrid}>
-            {SPECS.map((spec, i) => (
-              <View
-                key={spec.label}
-                style={[styles.specRow, i < SPECS.length - 1 ? styles.specRowBorder : null]}
-              >
-                <Text style={styles.specLabel}>{spec.label}</Text>
-                <Text style={styles.specValue}>{spec.value}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Document Status */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Document Status</Text>
-          <View style={styles.docsCard}>
-            {VEHICLE_DOCS.map((doc, i) => (
-              <View
-                key={doc.id}
-                style={[styles.docRow, i < VEHICLE_DOCS.length - 1 ? styles.docRowBorder : null]}
-              >
-                <View style={styles.docLeft}>
-                  {/* TODO: replace icon placeholders with lucide-react-native */}
-                  <Text style={styles.docIcon}>📋</Text>
-                  <View>
-                    <Text style={styles.docLabel}>{doc.label}</Text>
-                    <Text style={styles.docExpiry}>Exp: {doc.expiry}</Text>
-                  </View>
+            <Text style={styles.vehicleId}>
+              {vehicle ? (vehicle.ref_id ? `#${vehicle.ref_id}` : vehicle.plate_number) : 'Assigned Vehicle'}
+            </Text>
+            {vehicle && <Text style={styles.vehicleModel}>{vehicle.asset_type}</Text>}
+            {vehicle && (
+              <View style={styles.headerBadges}>
+                <View style={styles.statusChip}>
+                  <View style={styles.statusDot} />
+                  <Text style={styles.statusChipText}>{vehicle.status}</Text>
                 </View>
-                <StatusBadge status={doc.status} label={doc.statusLabel} />
+                <View style={styles.plateChip}>
+                  <Text style={styles.plateText}>{vehicle.plate_number}</Text>
+                </View>
               </View>
-            ))}
+            )}
           </View>
         </View>
 
-        {/* Maintenance */}
-        <View style={styles.maintenanceCard}>
-          <View style={styles.maintenanceHeader}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.maintenanceIcon}>🔧</Text>
-            <Text style={styles.maintenanceTitle}>Next Scheduled Maintenance</Text>
+        {loading ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
+        ) : !vehicle ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyIcon}>🚛</Text>
+            <Text style={styles.emptyTitle}>{error ? 'Could not load vehicle' : 'No vehicle assigned'}</Text>
+            <Text style={styles.emptyText}>
+              {error ?? "You'll see your truck here once you're dispatched on a trip."}
+            </Text>
           </View>
-          <Text style={styles.maintenanceDate}>15 Jul 2024</Text>
-          <Text style={styles.maintenanceSub}>200,000 km service — Al-Rashid Motors, Riyadh</Text>
-          <View style={styles.maintenanceProgress}>
-            <View style={styles.maintenanceProgressFill} />
+        ) : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Vehicle Details</Text>
+            <View style={styles.specsGrid}>
+              {specs.map((spec, i) => (
+                <View
+                  key={spec.label}
+                  style={[styles.specRow, i < specs.length - 1 ? styles.specRowBorder : null]}
+                >
+                  <Text style={styles.specLabel}>{spec.label}</Text>
+                  <Text style={styles.specValue}>{spec.value}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-          <Text style={styles.maintenanceLeft}>12,580 km remaining</Text>
-        </View>
-
-        <TouchableOpacity style={styles.reportBtn} activeOpacity={0.8} onPress={() => {}}>
-          <Text style={styles.reportBtnIcon}>🚨</Text>
-          <Text style={styles.reportBtnText}>Report Vehicle Issue</Text>
-        </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -135,13 +91,13 @@ const AssignedVehicleScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   scroll: {
     paddingBottom: Spacing['3xl'],
+    flexGrow: 1,
   },
   darkHeader: {
     backgroundColor: '#1A1A1A',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing['2xl'],
-    position: 'relative',
   },
   backBtn: {
     width: 40,
@@ -166,89 +122,59 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   vehicleEmoji: {
     fontSize: 36,
   },
   vehicleId: {
-    fontSize: Typography['2xl'],
+    fontSize: Typography.xl,
     fontWeight: '800',
     color: Colors.white,
-    letterSpacing: 2,
   },
   vehicleModel: {
     fontSize: Typography.sm,
-    color: Colors.gray400,
-    marginBottom: Spacing.md,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
   },
   headerBadges: {
     flexDirection: 'row',
     gap: Spacing.sm,
+    marginTop: Spacing.md,
   },
   statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     backgroundColor: 'rgba(34,197,94,0.2)',
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xs,
   },
   statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: Colors.success,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22C55E',
   },
   statusChipText: {
     fontSize: Typography.xs,
-    color: Colors.success,
-    fontWeight: '700',
+    color: Colors.white,
+    fontWeight: '600',
   },
   plateChip: {
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xs,
   },
   plateText: {
     fontSize: Typography.xs,
     color: Colors.white,
     fontWeight: '700',
   },
-  statsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    alignItems: 'center',
-    gap: 3,
-    ...Shadows.sm,
-  },
-  statIcon: {
-    fontSize: 20,
-  },
-  statValue: {
-    fontSize: Typography.sm,
-    fontWeight: '800',
-    color: Colors.gray900,
-  },
-  statLabel: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
-    textAlign: 'center',
-  },
   section: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    padding: Spacing.lg,
   },
   sectionTitle: {
     fontSize: Typography.base,
@@ -259,13 +185,13 @@ const styles = StyleSheet.create({
   specsGrid: {
     backgroundColor: Colors.white,
     borderRadius: Radius.xl,
-    overflow: 'hidden',
+    paddingHorizontal: Spacing.lg,
     ...Shadows.sm,
   },
   specRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
     paddingVertical: Spacing.md,
   },
   specRowBorder: {
@@ -280,113 +206,30 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     fontWeight: '700',
     color: Colors.gray900,
+    flexShrink: 1,
+    textAlign: 'right',
   },
-  docsCard: {
+  emptyCard: {
     backgroundColor: Colors.white,
+    margin: Spacing.lg,
     borderRadius: Radius.xl,
-    overflow: 'hidden',
+    padding: Spacing.xl,
+    alignItems: 'center',
+    gap: Spacing.sm,
     ...Shadows.sm,
   },
-  docRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+  emptyIcon: {
+    fontSize: 48,
   },
-  docRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+  emptyTitle: {
+    fontSize: Typography.lg,
+    fontWeight: '700',
+    color: Colors.gray700,
   },
-  docLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  docIcon: {
-    fontSize: 18,
-  },
-  docLabel: {
+  emptyText: {
     fontSize: Typography.sm,
-    fontWeight: '600',
-    color: Colors.gray900,
-  },
-  docExpiry: {
-    fontSize: Typography.xs,
     color: Colors.gray500,
-    marginTop: 1,
-  },
-  maintenanceCard: {
-    backgroundColor: '#FFF7ED',
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-  },
-  maintenanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  maintenanceIcon: {
-    fontSize: 20,
-  },
-  maintenanceTitle: {
-    fontSize: Typography.sm,
-    fontWeight: '700',
-    color: Colors.gray900,
-  },
-  maintenanceDate: {
-    fontSize: Typography.xl,
-    fontWeight: '800',
-    color: '#92400E',
-    marginBottom: 2,
-  },
-  maintenanceSub: {
-    fontSize: Typography.xs,
-    color: Colors.gray600,
-    marginBottom: Spacing.md,
-  },
-  maintenanceProgress: {
-    height: 6,
-    backgroundColor: Colors.gray200,
-    borderRadius: Radius.full,
-    marginBottom: Spacing.xs,
-  },
-  maintenanceProgressFill: {
-    width: '94%',
-    height: '100%',
-    backgroundColor: '#D97706',
-    borderRadius: Radius.full,
-  },
-  maintenanceLeft: {
-    fontSize: Typography.xs,
-    color: '#92400E',
-    fontWeight: '600',
-  },
-  reportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.error,
-  },
-  reportBtnIcon: {
-    fontSize: 20,
-  },
-  reportBtnText: {
-    fontSize: Typography.base,
-    fontWeight: '700',
-    color: Colors.error,
+    textAlign: 'center',
   },
 });
 

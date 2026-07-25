@@ -1,101 +1,71 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
+  FlatList, ActivityIndicator, Linking, RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge } from '../../components';
+import { API_URL } from '../../lib/api';
+import { useDocuments, docTypeLabel, docIcon, docStatus, type DriverDocument } from '../../lib/documents';
 
-const DOCUMENTS = [
-  {
-    id: '1',
-    title: 'Driving License',
-    docNumber: 'DL-SA-1234567',
-    expiry: '20 Jul 2024',
-    status: 'expiring',
-    statusLabel: 'Expiring Soon',
-    icon: '🪪',
-  },
-  {
-    id: '2',
-    title: 'Iqama (Residency)',
-    docNumber: 'IQM-9876543',
-    expiry: '15 Dec 2024',
-    status: 'valid',
-    statusLabel: 'Valid',
-    icon: '📋',
-  },
-  {
-    id: '3',
-    title: 'National ID',
-    docNumber: 'NID-1122334455',
-    expiry: '30 Mar 2026',
-    status: 'valid',
-    statusLabel: 'Valid',
-    icon: '🪪',
-  },
-  {
-    id: '4',
-    title: 'Medical Certificate',
-    docNumber: 'MED-2024-0456',
-    expiry: '05 Jan 2024',
-    status: 'expired',
-    statusLabel: 'Expired',
-    icon: '🏥',
-  },
-  {
-    id: '5',
-    title: 'Heavy Vehicle License',
-    docNumber: 'HVL-SA-7890123',
-    expiry: '12 Sep 2025',
-    status: 'valid',
-    statusLabel: 'Valid',
-    icon: '🚛',
-  },
-];
+const FILE_BASE = API_URL.replace(/\/api\/?$/, '');
 
-const DocumentCard = ({ item }: any) => (
-  <View style={[styles.card, item.status === 'expired' ? styles.cardExpired : null]}>
-    <View style={styles.cardHeader}>
-      <View style={styles.iconBox}>
-        {/* TODO: replace icon placeholders with lucide-react-native */}
-        <Text style={styles.docIcon}>{item.icon}</Text>
+function formatDate(iso?: string | null): string {
+  if (!iso) return 'No expiry';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function openFile(fileUrl: string) {
+  const url = fileUrl.startsWith('http') ? fileUrl : `${FILE_BASE}${fileUrl}`;
+  Linking.openURL(url).catch(() => {});
+}
+
+const DocumentCard = ({ doc }: { doc: DriverDocument }) => {
+  const st = docStatus(doc);
+  return (
+    <View style={[styles.card, st.kind === 'expired' ? styles.cardExpired : null]}>
+      <View style={styles.cardHeader}>
+        <View style={styles.iconBox}>
+          {/* TODO: replace icon placeholders with lucide-react-native */}
+          <Text style={styles.docIcon}>{docIcon(doc.doc_type)}</Text>
+        </View>
+        <View style={styles.cardInfo}>
+          <Text style={styles.docTitle}>{docTypeLabel(doc.doc_type)}</Text>
+          {doc.issue_date ? <Text style={styles.docNumber}>Issued {formatDate(doc.issue_date)}</Text> : null}
+        </View>
+        <StatusBadge status={st.label} />
       </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.docTitle}>{item.title}</Text>
-        <Text style={styles.docNumber}>{item.docNumber}</Text>
+
+      <View style={styles.expiryRow}>
+        <Text style={styles.expiryLabel}>Expires</Text>
+        <Text
+          style={[
+            styles.expiryValue,
+            st.kind === 'expired' ? styles.expiredText : st.kind === 'expiring' ? styles.expiringText : null,
+          ]}
+        >
+          {formatDate(doc.expiry_date)}
+        </Text>
       </View>
-      <StatusBadge status={item.status} label={item.statusLabel} />
-    </View>
 
-    <View style={styles.expiryRow}>
-      <Text style={styles.expiryLabel}>Expires</Text>
-      <Text style={[styles.expiryValue, item.status === 'expired' ? styles.expiredText : item.status === 'expiring' ? styles.expiringText : null]}>
-        {item.expiry}
-      </Text>
-    </View>
-
-    <View style={styles.actionRow}>
-      <TouchableOpacity style={styles.viewBtn} activeOpacity={0.8} onPress={() => {}}>
-        <Text style={styles.viewBtnText}>View</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.downloadBtn} activeOpacity={0.8} onPress={() => {}}>
-        {/* TODO: replace icon placeholders with lucide-react-native */}
-        <Text style={styles.downloadBtnText}>↓ Download</Text>
-      </TouchableOpacity>
-      {(item.status === 'expired' || item.status === 'expiring') && (
-        <TouchableOpacity style={styles.renewBtn} activeOpacity={0.8} onPress={() => {}}>
-          <Text style={styles.renewBtnText}>Renew</Text>
+      <View style={styles.actionRow}>
+        <TouchableOpacity style={styles.viewBtn} activeOpacity={0.8} onPress={() => openFile(doc.file_url)}>
+          <Text style={styles.viewBtnText}>View</Text>
         </TouchableOpacity>
-      )}
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
-const DocumentsScreen = ({ navigation }: any) => {
-  const expiredCount = DOCUMENTS.filter((d) => d.status === 'expired').length;
-  const expiringCount = DOCUMENTS.filter((d) => d.status === 'expiring').length;
+const DocumentsScreen = () => {
+  const router = useRouter();
+  const { documents, loading, error, refetch } = useDocuments();
+
+  const expiredCount = documents.filter((d) => docStatus(d).kind === 'expired').length;
+  const expiringCount = documents.filter((d) => docStatus(d).kind === 'expiring').length;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
@@ -103,14 +73,12 @@ const DocumentsScreen = ({ navigation }: any) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
+        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
           {/* TODO: replace icon placeholders with lucide-react-native */}
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Documents</Text>
-        <TouchableOpacity style={styles.addBtn} activeOpacity={0.8} onPress={() => {}}>
-          <Text style={styles.addBtnText}>+</Text>
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
       </View>
 
       {/* Alert Banner */}
@@ -125,10 +93,18 @@ const DocumentsScreen = ({ navigation }: any) => {
       )}
 
       <FlatList
-        data={DOCUMENTS}
+        data={documents}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => <DocumentCard item={item} />}
+        refreshControl={<RefreshControl refreshing={loading && documents.length > 0} onRefresh={refetch} />}
+        renderItem={({ item }) => <DocumentCard doc={item} />}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
+          ) : (
+            <Text style={styles.emptyText}>{error ?? 'No documents on file.'}</Text>
+          )
+        }
       />
     </SafeAreaView>
   );
@@ -162,20 +138,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.gray900,
   },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnText: {
-    fontSize: 22,
-    color: Colors.white,
-    fontWeight: '700',
-    lineHeight: 26,
-  },
   alertBanner: {
     backgroundColor: '#FFF7ED',
     flexDirection: 'row',
@@ -198,6 +160,13 @@ const styles = StyleSheet.create({
   list: {
     padding: Spacing.lg,
     gap: Spacing.md,
+    flexGrow: 1,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: Colors.gray500,
+    fontSize: Typography.sm,
+    marginTop: Spacing['3xl'],
   },
   card: {
     backgroundColor: Colors.white,
@@ -280,31 +249,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.gray700,
     fontWeight: '600',
-  },
-  downloadBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  downloadBtnText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  renewBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  renewBtnText: {
-    fontSize: Typography.sm,
-    color: Colors.white,
-    fontWeight: '700',
   },
 });
 

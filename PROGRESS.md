@@ -16,7 +16,7 @@ Last updated: **2026-07-25** · Owner: Hysam (solo dev + AI) · Deadline: ~1 mon
 |---|---|---|
 | **Backend API** | ✅ Working, deployed at mercon.tech | ~90% |
 | **Web dashboard** (Admin/Operator) | ✅ Done, all pages on real data | ~95% |
-| **Mobile app** (Driver + Operator) | 🔄 Login + driver trip flow real; rest is static UI | ~25% |
+| **Mobile app** (Driver + Operator) | 🔄 Driver side ~done (nav + full trip flow + all core screens); operator side static; live GPS pending | ~50% |
 | **Live GPS tracking** (driver → web) | ❌ Packages installed, no tracking code yet | 0% |
 | **Testing / builds / handover** | ❌ Not started (no real-phone run yet) | 0% |
 
@@ -74,6 +74,7 @@ live GPS, and 4 mobile backend endpoints are still to do, then real-phone testin
 | Driver "Trip Assignment" notification on dispatch + driver-replace | ✅ delivers |
 | `GET /mobile/profile` (identity, license, phone, active-trip vehicle) | ✅ |
 | `POST /mobile/emergency` (alerts all active Admins + Operators) | ✅ |
+| `GET /mobile/documents` (driver's own docs) + `GET /mobile/vehicle` (active-trip vehicle) | ✅ |
 
 ---
 
@@ -96,8 +97,8 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `TripsScreen` (history) — real Active/Upcoming/Completed tabs
 - ✅ `NotificationsScreen` — real feed + mark read / mark all
 - ✅ `ProfileScreen` — real identity/license/vehicle + working logout
-- 🔄 `DocumentsScreen` — reachable (`/documents`), data still static (needs driver-docs endpoint)
-- 🔄 `AssignedVehicleScreen` — reachable (`/vehicle`), data still static (wire to active-trip vehicle)
+- ✅ `DocumentsScreen` → `GET /mobile/documents` (real docs, expiry status, open file)
+- ✅ `AssignedVehicleScreen` → `GET /mobile/vehicle` (active-trip vehicle + honest empty state)
 - ✅ `EmergencyScreen` → `POST /mobile/emergency` (incident type + notes; photos & GPS deferred to M2)
 - ✅ `SettingsScreen` — real logout (toggles are local-only); reachable (`/settings`)
 - ⬜ `LiveNavigationScreen` / `ReplacementDriverScreen` / `SplashScreen` (as needed)
@@ -151,11 +152,12 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | DeliveryVerificationScreen (POD photo → Completed) | driver | ✅ |
 | TripCompletedScreen (completion summary) | driver | ✅ |
 | SettingsScreen (logout) | driver | ✅ |
-| DocumentsScreen / AssignedVehicleScreen | driver | 🔄 reachable, static data |
-| LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static |
+| DocumentsScreen (real docs + expiry) | driver | ✅ |
+| AssignedVehicleScreen (active-trip vehicle) | driver | ✅ |
+| LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static (secondary) |
 | Home/TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 11 / 24 screens.**
+**Wired: 13 / 24 screens** (all core driver screens; only LiveNavigation/ReplacementDriver/Splash remain, and they're secondary).
 
 **Driver navigation now works** (expo-router): the bottom nav (Home/Trips/Profile) and Profile's
 quick actions + Notifications link actually navigate — so the already-wired Trips, Notifications,
