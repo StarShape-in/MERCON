@@ -61,7 +61,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | App entry fixed (`expo-router/entry`), 24 screens type-check (tsc 349→0) | ✅ |
 | Runtime packages installed (axios, socket.io-client, expo-secure-store, expo-location, expo-image-picker) | ✅ |
 | API client (JWT interceptor) + SecureStore auth context (auto-login) | ✅ |
-| **Unified login** (single form, auto-detects driver vs operator by credentials — no mode toggle) + **role routing** (`app/index.tsx`) | ✅ |
+| **Unified login** (single form, auto-detects driver vs operator by credentials — no mode toggle) + **role routing** (`app/index.tsx`); redesigned UI (real logo, input icons, password show/hide, compact card) — hero background image pending | ✅ |
 | Driver **Home**: real current trip, status updates, cargo + POD photos (camera), photo-gated status | ✅ (`fee951d`, `dd184c1`) |
 
 ### Mobile backend endpoints (`/api/mobile/*`)

@@ -1,13 +1,15 @@
 /**
  * Auth state for the MERCON mobile app (shared by drivers AND operators).
  * - Token + role + profile persisted in SecureStore
- * - Two sign-in paths that reuse the existing backend endpoints:
+ * - One sign-in form, two backend endpoints. `signIn` figures out which one
+ *   the credentials belong to and logs the user in — no manual mode toggle:
  *     driver   → POST /mobile/auth/login  (phone + license)
  *     operator → POST /auth/login         (username + password)
  * - Exposes `role` so the router can send each user to the right home screen
  *   (see src/app/index.tsx and the Stack.Protected guards in src/app/_layout.tsx).
  */
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { api, TOKEN_KEY } from './api';
 
@@ -36,8 +38,12 @@ interface AuthContextValue {
   profile: Profile | null;
   isLoggedIn: boolean;
   isLoading: boolean; // true while restoring the session on app start
-  signInDriver: (phone_primary: string, license_number: string) => Promise<void>;
-  signInOperator: (username: string, password: string) => Promise<void>;
+  /**
+   * Single entry point for both user types. Tries the endpoint the credentials
+   * most likely belong to first (phone-shaped identifier → driver), then falls
+   * back to the other. Routing to the right app happens off `role` afterwards.
+   */
+  signIn: (identifier: string, secret: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -87,6 +93,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  // A wrong-credentials response (bad login) — safe to try the other endpoint.
+  // Network/timeout/server errors are NOT this, so we surface them immediately.
+  const isBadCredentials = (err: unknown) =>
+    axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 400);
+
+  const signIn = async (identifier: string, secret: string) => {
+    const id = identifier.trim();
+    // Driver identifiers are phone numbers (digits / +); operators use a username.
+    const looksLikePhone = /^\+?[\d\s()-]+$/.test(id);
+    const attempts = looksLikePhone
+      ? [() => signInDriver(id, secret.trim()), () => signInOperator(id, secret)]
+      : [() => signInOperator(id, secret), () => signInDriver(id, secret.trim())];
+
+    let lastErr: unknown;
+    for (const attempt of attempts) {
+      try {
+        await attempt();
+        return;
+      } catch (err) {
+        lastErr = err;
+        // Only fall through to the other endpoint on a credentials mismatch.
+        if (!isBadCredentials(err)) throw err;
+      }
+    }
+    throw lastErr;
+  };
+
   const signOut = async () => {
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
@@ -102,8 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile: session?.profile ?? null,
         isLoggedIn: session !== null,
         isLoading,
-        signInDriver,
-        signInOperator,
+        signIn,
         signOut,
       }}
     >

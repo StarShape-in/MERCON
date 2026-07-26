@@ -1,55 +1,46 @@
 /**
  * Shared MERCON login screen (drivers AND operators).
- * A toggle at the top picks the mode:
- *   Driver   → phone + license  → signInDriver
- *   Operator → username + password → signInOperator
+ * One form, no mode toggle: the user enters their credentials and `signIn`
+ * (see lib/auth-context) figures out whether they belong to a driver
+ * (phone + license) or an operator (username + password).
  * After sign-in, the auth guard in app/_layout.tsx + role routing in
  * app/index.tsx send the user to the correct home screen.
  */
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity, Image,
   StyleSheet, SafeAreaView, StatusBar,
 } from 'react-native';
+import { User, Lock, Eye, EyeOff, ArrowRight, Headset } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Input } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { api, getApiErrorMessage } from '../../lib/api';
 
-type Mode = 'Driver' | 'Operator';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const logo = require('../../../assets/images/mercon-logo.png');
 
 const LoginScreen = () => {
-  const { signInDriver, signInOperator } = useAuth();
-  const [mode, setMode] = useState<Mode>('Driver');
+  const { signIn } = useAuth();
 
-  // Driver fields
-  const [phone, setPhone] = useState('');
-  const [license, setLicense] = useState('');
-  // Operator fields
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [identifier, setIdentifier] = useState('');
+  const [secret, setSecret] = useState('');
+  const [showSecret, setShowSecret] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const switchMode = (next: Mode) => {
-    if (next === mode) return;
-    setMode(next);
-    setError(null);
-    setNotice(null);
-  };
-
   const handleForgot = async () => {
     setError(null);
     setNotice(null);
-    if (!phone.trim()) {
-      setError('Enter your mobile number first, then tap "Can\'t log in?" again.');
+    if (!identifier.trim()) {
+      setError('Enter your username or mobile number first, then tap "Can\'t log in?" again.');
       return;
     }
     try {
-      // Notifies all operators/admins that this driver needs a reset.
-      await api.post('/auth/request-reset', { identifier: `Driver ${phone.trim()}` });
+      // Notifies all operators/admins that this user needs a reset.
+      await api.post('/auth/request-reset', { identifier: identifier.trim() });
       setNotice('Your operator has been notified. They will help you log in.');
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -57,22 +48,15 @@ const LoginScreen = () => {
   };
 
   const handleSignIn = async () => {
-    if (mode === 'Driver' && (!phone.trim() || !license.trim())) {
-      setError('Please enter your phone number and license number.');
-      return;
-    }
-    if (mode === 'Operator' && (!username.trim() || !password.trim())) {
-      setError('Please enter your username and password.');
+    if (!identifier.trim() || !secret.trim()) {
+      setError('Please enter your credentials.');
       return;
     }
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
-      if (mode === 'Driver') {
-        await signInDriver(phone.trim(), license.trim());
-      } else {
-        await signInOperator(username.trim(), password);
-      }
+      await signIn(identifier, secret);
       // Success: the auth guard in app/_layout.tsx switches away from login.
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -83,79 +67,40 @@ const LoginScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.gray50} />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {/* Logo */}
         <View style={styles.logoSection}>
-          <View style={styles.logoBox}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.logoIcon}>🚛</Text>
-          </View>
-          <Text style={styles.brand}>MERCON</Text>
-          <Text style={styles.brandSub}>Logistics Platform</Text>
+          <Image source={logo} style={styles.logo} resizeMode="contain" />
         </View>
 
+        {/* Card */}
         <View style={styles.card}>
-          {/* Driver / Operator toggle */}
-          <View style={styles.toggle}>
-            {(['Driver', 'Operator'] as Mode[]).map((m) => {
-              const active = mode === m;
-              return (
-                <TouchableOpacity
-                  key={m}
-                  onPress={() => switchMode(m)}
-                  activeOpacity={0.8}
-                  style={[styles.toggleTab, active && styles.toggleTabActive]}
-                >
-                  <Text style={[styles.toggleLabel, active && styles.toggleLabelActive]}>{m}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <Text style={styles.heading}>Welcome Back</Text>
-          <Text style={styles.subheading}>
-            {mode === 'Driver' ? 'Sign in to your driver account' : 'Sign in to your operator account'}
-          </Text>
-
           <View style={styles.form}>
-            {mode === 'Driver' ? (
-              <>
-                <Input
-                  label="Mobile Number"
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="+9665XXXXXXXX"
-                  keyboardType="phone-pad"
-                  autoCapitalize="none"
-                />
-                <Input
-                  label="License Number"
-                  value={license}
-                  onChangeText={setLicense}
-                  placeholder="Enter your license number"
-                  autoCapitalize="characters"
-                  secureTextEntry
-                />
-              </>
-            ) : (
-              <>
-                <Input
-                  label="Username"
-                  value={username}
-                  onChangeText={setUsername}
-                  placeholder="Enter your username"
-                  autoCapitalize="none"
-                />
-                <Input
-                  label="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Enter your password"
-                  autoCapitalize="none"
-                  secureTextEntry
-                />
-              </>
-            )}
+            <Input
+              label="Username or Mobile Number"
+              value={identifier}
+              onChangeText={setIdentifier}
+              placeholder="Username or +9665XXXXXXXX"
+              autoCapitalize="none"
+              iconLeft={<User size={20} color={Colors.gray400} />}
+            />
+            <Input
+              label="Password or License Number"
+              value={secret}
+              onChangeText={setSecret}
+              placeholder="Enter your password or license number"
+              autoCapitalize="none"
+              secureTextEntry={!showSecret}
+              iconLeft={<Lock size={20} color={Colors.gray400} />}
+              iconRight={
+                <TouchableOpacity onPress={() => setShowSecret((v) => !v)} hitSlop={8} activeOpacity={0.7}>
+                  {showSecret
+                    ? <EyeOff size={20} color={Colors.gray400} />
+                    : <Eye size={20} color={Colors.gray400} />}
+                </TouchableOpacity>
+              }
+            />
 
             {error && <Text style={styles.errorText}>{error}</Text>}
             {notice && <Text style={styles.noticeText}>{notice}</Text>}
@@ -164,15 +109,17 @@ const LoginScreen = () => {
               title={loading ? 'Signing In...' : 'Sign In'}
               onPress={handleSignIn}
               disabled={loading}
+              size="lg"
+              iconRight={!loading ? <ArrowRight size={20} color={Colors.white} /> : undefined}
             />
-
-            {mode === 'Driver' && (
-              <TouchableOpacity onPress={handleForgot} activeOpacity={0.7} style={styles.forgotBtn}>
-                <Text style={styles.forgotText}>Can't log in? Notify my operator</Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
+
+        {/* Notify my operator — outside the card */}
+        <TouchableOpacity onPress={handleForgot} activeOpacity={0.7} style={styles.notifyBtn}>
+          <Headset size={20} color={Colors.primary} />
+          <Text style={styles.notifyText}>Can't log in? Notify my operator</Text>
+        </TouchableOpacity>
 
         <Text style={styles.footer}>
           Having trouble? Contact{' '}
@@ -186,7 +133,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.gray100,
+    backgroundColor: Colors.gray50,
   },
   scroll: {
     flexGrow: 1,
@@ -197,79 +144,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing['2xl'],
   },
-  logoBox: {
-    width: 72,
-    height: 72,
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  logoIcon: {
-    fontSize: 32,
-  },
-  brand: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: Colors.gray900,
-    letterSpacing: 4,
-  },
-  brandSub: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginTop: 2,
+  logo: {
+    width: 240,
+    height: 130,
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    ...Shadows.md,
-  },
-  toggle: {
-    flexDirection: 'row',
-    backgroundColor: Colors.gray100,
-    borderRadius: Radius.lg,
-    padding: 4,
-    marginBottom: Spacing.xl,
-  },
-  toggleTab: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-    borderRadius: Radius.md,
-  },
-  toggleTabActive: {
-    backgroundColor: Colors.white,
-    ...Shadows.sm,
-  },
-  toggleLabel: {
-    fontSize: Typography.sm,
-    fontWeight: '600',
-    color: Colors.gray500,
-  },
-  toggleLabelActive: {
-    color: Colors.gray900,
-  },
-  heading: {
-    fontSize: Typography['2xl'],
-    fontWeight: '700',
-    color: Colors.gray900,
-    marginBottom: Spacing.xs,
-  },
-  subheading: {
-    fontSize: Typography.sm,
-    color: Colors.gray500,
-    marginBottom: Spacing.xl,
+    borderRadius: Radius['2xl'],
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    ...Shadows.lg,
   },
   form: {
     gap: Spacing.md,
   },
   errorText: {
     fontSize: Typography.sm,
-    color: '#DC2626',
+    color: Colors.danger,
     marginTop: -Spacing.xs,
   },
   noticeText: {
@@ -277,11 +168,19 @@ const styles = StyleSheet.create({
     color: Colors.success,
     marginTop: -Spacing.xs,
   },
-  forgotBtn: {
-    alignSelf: 'center',
-    marginTop: Spacing.sm,
+  notifyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    backgroundColor: Colors.white,
   },
-  forgotText: {
+  notifyText: {
     fontSize: Typography.sm,
     color: Colors.primary,
     fontWeight: '600',
