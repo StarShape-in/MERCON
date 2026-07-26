@@ -82,7 +82,7 @@ export default function AddVehiclePage() {
                   name="asset_type"
                   value={formData.asset_type}
                   onChange={handleChange}
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
+                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
                 >
                   <option value="Flatbed">Flatbed</option>
                   <option value="Reefer">Reefer</option>
@@ -138,7 +138,7 @@ export default function AddVehiclePage() {
                   name="trailer_type"
                   value={formData.trailer_type}
                   onChange={handleChange}
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
+                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
                 >
                   <option value="Flatbed">Flatbed</option>
                   <option value="Reefer">Reefer</option>
@@ -159,7 +159,7 @@ export default function AddVehiclePage() {
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-none text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100">
               {error}
             </div>
           )}

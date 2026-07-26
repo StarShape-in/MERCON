@@ -99,7 +99,7 @@ export default function KpiCard({
   return (
     <Card
       className={cn(
-        'flex-1 w-full group relative rounded-none bg-white border border-black/[0.06] shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 py-4 gap-0',
+        'flex-1 w-full group relative rounded-xl bg-white border border-black/[0.06] shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 py-4 gap-0',
 
         className
       )}

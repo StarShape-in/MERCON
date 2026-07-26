@@ -166,15 +166,15 @@ export default function PaymentStatusPage() {
         </div>
 
         {/* Data Table Area */}
-        <div className="bg-white rounded-none border border-black/[0.06] shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden">
           <div className="p-5 border-b border-black/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAFAFA]">
 
-            <div className="flex items-center gap-1 p-1 bg-[#F5F5F7] rounded-none overflow-x-auto">
+            <div className="flex items-center gap-1 p-1 bg-[#F5F5F7] rounded-lg overflow-x-auto">
               {TABS.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-none transition-all whitespace-nowrap ${
+                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                     activeTab === tab
                       ? 'bg-white text-[#111] shadow-sm'
                       : 'text-[#6E6E80] hover:text-[#111]'
@@ -193,7 +193,7 @@ export default function PaymentStatusPage() {
                   placeholder="Search invoice or client..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-white border border-black/[0.08] rounded-none pl-9 pr-4 py-2 text-xs outline-none focus:border-[#E8450F] shadow-sm transition-all"
+                  className="w-full bg-white border border-black/[0.08] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:border-[#E8450F] shadow-sm transition-all"
                 />
               </div>
             </div>

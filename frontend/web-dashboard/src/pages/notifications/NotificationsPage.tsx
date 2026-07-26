@@ -138,7 +138,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* List */}
-        <div className="bg-white border border-black/[0.08] rounded-none shadow-sm overflow-hidden">
+        <div className="bg-white border border-black/[0.08] rounded-lg shadow-sm overflow-hidden">
           {isLoading ? (
             <div className="p-12 text-center text-[#6E6E80] text-sm">Loading notifications…</div>
           ) : isError ? (
@@ -164,7 +164,7 @@ export default function NotificationsPage() {
                       if (!notif.is_read) markAsRead(notif.id);
                     }}
                   >
-                    <div className={`w-10 h-10 shrink-0 rounded-none flex items-center justify-center border ${getBg(type)}`}>
+                    <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center border ${getBg(type)}`}>
                       {getIcon(type)}
                     </div>
 

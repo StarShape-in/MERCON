@@ -22,7 +22,7 @@ export default function RateCardDocsPage() {
 
   const Row = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
     <div className="flex items-start gap-3 py-3 border-b border-black/[0.04] last:border-0">
-      <div className="w-8 h-8 rounded-none bg-[#F5F5F7] flex items-center justify-center text-[#6E6E80] shrink-0">{icon}</div>
+      <div className="w-8 h-8 rounded-lg bg-[#F5F5F7] flex items-center justify-center text-[#6E6E80] shrink-0">{icon}</div>
       <div>
         <p className="text-[10px] uppercase tracking-wider font-bold text-[#9898A4] mb-0.5">{label}</p>
         <p className="text-sm font-semibold text-[#111]">{value}</p>
@@ -50,7 +50,7 @@ export default function RateCardDocsPage() {
         ) : isError || !card ? (
           <div className="p-12 text-center text-sm text-[#DC2626]">Rate card not found.</div>
         ) : (
-          <div className="bg-white border border-black/[0.08] rounded-none shadow-sm p-6">
+          <div className="bg-white border border-black/[0.08] rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-[#111]">{card.name}</h3>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${

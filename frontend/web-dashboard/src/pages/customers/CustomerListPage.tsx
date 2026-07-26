@@ -87,14 +87,14 @@ export default function CustomerListPage() {
         <div className="flex gap-1">
           <button 
             onClick={() => navigate(`/customers/${row.id}/edit`)}
-            className="w-7 h-7 rounded-none bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
             title="Edit Customer"
           >
             <Edit2 size={13} className="text-[#6E6E80]" />
           </button>
           <button 
             onClick={() => navigate(`/customers/${row.id}/contracts`)}
-            className="w-7 h-7 rounded-none bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
             title="Contracts"
           >
             <FileText size={13} className="text-[#6E6E80]" />
@@ -123,8 +123,8 @@ export default function CustomerListPage() {
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
         <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
           {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-none p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-none flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
+            <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
                 <Building2 size={24} style={{ color: s.color }} />
               </div>
               <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5 text-center" style={{ color: s.color }}>{s.value}</p>

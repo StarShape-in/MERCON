@@ -70,7 +70,7 @@ export default function TripCompletionPage() {
       }
     >
       <div className="px-6 pb-6 max-w-2xl animate-fade-in">
-        <div className="bg-white rounded-none border border-black/[0.06] p-5 shadow-sm mb-5">
+        <div className="bg-white rounded-lg border border-black/[0.06] p-5 shadow-sm mb-5">
           <h3 className="text-sm font-bold text-[#111] mb-2">Completion Check</h3>
           <p className="text-xs text-[#6E6E80] font-medium leading-relaxed">
             Verify the cargo has been safely delivered, upload the client's signed POD (Proof of Delivery) document, and close the shipment.
@@ -80,7 +80,7 @@ export default function TripCompletionPage() {
         <FormSection title="Proof of Delivery & Closing Notes">
           <div className="col-span-2 flex flex-col gap-1.5">
             <label className="text-xs font-bold text-[#111]">POD File Upload (PDF, PNG, JPG)</label>
-            <div className="border-2 border-dashed border-gray-200 rounded-none p-6 text-center flex flex-col items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center flex flex-col items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer relative">
               <input 
                 type="file" 
                 onChange={(e) => setFile(e.target.files?.[0] || null)}

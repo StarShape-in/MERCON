@@ -129,7 +129,7 @@ export default function TripDetailsPage() {
         <div className="lg:col-span-2 space-y-4">
           
           {/* Trip Summary Card */}
-          <div className="bg-[#1C1C2E] rounded-none p-5 border border-white/5 shadow-lg relative overflow-hidden">
+          <div className="bg-[#1C1C2E] rounded-lg p-5 border border-white/5 shadow-lg relative overflow-hidden">
             <div className="flex items-center justify-between mb-5 relative z-10">
               <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Route Overview</p>
@@ -157,15 +157,15 @@ export default function TripDetailsPage() {
               </div>
               
               <div className="grid grid-cols-2 gap-2 text-center max-w-[180px]">
-                <div className="px-3 py-2 rounded-none bg-white/5 border border-white/10">
+                <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">
                   <p className="text-xs font-bold text-white">{trip.planned_distance || 950} km</p>
                   <p className="text-[8px] text-white/40 font-semibold uppercase">Distance</p>
                 </div>
-                <div className="px-3 py-2 rounded-none bg-white/5 border border-white/10">
+                <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">
                   <p className="text-xs font-bold text-white">10h 30m</p>
                   <p className="text-[8px] text-white/40 font-semibold uppercase">ETA</p>
                 </div>
-                <div className="px-3 py-2 rounded-none bg-white/5 border border-white/10 col-span-2">
+                <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 col-span-2">
                   <p className="text-xs font-bold text-white">{trip.cargo_type}</p>
                   <p className="text-[8px] text-white/40 font-semibold uppercase">Cargo</p>
                 </div>
@@ -174,7 +174,7 @@ export default function TripDetailsPage() {
           </div>
 
           {/* Stops List */}
-          <div className="bg-white rounded-none p-5 border border-black/[0.06] shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm">
             <h3 className="text-sm font-bold text-[#111] mb-4">Trip Stops Logs</h3>
             <div className="relative border-l border-gray-100 ml-3 space-y-6">
               {(trip.stops || []).map((stop, idx) => (
@@ -211,7 +211,7 @@ export default function TripDetailsPage() {
         <div className="space-y-4">
           
           {/* Driver Card */}
-          <div className="bg-white rounded-none p-5 border border-black/[0.06] shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm">
             <h3 className="text-xs font-bold text-[#9898A4] uppercase tracking-wider mb-3">Assigned Driver</h3>
             {trip.driver ? (
               <div className="flex items-center justify-between">
@@ -235,7 +235,7 @@ export default function TripDetailsPage() {
           </div>
 
           {/* Vehicle Card */}
-          <div className="bg-white rounded-none p-5 border border-black/[0.06] shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm">
             <h3 className="text-xs font-bold text-[#9898A4] uppercase tracking-wider mb-3">Assigned Vehicle</h3>
             {trip.vehicle ? (
               <div className="flex items-center justify-between">
@@ -256,10 +256,10 @@ export default function TripDetailsPage() {
           </div>
 
           {/* Cash Payment Flow */}
-          <div className="bg-white rounded-none p-5 border border-black/[0.06] shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm">
             <h3 className="text-xs font-bold text-[#9898A4] uppercase tracking-wider mb-3">Extra Driver Payment</h3>
             {trip.payment_status === 'Approved' ? (
-              <div className="bg-[#F0FDF4] text-[#16A34A] border border-[#16A34A]/10 p-3 rounded-none">
+              <div className="bg-[#F0FDF4] text-[#16A34A] border border-[#16A34A]/10 p-3 rounded-lg">
                 <div className="flex items-center justify-between font-bold text-xs">
                   <span>SAR {trip.extra_driver_payment} Approved</span>
                   <CheckCircle2 size={14} />

@@ -83,7 +83,7 @@ export default function UploadDocumentModal({
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open && !uploadMutation.isPending) handleClose();
     }}>
-      <DialogContent className="w-full max-w-md rounded-none p-0 border-gray-100 shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="w-full max-w-md rounded-lg p-0 border-gray-100 shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
         
         {/* Header */}
         <DialogHeader className="px-6 py-4 border-b border-gray-100 m-0">
@@ -98,7 +98,7 @@ export default function UploadDocumentModal({
             <div>
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-none p-8 text-center cursor-pointer transition-all
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all
                   ${selectedFile ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-[#E8450F] hover:bg-orange-50/50'}`}
               >
                 <input 
@@ -136,7 +136,7 @@ export default function UploadDocumentModal({
                 <select 
                   value={selectedDocType}
                   onChange={(e) => setSelectedDocType(e.target.value as DocType)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-none px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
                   disabled={!!docType} // If docType passed as prop, disable changing it
                 >
                   <option value="POD">Proof of Delivery (POD)</option>
@@ -157,7 +157,7 @@ export default function UploadDocumentModal({
                     type="date" 
                     value={issueDate}
                     onChange={(e) => setIssueDate(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-none px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
                   />
                 </div>
                 <div>
@@ -166,7 +166,7 @@ export default function UploadDocumentModal({
                     type="date" 
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-none px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
                   />
                 </div>
               </div>
@@ -183,7 +183,7 @@ export default function UploadDocumentModal({
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 text-red-600 rounded-none text-sm">
+              <div className="flex items-start gap-2 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
                 <AlertCircle size={16} className="mt-0.5 shrink-0" />
                 <p>{error}</p>
               </div>

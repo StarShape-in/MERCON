@@ -80,11 +80,11 @@ export default function OperatorProfilePage() {
       <div className="px-6 pb-6 max-w-5xl mx-auto w-full flex flex-col gap-6">
 
         {saveError && (
-          <div className="bg-[#FEF2F2] border border-[#DC2626]/20 text-[#DC2626] p-3 rounded-none text-sm font-bold">{saveError}</div>
+          <div className="bg-[#FEF2F2] border border-[#DC2626]/20 text-[#DC2626] p-3 rounded-lg text-sm font-bold">{saveError}</div>
         )}
 
         {/* Top Box: Avatar + Personal Info */}
-        <div className="bg-white border border-black/[0.08] rounded-none shadow-sm flex flex-col lg:flex-row">
+        <div className="bg-white border border-black/[0.08] rounded-lg shadow-sm flex flex-col lg:flex-row">
 
           {/* Avatar Section (Left) */}
           <div className="w-full lg:w-1/3 p-6 border-b lg:border-b-0 lg:border-r border-black/[0.08] text-center relative overflow-hidden flex flex-col">
@@ -138,7 +138,7 @@ export default function OperatorProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Security & Access Box */}
-          <div className="lg:col-span-1 bg-white border border-black/[0.08] rounded-none p-6 shadow-sm h-full flex flex-col">
+          <div className="lg:col-span-1 bg-white border border-black/[0.08] rounded-lg p-6 shadow-sm h-full flex flex-col">
             <h3 className="text-lg font-bold text-[#111] mb-6 flex items-center gap-2 pb-4 border-b border-black/[0.04]">
               <Shield size={18} className="text-[#E8450F]" /> Security & Access
             </h3>
@@ -165,7 +165,7 @@ export default function OperatorProfilePage() {
           </div>
 
           {/* Account Box */}
-          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-none p-6 shadow-sm h-full flex flex-col">
+          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-lg p-6 shadow-sm h-full flex flex-col">
             <h3 className="text-lg font-bold text-[#111] mb-6 flex items-center gap-2 pb-4 border-b border-black/[0.04]">
               <User size={18} className="text-[#E8450F]" /> Account
             </h3>

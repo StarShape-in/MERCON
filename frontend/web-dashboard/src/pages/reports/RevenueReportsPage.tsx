@@ -90,7 +90,7 @@ export default function RevenueReportsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
           {/* Monthly Revenue Area Chart */}
-          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
+          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm">
             <div className="mb-6">
               <h3 className="text-sm font-bold text-[#111]">Monthly Revenue</h3>
               <p className="text-xs text-[#6E6E80]">Gross revenue from paid invoices — last 6 months</p>
@@ -124,7 +124,7 @@ export default function RevenueReportsPage() {
           </div>
 
           {/* Top Customers Bar Chart */}
-          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm">
             <div className="mb-6">
               <h3 className="text-sm font-bold text-[#111]">Revenue by Customer</h3>
               <p className="text-xs text-[#6E6E80]">Top clients by paid revenue</p>

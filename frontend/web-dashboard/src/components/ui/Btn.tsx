@@ -33,7 +33,7 @@ export default function Btn({
     <Button 
       variant={shadcnVariant} 
       size={shadcnSize} 
-      className={cn("gap-1.5 rounded-none font-semibold transition-all duration-150 active:scale-[0.98]", className)} 
+      className={cn("gap-1.5 rounded-lg font-semibold transition-all duration-150 active:scale-[0.98]", className)} 
       disabled={isLoading || props.disabled} 
       {...props}
     >

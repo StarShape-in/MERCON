@@ -98,7 +98,7 @@ export default function CreateInvoicePage() {
             <div>
               <label className="block text-xs font-bold text-[#111] mb-1.5">Customer / Client</label>
               <select 
-                className="w-full bg-white border border-black/[0.08] rounded-none px-4 py-2.5 text-sm outline-none focus:border-[#E8450F] transition-all"
+                className="w-full bg-white border border-black/[0.08] rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F] transition-all"
                 value={customerId}
                 onChange={(e) => {
                   setCustomerId(e.target.value);
@@ -115,7 +115,7 @@ export default function CreateInvoicePage() {
 
           {customerId && (
             <FormSection title="Select Trip" description="Choose a completed, un-invoiced trip to bill. (One trip per invoice)">
-              <div className="bg-white border border-black/[0.08] rounded-none overflow-hidden shadow-sm">
+              <div className="bg-white border border-black/[0.08] rounded-lg overflow-hidden shadow-sm">
                 <div className="px-4 py-3 border-b border-black/[0.04] bg-[#FAFAFA] flex justify-between items-center">
                   <span className="text-xs font-bold text-[#111]">Un-invoiced Trips</span>
                 </div>
@@ -155,7 +155,7 @@ export default function CreateInvoicePage() {
               </div>
 
               {selectedTripId && (
-                <div className="mt-6 p-5 bg-[#F0FDF4] border border-[#16A34A]/20 rounded-none flex justify-between items-center shadow-sm">
+                <div className="mt-6 p-5 bg-[#F0FDF4] border border-[#16A34A]/20 rounded-lg flex justify-between items-center shadow-sm">
                   <div>
                     <h4 className="text-sm font-bold text-[#16A34A]">Invoice Total</h4>
                     <p className="text-xs text-[#16A34A]/80">Estimated amount based on rate card</p>

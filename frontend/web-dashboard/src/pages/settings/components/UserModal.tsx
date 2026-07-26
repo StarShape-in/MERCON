@@ -58,7 +58,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
             <select 
               value={role} 
               onChange={(e) => setRole(e.target.value)}
-              className="w-full bg-[#F9F9FB] border border-black/[0.05] rounded-none px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-[#E8450F] transition-all"
+              className="w-full bg-[#F9F9FB] border border-black/[0.05] rounded-lg px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-[#E8450F] transition-all"
             >
               <option value="Admin">Admin</option>
               <option value="Operator">Operator</option>
@@ -70,7 +70,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
             <select 
               value={status} 
               onChange={(e) => setStatus(e.target.value as 'Active'|'Inactive')}
-              className="w-full bg-[#F9F9FB] border border-black/[0.05] rounded-none px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-[#E8450F] transition-all"
+              className="w-full bg-[#F9F9FB] border border-black/[0.05] rounded-lg px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-[#E8450F] transition-all"
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>

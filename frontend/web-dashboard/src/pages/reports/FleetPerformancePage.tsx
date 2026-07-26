@@ -77,7 +77,7 @@ export default function FleetPerformancePage() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
-          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm">
             <div className="mb-6">
               <h3 className="text-sm font-bold text-[#111]">Trips per Vehicle</h3>
               <p className="text-xs text-[#6E6E80]">Completed vs total trips — busiest 8 vehicles</p>
@@ -99,7 +99,7 @@ export default function FleetPerformancePage() {
             </div>
           </div>
 
-          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm">
             <div className="mb-6">
               <h3 className="text-sm font-bold text-[#111]">Maintenance Cost per Vehicle</h3>
               <p className="text-xs text-[#6E6E80]">Total recorded maintenance spend (SAR)</p>

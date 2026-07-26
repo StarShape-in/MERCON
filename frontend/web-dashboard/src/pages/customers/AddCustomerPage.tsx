@@ -100,7 +100,7 @@ export default function AddCustomerPage() {
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-none text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100">
               {error}
             </div>
           )}

@@ -30,7 +30,7 @@ export default function SettingsPage() {
         
         {/* Settings Top Nav */}
         <div className="w-full">
-          <div className="bg-white border border-black/[0.08] rounded-none shadow-sm flex flex-row divide-x divide-black/[0.08]">
+          <div className="bg-white border border-black/[0.08] rounded-lg shadow-sm flex flex-row divide-x divide-black/[0.08]">
             <button
               onClick={() => setActiveTab('profile')}
               className={`flex-1 flex justify-center items-center gap-3 px-4 py-4 text-sm font-semibold transition-colors ${

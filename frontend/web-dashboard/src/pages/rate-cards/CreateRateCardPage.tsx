@@ -90,7 +90,7 @@ export default function CreateRateCardPage() {
               <div>
                 <label className="block text-xs font-bold text-[#111] mb-1.5">Customer / Client</label>
                 <select 
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
+                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
                   value={formData.customerId}
                   onChange={(e) => handleChange('customerId', e.target.value)}
                   required
@@ -132,7 +132,7 @@ export default function CreateRateCardPage() {
               <div>
                 <label className="block text-xs font-bold text-[#111] mb-1.5">Currency</label>
                 <select 
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
+                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
                   value={formData.currency}
                   onChange={(e) => handleChange('currency', e.target.value)}
                   required
@@ -145,12 +145,12 @@ export default function CreateRateCardPage() {
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-none text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100">
               {error}
             </div>
           )}
 
-          <div className="bg-[#FEF9C3] border border-[#CA8A04]/20 rounded-none p-5 shadow-sm">
+          <div className="bg-[#FEF9C3] border border-[#CA8A04]/20 rounded-lg p-5 shadow-sm">
             <h3 className="text-sm font-bold text-[#CA8A04] mb-1">Pricing Example Preview</h3>
             <p className="text-xs text-[#CA8A04]/80 mb-3">This route will cost exactly:</p>
             <div className="text-2xl font-bold text-[#CA8A04]">

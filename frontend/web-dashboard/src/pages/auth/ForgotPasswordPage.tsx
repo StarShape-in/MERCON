@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
             </svg>
           </div>
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-full max-w-[200px] flex items-center justify-center bg-white rounded-none p-0 mb-4 shadow-md overflow-hidden h-16">
+            <div className="w-full max-w-[200px] flex items-center justify-center bg-white rounded-lg p-0 mb-4 shadow-md overflow-hidden h-16">
               <img src="/invoice-logo.png" alt="MERCON Logo" className="w-full h-full object-cover scale-[1.35] origin-center" />
             </div>
             <h1 className="text-white text-2xl font-bold tracking-tight">Forgot Password</h1>
@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
         <div className="p-8">
           {!isSent ? (
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="flex items-start gap-3 bg-[#FFF0EB] border border-[#E8450F]/15 rounded-none p-4">
+              <div className="flex items-start gap-3 bg-[#FFF0EB] border border-[#E8450F]/15 rounded-lg p-4">
                 <LifeBuoy size={18} className="text-[#E8450F] shrink-0 mt-0.5" />
                 <p className="text-xs text-[#6E6E80] font-medium leading-relaxed">
                   Passwords are reset by your operator or administrator. Enter your username
@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading || !identifier.trim()}
-                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

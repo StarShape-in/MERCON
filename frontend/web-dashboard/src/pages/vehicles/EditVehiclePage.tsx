@@ -87,7 +87,7 @@ export default function EditVehiclePage() {
       <DashboardLayout active="Vehicles" title="Edit Vehicle">
         <div className="p-6">
           <div className="animate-pulse flex flex-col gap-6">
-            <div className="h-64 bg-black/5 rounded-none"></div>
+            <div className="h-64 bg-black/5 rounded-lg"></div>
           </div>
         </div>
       </DashboardLayout>
@@ -124,7 +124,7 @@ export default function EditVehiclePage() {
                   name="asset_type"
                   value={formData.asset_type}
                   onChange={handleChange}
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
+                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
                 >
                   <option value="Flatbed">Flatbed</option>
                   <option value="Reefer">Reefer</option>
@@ -147,7 +147,7 @@ export default function EditVehiclePage() {
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
+                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
                 >
                   <option value="Available">Available</option>
                   <option value="OnTrip">On Trip</option>
@@ -192,7 +192,7 @@ export default function EditVehiclePage() {
                   name="trailer_type"
                   value={formData.trailer_type}
                   onChange={handleChange}
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
+                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
                 >
                   <option value="Flatbed">Flatbed</option>
                   <option value="Reefer">Reefer</option>
@@ -212,7 +212,7 @@ export default function EditVehiclePage() {
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-none text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100">
               {error}
             </div>
           )}

@@ -84,12 +84,12 @@ export default function DataTable<T>({
   };
 
   return (
-    <div className="bg-white rounded-none border border-black/[0.06] shadow-sm overflow-hidden flex flex-col h-full animate-fade-in">
+    <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden flex flex-col h-full animate-fade-in">
       {/* Table Toolbar */}
       {showToolbar && (
         <div className="shrink-0 p-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FAFAFA]">
           {selectedIndices.size > 0 && bulkActions.length > 0 ? (
-            <div className="flex items-center gap-3 w-full bg-blue-50/50 p-1 rounded-none">
+            <div className="flex items-center gap-3 w-full bg-blue-50/50 p-1 rounded-lg">
               <span className="text-sm font-semibold text-blue-700 px-2">
                 {selectedIndices.size} selected
               </span>
@@ -138,7 +138,7 @@ export default function DataTable<T>({
                       placeholder={searchPlaceholder}
                       value={searchValue}
                       onChange={(e) => onSearchChange(e.target.value)}
-                      className="w-full pl-9 bg-white border-black/[0.07] focus-visible:ring-[#E8450F]/20 rounded-none"
+                      className="w-full pl-9 bg-white border-black/[0.07] focus-visible:ring-[#E8450F]/20 rounded-lg"
                     />
                   </div>
                 )}
@@ -260,14 +260,14 @@ export default function DataTable<T>({
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1 || isLoading}
-              className="p-1.5 rounded-none border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft size={14} />
             </button>
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages || isLoading}
-              className="p-1.5 rounded-none border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               <ChevronRight size={14} />
             </button>

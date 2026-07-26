@@ -144,18 +144,18 @@ export default function TripTrackingPage() {
 
           {/* Map Overlay Controls */}
           <div className="absolute top-4 left-4 right-4 z-[400] flex justify-between items-start pointer-events-none">
-            <div className="bg-white/95 backdrop-blur px-3 py-2 rounded-none shadow-sm border border-black/[0.06] flex items-center gap-2 pointer-events-auto">
+            <div className="bg-white/95 backdrop-blur px-3 py-2 rounded-lg shadow-sm border border-black/[0.06] flex items-center gap-2 pointer-events-auto">
               <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
               <span className="text-[10px] font-bold text-[#111]">Active GPS Signal</span>
             </div>
             
-            <div className="bg-[#1C1C2E] text-white px-3.5 py-2 rounded-none text-xs font-semibold shadow-md flex items-center gap-2 pointer-events-auto">
+            <div className="bg-[#1C1C2E] text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow-md flex items-center gap-2 pointer-events-auto">
               <ShieldCheck size={14} className="text-green-400" />
               <span>Secure Route Protocol Enforced</span>
             </div>
           </div>
 
-          <div className="absolute bottom-4 left-4 z-[400] bg-white/95 backdrop-blur p-4 rounded-none shadow-md border border-black/[0.06] flex items-center justify-between gap-6 pointer-events-auto">
+          <div className="absolute bottom-4 left-4 z-[400] bg-white/95 backdrop-blur p-4 rounded-lg shadow-md border border-black/[0.06] flex items-center justify-between gap-6 pointer-events-auto">
             <div>
               <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Current GPS Coords</p>
               <p className="text-xs font-mono font-bold text-[#111] mt-0.5">{latCenter.toFixed(5)}, {lngCenter.toFixed(5)}</p>
@@ -225,7 +225,7 @@ export default function TripTrackingPage() {
           </div>
 
           <div className="border-t border-black/[0.04] pt-4">
-            <div className="bg-[#FFF0EB] border border-[#E8450F]/10 p-3 rounded-none flex items-start gap-2.5">
+            <div className="bg-[#FFF0EB] border border-[#E8450F]/10 p-3 rounded-lg flex items-start gap-2.5">
               <Navigation size={16} className="text-[#E8450F] shrink-0 mt-0.5 stroke-[2.2]" />
               <div>
                 <p className="text-xs font-bold text-[#E8450F]">Telemetry Auto-Syncing</p>

@@ -85,7 +85,7 @@ export default function DriverPerformancePage() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
-          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm">
             <div className="mb-6">
               <h3 className="text-sm font-bold text-[#111]">Completed Trips per Driver</h3>
               <p className="text-xs text-[#6E6E80]">Busiest 8 drivers</p>
@@ -105,7 +105,7 @@ export default function DriverPerformancePage() {
             </div>
           </div>
 
-          <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm">
+          <div className="bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm">
             <div className="mb-6">
               <h3 className="text-sm font-bold text-[#111]">Risk vs Trip Volume</h3>
               <p className="text-xs text-[#6E6E80]">Risk score (Y) relative to total trips (X)</p>
@@ -129,7 +129,7 @@ export default function DriverPerformancePage() {
         </div>
 
         {/* Top Drivers Table */}
-        <div className="bg-white rounded-none border border-black/[0.06] shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden">
           <div className="p-5 border-b border-black/[0.04] bg-[#FAFAFA]">
             <h3 className="text-sm font-bold text-[#111]">Top Drivers by Completed Trips</h3>
           </div>

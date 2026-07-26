@@ -105,7 +105,7 @@ export default function VehicleDocumentsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Upload Form */}
           <div className="lg:col-span-1">
-            <div className="bg-white border border-black/[0.08] rounded-none p-5 shadow-sm sticky top-24">
+            <div className="bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm sticky top-24">
               <h3 className="text-sm font-bold text-[#111] mb-4 flex items-center gap-2">
                 <UploadCloud size={16} className="text-[#E8450F]" /> Upload Document
               </h3>
@@ -116,7 +116,7 @@ export default function VehicleDocumentsPage() {
                   <select
                     value={docType}
                     onChange={(e) => setDocType(e.target.value as DocType)}
-                    className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] outline-none"
+                    className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] outline-none"
                   >
                     <option value="VehicleRegistration">Registration (Istimara)</option>
                     <option value="Insurance">Insurance Policy</option>
@@ -130,7 +130,7 @@ export default function VehicleDocumentsPage() {
                     type="date"
                     value={issueDate}
                     onChange={(e) => setIssueDate(e.target.value)}
-                    className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] outline-none"
+                    className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] outline-none"
                   />
                 </div>
 
@@ -140,7 +140,7 @@ export default function VehicleDocumentsPage() {
                     type="date"
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
-                    className="w-full bg-[#F5F5F7] border border-transparent rounded-none px-4 py-2.5 text-sm font-medium text-[#111] outline-none"
+                    className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] outline-none"
                   />
                 </div>
 
@@ -155,7 +155,7 @@ export default function VehicleDocumentsPage() {
                 </div>
 
                 {error && (
-                  <p className="text-xs font-semibold text-red-500 bg-red-50 p-2 rounded-none">{error}</p>
+                  <p className="text-xs font-semibold text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>
                 )}
 
                 <Btn 
@@ -170,7 +170,7 @@ export default function VehicleDocumentsPage() {
 
           {/* Document List */}
           <div className="lg:col-span-2">
-            <div className="bg-white border border-black/[0.08] rounded-none shadow-sm overflow-hidden min-h-[400px]">
+            <div className="bg-white border border-black/[0.08] rounded-lg shadow-sm overflow-hidden min-h-[400px]">
               <div className="p-5 border-b border-black/[0.04]">
                 <h3 className="text-sm font-bold text-[#111] flex items-center gap-2">
                   <FileText size={16} className="text-[#E8450F]" /> Uploaded Documents
@@ -192,10 +192,10 @@ export default function VehicleDocumentsPage() {
                     const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
                     
                     return (
-                      <div key={doc.id} className="border border-black/[0.06] rounded-none p-4 hover:shadow-sm transition-shadow relative bg-[#F9F9FB]">
+                      <div key={doc.id} className="border border-black/[0.06] rounded-lg p-4 hover:shadow-sm transition-shadow relative bg-[#F9F9FB]">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-none bg-white border border-black/[0.06] flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-lg bg-white border border-black/[0.06] flex items-center justify-center">
                               <FileText size={14} className="text-[#E8450F]" />
                             </div>
                             <div>
@@ -228,7 +228,7 @@ export default function VehicleDocumentsPage() {
                           href={fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1.5 w-full py-2 bg-white border border-black/[0.08] rounded-none text-xs font-bold text-[#111] hover:bg-black/[0.02] transition-colors"
+                          className="flex items-center justify-center gap-1.5 w-full py-2 bg-white border border-black/[0.08] rounded-lg text-xs font-bold text-[#111] hover:bg-black/[0.02] transition-colors"
                         >
                           <Eye size={14} /> View Document
                         </a>

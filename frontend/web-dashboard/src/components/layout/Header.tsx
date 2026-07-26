@@ -55,7 +55,7 @@ export default function Header({ title, breadcrumb, actions }: HeaderProps) {
       )}
 
       {/* Search box */}
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-none bg-[#F5F5F7]" style={{ width: 220 }}>
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#F5F5F7]" style={{ width: 220 }}>
         <Search size={14} className="text-[#9898A4]" />
         <input 
           type="text" 
@@ -66,7 +66,7 @@ export default function Header({ title, breadcrumb, actions }: HeaderProps) {
 
       {/* Notifications trigger */}
       <Link to="/notifications" className="relative group">
-        <div className="w-8 h-8 rounded-none bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors">
+        <div className="w-8 h-8 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors">
           <Bell size={16} className="text-[#444]" />
         </div>
         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center shadow-sm shadow-[#E8450F]/20">
@@ -78,7 +78,7 @@ export default function Header({ title, breadcrumb, actions }: HeaderProps) {
       <div className="relative" ref={dropdownRef}>
         <button 
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-none bg-[#F5F5F7] hover:bg-[#EBEBEF] transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] transition-colors"
         >
           <div className="w-5 h-5 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[9px] font-bold select-none">
             {initials}
@@ -88,7 +88,7 @@ export default function Header({ title, breadcrumb, actions }: HeaderProps) {
         </button>
 
         {dropdownOpen && (
-          <div className="absolute right-0 mt-1.5 w-48 bg-white border border-black/[0.07] rounded-none shadow-lg py-1.5 animate-fade-in origin-top-right">
+          <div className="absolute right-0 mt-1.5 w-48 bg-white border border-black/[0.07] rounded-lg shadow-lg py-1.5 animate-fade-in origin-top-right">
             <div className="px-4 py-2 border-b border-black/[0.04]">
               <p className="text-xs font-bold text-[#111] truncate">{user?.name || 'Mohammed Al-Harbi'}</p>
               <p className="text-[10px] text-gray-500 truncate">{user?.role || 'Operator'}</p>

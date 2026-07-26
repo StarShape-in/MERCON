@@ -80,7 +80,7 @@ export default function Sidebar({ active }: SidebarProps) {
                   to={item.path}
                   end={item.path === '/'}
                   className={({ isActive }) => `
-                    flex items-center gap-2.5 px-3 py-2 rounded-none cursor-pointer transition-all duration-150 group
+                    flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all duration-150 group
                     ${isActive 
                       ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15' 
                       : 'text-white/60 hover:bg-white/5 hover:text-white'
@@ -119,7 +119,7 @@ export default function Sidebar({ active }: SidebarProps) {
         </div>
         <button 
           onClick={handleLogout}
-          className="text-white/50 hover:text-white p-1 rounded-none hover:bg-white/10 transition-colors"
+          className="text-white/50 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
           title="Logout"
         >
           <LogOut size={14} />

@@ -23,9 +23,9 @@ export default function ReportsDashboardPage() {
       <DashboardLayout active="Reports" title="Reports & Analytics">
         <div className="p-6">
           <div className="animate-pulse grid grid-cols-4 gap-4 mb-6">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-black/5 rounded-none"></div>)}
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-black/5 rounded-lg"></div>)}
           </div>
-          <div className="animate-pulse h-96 bg-black/5 rounded-none"></div>
+          <div className="animate-pulse h-96 bg-black/5 rounded-lg"></div>
         </div>
       </DashboardLayout>
     );
@@ -108,7 +108,7 @@ export default function ReportsDashboardPage() {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-none p-6 shadow-sm">
+          <div className="lg:col-span-2 bg-white border border-black/[0.08] rounded-lg p-6 shadow-sm">
             <h3 className="text-sm font-bold text-[#111] mb-6">Monthly Revenue Trend</h3>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -143,7 +143,7 @@ export default function ReportsDashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-black/[0.08] rounded-none p-6 shadow-sm flex flex-col">
+          <div className="bg-white border border-black/[0.08] rounded-lg p-6 shadow-sm flex flex-col">
             <h3 className="text-sm font-bold text-[#111] mb-6">Trip Status Distribution</h3>
             <div className="flex-1 flex flex-col justify-center relative min-h-[200px]">
               {donutData.length > 0 ? (
@@ -183,9 +183,9 @@ export default function ReportsDashboardPage() {
         </div>
 
         {/* Compliance Row */}
-        <div className="bg-white border border-black/[0.08] rounded-none p-6 shadow-sm flex items-center justify-between">
+        <div className="bg-white border border-black/[0.08] rounded-lg p-6 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-none bg-red-50 text-red-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
               <FileText size={20} />
             </div>
             <div>

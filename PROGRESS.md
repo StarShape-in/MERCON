@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-07-25** · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-07-26** (site-wide semi-curved corners) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).
@@ -53,6 +53,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | Operator-driven password reset + "notify my operator" flow | ✅ |
 | Debounced server-side search across list pages | ✅ (`0546e0f`) |
 | Brand/semantic color tokens as Tailwind utilities | ✅ (`12fa35b`) |
+| Site-wide semi-curved corners (replaced 224 `rounded-none` overrides → `rounded-lg`; shadcn primitives use idiomatic radii) | ✅ |
 
 ### Mobile app (`frontend/mobile-app/mercon-app`) — Expo, Driver + Operator
 | Piece | State |
@@ -60,7 +61,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | App entry fixed (`expo-router/entry`), 24 screens type-check (tsc 349→0) | ✅ |
 | Runtime packages installed (axios, socket.io-client, expo-secure-store, expo-location, expo-image-picker) | ✅ |
 | API client (JWT interceptor) + SecureStore auth context (auto-login) | ✅ |
-| **Unified login** with Driver/Operator toggle + **role routing** (`app/index.tsx`) | ✅ (`81b2987`) |
+| **Unified login** (single form, auto-detects driver vs operator by credentials — no mode toggle) + **role routing** (`app/index.tsx`) | ✅ |
 | Driver **Home**: real current trip, status updates, cargo + POD photos (camera), photo-gated status | ✅ (`fee951d`, `dd184c1`) |
 
 ### Mobile backend endpoints (`/api/mobile/*`)

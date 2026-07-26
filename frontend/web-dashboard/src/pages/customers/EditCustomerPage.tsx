@@ -70,7 +70,7 @@ export default function EditCustomerPage() {
       <DashboardLayout active="Customers" title="Edit Customer">
         <div className="p-6">
           <div className="animate-pulse flex flex-col gap-6">
-            <div className="h-64 bg-black/5 rounded-none"></div>
+            <div className="h-64 bg-black/5 rounded-lg"></div>
           </div>
         </div>
       </DashboardLayout>
@@ -130,7 +130,7 @@ export default function EditCustomerPage() {
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-none text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100">
               {error}
             </div>
           )}
