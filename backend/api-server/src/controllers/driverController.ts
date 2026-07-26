@@ -136,7 +136,10 @@ export const deleteDriver = async (req: Request, res: Response) => {
       data: {
         deletedAt: new Date(),
         isActive: false,
-        deleted_by: userId
+        deleted_by: userId,
+        // Free the unique phone number so a new driver can reuse it.
+        // The record is kept (soft delete) so any trips that referenced it stay valid.
+        phone_primary: null
       }
     });
     res.json({ success: true, data: { message: 'Driver deleted successfully' } });
