@@ -60,7 +60,7 @@ export default function LoginPage() {
         backgroundImage: 'url(/login-bg.png)',
       }}
     >
-      <div className="w-full max-w-[400px] animate-fade-in flex flex-col items-center lg:translate-y-8">
+      <div className="w-full max-w-[400px] animate-fade-in flex flex-col items-center lg:translate-y-12">
         <img src="/mercon-logo.png" alt="MERCON Logistics" className="h-20 lg:h-24 w-auto" />
 
         <div className="mt-6 text-center">
