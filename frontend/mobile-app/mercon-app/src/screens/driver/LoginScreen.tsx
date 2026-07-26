@@ -8,7 +8,7 @@
  */
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, Image,
+  View, Text, ScrollView, TouchableOpacity, Image, ImageBackground,
   StyleSheet, SafeAreaView, StatusBar,
 } from 'react-native';
 import { User, Lock, Eye, EyeOff, ArrowRight, Headset } from 'lucide-react-native';
@@ -19,6 +19,8 @@ import { api, getApiErrorMessage } from '../../lib/api';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const logo = require('../../../assets/images/mercon-logo.png');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const heroBg = require('../../../assets/images/login-hero.png');
 
 const LoginScreen = () => {
   const { signIn } = useAuth();
@@ -66,7 +68,8 @@ const LoginScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ImageBackground source={heroBg} style={styles.container} resizeMode="cover">
+      <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.gray50} />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {/* Logo */}
@@ -126,7 +129,8 @@ const LoginScreen = () => {
           <Text style={styles.footerLink}>support@mercon.sa</Text>
         </Text>
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
@@ -135,18 +139,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.gray50,
   },
+  safe: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   scroll: {
     flexGrow: 1,
-    padding: Spacing.lg,
-    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+    justifyContent: 'flex-start',
   },
   logoSection: {
     alignItems: 'center',
-    marginBottom: Spacing['2xl'],
+    marginTop: 130,
+    marginBottom: 150,
   },
   logo: {
-    width: 240,
-    height: 130,
+    width: 180,
+    height: 96,
   },
   card: {
     backgroundColor: Colors.white,
@@ -174,6 +184,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.sm,
     marginTop: Spacing.lg,
+    marginHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: Radius.xl,
     borderWidth: 1,
