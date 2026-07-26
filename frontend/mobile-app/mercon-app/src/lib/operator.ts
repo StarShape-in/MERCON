@@ -52,7 +52,23 @@ export const operatorService = {
     const { data } = await api.get('/trips', { params: { per_page: 100 } });
     return (data.data ?? []) as OperatorTrip[];
   },
+
+  async drivers(): Promise<OperatorDriver[]> {
+    const { data } = await api.get('/drivers', { params: { per_page: 100 } });
+    return (data.data ?? []) as OperatorDriver[];
+  },
 };
+
+export interface OperatorDriver {
+  id: string;
+  ref_id: string | null;
+  first_name: string;
+  last_name: string;
+  phone_primary: string | null;
+  status: string;
+  license_number: string;
+  license_expiry: string;
+}
 
 /** Loads all recent trips for the operator trip list. */
 export function useOperatorTrips() {
@@ -75,6 +91,29 @@ export function useOperatorTrips() {
   useEffect(() => { refetch(); }, [refetch]);
 
   return { trips, loading, error, refetch };
+}
+
+/** Loads all drivers for the operator driver list. */
+export function useOperatorDrivers() {
+  const [drivers, setDrivers] = useState<OperatorDriver[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setDrivers(await operatorService.drivers());
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  return { drivers, loading, error, refetch };
 }
 
 /** Loads the operator dashboard (KPIs + active trips) with a manual refetch. */
