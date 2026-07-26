@@ -118,9 +118,6 @@ export default function LoginPage() {
               <br />
               <span style={{ color: C.orange }}>Delivering trust.</span>
             </h1>
-            <p className="mt-5 text-[15px] leading-relaxed max-w-md" style={{ color: C.sub }}>
-              Real-time fleet tracking, dispatch, and invoicing — one enterprise workspace built for logistics teams.
-            </p>
             <ProductPeek />
           </div>
 
@@ -133,25 +130,25 @@ export default function LoginPage() {
       </div>
 
       {/* Right — form */}
-      <div className="w-full lg:w-[46%] flex items-center justify-center px-6 py-12" style={{ background: '#FFFFFF' }}>
+      <div className="w-full lg:w-[46%] flex items-center justify-center px-6 py-12" style={{ background: '#F8F9FC' }}>
         <div className="w-full max-w-[400px] animate-fade-in">
-          <div className="lg:hidden mb-10 flex justify-center">
+          <div className="lg:hidden mb-8 flex justify-center">
             <img src="/mercon-logo.png" alt="MERCON Logistics" className="h-14 w-auto" />
           </div>
 
-          <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
-          <h2 className="mt-1.5 text-[28px] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
-          <p className="mt-2 text-[15px]" style={{ color: C.sub }}>Enter your credentials to access the MERCON portal.</p>
+          <div className="rounded-2xl border border-[#ECEEF3] bg-white p-8 shadow-[0_18px_50px_-24px_rgba(30,31,40,0.25)]">
+            <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
+            <h2 className="mt-1.5 text-[26px] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
 
-          {error && (
-            <div className="mt-6 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-medium"
-              style={{ background: '#FEF3F2', color: C.danger, border: '1px solid #FEE4E2' }}>
-              <AlertCircle size={16} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+            {error && (
+              <div className="mt-6 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-medium"
+                style={{ background: '#FEF3F2', color: C.danger, border: '1px solid #FEE4E2' }}>
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          <form onSubmit={handleLogin} className="mt-8 space-y-5">
+            <form onSubmit={handleLogin} className="mt-7 space-y-5">
             <div>
               <label className="block text-[13px] font-medium mb-2" style={{ color: C.dark }}>Username</label>
               <div className="relative">
@@ -223,12 +220,13 @@ export default function LoginPage() {
             >
               {isLoading ? <Loader2 size={20} className="animate-spin" /> : (<>Sign in<ArrowRight size={18} /></>)}
             </button>
-          </form>
+            </form>
 
-          <p className="mt-9 flex items-center justify-center gap-1.5 text-xs" style={{ color: C.sub }}>
-            <ShieldCheck size={14} />
-            Secure portal · © {new Date().getFullYear()} MERCON Logistics
-          </p>
+            <p className="mt-8 flex items-center justify-center gap-1.5 text-xs" style={{ color: C.sub }}>
+              <ShieldCheck size={14} />
+              Secure portal · © {new Date().getFullYear()} MERCON Logistics
+            </p>
+          </div>
         </div>
       </div>
     </div>
