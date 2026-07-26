@@ -52,7 +52,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen w-full flex items-center justify-center lg:justify-end px-6 py-12 lg:pr-[9%] bg-cover bg-center"
+      className="relative min-h-screen w-full flex items-center justify-center lg:justify-end px-6 py-12 lg:pr-[9%] bg-cover bg-center"
       style={{
         fontFamily: FONT,
         color: C.dark,
@@ -60,11 +60,13 @@ export default function LoginPage() {
         backgroundImage: 'url(/login-bg.png)',
       }}
     >
-      <div className="w-full max-w-[400px] animate-fade-in">
-        <div className="mb-7 flex justify-center">
-          <img src="/mercon-logo.png" alt="MERCON Logistics" className="h-14 w-auto" />
-        </div>
+      <img
+        src="/mercon-logo.png"
+        alt="MERCON Logistics"
+        className="absolute top-6 left-6 lg:top-8 lg:left-10 h-12 lg:h-14 w-auto z-10"
+      />
 
+      <div className="w-full max-w-[400px] animate-fade-in">
         <div className="rounded-2xl border border-[#ECEEF3] bg-white/95 backdrop-blur-sm p-8 shadow-[0_28px_70px_-24px_rgba(30,31,40,0.32)]">
           <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
           <h2 className="mt-1.5 text-[26px] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
