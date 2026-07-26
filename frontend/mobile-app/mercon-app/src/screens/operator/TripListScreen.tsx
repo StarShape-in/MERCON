@@ -1,86 +1,84 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
+  StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
+import { useOperatorTrips, type OperatorTrip } from '../../lib/operator';
+import { statusLabel, type TripStatus } from '../../lib/trips';
 
-const ALL_TRIPS = [
-  { id: 'TRP-2024-0891', route: 'Riyadh → Jeddah', driver: 'Ahmed Al-Rashidi', status: 'in_transit', statusLabel: 'In Transit', date: 'Today 06:00', cargo: 'Electronics (2.4T)' },
-  { id: 'TRP-2024-0890', route: 'Dammam → Riyadh', driver: 'Khalid Al-Zahrani', status: 'in_transit', statusLabel: 'In Transit', date: 'Today 04:30', cargo: 'Auto Parts (1.8T)' },
-  { id: 'TRP-2024-0889', route: 'Riyadh → Makkah', driver: 'Faisal Al-Ghamdi', status: 'delayed', statusLabel: 'Delayed', date: 'Today 03:00', cargo: 'FMCG (3.0T)' },
-  { id: 'TRP-2024-0888', route: 'Jeddah → Madinah', driver: 'Omar Al-Shehri', status: 'scheduled', statusLabel: 'Scheduled', date: 'Tomorrow 08:00', cargo: 'Pharma (0.5T)' },
-  { id: 'TRP-2024-0887', route: 'Riyadh → Dammam', driver: 'Nawaf Al-Harbi', status: 'scheduled', statusLabel: 'Scheduled', date: 'Tomorrow 10:00', cargo: 'Steel (5.2T)' },
-  { id: 'TRP-2024-0886', route: 'Abha → Riyadh', driver: 'Tariq Al-Qahtani', status: 'completed', statusLabel: 'Completed', date: 'Yesterday', cargo: 'Furniture (2.1T)' },
-  { id: 'TRP-2024-0885', route: 'Riyadh → Taif', driver: 'Saleh Al-Dosari', status: 'completed', statusLabel: 'Completed', date: '5 Jul 2024', cargo: 'Clothing (0.8T)' },
+const FILTERS: { label: string; statuses: string[] | null }[] = [
+  { label: 'All', statuses: null },
+  { label: 'Active', statuses: ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'] },
+  { label: 'In Transit', statuses: ['InTransit'] },
+  { label: 'Completed', statuses: ['Completed', 'Invoiced'] },
+  { label: 'Cancelled', statuses: ['Cancelled'] },
 ];
 
-const STATUS_FILTERS = ['All', 'In Transit', 'Scheduled', 'Delayed', 'Completed'];
+function formatDate(iso?: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
-const TripCard = ({ item, onPress }: any) => (
-  <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
+const driverName = (t: OperatorTrip) =>
+  t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned';
+
+const TripCard = ({ item }: { item: OperatorTrip }) => (
+  <View style={styles.card}>
     <View style={styles.cardTop}>
-      <Text style={styles.tripId}>#{item.id}</Text>
-      <StatusBadge status={item.status} label={item.statusLabel} />
+      <Text style={styles.tripId}>#{item.ref_id ?? item.id.slice(0, 8)}</Text>
+      <StatusBadge status={statusLabel(item.status as TripStatus)} />
     </View>
-    <Text style={styles.tripRoute}>{item.route}</Text>
+    <Text style={styles.tripRoute}>{item.customer?.name ?? 'Customer'}</Text>
     <View style={styles.cardMeta}>
       {/* TODO: replace icon placeholders with lucide-react-native */}
-      <Text style={styles.metaText}>👤 {item.driver}</Text>
-      <Text style={styles.metaText}>📦 {item.cargo}</Text>
+      <Text style={styles.metaText}>👤 {driverName(item)}</Text>
+      <Text style={styles.metaText}>📦 {item.cargo_type}</Text>
     </View>
-    <Text style={styles.tripDate}>📅 {item.date}</Text>
-  </TouchableOpacity>
+    <Text style={styles.tripDate}>📅 {formatDate(item.planned_start ?? item.createdAt)}</Text>
+  </View>
 );
 
-const TripListScreen = ({ navigation }: any) => {
+const TripListScreen = () => {
   const [activeTab, setActiveTab] = useState('Trips');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
+  const { trips, loading, error, refetch } = useOperatorTrips();
 
-  const filtered = ALL_TRIPS.filter((t) => {
-    const matchFilter =
-      filter === 'All' ||
-      t.statusLabel === filter;
-    const matchSearch =
-      t.id.toLowerCase().includes(search.toLowerCase()) ||
-      t.route.toLowerCase().includes(search.toLowerCase()) ||
-      t.driver.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+  const count = (statuses: string[] | null) =>
+    statuses ? trips.filter((t) => statuses.includes(t.status)).length : trips.length;
 
-  const KPI_CHIPS = [
-    { label: 'Total', value: ALL_TRIPS.length.toString() },
-    { label: 'In Transit', value: ALL_TRIPS.filter((t) => t.status === 'in_transit').length.toString() },
-    { label: 'Scheduled', value: ALL_TRIPS.filter((t) => t.status === 'scheduled').length.toString() },
-    { label: 'Delayed', value: ALL_TRIPS.filter((t) => t.status === 'delayed').length.toString() },
-    { label: 'Completed', value: ALL_TRIPS.filter((t) => t.status === 'completed').length.toString() },
-  ];
+  const KPI_CHIPS = FILTERS.map((f) => ({ label: f.label, value: String(count(f.statuses)) }));
+
+  const filtered = useMemo(() => {
+    const active = FILTERS.find((f) => f.label === filter) ?? FILTERS[0];
+    const q = search.trim().toLowerCase();
+    return trips.filter((t) => {
+      const okStatus = !active.statuses || active.statuses.includes(t.status);
+      if (!okStatus) return false;
+      if (!q) return true;
+      return (
+        (t.ref_id ?? '').toLowerCase().includes(q) ||
+        (t.customer?.name ?? '').toLowerCase().includes(q) ||
+        driverName(t).toLowerCase().includes(q) ||
+        t.cargo_type.toLowerCase().includes(q)
+      );
+    });
+  }, [trips, filter, search]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>Trips</Text>
-        <TouchableOpacity
-          style={styles.addBtn}
-          activeOpacity={0.8}
-          onPress={() => navigation?.navigate('CreateTrip')}
-        >
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.addBtnText}>+ New Trip</Text>
-        </TouchableOpacity>
       </View>
 
       {/* KPI Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.kpiRow}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kpiRow}>
         {KPI_CHIPS.map((chip) => (
           <View key={chip.label} style={styles.kpiChip}>
             <Text style={styles.kpiValue}>{chip.value}</Text>
@@ -92,25 +90,21 @@ const TripListScreen = ({ navigation }: any) => {
       <SearchInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search trips, drivers, routes..."
+        placeholder="Search trips, drivers, customers..."
         style={styles.search}
       />
 
       {/* Filter Pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersRow}
-      >
-        {STATUS_FILTERS.map((f) => (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
+        {FILTERS.map((f) => (
           <TouchableOpacity
-            key={f}
-            style={[styles.filterPill, filter === f ? styles.filterPillActive : null]}
+            key={f.label}
+            style={[styles.filterPill, filter === f.label ? styles.filterPillActive : null]}
             activeOpacity={0.8}
-            onPress={() => setFilter(f)}
+            onPress={() => setFilter(f.label)}
           >
-            <Text style={[styles.filterText, filter === f ? styles.filterTextActive : null]}>
-              {f}
+            <Text style={[styles.filterText, filter === f.label ? styles.filterTextActive : null]}>
+              {f.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -120,17 +114,17 @@ const TripListScreen = ({ navigation }: any) => {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <TripCard
-            item={item}
-            onPress={() => navigation?.navigate('TripDetails', { tripId: item.id })}
-          />
-        )}
+        refreshControl={<RefreshControl refreshing={loading && trips.length > 0} onRefresh={refetch} />}
+        renderItem={({ item }) => <TripCard item={item} />}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🚛</Text>
-            <Text style={styles.emptyText}>No trips match your filters</Text>
-          </View>
+          loading ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>🚛</Text>
+              <Text style={styles.emptyText}>{error ?? 'No trips match your filters'}</Text>
+            </View>
+          )
         }
       />
       <OperatorBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
@@ -153,17 +147,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.xl,
     fontWeight: '800',
     color: Colors.gray900,
-  },
-  addBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  addBtnText: {
-    fontSize: Typography.sm,
-    color: Colors.white,
-    fontWeight: '700',
   },
   kpiRow: {
     paddingHorizontal: Spacing.lg,
@@ -221,6 +204,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     paddingBottom: 80,
+    flexGrow: 1,
   },
   card: {
     backgroundColor: Colors.white,

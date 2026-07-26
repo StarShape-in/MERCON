@@ -27,6 +27,8 @@ export interface OperatorTrip {
   ref_id: string | null;
   status: string;
   cargo_type: string;
+  planned_start?: string | null;
+  createdAt?: string;
   customer?: { name: string } | null;
   driver?: { first_name: string; last_name: string } | null;
   vehicle?: { plate_number: string } | null;
@@ -45,7 +47,35 @@ export const operatorService = {
     const trips = (data.data ?? []) as OperatorTrip[];
     return trips.filter((t) => ACTIVE_TRIP_STATUSES.includes(t.status));
   },
+
+  async trips(): Promise<OperatorTrip[]> {
+    const { data } = await api.get('/trips', { params: { per_page: 100 } });
+    return (data.data ?? []) as OperatorTrip[];
+  },
 };
+
+/** Loads all recent trips for the operator trip list. */
+export function useOperatorTrips() {
+  const [trips, setTrips] = useState<OperatorTrip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setTrips(await operatorService.trips());
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  return { trips, loading, error, refetch };
+}
 
 /** Loads the operator dashboard (KPIs + active trips) with a manual refetch. */
 export function useOperatorDashboard() {

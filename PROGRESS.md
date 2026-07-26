@@ -117,7 +117,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 
 ### Milestone 3 — Operator mobile screens (all 8 static)
 - ✅ `HomeScreen` (dashboard metrics) — real KPIs via `/reports/summary` + active trips via `/trips`; operator nav/quick-actions pending
-- ⬜ `TripListScreen`
+- ✅ `TripListScreen` — real `/trips` with status filters, KPI chips, search (nav to details pending)
 - ⬜ `TripDetailsScreen` + live tracking map (socket)
 - ⬜ `CreateTripScreen` (multi-step form)
 - ⬜ `DriverListScreen`
@@ -162,9 +162,10 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | AssignedVehicleScreen (active-trip vehicle) | driver | ✅ |
 | LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static (secondary) |
 | HomeScreen (dashboard KPIs + active trips) | operator | ✅ |
-| TripList/TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
+| TripListScreen (filters + KPI chips + search) | operator | ✅ |
+| TripDetails/CreateTrip/DriverList/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 14 / 24 screens** (all core driver screens + operator dashboard; operator nav still needed to reach the other operator screens).
+**Wired: 15 / 24 screens** (all core driver screens + operator dashboard & trip list; operator nav still needed to reach the operator screens).
 
 **Driver navigation now works** (expo-router): the bottom nav (Home/Trips/Profile) and Profile's
 quick actions + Notifications link actually navigate — so the already-wired Trips, Notifications,
