@@ -1,153 +1,83 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
+  StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
+import { useOperatorInvoices, type OperatorInvoice } from '../../lib/operator';
 
-const INVOICES = [
-  {
-    id: 'INV-2024-0445',
-    customer: 'Saudi Electronics Co.',
-    tripId: 'TRP-2024-0891',
-    amount: 'SAR 4,200',
-    status: 'pending',
-    statusLabel: 'Pending',
-    date: '6 Jul 2024',
-    due: '13 Jul 2024',
-  },
-  {
-    id: 'INV-2024-0444',
-    customer: 'Al-Jazeera Trading',
-    tripId: 'TRP-2024-0890',
-    amount: 'SAR 3,600',
-    status: 'paid',
-    statusLabel: 'Paid',
-    date: '5 Jul 2024',
-    due: '12 Jul 2024',
-  },
-  {
-    id: 'INV-2024-0443',
-    customer: 'Gulf Auto Parts',
-    tripId: 'TRP-2024-0889',
-    amount: 'SAR 5,850',
-    status: 'overdue',
-    statusLabel: 'Overdue',
-    date: '28 Jun 2024',
-    due: '5 Jul 2024',
-  },
-  {
-    id: 'INV-2024-0442',
-    customer: 'Aramco Supply Chain',
-    tripId: 'TRP-2024-0888',
-    amount: 'SAR 12,400',
-    status: 'paid',
-    statusLabel: 'Paid',
-    date: '25 Jun 2024',
-    due: '2 Jul 2024',
-  },
-  {
-    id: 'INV-2024-0441',
-    customer: 'Saudi Pharma Group',
-    tripId: 'TRP-2024-0887',
-    amount: 'SAR 2,100',
-    status: 'pending',
-    statusLabel: 'Pending',
-    date: '20 Jun 2024',
-    due: '27 Jun 2024',
-  },
-  {
-    id: 'INV-2024-0440',
-    customer: 'Riyadh Steel Co.',
-    tripId: 'TRP-2024-0886',
-    amount: 'SAR 8,750',
-    status: 'draft',
-    statusLabel: 'Draft',
-    date: '18 Jun 2024',
-    due: '25 Jun 2024',
-  },
-];
+const FILTERS = ['All', 'Pending', 'Paid', 'Overdue', 'Draft', 'Cancelled'];
 
-const InvoiceCard = ({ item, onPress }: any) => (
-  <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
+function money(currency: string, n: number): string {
+  return `${currency} ${Math.round(n).toLocaleString()}`;
+}
+
+function formatDate(iso?: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+const InvoiceCard = ({ item }: { item: OperatorInvoice }) => (
+  <View style={styles.card}>
     <View style={styles.cardTop}>
       <View>
-        <Text style={styles.invoiceId}>{item.id}</Text>
-        <Text style={styles.customer}>{item.customer}</Text>
+        <Text style={styles.invoiceId}>{item.ref_id ?? item.id.slice(0, 8)}</Text>
+        <Text style={styles.customer}>{item.customer?.name ?? 'Customer'}</Text>
       </View>
       <View style={styles.amountCol}>
-        <Text style={styles.amount}>{item.amount}</Text>
-        <StatusBadge status={item.status} label={item.statusLabel} />
+        <Text style={styles.amount}>{money(item.currency, item.total_amount)}</Text>
+        <StatusBadge status={item.status} />
       </View>
     </View>
     <View style={styles.cardMeta}>
       {/* TODO: replace icon placeholders with lucide-react-native */}
-      <Text style={styles.metaText}>🚛 {item.tripId}</Text>
-      <Text style={styles.metaText}>📅 Issued: {item.date}</Text>
-      <Text style={[styles.metaText, item.status === 'overdue' ? styles.overdueText : null]}>
-        ⏰ Due: {item.due}
+      {item.trip?.ref_id ? <Text style={styles.metaText}>🚛 {item.trip.ref_id}</Text> : null}
+      <Text style={styles.metaText}>📅 Issued: {formatDate(item.createdAt)}</Text>
+      <Text style={[styles.metaText, item.status === 'Overdue' ? styles.overdueText : null]}>
+        ⏰ Due: {formatDate(item.due_date)}
       </Text>
     </View>
-    <View style={styles.cardActions}>
-      <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={() => {}}>
-        <Text style={styles.actionBtnText}>👁 View</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.actionBtn} activeOpacity={0.8} onPress={() => {}}>
-        <Text style={styles.actionBtnText}>↓ Download</Text>
-      </TouchableOpacity>
-      {item.status === 'pending' || item.status === 'overdue' ? (
-        <TouchableOpacity style={styles.sendBtn} activeOpacity={0.8} onPress={() => {}}>
-          <Text style={styles.sendBtnText}>📨 Send</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  </TouchableOpacity>
+  </View>
 );
 
-const InvoiceListScreen = ({ navigation }: any) => {
+const InvoiceListScreen = () => {
   const [activeTab, setActiveTab] = useState('More');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const { invoices, loading, error, refetch } = useOperatorInvoices();
 
-  const STATUS_FILTERS = ['All', 'Pending', 'Paid', 'Overdue', 'Draft'];
-
-  const filtered = INVOICES.filter((inv) => {
-    const matchSearch =
-      inv.id.toLowerCase().includes(search.toLowerCase()) ||
-      inv.customer.toLowerCase().includes(search.toLowerCase()) ||
-      inv.tripId.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'All' || inv.statusLabel === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
-  const totalAmount = INVOICES.reduce((sum, inv) => {
-    const num = parseFloat(inv.amount.replace('SAR ', '').replace(',', ''));
-    return sum + num;
-  }, 0);
+  const totalValue = invoices.reduce((sum, i) => sum + i.total_amount, 0);
+  const count = (status: string) => invoices.filter((i) => i.status === status).length;
 
   const STAT_CARDS = [
-    { label: 'Total Invoices', value: INVOICES.length.toString(), icon: '📄', color: Colors.gray900 },
-    { label: 'Pending', value: INVOICES.filter((i) => i.status === 'pending').length.toString(), icon: '⏳', color: '#D97706' },
-    { label: 'Overdue', value: INVOICES.filter((i) => i.status === 'overdue').length.toString(), icon: '🚨', color: Colors.error },
-    { label: 'Total Value', value: `SAR ${(totalAmount / 1000).toFixed(0)}K`, icon: '💰', color: Colors.success },
+    { label: 'Total Invoices', value: String(invoices.length), icon: '📄', color: Colors.gray900 },
+    { label: 'Pending', value: String(count('Pending')), icon: '⏳', color: '#D97706' },
+    { label: 'Overdue', value: String(count('Overdue')), icon: '🚨', color: Colors.error },
+    { label: 'Total Value', value: `SAR ${(totalValue / 1000).toFixed(0)}K`, icon: '💰', color: Colors.success },
   ];
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return invoices.filter((inv) => {
+      if (statusFilter !== 'All' && inv.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        (inv.ref_id ?? '').toLowerCase().includes(q) ||
+        (inv.customer?.name ?? '').toLowerCase().includes(q) ||
+        (inv.trip?.ref_id ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [invoices, statusFilter, search]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Invoices</Text>
-        <TouchableOpacity
-          style={styles.createBtn}
-          activeOpacity={0.8}
-          onPress={() => {}}
-        >
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.createBtnText}>+ Create</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Stat Cards */}
@@ -169,16 +99,14 @@ const InvoiceListScreen = ({ navigation }: any) => {
       />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
-        {STATUS_FILTERS.map((f) => (
+        {FILTERS.map((f) => (
           <TouchableOpacity
             key={f}
             style={[styles.filterPill, statusFilter === f ? styles.filterPillActive : null]}
             activeOpacity={0.8}
             onPress={() => setStatusFilter(f)}
           >
-            <Text style={[styles.filterText, statusFilter === f ? styles.filterTextActive : null]}>
-              {f}
-            </Text>
+            <Text style={[styles.filterText, statusFilter === f ? styles.filterTextActive : null]}>{f}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -187,21 +115,19 @@ const InvoiceListScreen = ({ navigation }: any) => {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <InvoiceCard item={item} onPress={() => {}} />
-        )}
+        refreshControl={<RefreshControl refreshing={loading && invoices.length > 0} onRefresh={refetch} />}
+        renderItem={({ item }) => <InvoiceCard item={item} />}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📄</Text>
-            <Text style={styles.emptyText}>No invoices found</Text>
-          </View>
+          loading ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>📄</Text>
+              <Text style={styles.emptyText}>{error ?? 'No invoices found'}</Text>
+            </View>
+          )
         }
       />
-
-      {/* FAB */}
-      <TouchableOpacity style={styles.fab} activeOpacity={0.8} onPress={() => {}}>
-        <Text style={styles.fabIcon}>+</Text>
-      </TouchableOpacity>
 
       <OperatorBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
@@ -223,17 +149,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.xl,
     fontWeight: '800',
     color: Colors.gray900,
-  },
-  createBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  createBtnText: {
-    fontSize: Typography.sm,
-    color: Colors.white,
-    fontWeight: '700',
   },
   statsRow: {
     paddingHorizontal: Spacing.lg,
@@ -294,6 +209,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     paddingBottom: 100,
+    flexGrow: 1,
   },
   card: {
     backgroundColor: Colors.white,
@@ -339,38 +255,6 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontWeight: '700',
   },
-  cardActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-    paddingTop: Spacing.md,
-  },
-  actionBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  actionBtnText: {
-    fontSize: Typography.xs,
-    color: Colors.gray600,
-    fontWeight: '600',
-  },
-  sendBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  sendBtnText: {
-    fontSize: Typography.xs,
-    color: Colors.white,
-    fontWeight: '700',
-  },
   empty: {
     alignItems: 'center',
     paddingTop: Spacing['3xl'],
@@ -382,24 +266,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: Typography.base,
     color: Colors.gray500,
-  },
-  fab: {
-    position: 'absolute',
-    right: Spacing.xl,
-    bottom: 80,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.lg,
-  },
-  fabIcon: {
-    fontSize: 28,
-    color: Colors.white,
-    fontWeight: '300',
-    lineHeight: 32,
   },
 });
 

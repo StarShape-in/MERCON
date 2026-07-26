@@ -62,7 +62,24 @@ export const operatorService = {
     const { data } = await api.get('/vehicles', { params: { per_page: 100 } });
     return (data.data ?? []) as OperatorVehicle[];
   },
+
+  async invoices(): Promise<OperatorInvoice[]> {
+    const { data } = await api.get('/invoices', { params: { per_page: 100 } });
+    return (data.data ?? []) as OperatorInvoice[];
+  },
 };
+
+export interface OperatorInvoice {
+  id: string;
+  ref_id: string | null;
+  status: string;
+  currency: string;
+  total_amount: number;
+  due_date: string;
+  createdAt: string;
+  customer?: { name: string } | null;
+  trip?: { ref_id: string | null } | null;
+}
 
 export interface OperatorVehicle {
   id: string;
@@ -152,6 +169,29 @@ export function useOperatorVehicles() {
   useEffect(() => { refetch(); }, [refetch]);
 
   return { vehicles, loading, error, refetch };
+}
+
+/** Loads all invoices for the operator invoice list. */
+export function useOperatorInvoices() {
+  const [invoices, setInvoices] = useState<OperatorInvoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setInvoices(await operatorService.invoices());
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  return { invoices, loading, error, refetch };
 }
 
 /** Loads the operator dashboard (KPIs + active trips) with a manual refetch. */
