@@ -63,23 +63,25 @@ export default function LoginPage() {
       <img
         src="/mercon-logo.png"
         alt="MERCON Logistics"
-        className="absolute top-6 left-6 lg:top-8 lg:left-10 h-12 lg:h-14 w-auto z-10"
+        className="absolute top-6 left-6 lg:top-8 lg:left-10 h-20 lg:h-24 w-auto z-10"
       />
 
       <div className="w-full max-w-[400px] animate-fade-in">
-        <div className="rounded-2xl border border-[#ECEEF3] bg-white/95 backdrop-blur-sm p-8 shadow-[0_28px_70px_-24px_rgba(30,31,40,0.32)]">
+        <div className="mb-6">
           <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
-          <h2 className="mt-1.5 text-[26px] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
+          <h2 className="mt-1.5 text-[28px] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
+        </div>
 
+        <div className="rounded-2xl border border-[#ECEEF3] bg-white/95 backdrop-blur-sm p-8 shadow-[0_28px_70px_-24px_rgba(30,31,40,0.32)]">
           {error && (
-            <div className="mt-6 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-medium"
+            <div className="mb-5 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-medium"
               style={{ background: '#FEF3F2', color: C.danger, border: '1px solid #FEE4E2' }}>
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="mt-7 space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-[13px] font-medium mb-2" style={{ color: C.dark }}>Username</label>
               <div className="relative">
