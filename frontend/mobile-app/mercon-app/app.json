@@ -39,6 +39,12 @@
         {
           "cameraPermission": "MERCON uses the camera to capture cargo and proof-of-delivery photos for your trips."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MERCON shares your location with your operator while you're on an active trip, so they can track the delivery."
+        }
       ]
     ],
     "experiments": {

@@ -17,12 +17,13 @@ Last updated: **2026-07-25** · Owner: Hysam (solo dev + AI) · Deadline: ~1 mon
 | **Backend API** | ✅ Working, deployed at mercon.tech | ~90% |
 | **Web dashboard** (Admin/Operator) | ✅ Done, all pages on real data | ~95% |
 | **Mobile app** (Driver + Operator) | 🔄 Driver side ~done (nav + full trip flow + all core screens); operator side static; live GPS pending | ~50% |
-| **Live GPS tracking** (driver → web) | ❌ Packages installed, no tracking code yet | 0% |
+| **Live GPS tracking** (driver → web) | 🔄 Foreground streaming wired (socket emit); background + device verification pending | ~60% |
 | **Testing / builds / handover** | ❌ Not started (no real-phone run yet) | 0% |
 
-**One-line status:** Backend and web are basically finished. The remaining build is the
-**mobile app** — unified login and the driver trip screen are real; the other 22 screens,
-live GPS, and 4 mobile backend endpoints are still to do, then real-phone testing + release builds.
+**One-line status:** Backend and web are basically finished. On **mobile**, the whole **driver
+side is real** — navigation, full trip flow, notifications, profile, documents, vehicle, emergency,
+and foreground **live GPS** streaming. Remaining: the **operator mobile screens** (all 8 static),
+GPS background hardening + device verification, then real-phone testing + release builds.
 
 ---
 
@@ -104,10 +105,15 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ⬜ `LiveNavigationScreen` / `ReplacementDriverScreen` / `SplashScreen` (as needed)
 
 ### Milestone 2 — Driver live GPS
-- ⬜ `expo-location` foreground tracking while a trip is active (~10s)
-- ⬜ `socket.io-client` connect + emit `driver:location_update` (backend already receives it)
-- ⬜ Handle background / locked screen / network drops
-- ⬜ End-to-end: truck moves live on the operator's web map
+- ✅ `expo-location` foreground tracking while a trip is active (~10s / 20m) — plugin added to `app.json`
+- ✅ `socket.io-client` connect + emit `driver:location_update` (shared socket, backend receives it)
+- ⬜ Handle background / locked screen / network drops (foreground done; background is a hardening step)
+- 🔄 End-to-end: truck moves live on the operator's web map — code complete, needs real-device verification
+
+**How it's wired:** `src/lib/socket.ts` (shared connection), `use-live-tracking.ts` (watch + emit),
+`DriverLiveTracking.tsx` (headless, polls current trip) rendered on the driver landing. Streams
+`{ tripId, driverId, lat, lng, speed }`; the web `TripTrackingPage` already listens on
+`trip:location_update:<tripId>`.
 
 ### Milestone 3 — Operator mobile screens (all 8 static)
 - ⬜ `HomeScreen` (dashboard metrics)

@@ -7,8 +7,17 @@
 import DriverHomeScreen from '@/screens/driver/HomeScreen';
 import OperatorHomeScreen from '@/screens/operator/HomeScreen';
 import { useAuth } from '@/lib/auth-context';
+import { DriverLiveTracking } from '@/lib/DriverLiveTracking';
 
 export default function Index() {
   const { role } = useAuth();
-  return role === 'Driver' ? <DriverHomeScreen /> : <OperatorHomeScreen />;
+  if (role === 'Driver') {
+    return (
+      <>
+        <DriverHomeScreen />
+        <DriverLiveTracking />
+      </>
+    );
+  }
+  return <OperatorHomeScreen />;
 }
