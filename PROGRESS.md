@@ -121,7 +121,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ⬜ `TripDetailsScreen` + live tracking map (socket)
 - ⬜ `CreateTripScreen` (multi-step form)
 - ✅ `DriverListScreen` — real `/drivers` (status filters, search, tap-to-call)
-- ⬜ `VehicleListScreen`
+- ✅ `VehicleListScreen` — real `/vehicles` (status filters, stats, search)
 - ⬜ `VehicleRenewalScreen`
 - ⬜ `InvoiceListScreen`
 
@@ -164,9 +164,10 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | HomeScreen (dashboard KPIs + active trips) | operator | ✅ |
 | TripListScreen (filters + KPI chips + search) | operator | ✅ |
 | DriverListScreen (filters + search + call) | operator | ✅ |
-| TripDetails/CreateTrip/VehicleList/VehicleRenewal/InvoiceList | operator | ⬜ static |
+| VehicleListScreen (filters + stats + search) | operator | ✅ |
+| TripDetails/CreateTrip/VehicleRenewal/InvoiceList | operator | ⬜ static |
 
-**Wired: 16 / 24 screens** (all core driver screens + operator dashboard, trips & drivers; operator nav still needed to reach the operator screens).
+**Wired: 17 / 24 screens** (all core driver screens + operator dashboard, trips, drivers & fleet; operator nav still needed to reach the operator screens).
 
 **Driver navigation now works** (expo-router): the bottom nav (Home/Trips/Profile) and Profile's
 quick actions + Notifications link actually navigate — so the already-wired Trips, Notifications,

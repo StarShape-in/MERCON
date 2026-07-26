@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
+  StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, SearchInput, Badge } from '../../components';
+import { StatusBadge, SearchInput } from '../../components';
 import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
+import { useOperatorVehicles, type OperatorVehicle } from '../../lib/operator';
 
-const VEHICLES = [
-  { id: 'TRK-2041', model: 'Mercedes-Benz Actros', capacity: '25,000 kg', status: 'on_trip', statusLabel: 'On Trip', docs: 4, year: 2022 },
-  { id: 'TRK-2038', model: 'Volvo FH 540', capacity: '24,000 kg', status: 'available', statusLabel: 'Available', docs: 4, year: 2021 },
-  { id: 'TRK-2035', model: 'MAN TGX 480', capacity: '26,000 kg', status: 'on_trip', statusLabel: 'On Trip', docs: 3, year: 2020 },
-  { id: 'TRK-2030', model: 'Scania R 500', capacity: '23,000 kg', status: 'maintenance', statusLabel: 'In Service', docs: 4, year: 2019 },
-  { id: 'TRK-2028', model: 'DAF XF 530', capacity: '25,000 kg', status: 'available', statusLabel: 'Available', docs: 2, year: 2021 },
-  { id: 'TRK-2025', model: 'Iveco S-Way', capacity: '22,000 kg', status: 'available', statusLabel: 'Available', docs: 4, year: 2022 },
+const FILTERS: { label: string; status: string | null }[] = [
+  { label: 'All', status: null },
+  { label: 'Available', status: 'Available' },
+  { label: 'On Trip', status: 'OnTrip' },
+  { label: 'Maintenance', status: 'Maintenance' },
+  { label: 'Inactive', status: 'Inactive' },
 ];
 
-const VehicleCard = ({ item, onEdit }: any) => (
+const STATUS_LABELS: Record<string, string> = {
+  Available: 'Available',
+  OnTrip: 'On Trip',
+  Maintenance: 'Maintenance',
+  Inactive: 'Inactive',
+};
+
+const VehicleCard = ({ item }: { item: OperatorVehicle }) => (
   <View style={styles.card}>
     <View style={styles.cardTop}>
       <View style={styles.vehicleIconBox}>
@@ -26,69 +32,60 @@ const VehicleCard = ({ item, onEdit }: any) => (
       </View>
       <View style={styles.vehicleInfo}>
         <View style={styles.vehicleIdRow}>
-          <Text style={styles.vehicleId}>{item.id}</Text>
-          <StatusBadge status={item.status} label={item.statusLabel} />
+          <Text style={styles.vehicleId}>{item.plate_number}</Text>
+          <StatusBadge status={STATUS_LABELS[item.status] ?? item.status} />
         </View>
-        <Text style={styles.vehicleModel}>{item.model} · {item.year}</Text>
+        <Text style={styles.vehicleModel}>
+          {item.asset_type}
+          {item.ref_id ? ` · ${item.ref_id}` : ''}
+        </Text>
         <View style={styles.vehicleMeta}>
-          <Text style={styles.metaText}>⚖️ {item.capacity}</Text>
-          <Text style={styles.metaText}>
-            📋 {item.docs}/4 docs{item.docs < 4 ? ' ⚠️' : ''}
-          </Text>
+          <Text style={styles.metaText}>⚖️ {item.capacity_kg.toLocaleString()} kg</Text>
+          <Text style={styles.metaText}>📏 {Math.round(item.current_odometer).toLocaleString()} km</Text>
         </View>
       </View>
-    </View>
-    <View style={styles.cardFooter}>
-      <TouchableOpacity style={styles.footerBtn} activeOpacity={0.8} onPress={() => {}}>
-        <Text style={styles.footerBtnText}>📋 Documents</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.footerBtn} activeOpacity={0.8} onPress={() => {}}>
-        <Text style={styles.footerBtnText}>📜 History</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.footerBtn, styles.footerBtnLast]} activeOpacity={0.8} onPress={onEdit}>
-        <Text style={styles.editBtnText}>✏️ Edit</Text>
-      </TouchableOpacity>
     </View>
   </View>
 );
 
-const VehicleListScreen = ({ navigation }: any) => {
+const VehicleListScreen = () => {
   const [activeTab, setActiveTab] = useState('More');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const { vehicles, loading, error, refetch } = useOperatorVehicles();
 
-  const STATUS_FILTERS = ['All', 'Available', 'On Trip', 'In Service'];
+  const count = (status: string | null) =>
+    status ? vehicles.filter((v) => v.status === status).length : vehicles.length;
 
-  const filtered = VEHICLES.filter((v) => {
-    const matchSearch =
-      v.id.toLowerCase().includes(search.toLowerCase()) ||
-      v.model.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'All' || v.statusLabel === statusFilter;
-    return matchSearch && matchStatus;
-  });
-
-  const stats = {
-    total: VEHICLES.length,
-    available: VEHICLES.filter((v) => v.status === 'available').length,
-    onTrip: VEHICLES.filter((v) => v.status === 'on_trip').length,
-    service: VEHICLES.filter((v) => v.status === 'maintenance').length,
-  };
+  const filtered = useMemo(() => {
+    const active = FILTERS.find((f) => f.label === statusFilter) ?? FILTERS[0];
+    const q = search.trim().toLowerCase();
+    return vehicles.filter((v) => {
+      if (active.status && v.status !== active.status) return false;
+      if (!q) return true;
+      return (
+        v.plate_number.toLowerCase().includes(q) ||
+        (v.ref_id ?? '').toLowerCase().includes(q) ||
+        v.asset_type.toLowerCase().includes(q)
+      );
+    });
+  }, [vehicles, statusFilter, search]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Fleet</Text>
-        <Text style={styles.headerCount}>{VEHICLES.length} vehicles</Text>
+        <Text style={styles.headerCount}>{vehicles.length} vehicles</Text>
       </View>
 
       {/* Stats Row */}
       <View style={styles.statsRow}>
         {[
-          { label: 'Total', value: stats.total, color: Colors.gray900 },
-          { label: 'Available', value: stats.available, color: Colors.success },
-          { label: 'On Trip', value: stats.onTrip, color: Colors.primary },
-          { label: 'In Service', value: stats.service, color: '#D97706' },
+          { label: 'Total', value: count(null), color: Colors.gray900 },
+          { label: 'Available', value: count('Available'), color: Colors.success },
+          { label: 'On Trip', value: count('OnTrip'), color: Colors.primary },
+          { label: 'Service', value: count('Maintenance'), color: '#D97706' },
         ].map((s) => (
           <View key={s.label} style={styles.statBox}>
             <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
@@ -100,20 +97,20 @@ const VehicleListScreen = ({ navigation }: any) => {
       <SearchInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search by ID or model..."
+        placeholder="Search by plate or type..."
         style={styles.search}
       />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
-        {STATUS_FILTERS.map((f) => (
+        {FILTERS.map((f) => (
           <TouchableOpacity
-            key={f}
-            style={[styles.filterPill, statusFilter === f ? styles.filterPillActive : null]}
+            key={f.label}
+            style={[styles.filterPill, statusFilter === f.label ? styles.filterPillActive : null]}
             activeOpacity={0.8}
-            onPress={() => setStatusFilter(f)}
+            onPress={() => setStatusFilter(f.label)}
           >
-            <Text style={[styles.filterText, statusFilter === f ? styles.filterTextActive : null]}>
-              {f}
+            <Text style={[styles.filterText, statusFilter === f.label ? styles.filterTextActive : null]}>
+              {f.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -123,22 +120,19 @@ const VehicleListScreen = ({ navigation }: any) => {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <VehicleCard item={item} onEdit={() => {}} />
-        )}
+        refreshControl={<RefreshControl refreshing={loading && vehicles.length > 0} onRefresh={refetch} />}
+        renderItem={({ item }) => <VehicleCard item={item} />}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>🚛</Text>
-            <Text style={styles.emptyText}>No vehicles match your search</Text>
-          </View>
+          loading ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>🚛</Text>
+              <Text style={styles.emptyText}>{error ?? 'No vehicles match your search'}</Text>
+            </View>
+          )
         }
       />
-
-      {/* FAB */}
-      <TouchableOpacity style={styles.fab} activeOpacity={0.8} onPress={() => {}}>
-        {/* TODO: replace icon placeholders with lucide-react-native */}
-        <Text style={styles.fabIcon}>+</Text>
-      </TouchableOpacity>
 
       <OperatorBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
@@ -220,6 +214,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     paddingBottom: 100,
+    flexGrow: 1,
   },
   card: {
     backgroundColor: Colors.white,
@@ -272,31 +267,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.gray500,
   },
-  cardFooter: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-  },
-  footerBtn: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: Colors.gray100,
-  },
-  footerBtnLast: {
-    borderRightWidth: 0,
-  },
-  footerBtnText: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  editBtnText: {
-    fontSize: Typography.xs,
-    color: Colors.gray600,
-    fontWeight: '600',
-  },
   empty: {
     alignItems: 'center',
     paddingTop: Spacing['3xl'],
@@ -308,24 +278,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: Typography.base,
     color: Colors.gray500,
-  },
-  fab: {
-    position: 'absolute',
-    right: Spacing.xl,
-    bottom: 80,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.lg,
-  },
-  fabIcon: {
-    fontSize: 28,
-    color: Colors.white,
-    fontWeight: '300',
-    lineHeight: 32,
   },
 });
 
