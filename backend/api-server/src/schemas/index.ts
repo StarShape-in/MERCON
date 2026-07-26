@@ -50,6 +50,17 @@ export const createDriverBody = z.object({
   license_expiry: z.coerce.date(),
 });
 
+// Partial update: every field optional, unknown keys stripped, and
+// license_expiry coerced to a real Date (Prisma rejects bare date strings).
+export const updateDriverBody = z.object({
+  first_name: nonEmpty('First name').optional(),
+  last_name: nonEmpty('Last name').optional(),
+  phone_primary: nonEmpty('Phone number').optional(),
+  license_number: nonEmpty('License number').optional(),
+  license_expiry: z.coerce.date().optional(),
+  status: z.enum(['Available', 'OnTrip', 'OffDuty', 'Inactive']).optional(),
+});
+
 /* ─── Vehicles ───────────────────────────────────────────────────────────── */
 export const createVehicleBody = z.object({
   plate_number: nonEmpty('Plate number'),
