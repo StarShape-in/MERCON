@@ -71,11 +71,14 @@ const LoginScreen = () => {
     <ImageBackground source={heroBg} style={styles.container} resizeMode="cover">
       <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.gray50} />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Logo */}
-        <View style={styles.logoSection}>
-          <Image source={logo} style={styles.logo} resizeMode="contain" />
-        </View>
+
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {/* Logo — centered, visual anchor */}
+        <Image source={logo} style={styles.logo} resizeMode="contain" />
+
+        {/* Welcome */}
+        <Text style={styles.welcomeKicker}>Welcome Back</Text>
+        <Text style={styles.welcomeTitle}>Sign in to your workspace</Text>
 
         {/* Card */}
         <View style={styles.card}>
@@ -143,22 +146,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
+  scrollFlex: {
+    flex: 1,
+  },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
+    paddingTop: 64,          // below the safe area
     paddingBottom: Spacing.lg,
     justifyContent: 'flex-start',
   },
-  logoSection: {
-    alignItems: 'center',
-    marginTop: 130,
-    marginBottom: 150,
-  },
   logo: {
-    width: 180,
-    height: 96,
+    alignSelf: 'center',
+    width: 200,
+    height: 106,
+  },
+  welcomeKicker: {
+    marginTop: Spacing['2xl'], // 32
+    textAlign: 'center',
+    fontSize: Typography.sm,
+    fontWeight: '500',
+    color: Colors.primary,
+  },
+  welcomeTitle: {
+    marginTop: Spacing.sm,     // 8
+    textAlign: 'center',
+    fontSize: Typography['2xl'],
+    fontWeight: '700',
+    color: '#1E1F28',
   },
   card: {
+    marginTop: 28,
     backgroundColor: Colors.white,
     borderRadius: Radius['2xl'],
     paddingHorizontal: Spacing.lg,
@@ -166,7 +184,7 @@ const styles = StyleSheet.create({
     ...Shadows.lg,
   },
   form: {
-    gap: Spacing.md,
+    gap: Spacing.sm + 2,       // ~10, tighter
   },
   errorText: {
     fontSize: Typography.sm,
@@ -178,18 +196,14 @@ const styles = StyleSheet.create({
     color: Colors.success,
     marginTop: -Spacing.xs,
   },
+  // Secondary action — lighter than the solid Sign In button (no fill/border)
   notifyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    marginTop: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-    backgroundColor: Colors.white,
+    marginTop: Spacing.xl,     // 24
+    paddingVertical: Spacing.sm,
   },
   notifyText: {
     fontSize: Typography.sm,
@@ -200,7 +214,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: Typography.xs,
     color: Colors.gray500,
-    marginTop: Spacing.xl,
+    marginTop: 28,
   },
   footerLink: {
     color: Colors.primary,

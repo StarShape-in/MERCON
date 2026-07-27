@@ -60,17 +60,15 @@ export default function LoginPage() {
         backgroundImage: 'url(/login-bg.png)',
       }}
     >
-      <div className="absolute top-6 left-6 lg:top-8 lg:left-10 z-10">
-        <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
-        <h2 className="mt-1.5 text-[28px] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
-      </div>
+      <div className="w-full max-w-[400px] animate-fade-in flex flex-col items-center lg:translate-y-12">
+        <img src="/mercon-logo.png" alt="MERCON Logistics" className="h-20 lg:h-24 w-auto" />
 
-      <div className="w-full max-w-[400px] animate-fade-in">
-        <div className="mb-6 flex justify-center">
-          <img src="/mercon-logo.png" alt="MERCON Logistics" className="h-20 lg:h-24 w-auto" />
+        <div className="mt-6 text-center">
+          <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
+          <h2 className="mt-4 text-[40px] leading-[1.1] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
         </div>
 
-        <div className="rounded-2xl border border-[#ECEEF3] bg-white/95 backdrop-blur-sm p-8 shadow-[0_28px_70px_-24px_rgba(30,31,40,0.32)]">
+        <div className="mt-6 w-full rounded-2xl border border-[#ECEEF3] bg-white/95 backdrop-blur-sm p-8 shadow-[0_28px_70px_-24px_rgba(30,31,40,0.32)]">
           {error && (
             <div className="mb-5 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-medium"
               style={{ background: '#FEF3F2', color: C.danger, border: '1px solid #FEE4E2' }}>
