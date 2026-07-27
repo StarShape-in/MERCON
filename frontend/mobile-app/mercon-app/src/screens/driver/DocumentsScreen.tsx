@@ -4,6 +4,7 @@ import {
   FlatList, ActivityIndicator, Linking, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ArrowLeft, TriangleAlert } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge } from '../../components';
 import { API_URL } from '../../lib/api';
@@ -29,8 +30,7 @@ const DocumentCard = ({ doc }: { doc: DriverDocument }) => {
     <View style={[styles.card, st.kind === 'expired' ? styles.cardExpired : null]}>
       <View style={styles.cardHeader}>
         <View style={styles.iconBox}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.docIcon}>{docIcon(doc.doc_type)}</Text>
+          {(() => { const Icon = docIcon(doc.doc_type); return <Icon size={22} color={Colors.primary} strokeWidth={2} />; })()}
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.docTitle}>{docTypeLabel(doc.doc_type)}</Text>
@@ -74,8 +74,7 @@ const DocumentsScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.backIcon}>←</Text>
+          <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Documents</Text>
         <View style={{ width: 40 }} />
@@ -84,7 +83,7 @@ const DocumentsScreen = () => {
       {/* Alert Banner */}
       {(expiredCount > 0 || expiringCount > 0) && (
         <View style={styles.alertBanner}>
-          <Text style={styles.alertIcon}>⚠️</Text>
+          <TriangleAlert size={18} color="#D97706" strokeWidth={2} />
           <Text style={styles.alertText}>
             {expiredCount > 0 && `${expiredCount} document(s) expired. `}
             {expiringCount > 0 && `${expiringCount} document(s) expiring soon.`}

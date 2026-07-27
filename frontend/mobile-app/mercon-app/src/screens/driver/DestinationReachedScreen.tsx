@@ -4,6 +4,7 @@ import {
   Alert, Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Flag, MapPin, ReceiptText, Package, Ruler } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService } from '../../lib/trips';
@@ -40,7 +41,7 @@ const DestinationReachedScreen = () => {
         <View style={styles.map}>
           <View style={styles.roadV} />
           <View style={styles.roadH} />
-          <Text style={styles.destinationFlag}>🏁</Text>
+          <Flag size={40} color={Colors.primary} strokeWidth={2} fill={Colors.primary} />
           <Text style={styles.mapLabel}>{trip?.customer?.name ?? 'DESTINATION'}</Text>
         </View>
         <View style={styles.darkOverlay} />
@@ -53,8 +54,7 @@ const DestinationReachedScreen = () => {
 
         {/* Arrived Icon */}
         <View style={styles.arrivedIconWrap}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.arrivedEmoji}>📍</Text>
+          <MapPin size={30} color={Colors.white} strokeWidth={2.2} />
         </View>
 
         <Text style={styles.arrivedTitle}>You Have Arrived!</Text>
@@ -67,19 +67,19 @@ const DestinationReachedScreen = () => {
         {/* Trip Summary */}
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryIcon}>🧾</Text>
+            <ReceiptText size={20} color={Colors.gray500} strokeWidth={2} />
             <Text style={styles.summaryValue}>{trip?.ref_id ?? '—'}</Text>
             <Text style={styles.summaryLabel}>Trip</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryIcon}>📦</Text>
+            <Package size={20} color={Colors.gray500} strokeWidth={2} />
             <Text style={styles.summaryValue}>{trip?.cargo_type ?? '—'}</Text>
             <Text style={styles.summaryLabel}>Cargo</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryIcon}>📏</Text>
+            <Ruler size={20} color={Colors.gray500} strokeWidth={2} />
             <Text style={styles.summaryValue}>
               {trip?.planned_distance ? `${trip.planned_distance} km` : '—'}
             </Text>

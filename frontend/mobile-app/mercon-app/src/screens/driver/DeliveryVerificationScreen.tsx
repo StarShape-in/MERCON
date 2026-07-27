@@ -8,6 +8,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService } from '../../lib/trips';
+import { ArrowLeft, Check, Camera, ClipboardCheck } from 'lucide-react-native';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
@@ -53,8 +54,7 @@ const DeliveryVerificationScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.backIcon}>←</Text>
+            <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Delivery Verification</Text>
           <View style={styles.placeholder} />
@@ -69,9 +69,11 @@ const DeliveryVerificationScreen = () => {
                 activeOpacity={0.8}
                 onPress={() => step > s && setStep(s)}
               >
-                <Text style={[styles.stepNum, step >= s ? styles.stepNumActive : null]}>
-                  {step > s ? '✓' : s}
-                </Text>
+                {step > s ? (
+                  <Check size={16} color={Colors.white} strokeWidth={3} />
+                ) : (
+                  <Text style={[styles.stepNum, step >= s ? styles.stepNumActive : null]}>{s}</Text>
+                )}
               </TouchableOpacity>
               {s < 2 && (
                 <View style={[styles.stepLine, step > s ? styles.stepLineActive : null]} />
@@ -106,7 +108,7 @@ const DeliveryVerificationScreen = () => {
                     <Image source={{ uri: photos[i].uri }} style={styles.photoImg} />
                   ) : (
                     <View style={styles.photoEmpty}>
-                      <Text style={styles.photoEmoji}>📷</Text>
+                      <Camera size={26} color={Colors.gray400} strokeWidth={1.8} />
                       <Text style={styles.photoEmptyText}>Photo {i + 1}</Text>
                     </View>
                   )}
@@ -117,8 +119,9 @@ const DeliveryVerificationScreen = () => {
               <Text style={styles.addPhotoText}>+ Add Photo</Text>
             </TouchableOpacity>
             <View style={styles.notice}>
+              <ClipboardCheck size={16} color={Colors.gray600} strokeWidth={2} />
               <Text style={styles.noticeText}>
-                📋 Ensure the delivered cargo is clearly visible in the photo.
+                Ensure the delivered cargo is clearly visible in the photo.
               </Text>
             </View>
             <Button
@@ -312,11 +315,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     backgroundColor: '#FFF7ED',
     borderRadius: Radius.lg,
     padding: Spacing.md,
   },
   noticeText: {
+    flex: 1,
     fontSize: Typography.sm,
     color: Colors.gray700,
     lineHeight: 20,
