@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-07-26** (site-wide semi-curved corners) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-07-27** (login page composition polish) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).
@@ -54,6 +54,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | Debounced server-side search across list pages | ✅ (`0546e0f`) |
 | Brand/semantic color tokens as Tailwind utilities | ✅ (`12fa35b`) |
 | Site-wide semi-curved corners (replaced 224 `rounded-none` overrides → `rounded-lg`; shadcn primitives use idiomatic radii) | ✅ |
+| Login page: full-bleed logistics background image, removed center divider, unified logo/heading/card into one centered group | ✅ (PR #2) |
 
 ### Mobile app (`frontend/mobile-app/mercon-app`) — Expo, Driver + Operator
 | Piece | State |
