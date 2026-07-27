@@ -4,8 +4,16 @@ import {
   StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
   Dimensions,
 } from 'react-native';
+import { Check, Star, Truck, Package, Smartphone, Ban, type LucideIcon } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Avatar } from '../../components';
+
+const WAIT_TIPS: { Icon: LucideIcon; text: string }[] = [
+  { Icon: Truck, text: 'Stay with the vehicle at all times' },
+  { Icon: Package, text: 'Ensure cargo is secured and sealed' },
+  { Icon: Smartphone, text: 'Keep your phone charged and reachable' },
+  { Icon: Ban, text: 'Do not allow unauthorized access to cargo' },
+];
 
 const ReplacementDriverScreen = ({ navigation }: any) => {
   return (

@@ -3,6 +3,10 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, StatusBar, Image, Alert,
 } from 'react-native';
+import {
+  ArrowLeft, Siren, Phone, Camera, MapPin, Zap, Wrench, Hospital, Shield,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button } from '../../components';
 import { emergencyService } from '../../lib/emergency';
@@ -14,11 +18,11 @@ const EmergencyScreen = ({ navigation }: any) => {
   const [incidentType, setIncidentType] = useState('');
   const [sending, setSending] = useState(false);
 
-  const incidentTypes = [
-    { id: 'accident', label: 'Road Accident', icon: '💥' },
-    { id: 'breakdown', label: 'Vehicle Breakdown', icon: '🔧' },
-    { id: 'medical', label: 'Medical Emergency', icon: '🏥' },
-    { id: 'security', label: 'Security Threat', icon: '🛡️' },
+  const incidentTypes: { id: string; label: string; Icon: LucideIcon }[] = [
+    { id: 'accident', label: 'Road Accident', Icon: Zap },
+    { id: 'breakdown', label: 'Vehicle Breakdown', Icon: Wrench },
+    { id: 'medical', label: 'Medical Emergency', Icon: Hospital },
+    { id: 'security', label: 'Security Threat', Icon: Shield },
   ];
 
   const send = async () => {
@@ -55,11 +59,10 @@ const EmergencyScreen = ({ navigation }: any) => {
         {/* Red Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.backIcon}>←</Text>
+            <ArrowLeft size={22} color={Colors.white} strokeWidth={2.2} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerIcon}>🚨</Text>
+            <Siren size={30} color={Colors.white} strokeWidth={2} />
             <Text style={styles.headerTitle}>Emergency Report</Text>
             <Text style={styles.headerSub}>Your operator will be alerted immediately</Text>
           </View>
@@ -70,7 +73,7 @@ const EmergencyScreen = ({ navigation }: any) => {
         <View style={styles.body}>
           {/* Call Operator */}
           <TouchableOpacity style={styles.callBtn} activeOpacity={0.8} onPress={() => {}}>
-            <Text style={styles.callIcon}>📞</Text>
+            <Phone size={26} color={Colors.error} strokeWidth={2.2} />
             <Text style={styles.callText}>Call Operator Now</Text>
             <Text style={styles.callSub}>+966 11 234 5678</Text>
           </TouchableOpacity>
@@ -85,7 +88,7 @@ const EmergencyScreen = ({ navigation }: any) => {
                 activeOpacity={0.8}
                 onPress={() => setIncidentType(type.id)}
               >
-                <Text style={styles.incidentEmoji}>{type.icon}</Text>
+                <type.Icon size={26} color={incidentType === type.id ? Colors.error : Colors.gray600} strokeWidth={2} />
                 <Text style={[styles.incidentLabel, incidentType === type.id && styles.incidentLabelActive]}>
                   {type.label}
                 </Text>
@@ -107,7 +110,7 @@ const EmergencyScreen = ({ navigation }: any) => {
                   <Image source={{ uri: photos[i] }} style={styles.photoImg} />
                 ) : (
                   <View style={styles.photoPlaceholder}>
-                    <Text style={styles.photoPlaceholderIcon}>📷</Text>
+                    <Camera size={24} color={Colors.gray400} strokeWidth={1.8} />
                     <Text style={styles.photoPlaceholderText}>Add Photo</Text>
                   </View>
                 )}
@@ -130,7 +133,7 @@ const EmergencyScreen = ({ navigation }: any) => {
 
           {/* Current Location */}
           <View style={styles.locationCard}>
-            <Text style={styles.locationIcon}>📍</Text>
+            <MapPin size={22} color={Colors.gray600} strokeWidth={2} />
             <View>
               <Text style={styles.locationLabel}>Location</Text>
               <Text style={styles.locationValue}>Live location sharing turns on with GPS (coming soon)</Text>

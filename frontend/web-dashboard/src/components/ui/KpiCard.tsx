@@ -34,12 +34,6 @@ const trendAccent = {
   neutral: 'bg-border/50 group-hover:bg-border',
 } as const
 
-const trendIconContainer = {
-  up: 'bg-emerald-500/8 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/15',
-  down: 'bg-rose-500/8 border-rose-500/20 text-rose-600 dark:text-rose-400 group-hover:border-rose-500/40 group-hover:bg-rose-500/15',
-  neutral: 'bg-muted/40 border-border/50 text-muted-foreground group-hover:border-border group-hover:text-foreground',
-} as const
-
 const trendGlyph = {
   up: '↑',
   down: '↓',
@@ -90,10 +84,10 @@ export default function KpiCard({
 
   let renderedIcon = icon;
   if (icon && !React.isValidElement(icon)) {
-    // Treat as component type
-    renderedIcon = React.createElement(icon as React.ElementType, { className: 'size-3.5', style: color ? { color } : undefined });
+    // Treat as component type — render large, tinted with the card's brand color
+    renderedIcon = React.createElement(icon as React.ElementType, { className: 'h-9 w-9', style: color ? { color } : undefined });
   } else if (React.isValidElement(icon)) {
-    renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: 'size-3.5' });
+    renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: 'h-9 w-9', style: color ? { color } : undefined });
   }
 
   return (
@@ -121,21 +115,20 @@ export default function KpiCard({
         <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {displayTitle}
         </CardTitle>
-        {renderedIcon && (
-          <div className={cn(
-            "flex h-6 w-6 shrink-0 items-center justify-center border transition-all duration-200",
-            computedTrend ? trendIconContainer[computedTrend] : trendIconContainer.neutral
-          )} style={bg ? { backgroundColor: bg } : undefined}>
-            {renderedIcon as React.ReactNode}
-          </div>
-        )}
       </CardHeader>
 
       <div className="mx-4 h-px bg-border/60" />
 
       <CardContent className="flex flex-col gap-1.5 px-4 pt-2.5 pb-0">
-        <div className="font-mono text-2xl font-semibold leading-none tracking-tight text-foreground tabular-nums truncate">
-          {value as any}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 font-mono text-2xl font-semibold leading-none tracking-tight text-foreground tabular-nums truncate">
+            {value as any}
+          </div>
+          {renderedIcon && (
+            <div className="shrink-0" aria-hidden="true">
+              {renderedIcon as React.ReactNode}
+            </div>
+          )}
         </div>
 
         {(displayDescription || computedTrendValue) && (

@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
   Dimensions,
 } from 'react-native';
+import { Truck, MapPin, ArrowLeft, CornerUpRight, Volume2, VolumeX, Siren } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 
 const { width, height } = Dimensions.get('window');
@@ -22,11 +23,10 @@ const LiveNavigationScreen = ({ navigation }: any) => {
           <View style={styles.roadVertical} />
           <View style={styles.roadHorizontal} />
           <View style={styles.currentLocation}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.locationPin}>🚛</Text>
+            <Truck size={24} color={Colors.white} strokeWidth={2} />
           </View>
           <View style={styles.destinationPin}>
-            <Text style={styles.destPinIcon}>📍</Text>
+            <MapPin size={22} color={Colors.primary} strokeWidth={2.2} />
           </View>
           <Text style={styles.mapLabel}>LIVE MAP</Text>
           <Text style={styles.mapSubLabel}>Riyadh → Jeddah</Text>
@@ -35,18 +35,19 @@ const LiveNavigationScreen = ({ navigation }: any) => {
         {/* Top overlay */}
         <View style={styles.topOverlay}>
           <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
-            <Text style={styles.backArrow}>←</Text>
+            <ArrowLeft size={22} color={Colors.white} strokeWidth={2.2} />
           </TouchableOpacity>
           <View style={styles.nextTurnCard}>
-            <Text style={styles.nextTurnIcon}>↗</Text>
+            <CornerUpRight size={22} color={Colors.primary} strokeWidth={2.4} />
             <View>
               <Text style={styles.nextTurnLabel}>In 2.3 km</Text>
               <Text style={styles.nextTurnValue}>Turn right onto King Fahd Road</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.muteBtn} activeOpacity={0.8} onPress={() => setMuted(!muted)}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.muteIcon}>{muted ? '🔇' : '🔊'}</Text>
+            {muted
+              ? <VolumeX size={22} color={Colors.white} strokeWidth={2} />
+              : <Volume2 size={22} color={Colors.white} strokeWidth={2} />}
           </TouchableOpacity>
         </View>
 
@@ -70,8 +71,7 @@ const LiveNavigationScreen = ({ navigation }: any) => {
           activeOpacity={0.8}
           onPress={() => navigation?.navigate('Emergency')}
         >
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.emergencyIcon}>🚨</Text>
+          <Siren size={26} color={Colors.white} strokeWidth={2} />
         </TouchableOpacity>
       </View>
 

@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
   Dimensions, Animated,
 } from 'react-native';
+import { Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 
 const SplashScreen = () => {
@@ -31,9 +32,8 @@ const SplashScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
           <View style={styles.logoBox}>
-            <Text style={styles.logoIcon}>🚛</Text>
+            <Truck size={40} color={Colors.white} strokeWidth={2} />
           </View>
         </View>
         <Text style={styles.brand}>MERCON</Text>

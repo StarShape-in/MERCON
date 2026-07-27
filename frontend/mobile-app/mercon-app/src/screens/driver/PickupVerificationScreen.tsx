@@ -4,7 +4,7 @@ import {
   StatusBar, Image, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Info, Camera, Plus } from 'lucide-react-native';
+import { Info, Camera, Plus, ArrowLeft } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
@@ -55,8 +55,7 @@ const PickupVerificationScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.backIcon}>←</Text>
+            <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Pickup Verification</Text>
           <View style={styles.placeholder} />
