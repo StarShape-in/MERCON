@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, MapPin } from 'lucide-react';
 
@@ -14,6 +14,7 @@ import { vehicleService } from '@/services/vehicleService';
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [cargoType, setCargoType] = useState('General Goods');
   const [hazmat, setHazmat] = useState(false);
   const [plannedStart, setPlannedStart] = useState('');
@@ -54,6 +55,7 @@ export default function CreateTripPage() {
   const createMutation = useMutation({
     mutationFn: (payload: CreateTripPayload) => tripService.create(payload),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
       navigate('/trips');
     },
   });

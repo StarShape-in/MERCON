@@ -6,8 +6,15 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
   if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
 
+  const include = {
+    customer: true,
+    vehicle: true,
+    stops: { orderBy: { stop_sequence: 'asc' as const } },
+  };
+
   try {
-    const trip = await prisma.trip.findFirst({
+    // Prefer an in-progress / dispatched trip.
+    let trip = await prisma.trip.findFirst({
       where: {
         driverId,
         deletedAt: null,
@@ -15,18 +22,21 @@ export const getCurrentTrip = async (req: Request, res: Response) => {
           in: [TripStatus.Dispatched, TripStatus.AtPickup, TripStatus.InTransit, TripStatus.AtDelivery]
         }
       },
-      include: {
-        customer: true,
-        vehicle: true,
-        stops: { orderBy: { stop_sequence: 'asc' } }
-      }
+      include,
+      orderBy: { updatedAt: 'desc' },
     });
 
+    // Otherwise show the next upcoming trip that's assigned but not yet dispatched
+    // (created for this driver in the operator panel).
     if (!trip) {
-      return res.json({ success: true, data: null }); // No active trip
+      trip = await prisma.trip.findFirst({
+        where: { driverId, deletedAt: null, status: TripStatus.Draft },
+        include,
+        orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
+      });
     }
 
-    res.json({ success: true, data: trip });
+    res.json({ success: true, data: trip ?? null });
   } catch (error) {
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }

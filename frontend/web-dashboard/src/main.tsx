@@ -7,9 +7,12 @@ import AppRouter from '@/router';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,        // 30s before refetch
+      // Always show fresh data when landing on a page (create/edit results
+      // appear immediately instead of only after a hard refresh).
+      staleTime: 0,
+      refetchOnMount: 'always',
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
     },
   },
 });
