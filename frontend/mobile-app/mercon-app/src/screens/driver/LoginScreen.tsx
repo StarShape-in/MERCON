@@ -76,26 +76,22 @@ const LoginScreen = () => {
         {/* Logo — centered, visual anchor */}
         <Image source={logo} style={styles.logo} resizeMode="contain" />
 
-        {/* Welcome */}
-        <Text style={styles.welcomeKicker}>Welcome Back</Text>
-        <Text style={styles.welcomeTitle}>Sign in to your workspace</Text>
-
         {/* Card */}
         <View style={styles.card}>
           <View style={styles.form}>
             <Input
-              label="Username or Mobile Number"
+              label="Username"
               value={identifier}
               onChangeText={setIdentifier}
-              placeholder="Username or +9665XXXXXXXX"
+              placeholder="Enter your username"
               autoCapitalize="none"
               iconLeft={<User size={20} color={Colors.gray400} />}
             />
             <Input
-              label="Password or License Number"
+              label="Password"
               value={secret}
               onChangeText={setSecret}
-              placeholder="Enter your password or license number"
+              placeholder="Enter your password"
               autoCapitalize="none"
               secureTextEntry={!showSecret}
               iconLeft={<Lock size={20} color={Colors.gray400} />}
@@ -152,31 +148,17 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: 64,          // below the safe area
-    paddingBottom: Spacing.lg,
-    justifyContent: 'flex-start',
+    paddingVertical: Spacing.lg,
+    justifyContent: 'center',   // center the login composition on the page
   },
   logo: {
     alignSelf: 'center',
     width: 200,
     height: 106,
   },
-  welcomeKicker: {
-    marginTop: Spacing['2xl'], // 32
-    textAlign: 'center',
-    fontSize: Typography.sm,
-    fontWeight: '500',
-    color: Colors.primary,
-  },
-  welcomeTitle: {
-    marginTop: Spacing.sm,     // 8
-    textAlign: 'center',
-    fontSize: Typography['2xl'],
-    fontWeight: '700',
-    color: '#1E1F28',
-  },
   card: {
-    marginTop: 28,
+    marginTop: Spacing['3xl'],   // 40 — breathing room under the logo
+    marginHorizontal: Spacing.sm, // slightly narrower than full width
     backgroundColor: Colors.white,
     borderRadius: Radius['2xl'],
     paddingHorizontal: Spacing.lg,
