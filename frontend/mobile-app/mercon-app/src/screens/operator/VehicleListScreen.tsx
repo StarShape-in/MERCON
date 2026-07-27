@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { Truck, Weight, Gauge } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
@@ -27,8 +28,7 @@ const VehicleCard = ({ item }: { item: OperatorVehicle }) => (
   <View style={styles.card}>
     <View style={styles.cardTop}>
       <View style={styles.vehicleIconBox}>
-        {/* TODO: replace icon placeholders with lucide-react-native */}
-        <Text style={styles.vehicleEmoji}>🚛</Text>
+        <Truck size={26} color={Colors.primary} strokeWidth={2} />
       </View>
       <View style={styles.vehicleInfo}>
         <View style={styles.vehicleIdRow}>
@@ -40,8 +40,14 @@ const VehicleCard = ({ item }: { item: OperatorVehicle }) => (
           {item.ref_id ? ` · ${item.ref_id}` : ''}
         </Text>
         <View style={styles.vehicleMeta}>
-          <Text style={styles.metaText}>⚖️ {item.capacity_kg.toLocaleString()} kg</Text>
-          <Text style={styles.metaText}>📏 {Math.round(item.current_odometer).toLocaleString()} km</Text>
+          <View style={styles.metaItem}>
+            <Weight size={13} color={Colors.gray500} strokeWidth={2} />
+            <Text style={styles.metaText}>{item.capacity_kg.toLocaleString()} kg</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Gauge size={13} color={Colors.gray500} strokeWidth={2} />
+            <Text style={styles.metaText}>{Math.round(item.current_odometer).toLocaleString()} km</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -127,7 +133,7 @@ const VehicleListScreen = () => {
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>🚛</Text>
+              <Truck size={44} color={Colors.gray400} strokeWidth={1.6} />
               <Text style={styles.emptyText}>{error ?? 'No vehicles match your search'}</Text>
             </View>
           )
@@ -262,6 +268,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.md,
     marginTop: 2,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   metaText: {
     fontSize: Typography.xs,

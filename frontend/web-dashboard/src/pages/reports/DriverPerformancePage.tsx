@@ -8,6 +8,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import { DriverBadge, CheckBadge, RiskAlert, RouteLine } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import { reportsService, type DriverPerfRow } from '@/services/reportsService';
 
@@ -76,10 +77,10 @@ export default function DriverPerformancePage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KpiCard label="Total Drivers" value={isLoading ? '—' : kpis.totalDrivers.toString()} icon={Users} color="#2563EB" bg="#EFF6FF" />
-          <KpiCard label="Available Now" value={isLoading ? '—' : kpis.available.toString()} icon={CheckCircle2} color="#16A34A" bg="#F0FDF4" />
-          <KpiCard label="Avg. Risk Score" value={isLoading ? '—' : (kpis.avgRisk == null ? 'N/A' : kpis.avgRisk.toFixed(1))} icon={AlertTriangle} color="#DC2626" bg="#FEF2F2" />
-          <KpiCard label="Total Trips" value={isLoading ? '—' : kpis.totalTrips.toLocaleString()} icon={Route} color="#D97706" bg="#FFFBEB" />
+          <KpiCard label="Total Drivers" value={isLoading ? '—' : kpis.totalDrivers.toString()} icon={DriverBadge} color="#2563EB" bg="#EFF6FF" />
+          <KpiCard label="Available Now" value={isLoading ? '—' : kpis.available.toString()} icon={CheckBadge} color="#16A34A" bg="#F0FDF4" />
+          <KpiCard label="Avg. Risk Score" value={isLoading ? '—' : (kpis.avgRisk == null ? 'N/A' : kpis.avgRisk.toFixed(1))} icon={RiskAlert} color="#DC2626" bg="#FEF2F2" />
+          <KpiCard label="Total Trips" value={isLoading ? '—' : kpis.totalTrips.toLocaleString()} icon={RouteLine} color="#D97706" bg="#FFFBEB" />
         </div>
 
         {/* Charts */}

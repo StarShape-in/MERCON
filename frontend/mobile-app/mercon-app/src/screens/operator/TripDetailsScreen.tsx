@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
   Dimensions,
 } from 'react-native';
+import { ArrowLeft, ArrowRight, Check, Star, Phone, Truck, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, Badge, Avatar } from '../../components';
 
@@ -26,8 +27,7 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
         {/* Dark Header Card */}
         <View style={styles.darkHeader}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.backIcon}>←</Text>
+            <ArrowLeft size={22} color={Colors.white} strokeWidth={2.2} />
           </TouchableOpacity>
           <View style={styles.headerBody}>
             <View style={styles.headerTop}>
@@ -41,7 +41,7 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
               </View>
               <View style={styles.routeArrow}>
                 <View style={styles.dashedLine} />
-                <Text style={styles.routeArrowIcon}>→</Text>
+                <ArrowRight size={16} color={Colors.gray400} strokeWidth={2.2} />
               </View>
               <View style={styles.routePoint}>
                 <View style={styles.routeDotOrange} />
@@ -77,7 +77,7 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
                     step.done ? styles.timelineCircleDone : null,
                     step.active ? styles.timelineCircleActive : null,
                   ]}>
-                    {step.done && !step.active && <Text style={styles.timelineCheck}>✓</Text>}
+                    {step.done && !step.active && <Check size={14} color={Colors.white} strokeWidth={3} />}
                     {step.active && <View style={styles.timelinePulse} />}
                   </View>
                   {i < TIMELINE_STEPS.length - 1 && (
@@ -130,18 +130,18 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
                 <Text style={styles.assignName}>Ahmed Al-Rashidi</Text>
                 <Text style={styles.assignRole}>Driver · DRV-2024-0112</Text>
                 <View style={styles.assignRating}>
-                  {/* TODO: replace icon placeholders with lucide-react-native */}
-                  <Text style={styles.star}>★ 4.9</Text>
+                  <Star size={14} color="#F5A623" strokeWidth={2} fill="#F5A623" />
+                  <Text style={styles.star}>4.9</Text>
                   <Text style={styles.assignTrips}>243 trips</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.callBtn} activeOpacity={0.8} onPress={() => {}}>
-                <Text style={styles.callBtnText}>📞</Text>
+                <Phone size={20} color={Colors.white} strokeWidth={2.2} />
               </TouchableOpacity>
             </View>
             <View style={styles.assignDivider} />
             <View style={styles.vehicleRow}>
-              <Text style={styles.vehicleIcon}>🚛</Text>
+              <Truck size={22} color={Colors.gray600} strokeWidth={2} />
               <View>
                 <Text style={styles.vehicleName}>TRK-2041 · Mercedes-Benz Actros</Text>
                 <Text style={styles.vehiclePlate}>Plate: أ ب ج 1234</Text>
@@ -153,7 +153,8 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
         {/* Actions */}
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8} onPress={() => {}}>
-            <Text style={styles.secondaryBtnText}>📍 Track Live</Text>
+            <MapPin size={16} color={Colors.primary} strokeWidth={2.2} />
+            <Text style={styles.secondaryBtnText}>Track Live</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.8} onPress={() => {}}>
             <Text style={styles.primaryBtnText}>Edit Trip</Text>
@@ -448,6 +449,9 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: Colors.primary,
     borderRadius: Radius.xl,

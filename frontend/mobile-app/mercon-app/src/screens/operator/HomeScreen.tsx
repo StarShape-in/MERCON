@@ -3,6 +3,10 @@ import {
   View, Text, ScrollView, StyleSheet, SafeAreaView, StatusBar,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
+import {
+  Truck, ClipboardList, User, Route, Wallet, FileText, Hand, TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge } from '../../components';
 import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
@@ -22,11 +26,13 @@ const TripItem = ({ item }: { item: OperatorTrip }) => (
       <StatusBadge status={statusLabel(item.status as TripStatus)} />
     </View>
     <Text style={styles.tripRoute}>{item.customer?.name ?? 'Customer'}</Text>
-    <Text style={styles.tripDriver}>
-      {/* TODO: replace icon placeholders with lucide-react-native */}
-      👤 {item.driver ? `${item.driver.first_name} ${item.driver.last_name}` : 'Unassigned'}
-      {item.vehicle?.plate_number ? ` · ${item.vehicle.plate_number}` : ''}
-    </Text>
+    <View style={styles.tripDriverRow}>
+      <User size={13} color={Colors.gray500} strokeWidth={2} />
+      <Text style={styles.tripDriver}>
+        {item.driver ? `${item.driver.first_name} ${item.driver.last_name}` : 'Unassigned'}
+        {item.vehicle?.plate_number ? ` · ${item.vehicle.plate_number}` : ''}
+      </Text>
+    </View>
   </View>
 );
 
@@ -39,14 +45,14 @@ const OperatorHomeScreen = () => {
   const firstName = (profile?.name || 'Operator').split(' ')[0];
   const docsExpiring = kpis?.docs_expiring_soon.value ?? 0;
 
-  const KPI_STATS = kpis
+  const KPI_STATS: { label: string; value: string; Icon: LucideIcon }[] = kpis
     ? [
-        { label: 'Active Trips', value: String(activeTrips.length), icon: '🚛' },
-        { label: 'Trips (MTD)', value: String(kpis.total_trips.value), icon: '📋' },
-        { label: 'Available Drivers', value: String(kpis.active_drivers.value), icon: '👤' },
-        { label: 'Fleet On Trip', value: String(kpis.fleet_on_trip.value), icon: '🛣️' },
-        { label: 'Revenue (MTD)', value: money(kpis.revenue_this_month.value), icon: '💰' },
-        { label: 'Docs Expiring', value: String(docsExpiring), icon: '📄' },
+        { label: 'Active Trips', value: String(activeTrips.length), Icon: Truck },
+        { label: 'Trips (MTD)', value: String(kpis.total_trips.value), Icon: ClipboardList },
+        { label: 'Available Drivers', value: String(kpis.active_drivers.value), Icon: User },
+        { label: 'Fleet On Trip', value: String(kpis.fleet_on_trip.value), Icon: Route },
+        { label: 'Revenue (MTD)', value: money(kpis.revenue_this_month.value), Icon: Wallet },
+        { label: 'Docs Expiring', value: String(docsExpiring), Icon: FileText },
       ]
     : [];
 
@@ -63,7 +69,10 @@ const OperatorHomeScreen = () => {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.operatorName}>{firstName} 👋</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.operatorName}>{firstName}</Text>
+              <Hand size={18} color="#F5A623" strokeWidth={2.2} />
+            </View>
             <Text style={styles.operatorRole}>Operator</Text>
           </View>
         </View>
@@ -78,7 +87,7 @@ const OperatorHomeScreen = () => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kpiRow}>
               {KPI_STATS.map((kpi) => (
                 <View key={kpi.label} style={styles.kpiCard}>
-                  <Text style={styles.kpiIcon}>{kpi.icon}</Text>
+                  <kpi.Icon size={22} color={Colors.primary} strokeWidth={2} />
                   <Text style={styles.kpiValue}>{kpi.value}</Text>
                   <Text style={styles.kpiLabel}>{kpi.label}</Text>
                 </View>
@@ -89,7 +98,7 @@ const OperatorHomeScreen = () => {
             {docsExpiring > 0 && (
               <View style={styles.renewalAlert}>
                 <View style={styles.renewalAlertLeft}>
-                  <Text style={styles.renewalAlertIcon}>⚠️</Text>
+                  <TriangleAlert size={20} color="#D97706" strokeWidth={2} />
                   <View>
                     <Text style={styles.renewalAlertTitle}>{docsExpiring} document(s) expiring soon</Text>
                     <Text style={styles.renewalAlertSub}>Renewals due within the next 30 days</Text>
@@ -130,6 +139,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.gray500,
   },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   operatorName: {
     fontSize: Typography.xl,
     fontWeight: '700',
@@ -240,6 +250,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.gray900,
   },
+  tripDriverRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   tripDriver: {
     fontSize: Typography.xs,
     color: Colors.gray500,

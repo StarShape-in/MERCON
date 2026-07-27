@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import { ClockIcon, RiskAlert, CheckBadge, InvoiceDoc } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import DataTable from '@/components/ui/DataTable';
 import { invoiceService, type Invoice, type InvoiceStatus } from '@/services/invoiceService';
@@ -138,28 +139,28 @@ export default function PaymentStatusPage() {
           <KpiCard
             label="Total Outstanding"
             value={isLoading ? '—' : sar(kpis.outstanding)}
-            icon={Clock}
+            icon={ClockIcon}
             color="#2563EB"
             bg="#EFF6FF"
           />
           <KpiCard
             label="Total Overdue"
             value={isLoading ? '—' : sar(kpis.overdue)}
-            icon={AlertTriangle}
+            icon={RiskAlert}
             color="#DC2626"
             bg="#FEF2F2"
           />
           <KpiCard
             label="Paid This Month"
             value={isLoading ? '—' : sar(kpis.paidThisMonth)}
-            icon={CheckCircle2}
+            icon={CheckBadge}
             color="#16A34A"
             bg="#F0FDF4"
           />
           <KpiCard
             label="Draft Invoices"
             value={isLoading ? '—' : kpis.draftCount.toString()}
-            icon={FileText}
+            icon={InvoiceDoc}
             color="#D97706"
             bg="#FFFBEB"
           />

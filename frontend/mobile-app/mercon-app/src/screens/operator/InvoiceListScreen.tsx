@@ -3,6 +3,9 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import {
+  FileText, Hourglass, Siren, Wallet, Truck, Calendar, Clock, type LucideIcon,
+} from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
@@ -34,12 +37,22 @@ const InvoiceCard = ({ item }: { item: OperatorInvoice }) => (
       </View>
     </View>
     <View style={styles.cardMeta}>
-      {/* TODO: replace icon placeholders with lucide-react-native */}
-      {item.trip?.ref_id ? <Text style={styles.metaText}>🚛 {item.trip.ref_id}</Text> : null}
-      <Text style={styles.metaText}>📅 Issued: {formatDate(item.createdAt)}</Text>
-      <Text style={[styles.metaText, item.status === 'Overdue' ? styles.overdueText : null]}>
-        ⏰ Due: {formatDate(item.due_date)}
-      </Text>
+      {item.trip?.ref_id ? (
+        <View style={styles.metaItem}>
+          <Truck size={13} color={Colors.gray500} strokeWidth={2} />
+          <Text style={styles.metaText}>{item.trip.ref_id}</Text>
+        </View>
+      ) : null}
+      <View style={styles.metaItem}>
+        <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
+        <Text style={styles.metaText}>Issued: {formatDate(item.createdAt)}</Text>
+      </View>
+      <View style={styles.metaItem}>
+        <Clock size={13} color={item.status === 'Overdue' ? Colors.error : Colors.gray500} strokeWidth={2} />
+        <Text style={[styles.metaText, item.status === 'Overdue' ? styles.overdueText : null]}>
+          Due: {formatDate(item.due_date)}
+        </Text>
+      </View>
     </View>
   </View>
 );
@@ -53,11 +66,11 @@ const InvoiceListScreen = () => {
   const totalValue = invoices.reduce((sum, i) => sum + i.total_amount, 0);
   const count = (status: string) => invoices.filter((i) => i.status === status).length;
 
-  const STAT_CARDS = [
-    { label: 'Total Invoices', value: String(invoices.length), icon: '📄', color: Colors.gray900 },
-    { label: 'Pending', value: String(count('Pending')), icon: '⏳', color: '#D97706' },
-    { label: 'Overdue', value: String(count('Overdue')), icon: '🚨', color: Colors.error },
-    { label: 'Total Value', value: `SAR ${(totalValue / 1000).toFixed(0)}K`, icon: '💰', color: Colors.success },
+  const STAT_CARDS: { label: string; value: string; Icon: LucideIcon; color: string }[] = [
+    { label: 'Total Invoices', value: String(invoices.length), Icon: FileText, color: Colors.gray900 },
+    { label: 'Pending', value: String(count('Pending')), Icon: Hourglass, color: '#D97706' },
+    { label: 'Overdue', value: String(count('Overdue')), Icon: Siren, color: Colors.error },
+    { label: 'Total Value', value: `SAR ${(totalValue / 1000).toFixed(0)}K`, Icon: Wallet, color: Colors.success },
   ];
 
   const filtered = useMemo(() => {
@@ -84,7 +97,7 @@ const InvoiceListScreen = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsRow}>
         {STAT_CARDS.map((s) => (
           <View key={s.label} style={styles.statCard}>
-            <Text style={styles.statIcon}>{s.icon}</Text>
+            <s.Icon size={20} color={s.color} strokeWidth={2} />
             <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
             <Text style={styles.statLabel}>{s.label}</Text>
           </View>
@@ -122,7 +135,7 @@ const InvoiceListScreen = () => {
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>📄</Text>
+              <FileText size={44} color={Colors.gray400} strokeWidth={1.6} />
               <Text style={styles.emptyText}>{error ?? 'No invoices found'}</Text>
             </View>
           )
@@ -246,6 +259,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   metaText: {
     fontSize: Typography.xs,

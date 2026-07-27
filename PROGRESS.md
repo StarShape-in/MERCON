@@ -65,7 +65,10 @@ GPS background hardening + device verification, then real-phone testing + releas
 | API client (JWT interceptor) + SecureStore auth context (auto-login) | ✅ |
 | **Unified login** (single form, auto-detects driver vs operator by credentials — no mode toggle) + **role routing** (`app/index.tsx`); redesigned UI (real logo, hero background image `login-hero.png`, simplified Username/Password inputs — driver: phone/license, no welcome heading, centered compact card, notify-operator button below card) | ✅ (`c3c83cf`) |
 | Driver **Home**: real current trip, status updates, cargo + POD photos (camera), photo-gated status | ✅ (`fee951d`, `dd184c1`) |
-| Bottom nav redesign (driver + operator): lucide icons (no emojis), orange "capsule" active indicator, dropped lower; tab/hub screens switch instantly (no slide/fade). Profile + Home screen emojis converted to lucide icons | ✅ |
+| Bottom nav redesign (driver + operator): lucide icons, orange "capsule" active indicator (springs in on page switch), sized like a standard app bar, dropped lower | ✅ |
+| **App-wide emoji → lucide icon sweep**: every driver + operator screen, shared `SearchInput`, and the `docIcon`/`notificationIcon` helpers now use lucide icons (no emojis anywhere in the UI) | ✅ |
+| Active-trip card redesign (Home): fixed edge-clipping (DarkCard padding) + route timeline, divider, tidy meta row | ✅ |
+| Photo upload: camera **or** gallery (`choosePhoto` chooser) on pickup/delivery/home; pickup checklist removed, larger confirm button | ✅ |
 
 ### Mobile backend endpoints (`/api/mobile/*`)
 | Endpoint | State |

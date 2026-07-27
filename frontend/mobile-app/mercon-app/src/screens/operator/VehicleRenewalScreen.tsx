@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
   Dimensions, Switch,
 } from 'react-native';
+import { ArrowLeft, Calendar, ArrowRight, Check, Bell, CircleCheck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge } from '../../components';
 
@@ -77,8 +78,7 @@ const RenewalCard = ({ item }: any) => {
 
       <View style={styles.expiryRow}>
         <View style={styles.expiryItem}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.expiryIcon}>📅</Text>
+          <Calendar size={18} color={Colors.gray500} strokeWidth={2} />
           <View>
             <Text style={styles.expiryLabel}>Expiry Date</Text>
             <Text style={[styles.expiryDate, item.daysLeft <= 0 ? styles.overdueDate : null]}>
@@ -97,12 +97,14 @@ const RenewalCard = ({ item }: any) => {
         <Text style={styles.costText}>Est. cost: {item.cost}</Text>
         {item.status !== 'renewed' && (
           <TouchableOpacity style={styles.renewBtn} activeOpacity={0.8} onPress={() => {}}>
-            <Text style={styles.renewBtnText}>Renew Now →</Text>
+            <Text style={styles.renewBtnText}>Renew Now</Text>
+            <ArrowRight size={16} color={Colors.white} strokeWidth={2.4} />
           </TouchableOpacity>
         )}
         {item.status === 'renewed' && (
           <View style={styles.renewedBadge}>
-            <Text style={styles.renewedBadgeText}>✓ Renewed</Text>
+            <Check size={14} color={Colors.success} strokeWidth={3} />
+            <Text style={styles.renewedBadgeText}>Renewed</Text>
           </View>
         )}
       </View>
@@ -131,8 +133,7 @@ const VehicleRenewalScreen = ({ navigation }: any) => {
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.backIcon}>←</Text>
+          <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Vehicle Renewals</Text>
         <View style={styles.placeholder} />
@@ -156,8 +157,7 @@ const VehicleRenewalScreen = ({ navigation }: any) => {
       {/* Alerts Banner */}
       <View style={styles.alertBanner}>
         <View style={styles.alertLeft}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.alertIcon}>🔔</Text>
+          <Bell size={20} color={Colors.primary} strokeWidth={2} />
           <View>
             <Text style={styles.alertTitle}>Renewal Alerts</Text>
             <Text style={styles.alertSub}>Get notified 30 days before expiry</Text>
@@ -194,7 +194,7 @@ const VehicleRenewalScreen = ({ navigation }: any) => {
         renderItem={({ item }) => <RenewalCard item={item} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>✅</Text>
+            <CircleCheck size={44} color={Colors.success} strokeWidth={1.8} />
             <Text style={styles.emptyText}>No items in this category</Text>
           </View>
         }
@@ -391,6 +391,9 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
   },
   renewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: Colors.primary,
     borderRadius: Radius.lg,
     paddingHorizontal: Spacing.md,
@@ -402,6 +405,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   renewedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#DCFCE7',
     borderRadius: Radius.lg,
     paddingHorizontal: Spacing.md,

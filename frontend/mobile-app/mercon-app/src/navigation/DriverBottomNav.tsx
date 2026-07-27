@@ -32,10 +32,10 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Capsule settles in when the active page changes.
-  const anim = useRef(new Animated.Value(1)).current;
+  // Capsule settles in when the active page changes. Start hidden (0) so the
+  // first paint doesn't flash the capsule before the entrance animation.
+  const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    anim.setValue(0);
     Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 7, tension: 90 }).start();
   }, [pathname, anim]);
 

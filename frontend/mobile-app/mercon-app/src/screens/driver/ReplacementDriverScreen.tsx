@@ -23,8 +23,7 @@ const ReplacementDriverScreen = ({ navigation }: any) => {
         {/* Success Icon */}
         <View style={styles.successSection}>
           <View style={styles.successCircle}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.successIcon}>✓</Text>
+            <Check size={40} color={Colors.white} strokeWidth={3} />
           </View>
           <Text style={styles.successTitle}>Replacement Requested</Text>
           <Text style={styles.successSub}>
@@ -60,8 +59,7 @@ const ReplacementDriverScreen = ({ navigation }: any) => {
             <Text style={styles.driverName}>Khalid Al-Zahrani</Text>
             <Text style={styles.driverId}>DRV-2024-0147</Text>
             <View style={styles.ratingRow}>
-              {/* TODO: replace icon placeholders with lucide-react-native */}
-              <Text style={styles.starIcon}>★</Text>
+              <Star size={14} color="#F5A623" strokeWidth={2} fill="#F5A623" />
               <Text style={styles.rating}>4.9</Text>
               <Text style={styles.ratingCount}>(312 trips)</Text>
             </View>
@@ -97,13 +95,11 @@ const ReplacementDriverScreen = ({ navigation }: any) => {
         {/* Instructions */}
         <View style={styles.instructionCard}>
           <Text style={styles.instructionTitle}>While You Wait</Text>
-          {[
-            '🚛 Stay with the vehicle at all times',
-            '📦 Ensure cargo is secured and sealed',
-            '📱 Keep your phone charged and reachable',
-            '🚫 Do not allow unauthorized access to cargo',
-          ].map((item, i) => (
-            <Text key={i} style={styles.instructionItem}>{item}</Text>
+          {WAIT_TIPS.map((tip, i) => (
+            <View key={i} style={styles.instructionRow}>
+              <tip.Icon size={16} color={Colors.gray600} strokeWidth={2} />
+              <Text style={styles.instructionItem}>{tip.text}</Text>
+            </View>
           ))}
         </View>
 
@@ -309,7 +305,14 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     marginBottom: Spacing.xs,
   },
+  instructionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
   instructionItem: {
+    flex: 1,
     fontSize: Typography.sm,
     color: Colors.gray700,
     lineHeight: 22,

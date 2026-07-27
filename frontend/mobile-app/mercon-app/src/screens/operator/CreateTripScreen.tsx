@@ -4,6 +4,7 @@ import {
   StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
   Dimensions,
 } from 'react-native';
+import { ArrowLeft, Check, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Input } from '../../components';
 
@@ -39,8 +40,7 @@ const CreateTripScreen = ({ navigation }: any) => {
 
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.backIcon}>←</Text>
+          <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create New Trip</Text>
         <View style={styles.placeholder} />
@@ -60,7 +60,7 @@ const CreateTripScreen = ({ navigation }: any) => {
               <Text style={[styles.pickerItemText, customer === c ? styles.pickerItemTextActive : null]}>
                 {c}
               </Text>
-              {customer === c && <Text style={styles.checkmark}>✓</Text>}
+              {customer === c && <Check size={18} color={Colors.primary} strokeWidth={3} />}
             </TouchableOpacity>
           ))}
         </View>
@@ -209,8 +209,7 @@ const CreateTripScreen = ({ navigation }: any) => {
               onPress={() => v.status !== 'on_trip' && setSelectedVehicle(v.id)}
             >
               <View style={[styles.driverAvatar, styles.vehicleAvatarBg]}>
-                {/* TODO: replace icon placeholders with lucide-react-native */}
-                <Text style={styles.vehicleAvatarEmoji}>🚛</Text>
+                <Truck size={22} color={Colors.primary} strokeWidth={2} />
               </View>
               <View style={styles.driverInfo}>
                 <Text style={[styles.driverName, v.status === 'on_trip' ? styles.disabledText : null]}>

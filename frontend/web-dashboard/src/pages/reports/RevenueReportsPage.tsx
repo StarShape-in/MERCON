@@ -8,6 +8,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import { MoneyBills, InvoiceDoc, ActivityPulse, RevenueChart } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import { reportsService } from '@/services/reportsService';
 
@@ -59,28 +60,28 @@ export default function RevenueReportsPage() {
           <KpiCard
             label="Gross Revenue (Paid)"
             value={isLoading ? '—' : sar(data?.total_all_time ?? 0)}
-            icon={DollarSign}
+            icon={MoneyBills}
             color="#16A34A"
             bg="#F0FDF4"
           />
           <KpiCard
             label="Outstanding (Unpaid)"
             value={isLoading ? '—' : sar(data?.outstanding_total ?? 0)}
-            icon={FileText}
+            icon={InvoiceDoc}
             color="#DC2626"
             bg="#FEF2F2"
           />
           <KpiCard
             label="Avg Revenue / Invoice"
             value={isLoading ? '—' : sar(data?.avg_per_invoice ?? 0)}
-            icon={Activity}
+            icon={ActivityPulse}
             color="#D97706"
             bg="#FFFBEB"
           />
           <KpiCard
             label="Paid Invoices"
             value={isLoading ? '—' : (data?.paid_invoice_count ?? 0).toLocaleString('en-US')}
-            icon={TrendingUp}
+            icon={RevenueChart}
             color="#2563EB"
             bg="#EFF6FF"
           />

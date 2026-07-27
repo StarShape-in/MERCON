@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { User, Package, Calendar, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
@@ -35,11 +36,19 @@ const TripCard = ({ item }: { item: OperatorTrip }) => (
     </View>
     <Text style={styles.tripRoute}>{item.customer?.name ?? 'Customer'}</Text>
     <View style={styles.cardMeta}>
-      {/* TODO: replace icon placeholders with lucide-react-native */}
-      <Text style={styles.metaText}>👤 {driverName(item)}</Text>
-      <Text style={styles.metaText}>📦 {item.cargo_type}</Text>
+      <View style={styles.metaItem}>
+        <User size={13} color={Colors.gray500} strokeWidth={2} />
+        <Text style={styles.metaText}>{driverName(item)}</Text>
+      </View>
+      <View style={styles.metaItem}>
+        <Package size={13} color={Colors.gray500} strokeWidth={2} />
+        <Text style={styles.metaText}>{item.cargo_type}</Text>
+      </View>
     </View>
-    <Text style={styles.tripDate}>📅 {formatDate(item.planned_start ?? item.createdAt)}</Text>
+    <View style={styles.metaItem}>
+      <Calendar size={13} color={Colors.gray400} strokeWidth={2} />
+      <Text style={styles.tripDate}>{formatDate(item.planned_start ?? item.createdAt)}</Text>
+    </View>
   </View>
 );
 
@@ -121,7 +130,7 @@ const TripListScreen = () => {
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🚛</Text>
+              <Truck size={44} color={Colors.gray400} strokeWidth={1.6} />
               <Text style={styles.emptyText}>{error ?? 'No trips match your filters'}</Text>
             </View>
           )
@@ -232,6 +241,11 @@ const styles = StyleSheet.create({
   cardMeta: {
     flexDirection: 'row',
     gap: Spacing.lg,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   metaText: {
     fontSize: Typography.xs,

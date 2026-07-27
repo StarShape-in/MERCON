@@ -4,6 +4,7 @@ import { TrendingUp, Truck, Users, FileText, AlertTriangle, Download } from 'luc
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import { RevenueChart, TruckMotion, FleetTruck, DriverBadge } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import { reportsService } from '@/services/reportsService';
 
@@ -77,7 +78,7 @@ export default function ReportsDashboardPage() {
             label="Total Revenue (Month)"
             value={`SAR ${kpis?.revenue_this_month?.value?.toLocaleString() || '0'}`}
             delta={kpis?.revenue_this_month?.delta}
-            icon={TrendingUp}
+            icon={RevenueChart}
             color="#16A34A"
             bg="#F0FDF4"
           />
@@ -85,7 +86,7 @@ export default function ReportsDashboardPage() {
             label="Total Trips"
             value={kpis?.total_trips?.value?.toString() || '0'}
             delta={kpis?.total_trips?.delta}
-            icon={Truck}
+            icon={TruckMotion}
             color="#E8450F"
             bg="#E8450F1A"
           />
@@ -93,14 +94,14 @@ export default function ReportsDashboardPage() {
             label="Fleet Available"
             value={kpis?.fleet_available?.value?.toString() || '0'}
             subtitle={`${kpis?.fleet_on_trip?.value || 0} Currently on Trip`}
-            icon={Truck}
+            icon={FleetTruck}
             color="#2563EB"
             bg="#EFF6FF"
           />
           <KpiCard
             label="Active Drivers"
             value={kpis?.active_drivers?.value?.toString() || '0'}
-            icon={Users}
+            icon={DriverBadge}
             color="#CA8A04"
             bg="#FEF9C3"
           />

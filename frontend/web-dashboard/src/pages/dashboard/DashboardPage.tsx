@@ -11,6 +11,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import { TruckMotion, FleetTruck, MoneyBills, CalendarAlert } from '@/components/ui/kpi-icons';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import { reportsService } from '@/services/reportsService';
@@ -96,14 +97,14 @@ export default function DashboardPage() {
             value={kpis.total_trips.value} 
             delta={kpis.total_trips.delta !== null ? `${kpis.total_trips.delta}%` : undefined}
             up={kpis.total_trips.delta !== null ? kpis.total_trips.delta >= 0 : undefined}
-            icon={Truck} 
+            icon={TruckMotion} 
             color="#E8450F" 
             bg="#FFF0EB" 
           />
           <KpiCard 
             label="Active Fleet (On Trip)" 
             value={kpis.fleet_on_trip.value} 
-            icon={Car} 
+            icon={FleetTruck} 
             color="#2563EB" 
             bg="#EFF6FF" 
           />
@@ -112,7 +113,7 @@ export default function DashboardPage() {
             value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`} 
             delta={kpis.revenue_this_month.delta !== null ? `${kpis.revenue_this_month.delta}%` : undefined}
             up={kpis.revenue_this_month.delta !== null ? kpis.revenue_this_month.delta >= 0 : undefined}
-            icon={DollarSign} 
+            icon={MoneyBills} 
             color="#16A34A" 
             bg="#F0FDF4" 
           />
@@ -121,7 +122,7 @@ export default function DashboardPage() {
             value={kpis.docs_expiring_soon.value} 
             up={false} 
             delta={kpis.docs_expiring_soon.value > 0 ? 'Action Needed' : undefined}
-            icon={AlertTriangle} 
+            icon={CalendarAlert} 
             color="#D97706" 
             bg="#FFFBEB" 
           />

@@ -5,6 +5,7 @@ import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns'
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import { TruckMotion, RevenueChart } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -197,14 +198,14 @@ export default function CustomReportPage() {
               <KpiCard
                 label="Total Trips"
                 value={reportData.kpis.total_trips.toString()}
-                icon={Truck}
+                icon={TruckMotion}
                 color="#E8450F"
                 bg="#E8450F1A"
               />
               <KpiCard
                 label="Total Revenue"
                 value={`SAR ${reportData.kpis.total_revenue.toLocaleString()}`}
-                icon={TrendingUp}
+                icon={RevenueChart}
                 color="#16A34A"
                 bg="#F0FDF4"
               />

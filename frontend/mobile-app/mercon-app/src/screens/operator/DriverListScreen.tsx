@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, FlatList, ActivityIndicator, RefreshControl, Linking,
 } from 'react-native';
+import { Phone, User } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, Avatar, SearchInput } from '../../components';
 import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
@@ -36,7 +37,12 @@ const DriverCard = ({ item }: { item: OperatorDriver }) => (
       <View style={styles.info}>
         <Text style={styles.driverName}>{fullName(item)}</Text>
         <Text style={styles.driverId}>{item.ref_id ?? item.license_number}</Text>
-        {item.phone_primary ? <Text style={styles.stat}>📞 {item.phone_primary}</Text> : null}
+        {item.phone_primary ? (
+          <View style={styles.statRow}>
+            <Phone size={12} color={Colors.gray500} strokeWidth={2} />
+            <Text style={styles.stat}>{item.phone_primary}</Text>
+          </View>
+        ) : null}
       </View>
       <View style={styles.rightCol}>
         <StatusBadge status={STATUS_LABELS[item.status] ?? item.status} />
@@ -49,7 +55,8 @@ const DriverCard = ({ item }: { item: OperatorDriver }) => (
           activeOpacity={0.8}
           onPress={() => Linking.openURL(`tel:${item.phone_primary}`).catch(() => {})}
         >
-          <Text style={styles.footerBtnText}>📞 Call</Text>
+          <Phone size={14} color={Colors.primary} strokeWidth={2} />
+          <Text style={styles.footerBtnText}>Call</Text>
         </TouchableOpacity>
       </View>
     ) : null}
@@ -117,7 +124,7 @@ const DriverListScreen = () => {
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>👤</Text>
+              <User size={44} color={Colors.gray400} strokeWidth={1.6} />
               <Text style={styles.emptyText}>{error ?? 'No drivers found'}</Text>
             </View>
           )
@@ -209,10 +216,15 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.gray500,
   },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
   stat: {
     fontSize: Typography.xs,
     color: Colors.gray500,
-    marginTop: 2,
   },
   rightCol: {
     alignItems: 'flex-end',
@@ -225,6 +237,9 @@ const styles = StyleSheet.create({
   },
   footerBtn: {
     flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
     paddingVertical: Spacing.sm,
     alignItems: 'center',
     borderRightWidth: 1,
