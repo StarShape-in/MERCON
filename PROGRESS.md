@@ -42,6 +42,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | Zod request validation on write + list routes | ✅ (`79d4cd4`) |
 | Structured logging (Pino), collision-safe reference IDs | ✅ (`d816736`, `f32cbca`) |
 | `JWT_SECRET` rotated → GitHub Actions secret, leaked fallback removed | ✅ (2026-07-12) |
+| Driver fixes: validate `PATCH /drivers/:id` (fixes "Failed to update"), free phone number on delete so it can be reused | ✅ (`a217c59`, `029cee7`) |
 
 ### Web dashboard (`frontend/web-dashboard`) — Admin + Operator
 | Piece | State |
@@ -54,7 +55,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | Debounced server-side search across list pages | ✅ (`0546e0f`) |
 | Brand/semantic color tokens as Tailwind utilities | ✅ (`12fa35b`) |
 | Site-wide semi-curved corners (replaced 224 `rounded-none` overrides → `rounded-lg`; shadcn primitives use idiomatic radii) | ✅ |
-| Login page: full-bleed logistics background image, removed center divider, unified logo/heading/card into one centered group | ✅ (PR #2) |
+| Login page redesign: full-bleed logistics background image (`login-bg.png`), no center divider, logo pinned top-right, centered "Welcome back" heading + boxed sign-in card | ✅ (PR #2 → `a09fa8d`) |
 
 ### Mobile app (`frontend/mobile-app/mercon-app`) — Expo, Driver + Operator
 | Piece | State |
@@ -62,8 +63,9 @@ GPS background hardening + device verification, then real-phone testing + releas
 | App entry fixed (`expo-router/entry`), 24 screens type-check (tsc 349→0) | ✅ |
 | Runtime packages installed (axios, socket.io-client, expo-secure-store, expo-location, expo-image-picker) | ✅ |
 | API client (JWT interceptor) + SecureStore auth context (auto-login) | ✅ |
-| **Unified login** (single form, auto-detects driver vs operator by credentials — no mode toggle) + **role routing** (`app/index.tsx`); redesigned UI (real logo, hero truck background, input icons, password show/hide, compact card, notify-operator button below card) | ✅ |
+| **Unified login** (single form, auto-detects driver vs operator by credentials — no mode toggle) + **role routing** (`app/index.tsx`); redesigned UI (real logo, hero background image `login-hero.png`, simplified Username/Password inputs — driver: phone/license, no welcome heading, centered compact card, notify-operator button below card) | ✅ (`c3c83cf`) |
 | Driver **Home**: real current trip, status updates, cargo + POD photos (camera), photo-gated status | ✅ (`fee951d`, `dd184c1`) |
+| Bottom nav redesign (driver + operator): lucide icons (no emojis), orange "capsule" active indicator, dropped lower; tab/hub screens cross-fade instead of push-slide | ✅ |
 
 ### Mobile backend endpoints (`/api/mobile/*`)
 | Endpoint | State |
