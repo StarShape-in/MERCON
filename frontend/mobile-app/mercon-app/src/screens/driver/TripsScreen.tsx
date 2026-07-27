@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
   FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { Building2, Package, Calendar, ClipboardList, TriangleAlert } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
@@ -53,17 +54,16 @@ const TripCard = ({ item, onPress }: { item: CardData; onPress: () => void }) =>
       <StatusBadge status={item.statusText} />
     </View>
     <View style={styles.cardRoute}>
-      {/* TODO: replace icon placeholders with lucide-react-native */}
-      <Text style={styles.routeIcon}>🏢</Text>
+      <Building2 size={16} color={Colors.gray500} strokeWidth={2} />
       <Text style={styles.routeText}>{item.title}</Text>
     </View>
     <View style={styles.cardMeta}>
       <View style={styles.metaItem}>
-        <Text style={styles.metaIcon}>📦</Text>
+        <Package size={13} color={Colors.gray500} strokeWidth={2} />
         <Text style={styles.metaText}>{item.cargo}</Text>
       </View>
       <View style={styles.metaItem}>
-        <Text style={styles.metaIcon}>📅</Text>
+        <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
         <Text style={styles.metaText}>{item.date}</Text>
       </View>
     </View>
@@ -85,7 +85,7 @@ const TripsScreen = ({ navigation }: any) => {
     if (selectedTab === 'Active') {
       source = current && ACTIVE_STATUSES.includes(current.status) ? [current] : [];
     } else if (selectedTab === 'Upcoming') {
-      source = current && current.status === 'Dispatched' ? [current] : [];
+      source = current && (current.status === 'Draft' || current.status === 'Dispatched') ? [current] : [];
     } else {
       source = history;
     }
@@ -156,13 +156,13 @@ const TripsScreen = ({ navigation }: any) => {
             </View>
           ) : error ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>⚠️</Text>
+              <TriangleAlert size={44} color={Colors.gray400} strokeWidth={1.6} />
               <Text style={styles.emptyTitle}>Couldn't load trips</Text>
               <Text style={styles.emptyText}>{error}</Text>
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>📋</Text>
+              <ClipboardList size={44} color={Colors.gray400} strokeWidth={1.6} />
               <Text style={styles.emptyTitle}>No {selectedTab} Trips</Text>
               <Text style={styles.emptyText}>
                 You have no {selectedTab.toLowerCase()} trips at this time.
@@ -246,9 +246,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  routeIcon: {
-    fontSize: 16,
-  },
   routeText: {
     fontSize: Typography.base,
     fontWeight: '700',
@@ -263,9 +260,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  metaIcon: {
-    fontSize: 13,
-  },
   metaText: {
     fontSize: Typography.xs,
     color: Colors.gray500,
@@ -274,9 +268,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: Spacing['3xl'],
     gap: Spacing.sm,
-  },
-  emptyIcon: {
-    fontSize: 48,
   },
   emptyTitle: {
     fontSize: Typography.lg,

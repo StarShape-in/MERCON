@@ -4,6 +4,11 @@ import {
   StyleSheet, SafeAreaView, StatusBar, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import {
+  FileText, Truck, Settings, IdCard, CalendarClock, Phone, CalendarDays,
+  Bell, Globe, ShieldCheck, Info, LifeBuoy, LogOut, ChevronRight,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Avatar, Badge } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
@@ -11,12 +16,12 @@ import { useAuth } from '../../lib/auth-context';
 import { useProfile } from '../../lib/use-profile';
 import { initialsOf } from '../../lib/profile';
 
-const SETTING_ROWS: { icon: string; label: string; value?: string; arrow?: boolean; route?: string }[] = [
-  { icon: '🔔', label: 'Notifications', route: '/notifications', arrow: true },
-  { icon: '🌐', label: 'Language', value: 'English', arrow: true },
-  { icon: '🔒', label: 'Privacy Policy', arrow: true },
-  { icon: '📖', label: 'About MERCON', arrow: true },
-  { icon: '❓', label: 'Help & Support', arrow: true },
+const SETTING_ROWS: { Icon: LucideIcon; label: string; value?: string; arrow?: boolean; route?: string }[] = [
+  { Icon: Bell,        label: 'Notifications', route: '/notifications', arrow: true },
+  { Icon: Globe,       label: 'Language', value: 'English', arrow: true },
+  { Icon: ShieldCheck, label: 'Privacy Policy', arrow: true },
+  { Icon: Info,        label: 'About MERCON', arrow: true },
+  { Icon: LifeBuoy,    label: 'Help & Support', arrow: true },
 ];
 
 function statusVariant(status: string): 'success' | 'warning' | 'info' | 'neutral' {
@@ -45,17 +50,17 @@ const ProfileScreen = ({ navigation }: any) => {
   const refId = profile?.ref_id ?? authProfile?.ref_id ?? '—';
   const status = profile?.status ?? authProfile?.status ?? '';
 
-  const details = profile
+  const details: { Icon: LucideIcon; label: string; value: string }[] = profile
     ? [
-        { icon: '🪪', label: 'License No.', value: profile.license_number },
-        { icon: '📆', label: 'License Expiry', value: formatDate(profile.license_expiry) },
-        { icon: '📞', label: 'Phone', value: profile.phone_primary ?? '—' },
+        { Icon: IdCard, label: 'License No.', value: profile.license_number },
+        { Icon: CalendarClock, label: 'License Expiry', value: formatDate(profile.license_expiry) },
+        { Icon: Phone, label: 'Phone', value: profile.phone_primary ?? '—' },
         {
-          icon: '🚛',
+          Icon: Truck,
           label: 'Assigned Vehicle',
           value: profile.current_vehicle?.plate_number ?? 'None (no active trip)',
         },
-        { icon: '🗓️', label: 'Member Since', value: formatDate(profile.createdAt) },
+        { Icon: CalendarDays, label: 'Member Since', value: formatDate(profile.createdAt) },
       ]
     : [];
 
@@ -73,18 +78,18 @@ const ProfileScreen = ({ navigation }: any) => {
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
-          {[
-            { icon: '📄', label: 'Documents', route: '/documents' },
-            { icon: '🚛', label: 'Vehicle', route: '/vehicle' },
-            { icon: '⚙️', label: 'Settings', route: '/settings' },
-          ].map((action) => (
+          {([
+            { Icon: FileText, label: 'Documents', route: '/documents' },
+            { Icon: Truck, label: 'Vehicle', route: '/vehicle' },
+            { Icon: Settings, label: 'Settings', route: '/settings' },
+          ] as { Icon: LucideIcon; label: string; route: string }[]).map((action) => (
             <TouchableOpacity
               key={action.label}
               style={styles.quickCard}
               activeOpacity={0.8}
               onPress={() => router.push(action.route as any)}
             >
-              <Text style={styles.quickIcon}>{action.icon}</Text>
+              <action.Icon size={26} color={Colors.primary} strokeWidth={2} />
               <Text style={styles.quickLabel}>{action.label}</Text>
             </TouchableOpacity>
           ))}
@@ -104,8 +109,7 @@ const ProfileScreen = ({ navigation }: any) => {
                 style={[styles.settingRow, i < details.length - 1 ? styles.settingRowBorder : null]}
               >
                 <View style={styles.settingLeft}>
-                  {/* TODO: replace icon placeholders with lucide-react-native */}
-                  <Text style={styles.settingIcon}>{row.icon}</Text>
+                  <row.Icon size={20} color={Colors.gray500} strokeWidth={2} />
                   <Text style={styles.settingLabel}>{row.label}</Text>
                 </View>
                 <Text style={styles.settingValue}>{row.value}</Text>
@@ -124,13 +128,12 @@ const ProfileScreen = ({ navigation }: any) => {
               onPress={() => row.route && router.push(row.route as any)}
             >
               <View style={styles.settingLeft}>
-                {/* TODO: replace icon placeholders with lucide-react-native */}
-                <Text style={styles.settingIcon}>{row.icon}</Text>
+                <row.Icon size={20} color={Colors.gray500} strokeWidth={2} />
                 <Text style={styles.settingLabel}>{row.label}</Text>
               </View>
               <View style={styles.settingRight}>
                 {row.value && <Text style={styles.settingValue}>{row.value}</Text>}
-                {row.arrow && <Text style={styles.chevron}>›</Text>}
+                {row.arrow && <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />}
               </View>
             </TouchableOpacity>
           ))}
@@ -138,7 +141,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={() => signOut()}>
-          <Text style={styles.logoutIcon}>🚪</Text>
+          <LogOut size={20} color={Colors.error} strokeWidth={2.2} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
@@ -191,9 +194,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     ...Shadows.sm,
   },
-  quickIcon: {
-    fontSize: 28,
-  },
   quickLabel: {
     fontSize: Typography.xs,
     color: Colors.gray600,
@@ -237,9 +237,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  settingIcon: {
-    fontSize: 20,
-  },
   settingLabel: {
     fontSize: Typography.sm,
     color: Colors.gray900,
@@ -256,10 +253,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: 'right',
   },
-  chevron: {
-    fontSize: 20,
-    color: Colors.gray400,
-  },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -272,9 +265,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.error,
     marginBottom: Spacing.lg,
-  },
-  logoutIcon: {
-    fontSize: 20,
   },
   logoutText: {
     fontSize: Typography.base,

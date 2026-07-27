@@ -1,11 +1,14 @@
 /**
  * Driver App Bottom Navigation
  * Dark floating pill with 3 items: Home, Trips, Profile.
- * Route-based (expo-router): the active item reflects the current path.
+ * The active item is marked by an orange "capsule" (icon + label) that gently
+ * settles in when the page changes; inactive items show a dim icon only.
+ * Route-based (expo-router).
  */
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
+import { House, Truck, User, type LucideIcon } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Shadows } from '../theme/tokens';
 
 export type DriverTab = 'Home' | 'Trips' | 'Profile';
@@ -17,20 +20,34 @@ interface DriverBottomNavProps {
   onTabPress?: (tab: DriverTab) => void;
 }
 
-const TABS: { label: DriverTab; icon: string; route: string }[] = [
-  { label: 'Home',    icon: '⌂',  route: '/' },
-  { label: 'Trips',   icon: '🚛', route: '/trips' },
-  { label: 'Profile', icon: '👤', route: '/profile' },
+const TABS: { label: DriverTab; Icon: LucideIcon; route: string }[] = [
+  { label: 'Home',    Icon: House, route: '/' },
+  { label: 'Trips',   Icon: Truck, route: '/trips' },
+  { label: 'Profile', Icon: User,  route: '/profile' },
 ];
+
+const INACTIVE = 'rgba(255,255,255,0.55)';
 
 export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Capsule settles in when the active page changes.
+  const anim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    anim.setValue(0);
+    Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 7, tension: 90 }).start();
+  }, [pathname, anim]);
+
+  const capsuleStyle = {
+    opacity: anim,
+    transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }],
+  };
+
   return (
     <View style={styles.wrapper}>
       <View style={[styles.pill, Shadows.nav]}>
-        {TABS.map(({ label, icon, route }) => {
+        {TABS.map(({ label, Icon, route }) => {
           const active = route === '/' ? pathname === '/' : pathname.startsWith(route);
           return (
             <TouchableOpacity
@@ -39,12 +56,14 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
               activeOpacity={0.7}
               style={styles.tab}
             >
-              <Text style={[styles.icon, { color: active ? Colors.primary : 'rgba(255,255,255,0.45)' }]}>
-                {icon}
-              </Text>
-              <Text style={[styles.label, { color: active ? Colors.primary : 'rgba(255,255,255,0.45)' }]}>
-                {label}
-              </Text>
+              {active ? (
+                <Animated.View style={[styles.capsule, capsuleStyle]}>
+                  <Icon size={22} color={Colors.white} strokeWidth={2.4} />
+                  <Text style={styles.capsuleLabel}>{label}</Text>
+                </Animated.View>
+              ) : (
+                <Icon size={24} color={INACTIVE} strokeWidth={2} />
+              )}
             </TouchableOpacity>
           );
         })}
@@ -55,9 +74,10 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
+    paddingBottom: 0,
+    marginBottom: -Spacing.sm, // sit low, close to the screen edge
   },
   pill: {
     flexDirection: 'row',
@@ -65,15 +85,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     backgroundColor: Colors.navBg,
     borderRadius: Radius.full,
-    paddingHorizontal: Spacing.base,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 2,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
-    paddingVertical: Spacing.xs,
+    justifyContent: 'center',
+    height: 50,
   },
-  icon:  { fontSize: 20 },
-  label: { fontSize: 9, fontWeight: '600' },
+  capsule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm + 2,
+  },
+  capsuleLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.white,
+  },
 });

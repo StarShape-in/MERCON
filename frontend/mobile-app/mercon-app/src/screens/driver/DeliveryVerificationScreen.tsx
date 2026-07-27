@@ -8,7 +8,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService } from '../../lib/trips';
-import { capturePhoto, type CapturedPhoto } from '../../lib/camera';
+import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
 const DeliveryVerificationScreen = () => {
@@ -20,7 +20,7 @@ const DeliveryVerificationScreen = () => {
 
   const addPhoto = async () => {
     try {
-      const photo = await capturePhoto();
+      const photo = await choosePhoto();
       if (photo) setPhotos((prev) => [...prev, photo].slice(0, 4));
     } catch (e) {
       Alert.alert('Camera', getApiErrorMessage(e));

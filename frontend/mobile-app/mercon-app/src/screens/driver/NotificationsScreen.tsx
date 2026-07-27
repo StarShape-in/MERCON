@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
   FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { TriangleAlert, BellOff } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useNotifications } from '../../lib/use-notifications';
@@ -10,6 +11,7 @@ import { notificationIcon, timeAgo, type MobileNotification } from '../../lib/no
 
 const NotificationCard = ({ item, onPress }: { item: MobileNotification; onPress: () => void }) => {
   const unread = !item.is_read;
+  const Icon = notificationIcon(item.type);
   return (
     <TouchableOpacity
       style={[styles.card, unread ? styles.cardUnread : null]}
@@ -17,8 +19,7 @@ const NotificationCard = ({ item, onPress }: { item: MobileNotification; onPress
       onPress={onPress}
     >
       <View style={[styles.iconBox, unread ? styles.iconBoxUnread : null]}>
-        {/* TODO: replace icon placeholders with lucide-react-native */}
-        <Text style={styles.iconText}>{notificationIcon(item.type)}</Text>
+        <Icon size={20} color={unread ? Colors.primary : Colors.gray500} strokeWidth={2} />
       </View>
       <View style={styles.content}>
         <View style={styles.contentHeader}>
@@ -72,13 +73,13 @@ const NotificationsScreen = ({ navigation }: any) => {
             </View>
           ) : error ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>⚠️</Text>
+              <TriangleAlert size={44} color={Colors.gray400} strokeWidth={1.6} />
               <Text style={styles.emptyTitle}>Couldn't load notifications</Text>
               <Text style={styles.emptyText}>{error}</Text>
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🔔</Text>
+              <BellOff size={44} color={Colors.gray400} strokeWidth={1.6} />
               <Text style={styles.emptyTitle}>All Caught Up</Text>
               <Text style={styles.emptyText}>No new notifications.</Text>
             </View>
@@ -151,9 +152,6 @@ const styles = StyleSheet.create({
   iconBoxUnread: {
     backgroundColor: '#FFF7ED',
   },
-  iconText: {
-    fontSize: 20,
-  },
   content: {
     flex: 1,
   },
@@ -192,9 +190,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: Spacing['3xl'],
     gap: Spacing.sm,
-  },
-  emptyIcon: {
-    fontSize: 48,
   },
   emptyTitle: {
     fontSize: Typography.lg,

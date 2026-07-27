@@ -2,9 +2,11 @@
  * Operator App Bottom Navigation
  * Dark floating pill, 4 items + centre FAB (white circle, orange plus, orange border)
  * Items: Home | Trips | [FAB] | Drivers | More
+ * The active item is marked by an orange capsule behind its icon.
  */
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { House, Truck, User, Ellipsis, Plus, type LucideIcon } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Shadows } from '../theme/tokens';
 
 export type OperatorTab = 'Home' | 'Trips' | 'Drivers' | 'More';
@@ -15,41 +17,52 @@ interface OperatorBottomNavProps {
   onFabPress?: () => void;
 }
 
-const LEFT_TABS:  { label: 'Home' | 'Trips'; icon: string }[]     = [{ label: 'Home', icon: '⌂' }, { label: 'Trips', icon: '🚛' }];
-const RIGHT_TABS: { label: 'Drivers' | 'More'; icon: string }[]   = [{ label: 'Drivers', icon: '👤' }, { label: 'More', icon: '⋯' }];
+const LEFT_TABS:  { label: 'Home' | 'Trips'; Icon: LucideIcon }[]   = [{ label: 'Home', Icon: House }, { label: 'Trips', Icon: Truck }];
+const RIGHT_TABS: { label: 'Drivers' | 'More'; Icon: LucideIcon }[] = [{ label: 'Drivers', Icon: User }, { label: 'More', Icon: Ellipsis }];
+
+const INACTIVE = 'rgba(255,255,255,0.55)';
 
 export function OperatorBottomNav({ activeTab, onTabPress, onFabPress }: OperatorBottomNavProps) {
+  // Capsule settles in when the active tab changes.
+  const anim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    anim.setValue(0);
+    Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 7, tension: 90 }).start();
+  }, [activeTab, anim]);
+
+  const capsuleStyle = {
+    opacity: anim,
+    transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
+  };
+
+  const renderTab = ({ label, Icon }: { label: OperatorTab; Icon: LucideIcon }) => {
+    const active = label === activeTab;
+    return (
+      <TouchableOpacity key={label} onPress={() => onTabPress(label)} activeOpacity={0.7} style={styles.tab}>
+        {active ? (
+          <Animated.View style={[styles.capsule, capsuleStyle]}>
+            <Icon size={22} color={Colors.white} strokeWidth={2.4} />
+          </Animated.View>
+        ) : (
+          <Icon size={24} color={INACTIVE} strokeWidth={2} />
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.wrapper}>
       <View style={[styles.pill, Shadows.nav]}>
-        {/* Left tabs */}
-        {LEFT_TABS.map(({ label, icon }) => {
-          const active = label === activeTab;
-          return (
-            <TouchableOpacity key={label} onPress={() => onTabPress(label)} activeOpacity={0.7} style={styles.tab}>
-              <Text style={[styles.icon, { color: active ? Colors.primary : 'rgba(255,255,255,0.45)' }]}>{icon}</Text>
-              <Text style={[styles.label, { color: active ? Colors.primary : 'rgba(255,255,255,0.45)' }]}>{label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        {LEFT_TABS.map(renderTab)}
 
         {/* FAB */}
         <View style={styles.fabSlot}>
           <TouchableOpacity onPress={onFabPress} activeOpacity={0.85} style={[styles.fab, Shadows.sm]}>
-            <Text style={styles.fabIcon}>＋</Text>
+            <Plus size={26} color={Colors.primary} strokeWidth={2.6} />
           </TouchableOpacity>
         </View>
 
-        {/* Right tabs */}
-        {RIGHT_TABS.map(({ label, icon }) => {
-          const active = label === activeTab;
-          return (
-            <TouchableOpacity key={label} onPress={() => onTabPress(label)} activeOpacity={0.7} style={styles.tab}>
-              <Text style={[styles.icon, { color: active ? Colors.primary : 'rgba(255,255,255,0.45)' }]}>{icon}</Text>
-              <Text style={[styles.label, { color: active ? Colors.primary : 'rgba(255,255,255,0.45)' }]}>{label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        {RIGHT_TABS.map(renderTab)}
       </View>
     </View>
   );
@@ -58,8 +71,9 @@ export function OperatorBottomNav({ activeTab, onTabPress, onFabPress }: Operato
 const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xl,
     paddingTop: Spacing.sm,
+    paddingBottom: 0,
+    marginBottom: -Spacing.sm, // sit low, close to the screen edge
   },
   pill: {
     flexDirection: 'row',
@@ -67,26 +81,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.navBg,
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 2,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
-    paddingVertical: Spacing.xs,
+    justifyContent: 'center',
+    height: 50,
   },
-  icon:    { fontSize: 18 },
-  label:   { fontSize: 9, fontWeight: '600' },
+  capsule: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm + 2,
+  },
   fabSlot: { flex: 1, alignItems: 'center' },
   fab: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: Colors.white,
     borderWidth: 2,
     borderColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fabIcon: { fontSize: 22, color: Colors.primary, fontWeight: '700', lineHeight: 24 },
 });

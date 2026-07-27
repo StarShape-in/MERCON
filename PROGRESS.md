@@ -65,7 +65,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | API client (JWT interceptor) + SecureStore auth context (auto-login) | ✅ |
 | **Unified login** (single form, auto-detects driver vs operator by credentials — no mode toggle) + **role routing** (`app/index.tsx`); redesigned UI (real logo, hero background image `login-hero.png`, simplified Username/Password inputs — driver: phone/license, no welcome heading, centered compact card, notify-operator button below card) | ✅ (`c3c83cf`) |
 | Driver **Home**: real current trip, status updates, cargo + POD photos (camera), photo-gated status | ✅ (`fee951d`, `dd184c1`) |
-| Bottom nav redesign (driver + operator): lucide icons (no emojis), orange "capsule" active indicator, dropped lower; tab/hub screens cross-fade instead of push-slide | ✅ |
+| Bottom nav redesign (driver + operator): lucide icons (no emojis), orange "capsule" active indicator, dropped lower; tab/hub screens switch instantly (no slide/fade). Profile + Home screen emojis converted to lucide icons | ✅ |
 
 ### Mobile backend endpoints (`/api/mobile/*`)
 | Endpoint | State |

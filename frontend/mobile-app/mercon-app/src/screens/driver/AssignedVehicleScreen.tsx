@@ -4,6 +4,7 @@ import {
   StatusBar, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ArrowLeft, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useAssignedVehicle } from '../../lib/vehicle';
 
@@ -32,12 +33,11 @@ const AssignedVehicleScreen = () => {
         {/* Dark Header */}
         <View style={styles.darkHeader}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.backIcon}>←</Text>
+            <ArrowLeft size={24} color={Colors.white} strokeWidth={2.2} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <View style={styles.vehicleIconBox}>
-              <Text style={styles.vehicleEmoji}>🚛</Text>
+              <Truck size={30} color={Colors.white} strokeWidth={2} />
             </View>
             <Text style={styles.vehicleId}>
               {vehicle ? (vehicle.ref_id ? `#${vehicle.ref_id}` : vehicle.plate_number) : 'Assigned Vehicle'}
@@ -61,7 +61,7 @@ const AssignedVehicleScreen = () => {
           <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
         ) : !vehicle ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>🚛</Text>
+            <Truck size={48} color={Colors.gray400} strokeWidth={1.6} />
             <Text style={styles.emptyTitle}>{error ? 'Could not load vehicle' : 'No vehicle assigned'}</Text>
             <Text style={styles.emptyText}>
               {error ?? "You'll see your truck here once you're dispatched on a trip."}
@@ -108,10 +108,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
-  backIcon: {
-    fontSize: 20,
-    color: Colors.white,
-  },
   headerContent: {
     alignItems: 'center',
   },
@@ -123,9 +119,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
-  },
-  vehicleEmoji: {
-    fontSize: 36,
   },
   vehicleId: {
     fontSize: Typography.xl,
@@ -217,9 +210,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     ...Shadows.sm,
-  },
-  emptyIcon: {
-    fontSize: 48,
   },
   emptyTitle: {
     fontSize: Typography.lg,

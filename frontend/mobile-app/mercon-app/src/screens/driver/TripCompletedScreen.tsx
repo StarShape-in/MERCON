@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Check } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button, Badge } from '../../components';
 import { useTripHistory } from '../../lib/use-trip-history';
@@ -53,8 +54,7 @@ const TripCompletedScreen = () => {
         {/* Success Header */}
         <View style={styles.successSection}>
           <View style={styles.checkCircle}>
-            {/* TODO: replace icon placeholders with lucide-react-native */}
-            <Text style={styles.checkIcon}>✓</Text>
+            <Check size={44} color={Colors.white} strokeWidth={3} />
           </View>
           {onTime !== null && (
             <Badge
@@ -112,11 +112,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.md,
     ...Shadows.lg,
-  },
-  checkIcon: {
-    fontSize: 40,
-    color: Colors.white,
-    fontWeight: '900',
   },
   onTimeBadge: {
     marginBottom: Spacing.md,

@@ -5,6 +5,11 @@ import {
   Dimensions, Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import {
+  Bell, ScanFace, MapPin, Volume2, Moon, Globe, SignalHigh, Info, ShieldCheck,
+  ScrollText, LifeBuoy, Bug, Truck, KeyRound, Trash2, LogOut, ArrowLeft, ChevronRight,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useAuth } from '../../lib/auth-context';
@@ -19,37 +24,37 @@ const SettingsScreen = ({ navigation }: any) => {
   const [darkMode, setDarkMode] = useState(false);
   const [soundAlerts, setSoundAlerts] = useState(true);
 
-  const TOGGLE_ROWS = [
+  const TOGGLE_ROWS: { Icon: LucideIcon; label: string; desc: string; value: boolean; onChange: (v: boolean) => void }[] = [
     {
-      icon: '🔔',
+      Icon: Bell,
       label: 'Push Notifications',
       desc: 'Trip updates, reminders and alerts',
       value: pushNotifications,
       onChange: setPushNotifications,
     },
     {
-      icon: '🧬',
+      Icon: ScanFace,
       label: 'Biometric Login',
       desc: 'Use fingerprint or face to sign in',
       value: biometric,
       onChange: setBiometric,
     },
     {
-      icon: '📍',
+      Icon: MapPin,
       label: 'Location Sharing',
       desc: 'Share location during active trips',
       value: locationSharing,
       onChange: setLocationSharing,
     },
     {
-      icon: '🔊',
+      Icon: Volume2,
       label: 'Sound Alerts',
       desc: 'Play audio for navigation & alerts',
       value: soundAlerts,
       onChange: setSoundAlerts,
     },
     {
-      icon: '🌙',
+      Icon: Moon,
       label: 'Dark Mode',
       desc: 'Switch to dark theme',
       value: darkMode,
@@ -57,14 +62,14 @@ const SettingsScreen = ({ navigation }: any) => {
     },
   ];
 
-  const CHEVRON_ROWS = [
-    { icon: '🌐', label: 'Language', value: 'English (EN)' },
-    { icon: '📶', label: 'Data Usage', value: 'Standard' },
-    { icon: '📖', label: 'About MERCON', value: '' },
-    { icon: '🔒', label: 'Privacy Policy', value: '' },
-    { icon: '📜', label: 'Terms of Service', value: '' },
-    { icon: '❓', label: 'Help & Support', value: '' },
-    { icon: '🐛', label: 'Report a Bug', value: '' },
+  const CHEVRON_ROWS: { Icon: LucideIcon; label: string; value: string }[] = [
+    { Icon: Globe, label: 'Language', value: 'English (EN)' },
+    { Icon: SignalHigh, label: 'Data Usage', value: 'Standard' },
+    { Icon: Info, label: 'About MERCON', value: '' },
+    { Icon: ShieldCheck, label: 'Privacy Policy', value: '' },
+    { Icon: ScrollText, label: 'Terms of Service', value: '' },
+    { Icon: LifeBuoy, label: 'Help & Support', value: '' },
+    { Icon: Bug, label: 'Report a Bug', value: '' },
   ];
 
   return (
@@ -72,8 +77,7 @@ const SettingsScreen = ({ navigation }: any) => {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.backIcon}>←</Text>
+          <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={styles.placeholder} />
@@ -83,7 +87,7 @@ const SettingsScreen = ({ navigation }: any) => {
         {/* App Version Card */}
         <View style={styles.versionCard}>
           <View style={styles.versionLogoBox}>
-            <Text style={styles.versionLogoEmoji}>🚛</Text>
+            <Truck size={24} color={Colors.white} strokeWidth={2} />
           </View>
           <View>
             <Text style={styles.versionAppName}>MERCON Driver</Text>
@@ -103,7 +107,7 @@ const SettingsScreen = ({ navigation }: any) => {
               style={[styles.row, i < TOGGLE_ROWS.length - 1 ? styles.rowBorder : null]}
             >
               <View style={styles.rowIconBox}>
-                <Text style={styles.rowIcon}>{row.icon}</Text>
+                <row.Icon size={18} color={Colors.gray600} strokeWidth={2} />
               </View>
               <View style={styles.rowContent}>
                 <Text style={styles.rowLabel}>{row.label}</Text>
@@ -130,12 +134,12 @@ const SettingsScreen = ({ navigation }: any) => {
               onPress={() => {}}
             >
               <View style={styles.rowIconBox}>
-                <Text style={styles.rowIcon}>{row.icon}</Text>
+                <row.Icon size={18} color={Colors.gray600} strokeWidth={2} />
               </View>
               <Text style={styles.rowLabelSingle}>{row.label}</Text>
               <View style={styles.rowRight}>
                 {row.value ? <Text style={styles.rowValue}>{row.value}</Text> : null}
-                <Text style={styles.chevron}>›</Text>
+                <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />
               </View>
             </TouchableOpacity>
           ))}
@@ -146,23 +150,23 @@ const SettingsScreen = ({ navigation }: any) => {
         <View style={styles.groupCard}>
           <TouchableOpacity style={[styles.row, styles.rowBorder]} activeOpacity={0.8} onPress={() => {}}>
             <View style={styles.rowIconBox}>
-              <Text style={styles.rowIcon}>🔑</Text>
+              <KeyRound size={18} color={Colors.gray600} strokeWidth={2} />
             </View>
             <Text style={styles.rowLabelSingle}>Change Password</Text>
-            <Text style={styles.chevron}>›</Text>
+            <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} activeOpacity={0.8} onPress={() => {}}>
             <View style={styles.rowIconBox}>
-              <Text style={styles.rowIcon}>🗑️</Text>
+              <Trash2 size={18} color={Colors.error} strokeWidth={2} />
             </View>
             <Text style={[styles.rowLabelSingle, styles.dangerText]}>Delete Account</Text>
-            <Text style={styles.chevron}>›</Text>
+            <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} activeOpacity={0.8} onPress={() => signOut()}>
-          <Text style={styles.logoutIcon}>🚪</Text>
+          <LogOut size={20} color={Colors.error} strokeWidth={2.2} />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
@@ -195,10 +199,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 20,
-    color: Colors.gray900,
-  },
   headerTitle: {
     fontSize: Typography.lg,
     fontWeight: '700',
@@ -229,9 +229,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  versionLogoEmoji: {
-    fontSize: 24,
   },
   versionAppName: {
     fontSize: Typography.base,
@@ -289,9 +286,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowIcon: {
-    fontSize: 18,
-  },
   rowContent: {
     flex: 1,
   },
@@ -320,10 +314,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.gray500,
   },
-  chevron: {
-    fontSize: 20,
-    color: Colors.gray400,
-  },
   dangerText: {
     color: Colors.error,
   },
@@ -338,9 +328,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.error,
     marginTop: Spacing.md,
-  },
-  logoutIcon: {
-    fontSize: 20,
   },
   logoutText: {
     fontSize: Typography.base,

@@ -1,5 +1,6 @@
 /** Driver documents — GET /mobile/documents. */
 import { useCallback, useEffect, useState } from 'react';
+import { IdCard, Truck, ShieldCheck, ReceiptText, FileText, type LucideIcon } from 'lucide-react-native';
 import { api, getApiErrorMessage } from './api';
 
 export interface DriverDocument {
@@ -26,13 +27,13 @@ export function docTypeLabel(t: string): string {
   }
 }
 
-export function docIcon(t: string): string {
+export function docIcon(t: string): LucideIcon {
   switch (t) {
-    case 'DriverLicense': return '🪪';
-    case 'VehicleRegistration': return '🚛';
-    case 'Insurance': return '🛡️';
-    case 'Invoice': return '🧾';
-    default: return '📄';
+    case 'DriverLicense': return IdCard;
+    case 'VehicleRegistration': return Truck;
+    case 'Insurance': return ShieldCheck;
+    case 'Invoice': return ReceiptText;
+    default: return FileText;
   }
 }
 

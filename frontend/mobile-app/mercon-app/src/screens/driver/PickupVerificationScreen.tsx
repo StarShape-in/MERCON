@@ -4,11 +4,12 @@ import {
   StatusBar, Image, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Info, Camera, Plus } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService } from '../../lib/trips';
-import { capturePhoto, type CapturedPhoto } from '../../lib/camera';
+import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
 const MIN_PHOTOS = 1;
@@ -21,7 +22,7 @@ const PickupVerificationScreen = () => {
 
   const addPhoto = async () => {
     try {
-      const photo = await capturePhoto();
+      const photo = await choosePhoto();
       if (photo) setPhotos((prev) => [...prev, photo].slice(0, 3));
     } catch (e) {
       Alert.alert('Camera', getApiErrorMessage(e));
@@ -81,18 +82,17 @@ const PickupVerificationScreen = () => {
 
         {/* Instructions */}
         <View style={styles.instructionCard}>
-          {/* TODO: replace icon placeholders with lucide-react-native */}
-          <Text style={styles.instructionIcon}>ℹ️</Text>
+          <Info size={18} color={Colors.primary} strokeWidth={2} />
           <Text style={styles.instructionText}>
             Take at least one clear photo of the cargo before you start the trip.
           </Text>
         </View>
 
-        {/* Camera Upload Area */}
+        {/* Photo Upload Area */}
         <TouchableOpacity style={styles.uploadArea} activeOpacity={0.8} onPress={addPhoto}>
-          <Text style={styles.cameraIcon}>📷</Text>
-          <Text style={styles.uploadTitle}>Take Photo</Text>
-          <Text style={styles.uploadSub}>Tap to open camera</Text>
+          <Camera size={40} color={Colors.primary} strokeWidth={1.8} />
+          <Text style={styles.uploadTitle}>Add Photo</Text>
+          <Text style={styles.uploadSub}>Take a photo or choose from gallery</Text>
         </TouchableOpacity>
 
         {/* Photo Previews */}
@@ -109,7 +109,7 @@ const PickupVerificationScreen = () => {
                 <Image source={{ uri: photos[i].uri }} style={styles.photoImage} />
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <Text style={styles.photoPlaceholderIcon}>＋</Text>
+                  <Plus size={22} color={Colors.gray400} strokeWidth={2} />
                   <Text style={styles.photoPlaceholderText}>Photo {i + 1}</Text>
                 </View>
               )}
@@ -117,25 +117,12 @@ const PickupVerificationScreen = () => {
           ))}
         </View>
 
-        <View style={styles.checklist}>
-          {[
-            'Front of cargo/shipment',
-            'Side view with labels visible',
-            'Loading bay / truck interior',
-          ].map((item, i) => (
-            <View key={i} style={styles.checkItem}>
-              <View style={[styles.checkBox, photos.length > i ? styles.checkBoxDone : null]}>
-                {photos.length > i && <Text style={styles.checkMark}>✓</Text>}
-              </View>
-              <Text style={styles.checkText}>{item}</Text>
-            </View>
-          ))}
-        </View>
-
         <Button
           title={submitting ? 'Starting…' : 'Confirm Pickup & Start Trip'}
           onPress={confirm}
           disabled={!canConfirm}
+          size="lg"
+          style={styles.confirmBtn}
         />
       </ScrollView>
     </SafeAreaView>
@@ -287,40 +274,10 @@ const styles = StyleSheet.create({
     color: Colors.gray400,
     marginTop: 4,
   },
-  checklist: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
-    gap: Spacing.sm,
-    ...Shadows.sm,
-  },
-  checkItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  checkBox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: Colors.gray300,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkBoxDone: {
-    backgroundColor: Colors.success,
-    borderColor: Colors.success,
-  },
-  checkMark: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  checkText: {
-    fontSize: Typography.sm,
-    color: Colors.gray700,
+  confirmBtn: {
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.lg,
+    borderRadius: Radius.xl,
   },
 });
 

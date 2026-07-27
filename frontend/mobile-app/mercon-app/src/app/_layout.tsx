@@ -20,13 +20,16 @@ function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={isLoggedIn}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="trips" />
-        <Stack.Screen name="profile" />
-        <Stack.Screen name="notifications" />
-        <Stack.Screen name="documents" />
-        <Stack.Screen name="vehicle" />
-        <Stack.Screen name="settings" />
+        {/* Tab / hub screens switch instantly (standard tab behaviour — the
+            floating nav stays put, no push-slide, no fade) */}
+        <Stack.Screen name="index" options={{ animation: 'none' }} />
+        <Stack.Screen name="trips" options={{ animation: 'none' }} />
+        <Stack.Screen name="profile" options={{ animation: 'none' }} />
+        <Stack.Screen name="notifications" options={{ animation: 'none' }} />
+        <Stack.Screen name="documents" options={{ animation: 'none' }} />
+        <Stack.Screen name="vehicle" options={{ animation: 'none' }} />
+        <Stack.Screen name="settings" options={{ animation: 'none' }} />
+        {/* Trip flow keeps the sequential push animation */}
         <Stack.Screen name="trip/pickup" />
         <Stack.Screen name="trip/arrived" />
         <Stack.Screen name="trip/delivery" />

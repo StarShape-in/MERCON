@@ -3,6 +3,7 @@
  *   GET  /mobile/notifications        → the driver's recent notifications
  *   POST /mobile/notifications/:id/read → mark one as read
  */
+import { TriangleAlert, Truck, FileText, Settings, Bell, type LucideIcon } from 'lucide-react-native';
 import { api } from './api';
 
 export interface MobileNotification {
@@ -27,14 +28,14 @@ export const notificationService = {
   },
 };
 
-/** Emoji icon for a notification type. */
-export function notificationIcon(type: string): string {
+/** lucide icon component for a notification type. */
+export function notificationIcon(type: string): LucideIcon {
   switch (type.toLowerCase()) {
-    case 'emergency': return '⚠️';
-    case 'trip': return '🚛';
-    case 'document': return '📋';
-    case 'system': return '⚙️';
-    default: return '🔔';
+    case 'emergency': return TriangleAlert;
+    case 'trip': return Truck;
+    case 'document': return FileText;
+    case 'system': return Settings;
+    default: return Bell;
   }
 }
 

@@ -3,6 +3,7 @@ import {
   View, TextInput, Text, TouchableOpacity,
   StyleSheet, ViewStyle, TextStyle, KeyboardTypeOptions, TextInputProps,
 } from 'react-native';
+import { Search } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography } from '../theme/tokens';
 
 type InputState = 'default' | 'focused' | 'error' | 'success' | 'disabled';
@@ -79,8 +80,7 @@ export function SearchInput({
   return (
     <View style={[searchStyles.wrapper, style]}>
       <View style={searchStyles.icon}>
-        {/* Replace with your icon component, e.g. <SearchIcon size={16} color={Colors.gray400} /> */}
-        <Text style={{ color: Colors.gray400, fontSize: 16 }}>🔍</Text>
+        <Search size={18} color={Colors.gray400} strokeWidth={2} />
       </View>
       <TextInput
         style={searchStyles.input}

@@ -4,13 +4,14 @@ import {
   StyleSheet, SafeAreaView, StatusBar, RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { MapPin, Hand } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, type TripStatus } from '../../lib/trips';
-import { capturePhoto } from '../../lib/camera';
+import { choosePhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
 /** Badge colour by trip status. */
@@ -19,6 +20,14 @@ function statusVariant(s: TripStatus): 'warning' | 'success' | 'info' | 'neutral
   if (s === 'Completed') return 'success';
   if (s === 'AtPickup' || s === 'AtDelivery') return 'info';
   return 'neutral';
+}
+
+/** Short "27 Jul, 14:30" label, or a fallback when there's no timestamp. */
+function shortWhen(iso?: string | null, fallback = 'Scheduled'): string {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return fallback;
+  return d.toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 const HomeScreen = () => {
@@ -42,7 +51,7 @@ const HomeScreen = () => {
     try {
       // Some transitions require a photo first (cargo before In Transit, POD before Completed).
       if (photoKind) {
-        const photo = await capturePhoto();
+        const photo = await choosePhoto();
         if (!photo) { setAdvancing(false); return; } // user cancelled the camera
         await tripService.uploadPhoto(trip.id, photoKind, photo);
       }
@@ -83,7 +92,10 @@ const HomeScreen = () => {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.driverName}>{firstName} 👋</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.driverName}>{firstName}</Text>
+              <Hand size={20} color="#F5A623" strokeWidth={2.2} />
+            </View>
           </View>
           <TouchableOpacity onPress={signOut} activeOpacity={0.7} style={styles.signOutBtn}>
             <Text style={styles.signOutText}>Sign out</Text>
@@ -108,31 +120,46 @@ const HomeScreen = () => {
         ) : (
           <DarkCard style={styles.jobCard}>
             <View style={styles.jobHeader}>
-              <View>
+              <View style={styles.jobHeaderLeft}>
                 <Text style={styles.jobLabel}>ACTIVE TRIP</Text>
-                <Text style={styles.jobId}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
+                <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
               </View>
               <Badge label={statusLabel(trip.status)} variant={statusVariant(trip.status)} />
             </View>
 
-            <View style={styles.routeRow}>
-              <Text style={styles.routeIcon}>📍</Text>
-              <View style={styles.routeLine} />
-              <Text style={styles.routeText}>Pickup → Delivery</Text>
+            {/* Route timeline */}
+            <View style={styles.route}>
+              <View style={styles.routeRail}>
+                <View style={styles.dotPickup} />
+                <View style={styles.railLine} />
+                <MapPin size={18} color={Colors.primary} strokeWidth={2.4} />
+              </View>
+              <View style={styles.routeCol}>
+                <View style={styles.routeStop}>
+                  <Text style={styles.routeStage}>PICKUP</Text>
+                  <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_start)}</Text>
+                </View>
+                <View style={[styles.routeStop, styles.routeStopLast]}>
+                  <Text style={styles.routeStage}>DELIVERY</Text>
+                  <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_end)}</Text>
+                </View>
+              </View>
             </View>
+
+            <View style={styles.divider} />
 
             <View style={styles.jobMeta}>
               <View style={styles.metaItem}>
                 <Text style={styles.metaLabel}>Customer</Text>
-                <Text style={styles.metaValue}>{trip.customer?.name ?? '—'}</Text>
+                <Text style={styles.metaValue} numberOfLines={1}>{trip.customer?.name ?? '—'}</Text>
               </View>
               <View style={styles.metaItem}>
                 <Text style={styles.metaLabel}>Cargo</Text>
-                <Text style={styles.metaValue}>{trip.cargo_type}</Text>
+                <Text style={styles.metaValue} numberOfLines={1}>{trip.cargo_type}</Text>
               </View>
-              <View style={styles.metaItem}>
+              <View style={[styles.metaItem, styles.metaItemLast]}>
                 <Text style={styles.metaLabel}>Distance</Text>
-                <Text style={styles.metaValue}>{trip.planned_distance ? `${trip.planned_distance} km` : '—'}</Text>
+                <Text style={styles.metaValue} numberOfLines={1}>{trip.planned_distance ? `${trip.planned_distance} km` : '—'}</Text>
               </View>
             </View>
 
@@ -145,6 +172,8 @@ const HomeScreen = () => {
               >
                 <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
               </TouchableOpacity>
+            ) : trip.status === 'Draft' ? (
+              <Text style={styles.doneNote}>Awaiting dispatch — your operator will assign a vehicle and start this trip.</Text>
             ) : (
               <Text style={styles.doneNote}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>
             )}
@@ -169,6 +198,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   greeting: { fontSize: Typography.sm, color: Colors.gray500 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   driverName: { fontSize: Typography.xl, fontWeight: '700', color: Colors.gray900 },
   signOutBtn: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
   signOutText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: '600' },
@@ -187,23 +217,39 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: Typography.lg, fontWeight: '700', color: Colors.gray900, marginBottom: Spacing.xs },
   emptySub: { fontSize: Typography.sm, color: Colors.gray500, textAlign: 'center' },
 
-  jobCard: { marginBottom: Spacing.lg },
+  jobCard: { marginBottom: Spacing.lg, padding: Spacing.lg },
   jobHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.md,
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
   },
-  jobLabel: { fontSize: Typography.xs, color: Colors.gray400, letterSpacing: 1, fontWeight: '600' },
-  jobId: { fontSize: Typography.lg, fontWeight: '700', color: Colors.white },
-  routeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md, gap: Spacing.xs },
-  routeIcon: { fontSize: 16 },
-  routeLine: { flex: 1, height: 1, backgroundColor: Colors.gray700, marginHorizontal: Spacing.xs },
-  routeText: { fontSize: Typography.base, fontWeight: '600', color: Colors.white },
-  jobMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.lg },
-  metaItem: { flex: 1 },
-  metaLabel: { fontSize: Typography.xs, color: Colors.gray400, marginBottom: 2 },
-  metaValue: { fontSize: Typography.sm, color: Colors.white, fontWeight: '600' },
+  jobHeaderLeft: { flex: 1 },
+  jobLabel: { fontSize: Typography.xs, color: Colors.gray400, letterSpacing: 1.5, fontWeight: '700', marginBottom: 2 },
+  jobId: { fontSize: Typography.xl, fontWeight: '800', color: Colors.white },
+
+  // Route timeline
+  route: { flexDirection: 'row', gap: Spacing.md },
+  routeRail: { alignItems: 'center', paddingTop: 4 },
+  dotPickup: {
+    width: 12, height: 12, borderRadius: 6,
+    borderWidth: 3, borderColor: Colors.success ?? '#22C55E', backgroundColor: 'transparent',
+  },
+  railLine: { width: 2, flex: 1, minHeight: 22, backgroundColor: Colors.gray700, marginVertical: 4 },
+  routeCol: { flex: 1 },
+  routeStop: { marginBottom: Spacing.lg },
+  routeStopLast: { marginBottom: 0 },
+  routeStage: { fontSize: Typography.xs, color: Colors.gray400, letterSpacing: 1, fontWeight: '700' },
+  routeWhen: { fontSize: Typography.base, fontWeight: '700', color: Colors.white, marginTop: 2 },
+
+  divider: { height: 1, backgroundColor: Colors.gray700, marginVertical: Spacing.lg },
+
+  jobMeta: { flexDirection: 'row', marginBottom: Spacing.lg },
+  metaItem: { flex: 1, paddingRight: Spacing.sm },
+  metaItemLast: { paddingRight: 0 },
+  metaLabel: { fontSize: Typography.xs, color: Colors.gray400, marginBottom: 3 },
+  metaValue: { fontSize: Typography.sm, color: Colors.white, fontWeight: '700' },
   startBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: Spacing.md, alignItems: 'center' },
   startBtnText: { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
   doneNote: { color: Colors.gray400, fontSize: Typography.sm, textAlign: 'center' },
