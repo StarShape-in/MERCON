@@ -35,8 +35,10 @@ export const createTripBody = z.object({
   planned_start: z.coerce.date().optional(),
   stops: z.array(z.object({
     stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']),
-    location_lat: z.number(),
-    location_lng: z.number(),
+    // Client + controller use lat/lng (controller reads stop.lat/stop.lng), not location_*.
+    lat: z.coerce.number(),
+    lng: z.coerce.number(),
+    planned_arrival: z.string().optional(),
     stop_sequence: z.number().int().optional(),
   })).min(2, 'At least a pickup and a dropoff are required'),
 });

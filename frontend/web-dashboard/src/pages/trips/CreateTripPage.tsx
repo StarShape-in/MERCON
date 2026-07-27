@@ -221,6 +221,14 @@ export default function CreateTripPage() {
           />
         </FormSection>
 
+        {/* Error feedback */}
+        {createMutation.isError && (
+          <div className="mt-4 rounded-lg border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-600">
+            {(createMutation.error as any)?.response?.data?.error?.message
+              || 'Could not create the trip. Please check the fields and try again.'}
+          </div>
+        )}
+
         {/* Form Action Controls */}
         <div className="flex gap-3 mt-4">
           <Btn 
