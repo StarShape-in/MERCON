@@ -60,10 +60,15 @@ export default function LoginPage() {
         backgroundImage: 'url(/login-bg.png)',
       }}
     >
-      <div className="w-full max-w-[400px] animate-fade-in flex flex-col items-center lg:translate-y-12">
-        <img src="/mercon-logo.png" alt="MERCON Logistics" className="h-20 lg:h-24 w-auto" />
+      {/* Logo pinned to the top-right of the page */}
+      <img
+        src="/mercon-logo.png"
+        alt="MERCON Logistics"
+        className="absolute top-6 right-6 lg:top-10 lg:right-12 h-12 lg:h-16 w-auto z-10"
+      />
 
-        <div className="mt-6 text-center">
+      <div className="w-full max-w-[400px] animate-fade-in flex flex-col items-center lg:-translate-y-4">
+        <div className="text-center">
           <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
           <h2 className="mt-4 text-[40px] leading-[1.1] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
         </div>
