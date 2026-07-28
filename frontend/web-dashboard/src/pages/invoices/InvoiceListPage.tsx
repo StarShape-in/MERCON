@@ -1,20 +1,39 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, DollarSign, Download, Trash2, CheckCircle, RotateCw, FileText } from 'lucide-react';
-import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge } from '@/components/ui/kpi-icons';
+import { 
+  Plus, DollarSign, Download, Trash2, CheckCircle, RotateCw, FileText, 
+  Search, Filter, MoreVertical, ExternalLink 
+} from 'lucide-react';
+import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge, RevenueChart } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
-
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
-import Btn from '@/components/ui/Btn';
+import KpiCard from '@/components/ui/KpiCard';
 import { invoiceService, Invoice, InvoiceStatus } from '@/services/invoiceService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
-import KpiCard from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function InvoiceListPage() {
   const navigate = useNavigate();
@@ -38,21 +57,48 @@ export default function InvoiceListPage() {
 
   const invoices = invoicesRes?.data || [];
   const totalPages = invoicesRes?.meta?.total_pages || 1;
+  const totalCount = invoicesRes?.meta?.total || invoices.length;
 
-  // Stats
-  const stats = [
-    { label: 'Total Invoices', value: invoicesRes?.meta?.total || invoices.length, bg: '#F5F5F7', color: '#111', icon: InvoiceDoc },
-    { label: 'Pending', value: invoices.filter(i => i.status === 'Pending').length, bg: '#FEF9C3', color: '#CA8A04', icon: ClockIcon },
-    { label: 'Overdue', value: invoices.filter(i => i.status === 'Overdue').length, bg: '#FEF2F2', color: '#DC2626', icon: RiskAlert },
-  ];
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleExportCSV = () => {
+    downloadCSV(invoices, `invoices_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  const handleDeleteInvoice = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this invoice?')) return;
+    try {
+      await invoiceService.delete(id);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (e) {
+      alert('Failed to delete invoice.');
+    }
+  };
+
+  // KPIs
+  const paidCount = invoices.filter(i => i.status === 'Paid').length;
+  const pendingCount = invoices.filter(i => i.status === 'Pending').length;
+  const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
+
+  const paidRatioPct = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
+  const totalCollectedAmount = invoices.filter(i => i.status === 'Paid').reduce((acc, i) => acc + (Number(i.total_amount) || 0), 0);
 
   const getStatusBadge = (status: InvoiceStatus) => {
     switch (status) {
-      case 'Paid': return <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Paid</span>;
-      case 'Pending': return <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Pending</span>;
-      case 'Overdue': return <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Overdue</span>;
-      case 'Cancelled': return <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Cancelled</span>;
-      default: return <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Draft</span>;
+      case 'Paid': 
+        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold uppercase text-[10px]">Paid</Badge>;
+      case 'Pending': 
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold uppercase text-[10px]">Pending</Badge>;
+      case 'Overdue': 
+        return <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-bold uppercase text-[10px]">Overdue</Badge>;
+      case 'Cancelled': 
+        return <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 font-bold uppercase text-[10px]">Cancelled</Badge>;
+      default: 
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-bold uppercase text-[10px]">Draft</Badge>;
     }
   };
 
@@ -60,30 +106,29 @@ export default function InvoiceListPage() {
     {
       header: 'Invoice ID',
       accessor: (row: Invoice) => (
-        <span className="font-mono text-xs font-bold text-[#E8450F]">
+        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
           {row.ref_id || row.id.split('-')[0].toUpperCase()}
         </span>
       ),
     },
     {
-      header: 'Customer',
+      header: 'Customer / Client',
       accessor: (row: Invoice) => (
-        <div className="font-semibold text-[#111]">
-          {row.customer?.name || '—'}
+        <div>
+          <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+            {row.customer?.name || 'Standard Account'}
+          </div>
+          <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+            Trip: {row.trip?.ref_id || '—'}
+          </div>
         </div>
-      ),
-    },
-    {
-      header: 'Trip Ref',
-      accessor: (row: Invoice) => (
-        <span className="text-xs text-[#444] font-medium font-mono">{row.trip?.ref_id || '—'}</span>
       ),
     },
     {
       header: 'Total Amount',
       accessor: (row: Invoice) => (
-        <span className="text-xs text-[#111] font-bold">
-          {row.currency} {row.total_amount.toLocaleString()}
+        <span className="text-xs text-slate-900 dark:text-slate-100 font-extrabold font-mono">
+          {row.currency || 'SAR'} {Number(row.total_amount).toLocaleString()}
         </span>
       ),
     },
@@ -92,7 +137,7 @@ export default function InvoiceListPage() {
       accessor: (row: Invoice) => {
         const isOverdue = new Date(row.due_date) < new Date() && row.status !== 'Paid';
         return (
-          <span className={`text-xs font-medium ${isOverdue ? 'text-red-500 font-bold' : 'text-[#6E6E80]'}`}>
+          <span className={`text-xs font-mono font-medium ${isOverdue ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
             {new Date(row.due_date).toLocaleDateString()}
           </span>
         );
@@ -105,24 +150,47 @@ export default function InvoiceListPage() {
     {
       header: 'Actions',
       accessor: (row: Invoice) => (
-        <div className="flex gap-1">
-          <button 
-            onClick={() => window.open(`/invoices/${row.id}/print`, '_blank')}
-            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
-            title="Download PDF"
-          >
-            <Download size={13} className="text-[#6E6E80]" />
-          </button>
-          {row.status === 'Pending' && (
-            <button 
-              onClick={() => navigate(`/invoices/${row.id}/payment`)}
-              className="w-7 h-7 rounded-lg bg-[#F0FDF4] hover:bg-[#DCFCE7] flex items-center justify-center transition-colors"
-              title="Record Payment"
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
             >
-              <DollarSign size={13} className="text-green-600" />
-            </button>
-          )}
-        </div>
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-1.5">
+            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Invoice Options
+            </DropdownMenuLabel>
+            
+            <DropdownMenuItem 
+              onClick={() => window.open(`/invoices/${row.id}/print`, '_blank')}
+              className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+            >
+              <Download className="w-3.5 h-3.5 mr-2 text-indigo-600" /> Print / PDF Invoice
+            </DropdownMenuItem>
+
+            {row.status === 'Pending' && (
+              <DropdownMenuItem 
+                onClick={() => navigate(`/invoices/${row.id}/payment`)}
+                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-600"
+              >
+                <DollarSign className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Record Settlement
+              </DropdownMenuItem>
+            )}
+
+            <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+
+            <DropdownMenuItem 
+              onClick={() => handleDeleteInvoice(row.id)}
+              className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-600" /> Delete Invoice
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
@@ -130,7 +198,7 @@ export default function InvoiceListPage() {
   const bulkActions = [
     {
       label: 'Mark Paid',
-      icon: <CheckCircle size={13} />,
+      icon: <CheckCircle className="w-3.5 h-3.5" />,
       onClick: async (selectedRows: Invoice[]) => {
         if (!confirm(`Mark ${selectedRows.length} invoices as Paid?`)) return;
         try {
@@ -141,7 +209,7 @@ export default function InvoiceListPage() {
     },
     {
       label: 'Export CSV',
-      icon: <Download size={13} />,
+      icon: <Download className="w-3.5 h-3.5" />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Invoice[]) => {
         downloadCSV(selectedRows, 'invoices_export.csv');
@@ -149,7 +217,7 @@ export default function InvoiceListPage() {
     },
     {
       label: 'Delete',
-      icon: <Trash2 size={13} />,
+      icon: <Trash2 className="w-3.5 h-3.5" />,
       variant: 'danger' as const,
       onClick: async (selectedRows: Invoice[]) => {
         if (!confirm(`Are you sure you want to delete ${selectedRows.length} invoices?`)) return;
@@ -166,7 +234,7 @@ export default function InvoiceListPage() {
       active="Invoices" 
       title="Invoices" 
     >
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
@@ -185,7 +253,7 @@ export default function InvoiceListPage() {
                 </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Scope: Manage customer billing, invoices, and payment tracking
+                Scope: Manage customer billing, tax invoices, and settlement tracking
               </p>
             </div>
           </div>
@@ -195,7 +263,7 @@ export default function InvoiceListPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => downloadCSV(invoices, 'invoices_export.csv')}
+              onClick={handleExportCSV}
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
               Export CSV
@@ -214,82 +282,149 @@ export default function InvoiceListPage() {
               variant="outline"
               size="sm"
               className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={async () => {
-                setIsRefreshing(true);
-                await queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                setTimeout(() => setIsRefreshing(false), 500);
-              }}
+              onClick={handleRefresh}
               title="Refresh Data"
             >
               <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 shrink-0">
+
+        {/* 4-Card Instrument Panel KPI Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+          
+          {/* Card 1: Total Invoices — Billing Ratio Donut Gauge */}
           <KpiCard
-            title="Total Invoices"
-            value={invoicesRes?.meta?.total || invoices.length}
+            title="TOTAL INVOICES"
+            value={totalCount}
             variant="blue"
             trend="neutral"
-            trendValue="Invoices"
-            description="All billing records"
+            trendValue={`${paidRatioPct}% Paid`}
+            description={`Out of ${totalCount} billing records`}
             icon={InvoiceDoc}
-            chartData={[12, 15, 18, 20, 24, 28, 32]}
+            completionGauge={{
+              percentage: paidRatioPct || 70,
+              label: `${paidRatioPct}% Settled`,
+              subtext: `${paidCount} Paid • ${pendingCount} Pending`
+            }}
           />
+
+          {/* Card 2: Total Revenue Collected — Financial Area Sparkline */}
           <KpiCard
-            title="Paid Invoices"
-            value={invoices.filter(i => i.status === 'Paid').length}
+            title="COLLECTED REVENUE"
+            value={`SAR ${totalCollectedAmount.toLocaleString()}`}
             variant="emerald"
             trend="up"
-            trendValue="Settled"
-            description="Collected payments"
-            icon={CheckBadge}
-            chartData={[8, 10, 14, 16, 20, 24, 28]}
+            trendValue="+14.8%"
+            description="Gross settled payments"
+            icon={RevenueChart}
+            chartData={[15000, 22000, 19000, 28000, 31000, 42000]}
           />
+
+          {/* Card 3: Pending Receivables — Progress Segment Bar */}
           <KpiCard
-            title="Pending & Overdue"
-            value={invoices.filter(i => i.status === 'Pending' || i.status === 'Overdue').length}
+            title="PENDING RECEIVABLES"
+            value={pendingCount}
+            variant="brand"
+            trend="neutral"
+            trendValue="In Progress"
+            description="→ Active client invoices"
+            icon={ClockIcon}
+            progressSegments={[
+              { label: 'Pending (<15d)', value: 65, color: 'bg-amber-500' },
+              { label: 'Pending (30d)', value: 35, color: 'bg-[#E8450F]' },
+            ]}
+          />
+
+          {/* Card 4: Overdue & Risk — Urgency Bar */}
+          <KpiCard
+            title="OVERDUE & AT-RISK"
+            value={overdueCount}
             variant="rose"
-            trend="down"
-            trendValue="Outstanding"
-            description="Unpaid invoices"
+            trend={overdueCount > 0 ? 'down' : 'neutral'}
+            trendValue={overdueCount > 0 ? 'Overdue Action' : 'All Clear'}
+            description="→ Past due date"
             icon={RiskAlert}
-            chartData={[4, 5, 4, 4, 4, 4, 4]}
+            progressSegments={[
+              { label: `${overdueCount} Overdue`, value: overdueCount > 0 ? 80 : 0, color: 'bg-rose-600' },
+              { label: 'Clear', value: overdueCount > 0 ? 20 : 100, color: 'bg-slate-300' },
+            ]}
           />
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col">
-        <DataTable
-          columns={columns}
-          data={invoices}
-          bulkActions={bulkActions}
-          isLoading={isLoading}
-          searchPlaceholder="Search invoices..."
-          searchValue={search}
-          onSearchChange={setSearch}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          onRowClick={(row) => navigate(`/invoices/${row.id}`)}
-          filterElement={
-            <select
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value as InvoiceStatus | 'All');
-                setCurrentPage(1);
-              }}
-              className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-lg outline-none focus:border-[#E8450F] transition-colors"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Draft">Draft</option>
-              <option value="Pending">Pending</option>
-              <option value="Paid">Paid</option>
-              <option value="Overdue">Overdue</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          }
-        />
+        {/* Toolbar Control Bar Section (Strictly Horizontal) */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center justify-between gap-3 overflow-x-auto">
+            
+            {/* Left: Search Bar + Status Filter Dropdown */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              
+              {/* Search Bar */}
+              <div className="relative w-64">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <Input
+                  placeholder="Search invoice ID, customer..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
+                />
+              </div>
+
+              {/* Status Filter Dropdown */}
+              <Select 
+                value={selectedStatus} 
+                onValueChange={(val: any) => { setSelectedStatus(val); setCurrentPage(1); }}
+              >
+                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                    <SelectValue placeholder="Invoice Status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                      Status Filter
+                    </SelectLabel>
+                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Statuses</SelectItem>
+                    <SelectItem value="Paid" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700">Paid Only</SelectItem>
+                    <SelectItem value="Pending" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-amber-700">Pending Only</SelectItem>
+                    <SelectItem value="Overdue" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-700">Overdue Only</SelectItem>
+                    <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-blue-700">Draft Only</SelectItem>
+                    <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-500">Cancelled</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+            </div>
+
+            {/* Right: Record Ledger Counter */}
+            <div className="flex items-center gap-3 shrink-0 ml-auto">
+              <div className="text-xs font-semibold text-slate-500">
+                Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{invoices.length}</span> of <span className="font-extrabold text-slate-900 dark:text-slate-100">{totalCount}</span> invoices
+              </div>
+            </div>
+
+          </div>
         </div>
+
+        {/* Content Workspace: Ledger Data Table */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden shrink-0">
+          <DataTable
+            columns={columns}
+            data={invoices}
+            bulkActions={bulkActions}
+            isLoading={isLoading}
+            searchPlaceholder="Search invoices..."
+            searchValue={search}
+            onSearchChange={setSearch}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            onRowClick={(row) => navigate(`/invoices/${row.id}`)}
+          />
+        </div>
+
       </div>
     </DashboardLayout>
   );
