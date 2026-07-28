@@ -17,7 +17,8 @@ import {
   ArrowRight,
   Keyboard,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Sparkles
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -193,7 +194,6 @@ export default function CreateTripPage() {
   // Keyboard Shortcuts Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore shortcut if user is typing inside text input/textarea/select unless it's Ctrl+Enter
       const target = e.target as HTMLElement;
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
 
@@ -206,7 +206,24 @@ export default function CreateTripPage() {
         return;
       }
 
-      // 2. Tab Navigation: Alt + ArrowRight / Alt + ArrowLeft or Ctrl + Right / Left
+      // 2. Direct Tab Jumping: Alt + 1, Alt + 2, Alt + 3
+      if (e.altKey && e.key === '1') {
+        e.preventDefault();
+        setActiveTab('customer');
+        return;
+      }
+      if (e.altKey && e.key === '2') {
+        e.preventDefault();
+        setActiveTab('assignment');
+        return;
+      }
+      if (e.altKey && e.key === '3') {
+        e.preventDefault();
+        setActiveTab('route');
+        return;
+      }
+
+      // 3. Tab Navigation: Alt + ArrowRight / Alt + ArrowLeft or Ctrl + Right / Left
       if ((e.altKey || e.ctrlKey) && e.key === 'ArrowRight') {
         e.preventDefault();
         goToNextTab();
@@ -219,7 +236,7 @@ export default function CreateTripPage() {
         return;
       }
 
-      // 3. Tab switching when not typing in inputs: Right/Left arrow
+      // 4. Tab switching when not typing in inputs: Right/Left arrow
       if (!isInput) {
         if (e.key === 'ArrowRight') {
           e.preventDefault();
@@ -237,7 +254,7 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
-      <div className="px-6 pb-6 space-y-5 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto">
         
         {/* Top Scope & Action Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-border/60">
@@ -250,10 +267,6 @@ export default function CreateTripPage() {
             <Badge className="bg-indigo-500/10 text-indigo-600 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-300">
               Trip Dispatch Module
             </Badge>
-
-            <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/60 text-[10px] text-muted-foreground font-mono">
-              <Keyboard className="w-3 h-3" /> Shortcuts: <kbd className="bg-background px-1 rounded border">Alt+←/→</kbd> Tabs • <kbd className="bg-background px-1 rounded border">Ctrl+Enter</kbd> Dispatch
-            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -282,8 +295,60 @@ export default function CreateTripPage() {
               className="h-8 gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" /> {createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
-              <kbd className="hidden sm:inline-block ml-1 text-[9px] bg-indigo-700/80 text-indigo-100 px-1 rounded font-mono">Ctrl+↵</kbd>
+              <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-indigo-950 text-amber-300 rounded border border-amber-400/40 shadow-xs">
+                Ctrl + ↵
+              </kbd>
             </Button>
+          </div>
+        </div>
+
+        {/* PROMINENT HIGH-VISIBILITY KEYBOARD SHORTCUT BAR */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-lg p-2.5 px-4 shadow-md border border-indigo-500/30 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center">
+              <Keyboard className="w-3.5 h-3.5 text-indigo-300 animate-pulse" />
+            </div>
+            <span className="font-bold text-slate-200">Keyboard Quick Controls:</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            
+            {/* Tab Switching Keycaps */}
+            <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700/80">
+              <span className="text-[11px] text-slate-400">Switch Tabs:</span>
+              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-extrabold bg-indigo-600 text-white rounded shadow-xs border-b-2 border-indigo-800">
+                Alt
+              </kbd>
+              <span className="text-slate-500 font-bold">+</span>
+              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-extrabold bg-indigo-600 text-white rounded shadow-xs border-b-2 border-indigo-800">
+                ← / →
+              </kbd>
+            </div>
+
+            {/* Jump to Tab Keycaps */}
+            <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700/80">
+              <span className="text-[11px] text-slate-400">Jump Tab:</span>
+              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-extrabold bg-indigo-600 text-white rounded shadow-xs border-b-2 border-indigo-800">
+                Alt
+              </kbd>
+              <span className="text-slate-500 font-bold">+</span>
+              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-extrabold bg-indigo-600 text-white rounded shadow-xs border-b-2 border-indigo-800">
+                1 / 2 / 3
+              </kbd>
+            </div>
+
+            {/* Submit Dispatch Keycaps */}
+            <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700/80">
+              <span className="text-[11px] text-slate-400">Dispatch Trip:</span>
+              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-extrabold bg-emerald-600 text-white rounded shadow-xs border-b-2 border-emerald-800">
+                Ctrl
+              </kbd>
+              <span className="text-slate-500 font-bold">+</span>
+              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-extrabold bg-emerald-600 text-white rounded shadow-xs border-b-2 border-emerald-800">
+                Enter ↵
+              </kbd>
+            </div>
+
           </div>
         </div>
 
@@ -368,26 +433,36 @@ export default function CreateTripPage() {
                       Configure customer, cargo type, assignments, and geofence locations.
                     </CardDescription>
                   </div>
-                  <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
-                    <Keyboard className="w-3 h-3 text-muted-foreground" /> <kbd className="bg-muted px-1 rounded">Alt+←/→</kbd>
-                  </div>
                 </div>
               </CardHeader>
 
               <CardContent className="pt-4">
                 <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
                   
-                  {/* Tabs Navigation Header */}
+                  {/* Tabs Navigation Header with High Visibility Shortcut Badges */}
                   <TabsList className="grid grid-cols-3 w-full mb-4 bg-muted/70 p-1">
-                    <TabsTrigger value="customer" className="text-xs font-semibold flex items-center gap-1">
-                      1. Customer & Cargo
+                    
+                    <TabsTrigger value="customer" className="text-xs font-semibold flex items-center justify-between gap-1">
+                      <span>1. Customer & Cargo</span>
+                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-indigo-600 text-white rounded border border-indigo-700 shadow-2xs">
+                        Alt+1
+                      </kbd>
                     </TabsTrigger>
-                    <TabsTrigger value="assignment" className="text-xs font-semibold flex items-center gap-1">
-                      2. Driver & Vehicle
+
+                    <TabsTrigger value="assignment" className="text-xs font-semibold flex items-center justify-between gap-1">
+                      <span>2. Driver & Vehicle</span>
+                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-indigo-600 text-white rounded border border-indigo-700 shadow-2xs">
+                        Alt+2
+                      </kbd>
                     </TabsTrigger>
-                    <TabsTrigger value="route" className="text-xs font-semibold flex items-center gap-1">
-                      3. Route Stops
+
+                    <TabsTrigger value="route" className="text-xs font-semibold flex items-center justify-between gap-1">
+                      <span>3. Route Stops</span>
+                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-indigo-600 text-white rounded border border-indigo-700 shadow-2xs">
+                        Alt+3
+                      </kbd>
                     </TabsTrigger>
+
                   </TabsList>
 
                   {/* TAB 1: Customer & Cargo */}
@@ -482,10 +557,12 @@ export default function CreateTripPage() {
                         type="button" 
                         size="sm"
                         onClick={goToNextTab}
-                        className="h-8 text-xs gap-1.5"
+                        className="h-9 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
                       >
                         Next: Assignments <ChevronRight className="w-3.5 h-3.5" />
-                        <kbd className="text-[9px] bg-primary-foreground/20 px-1 rounded font-mono">Alt+→</kbd>
+                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-indigo-900 text-white rounded border border-indigo-400/40">
+                          Alt + →
+                        </kbd>
                       </Button>
                     </div>
                   </TabsContent>
@@ -558,18 +635,24 @@ export default function CreateTripPage() {
                         variant="outline" 
                         size="sm"
                         onClick={goToPrevTab}
-                        className="h-8 text-xs gap-1"
+                        className="h-9 text-xs gap-1 border-indigo-200 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50"
                       >
-                        <ChevronLeft className="w-3.5 h-3.5" /> Back <kbd className="text-[9px] bg-muted px-1 rounded font-mono">Alt+←</kbd>
+                        <ChevronLeft className="w-3.5 h-3.5" /> Back
+                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded border border-indigo-300">
+                          Alt + ←
+                        </kbd>
                       </Button>
+
                       <Button 
                         type="button" 
                         size="sm"
                         onClick={goToNextTab}
-                        className="h-8 text-xs gap-1.5"
+                        className="h-9 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
                       >
                         Next: Route Stops <ChevronRight className="w-3.5 h-3.5" />
-                        <kbd className="text-[9px] bg-primary-foreground/20 px-1 rounded font-mono">Alt+→</kbd>
+                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-indigo-900 text-white rounded border border-indigo-400/40">
+                          Alt + →
+                        </kbd>
                       </Button>
                     </div>
                   </TabsContent>
@@ -581,7 +664,7 @@ export default function CreateTripPage() {
                     <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/60">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> Pickup Stop (Sequence 1)
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Pickup Stop (Sequence 1)
                         </span>
                         <span className="text-[10px] font-mono text-muted-foreground">
                           {pickupLat && pickupLng ? `${pickupLat.toFixed(4)}, ${pickupLng.toFixed(4)}` : 'Not Set'}
@@ -613,7 +696,7 @@ export default function CreateTripPage() {
                     <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/60">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-rose-500" /> Dropoff Stop (Sequence 2)
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Dropoff Stop (Sequence 2)
                         </span>
                         <span className="text-[10px] font-mono text-muted-foreground">
                           {dropoffLat && dropoffLng ? `${dropoffLat.toFixed(4)}, ${dropoffLng.toFixed(4)}` : 'Not Set'}
@@ -647,19 +730,25 @@ export default function CreateTripPage() {
                         variant="outline" 
                         size="sm"
                         onClick={goToPrevTab}
-                        className="h-8 text-xs gap-1"
+                        className="h-9 text-xs gap-1 border-indigo-200 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50"
                       >
-                        <ChevronLeft className="w-3.5 h-3.5" /> Back <kbd className="text-[9px] bg-muted px-1 rounded font-mono">Alt+←</kbd>
+                        <ChevronLeft className="w-3.5 h-3.5" /> Back
+                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded border border-indigo-300">
+                          Alt + ←
+                        </kbd>
                       </Button>
+
                       <Button 
                         type="button" 
                         size="sm"
                         onClick={() => handleSubmit()}
                         disabled={createMutation.isPending || !isFormValid}
-                        className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5"
+                        className="h-9 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1.5 shadow-md"
                       >
                         <Plus className="w-3.5 h-3.5" /> Dispatch Trip
-                        <kbd className="text-[9px] bg-indigo-700/80 text-indigo-100 px-1 rounded font-mono">Ctrl+↵</kbd>
+                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-indigo-950 text-amber-300 rounded border border-amber-400/40 shadow-xs">
+                          Ctrl + ↵
+                        </kbd>
                       </Button>
                     </div>
 
@@ -817,10 +906,12 @@ export default function CreateTripPage() {
                   size="sm"
                   onClick={() => handleSubmit()}
                   disabled={createMutation.isPending || !isFormValid}
-                  className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 gap-1"
+                  className="h-9 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 gap-1.5 shadow-md"
                 >
                   {createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
-                  <kbd className="text-[9px] bg-indigo-700/80 text-indigo-100 px-1 rounded font-mono">Ctrl+↵</kbd>
+                  <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-indigo-950 text-amber-300 rounded border border-amber-400/40 shadow-xs">
+                    Ctrl + ↵
+                  </kbd>
                 </Button>
               </CardFooter>
             </Card>
