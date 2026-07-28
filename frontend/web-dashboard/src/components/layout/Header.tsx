@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Search, 
   Bell, 
   ChevronDown, 
   User, 
@@ -12,7 +11,6 @@ import {
   Truck, 
   Users, 
   FileText, 
-  CreditCard, 
   PieChart, 
   Receipt 
 } from 'lucide-react';
@@ -139,16 +137,6 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
       {/* Right Side Controls */}
       <div className="flex items-center gap-3 shrink-0">
         
-        {/* Global Search box */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 w-52 border border-slate-200 dark:border-slate-700">
-          <Search size={13} className="text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search anything…" 
-            className="bg-transparent border-none outline-none text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 w-full font-medium"
-          />
-        </div>
-
         {/* Notifications trigger */}
         <Link to="/notifications" className="relative group">
           <div className="w-8.5 h-8.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
