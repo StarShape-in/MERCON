@@ -70,10 +70,14 @@ const ProfileScreen = ({ navigation }: any) => {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Profile Hero */}
         <View style={styles.hero}>
-          <Avatar initials={initialsOf(name)} size={80} style={styles.avatar} />
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.driverId}>{refId}</Text>
-          {!!status && <Badge label={status} variant={statusVariant(status)} />}
+          <Avatar initials={initialsOf(name)} size={96} />
+          <View style={styles.heroInfo}>
+            <Text style={styles.name} numberOfLines={1}>{name}</Text>
+            <View style={styles.heroTagsRow}>
+              <Text style={styles.driverId}>{refId}</Text>
+              {!!status && <Badge label={status} variant={statusVariant(status)} />}
+            </View>
+          </View>
         </View>
 
         {/* Quick Actions */}
@@ -157,27 +161,33 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   hero: {
-    backgroundColor: Colors.white,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing['2xl'],
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray100,
     marginBottom: Spacing.lg,
-    gap: Spacing.xs,
+    gap: Spacing.lg,
   },
-  avatar: {
-    marginBottom: Spacing.md,
+  heroInfo: {
+    flex: 1,
+    gap: Spacing.xs,
   },
   name: {
     fontSize: Typography.xl,
     fontWeight: '800',
     color: Colors.gray900,
-    marginBottom: 2,
+  },
+  heroTagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   driverId: {
     fontSize: Typography.sm,
     color: Colors.gray500,
-    marginBottom: Spacing.sm,
   },
   quickActions: {
     flexDirection: 'row',
