@@ -39,7 +39,6 @@ export default function CreateTripPage() {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<'customer' | 'assignment' | 'route'>('customer');
-  const [cargoType, setCargoType] = useState('General Goods');
   const [hazmat, setHazmat] = useState(false);
   const [plannedStart, setPlannedStart] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -94,11 +93,10 @@ export default function CreateTripPage() {
   });
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
-  const isFormValid = customerId !== '' && driverId !== '' && vehicleId !== '' && cargoType.trim() !== '' && !missingLocation;
+  const isFormValid = customerId !== '' && driverId !== '' && vehicleId !== '' && !missingLocation;
 
   const handleReset = () => {
     setActiveTab('customer');
-    setCargoType('General Goods');
     setHazmat(false);
     setPlannedStart('');
     setCustomerId('');
@@ -119,11 +117,6 @@ export default function CreateTripPage() {
     if (!customerId) {
       setActiveTab('customer');
       setError('Please select a customer.');
-      return;
-    }
-    if (!cargoType.trim()) {
-      setActiveTab('customer');
-      setError('Please enter or select a cargo type.');
       return;
     }
     if (!driverId) {
@@ -151,7 +144,7 @@ export default function CreateTripPage() {
       customer_id: customerId,
       driver_id: driverId,
       vehicle_id: vehicleId,
-      cargo_type: cargoType,
+      cargo_type: 'General Goods',
       hazmat_flag: hazmat,
       planned_start: plannedStart || undefined,
       stops: [
@@ -171,7 +164,7 @@ export default function CreateTripPage() {
     };
 
     createMutation.mutate(payload);
-  }, [customerId, cargoType, driverId, vehicleId, pickupLat, pickupLng, dropoffLat, dropoffLng, hazmat, plannedStart, pickupTime, dropoffTime, createMutation]);
+  }, [customerId, driverId, vehicleId, pickupLat, pickupLng, dropoffLat, dropoffLng, hazmat, plannedStart, pickupTime, dropoffTime, createMutation]);
 
   // Tab Navigation Functions
   const goToNextTab = useCallback(() => {
@@ -351,11 +344,13 @@ export default function CreateTripPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cargo Class</span>
-              <Package className="w-4 h-4 text-indigo-600" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hazard Class</span>
+              <AlertTriangle className={`w-4 h-4 ${hazmat ? 'text-amber-500' : 'text-slate-400'}`} />
             </div>
             <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate max-w-[140px]">{cargoType || 'General Goods'}</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[130px]">
+                {hazmat ? 'Hazardous' : 'Standard'}
+              </span>
               <Badge variant="outline" className={`text-[9px] px-1 py-0 font-bold ${hazmat ? 'bg-amber-50 text-amber-700 border-amber-300' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
                 {hazmat ? 'HAZMAT' : 'Standard'}
               </Badge>
@@ -425,7 +420,7 @@ export default function CreateTripPage() {
                       <Navigation className="w-4.5 h-4.5 text-indigo-600" /> Dispatch Setup
                     </CardTitle>
                     <CardDescription className="text-xs text-slate-500">
-                      Configure customer, cargo type, assignments, and geofence locations.
+                      Configure customer organization, assignments, and geofence locations.
                     </CardDescription>
                   </div>
                 </div>
@@ -438,7 +433,7 @@ export default function CreateTripPage() {
                   <TabsList className="grid grid-cols-3 w-full mb-4 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     
                     <TabsTrigger value="customer" className="text-xs font-semibold flex items-center justify-between gap-1">
-                      <span>1. Customer & Cargo</span>
+                      <span>1. Customer Info</span>
                       <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
                         Alt+1
                       </kbd>
@@ -460,7 +455,7 @@ export default function CreateTripPage() {
 
                   </TabsList>
 
-                  {/* TAB 1: Customer & Cargo */}
+                  {/* TAB 1: Customer Info */}
                   <TabsContent value="customer" className="space-y-4 m-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       
@@ -483,37 +478,6 @@ export default function CreateTripPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
-
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label htmlFor="cargo_type" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                          <span>Cargo Type <span className="text-rose-500">*</span></span>
-                          <span className="text-[10px] text-indigo-600 font-semibold">Presets available</span>
-                        </Label>
-                        <Input
-                          id="cargo_type"
-                          placeholder="e.g. General Goods"
-                          value={cargoType}
-                          onChange={(e) => setCargoType(e.target.value)}
-                          className="h-9 text-xs font-medium border-slate-200"
-                        />
-                        {/* Cargo Type Presets */}
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {['General Goods', 'Refrigerated Food', 'Industrial Machinery', 'Chemicals', 'Electronics'].map((preset) => (
-                            <button
-                              key={preset}
-                              type="button"
-                              onClick={() => setCargoType(preset)}
-                              className={`text-[11px] px-2.5 py-1 rounded-md border transition-all ${
-                                cargoType === preset 
-                                  ? 'bg-[#E8450F] text-white border-[#E8450F] font-bold shadow-2xs' 
-                                  : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                              }`}
-                            >
-                              {preset}
-                            </button>
-                          ))}
-                        </div>
                       </div>
 
                       <div className="space-y-1.5">
@@ -810,19 +774,20 @@ export default function CreateTripPage() {
                   </div>
                 </div>
 
-                {/* Cargo & HAZMAT Badge Banner */}
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[10px] text-slate-500 font-medium">Cargo Category</span>
-                    {hazmat && (
-                      <Badge className="bg-amber-500 text-white text-[9px] px-1.5 py-0 flex items-center gap-1 font-bold">
-                        <AlertTriangle className="w-2.5 h-2.5" /> HAZMAT
-                      </Badge>
-                    )}
+                {/* Hazard Safety Spec Banner */}
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className={`w-4 h-4 ${hazmat ? 'text-amber-500' : 'text-slate-400'}`} />
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Hazard Classification</span>
+                      <span className="font-bold text-slate-900 dark:text-slate-100">
+                        {hazmat ? 'Hazardous Goods (HAZMAT)' : 'Standard Cargo'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-indigo-600" /> {cargoType || 'General Goods'}
-                  </div>
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0.5 font-bold ${hazmat ? 'bg-amber-50 text-amber-700 border-amber-300' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                    {hazmat ? 'HAZMAT' : 'Standard'}
+                  </Badge>
                 </div>
 
                 {/* Driver & Vehicle Pairing Spec */}

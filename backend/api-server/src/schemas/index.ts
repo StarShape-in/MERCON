@@ -30,7 +30,7 @@ export const createTripBody = z.object({
   customer_id: z.string().uuid('A valid customer is required'),
   driver_id: z.string().uuid('A driver must be assigned to create a trip'),
   vehicle_id: z.string().uuid('A vehicle must be assigned to create a trip'),
-  cargo_type: nonEmpty('Cargo type'),
+  cargo_type: z.string().trim().optional().default('General Goods'),
   hazmat_flag: z.boolean().optional(),
   planned_start: z.coerce.date().optional(),
   stops: z.array(z.object({

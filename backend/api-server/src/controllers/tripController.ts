@@ -114,7 +114,7 @@ export const createTrip = async (req: Request, res: Response) => {
           customerId: customer_id,
           driverId: driver_id,
           vehicleId: vehicle_id,
-          cargo_type,
+          cargo_type: cargo_type || 'General Goods',
           hazmat_flag: hazmat_flag || false,
           planned_start: planned_start ? new Date(planned_start) : null,
           status: TripStatus.Dispatched,

@@ -38,7 +38,7 @@ export interface CreateTripPayload {
   customer_id: string;
   driver_id?: string;
   vehicle_id?: string;
-  cargo_type: string;
+  cargo_type?: string;
   hazmat_flag?: boolean;
   planned_start?: string;
   stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string }[];
