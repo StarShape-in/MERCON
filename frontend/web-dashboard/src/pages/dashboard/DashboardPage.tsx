@@ -92,58 +92,76 @@ export default function DashboardPage() {
     >
       <div className="px-6 pb-6 h-full flex flex-col gap-5 animate-fade-in">
         
-        {/* Distinct KPI Row */}
+        {/* Instrument Panel KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           
-          {/* Card 1: Hero Stat Banner */}
-          <HeroStatBanner
-            title="Total Freight Trips"
-            mainValue={kpis.total_trips.value}
+          {/* Card 1: Total Freight Trips with Telemetry Radar Widget */}
+          <KpiCard
+            title="TOTAL FREIGHT TRIPS"
+            value={kpis.total_trips.value}
+            variant="brand"
             trend={kpis.total_trips.delta !== null ? (kpis.total_trips.delta >= 0 ? 'up' : 'down') : 'up'}
             trendValue={kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '+12.4%'}
-            subLabel="vs last month"
+            description="→ Active & completed manifests"
             icon={TruckMotion}
-            badgeText="Primary Metric"
-            accentColor="brand"
+            onClick={() => navigate('/trips')}
           >
             <DispatchTelemetryRadarKpi 
               activeCount={kpis.fleet_on_trip.value || 0} 
               totalCount={kpis.total_trips.value || 1} 
               label="Live Dispatch Telemetry" 
             />
-          </HeroStatBanner>
+          </KpiCard>
 
-          {/* Card 2: High-Tech Telemetry Dark Slate Card */}
-          <TelemetryDarkCard
-            title="Active Fleet (On Road)"
+          {/* Card 2: Active Fleet with Speedometer Dial Widget */}
+          <KpiCard
+            title="ACTIVE FLEET (ON ROAD)"
             value={kpis.fleet_on_trip.value}
-            statusText="Live GPS Telemetry"
+            variant="blue"
+            trend="up"
+            trendValue={`${Math.round(((kpis.fleet_on_trip.value || 1) / ((kpis.fleet_on_trip.value || 0) + (kpis.fleet_available.value || 1))) * 100)}%`}
+            description="↑ Fleet active capacity"
             icon={FleetTruck}
+            onClick={() => navigate('/vehicles')}
           >
             <SpeedometerGaugeKpi 
               percentage={Math.round(((kpis.fleet_on_trip.value || 1) / ((kpis.fleet_on_trip.value || 0) + (kpis.fleet_available.value || 1))) * 100)} 
               label="Fleet Capacity Utilized"
               subtext={`${kpis.fleet_available.value || 0} Standby Trucks`}
             />
-          </TelemetryDarkCard>
+          </KpiCard>
 
-          {/* Card 3: Glassmorphic Ring Gauge Meter */}
-          <GlassmeterCard
-            title="Total Monthly Revenue"
+          {/* Card 3: Monthly Revenue — Donut Gauge */}
+          <KpiCard
+            title="MONTHLY REVENUE"
             value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`}
-            subtitle="Gross settled trips this month"
+            variant="emerald"
+            trend={kpis.revenue_this_month.delta !== null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : 'up'}
+            trendValue={kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '+14.8%'}
+            description="↑ Gross settled payments"
             icon={MoneyBills}
-            percentage={84}
-            meterColor="bg-emerald-500"
+            completionGauge={{
+              percentage: 84,
+              label: '84% Monthly Target Reached',
+              subtext: 'SAR 420K Monthly Target'
+            }}
+            onClick={() => navigate('/invoices')}
           />
 
-          {/* Card 4: Compact Capsule Pill Container */}
-          <CompactCapsulePill
-            title="Compliance Renewals"
+          {/* Card 4: Compliance Renewals — Urgency Segments */}
+          <KpiCard
+            title="COMPLIANCE RENEWALS"
             value={kpis.docs_expiring_soon.value}
-            badgeText={kpis.docs_expiring_soon.value > 0 ? "Action Required" : "All Clear"}
+            variant="amber"
+            trend={kpis.docs_expiring_soon.value > 0 ? 'down' : 'neutral'}
+            trendValue={kpis.docs_expiring_soon.value > 0 ? 'Action Required' : 'All Clear'}
+            description="→ Permits expiring within 30d"
             icon={CalendarAlert}
-            accentColor="border-amber-200 bg-amber-50/40"
+            progressSegments={[
+              { label: `${kpis.docs_expiring_soon.value} Due Soon`, value: kpis.docs_expiring_soon.value > 0 ? 80 : 0, color: 'bg-amber-500' },
+              { label: 'Clear', value: kpis.docs_expiring_soon.value > 0 ? 20 : 100, color: 'bg-slate-300' },
+            ]}
+            onClick={() => navigate('/documents/expiring')}
           />
         </div>
 

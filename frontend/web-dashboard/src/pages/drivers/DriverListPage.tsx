@@ -27,7 +27,8 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { DriverBadge, CheckBadge, RouteLine, TruckMotion, RiskAlert } from '@/components/ui/kpi-icons';
-import { GlassmeterCard, CompactCapsulePill } from '@/components/ui/NewKpiCardStyles';
+import KpiCard from '@/components/ui/KpiCard';
+import { DriverRosterKpi } from '@/components/ui/CustomKpiWidgets';
 
 import { downloadCSV } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
@@ -433,41 +434,66 @@ export default function DriverListPage() {
           </div>
         </div>
 
-        {/* Distinct Driver Roster KPI Section */}
+        {/* Instrument Panel KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          <GlassmeterCard
-            title="Registered Roster"
+          <KpiCard
+            title="TOTAL REGISTERED DRIVERS"
             value={totalCount}
-            subtitle="Click to view all drivers"
+            variant="brand"
+            trend="up"
+            trendValue="+5 Active"
+            description="Click to view all drivers"
             icon={DriverBadge}
-            percentage={88}
-            meterColor="bg-[#E8450F]"
             onClick={() => { setSelectedStatus('All'); setRiskFilter('All'); setCurrentPage(1); }}
-          />
-          <GlassmeterCard
-            title="Available Now"
+          >
+            <DriverRosterKpi 
+              totalCount={totalCount} 
+              activeCount={availableCount} 
+              rating={4.9} 
+            />
+          </KpiCard>
+
+          <KpiCard
+            title="AVAILABLE NOW"
             value={availableCount}
-            subtitle="Click to filter Available drivers"
+            variant="emerald"
+            trend="up"
+            trendValue="Available"
+            description="Click to filter Available drivers"
             icon={CheckBadge}
-            percentage={72}
-            meterColor="bg-emerald-500"
+            completionGauge={{
+              percentage: Math.round((availableCount / (totalCount || 1)) * 100) || 75,
+              label: `${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`,
+              subtext: `${availableCount} Ready • ${onTripCount} Dispatched`
+            }}
             onClick={() => { setSelectedStatus('Available'); setCurrentPage(1); }}
           />
-          <GlassmeterCard
-            title="Active Dispatched"
+
+          <KpiCard
+            title="ACTIVE ON ROAD"
             value={onTripCount}
-            subtitle="Click to filter On-Trip drivers"
+            variant="blue"
+            trend="neutral"
+            trendValue="Dispatched"
+            description="Click to filter On-Trip drivers"
             icon={TruckMotion}
-            percentage={65}
-            meterColor="bg-indigo-500"
+            chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
             onClick={() => { setSelectedStatus('OnTrip'); setCurrentPage(1); }}
           />
-          <CompactCapsulePill
-            title="Saudi MOMRAH Permits"
-            value={`${totalCount - highRiskCount}/${totalCount}`}
-            badgeText={highRiskCount > 0 ? `${highRiskCount} Review Needed` : "100% Verified"}
+
+          <KpiCard
+            title="HIGH RISK / EXPIRED"
+            value={highRiskCount}
+            variant="amber"
+            trend={highRiskCount > 0 ? "down" : "neutral"}
+            trendValue={highRiskCount > 0 ? "Review Required" : "All Clear"}
+            description="Click for MOT compliance details"
             icon={RiskAlert}
-            accentColor="border-amber-200 bg-amber-50/30"
+            progressSegments={[
+              { label: `High Risk (${highRiskDriversCount})`, value: Math.max(highRiskDriversCount > 0 ? 10 : 0, highRiskSegPct), color: 'bg-rose-500' },
+              { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-amber-500' },
+              { label: `Clear (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-slate-300' },
+            ]}
             onClick={() => setShowMotModal(true)}
           />
         </div>
