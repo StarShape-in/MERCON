@@ -171,14 +171,14 @@ export default function CustomReportPage() {
 
             {(preset === 'custom') ? (
               <div className="md:col-span-1">
-                <Btn label="Generate Report" onClick={handleGenerate} className="w-full" disabled={!customStart || !customEnd} />
+                <Btn label="Generate Report" onClick={() => refetch()} className="w-full" disabled={!customStart || !customEnd} />
               </div>
             ) : null}
           </div>
         </div>
 
         {/* KPIs */}
-        {(isLoading || isFetching) ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 animate-pulse">
             <div className="h-28 bg-black/5 rounded-lg"></div>
             <div className="h-28 bg-black/5 rounded-lg"></div>

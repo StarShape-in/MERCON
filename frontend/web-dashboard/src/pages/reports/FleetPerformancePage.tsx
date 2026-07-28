@@ -25,7 +25,7 @@ export default function FleetPerformancePage() {
   });
 
   const handleExport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Plate,AssetType,Status,TotalTrips,CompletedTrips,MaintenanceCost\n" + rows.map(v => `${v.plate_number},${v.asset_type},${v.status},${v.total_trips},${v.completed_trips},${v.maintenance_cost}`).join("\n");
+    const csvContent = "data:text/csv;charset=utf-8,Plate,RefID,Status,TotalTrips,CompletedTrips,MaintenanceCost\n" + rows.map(v => `${v.plate_number},${v.ref_id},${v.status},${v.total_trips},${v.completed_trips},${v.maintenance_cost}`).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
