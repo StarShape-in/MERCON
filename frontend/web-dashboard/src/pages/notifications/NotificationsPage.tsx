@@ -196,13 +196,14 @@ export default function NotificationsPage() {
             variant="blue"
             trend="neutral"
             trendValue={`${readRatioPct}% Processed`}
-            description="System operations notifications"
+            description="Click to view all notifications"
             icon={CheckBadge}
             completionGauge={{
               percentage: readRatioPct || 100,
               label: `${readRatioPct}% Read & Processed`,
               subtext: `${readCount} Read • ${unreadCount} Unread`
             }}
+            onClick={() => setActiveTab('all')}
           />
 
           {/* Card 2: Unread Alerts — Urgency Bar */}
@@ -212,12 +213,13 @@ export default function NotificationsPage() {
             variant="brand"
             trend={unreadCount > 0 ? 'down' : 'neutral'}
             trendValue={unreadCount > 0 ? 'Pending Read' : 'All Clear'}
-            description="→ Unread operational messages"
+            description="Click to view Unread alerts"
             icon={CalendarAlert}
             progressSegments={[
               { label: `${unreadCount} Unread`, value: unreadCount > 0 ? 80 : 0, color: 'bg-[#E8450F]' },
               { label: 'Read', value: unreadCount > 0 ? 20 : 100, color: 'bg-slate-300' },
             ]}
+            onClick={() => setActiveTab('unread')}
           />
 
           {/* Card 3: Emergency Safety Alerts — Urgency Bar */}
@@ -227,11 +229,12 @@ export default function NotificationsPage() {
             variant="rose"
             trend={alertCount > 0 ? 'down' : 'neutral'}
             trendValue={alertCount > 0 ? 'Safety Action' : 'Zero Hazards'}
-            description="Critical telemetry & safety warnings"
+            description="Click for Emergency alerts"
             icon={RiskAlert}
             progressSegments={[
               { label: 'Safety Alerts', value: alertCount > 0 ? 100 : 0, color: 'bg-rose-600' },
             ]}
+            onClick={() => setActiveTab('alert')}
           />
 
           {/* Card 4: Dispatch & Permit Logs — Progress Bar */}
@@ -241,12 +244,13 @@ export default function NotificationsPage() {
             variant="emerald"
             trend="neutral"
             trendValue="Automated Logs"
-            description="Trip updates & expiry reminders"
+            description="Click for Dispatch updates"
             icon={Truck}
             progressSegments={[
               { label: `Dispatch (${tripCount})`, value: 60, color: 'bg-indigo-600' },
               { label: `Document (${docCount})`, value: 40, color: 'bg-amber-500' },
             ]}
+            onClick={() => setActiveTab('trip')}
           />
         </div>
 

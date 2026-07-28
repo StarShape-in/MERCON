@@ -179,13 +179,14 @@ export default function DocumentsCenterPage() {
             variant="brand"
             trend="up"
             trendValue={`${compliancePct}% Valid`}
-            description="Active compliance files"
+            description="Click to view all document categories"
             icon={CheckBadge}
             completionGauge={{
               percentage: compliancePct || 90,
               label: `${compliancePct}% Compliance Valid`,
               subtext: `${safeCount} Valid • ${expiringCount} Due Soon`
             }}
+            onClick={() => setActiveCategory('All')}
           />
 
           {/* Card 2: Expiration Radar — Urgency Bar */}
@@ -195,13 +196,14 @@ export default function DocumentsCenterPage() {
             variant="amber"
             trend={expiringCount > 0 ? 'down' : 'neutral'}
             trendValue={expiringCount > 0 ? 'Attention Needed' : 'All Clear'}
-            description="→ Expiring within 30 days"
+            description="Click to open Expiry Radar Center"
             icon={CalendarAlertIcon}
             progressSegments={[
               { label: `${expiredCount} Expired`, value: expiringCount > 0 ? 40 : 0, color: 'bg-rose-600' },
               { label: `${criticalCount} Critical (<7d)`, value: expiringCount > 0 ? 40 : 0, color: 'bg-amber-500' },
               { label: 'Clear', value: expiringCount > 0 ? 20 : 100, color: 'bg-slate-300' },
             ]}
+            onClick={() => navigate('/documents/expiring')}
           />
 
           {/* Card 3: Driver License Files — Progress Bar */}
@@ -211,12 +213,13 @@ export default function DocumentsCenterPage() {
             variant="blue"
             trend="neutral"
             trendValue="Verified"
-            description="Saudi Heavy Transport Licenses"
+            description="Click to filter Driver documents"
             icon={DriverBadge}
             progressSegments={[
               { label: 'Saudi Commercial (80%)', value: 80, color: 'bg-indigo-600' },
               { label: 'Medical Clearance (20%)', value: 20, color: 'bg-emerald-500' },
             ]}
+            onClick={() => setActiveCategory('Drivers')}
           />
 
           {/* Card 4: Vehicle Registrations — Gauge */}
@@ -226,13 +229,14 @@ export default function DocumentsCenterPage() {
             variant="emerald"
             trend="neutral"
             trendValue="Istimara Valid"
-            description="KSA Transport Permits"
+            description="Click to filter Vehicle documents"
             icon={FleetTruck}
             completionGauge={{
               percentage: 92,
               label: '92% Vehicle Permits Valid',
               subtext: `${vehicles.length} Active Fleet Assets`
             }}
+            onClick={() => setActiveCategory('Vehicles')}
           />
         </div>
 

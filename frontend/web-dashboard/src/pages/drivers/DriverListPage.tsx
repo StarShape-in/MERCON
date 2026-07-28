@@ -85,6 +85,7 @@ export default function DriverListPage() {
   const [statusDialogDriver, setStatusDialogDriver] = useState<Driver | null>(null);
   const [newStatus, setNewStatus] = useState<DriverStatus>('Available');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showMotModal, setShowMotModal] = useState(false);
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -437,26 +438,29 @@ export default function DriverListPage() {
           <GlassmeterCard
             title="Registered Roster"
             value={totalCount}
-            subtitle="Active fleet personnel & drivers"
+            subtitle="Click to view all drivers"
             icon={DriverBadge}
             percentage={88}
             meterColor="bg-[#E8450F]"
+            onClick={() => { setSelectedStatus('All'); setRiskFilter('All'); setCurrentPage(1); }}
           />
           <GlassmeterCard
             title="Available Now"
             value={availableCount}
-            subtitle="Ready for immediate trip dispatch"
+            subtitle="Click to filter Available drivers"
             icon={CheckBadge}
             percentage={72}
             meterColor="bg-emerald-500"
+            onClick={() => { setSelectedStatus('Available'); setCurrentPage(1); }}
           />
           <GlassmeterCard
             title="Active Dispatched"
             value={onTripCount}
-            subtitle="Drivers currently on active route"
+            subtitle="Click to filter On-Trip drivers"
             icon={TruckMotion}
             percentage={65}
             meterColor="bg-indigo-500"
+            onClick={() => { setSelectedStatus('OnTrip'); setCurrentPage(1); }}
           />
           <CompactCapsulePill
             title="Saudi MOMRAH Permits"
@@ -464,6 +468,7 @@ export default function DriverListPage() {
             badgeText={highRiskCount > 0 ? `${highRiskCount} Review Needed` : "100% Verified"}
             icon={RiskAlert}
             accentColor="border-amber-200 bg-amber-50/30"
+            onClick={() => setShowMotModal(true)}
           />
         </div>
 
@@ -744,6 +749,52 @@ export default function DriverListPage() {
                 disabled={isUpdatingStatus}
               >
                 {isUpdatingStatus ? 'Saving...' : 'Update Status'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* MOT Compliance Verification Modal */}
+        <Dialog open={showMotModal} onOpenChange={setShowMotModal}>
+          <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
+            <DialogHeader>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mb-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              </div>
+              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                Saudi MOT & MOMRAH Compliance Status
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Ministry of Transport commercial heavy driver license verification ledger.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 my-4 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60">
+                <div>
+                  <div className="font-bold text-emerald-900 dark:text-emerald-300">Verified MOT Licenses</div>
+                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Active commercial heavy transport</div>
+                </div>
+                <Badge className="bg-emerald-600 text-white font-mono font-bold text-xs">{totalCount - highRiskCount}</Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60">
+                <div>
+                  <div className="font-bold text-amber-900 dark:text-amber-300">Pending Renewal / Expired</div>
+                  <div className="text-[10px] text-amber-700 dark:text-amber-400">Action required with Ministry portal</div>
+                </div>
+                <Badge className="bg-amber-600 text-white font-mono font-bold text-xs">{highRiskCount}</Badge>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-bold border-slate-200"
+                onClick={() => setShowMotModal(false)}
+              >
+                Close Verification Summary
               </Button>
             </DialogFooter>
           </DialogContent>

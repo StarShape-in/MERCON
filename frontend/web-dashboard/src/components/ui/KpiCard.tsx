@@ -214,6 +214,7 @@ export function KpiCard({
     <Card
       className={cn(
         'group relative rounded-none border-border/70 shadow-none transition-all duration-200 hover:border-border py-4 gap-0 bg-gradient-to-b from-card via-card to-transparent',
+        props.onClick && 'cursor-pointer hover:scale-[1.015] active:scale-[0.99] hover:shadow-sm',
         selectedStyle.cardBg,
         className
       )}

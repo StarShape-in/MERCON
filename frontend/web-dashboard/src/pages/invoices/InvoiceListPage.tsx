@@ -36,6 +36,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
 export default function InvoiceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -43,6 +52,7 @@ export default function InvoiceListPage() {
   const [selectedStatus, setSelectedStatus] = useState<InvoiceStatus | 'All'>('All');
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showRevenueModal, setShowRevenueModal] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch invoices using React Query
@@ -301,13 +311,14 @@ export default function InvoiceListPage() {
             variant="blue"
             trend="neutral"
             trendValue={`${paidRatioPct}% Paid`}
-            description={`Out of ${totalCount} billing records`}
+            description="Click to view all billing records"
             icon={InvoiceDoc}
             completionGauge={{
               percentage: paidRatioPct || 70,
               label: `${paidRatioPct}% Settled`,
               subtext: `${paidCount} Paid • ${pendingCount} Pending`
             }}
+            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
 
           {/* Card 2: Total Revenue Collected — Financial Area Sparkline */}
@@ -317,9 +328,10 @@ export default function InvoiceListPage() {
             variant="emerald"
             trend="up"
             trendValue="+14.8%"
-            description="Gross settled payments"
+            description="Click for revenue summary"
             icon={RevenueChart}
             chartData={[15000, 22000, 19000, 28000, 31000, 42000]}
+            onClick={() => setShowRevenueModal(true)}
           />
 
           {/* Card 3: Pending Receivables — Progress Segment Bar */}
@@ -329,8 +341,9 @@ export default function InvoiceListPage() {
             variant="brand"
             trend="neutral"
             trendValue="In Progress"
-            description="→ Active client invoices"
+            description="Click to filter Pending invoices"
             icon={ClockIcon}
+            onClick={() => { setSelectedStatus('Pending'); setCurrentPage(1); }}
           >
             <InvoiceAgingKpi pendingCount={pendingCount} overdueCount={overdueCount} paidCount={paidCount} />
           </KpiCard>
@@ -342,12 +355,13 @@ export default function InvoiceListPage() {
             variant="rose"
             trend={overdueCount > 0 ? 'down' : 'neutral'}
             trendValue={overdueCount > 0 ? 'Overdue Action' : 'All Clear'}
-            description="→ Past due date"
+            description="Click to filter Overdue invoices"
             icon={RiskAlert}
             progressSegments={[
               { label: `${overdueCount} Overdue`, value: overdueCount > 0 ? 80 : 0, color: 'bg-rose-600' },
               { label: 'Clear', value: overdueCount > 0 ? 20 : 100, color: 'bg-slate-300' },
             ]}
+            onClick={() => { setSelectedStatus('Overdue'); setCurrentPage(1); }}
           />
         </div>
 
@@ -419,10 +433,55 @@ export default function InvoiceListPage() {
             onSearchChange={setSearch}
             currentPage={currentPage}
             totalPages={totalPages}
-            onPageChange={setCurrentPage}
             onRowClick={(row) => navigate(`/invoices/${row.id}`)}
           />
         </div>
+
+        {/* Revenue Settlement Summary Modal */}
+        <Dialog open={showRevenueModal} onOpenChange={setShowRevenueModal}>
+          <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
+            <DialogHeader>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mb-2">
+                <RevenueChart className="w-5 h-5 text-emerald-600" />
+              </div>
+              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                Gross Revenue & Settlement Summary
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Real-time collection breakdown across paid, pending, and overdue tax invoices.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 my-4 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60">
+                <div>
+                  <div className="font-bold text-emerald-900 dark:text-emerald-300">Total Settled Revenue</div>
+                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Paid customer invoices ({paidCount})</div>
+                </div>
+                <span className="font-mono font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">SAR {totalCollectedAmount.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60">
+                <div>
+                  <div className="font-bold text-amber-900 dark:text-amber-300">Pending Receivables</div>
+                  <div className="text-[10px] text-amber-700 dark:text-amber-400">Awaiting customer payment ({pendingCount})</div>
+                </div>
+                <span className="font-mono font-extrabold text-amber-700 dark:text-amber-300 text-sm">{pendingCount} Invoices</span>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-bold border-slate-200"
+                onClick={() => setShowRevenueModal(false)}
+              >
+                Close Revenue Summary
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </DashboardLayout>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Activity, ShieldCheck, Zap } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 /**
  * 1. HeroStatBanner — Wide prominent telemetry banner card
@@ -14,6 +14,7 @@ export function HeroStatBanner({
   icon: Icon,
   badgeText,
   accentColor = 'brand',
+  onClick,
   children,
 }: {
   title: string;
@@ -24,6 +25,7 @@ export function HeroStatBanner({
   icon?: React.ElementType;
   badgeText?: string;
   accentColor?: 'brand' | 'indigo' | 'emerald' | 'amber' | 'rose';
+  onClick?: () => void;
   children?: React.ReactNode;
 }) {
   const bgColors = {
@@ -35,10 +37,14 @@ export function HeroStatBanner({
   };
 
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-2xl border bg-gradient-to-r p-5 shadow-xs transition-all hover:shadow-md",
-      bgColors[accentColor]
-    )}>
+    <div 
+      onClick={onClick}
+      className={cn(
+        "relative overflow-hidden rounded-2xl border bg-gradient-to-r p-5 shadow-xs transition-all hover:shadow-md",
+        onClick && "cursor-pointer hover:scale-[1.015] active:scale-[0.99]",
+        bgColors[accentColor]
+      )}
+    >
       <div className="flex items-center justify-between gap-4 mb-3">
         <div className="flex items-center gap-2">
           {Icon && (
@@ -91,6 +97,7 @@ export function GlassmeterCard({
   icon: Icon,
   percentage,
   meterColor = 'bg-emerald-500',
+  onClick,
 }: {
   title: string;
   value: React.ReactNode;
@@ -98,9 +105,16 @@ export function GlassmeterCard({
   icon?: React.ElementType;
   percentage?: number;
   meterColor?: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="relative rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+    <div 
+      onClick={onClick}
+      className={cn(
+        "relative rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between",
+        onClick && "cursor-pointer hover:scale-[1.015] active:scale-[0.99] hover:border-slate-300 dark:hover:border-slate-700"
+      )}
+    >
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{title}</span>
         {Icon && <Icon className="w-4 h-4 text-slate-400" />}
@@ -135,6 +149,7 @@ export function TelemetryDarkCard({
   statusText,
   icon: Icon,
   pulseColor = 'bg-emerald-400',
+  onClick,
   children,
 }: {
   title: string;
@@ -142,10 +157,17 @@ export function TelemetryDarkCard({
   statusText?: string;
   icon?: React.ElementType;
   pulseColor?: string;
+  onClick?: () => void;
   children?: React.ReactNode;
 }) {
   return (
-    <div className="relative rounded-2xl bg-slate-950 text-white p-4 shadow-md border border-slate-800 flex flex-col justify-between overflow-hidden">
+    <div 
+      onClick={onClick}
+      className={cn(
+        "relative rounded-2xl bg-slate-950 text-white p-4 shadow-md border border-slate-800 flex flex-col justify-between overflow-hidden transition-all",
+        onClick && "cursor-pointer hover:scale-[1.015] active:scale-[0.99] hover:border-indigo-500/50"
+      )}
+    >
       <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
 
       <div className="flex items-center justify-between mb-3 z-10">
@@ -177,15 +199,24 @@ export function CompactCapsulePill({
   badgeText,
   icon: Icon,
   accentColor = 'border-indigo-200 bg-indigo-50/50',
+  onClick,
 }: {
   title: string;
   value: React.ReactNode;
   badgeText?: string;
   icon?: React.ElementType;
   accentColor?: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className={cn("flex items-center justify-between p-3.5 rounded-2xl border shadow-2xs bg-white dark:bg-slate-900 transition-all hover:scale-[1.01]", accentColor)}>
+    <div 
+      onClick={onClick}
+      className={cn(
+        "flex items-center justify-between p-3.5 rounded-2xl border shadow-2xs bg-white dark:bg-slate-900 transition-all",
+        onClick && "cursor-pointer hover:scale-[1.015] active:scale-[0.99]",
+        accentColor
+      )}
+    >
       <div className="flex items-center gap-3">
         {Icon && (
           <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-800 dark:text-slate-200 shrink-0">

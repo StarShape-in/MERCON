@@ -270,9 +270,10 @@ export default function VehicleListPage() {
             variant="blue"
             trend="neutral"
             trendValue="Fleet Size"
-            description="Trucks & trailers"
+            description="Click to view all vehicles"
             icon={FleetTruck}
             chartData={[12, 14, 15, 18, 20, 22, 25]}
+            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
           <KpiCard
             title="Available"
@@ -280,9 +281,10 @@ export default function VehicleListPage() {
             variant="emerald"
             trend="up"
             trendValue="Ready"
-            description="Ready for dispatch"
+            description="Click to filter Available"
             icon={CheckBadge}
             chartData={[8, 10, 11, 13, 14, 16, 18]}
+            onClick={() => { setSelectedStatus('Available'); setCurrentPage(1); }}
           />
           <KpiCard
             title="In Maintenance"
@@ -290,9 +292,10 @@ export default function VehicleListPage() {
             variant="amber"
             trend="down"
             trendValue="Service"
-            description="Workshop maintenance"
+            description="Click to filter Maintenance"
             icon={MaintenanceWrench}
             chartData={[2, 3, 1, 4, 2, 3, 2]}
+            onClick={() => { setSelectedStatus('Maintenance'); setCurrentPage(1); }}
           />
         </div>
 
