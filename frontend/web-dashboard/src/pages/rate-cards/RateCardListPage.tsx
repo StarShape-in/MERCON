@@ -56,7 +56,7 @@ export default function RateCardListPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showTariffModal, setShowTariffModal] = useState(false);
 
