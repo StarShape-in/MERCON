@@ -409,67 +409,11 @@ export default function TripListPage() {
         </div>
 
         {/* Filter & Control Bar */}
-        <div className="bg-white rounded-lg border border-black/[0.07] p-4 shadow-2xs space-y-3 shrink-0">
-          
-          {/* Quick Status Filter Tabs */}
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-            <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
-              {STATUS_TABS.map((tab) => {
-                const isActive = selectedStatus === tab.value;
-                return (
-                  <button
-                    key={tab.value}
-                    onClick={() => {
-                      setSelectedStatus(tab.value);
-                      setCurrentPage(1);
-                    }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
-                      isActive 
-                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs' 
-                        : 'text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* View Mode Switcher Pill */}
-            <div className="hidden md:flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
-                  viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="List View"
-              >
-                <List size={13} />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
-                  viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="Grid View"
-              >
-                <LayoutGrid size={13} />
-              </button>
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
-                  viewMode === 'calendar' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="Calendar View"
-              >
-                <CalendarIcon size={13} />
-              </button>
-            </div>
-          </div>
-
-          {/* Search Input & Dropdown Select Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-            <div className="relative w-full sm:w-80">
+        <div className="bg-white rounded-lg border border-black/[0.07] p-3.5 shadow-2xs shrink-0">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+            
+            {/* Search Input */}
+            <div className="relative w-full md:w-80">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search trip ID, customer, cargo, driver..."
@@ -479,25 +423,86 @@ export default function TripListPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2.5 w-full sm:w-auto">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                <Filter className="h-3.5 w-3.5" />
-                <span>Filters:</span>
+            {/* Filter Dropdowns & View Mode Switcher */}
+            <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-between md:justify-end">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                  <Filter className="h-3.5 w-3.5" />
+                  <span>Filters:</span>
+                </div>
+
+                {/* Status Dropdown */}
+                <Select
+                  value={selectedStatus}
+                  onValueChange={(val) => {
+                    if (val) {
+                      setSelectedStatus(val as TripStatus | 'All');
+                      setCurrentPage(1);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[160px] text-xs font-medium bg-white">
+                    <SelectValue placeholder="All Operations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Operations</SelectItem>
+                    <SelectItem value="Draft">Drafts</SelectItem>
+                    <SelectItem value="Dispatched">Dispatched</SelectItem>
+                    <SelectItem value="AtPickup">At Pickup</SelectItem>
+                    <SelectItem value="InTransit">In Transit</SelectItem>
+                    <SelectItem value="AtDelivery">At Delivery</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Cargo / Hazmat Filter Dropdown */}
+                <Select
+                  value={hazmatFilter}
+                  onValueChange={(val) => { if (val) setHazmatFilter(val as any); }}
+                >
+                  <SelectTrigger className="h-9 w-[140px] text-xs font-medium bg-white">
+                    <SelectValue placeholder="Cargo Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Cargo</SelectItem>
+                    <SelectItem value="Standard">Standard Cargo</SelectItem>
+                    <SelectItem value="Hazmat">HAZMAT Only</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Select
-                value={hazmatFilter}
-                onValueChange={(val) => { if (val) setHazmatFilter(val as any); }}
-              >
-                <SelectTrigger className="h-9 w-[150px] text-xs">
-                  <SelectValue placeholder="Cargo Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Cargo</SelectItem>
-                  <SelectItem value="Standard">Standard Cargo</SelectItem>
-                  <SelectItem value="Hazmat">HAZMAT Only</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* View Mode Switcher Pill */}
+              <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                    viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                  title="List View"
+                >
+                  <List size={13} />
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                    viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                  title="Grid View"
+                >
+                  <LayoutGrid size={13} />
+                </button>
+                <button
+                  onClick={() => setViewMode('calendar')}
+                  className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                    viewMode === 'calendar' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                  title="Calendar View"
+                >
+                  <CalendarIcon size={13} />
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
