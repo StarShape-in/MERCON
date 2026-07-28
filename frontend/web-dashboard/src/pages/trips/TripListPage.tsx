@@ -23,7 +23,8 @@ import {
   LayoutGrid,
   Calendar as CalendarIcon,
   Building2,
-  FileText
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
@@ -52,6 +53,8 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -241,42 +244,49 @@ export default function TripListPage() {
         <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100">
-                <span className="sr-only">Open menu</span>
-                <MoreVertical className="h-4 w-4" />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 shadow-2xs gap-1.5 rounded-lg"
+              >
+                <span>Actions</span>
+                <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Trip Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => navigate(`/trips/${row.id}`)}>
-                <Eye className="mr-2 h-3.5 w-3.5 text-blue-600" />
-                View Details
+            <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg rounded-xl border border-slate-200 bg-white">
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                Trip Operations
+              </DropdownMenuLabel>
+              
+              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/trips/${row.id}`)}>
+                <Eye className="mr-2 h-3.5 w-3.5 text-blue-600 shrink-0" />
+                View Full Details
               </DropdownMenuItem>
 
               {row.status === 'InTransit' && (
-                <DropdownMenuItem onClick={() => navigate(`/trips/${row.id}/track`)}>
-                  <Navigation className="mr-2 h-3.5 w-3.5 text-brand" />
-                  Live Track Map
+                <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-orange-50" onClick={() => navigate(`/trips/${row.id}/track`)}>
+                  <Navigation className="mr-2 h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+                  Live GPS Track
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuItem onClick={() => {
+              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-emerald-50" onClick={() => {
                 setStatusDialogTrip(row);
                 setNewStatus(row.status);
               }}>
-                <RefreshCw className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                Quick Update Status
+                <RefreshCw className="mr-2 h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                Quick Status Update
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => navigate(`/trips/${row.id}/edit`)}>
-                <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600" />
-                Edit Trip
+              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/trips/${row.id}/edit`)}>
+                <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600 shrink-0" />
+                Edit Trip Manifest
               </DropdownMenuItem>
 
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="my-1 border-slate-100" />
 
               <DropdownMenuItem
-                className="text-rose-600 focus:text-rose-600 focus:bg-rose-50"
+                className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg text-rose-600 focus:text-rose-600 focus:bg-rose-50"
                 onClick={async () => {
                   if (confirm(`Delete trip ${row.ref_id || 'Draft'}?`)) {
                     await tripService.bulkDelete([row.id]);
@@ -284,8 +294,8 @@ export default function TripListPage() {
                   }
                 }}
               >
-                <Trash2 className="mr-2 h-3.5 w-3.5 text-rose-600" />
-                Delete Trip
+                <Trash2 className="mr-2 h-3.5 w-3.5 text-rose-600 shrink-0" />
+                Delete Trip Draft
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -452,19 +462,65 @@ export default function TripListPage() {
                   }
                 }}
               >
-                <SelectTrigger className="h-9 px-3 min-w-[150px] border-slate-200 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                  <Filter className="h-3.5 w-3.5 text-slate-400 shrink-0 mr-1" />
-                  <SelectValue placeholder="All Statuses" />
+                <SelectTrigger className="h-9 px-3 min-w-[160px] border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                    <SelectValue placeholder="All Operations" />
+                  </div>
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Statuses</SelectItem>
-                  <SelectItem value="Draft">Drafts</SelectItem>
-                  <SelectItem value="Dispatched">Dispatched</SelectItem>
-                  <SelectItem value="AtPickup">At Pickup</SelectItem>
-                  <SelectItem value="InTransit">In Transit</SelectItem>
-                  <SelectItem value="AtDelivery">At Delivery</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Filter Status
+                  </SelectLabel>
+                  <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                      All Operations
+                    </span>
+                  </SelectItem>
+                  <SelectSeparator className="my-1 border-slate-100" />
+                  <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-amber-700">
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      Drafts
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Dispatched" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-blue-700">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      Dispatched
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="AtPickup" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-purple-700">
+                      <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                      At Pickup
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="InTransit" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-[#E8450F]">
+                      <span className="w-2 h-2 rounded-full bg-[#E8450F]"></span>
+                      In Transit
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="AtDelivery" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-indigo-700">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                      At Delivery
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-emerald-700">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Completed
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-rose-700">
+                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                      Cancelled
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -473,14 +529,24 @@ export default function TripListPage() {
                 value={hazmatFilter}
                 onValueChange={(val) => { if (val) setHazmatFilter(val as any); }}
               >
-                <SelectTrigger className="h-9 px-3 min-w-[140px] border-slate-200 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                  <Layers className="h-3.5 w-3.5 text-slate-400 shrink-0 mr-1" />
-                  <SelectValue placeholder="All Cargo" />
+                <SelectTrigger className="h-9 px-3 min-w-[150px] border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                    <SelectValue placeholder="All Cargo" />
+                  </div>
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Cargo</SelectItem>
-                  <SelectItem value="Standard">Standard Cargo</SelectItem>
-                  <SelectItem value="Hazmat">HAZMAT Only</SelectItem>
+                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Cargo Classification
+                  </SelectLabel>
+                  <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Cargo Types</SelectItem>
+                  <SelectItem value="Standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Standard Freight</SelectItem>
+                  <SelectItem value="Hazmat" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-semibold text-rose-600">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      HAZMAT Only
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -489,15 +555,20 @@ export default function TripListPage() {
                 value={dateFilter}
                 onValueChange={(val) => { if (val) setDateFilter(val); }}
               >
-                <SelectTrigger className="h-9 px-3 min-w-[130px] border-slate-200 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                  <CalendarIcon className="h-3.5 w-3.5 text-slate-400 shrink-0 mr-1" />
-                  <SelectValue placeholder="All Dates" />
+                <SelectTrigger className="h-9 px-3 min-w-[140px] border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                    <SelectValue placeholder="All Dates" />
+                  </div>
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Dates</SelectItem>
-                  <SelectItem value="Today">Today</SelectItem>
-                  <SelectItem value="ThisWeek">This Week</SelectItem>
-                  <SelectItem value="ThisMonth">This Month</SelectItem>
+                <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Date Horizon
+                  </SelectLabel>
+                  <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Dates</SelectItem>
+                  <SelectItem value="Today" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Today</SelectItem>
+                  <SelectItem value="ThisWeek" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Week</SelectItem>
+                  <SelectItem value="ThisMonth" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Month</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -508,67 +579,40 @@ export default function TripListPage() {
               <button
                 onClick={() => setViewMode('list')}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                  viewMode === 'list' 
+                    ? 'bg-white text-slate-900 shadow-2xs' 
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
-                title="List View"
               >
                 <List size={13} />
-                <span className="hidden sm:inline">List</span>
+                <span>List</span>
               </button>
               <button
                 onClick={() => setViewMode('grid')}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                  viewMode === 'grid' 
+                    ? 'bg-white text-slate-900 shadow-2xs' 
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
-                title="Grid View"
               >
                 <LayoutGrid size={13} />
-                <span className="hidden sm:inline">Grid</span>
-              </button>
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  viewMode === 'calendar' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="Calendar View"
-              >
-                <CalendarIcon size={13} />
-                <span className="hidden sm:inline">Calendar</span>
+                <span>Grid</span>
               </button>
             </div>
-
           </div>
         </div>
 
-        {/* Data Table Ledger Container */}
-        <div className="flex-1 min-h-0 flex flex-col bg-white rounded-lg border border-black/[0.07] overflow-hidden shadow-2xs">
-          
-          {/* Ledger Header */}
-          <div className="px-5 py-3 border-b border-black/[0.05] bg-slate-50/50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers size={14} className="text-slate-500" />
-              <h3 className="text-xs font-bold text-slate-800 tracking-wide uppercase">Daily Trip Ledger</h3>
-            </div>
-            <span className="text-xs font-medium text-slate-500 font-mono">
-              {trips.length} {trips.length === 1 ? 'trip' : 'trips'}
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-auto">
-            <DataTable
-              columns={columns}
-              data={trips}
-              bulkActions={bulkActions}
-              isLoading={isLoading}
-              searchPlaceholder="Search..."
-              searchValue={search}
-              onSearchChange={setSearch}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              onRowClick={(row) => navigate(`/trips/${row.id}`)}
-            />
-          </div>
+        <div className="flex-1 min-h-0 bg-white rounded-lg border border-black/[0.08] shadow-2xs overflow-hidden">
+          <DataTable
+            data={trips}
+            columns={columns}
+            isLoading={isLoading}
+            bulkActions={bulkActions}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => setCurrentPage(page)}
+            onRowClick={(row) => navigate(`/trips/${row.id}`)}
+          />
         </div>
 
         {/* Quick Status Update Modal (Dialog) */}
@@ -576,11 +620,11 @@ export default function TripListPage() {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-brand" />
+                <RefreshCw className="h-4 w-4 text-[#E8450F]" />
                 Update Trip Status
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Update operational status for trip <span className="font-mono font-bold text-brand">{statusDialogTrip?.ref_id || 'Draft'}</span>.
+                Update operational status for trip <span className="font-mono font-bold text-[#E8450F]">{statusDialogTrip?.ref_id || 'Draft'}</span>.
               </DialogDescription>
             </DialogHeader>
 
@@ -589,17 +633,17 @@ export default function TripListPage() {
                 Select New Status:
               </label>
               <Select value={newStatus} onValueChange={(val) => { if (val) setNewStatus(val as any); }}>
-                <SelectTrigger className="w-full text-xs">
+                <SelectTrigger className="w-full text-xs font-semibold border-slate-200 rounded-lg">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Draft">Draft</SelectItem>
-                  <SelectItem value="Dispatched">Dispatched</SelectItem>
-                  <SelectItem value="AtPickup">At Pickup</SelectItem>
-                  <SelectItem value="InTransit">In Transit</SelectItem>
-                  <SelectItem value="AtDelivery">At Delivery</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                <SelectContent className="w-full p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Draft</SelectItem>
+                  <SelectItem value="Dispatched" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Dispatched</SelectItem>
+                  <SelectItem value="AtPickup" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Pickup</SelectItem>
+                  <SelectItem value="InTransit" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">In Transit</SelectItem>
+                  <SelectItem value="AtDelivery" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Delivery</SelectItem>
+                  <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Completed</SelectItem>
+                  <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
