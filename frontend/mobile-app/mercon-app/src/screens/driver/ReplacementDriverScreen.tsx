@@ -133,11 +133,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     ...Shadows.md,
   },
-  successIcon: {
-    fontSize: 36,
-    color: Colors.white,
-    fontWeight: '900',
-  },
   successTitle: {
     fontSize: Typography['2xl'],
     fontWeight: '800',
@@ -231,10 +226,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-  },
-  starIcon: {
-    fontSize: 14,
-    color: '#F59E0B',
   },
   rating: {
     fontSize: Typography.sm,
