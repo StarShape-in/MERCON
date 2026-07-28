@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, CheckCircle2, Clock, AlertTriangle, Search, RotateCw, DollarSign, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { downloadCSV } from '@/utils/exportUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { ClockIcon, RiskAlert, CheckBadge, InvoiceDoc } from '@/components/ui/kpi-icons';
@@ -156,7 +157,7 @@ export default function PaymentStatusPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => downloadCSV(filtered, 'payment_status_export.csv')}
+              onClick={() => downloadCSV(data || [], 'payment_status_export.csv')}
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
               Export CSV
