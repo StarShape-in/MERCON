@@ -139,8 +139,6 @@ const VehicleListScreen = () => {
           )
         }
       />
-
-      <OperatorBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

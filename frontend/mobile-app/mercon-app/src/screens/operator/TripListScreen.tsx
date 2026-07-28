@@ -136,7 +136,6 @@ const TripListScreen = () => {
           )
         }
       />
-      <OperatorBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

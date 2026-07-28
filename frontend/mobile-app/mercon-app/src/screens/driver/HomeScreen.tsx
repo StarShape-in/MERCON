@@ -180,7 +180,6 @@ const HomeScreen = () => {
           </DarkCard>
         )}
       </ScrollView>
-      <DriverBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

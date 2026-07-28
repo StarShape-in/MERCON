@@ -130,8 +130,6 @@ const DriverListScreen = () => {
           )
         }
       />
-
-      <OperatorBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

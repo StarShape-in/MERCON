@@ -119,7 +119,6 @@ const OperatorHomeScreen = () => {
           </>
         )}
       </ScrollView>
-      <OperatorBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

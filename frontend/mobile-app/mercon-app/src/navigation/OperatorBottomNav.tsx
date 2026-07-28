@@ -6,14 +6,15 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
 import { House, Truck, User, Ellipsis, Plus, type LucideIcon } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Shadows } from '../theme/tokens';
 
 export type OperatorTab = 'Home' | 'Trips' | 'Drivers' | 'More';
 
 interface OperatorBottomNavProps {
-  activeTab: OperatorTab | string;
-  onTabPress: (tab: OperatorTab) => void;
+  activeTab?: OperatorTab | string;
+  onTabPress?: (tab: OperatorTab) => void;
   onFabPress?: () => void;
 }
 
@@ -22,14 +23,17 @@ const RIGHT_TABS: { label: 'Drivers' | 'More'; Icon: LucideIcon }[] = [{ label: 
 
 const INACTIVE = 'rgba(255,255,255,0.55)';
 
-export function OperatorBottomNav({ activeTab, onTabPress, onFabPress }: OperatorBottomNavProps) {
+export function OperatorBottomNav({ activeTab: explicitActive, onTabPress, onFabPress }: OperatorBottomNavProps = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   // Capsule settles in when the active tab changes. Start fully visible (1) so the
   // first paint doesn't flash or hide the capsule before the entrance animation.
   const anim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     anim.setValue(0.95);
     Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 9, tension: 120 }).start();
-  }, [activeTab, anim]);
+  }, [pathname, explicitActive, anim]);
 
   const capsuleStyle = {
     opacity: anim,
@@ -37,9 +41,21 @@ export function OperatorBottomNav({ activeTab, onTabPress, onFabPress }: Operato
   };
 
   const renderTab = ({ label, Icon }: { label: OperatorTab; Icon: LucideIcon }) => {
-    const active = label === activeTab;
+    const route = label === 'Home' ? '/' : label === 'Trips' ? '/trips' : label === 'Drivers' ? '/documents' : '/settings';
+    const active = explicitActive
+      ? explicitActive === label
+      : route === '/' ? pathname === '/' : pathname.startsWith(route);
+
+    const handlePress = () => {
+      if (onTabPress) {
+        onTabPress(label);
+      } else if (!active) {
+        router.navigate(route as any);
+      }
+    };
+
     return (
-      <TouchableOpacity key={label} onPress={() => onTabPress(label)} activeOpacity={0.7} style={styles.tab}>
+      <TouchableOpacity key={label} onPress={handlePress} activeOpacity={0.7} style={styles.tab}>
         {active ? (
           <Animated.View style={[styles.capsule, capsuleStyle]}>
             <Icon size={22} color={Colors.white} strokeWidth={2.4} />

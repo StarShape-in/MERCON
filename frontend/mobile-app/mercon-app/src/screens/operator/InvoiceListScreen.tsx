@@ -141,8 +141,6 @@ const InvoiceListScreen = () => {
           )
         }
       />
-
-      <OperatorBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

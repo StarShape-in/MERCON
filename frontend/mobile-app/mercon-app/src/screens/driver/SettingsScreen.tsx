@@ -175,7 +175,6 @@ const SettingsScreen = ({ navigation }: any) => {
           support@mercon.sa · +966 11 234 5678
         </Text>
       </ScrollView>
-      <DriverBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

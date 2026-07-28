@@ -171,7 +171,6 @@ const TripsScreen = ({ navigation }: any) => {
           )
         }
       />
-      <DriverBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

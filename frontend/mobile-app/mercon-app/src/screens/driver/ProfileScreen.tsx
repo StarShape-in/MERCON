@@ -151,7 +151,6 @@ const ProfileScreen = ({ navigation }: any) => {
 
         <Text style={styles.version}>MERCON Driver App</Text>
       </ScrollView>
-      <DriverBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };

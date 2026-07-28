@@ -86,7 +86,6 @@ const NotificationsScreen = ({ navigation }: any) => {
           )
         }
       />
-      <DriverBottomNav activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };
