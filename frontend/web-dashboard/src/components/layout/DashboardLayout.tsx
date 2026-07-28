@@ -5,7 +5,7 @@ interface DashboardLayoutProps {
   active: string;
   title: string;
   breadcrumb?: string;
-  pageTitle?: string;
+  pageTitle?: React.ReactNode;
   pageSub?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;

@@ -17,7 +17,13 @@ import {
   MapPin, 
   Layers,
   Filter,
-  CheckCircle2
+  CheckCircle2,
+  RotateCw,
+  List,
+  LayoutGrid,
+  Calendar as CalendarIcon,
+  Building2,
+  FileText
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
@@ -77,6 +83,8 @@ export default function TripListPage() {
   const [selectedStatus, setSelectedStatus] = useState<TripStatus | 'All'>('All');
   const [hazmatFilter, setHazmatFilter] = useState<'All' | 'Hazmat' | 'Standard'>('All');
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'calendar'>('list');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Status Change Dialog state
@@ -110,6 +118,12 @@ export default function TripListPage() {
   const inTransitCount = rawTrips.filter(t => t.status === 'InTransit').length;
   const completedCount = rawTrips.filter(t => t.status === 'Completed').length;
   const draftCount = rawTrips.filter(t => t.status === 'Draft' || t.status === 'Dispatched').length;
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['trips'] });
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   const handleUpdateStatus = async () => {
     if (!statusDialogTrip) return;
@@ -306,8 +320,15 @@ export default function TripListPage() {
     <DashboardLayout 
       active="Trips" 
       title="Trips" 
-      pageTitle="Trip Management & Dispatch" 
-      pageSub="Monitor active shipping operations, drivers, and cargo movement"
+      pageTitle={
+        <div className="flex items-center gap-2.5">
+          <span>Daily Operations & Dispatch</span>
+          <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+            Operations Module
+          </Badge>
+        </div>
+      } 
+      pageSub="Scope: Fleet Logistics & Shipping Manifests"
       actions={
         <div className="flex items-center gap-2">
           <Button
@@ -322,11 +343,21 @@ export default function TripListPage() {
 
           <Button
             size="sm"
-            className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-sm"
+            className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-sm rounded-md"
             onClick={() => navigate('/trips/new')}
           >
             <Plus className="h-4 w-4" />
-            New Trip
+            New Trip Draft
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 w-9 p-0 text-slate-600"
+            onClick={handleRefresh}
+            title="Refresh Data"
+          >
+            <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       }
@@ -336,42 +367,42 @@ export default function TripListPage() {
         {/* Instrument Panel KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           <KpiCard
-            title="Total Trips"
+            title="TOTAL TRIPS"
             value={totalCount}
             variant="brand"
             trend="up"
             trendValue="+12%"
-            description="Total logged operations"
+            description="→ Active logged site operations"
             icon={TruckMotion}
             chartData={[10, 14, 18, 15, 22, 28, totalCount || 35]}
           />
           <KpiCard
-            title="In Transit"
+            title="IN TRANSIT"
             value={inTransitCount}
             variant="blue"
             trend="neutral"
             trendValue="Active"
-            description="On the road now"
+            description="→ Live on-road cargo routes"
             icon={RouteLine}
             chartData={[2, 3, 4, 3, 5, 4, inTransitCount || 6]}
           />
           <KpiCard
-            title="Completed"
+            title="DELIVERED & COMPLETED"
             value={completedCount}
             variant="emerald"
             trend="up"
-            trendValue="Delivered"
-            description="Completed shipments"
+            trendValue="Signed off"
+            description="↑ 100% POD verified & delivered"
             icon={CheckBadge}
             chartData={[8, 12, 14, 13, 19, 24, completedCount || 30]}
           />
           <KpiCard
-            title="Dispatch Queue"
+            title="DISPATCH QUEUE"
             value={draftCount}
             variant="amber"
             trend="neutral"
             trendValue="Pending"
-            description="Drafts & assigned"
+            description="→ Pending driver assignment"
             icon={ClockIcon}
             chartData={[4, 5, 3, 6, 4, 5, draftCount || 7]}
           />
@@ -381,26 +412,59 @@ export default function TripListPage() {
         <div className="bg-white rounded-lg border border-black/[0.07] p-4 shadow-2xs space-y-3 shrink-0">
           
           {/* Quick Status Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar border-b border-slate-100 dark:border-slate-800">
-            {STATUS_TABS.map((tab) => {
-              const isActive = selectedStatus === tab.value;
-              return (
-                <button
-                  key={tab.value}
-                  onClick={() => {
-                    setSelectedStatus(tab.value);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
-                    isActive 
-                      ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs' 
-                      : 'text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
+              {STATUS_TABS.map((tab) => {
+                const isActive = selectedStatus === tab.value;
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => {
+                      setSelectedStatus(tab.value);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                      isActive 
+                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs' 
+                        : 'text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* View Mode Switcher Pill */}
+            <div className="hidden md:flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                  viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
+                title="List View"
+              >
+                <List size={13} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                  viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
+                title="Grid View"
+              >
+                <LayoutGrid size={13} />
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`p-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                  viewMode === 'calendar' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
+                title="Calendar View"
+              >
+                <CalendarIcon size={13} />
+              </button>
+            </div>
           </div>
 
           {/* Search Input & Dropdown Select Controls */}
@@ -438,21 +502,35 @@ export default function TripListPage() {
           </div>
         </div>
 
-        {/* Data Table */}
-        <div className="flex-1 min-h-0 flex flex-col">
-          <DataTable
-            columns={columns}
-            data={trips}
-            bulkActions={bulkActions}
-            isLoading={isLoading}
-            searchPlaceholder="Search..."
-            searchValue={search}
-            onSearchChange={setSearch}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            onRowClick={(row) => navigate(`/trips/${row.id}`)}
-          />
+        {/* Data Table Ledger Container */}
+        <div className="flex-1 min-h-0 flex flex-col bg-white rounded-lg border border-black/[0.07] overflow-hidden shadow-2xs">
+          
+          {/* Ledger Header */}
+          <div className="px-5 py-3 border-b border-black/[0.05] bg-slate-50/50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers size={14} className="text-slate-500" />
+              <h3 className="text-xs font-bold text-slate-800 tracking-wide uppercase">Daily Trip Ledger</h3>
+            </div>
+            <span className="text-xs font-medium text-slate-500 font-mono">
+              {trips.length} {trips.length === 1 ? 'trip' : 'trips'}
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-auto">
+            <DataTable
+              columns={columns}
+              data={trips}
+              bulkActions={bulkActions}
+              isLoading={isLoading}
+              searchPlaceholder="Search..."
+              searchValue={search}
+              onSearchChange={setSearch}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              onRowClick={(row) => navigate(`/trips/${row.id}`)}
+            />
+          </div>
         </div>
 
         {/* Quick Status Update Modal (Dialog) */}
