@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import ReportsHeader from '@/components/reports/ReportsHeader';
 
 const CHART_COLORS = ['#E8450F', '#111111', '#16A34A', '#2563EB', '#CA8A04', '#9898A4'];
 
@@ -49,14 +50,26 @@ export default function ReportsDashboardPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  const handleExport = () => {
+    const csvContent = "data:text/csv;charset=utf-8,KPI,Value\nTotal Trips," + (summary?.kpis?.total_trips?.value || 0) + "\nFleet Utilization," + (summary?.kpis?.fleet_on_trip?.value || 0);
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `reports_summary_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout active="Reports" title="Reports & Analytics">
-        <div className="p-6">
+        <div className="px-6 pb-6">
+          <ReportsHeader activeTab="overview" />
           <div className="animate-pulse grid grid-cols-4 gap-4 mb-6">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-black/5 rounded-lg"></div>)}
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-slate-100 dark:bg-slate-800 rounded-xl"></div>)}
           </div>
-          <div className="animate-pulse h-96 bg-black/5 rounded-lg"></div>
+          <div className="animate-pulse h-96 bg-slate-100 dark:bg-slate-800 rounded-xl"></div>
         </div>
       </DashboardLayout>
     );
@@ -65,9 +78,12 @@ export default function ReportsDashboardPage() {
   if (error || !summary) {
     return (
       <DashboardLayout active="Reports" title="Reports & Analytics">
-        <div className="p-6 text-center text-slate-500 mt-20">
-          <AlertTriangle size={48} className="mx-auto mb-4 text-rose-500 opacity-50" />
-          Failed to load reports. Make sure the analytics engine is online.
+        <div className="px-6 pb-6">
+          <ReportsHeader activeTab="overview" />
+          <div className="p-6 text-center text-slate-500 mt-12">
+            <AlertTriangle size={48} className="mx-auto mb-4 text-rose-500 opacity-50" />
+            Failed to load reports. Make sure the analytics engine is online.
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -92,65 +108,14 @@ export default function ReportsDashboardPage() {
   })).filter(d => d.value > 0);
 
   return (
-    <DashboardLayout 
-      active="Reports" 
-      title="Reports" 
-    >
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
-        
-        {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
-              <BarChart3 className="w-5 h-5 text-indigo-600" />
-            </div>
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Reports
-                </h1>
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
-                  Analytics Module
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Scope: Fleet operations, revenue trends, and driver safety reports
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => navigate('/reports/custom')}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-600" />
-              Build Custom Report
-            </Button>
-
-            <Button
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
-              onClick={() => alert('Exporting full analytics report...')}
-            >
-              <Download className="h-4 w-4" />
-              Export Report
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={handleRefresh}
-              title="Refresh Data"
-            >
-              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </div>
+    <DashboardLayout active="Reports" title="Reports & Analytics">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto">
+        <ReportsHeader 
+          activeTab="overview" 
+          onRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+          onExport={handleExport}
+        />
 
         {/* 4-Card Instrument Panel KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">

@@ -20,13 +20,25 @@ function sar(value: number): string {
   return `SAR ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
+import ReportsHeader from '@/components/reports/ReportsHeader';
+
 export default function RevenueReportsPage() {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'revenue'],
     queryFn: () => reportsService.getRevenueReport(6),
   });
 
-  // Recharts needs plain numbers; raw SQL can hand back numeric strings.
+  const handleExport = () => {
+    const csvContent = "data:text/csv;charset=utf-8,Month,Revenue\n" + (data?.monthly_breakdown ?? []).map(r => `${r.month},${r.revenue}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `revenue_report_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const revenueData = useMemo(
     () => (data?.monthly_breakdown ?? []).map((r) => ({
       month: r.month,
@@ -40,20 +52,13 @@ export default function RevenueReportsPage() {
   );
 
   return (
-    <DashboardLayout
-      active="Reports"
-      breadcrumb="Reports"
-      title="Revenue Analytics"
-      pageTitle="Financial & Revenue Reports"
-      pageSub="Track gross revenue from paid invoices and outstanding balances."
-      actions={
-        <div className="flex gap-2">
-          <Btn label="Filter" variant="outline" icon={<Filter size={14} />} />
-          <Btn label="Export CSV" icon={<Download size={14} />} />
-        </div>
-      }
-    >
-      <div className="px-6 pb-6">
+    <DashboardLayout active="Reports" title="Revenue Analytics">
+      <div className="px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
+        <ReportsHeader 
+          activeTab="revenue" 
+          onRefresh={() => refetch()}
+          onExport={handleExport}
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

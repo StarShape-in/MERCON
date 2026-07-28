@@ -14,6 +14,8 @@ import { customerService } from '@/services/customerService';
 
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
+import ReportsHeader from '@/components/reports/ReportsHeader';
+
 export default function CustomReportPage() {
   const [preset, setPreset] = useState<DatePreset>('this_month');
   const [customerId, setCustomerId] = useState<string>('all');
@@ -58,16 +60,15 @@ export default function CustomReportPage() {
     return { startDate: customStart, endDate: customEnd };
   }, [preset, customStart, customEnd]);
 
-  // Fetch report data based on current active filters
-  const { data: reportData, isLoading, refetch, isFetching } = useQuery({
+  // Query custom report
+  const { data: reportData, isLoading, refetch } = useQuery({
     queryKey: ['custom-report', startDate, endDate, customerId],
-    queryFn: () => reportsService.getCustomReport({ startDate, endDate, customerId }),
-    enabled: !!startDate || preset !== 'custom' // Don't run automatically if custom is selected but no dates
+    queryFn: () => reportsService.getCustomReport({
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      customerId: customerId !== 'all' ? customerId : undefined,
+    }),
   });
-
-  const handleGenerate = () => {
-    refetch();
-  };
 
   const handleExportCSV = () => {
     if (!reportData?.trips || reportData.trips.length === 0) return;
@@ -107,22 +108,13 @@ export default function CustomReportPage() {
   ];
 
   return (
-    <DashboardLayout 
-      active="Reports" 
-      title="Reports & Analytics"
-      pageTitle="Custom Report Builder"
-      pageSub="Generate instant reports based on specific dates or customers"
-      actions={
-        <Btn 
-          label="Export CSV" 
-          variant="outline" 
-          icon={<Download size={14} />} 
-          onClick={handleExportCSV}
-          disabled={!reportData || reportData.trips.length === 0}
+    <DashboardLayout active="Reports" title="Custom Generator">
+      <div className="px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
+        <ReportsHeader 
+          activeTab="custom" 
+          onRefresh={() => refetch()}
+          onExport={handleExportCSV}
         />
-      }
-    >
-      <div className="p-6">
         {/* Filters Section */}
         <div className="bg-white rounded-lg border border-black/[0.08] p-6 mb-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">

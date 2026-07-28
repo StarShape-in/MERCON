@@ -16,11 +16,24 @@ function sar(value: number): string {
   return `SAR ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
+import ReportsHeader from '@/components/reports/ReportsHeader';
+
 export default function FleetPerformancePage() {
-  const { data: rows = [], isLoading, isError } = useQuery({
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'fleet'],
     queryFn: reportsService.getFleetPerformance,
   });
+
+  const handleExport = () => {
+    const csvContent = "data:text/csv;charset=utf-8,Plate,AssetType,Status,TotalTrips,CompletedTrips,MaintenanceCost\n" + rows.map(v => `${v.plate_number},${v.asset_type},${v.status},${v.total_trips},${v.completed_trips},${v.maintenance_cost}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `fleet_performance_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const kpis = useMemo(() => {
     const totalVehicles = rows.length;
@@ -57,15 +70,13 @@ export default function FleetPerformancePage() {
   );
 
   return (
-    <DashboardLayout
-      active="Reports"
-      breadcrumb="Reports"
-      title="Fleet Performance"
-      pageTitle="Fleet Performance Analytics"
-      pageSub="Trips handled and maintenance spend per vehicle."
-      actions={<Btn label="Export" variant="outline" icon={<Download size={14} />} />}
-    >
-      <div className="px-6 pb-6">
+    <DashboardLayout active="Reports" title="Fleet Performance">
+      <div className="px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
+        <ReportsHeader 
+          activeTab="fleet" 
+          onRefresh={() => refetch()}
+          onExport={handleExport}
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

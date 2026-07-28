@@ -20,11 +20,24 @@ function riskLevel(score: number | null): { label: string; cls: string } {
   return { label: 'High', cls: 'bg-[#FEF2F2] text-[#DC2626]' };
 }
 
+import ReportsHeader from '@/components/reports/ReportsHeader';
+
 export default function DriverPerformancePage() {
-  const { data: rows = [], isLoading, isError } = useQuery({
+  const { data: rows = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'drivers'],
     queryFn: reportsService.getDriverPerformance,
   });
+
+  const handleExport = () => {
+    const csvContent = "data:text/csv;charset=utf-8,DriverName,RefID,Status,AIRiskScore,TotalTrips,CompletedTrips\n" + rows.map(d => `${d.name},${d.ref_id},${d.status},${d.ai_risk_score},${d.total_trips},${d.completed_trips}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `driver_safety_report_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const kpis = useMemo(() => {
     const totalDrivers = rows.length;
@@ -65,15 +78,13 @@ export default function DriverPerformancePage() {
   );
 
   return (
-    <DashboardLayout
-      active="Reports"
-      breadcrumb="Reports"
-      title="Driver Performance"
-      pageTitle="Driver Performance & Safety"
-      pageSub="Trips handled and AI risk scores per driver."
-      actions={<Btn label="Export" variant="outline" icon={<Download size={14} />} />}
-    >
-      <div className="px-6 pb-6">
+    <DashboardLayout active="Reports" title="Driver Safety">
+      <div className="px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
+        <ReportsHeader 
+          activeTab="drivers" 
+          onRefresh={() => refetch()}
+          onExport={handleExport}
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
