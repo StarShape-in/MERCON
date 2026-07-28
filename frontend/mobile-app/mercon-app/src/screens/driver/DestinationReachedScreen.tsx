@@ -68,19 +68,23 @@ const DestinationReachedScreen = () => {
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
             <ReceiptText size={20} color={Colors.gray500} strokeWidth={2} />
-            <Text style={styles.summaryValue}>{trip?.ref_id ?? '—'}</Text>
+            <Text style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit>
+              {trip?.ref_id ?? '—'}
+            </Text>
             <Text style={styles.summaryLabel}>Trip</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
             <Package size={20} color={Colors.gray500} strokeWidth={2} />
-            <Text style={styles.summaryValue}>{trip?.cargo_type ?? '—'}</Text>
+            <Text style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit>
+              {trip?.cargo_type ?? '—'}
+            </Text>
             <Text style={styles.summaryLabel}>Cargo</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
             <Ruler size={20} color={Colors.gray500} strokeWidth={2} />
-            <Text style={styles.summaryValue}>
+            <Text style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit>
               {trip?.planned_distance ? `${trip.planned_distance} km` : '—'}
             </Text>
             <Text style={styles.summaryLabel}>Distance</Text>
@@ -150,9 +154,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#4A6A4A',
     top: '40%',
   },
-  destinationFlag: {
-    fontSize: 40,
-  },
   mapLabel: {
     fontSize: Typography.lg,
     fontWeight: '800',
@@ -197,9 +198,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  arrivedEmoji: {
-    fontSize: 48,
-  },
   arrivedTitle: {
     fontSize: Typography['2xl'],
     fontWeight: '800',
@@ -225,14 +223,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     gap: 2,
-  },
-  summaryIcon: {
-    fontSize: 20,
+    paddingHorizontal: 4,
   },
   summaryValue: {
+    width: '100%',
     fontSize: Typography.base,
     fontWeight: '700',
     color: Colors.gray900,
+    textAlign: 'center',
   },
   summaryLabel: {
     fontSize: Typography.xs,
