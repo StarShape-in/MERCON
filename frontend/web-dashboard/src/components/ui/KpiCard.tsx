@@ -30,6 +30,12 @@ export interface PipelineStage {
   color: string
 }
 
+export interface RouteHealthBreakdown {
+  onSchedule: number
+  delayed: number
+  stopped: number
+}
+
 export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 'title' | 'value'> {
   title?: string
   label?: string
@@ -43,6 +49,7 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 't
   chartData?: (number | { value: number; [key: string]: any })[]
   progressSegments?: UrgencySegment[]
   livePulseTrack?: LivePulseTrack
+  routeHealthBreakdown?: RouteHealthBreakdown
   completionGauge?: CompletionGauge
   pipelineStages?: PipelineStage[]
 
@@ -141,6 +148,7 @@ export function KpiCard({
   chartData,
   progressSegments,
   livePulseTrack,
+  routeHealthBreakdown,
   completionGauge,
   pipelineStages,
   className,
@@ -260,8 +268,49 @@ export function KpiCard({
 
         {/* Specialized Visual Indicator Component Area */}
         <div className="mt-3 -mx-4 -mb-4 overflow-hidden">
-          {/* Mode 1: Live Pulse Track (GPS Radar Track for IN TRANSIT) */}
-          {livePulseTrack ? (
+          {/* Mode 1: Active Route Health Breakdown (For IN TRANSIT active trips) */}
+          {routeHealthBreakdown ? (
+            <div className="px-4 pb-3.5 pt-1 flex flex-col gap-1.5">
+              {/* 3-Color Route Health Bar */}
+              <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5 border border-black/[0.04]">
+                <div 
+                  className="bg-emerald-500 h-full rounded-full transition-all duration-300" 
+                  style={{ width: `${(routeHealthBreakdown.onSchedule / (routeHealthBreakdown.onSchedule + routeHealthBreakdown.delayed + routeHealthBreakdown.stopped || 1)) * 100}%` }} 
+                  title="On-Schedule"
+                />
+                <div 
+                  className="bg-amber-500 h-full rounded-full transition-all duration-300" 
+                  style={{ width: `${(routeHealthBreakdown.delayed / (routeHealthBreakdown.onSchedule + routeHealthBreakdown.delayed + routeHealthBreakdown.stopped || 1)) * 100}%` }} 
+                  title="Delayed"
+                />
+                <div 
+                  className="bg-rose-500 h-full rounded-full transition-all duration-300" 
+                  style={{ width: `${(routeHealthBreakdown.stopped / (routeHealthBreakdown.onSchedule + routeHealthBreakdown.delayed + routeHealthBreakdown.stopped || 1)) * 100}%` }} 
+                  title="Stopped"
+                />
+              </div>
+              {/* Legend Badges */}
+              <div className="flex items-center justify-between text-[10px] font-mono font-medium text-muted-foreground">
+                <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  {routeHealthBreakdown.onSchedule} On-Time
+                </span>
+                {routeHealthBreakdown.delayed > 0 && (
+                  <span className="flex items-center gap-1 text-amber-700 dark:text-amber-400 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                    {routeHealthBreakdown.delayed} Delayed
+                  </span>
+                )}
+                {routeHealthBreakdown.stopped > 0 && (
+                  <span className="flex items-center gap-1 text-rose-700 dark:text-rose-400 font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                    {routeHealthBreakdown.stopped} Stopped
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : livePulseTrack ? (
+            /* Mode 2: Live Pulse Track */
             <div className="px-4 pb-3.5 pt-1 flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400">
                 <div className="flex items-center gap-2">

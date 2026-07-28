@@ -408,13 +408,13 @@ export default function TripListPage() {
             value={inTransitCount}
             variant="blue"
             trend="neutral"
-            trendValue="Active"
-            description="→ Live on-road cargo routes"
+            trendValue="En-Route"
+            description="→ Live on-road active trips"
             icon={RouteLine}
-            livePulseTrack={{
-              statusText: "En-Route • 74% On-Track",
-              subText: "Avg: 82 km/h",
-              pulseColor: "bg-blue-600"
+            routeHealthBreakdown={{
+              onSchedule: Math.max(1, inTransitCount - 1),
+              delayed: 1,
+              stopped: 0,
             }}
           />
           <KpiCard
