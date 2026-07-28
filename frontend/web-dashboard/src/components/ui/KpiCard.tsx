@@ -4,29 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
 
-export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 'value'> {
+export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 'title' | 'value'> {
   title?: string
   label?: string
   value: React.ReactNode
   description?: React.ReactNode
-  subtitle?: string
+  subtitle?: React.ReactNode
   icon?: React.ReactNode | React.ElementType
   trend?: 'up' | 'down' | 'neutral'
   trendValue?: string
   chartData?: (number | { value: number; [key: string]: any })[]
-  
-  // Backward compatibility
+
+  // Backward compatibility props
   delta?: string | number | null
   up?: boolean | null
   color?: string
   bg?: string
-
-  /**
-   * 'solid' (default) — current dashboard look: icon in the strong accent `color`.
-   * 'light' — icon rendered alone (no chip/border), larger, tinted with the
-   * pale `bg` color instead of the strong one. Used on every KpiCard page
-   * except the main Dashboard, which keeps the original solid look.
-   */
   iconVariant?: 'solid' | 'light'
 }
 
@@ -42,13 +35,19 @@ const trendAccent = {
   neutral: 'bg-border/50 group-hover:bg-border',
 } as const
 
+const trendIconContainer = {
+  up: 'bg-emerald-500/8 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/15',
+  down: 'bg-rose-500/8 border-rose-500/20 text-rose-600 dark:text-rose-400 group-hover:border-rose-500/40 group-hover:bg-rose-500/15',
+  neutral: 'bg-muted/40 border-border/50 text-muted-foreground group-hover:border-border group-hover:text-foreground',
+} as const
+
 const trendGlyph = {
   up: '↑',
   down: '↓',
   neutral: '→',
 } as const
 
-export default function KpiCard({
+export function KpiCard({
   title,
   label,
   value,
@@ -63,20 +62,20 @@ export default function KpiCard({
   up,
   color,
   bg,
-  iconVariant = 'solid',
+  iconVariant,
   ...props
 }: KpiCardProps) {
-  const displayTitle = title || label || '';
-  const displayDescription = description || subtitle;
-  
-  let computedTrend = trend;
-  let computedTrendValue = trendValue;
+  const displayTitle = title || label || ''
+  const displayDescription = description || subtitle
+
+  let computedTrend = trend
+  let computedTrendValue = trendValue
 
   if (!computedTrend && delta !== undefined && delta !== null) {
-    const isUp = up === true || (typeof delta === 'number' && delta >= 0);
-    computedTrend = isUp ? 'up' : 'down';
+    const isUp = up === true || (typeof delta === 'number' && delta >= 0)
+    computedTrend = isUp ? 'up' : 'down'
     if (!computedTrendValue) {
-      computedTrendValue = typeof delta === 'number' ? `${Math.abs(delta)}%` : String(delta).replace(/^[+-]/, '');
+      computedTrendValue = typeof delta === 'number' ? `${Math.abs(delta)}%` : String(delta).replace(/^[+-]/, '')
     }
   }
 
@@ -91,23 +90,23 @@ export default function KpiCard({
     })
   }, [chartData, hasChart])
 
-  const isLightIcon = iconVariant === 'light';
-  const iconColor = color;
-  const iconSizeCls = isLightIcon ? 'h-12 w-12' : 'h-9 w-9';
-
-  let renderedIcon = icon;
-  if (icon && !React.isValidElement(icon)) {
-    // Treat as component type — render large, tinted with the card's accent color
-    renderedIcon = React.createElement(icon as React.ElementType, { className: iconSizeCls, style: iconColor ? { color: iconColor } : undefined });
-  } else if (React.isValidElement(icon)) {
-    renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: iconSizeCls, style: iconColor ? { color: iconColor } : undefined });
+  let renderedIcon: React.ReactNode = null
+  if (icon) {
+    if (React.isValidElement(icon)) {
+      renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: 'size-3.5' })
+    } else if (typeof icon === 'function' || typeof icon === 'object') {
+      renderedIcon = React.createElement(icon as React.ElementType, { className: 'size-3.5' })
+    } else {
+      renderedIcon = icon
+    }
   }
 
   return (
     <Card
       className={cn(
-        'flex-1 w-full group relative rounded-xl bg-white border border-black/[0.06] shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 py-4 gap-0',
-
+        'group relative rounded-none border-border/70 shadow-none transition-all duration-200 hover:border-border py-4 gap-0 bg-gradient-to-b from-card via-card to-transparent',
+        computedTrend === 'up' && 'to-emerald-500/[0.015] dark:to-emerald-400/[0.008]',
+        computedTrend === 'down' && 'to-rose-500/[0.015] dark:to-rose-400/[0.008]',
         className
       )}
       {...props}
@@ -128,20 +127,21 @@ export default function KpiCard({
         <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {displayTitle}
         </CardTitle>
+        {renderedIcon && (
+          <div className={cn(
+            "flex h-6 w-6 shrink-0 items-center justify-center border transition-all duration-200",
+            computedTrend ? trendIconContainer[computedTrend] : trendIconContainer.neutral
+          )}>
+            {renderedIcon}
+          </div>
+        )}
       </CardHeader>
 
       <div className="mx-4 h-px bg-border/60" />
 
       <CardContent className="flex flex-col gap-1.5 px-4 pt-2.5 pb-0">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 font-mono text-2xl font-semibold leading-none tracking-tight text-foreground tabular-nums truncate">
-            {value as any}
-          </div>
-          {renderedIcon && (
-            <div className="shrink-0" aria-hidden="true">
-              {renderedIcon as React.ReactNode}
-            </div>
-          )}
+        <div className="font-mono text-2xl font-semibold leading-none tracking-tight text-foreground tabular-nums">
+          {value}
         </div>
 
         {(displayDescription || computedTrendValue) && (
@@ -190,3 +190,5 @@ export default function KpiCard({
     </Card>
   )
 }
+
+export default KpiCard

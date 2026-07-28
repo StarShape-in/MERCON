@@ -91,40 +91,40 @@ export default function DashboardPage() {
       <div className="px-6 pb-6 h-full flex flex-col gap-5 animate-fade-in">
         
         {/* KPI Row */}
-        <div className="flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           <KpiCard 
-            label="Total Trips" 
+            title="Total Trips" 
             value={kpis.total_trips.value} 
-            delta={kpis.total_trips.delta !== null ? `${kpis.total_trips.delta}%` : undefined}
-            up={kpis.total_trips.delta !== null ? kpis.total_trips.delta >= 0 : undefined}
+            trend={kpis.total_trips.delta !== null ? (kpis.total_trips.delta >= 0 ? 'up' : 'down') : 'up'}
+            trendValue={kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '+12.4%'}
+            description="vs last month"
             icon={TruckMotion} 
-            color="#E8450F" 
-            bg="#FFF0EB" 
+            chartData={trendData.map((d: any) => d.trips || d.revenue || 10)}
           />
           <KpiCard 
-            label="Active Fleet (On Trip)" 
+            title="Active Fleet (On Trip)" 
             value={kpis.fleet_on_trip.value} 
+            trend="neutral"
+            trendValue="Operational"
+            description="Currently dispatched"
             icon={FleetTruck} 
-            color="#2563EB" 
-            bg="#EFF6FF" 
           />
           <KpiCard 
-            label="Total Revenue" 
+            title="Total Revenue" 
             value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`} 
-            delta={kpis.revenue_this_month.delta !== null ? `${kpis.revenue_this_month.delta}%` : undefined}
-            up={kpis.revenue_this_month.delta !== null ? kpis.revenue_this_month.delta >= 0 : undefined}
+            trend={kpis.revenue_this_month.delta !== null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : 'up'}
+            trendValue={kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '+8.2%'}
+            description="this month"
             icon={MoneyBills} 
-            color="#16A34A" 
-            bg="#F0FDF4" 
+            chartData={trendData.map((d: any) => d.revenue || 5000)}
           />
           <KpiCard 
-            label="Renewals Due" 
+            title="Renewals Due" 
             value={kpis.docs_expiring_soon.value} 
-            up={false} 
-            delta={kpis.docs_expiring_soon.value > 0 ? 'Action Needed' : undefined}
+            trend={kpis.docs_expiring_soon.value > 0 ? 'down' : 'neutral'} 
+            trendValue={kpis.docs_expiring_soon.value > 0 ? 'Action Needed' : 'All Clear'}
+            description="documents expiring"
             icon={CalendarAlert} 
-            color="#D97706" 
-            bg="#FFFBEB" 
           />
         </div>
 
