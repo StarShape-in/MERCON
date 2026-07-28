@@ -1,14 +1,24 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Check, Clock, AlertTriangle, FileText, Truck, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Bell, Check, Clock, AlertTriangle, FileText, Truck, CheckCircle2, 
+  RotateCw, Search, ShieldAlert, ArrowRight 
+} from 'lucide-react';
+import { RiskAlert, CalendarAlert, CheckBadge } from '@/components/ui/kpi-icons';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import Btn from '@/components/ui/Btn';
+import KpiCard from '@/components/ui/KpiCard';
 import { notificationService, type Notification } from '@/services/notificationService';
+
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 type NotificationType = 'alert' | 'trip' | 'document' | 'system';
 
-/** Backend type strings are free-form ("Emergency"/"Trip"/"system"…) — normalize to our 4 buckets. */
+/** Backend type strings are free-form ("Emergency"/"Trip"/"system"…) — normalize to 4 buckets. */
 function normalizeType(type: string): NotificationType {
   const t = (type || '').toLowerCase();
   if (t.includes('emergency') || t.includes('alert')) return 'alert';
@@ -40,13 +50,22 @@ function relativeTime(iso: string): string {
 }
 
 export default function NotificationsPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'alert' | 'trip' | 'document'>('all');
+  const [search, setSearch] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: notifications = [], isLoading, isError } = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => (await notificationService.getAll()).data,
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   const markReadMutation = useMutation({
     mutationFn: (id: string) => notificationService.markAsRead(id),
@@ -61,13 +80,32 @@ export default function NotificationsPage() {
   });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const totalCount = notifications.length;
+  const readCount = Math.max(0, totalCount - unreadCount);
+  const readRatioPct = totalCount > 0 ? Math.round((readCount / totalCount) * 100) : 100;
 
-  const filteredNotifications = notifications.filter((n) =>
-    activeTab === 'unread' ? !n.is_read : true,
-  );
+  const alertCount = notifications.filter(n => normalizeType(n.type) === 'alert').length;
+  const tripCount = notifications.filter(n => normalizeType(n.type) === 'trip').length;
+  const docCount = notifications.filter(n => normalizeType(n.type) === 'document').length;
+
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((n) => {
+      const type = normalizeType(n.type);
+      const matchesTab = 
+        activeTab === 'all' ? true :
+        activeTab === 'unread' ? !n.is_read :
+        activeTab === type;
+
+      const q = search.toLowerCase();
+      const matchesSearch = 
+        n.title.toLowerCase().includes(q) || 
+        n.message.toLowerCase().includes(q);
+
+      return matchesTab && matchesSearch;
+    });
+  }, [notifications, activeTab, search]);
 
   const markAsRead = (id: string) => {
-    // avoid redundant calls; the mutation is idempotent server-side anyway
     if (!markReadMutation.isPending) markReadMutation.mutate(id);
   };
 
@@ -78,19 +116,19 @@ export default function NotificationsPage() {
 
   const getIcon = (type: NotificationType) => {
     switch (type) {
-      case 'alert': return <AlertTriangle size={18} className="text-[#DC2626]" />;
+      case 'alert': return <AlertTriangle size={18} className="text-rose-600" />;
       case 'trip': return <Truck size={18} className="text-[#E8450F]" />;
-      case 'document': return <FileText size={18} className="text-[#D97706]" />;
-      case 'system': return <Bell size={18} className="text-[#2563EB]" />;
+      case 'document': return <FileText size={18} className="text-amber-600" />;
+      case 'system': return <Bell size={18} className="text-blue-600" />;
     }
   };
 
   const getBg = (type: NotificationType) => {
     switch (type) {
-      case 'alert': return 'bg-[#FEF2F2] border-[#DC2626]/20';
-      case 'trip': return 'bg-[#FFF0EB] border-[#E8450F]/20';
-      case 'document': return 'bg-[#FFFBEB] border-[#D97706]/20';
-      case 'system': return 'bg-[#EFF6FF] border-[#2563EB]/20';
+      case 'alert': return 'bg-rose-50 border-rose-200';
+      case 'trip': return 'bg-orange-50 border-orange-200';
+      case 'document': return 'bg-amber-50 border-amber-200';
+      case 'system': return 'bg-blue-50 border-blue-200';
     }
   };
 
@@ -98,103 +136,271 @@ export default function NotificationsPage() {
     <DashboardLayout
       active="Dashboard"
       title="Notifications"
-      pageTitle="Notifications Center"
-      pageSub={isLoading ? 'Loading…' : `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}.`}
-      actions={
-        <Btn
-          label="Mark all as read"
-          variant="outline"
-          icon={<CheckCircle2 size={14} />}
-          onClick={markAllAsRead}
-          disabled={unreadCount === 0 || markAllMutation.isPending}
-        />
-      }
     >
-      <div className="px-6 pb-6 max-w-4xl mx-auto w-full">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
+        
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <Bell className="w-5 h-5 text-indigo-600" />
+            </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-2 mb-6 border-b border-black/[0.06] pb-px">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
-              activeTab === 'all' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]'
-            }`}
-          >
-            All Notifications
-          </button>
-          <button
-            onClick={() => setActiveTab('unread')}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'unread' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]'
-            }`}
-          >
-            Unread
-            {unreadCount > 0 && (
-              <span className="bg-[#E8450F] text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Notifications Center
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  Operations Alert System
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Scope: Real-time dispatch alerts, emergency warnings, and document expiry logs
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={markAllAsRead}
+              disabled={unreadCount === 0 || markAllMutation.isPending}
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              Mark All as Read
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              title="Refresh Data"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
 
-        {/* List */}
-        <div className="bg-white border border-black/[0.08] rounded-lg shadow-sm overflow-hidden">
+        {/* 4-Card Instrument Panel KPI Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+          
+          {/* Card 1: Total Notifications — Gauge */}
+          <KpiCard
+            title="TOTAL ALERTS LOGGED"
+            value={totalCount}
+            variant="blue"
+            trend="neutral"
+            trendValue={`${readRatioPct}% Processed`}
+            description="System operations notifications"
+            icon={CheckBadge}
+            completionGauge={{
+              percentage: readRatioPct || 100,
+              label: `${readRatioPct}% Read & Processed`,
+              subtext: `${readCount} Read • ${unreadCount} Unread`
+            }}
+          />
+
+          {/* Card 2: Unread Alerts — Urgency Bar */}
+          <KpiCard
+            title="UNREAD NOTIFICATIONS"
+            value={unreadCount}
+            variant="brand"
+            trend={unreadCount > 0 ? 'down' : 'neutral'}
+            trendValue={unreadCount > 0 ? 'Pending Read' : 'All Clear'}
+            description="→ Unread operational messages"
+            icon={CalendarAlert}
+            progressSegments={[
+              { label: `${unreadCount} Unread`, value: unreadCount > 0 ? 80 : 0, color: 'bg-[#E8450F]' },
+              { label: 'Read', value: unreadCount > 0 ? 20 : 100, color: 'bg-slate-300' },
+            ]}
+          />
+
+          {/* Card 3: Emergency Safety Alerts — Urgency Bar */}
+          <KpiCard
+            title="EMERGENCY SAFETY"
+            value={alertCount}
+            variant="rose"
+            trend={alertCount > 0 ? 'down' : 'neutral'}
+            trendValue={alertCount > 0 ? 'Safety Action' : 'Zero Hazards'}
+            description="Critical telemetry & safety warnings"
+            icon={RiskAlert}
+            progressSegments={[
+              { label: 'Safety Alerts', value: alertCount > 0 ? 100 : 0, color: 'bg-rose-600' },
+            ]}
+          />
+
+          {/* Card 4: Dispatch & Permit Logs — Progress Bar */}
+          <KpiCard
+            title="DISPATCH & DOCUMENT"
+            value={tripCount + docCount}
+            variant="emerald"
+            trend="neutral"
+            trendValue="Automated Logs"
+            description="Trip updates & expiry reminders"
+            icon={Truck}
+            progressSegments={[
+              { label: `Dispatch (${tripCount})`, value: 60, color: 'bg-indigo-600' },
+              { label: `Document (${docCount})`, value: 40, color: 'bg-amber-500' },
+            ]}
+          />
+        </div>
+
+        {/* Toolbar & Filter Bar (Strictly Horizontal) */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center justify-between gap-3 overflow-x-auto">
+            
+            {/* Filter Pills */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg shrink-0 border border-slate-200/60 dark:border-slate-700">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
+                  activeTab === 'all'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                All ({totalCount})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('unread')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                  activeTab === 'unread'
+                    ? 'bg-white dark:bg-slate-900 text-[#E8450F] shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                <span>Unread</span>
+                {unreadCount > 0 && (
+                  <Badge className="bg-[#E8450F] text-white text-[9px] px-1.5 py-0 font-bold">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('alert')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
+                  activeTab === 'alert'
+                    ? 'bg-white dark:bg-slate-900 text-rose-600 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                Emergency ({alertCount})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('trip')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
+                  activeTab === 'trip'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                Dispatch ({tripCount})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('document')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
+                  activeTab === 'document'
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                Documents ({docCount})
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative w-64 shrink-0 ml-auto">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search notification title..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
+              />
+            </div>
+
+          </div>
+        </div>
+
+        {/* Notifications Workspace List */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden shrink-0">
           {isLoading ? (
-            <div className="p-12 text-center text-[#6E6E80] text-sm">Loading notifications…</div>
+            <div className="p-12 text-center text-slate-500 text-xs font-medium">Loading notifications...</div>
           ) : isError ? (
-            <div className="p-12 text-center text-[#DC2626] text-sm">Failed to load notifications.</div>
+            <div className="p-12 text-center text-rose-600 text-xs font-bold">Failed to load notifications.</div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="p-12 text-center text-[#6E6E80]">
-              <CheckCircle2 size={40} className="mx-auto mb-3 text-[#16A34A]/50" />
-              <p className="text-base font-bold text-[#111] mb-1">All caught up!</p>
-              <p className="text-sm">You have no new notifications.</p>
+            <div className="p-12 text-center text-slate-500">
+              <CheckCircle2 size={44} className="mx-auto mb-3 text-emerald-500 opacity-60" />
+              <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100 mb-1">All Caught Up!</p>
+              <p className="text-xs text-slate-500">No new notifications in this view.</p>
             </div>
           ) : (
-            <div className="divide-y divide-black/[0.04]">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredNotifications.map((notif) => {
                 const type = normalizeType(notif.type);
                 const link = linkFor(notif);
                 return (
                   <div
                     key={notif.id}
-                    className={`p-5 flex gap-4 transition-colors hover:bg-[#FAFAFA] ${
-                      !notif.is_read ? 'bg-[#FFF0EB]/30' : 'bg-white'
+                    className={`p-4 flex gap-4 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50 ${
+                      !notif.is_read ? 'bg-indigo-50/30 dark:bg-indigo-950/20' : 'bg-white dark:bg-slate-900'
                     }`}
                     onClick={() => {
                       if (!notif.is_read) markAsRead(notif.id);
                     }}
                   >
-                    <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center border ${getBg(type)}`}>
+                    <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center border ${getBg(type)}`}>
                       {getIcon(type)}
                     </div>
 
                     <div className="flex-1 pt-0.5 cursor-pointer">
                       <div className="flex justify-between items-start mb-1 gap-4">
-                        <h4 className={`text-sm ${!notif.is_read ? 'font-bold text-[#111]' : 'font-semibold text-[#444]'}`}>
-                          {notif.title}
-                        </h4>
-                        <span className="text-[11px] font-medium text-[#9898A4] whitespace-nowrap flex items-center gap-1">
-                          <Clock size={10} /> {relativeTime(notif.createdAt)}
+                        <div className="flex items-center gap-2">
+                          <h4 className={`text-xs ${!notif.is_read ? 'font-extrabold text-slate-900 dark:text-slate-100' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
+                            {notif.title}
+                          </h4>
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0 bg-slate-100 text-slate-600 border-slate-200">
+                            {type}
+                          </Badge>
+                        </div>
+
+                        <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap flex items-center gap-1">
+                          <Clock size={11} /> {relativeTime(notif.createdAt)}
                         </span>
                       </div>
-                      <p className="text-xs text-[#6E6E80] leading-relaxed mb-3 pr-8">
+                      <p className="text-xs text-slate-500 leading-relaxed mb-2.5 pr-6">
                         {notif.message}
                       </p>
 
                       <div className="flex items-center gap-3">
                         {link && (
-                          <a
-                            href={link}
-                            className="text-xs font-bold text-[#E8450F] hover:underline"
-                            onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-xs font-bold text-[#E8450F] hover:underline gap-1"
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              markAsRead(notif.id); 
+                              navigate(link);
+                            }}
                           >
-                            View Details
-                          </a>
+                            View Entity Details <ArrowRight className="w-3 h-3" />
+                          </Button>
                         )}
                         {!notif.is_read && (
                           <button
                             onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
-                            className="text-xs font-semibold text-[#6E6E80] hover:text-[#111] flex items-center gap-1"
+                            className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1"
                           >
                             <Check size={12} /> Mark as read
                           </button>
@@ -203,7 +409,7 @@ export default function NotificationsPage() {
                     </div>
 
                     {!notif.is_read && (
-                      <div className="w-2 h-2 rounded-full bg-[#E8450F] shrink-0 mt-2" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#E8450F] shrink-0 mt-2" />
                     )}
                   </div>
                 );
