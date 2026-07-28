@@ -81,7 +81,7 @@ export const PHOTO_FOR: Partial<Record<TripStatus, 'cargo' | 'pod'>> = {
 export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: string }>> = {
   Dispatched: { to: 'AtPickup',   label: 'Arrived at Pickup' },
   AtPickup:   { to: 'InTransit',  label: 'Start Trip (Picked Up)' },
-  InTransit:  { to: 'AtDelivery', label: 'Arrived at Delivery' },
+  InTransit:  { to: 'AtDelivery', label: 'View Live Map' },
   AtDelivery: { to: 'Completed',  label: 'Complete Delivery' },
 };
 

@@ -39,7 +39,7 @@ function RootNavigator() {
           <Stack.Screen name="settings" options={{ animation: 'none' }} />
           {/* Trip flow keeps the sequential push animation */}
           <Stack.Screen name="trip/pickup" />
-          <Stack.Screen name="trip/arrived" />
+          <Stack.Screen name="trip/navigate" />
           <Stack.Screen name="trip/delivery" />
           <Stack.Screen name="trip/completed" />
         </Stack.Protected>

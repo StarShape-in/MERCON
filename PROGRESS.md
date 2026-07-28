@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-07-27** (login page composition polish) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-07-28** (trip creation now requires driver+vehicle & auto-dispatches; web location picker; mobile driver flow goes straight through to a real live-map screen with auto arrival detection) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).
@@ -20,10 +20,12 @@ Last updated: **2026-07-27** (login page composition polish) · Owner: Hysam (so
 | **Live GPS tracking** (driver → web) | 🔄 Foreground streaming wired (socket emit); background + device verification pending | ~60% |
 | **Testing / builds / handover** | ❌ Not started (no real-phone run yet) | 0% |
 
-**One-line status:** Backend and web are basically finished. On **mobile**, the whole **driver
-side is real** — navigation, full trip flow, notifications, profile, documents, vehicle, emergency,
-and foreground **live GPS** streaming. Remaining: the **operator mobile screens** (all 8 static),
-GPS background hardening + device verification, then real-phone testing + release builds.
+**One-line status:** Backend and web are basically finished. Trips can no longer be created without
+a driver + vehicle (auto-dispatched immediately, driver notified). On **mobile**, the whole **driver
+side is real** — navigation, a straight-through trip flow (photo → live map with GPS auto-arrival →
+POD → done), notifications, profile, documents, vehicle, emergency, and foreground **live GPS**
+streaming. Remaining: the **operator mobile screens** (all 8 static), GPS background hardening +
+device verification, then real-phone testing + release builds.
 
 ---
 
@@ -40,6 +42,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | ICCES vehicle-tracker polling (3 background jobs) | ✅ (creds not provided yet) |
 | File uploads (photos, documents) | ✅ |
 | Zod request validation on write + list routes | ✅ (`79d4cd4`) |
+| `POST /trips` requires `driver_id` + `vehicle_id` (no driverless trips); creates directly as `Dispatched` (same availability checks + `OnTrip` flip + driver notification as `dispatchTrip`), 400s if driver/vehicle isn't `Available` | ✅ (2026-07-28) |
 | Structured logging (Pino), collision-safe reference IDs | ✅ (`d816736`, `f32cbca`) |
 | `JWT_SECRET` rotated → GitHub Actions secret, leaked fallback removed | ✅ (2026-07-12) |
 | Driver fixes: validate `PATCH /drivers/:id` (fixes "Failed to update"), free phone number on delete so it can be reused | ✅ (`a217c59`, `029cee7`) |
@@ -55,6 +58,7 @@ GPS background hardening + device verification, then real-phone testing + releas
 | Debounced server-side search across list pages | ✅ (`0546e0f`) |
 | Brand/semantic color tokens as Tailwind utilities | ✅ (`12fa35b`) |
 | Site-wide semi-curved corners (replaced 224 `rounded-none` overrides → `rounded-lg`; shadcn primitives use idiomatic radii) | ✅ |
+| Create Trip: driver + vehicle now required (no "leave unassigned"); pickup/dropoff lat/lng number inputs replaced with `LocationPickerMap` (address search via OpenStreetMap Nominatim + click/drag pin on a Leaflet map, no API key) | ✅ (2026-07-28) |
 | Login page redesign: full-bleed logistics background image (`login-bg.png`), no center divider, logo pinned top-right, centered "Welcome back" heading + boxed sign-in card | ✅ (PR #2 → `a09fa8d`) |
 
 ### Mobile app (`frontend/mobile-app/mercon-app`) — Expo, Driver + Operator
@@ -69,7 +73,9 @@ GPS background hardening + device verification, then real-phone testing + releas
 | Profile header redesign: larger avatar left, name + driver ID + status badge stacked to its right | ✅ |
 | **App-wide emoji → lucide icon sweep**: every driver + operator screen, shared `SearchInput`, and the `docIcon`/`notificationIcon` helpers now use lucide icons (no emojis anywhere in the UI) | ✅ |
 | Active-trip card redesign (Home): fixed edge-clipping (DarkCard padding) + route timeline, divider, tidy meta row | ✅ |
+| Home screen: trip section (empty banner or active-trip card) now centers vertically in the remaining page space; full-screen faded truck/route background image (`home-bg.png`) behind header + content | ✅ |
 | Photo upload: camera **or** gallery (`choosePhoto` chooser) on pickup/delivery/home; pickup checklist removed, larger confirm button | ✅ |
+| Driver trip flow now goes straight through, no detour back to Home: pickup cargo photo → real live map (`react-native-maps` + OSM tiles, no API key) with the dropoff pin → GPS geofence auto-detects arrival (200m) and jumps straight to POD → complete. `DestinationReachedScreen` (manual "confirm arrival" screen) removed; `LiveNavigationScreen` replaced (was a fake placeholder) and wired at `/trip/navigate` | ✅ (2026-07-28) |
 
 ### Mobile backend endpoints (`/api/mobile/*`)
 | Endpoint | State |
@@ -101,7 +107,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 **Wire driver screens (currently static UI):**
 - ✅ `PickupVerificationScreen` → cargo photo + `AtPickup → InTransit` (`/trip/pickup`)
 - ✅ `DeliveryVerificationScreen` → POD photo + `AtDelivery → Completed` (`/trip/delivery`); receiver-name/signature dropped (no schema field — owner decision)
-- ✅ `DestinationReachedScreen` → `InTransit → AtDelivery` (expo-router `/trip/arrived`, Home routes in)
+- ✅ `LiveNavigationScreen` → real map + GPS geofence auto-detects `InTransit → AtDelivery` (expo-router `/trip/navigate`, replaces the old manual `DestinationReachedScreen`/`/trip/arrived`)
 - ✅ `TripCompletedScreen` → real summary of the latest completed trip (`/trip/completed`)
 - ✅ `TripsScreen` (history) — real Active/Upcoming/Completed tabs
 - ✅ `NotificationsScreen` — real feed + mark read / mark all
@@ -110,7 +116,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `AssignedVehicleScreen` → `GET /mobile/vehicle` (active-trip vehicle + honest empty state)
 - ✅ `EmergencyScreen` → `POST /mobile/emergency` (incident type + notes; photos & GPS deferred to M2)
 - ✅ `SettingsScreen` — real logout (toggles are local-only); reachable (`/settings`)
-- ⬜ `LiveNavigationScreen` / `ReplacementDriverScreen` / `SplashScreen` (as needed)
+- ⬜ `ReplacementDriverScreen` / `SplashScreen` (as needed)
 
 ### Milestone 2 — Driver live GPS
 - ✅ `expo-location` foreground tracking while a trip is active (~10s / 20m) — plugin added to `app.json`
@@ -161,14 +167,14 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | NotificationsScreen (feed + mark read/all) | driver | ✅ |
 | ProfileScreen (identity/license/vehicle + logout) | driver | ✅ |
 | EmergencyScreen (alert → operators/admins) | driver | ✅ |
-| DestinationReachedScreen (arrived → AtDelivery) | driver | ✅ |
+| LiveNavigationScreen (live map, GPS auto-arrival → AtDelivery) | driver | ✅ |
 | PickupVerificationScreen (cargo photo → InTransit) | driver | ✅ |
 | DeliveryVerificationScreen (POD photo → Completed) | driver | ✅ |
 | TripCompletedScreen (completion summary) | driver | ✅ |
 | SettingsScreen (logout) | driver | ✅ |
 | DocumentsScreen (real docs + expiry) | driver | ✅ |
 | AssignedVehicleScreen (active-trip vehicle) | driver | ✅ |
-| LiveNavigation/ReplacementDriver/Splash | driver | ⬜ static (secondary) |
+| ReplacementDriver/Splash | driver | ⬜ static (secondary) |
 | HomeScreen (dashboard KPIs + active trips) | operator | ✅ |
 | TripListScreen (filters + KPI chips + search) | operator | ✅ |
 | DriverListScreen (filters + search + call) | operator | ✅ |
@@ -183,15 +189,20 @@ quick actions + Notifications link actually navigate — so the already-wired Tr
 and Profile screens are reachable in the running app for the first time. Routes live at
 `src/app/{trips,profile,notifications,documents,vehicle,settings}.tsx`.
 
-**Driver trip flow — fully wired end to end** via expo-router (`src/app/trip/*`):
-Dispatched →(inline)→ AtPickup →`/trip/pickup` (cargo photo)→ InTransit →`/trip/arrived`→
-AtDelivery →`/trip/delivery` (POD photo)→ Completed →`/trip/completed` (summary). Home routes
-into each step by status and refetches on focus.
+**Driver trip flow — fully wired end to end, straight-through** via expo-router (`src/app/trip/*`):
+Dispatched →(inline)→ AtPickup →`/trip/pickup` (cargo photo)→ InTransit →`/trip/navigate`
+(live map, GPS auto-detects arrival within 200m, manual "I've Arrived" fallback)→
+AtDelivery →`/trip/delivery` (POD photo)→ Completed →`/trip/completed` (summary). No more
+detour back to Home between pickup and delivery. Home still routes into each step by status
+and refetches on focus (for a driver who backgrounds the app mid-flow).
 
 ---
 
 ## 5. Verification & ops status
-- Backend `tsc`: clean · Web `tsc -b && vite build`: clean · Mobile `tsc --noEmit`: 0 errors (as of last session).
+- Backend `tsc`: clean · Web `tsc --noEmit`: clean · Mobile `tsc --noEmit`: 0 errors (as of last session).
+- Trip creation (driver required, auto-dispatch, availability conflict, driver notification) verified end-to-end against a local Postgres + running API (manual curl pass, test rows cleaned up).
+- Web location picker (Nominatim address search + Leaflet pin drop/drag, recenter-on-search) verified in-browser.
+- `react-native-maps` added (mobile) for the new live-map screen; not yet run in a simulator/device — see below.
 - ❌ **Not yet run on a real phone against the live server** — this is the next real check.
 - Git identity reminder: ensure commits use `sayedhysampm@gmail.com`.
 

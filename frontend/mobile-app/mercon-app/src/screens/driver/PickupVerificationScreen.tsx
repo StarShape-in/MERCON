@@ -40,7 +40,7 @@ const PickupVerificationScreen = () => {
         await tripService.uploadPhoto(trip.id, 'cargo', photo);
       }
       await tripService.updateStatus(trip.id, 'InTransit');
-      router.back();
+      router.replace('/trip/navigate');
     } catch (e) {
       Alert.alert('Could not start trip', getApiErrorMessage(e));
     } finally {

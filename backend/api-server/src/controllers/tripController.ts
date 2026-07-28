@@ -92,32 +92,55 @@ export const createTrip = async (req: Request, res: Response) => {
     const ref_id = await generateRefId('TRP', () =>
       prisma.trip.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
-    const trip = await prisma.trip.create({
-      data: {
-        ref_id,
-        customerId: customer_id,
-        driverId: driver_id,
-        vehicleId: vehicle_id,
-        cargo_type,
-        hazmat_flag: hazmat_flag || false,
-        planned_start: planned_start ? new Date(planned_start) : null,
-        status: TripStatus.Draft,
-        created_by: (req as any).user?.id,
-        stops: {
-          create: stops.map((stop: any, index: number) => ({
-            stop_sequence: index + 1,
-            stop_type: stop.stop_type as StopType,
-            location_lat: parseFloat(stop.lat),
-            location_lng: parseFloat(stop.lng),
-            planned_arrival: stop.planned_arrival ? new Date(stop.planned_arrival) : null
-          }))
-        }
-      },
-      include: { stops: true }
+    // A trip must always have a driver + vehicle, so it's created already
+    // dispatched — mirrors the availability checks & side effects in dispatchTrip.
+    const trip = await prisma.$transaction(async (tx) => {
+      const driver = await tx.driver.findUnique({ where: { id: driver_id } });
+      const vehicle = await tx.vehicle.findUnique({ where: { id: vehicle_id } });
+
+      if (!driver || driver.status !== 'Available') {
+        throw new Error('DRIVER_UNAVAILABLE');
+      }
+      if (!vehicle || vehicle.status !== 'Available') {
+        throw new Error('VEHICLE_UNAVAILABLE');
+      }
+
+      await tx.driver.update({ where: { id: driver_id }, data: { status: 'OnTrip' } });
+      await tx.vehicle.update({ where: { id: vehicle_id }, data: { status: 'OnTrip' } });
+
+      return tx.trip.create({
+        data: {
+          ref_id,
+          customerId: customer_id,
+          driverId: driver_id,
+          vehicleId: vehicle_id,
+          cargo_type,
+          hazmat_flag: hazmat_flag || false,
+          planned_start: planned_start ? new Date(planned_start) : null,
+          status: TripStatus.Dispatched,
+          created_by: (req as any).user?.id,
+          stops: {
+            create: stops.map((stop: any, index: number) => ({
+              stop_sequence: index + 1,
+              stop_type: stop.stop_type as StopType,
+              location_lat: parseFloat(stop.lat),
+              location_lng: parseFloat(stop.lng),
+              planned_arrival: stop.planned_arrival ? new Date(stop.planned_arrival) : null
+            }))
+          }
+        },
+        include: { stops: true }
+      });
     });
 
+    // Notify the driver after the creation + dispatch commits.
+    await notifyDriverAssigned(driver_id, trip);
+
     res.status(201).json({ success: true, data: trip });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'DRIVER_UNAVAILABLE' || error.message === 'VEHICLE_UNAVAILABLE') {
+      return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
+    }
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create trip' } });
   }
 };

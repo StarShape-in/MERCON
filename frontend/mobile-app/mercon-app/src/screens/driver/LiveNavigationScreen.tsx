@@ -1,104 +1,160 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
-import { Truck, MapPin, ArrowLeft, CornerUpRight, Volume2, VolumeX, Siren } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import MapView, { Marker, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { ArrowLeft, MapPin, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
+import { useCurrentTrip } from '../../lib/use-current-trip';
+import { tripService } from '../../lib/trips';
+import { getApiErrorMessage } from '../../lib/api';
 
-const { width, height } = Dimensions.get('window');
+const ARRIVAL_RADIUS_M = 200;
+const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-const LiveNavigationScreen = ({ navigation }: any) => {
-  const [muted, setMuted] = useState(false);
+/** Great-circle distance between two lat/lng points, in meters. */
+function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+const LiveNavigationScreen = () => {
+  const router = useRouter();
+  const { trip, loading } = useCurrentTrip();
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [arriving, setArriving] = useState(false);
+  const hasArrivedRef = useRef(false);
+
+  const dropoff = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
+
+  const goToDelivery = async () => {
+    if (!trip || hasArrivedRef.current) return;
+    hasArrivedRef.current = true;
+    setArriving(true);
+    try {
+      await tripService.updateStatus(trip.id, 'AtDelivery');
+      router.replace('/trip/delivery');
+    } catch (e) {
+      hasArrivedRef.current = false;
+      setArriving(false);
+      Alert.alert('Could not update', getApiErrorMessage(e));
+    }
+  };
+
+  // Stream live position and auto-detect arrival at the dropoff.
+  useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
+    let cancelled = false;
+
+    (async () => {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted || cancelled) return;
+
+      sub = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+        (loc) => {
+          const lat = loc.coords.latitude;
+          const lng = loc.coords.longitude;
+          setPosition({ lat, lng });
+
+          if (dropoff && !hasArrivedRef.current) {
+            const dist = distanceMeters(lat, lng, dropoff.location_lat, dropoff.location_lng);
+            if (dist <= ARRIVAL_RADIUS_M) goToDelivery();
+          }
+        },
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dropoff?.id]);
+
+  if (loading && !trip) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerBox]}>
+        <ActivityIndicator color={Colors.white} />
+      </SafeAreaView>
+    );
+  }
+
+  const center = position ?? (dropoff ? { lat: dropoff.location_lat, lng: dropoff.location_lng } : { lat: 24.7136, lng: 46.6753 });
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1A2B1A" />
 
-      {/* Map Placeholder */}
       <View style={styles.mapContainer}>
-        <View style={styles.map}>
-          {/* Simulated road overlay */}
-          <View style={styles.roadVertical} />
-          <View style={styles.roadHorizontal} />
-          <View style={styles.currentLocation}>
-            <Truck size={24} color={Colors.white} strokeWidth={2} />
-          </View>
-          <View style={styles.destinationPin}>
-            <MapPin size={22} color={Colors.primary} strokeWidth={2.2} />
-          </View>
-          <Text style={styles.mapLabel}>LIVE MAP</Text>
-          <Text style={styles.mapSubLabel}>Riyadh → Jeddah</Text>
-        </View>
-
-        {/* Top overlay */}
-        <View style={styles.topOverlay}>
-          <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
-            <ArrowLeft size={22} color={Colors.white} strokeWidth={2.2} />
-          </TouchableOpacity>
-          <View style={styles.nextTurnCard}>
-            <CornerUpRight size={22} color={Colors.primary} strokeWidth={2.4} />
-            <View>
-              <Text style={styles.nextTurnLabel}>In 2.3 km</Text>
-              <Text style={styles.nextTurnValue}>Turn right onto King Fahd Road</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.muteBtn} activeOpacity={0.8} onPress={() => setMuted(!muted)}>
-            {muted
-              ? <VolumeX size={22} color={Colors.white} strokeWidth={2} />
-              : <Volume2 size={22} color={Colors.white} strokeWidth={2} />}
-          </TouchableOpacity>
-        </View>
-
-        {/* Info Pills */}
-        <View style={styles.pillsRow}>
-          {[
-            { label: 'Speed', value: '94 km/h' },
-            { label: 'ETA', value: '14:30 AST' },
-            { label: 'Distance', value: '487 km' },
-          ].map((pill) => (
-            <View key={pill.label} style={styles.pill}>
-              <Text style={styles.pillLabel}>{pill.label}</Text>
-              <Text style={styles.pillValue}>{pill.value}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Emergency Button */}
-        <TouchableOpacity
-          style={styles.emergencyBtn}
-          activeOpacity={0.8}
-          onPress={() => navigation?.navigate('Emergency')}
+        <MapView
+          provider={PROVIDER_DEFAULT}
+          mapType="none"
+          style={styles.map}
+          initialRegion={{
+            latitude: center.lat,
+            longitude: center.lng,
+            latitudeDelta: 0.2,
+            longitudeDelta: 0.2,
+          }}
+          region={position ? { latitude: position.lat, longitude: position.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 } : undefined}
         >
-          <Siren size={26} color={Colors.white} strokeWidth={2} />
-        </TouchableOpacity>
+          <UrlTile urlTemplate={OSM_TILE_URL} maximumZ={19} flipY={false} />
+
+          {position && (
+            <Marker coordinate={{ latitude: position.lat, longitude: position.lng }} anchor={{ x: 0.5, y: 0.5 }}>
+              <View style={styles.driverPin}>
+                <Truck size={16} color={Colors.white} strokeWidth={2.4} />
+              </View>
+            </Marker>
+          )}
+
+          {dropoff && (
+            <Marker coordinate={{ latitude: dropoff.location_lat, longitude: dropoff.location_lng }} anchor={{ x: 0.5, y: 1 }}>
+              <View style={styles.destPin}>
+                <MapPin size={18} color={Colors.white} strokeWidth={2.4} />
+              </View>
+            </Marker>
+          )}
+        </MapView>
+
+        <View style={styles.topOverlay}>
+          <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => router.back()}>
+            <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
+          </TouchableOpacity>
+          <View style={styles.headerCard}>
+            <Text style={styles.headerTitle}>#{trip?.ref_id ?? '—'}</Text>
+            <Text style={styles.headerSub}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
+          </View>
+        </View>
+
+        {!position && (
+          <View style={styles.gpsNotice}>
+            <Text style={styles.gpsNoticeText}>Waiting for GPS signal…</Text>
+          </View>
+        )}
       </View>
 
-      {/* Bottom Info Card */}
       <View style={styles.bottomCard}>
-        <View style={styles.bottomRow}>
-          <View>
-            <Text style={styles.routeLabel}>Riyadh Industrial Zone → Jeddah Port</Text>
-            <Text style={styles.tripId}>#TRP-2024-0891 · Electronics (2.4T)</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.arrivedBtn}
-            activeOpacity={0.8}
-            onPress={() => navigation?.navigate('DestinationReached')}
-          >
-            <Text style={styles.arrivedBtnText}>Arrived</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.progressBar}>
-          <View style={styles.progressFill} />
-        </View>
-        <View style={styles.progressLabels}>
-          <Text style={styles.progressText}>Riyadh</Text>
-          <Text style={styles.progressPct}>51% complete</Text>
-          <Text style={styles.progressText}>Jeddah</Text>
-        </View>
+        <Text style={styles.bottomTitle}>Heading to delivery</Text>
+        <Text style={styles.bottomSub}>
+          The app will detect your arrival automatically. If it doesn't, confirm manually below.
+        </Text>
+        <TouchableOpacity
+          style={[styles.arrivedBtn, arriving && { opacity: 0.6 }]}
+          activeOpacity={0.8}
+          onPress={goToDelivery}
+          disabled={arriving}
+        >
+          <Text style={styles.arrivedBtnText}>{arriving ? 'Updating…' : "I've Arrived"}</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -109,59 +165,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1A2B1A',
   },
+  centerBox: { alignItems: 'center', justifyContent: 'center' },
   mapContainer: {
     flex: 1,
     position: 'relative',
   },
   map: {
-    flex: 1,
-    backgroundColor: '#2D4A2D',
+    ...StyleSheet.absoluteFill,
+  },
+  driverPin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.white,
   },
-  roadVertical: {
-    position: 'absolute',
-    width: 12,
-    top: 0,
-    bottom: 0,
-    backgroundColor: '#4A6A4A',
-    left: '45%',
-  },
-  roadHorizontal: {
-    position: 'absolute',
-    height: 10,
-    left: 0,
-    right: 0,
-    backgroundColor: '#4A6A4A',
-    top: '40%',
-  },
-  currentLocation: {
-    position: 'absolute',
-    left: '42%',
-    top: '55%',
-  },
-  locationPin: {
-    fontSize: 28,
-  },
-  destinationPin: {
-    position: 'absolute',
-    left: '42%',
-    top: '15%',
-  },
-  destPinIcon: {
-    fontSize: 28,
-  },
-  mapLabel: {
-    fontSize: Typography.xs,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.4)',
-    letterSpacing: 3,
-    marginTop: 80,
-  },
-  mapSubLabel: {
-    fontSize: Typography.sm,
-    color: 'rgba(255,255,255,0.3)',
-    marginTop: 4,
+  destPin: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#1A2B1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.white,
   },
   topOverlay: {
     position: 'absolute',
@@ -179,145 +209,66 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Shadows.md,
   },
-  backArrow: {
-    fontSize: 18,
-    color: Colors.gray900,
-    fontWeight: '700',
-  },
-  nextTurnCard: {
+  headerCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
     padding: Spacing.sm,
-    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     ...Shadows.md,
   },
-  nextTurnIcon: {
-    fontSize: 22,
-    color: Colors.primary,
-    fontWeight: '900',
+  headerTitle: {
+    fontSize: Typography.sm,
+    fontWeight: '800',
+    color: Colors.gray900,
   },
-  nextTurnLabel: {
+  headerSub: {
     fontSize: Typography.xs,
     color: Colors.gray500,
   },
-  nextTurnValue: {
-    fontSize: Typography.xs,
-    fontWeight: '700',
-    color: Colors.gray900,
-  },
-  muteBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  muteIcon: {
-    fontSize: 18,
-  },
-  pillsRow: {
+  gpsNotice: {
     position: 'absolute',
-    bottom: 100,
-    left: Spacing.lg,
-    right: Spacing.lg,
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    justifyContent: 'center',
-  },
-  pill: {
-    flex: 1,
+    bottom: Spacing.lg,
+    alignSelf: 'center',
     backgroundColor: 'rgba(0,0,0,0.65)',
     borderRadius: Radius.lg,
-    padding: Spacing.sm,
-    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
-  pillLabel: {
-    fontSize: Typography.xs,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 2,
-  },
-  pillValue: {
-    fontSize: Typography.sm,
-    fontWeight: '700',
+  gpsNoticeText: {
     color: Colors.white,
-  },
-  emergencyBtn: {
-    position: 'absolute',
-    right: Spacing.xl,
-    bottom: 110,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: Colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.lg,
-  },
-  emergencyIcon: {
-    fontSize: 24,
+    fontSize: Typography.xs,
+    fontWeight: '600',
   },
   bottomCard: {
     backgroundColor: Colors.white,
     padding: Spacing.lg,
     ...Shadows.lg,
   },
-  bottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  routeLabel: {
-    fontSize: Typography.sm,
-    fontWeight: '700',
+  bottomTitle: {
+    fontSize: Typography.base,
+    fontWeight: '800',
     color: Colors.gray900,
-    maxWidth: width * 0.6,
+    marginBottom: 4,
   },
-  tripId: {
-    fontSize: Typography.xs,
+  bottomSub: {
+    fontSize: Typography.sm,
     color: Colors.gray500,
-    marginTop: 2,
+    marginBottom: Spacing.md,
+    lineHeight: 20,
   },
   arrivedBtn: {
     backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
   },
   arrivedBtnText: {
     color: Colors.white,
     fontWeight: '700',
-    fontSize: Typography.sm,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: Colors.gray200,
-    borderRadius: Radius.full,
-    marginBottom: Spacing.xs,
-  },
-  progressFill: {
-    width: '51%',
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.full,
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  progressText: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
-  },
-  progressPct: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
-    fontWeight: '600',
+    fontSize: Typography.base,
   },
 });
 

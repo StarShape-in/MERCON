@@ -1,18 +1,20 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity, ImageBackground,
   StyleSheet, SafeAreaView, StatusBar, RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MapPin, Hand } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard } from '../../components';
-import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, type TripStatus } from '../../lib/trips';
 import { choosePhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const homeBg = require('../../../assets/images/home-bg.png');
 
 /** Badge colour by trip status. */
 function statusVariant(s: TripStatus): 'warning' | 'success' | 'info' | 'neutral' {
@@ -69,7 +71,7 @@ const HomeScreen = () => {
     if (!trip || !next) return;
     // The pickup and arrival steps have their own screens.
     if (trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
-    if (trip.status === 'InTransit') { router.push('/trip/arrived'); return; }
+    if (trip.status === 'InTransit') { router.push('/trip/navigate'); return; }
     if (trip.status === 'AtDelivery') { router.push('/trip/delivery'); return; }
     const photoKind = PHOTO_FOR[next.to];
     const msg = photoKind
@@ -82,7 +84,8 @@ const HomeScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
+    <ImageBackground source={homeBg} style={styles.bg} resizeMode="cover">
+      <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -102,93 +105,110 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Active trip */}
-        {loading && !trip ? (
-          <View style={styles.centerBox}>
-            <ActivityIndicator color={Colors.primary} />
-          </View>
-        ) : error ? (
-          <View style={styles.centerBox}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
-          </View>
-        ) : !trip ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No active trip</Text>
-            <Text style={styles.emptySub}>You're all caught up. Waiting for your next assignment.</Text>
-          </View>
-        ) : (
-          <DarkCard style={styles.jobCard}>
-            <View style={styles.jobHeader}>
-              <View style={styles.jobHeaderLeft}>
-                <Text style={styles.jobLabel}>ACTIVE TRIP</Text>
-                <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
-              </View>
-              <Badge label={statusLabel(trip.status)} variant={statusVariant(trip.status)} />
+        {/* Active trip — centered in the remaining page space, whichever state renders */}
+        <View style={styles.tripSection}>
+          {loading && !trip ? (
+            <View style={styles.centerBox}>
+              <ActivityIndicator color={Colors.primary} />
             </View>
-
-            {/* Route timeline */}
-            <View style={styles.route}>
-              <View style={styles.routeRail}>
-                <View style={styles.dotPickup} />
-                <View style={styles.railLine} />
-                <MapPin size={18} color={Colors.primary} strokeWidth={2.4} />
-              </View>
-              <View style={styles.routeCol}>
-                <View style={styles.routeStop}>
-                  <Text style={styles.routeStage}>PICKUP</Text>
-                  <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_start)}</Text>
+          ) : error ? (
+            <View style={styles.centerBox}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity onPress={refetch}><Text style={styles.retryText}>Tap to retry</Text></TouchableOpacity>
+            </View>
+          ) : !trip ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>No active trip</Text>
+              <Text style={styles.emptySub}>You're all caught up. Waiting for your next assignment.</Text>
+            </View>
+          ) : (
+            <DarkCard style={styles.jobCard}>
+              <View style={styles.jobHeader}>
+                <View style={styles.jobHeaderLeft}>
+                  <Text style={styles.jobLabel}>ACTIVE TRIP</Text>
+                  <Text style={styles.jobId} numberOfLines={1}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
                 </View>
-                <View style={[styles.routeStop, styles.routeStopLast]}>
-                  <Text style={styles.routeStage}>DELIVERY</Text>
-                  <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_end)}</Text>
+                <Badge label={statusLabel(trip.status)} variant={statusVariant(trip.status)} />
+              </View>
+
+              {/* Route timeline */}
+              <View style={styles.route}>
+                <View style={styles.routeRail}>
+                  <View style={styles.dotPickup} />
+                  <View style={styles.railLine} />
+                  <MapPin size={18} color={Colors.primary} strokeWidth={2.4} />
+                </View>
+                <View style={styles.routeCol}>
+                  <View style={styles.routeStop}>
+                    <Text style={styles.routeStage}>PICKUP</Text>
+                    <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_start)}</Text>
+                  </View>
+                  <View style={[styles.routeStop, styles.routeStopLast]}>
+                    <Text style={styles.routeStage}>DELIVERY</Text>
+                    <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_end)}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            <View style={styles.divider} />
+              <View style={styles.divider} />
 
-            <View style={styles.jobMeta}>
-              <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Customer</Text>
-                <Text style={styles.metaValue} numberOfLines={1}>{trip.customer?.name ?? '—'}</Text>
+              <View style={styles.jobMeta}>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>Customer</Text>
+                  <Text style={styles.metaValue} numberOfLines={1}>{trip.customer?.name ?? '—'}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>Cargo</Text>
+                  <Text style={styles.metaValue} numberOfLines={1}>{trip.cargo_type}</Text>
+                </View>
+                <View style={[styles.metaItem, styles.metaItemLast]}>
+                  <Text style={styles.metaLabel}>Distance</Text>
+                  <Text style={styles.metaValue} numberOfLines={1}>{trip.planned_distance ? `${trip.planned_distance} km` : '—'}</Text>
+                </View>
               </View>
-              <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Cargo</Text>
-                <Text style={styles.metaValue} numberOfLines={1}>{trip.cargo_type}</Text>
-              </View>
-              <View style={[styles.metaItem, styles.metaItemLast]}>
-                <Text style={styles.metaLabel}>Distance</Text>
-                <Text style={styles.metaValue} numberOfLines={1}>{trip.planned_distance ? `${trip.planned_distance} km` : '—'}</Text>
-              </View>
-            </View>
 
-            {next ? (
-              <TouchableOpacity
-                style={[styles.startBtn, advancing && { opacity: 0.6 }]}
-                activeOpacity={0.8}
-                onPress={advance}
-                disabled={advancing}
-              >
-                <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
-              </TouchableOpacity>
-            ) : trip.status === 'Draft' ? (
-              <Text style={styles.doneNote}>Awaiting dispatch — your operator will assign a vehicle and start this trip.</Text>
-            ) : (
-              <Text style={styles.doneNote}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>
-            )}
-          </DarkCard>
-        )}
+              {next ? (
+                <TouchableOpacity
+                  style={[styles.startBtn, advancing && { opacity: 0.6 }]}
+                  activeOpacity={0.8}
+                  onPress={advance}
+                  disabled={advancing}
+                >
+                  <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
+                </TouchableOpacity>
+              ) : trip.status === 'Draft' ? (
+                <Text style={styles.doneNote}>Awaiting dispatch — your operator will assign a vehicle and start this trip.</Text>
+              ) : (
+                <Text style={styles.doneNote}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>
+              )}
+            </DarkCard>
+          )}
+        </View>
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  bg: {
+    flex: 1,
+    backgroundColor: Colors.gray100,
+  },
+  safe: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   scroll: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
     flexGrow: 1,
+  },
+  // Fills the space below the header; centers whichever trip state renders
+  // (empty banner or the trip card) at the same vertical spot on the page.
+  tripSection: {
+    flex: 1,
+    justifyContent: 'center',
   },
   header: {
     flexDirection: 'row',
