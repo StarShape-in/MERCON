@@ -11,6 +11,7 @@ import { downloadCSV } from '@/utils/exportUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
+import { InvoiceAgingKpi } from '@/components/ui/CustomKpiWidgets';
 import { invoiceService, Invoice, InvoiceStatus } from '@/services/invoiceService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
@@ -330,11 +331,9 @@ export default function InvoiceListPage() {
             trendValue="In Progress"
             description="→ Active client invoices"
             icon={ClockIcon}
-            progressSegments={[
-              { label: 'Pending (<15d)', value: 65, color: 'bg-amber-500' },
-              { label: 'Pending (30d)', value: 35, color: 'bg-[#E8450F]' },
-            ]}
-          />
+          >
+            <InvoiceAgingKpi pendingCount={pendingCount} overdueCount={overdueCount} paidCount={paidCount} />
+          </KpiCard>
 
           {/* Card 4: Overdue & Risk — Urgency Bar */}
           <KpiCard

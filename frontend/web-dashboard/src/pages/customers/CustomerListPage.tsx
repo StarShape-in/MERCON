@@ -28,6 +28,7 @@ import { downloadCSV } from '@/utils/exportUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
+import { CreditExposureKpi } from '@/components/ui/CustomKpiWidgets';
 import { customerService, Customer } from '@/services/customerService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
@@ -329,12 +330,16 @@ export default function CustomerListPage() {
             title="TOTAL CREDIT EXPOSURE"
             value={`SAR ${(totalCreditLimit / 1000).toFixed(0)}K`}
             variant="blue"
-            trend="up"
-            trendValue="Approved"
-            description="→ Approved credit facility"
+            trend="neutral"
+            trendValue="Credit Portfolio"
+            description="Cumulative credit line extended"
             icon={MoneyBills}
-            chartData={[320, 380, 410, 490, 560, 620, Math.round(totalCreditLimit / 1000) || 750]}
-          />
+          >
+            <CreditExposureKpi 
+              usedAmount={Math.round(totalCreditLimit * 0.65)} 
+              limitAmount={totalCreditLimit || 500000} 
+            />
+          </KpiCard>
 
           {/* Card 4: Contract Renewals Due — Urgency Progress Bar */}
           <KpiCard
