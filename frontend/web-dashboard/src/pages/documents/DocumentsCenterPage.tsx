@@ -447,7 +447,7 @@ export default function DocumentsCenterPage() {
                                 <TooltipProvider>
                                   <div className="flex items-center justify-end gap-1">
                                     <Tooltip>
-                                      <TooltipTrigger asChild>
+                                      <TooltipTrigger>
                                         <a
                                           href={doc.file_url}
                                           target="_blank"
@@ -460,7 +460,7 @@ export default function DocumentsCenterPage() {
                                       <TooltipContent className="text-[10px]">View Document</TooltipContent>
                                     </Tooltip>
                                     <Tooltip>
-                                      <TooltipTrigger asChild>
+                                      <TooltipTrigger>
                                         <a
                                           href={doc.file_url}
                                           download
