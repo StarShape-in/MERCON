@@ -418,20 +418,28 @@ export default function TripListPage() {
             value={completedCount}
             variant="emerald"
             trend="up"
-            trendValue="Signed off"
-            description="↑ 100% POD verified & delivered"
+            trendValue="92.4% On-Time"
+            description="↑ POD verified & delivered"
             icon={CheckBadge}
-            chartData={[8, 12, 14, 13, 19, 24, completedCount || 30]}
+            progressSegments={[
+              { label: '88% On-Time', value: 88, color: 'bg-emerald-500' },
+              { label: '8% Delay', value: 8, color: 'bg-amber-500' },
+              { label: '4% Exception', value: 4, color: 'bg-slate-300' },
+            ]}
           />
           <KpiCard
             title="DISPATCH QUEUE"
             value={draftCount}
             variant="amber"
             trend="neutral"
-            trendValue="Pending"
-            description="→ Pending driver assignment"
+            trendValue="Pending Stage"
+            description="→ Pending driver & route prep"
             icon={ClockIcon}
-            chartData={[4, 5, 3, 6, 4, 5, draftCount || 7]}
+            progressSegments={[
+              { label: 'Pending Driver', value: 50, color: 'bg-amber-500' },
+              { label: 'Ready Dispatch', value: 35, color: 'bg-blue-500' },
+              { label: 'Unassigned', value: 15, color: 'bg-rose-500' },
+            ]}
           />
         </div>
         {/* Filter & Control Bar */}
