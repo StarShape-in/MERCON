@@ -28,13 +28,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AddVehiclePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('tractor');
 
   const [formData, setFormData] = useState({
     plate_number: '',
@@ -85,13 +83,11 @@ export default function AddVehiclePage() {
     setError(null);
 
     if (!formData.plate_number.trim()) {
-      setActiveTab('tractor');
       setError('Plate number is required');
       return;
     }
 
     if (!formData.capacity_kg || Number(formData.capacity_kg) <= 0) {
-      setActiveTab('tractor');
       setError('Valid tractor capacity (kg) is required');
       return;
     }
@@ -234,292 +230,237 @@ export default function AddVehiclePage() {
           </Card>
         </div>
 
-        {/* Main 2-Column Content Layout (Low Scroll) */}
+        {/* Main 2-Column Content Layout: Left 3 Column Sections, Right Preview */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
-          {/* Left Column: Form Tabs Workspace (7 Cols) */}
+          {/* Left Column: 3 Form Sections Stacked in a Column (7 Cols) */}
           <div className="lg:col-span-7 space-y-4">
+            
+            {/* SECTION 1: Tractor Specs */}
             <Card className="border-border/80 shadow-xs">
               <CardHeader className="pb-3 border-b border-border/50">
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-indigo-600" /> Vehicle Registration Setup
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-indigo-600" /> 1. Tractor Specifications
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Fill in tractor specifications, telematics sensors, and optional trailer details.
+                  Primary tractor vehicle identity, plate number, asset type, and payload capacity.
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="pt-4">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-3 w-full mb-4 bg-muted/70 p-1">
-                    <TabsTrigger value="tractor" className="text-xs font-semibold">
-                      1. Tractor Specs
-                    </TabsTrigger>
-                    <TabsTrigger value="telematics" className="text-xs font-semibold">
-                      2. Telematics
-                    </TabsTrigger>
-                    <TabsTrigger value="trailer" className="text-xs font-semibold">
-                      3. Trailer (Optional)
-                    </TabsTrigger>
-                  </TabsList>
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  
+                  <div className="space-y-1.5">
+                    <Label htmlFor="plate_number" className="text-xs font-semibold flex items-center justify-between">
+                      <span>Plate Number <span className="text-destructive">*</span></span>
+                      <span className="text-[10px] text-muted-foreground font-normal">e.g. ABC 1234</span>
+                    </Label>
+                    <Input
+                      id="plate_number"
+                      placeholder="e.g. ABC 1234"
+                      value={formData.plate_number}
+                      onChange={(e) => handleChange('plate_number', e.target.value.toUpperCase())}
+                      className="h-9 text-xs uppercase font-mono font-medium"
+                    />
+                  </div>
 
-                  {/* TAB 1: Tractor Specifications */}
-                  <TabsContent value="tractor" className="space-y-4 m-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      
-                      <div className="space-y-1.5">
-                        <Label htmlFor="plate_number" className="text-xs font-semibold flex items-center justify-between">
-                          <span>Plate Number <span className="text-destructive">*</span></span>
-                          <span className="text-[10px] text-muted-foreground font-normal">e.g. ABC 1234</span>
-                        </Label>
-                        <Input
-                          id="plate_number"
-                          placeholder="e.g. ABC 1234"
-                          value={formData.plate_number}
-                          onChange={(e) => handleChange('plate_number', e.target.value.toUpperCase())}
-                          className="h-9 text-xs uppercase font-mono font-medium"
-                        />
-                      </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="asset_type" className="text-xs font-semibold">
+                      Asset Type <span className="text-destructive">*</span>
+                    </Label>
+                    <Select 
+                      value={formData.asset_type} 
+                      onValueChange={(val) => handleChange('asset_type', val as AssetType)}
+                    >
+                      <SelectTrigger id="asset_type" className="h-9 text-xs">
+                        <SelectValue placeholder="Select asset type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Flatbed">Flatbed (Heavy Cargo)</SelectItem>
+                        <SelectItem value="Reefer">Reefer (Temperature Controlled)</SelectItem>
+                        <SelectItem value="Box">Box Truck (Dry Van)</SelectItem>
+                        <SelectItem value="Tanker">Tanker (Liquid / Bulk)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                      <div className="space-y-1.5">
-                        <Label htmlFor="asset_type" className="text-xs font-semibold">
-                          Asset Type <span className="text-destructive">*</span>
-                        </Label>
-                        <Select 
-                          value={formData.asset_type} 
-                          onValueChange={(val) => handleChange('asset_type', val)}
-                        >
-                          <SelectTrigger id="asset_type" className="h-9 text-xs">
-                            <SelectValue placeholder="Select asset type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Flatbed">Flatbed (Heavy Cargo)</SelectItem>
-                            <SelectItem value="Reefer">Reefer (Temperature Controlled)</SelectItem>
-                            <SelectItem value="Box">Box Truck (Dry Van)</SelectItem>
-                            <SelectItem value="Tanker">Tanker (Liquid / Bulk)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label htmlFor="capacity_kg" className="text-xs font-semibold flex items-center justify-between">
-                          <span>Payload Capacity (kg) <span className="text-destructive">*</span></span>
-                          <span className="text-[10px] text-indigo-600 font-semibold">Presets available</span>
-                        </Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="capacity_kg"
-                            type="number"
-                            placeholder="20000"
-                            value={formData.capacity_kg}
-                            onChange={(e) => handleChange('capacity_kg', e.target.value)}
-                            className="h-9 text-xs font-mono"
-                          />
-                        </div>
-                        {/* Capacity Presets */}
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {['15000', '20000', '25000', '30000', '40000'].map((preset) => (
-                            <button
-                              key={preset}
-                              type="button"
-                              onClick={() => handleChange('capacity_kg', preset)}
-                              className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
-                                formData.capacity_kg === preset 
-                                  ? 'bg-indigo-600 text-white border-indigo-600 font-semibold' 
-                                  : 'bg-muted/50 hover:bg-muted text-muted-foreground border-border'
-                              }`}
-                            >
-                              {Number(preset).toLocaleString()} kg
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="capacity_kg" className="text-xs font-semibold flex items-center justify-between">
+                      <span>Payload Capacity (kg) <span className="text-destructive">*</span></span>
+                      <span className="text-[10px] text-indigo-600 font-semibold">Presets available</span>
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="capacity_kg"
+                        type="number"
+                        placeholder="20000"
+                        value={formData.capacity_kg}
+                        onChange={(e) => handleChange('capacity_kg', e.target.value)}
+                        className="h-9 text-xs font-mono"
+                      />
                     </div>
-
-                    <div className="pt-2 flex justify-end">
-                      <Button 
-                        type="button" 
-                        size="sm"
-                        onClick={() => setActiveTab('telematics')}
-                        className="h-8 text-xs gap-1"
-                      >
-                        Next: Telematics Integration →
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                  {/* TAB 2: Telematics & ICCES */}
-                  <TabsContent value="telematics" className="space-y-4 m-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      
-                      <div className="space-y-1.5">
-                        <Label htmlFor="gps_device_id" className="text-xs font-semibold flex items-center gap-1.5">
-                          <Navigation className="w-3.5 h-3.5 text-blue-500" /> GPS Device ID
-                        </Label>
-                        <Input
-                          id="gps_device_id"
-                          placeholder="e.g. GPS-8821-X"
-                          value={formData.gps_device_id}
-                          onChange={(e) => handleChange('gps_device_id', e.target.value)}
-                          className="h-9 text-xs font-mono"
-                        />
-                        <p className="text-[10px] text-muted-foreground">Used for real-time location telemetry & trip route tracking.</p>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="icces_device_id" className="text-xs font-semibold flex items-center gap-1.5">
-                          <Activity className="w-3.5 h-3.5 text-indigo-500" /> ICCES Tracker ID
-                        </Label>
-                        <Input
-                          id="icces_device_id"
-                          placeholder="e.g. 351777091234"
-                          value={formData.icces_device_id}
-                          onChange={(e) => handleChange('icces_device_id', e.target.value)}
-                          className="h-9 text-xs font-mono"
-                        />
-                        <p className="text-[10px] text-muted-foreground">Saudi Transport ICCES telemetry compliance device ID.</p>
-                      </div>
-
-                    </div>
-
-                    <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-xs space-y-1">
-                      <div className="font-semibold text-foreground flex items-center gap-1.5">
-                        <ShieldCheck className="w-4 h-4 text-emerald-500" /> Automatic Integration Ready
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        Once saved, telemetry sensors automatically link to active trip telemetry streams for instant dispatch tracking.
-                      </p>
-                    </div>
-
-                    <div className="pt-2 flex justify-between">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setActiveTab('tractor')}
-                        className="h-8 text-xs"
-                      >
-                        ← Back
-                      </Button>
-                      <Button 
-                        type="button" 
-                        size="sm"
-                        onClick={() => setActiveTab('trailer')}
-                        className="h-8 text-xs gap-1"
-                      >
-                        Next: Trailer Setup →
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                  {/* TAB 3: Trailer Unit (Optional) */}
-                  <TabsContent value="trailer" className="space-y-4 m-0">
-                    
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-border/80 bg-muted/30">
-                      <div className="space-y-0.5">
-                        <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                          <Layers className="w-3.5 h-3.5 text-indigo-500" /> Attach Trailer Unit
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Toggle if this tractor operates with a coupled trailer.
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setHasTrailer(!hasTrailer)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          hasTrailer ? 'bg-indigo-600' : 'bg-muted'
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                            hasTrailer ? 'translate-x-4' : 'translate-x-0'
+                    {/* Capacity Presets */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {['15000', '20000', '25000', '30000', '40000'].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => handleChange('capacity_kg', preset)}
+                          className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
+                            formData.capacity_kg === preset 
+                              ? 'bg-indigo-600 text-white border-indigo-600 font-semibold' 
+                              : 'bg-muted/50 hover:bg-muted text-muted-foreground border-border'
                           }`}
-                        />
-                      </button>
+                        >
+                          {Number(preset).toLocaleString()} kg
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
-                    {hasTrailer ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in pt-1">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="trailer_number" className="text-xs font-semibold">
-                            Trailer Number / Plate
-                          </Label>
-                          <Input
-                            id="trailer_number"
-                            placeholder="e.g. TRL-9920"
-                            value={formData.trailer_number}
-                            onChange={(e) => handleChange('trailer_number', e.target.value.toUpperCase())}
-                            className="h-9 text-xs font-mono"
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label htmlFor="trailer_type" className="text-xs font-semibold">
-                            Trailer Type
-                          </Label>
-                          <Select 
-                            value={formData.trailer_type} 
-                            onValueChange={(val) => handleChange('trailer_type', val)}
-                          >
-                            <SelectTrigger id="trailer_type" className="h-9 text-xs">
-                              <SelectValue placeholder="Select trailer type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Flatbed">Flatbed Trailer</SelectItem>
-                              <SelectItem value="Reefer">Reefer Trailer</SelectItem>
-                              <SelectItem value="Box">Box Trailer</SelectItem>
-                              <SelectItem value="Tanker">Tanker Trailer</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1.5 sm:col-span-2">
-                          <Label htmlFor="trailer_capacity_kg" className="text-xs font-semibold">
-                            Trailer Capacity (kg)
-                          </Label>
-                          <Input
-                            id="trailer_capacity_kg"
-                            type="number"
-                            placeholder="15000"
-                            value={formData.trailer_capacity_kg}
-                            onChange={(e) => handleChange('trailer_capacity_kg', e.target.value)}
-                            className="h-9 text-xs font-mono"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center rounded-lg border border-dashed border-border text-muted-foreground text-xs">
-                        No trailer unit attached. Tractor will register as a standalone unit.
-                      </div>
-                    )}
-
-                    <div className="pt-2 flex justify-between">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setActiveTab('telematics')}
-                        className="h-8 text-xs"
-                      >
-                        ← Back
-                      </Button>
-                      <Button 
-                        type="button" 
-                        size="sm"
-                        onClick={() => handleSubmit()}
-                        disabled={isSubmitting || !isFormValid}
-                        className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1" /> Register Vehicle Now
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                </Tabs>
+                </div>
               </CardContent>
+            </Card>
 
+            {/* SECTION 2: Telematics */}
+            <Card className="border-border/80 shadow-xs">
+              <CardHeader className="pb-3 border-b border-border/50">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Navigation className="w-4 h-4 text-blue-600" /> 2. Telematics & Sensors
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  GPS tracker IDs and Saudi ICCES transport telemetry integration.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="pt-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gps_device_id" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 text-blue-500" /> GPS Device ID
+                    </Label>
+                    <Input
+                      id="gps_device_id"
+                      placeholder="e.g. GPS-8821-X"
+                      value={formData.gps_device_id}
+                      onChange={(e) => handleChange('gps_device_id', e.target.value)}
+                      className="h-9 text-xs font-mono"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Used for real-time location telemetry & trip route tracking.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="icces_device_id" className="text-xs font-semibold flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5 text-indigo-500" /> ICCES Tracker ID
+                    </Label>
+                    <Input
+                      id="icces_device_id"
+                      placeholder="e.g. 351777091234"
+                      value={formData.icces_device_id}
+                      onChange={(e) => handleChange('icces_device_id', e.target.value)}
+                      className="h-9 text-xs font-mono"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Saudi Transport ICCES telemetry compliance device ID.</p>
+                  </div>
+
+                </div>
+
+                <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-xs space-y-1">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" /> Automatic Integration Ready
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Once saved, telemetry sensors automatically link to active trip telemetry streams for instant dispatch tracking.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* SECTION 3: Trailer (Optional) */}
+            <Card className="border-border/80 shadow-xs">
+              <CardHeader className="pb-3 border-b border-border/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-indigo-600" /> 3. Trailer Unit (Optional)
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Attach or configure a secondary trailer linked to this tractor.
+                    </CardDescription>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setHasTrailer(!hasTrailer)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      hasTrailer ? 'bg-indigo-600' : 'bg-muted'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        hasTrailer ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="pt-4">
+                {hasTrailer ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="trailer_number" className="text-xs font-semibold">
+                        Trailer Number / Plate
+                      </Label>
+                      <Input
+                        id="trailer_number"
+                        placeholder="e.g. TRL-9920"
+                        value={formData.trailer_number}
+                        onChange={(e) => handleChange('trailer_number', e.target.value.toUpperCase())}
+                        className="h-9 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="trailer_type" className="text-xs font-semibold">
+                        Trailer Type
+                      </Label>
+                      <Select 
+                        value={formData.trailer_type} 
+                        onValueChange={(val) => handleChange('trailer_type', val as AssetType)}
+                      >
+                        <SelectTrigger id="trailer_type" className="h-9 text-xs">
+                          <SelectValue placeholder="Select trailer type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Flatbed">Flatbed Trailer</SelectItem>
+                          <SelectItem value="Reefer">Reefer Trailer</SelectItem>
+                          <SelectItem value="Box">Box Trailer</SelectItem>
+                          <SelectItem value="Tanker">Tanker Trailer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="trailer_capacity_kg" className="text-xs font-semibold">
+                        Trailer Capacity (kg)
+                      </Label>
+                      <Input
+                        id="trailer_capacity_kg"
+                        type="number"
+                        placeholder="15000"
+                        value={formData.trailer_capacity_kg}
+                        onChange={(e) => handleChange('trailer_capacity_kg', e.target.value)}
+                        className="h-9 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center rounded-lg border border-dashed border-border text-muted-foreground text-xs">
+                    No trailer unit attached. Toggle above to configure attached trailer specifications.
+                  </div>
+                )}
+              </CardContent>
             </Card>
 
             {error && (
