@@ -1,14 +1,20 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Clock, Search, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Clock, Search, ShieldAlert, ArrowLeft, RotateCw } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
+import KpiCard from '@/components/ui/KpiCard';
+import { RiskAlert, CalendarAlert, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument } from '@/services/documentService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { docTypeLabel, daysUntil } from '@/lib/documents';
+
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 interface ExpiryRow extends MerconDocument {
   entityName: string;
@@ -17,7 +23,9 @@ interface ExpiryRow extends MerconDocument {
 
 export default function ExpiryManagementPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', 'all'],
@@ -31,6 +39,12 @@ export default function ExpiryManagementPage() {
     queryKey: ['vehicles', 'lookup'],
     queryFn: async () => (await vehicleService.getAll()).data,
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['documents'] });
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   const nameFor = useMemo(() => {
     const dMap = new Map(drivers.map((d) => [d.id, `${d.first_name} ${d.last_name}`.trim()]));
@@ -52,7 +66,8 @@ export default function ExpiryManagementPage() {
 
   const expiredCount = items.filter((i) => i.daysRemaining <= 0).length;
   const criticalCount = items.filter((i) => i.daysRemaining > 0 && i.daysRemaining <= 7).length;
-  const upcomingCount = items.filter((i) => i.daysRemaining > 0).length;
+  const upcomingCount = items.filter((i) => i.daysRemaining > 7 && i.daysRemaining <= 30).length;
+  const totalRadarCount = items.length;
 
   const filteredItems = items.filter((i) => {
     const q = search.toLowerCase();
@@ -69,48 +84,48 @@ export default function ExpiryManagementPage() {
     {
       header: 'Document Type',
       accessor: (row: ExpiryRow) => (
-        <span className="font-bold text-[#111]">{docTypeLabel(row.doc_type)}</span>
+        <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">{docTypeLabel(row.doc_type)}</span>
       ),
     },
     {
       header: 'Entity / Owner',
       accessor: (row: ExpiryRow) => (
         <div>
-          <span className="font-semibold text-[#444]">{row.entityName}</span>
-          <span className="ml-2 text-[10px] font-bold bg-[#F5F5F7] text-[#6E6E80] px-1.5 py-0.5 rounded">
+          <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">{row.entityName}</span>
+          <Badge variant="outline" className="ml-2 text-[9px] font-bold bg-slate-100 text-slate-600 border-slate-200">
             {row.entity_type}
-          </span>
+          </Badge>
         </div>
       ),
     },
     {
       header: 'Expiry Date',
       accessor: (row: ExpiryRow) => (
-        <span className="font-mono text-xs font-semibold text-[#444]">
+        <span className="font-mono text-xs font-semibold text-slate-600 dark:text-slate-400">
           {row.expiry_date ? new Date(row.expiry_date).toLocaleDateString() : '—'}
         </span>
       ),
     },
     {
-      header: 'Status',
+      header: 'Expiry Radar Status',
       accessor: (row: ExpiryRow) => {
         if (row.daysRemaining <= 0) {
           return (
-            <span className="inline-flex items-center gap-1 bg-[#FEF2F2] text-[#DC2626] px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
-              <ShieldAlert size={12} /> Expired
-            </span>
+            <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-bold uppercase text-[10px]">
+              <ShieldAlert className="w-3 h-3 mr-1" /> Expired
+            </Badge>
           );
         } else if (row.daysRemaining <= 7) {
           return (
-            <span className="inline-flex items-center gap-1 bg-[#FFFBEB] text-[#D97706] px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
-              <AlertTriangle size={12} /> Critical ({row.daysRemaining}d)
-            </span>
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold uppercase text-[10px]">
+              <AlertTriangle className="w-3 h-3 mr-1" /> Critical ({row.daysRemaining}d)
+            </Badge>
           );
         }
         return (
-          <span className="inline-flex items-center gap-1 bg-[#F5F5F7] text-[#6E6E80] px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
-            <Clock size={12} /> {row.daysRemaining} days left
-          </span>
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-bold uppercase text-[10px]">
+            <Clock className="w-3 h-3 mr-1" /> {row.daysRemaining} days left
+          </Badge>
         );
       },
     },
@@ -119,14 +134,15 @@ export default function ExpiryManagementPage() {
       accessor: (row: ExpiryRow) => {
         const link = entityDocsLink(row);
         return link ? (
-          <button
+          <Button
+            size="sm"
             onClick={() => navigate(link)}
-            className="text-xs font-bold text-[#2563EB] bg-[#EFF6FF] px-3 py-1.5 rounded-lg hover:bg-[#DBEAFE] transition-colors"
+            className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white px-3 shadow-2xs rounded-md"
           >
-            Update Doc
-          </button>
+            Update Permit
+          </Button>
         ) : (
-          <span className="text-xs text-[#9898A4]">—</span>
+          <span className="text-xs text-slate-400">—</span>
         );
       },
     },
@@ -135,65 +151,139 @@ export default function ExpiryManagementPage() {
   return (
     <DashboardLayout
       active="Documents"
-      breadcrumb="Documents"
       title="Expiry Management"
-      pageTitle="Expiry Management"
-      pageSub="Monitor documents approaching expiration."
     >
-      <div className="px-6 pb-6">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-[#FEF2F2] border border-[#DC2626]/20 rounded-lg p-5 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-[#DC2626]/10 flex items-center justify-center text-[#DC2626]">
-                <ShieldAlert size={16} />
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/documents')}
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Document Expiry Radar
+                </h1>
+                <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-bold text-[10px] uppercase px-2 py-0.5">
+                  Compliance Action
+                </Badge>
               </div>
-              <h3 className="text-sm font-bold text-[#DC2626]">Already Expired</h3>
+              <p className="text-xs text-slate-500 font-medium">
+                Radar: Active monitoring for licenses and permits expiring within 30 days
+              </p>
             </div>
-            <p className="text-3xl font-bold text-[#DC2626] ml-11">{isLoading ? '—' : expiredCount}</p>
           </div>
 
-          <div className="bg-[#FFFBEB] border border-[#D97706]/20 rounded-lg p-5 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-[#D97706]/10 flex items-center justify-center text-[#D97706]">
-                <AlertTriangle size={16} />
-              </div>
-              <h3 className="text-sm font-bold text-[#D97706]">Critical (≤ 7 Days)</h3>
-            </div>
-            <p className="text-3xl font-bold text-[#D97706] ml-11">{isLoading ? '—' : criticalCount}</p>
-          </div>
-
-          <div className="bg-[#F5F5F7] border border-black/[0.05] rounded-lg p-5 shadow-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center text-[#6E6E80]">
-                <Clock size={16} />
-              </div>
-              <h3 className="text-sm font-bold text-[#6E6E80]">Upcoming (30 Days)</h3>
-            </div>
-            <p className="text-3xl font-bold text-[#111] ml-11">{isLoading ? '—' : upcomingCount}</p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh Radar
+            </Button>
           </div>
         </div>
 
-        {/* Data Table */}
-        <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-black/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAFAFA]">
-            <h3 className="text-sm font-bold text-[#111]">Action Required</h3>
+        {/* 4-Card Instrument Panel KPI Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+          
+          {/* Card 1: Expired Files — Urgency Bar */}
+          <KpiCard
+            title="ALREADY EXPIRED"
+            value={expiredCount}
+            variant="rose"
+            trend={expiredCount > 0 ? 'down' : 'neutral'}
+            trendValue={expiredCount > 0 ? 'Immediate Risk' : 'Zero Expired'}
+            description="Lapsed legal permits"
+            icon={RiskAlert}
+            progressSegments={[
+              { label: 'Expired', value: expiredCount > 0 ? 100 : 0, color: 'bg-rose-600' },
+            ]}
+          />
 
-            <div className="relative max-w-xs w-full">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9898A4]" />
-              <input
+          {/* Card 2: Critical Expiry (<=7d) — Urgency Bar */}
+          <KpiCard
+            title="CRITICAL (<=7 DAYS)"
+            value={criticalCount}
+            variant="amber"
+            trend={criticalCount > 0 ? 'down' : 'neutral'}
+            trendValue={criticalCount > 0 ? 'Action Due' : 'All Clear'}
+            description="Renewal required this week"
+            icon={CalendarAlert}
+            progressSegments={[
+              { label: 'Critical (<7d)', value: criticalCount > 0 ? 100 : 0, color: 'bg-amber-500' },
+            ]}
+          />
+
+          {/* Card 3: Upcoming Horizon (30d) — Progress Bar */}
+          <KpiCard
+            title="UPCOMING (30 DAYS)"
+            value={upcomingCount}
+            variant="blue"
+            trend="neutral"
+            trendValue="30-Day Window"
+            description="Scheduled for renewal"
+            icon={Clock}
+            progressSegments={[
+              { label: 'Upcoming (30d)', value: upcomingCount > 0 ? 100 : 0, color: 'bg-indigo-600' },
+            ]}
+          />
+
+          {/* Card 4: Total Radar Items — Gauge */}
+          <KpiCard
+            title="TOTAL RADAR ITEMS"
+            value={totalRadarCount}
+            variant="brand"
+            trend="neutral"
+            trendValue="Filtered Active"
+            description="Items needing renewal focus"
+            icon={CheckBadge}
+            completionGauge={{
+              percentage: totalRadarCount > 0 ? Math.round((expiredCount / totalRadarCount) * 100) : 0,
+              label: `${expiredCount} Expired of ${totalRadarCount}`,
+              subtext: `${criticalCount} Critical • ${upcomingCount} Upcoming`
+            }}
+          />
+        </div>
+
+        {/* Toolbar & Search Bar (Strictly Horizontal) */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center justify-between gap-3 overflow-x-auto">
+            
+            <div className="relative w-72 shrink-0">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <Input
                 type="text"
-                placeholder="Search entity or document..."
+                placeholder="Search entity name or document type..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white border border-black/[0.08] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:border-[#E8450F] shadow-sm transition-all"
+                className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
               />
             </div>
-          </div>
 
+            <div className="text-xs font-semibold text-slate-500 ml-auto shrink-0">
+              Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredItems.length}</span> documents needing action
+            </div>
+
+          </div>
+        </div>
+
+        {/* Content Workspace: Data Table */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden shrink-0">
           {isError ? (
-            <div className="p-12 text-center text-[#DC2626] text-sm">Failed to load documents.</div>
+            <div className="p-12 text-center text-rose-600 text-xs font-bold">Failed to load radar documents.</div>
           ) : (
             <DataTable columns={columns} data={filteredItems} isLoading={isLoading} />
           )}
