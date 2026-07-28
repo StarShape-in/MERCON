@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, DollarSign, Download, Trash2, CheckCircle } from 'lucide-react';
+import { Plus, DollarSign, Download, Trash2, CheckCircle, RotateCw, FileText } from 'lucide-react';
 import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -13,6 +13,8 @@ import { invoiceService, Invoice, InvoiceStatus } from '@/services/invoiceServic
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import KpiCard from '@/components/ui/KpiCard';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export default function InvoiceListPage() {
   const navigate = useNavigate();
@@ -20,6 +22,7 @@ export default function InvoiceListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState<InvoiceStatus | 'All'>('All');
   const [search, setSearch] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch invoices using React Query
@@ -162,19 +165,66 @@ export default function InvoiceListPage() {
     <DashboardLayout 
       active="Invoices" 
       title="Invoices" 
-      pageTitle="Billing & Invoicing" 
-      pageSub="Manage customer invoices and track payments"
-      actions={
-        <>
-          <Btn 
-            label="Create Invoice" 
-            icon={<Plus size={14} />} 
-            onClick={() => navigate('/invoices/new')}
-          />
-        </>
-      }
     >
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+        
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <FileText className="w-5 h-5 text-indigo-600" />
+            </div>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Invoices
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  Finance Module
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Scope: Manage customer billing, invoices, and payment tracking
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => downloadCSV(invoices, 'invoices_export.csv')}
+            >
+              <Download className="h-3.5 w-3.5 text-slate-600" />
+              Export CSV
+            </Button>
+
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+              onClick={() => navigate('/invoices/new')}
+            >
+              <Plus className="h-4 w-4" />
+              Create Invoice
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={async () => {
+                setIsRefreshing(true);
+                await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                setTimeout(() => setIsRefreshing(false), 500);
+              }}
+              title="Refresh Data"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 shrink-0">
           <KpiCard
             title="Total Invoices"

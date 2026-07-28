@@ -1,19 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
-import { TrendingUp, Truck, Users, FileText, AlertTriangle, Download } from 'lucide-react';
+import { TrendingUp, Truck, Users, FileText, AlertTriangle, Download, RotateCw, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { RevenueChart, TruckMotion, FleetTruck, DriverBadge } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import { reportsService } from '@/services/reportsService';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const CHART_COLORS = ['#E8450F', '#111111', '#16A34A', '#2563EB', '#CA8A04', '#9898A4'];
 
-import { useNavigate } from 'react-router-dom';
-
 export default function ReportsDashboardPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: summary, isLoading, error } = useQuery({
     queryKey: ['reports-summary'],
     queryFn: reportsService.getSummary,
@@ -53,25 +57,66 @@ export default function ReportsDashboardPage() {
   return (
     <DashboardLayout 
       active="Reports" 
-      title="Reports & Analytics" 
-      pageTitle="Business Performance" 
-      pageSub="Key metrics and operational analytics"
-      actions={
-        <div className="flex gap-3">
-          <Btn 
-            label="Build Custom Report" 
-            variant="outline" 
-            onClick={() => navigate('/reports/custom')}
-          />
-          <Btn 
-            label="Export Report" 
-            variant="primary" 
-            icon={<Download size={14} />} 
-          />
-        </div>
-      }
+      title="Reports" 
     >
-      <div className="px-6 pb-6">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+        
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <BarChart3 className="w-5 h-5 text-indigo-600" />
+            </div>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Reports
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  Analytics Module
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Scope: Fleet operations, revenue trends, and driver safety reports
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => navigate('/reports/custom')}
+            >
+              Build Custom Report
+            </Button>
+
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+              onClick={() => alert('Exporting full analytics report...')}
+            >
+              <Download className="h-4 w-4" />
+              Export Report
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={async () => {
+                setIsRefreshing(true);
+                await queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
+                setTimeout(() => setIsRefreshing(false), 500);
+              }}
+              title="Refresh Data"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
         {/* Top KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KpiCard

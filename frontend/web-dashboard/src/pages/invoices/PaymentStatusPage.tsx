@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, CheckCircle2, Clock, AlertTriangle, Search } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Download, FileText, CheckCircle2, Clock, AlertTriangle, Search, RotateCw, DollarSign, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -9,6 +9,8 @@ import { ClockIcon, RiskAlert, CheckBadge, InvoiceDoc } from '@/components/ui/kp
 import Btn from '@/components/ui/Btn';
 import DataTable from '@/components/ui/DataTable';
 import { invoiceService, type Invoice, type InvoiceStatus } from '@/services/invoiceService';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const TABS: Array<'All' | InvoiceStatus> = ['All', 'Draft', 'Pending', 'Paid', 'Overdue', 'Cancelled'];
 
@@ -35,8 +37,10 @@ const STATUS_STYLES: Record<InvoiceStatus, string> = {
 
 export default function PaymentStatusPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'All' | InvoiceStatus>('All');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['invoices', 'payment-status'],
@@ -121,18 +125,67 @@ export default function PaymentStatusPage() {
   return (
     <DashboardLayout
       active="Invoices"
-      breadcrumb="Invoices"
       title="Payment Status"
-      pageTitle="Accounts Receivable"
-      pageSub="Track invoice statuses, overdue payments, and cash flow."
-      actions={
-        <div className="flex gap-2">
-          <Btn label="Export" variant="outline" icon={<Download size={14} />} />
-          <Btn label="New Invoice" icon={<FileText size={14} />} onClick={() => navigate('/invoices/new')} />
-        </div>
-      }
     >
-      <div className="px-6 pb-6">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+        
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <DollarSign className="w-5 h-5 text-indigo-600" />
+            </div>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Payment Status
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  Finance Module
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Scope: Track invoice statuses, overdue payments, and cash flow
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => downloadCSV(filtered, 'payment_status_export.csv')}
+            >
+              <Download className="h-3.5 w-3.5 text-slate-600" />
+              Export CSV
+            </Button>
+
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+              onClick={() => navigate('/invoices/new')}
+            >
+              <Plus className="h-4 w-4" />
+              New Invoice
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={async () => {
+                setIsRefreshing(true);
+                await queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                setTimeout(() => setIsRefreshing(false), 500);
+              }}
+              title="Refresh Data"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
