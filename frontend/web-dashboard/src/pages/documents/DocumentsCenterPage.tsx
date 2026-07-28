@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { 
   UploadCloud, FileText, Search, Folder, Shield, Car, User as UserIcon, Eye, Download, 
-  RotateCw, AlertTriangle, CheckCircle2, FileCheck, Layers, CalendarAlert 
+  RotateCw, AlertTriangle, CheckCircle2, FileCheck, Layers 
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
