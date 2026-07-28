@@ -602,20 +602,14 @@ export default function TripListPage() {
           </div>
         </div>
 
-        {/* Dynamic Table / Grid / Empty State Render */}
         <div className="flex-1 min-h-0 bg-white rounded-lg border border-black/[0.08] shadow-2xs overflow-hidden">
           <DataTable
             data={trips}
             columns={columns}
-            keyField="id"
-            loading={isLoading}
+            isLoading={isLoading}
             bulkActions={bulkActions}
-            emptyIcon={<Truck size={36} className="text-slate-400" />}
-            emptyHeading="No Operational Trips Found"
-            emptySub="Try adjusting search terms, cargo filters, or status selection."
-            totalCount={totalCount}
-            page={currentPage}
-            perPage={15}
+            currentPage={currentPage}
+            totalPages={totalPages}
             onPageChange={(page) => setCurrentPage(page)}
             onRowClick={(row) => navigate(`/trips/${row.id}`)}
           />
