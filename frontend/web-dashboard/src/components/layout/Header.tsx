@@ -38,7 +38,6 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
   const location = useLocation();
   const user = authStore.getUser();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [scope, setScope] = useState('MERCON Logistics');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
@@ -71,38 +70,13 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
   ];
 
   return (
-    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 h-[56px] flex items-center justify-between gap-4 relative z-20 overflow-x-auto">
+    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 h-[62px] flex items-center justify-between gap-4 relative z-20 overflow-x-auto">
       
-      {/* Left & Center: Scope Pill Selector + Horizontal Route Navigation Hub */}
+      {/* Center-Left: Horizontal Route Navigation Hub */}
       <div className="flex items-center gap-3 shrink-0">
         
-        {/* Scope Context Selector Pill */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-extrabold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all shadow-2xs">
-              <Building2 className="w-3.5 h-3.5 text-[#E8450F]" />
-              <span className="truncate max-w-[130px]">{scope}</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
-            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Operating Scope
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => setScope('MERCON Logistics')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
-              🏢 MERCON Logistics (Primary)
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setScope('MERCON Freight')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
-              🚛 MERCON Freight Commercial
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setScope('MERCON Fleet Ops')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
-              🔧 MERCON Fleet Operations
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         {/* HORIZONTAL ROUTE PILL BAR */}
-        <div className="bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl flex items-center gap-1 border border-slate-200/80 dark:border-slate-700">
+        <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/80 dark:border-slate-700">
           {navRoutes.map((route) => {
             const isActive = location.pathname === route.path || (route.path !== '/dashboard' && location.pathname.startsWith(route.path));
             const Icon = route.icon;
@@ -111,7 +85,7 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
               <Link
                 key={route.path}
                 to={route.path}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   isActive 
                     ? 'bg-[#E8450F] text-white shadow-2xs font-bold' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-900'
@@ -127,7 +101,7 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-[#E8450F] transition-all shadow-2xs ml-1"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-[#E8450F] transition-all shadow-2xs ml-1"
                 title="Quick Create Action"
               >
                 <Plus className="w-3.5 h-3.5 text-[#E8450F]" />
@@ -177,7 +151,7 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
 
         {/* Notifications trigger */}
         <Link to="/notifications" className="relative group">
-          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
+          <div className="w-8.5 h-8.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
             <Bell size={15} className="text-slate-600 dark:text-slate-300" />
           </div>
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
@@ -191,7 +165,7 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
           >
-            <div className="w-5 h-5 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[9px] font-black select-none">
+            <div className="w-5.5 h-5.5 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[9px] font-black select-none">
               {initials}
             </div>
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[80px] truncate">{firstName}</span>

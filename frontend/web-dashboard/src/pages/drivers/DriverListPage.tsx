@@ -38,7 +38,6 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
-import KpiCard from '@/components/ui/KpiCard';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -447,9 +446,9 @@ export default function DriverListPage() {
             onClick={() => { setSelectedStatus('All'); setRiskFilter('All'); setCurrentPage(1); }}
           >
             <DriverRosterKpi 
-              totalCount={totalCount} 
-              activeCount={availableCount} 
-              rating={4.9} 
+              count={totalCount} 
+              onlineCount={availableCount} 
+              safetyScore={4.9} 
             />
           </KpiCard>
 
