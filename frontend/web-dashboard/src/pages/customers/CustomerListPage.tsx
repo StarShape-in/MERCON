@@ -10,6 +10,8 @@ import Btn from '@/components/ui/Btn';
 import { customerService, Customer } from '@/services/customerService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
+import KpiCard from '@/components/ui/KpiCard';
+
 export default function CustomerListPage() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
@@ -122,16 +124,27 @@ export default function CustomerListPage() {
       }
     >
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
-        <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex items-center justify-between gap-3 flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-              <div className="flex flex-col min-w-0">
-                <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider leading-tight">{s.label} Clients</p>
-              </div>
-              <s.icon className="w-12 h-12 shrink-0" style={{ color: s.color }} />
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 shrink-0">
+          <KpiCard
+            title="Total Customers"
+            value={customersRes?.meta?.total || customers.length}
+            variant="blue"
+            trend="neutral"
+            trendValue="Clients"
+            description="Corporate accounts"
+            icon={CustomerBuilding}
+            chartData={[5, 8, 12, 14, 18, 22, 26]}
+          />
+          <KpiCard
+            title="Active Clients"
+            value={customers.filter(c => c.isActive).length}
+            variant="emerald"
+            trend="up"
+            trendValue="Active"
+            description="Accounts in good standing"
+            icon={CheckBadge}
+            chartData={[4, 7, 10, 12, 16, 20, 24]}
+          />
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col">

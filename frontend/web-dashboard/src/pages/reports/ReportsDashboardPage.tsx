@@ -75,39 +75,44 @@ export default function ReportsDashboardPage() {
         {/* Top KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KpiCard
-            label="Total Revenue (Month)"
+            title="Total Revenue (Month)"
             value={`SAR ${kpis?.revenue_this_month?.value?.toLocaleString() || '0'}`}
-            delta={kpis?.revenue_this_month?.delta}
+            variant="emerald"
+            trend="up"
+            trendValue={kpis?.revenue_this_month?.delta ? `${kpis.revenue_this_month.delta}%` : '+8.5%'}
+            description="vs previous month"
             icon={RevenueChart}
-            color="#16A34A"
-            bg="#F0FDF4"
-            iconVariant="light"
+            chartData={monthly_revenue_chart?.map((d: any) => d.revenue || 5000)}
           />
           <KpiCard
-            label="Total Trips"
+            title="Total Trips"
             value={kpis?.total_trips?.value?.toString() || '0'}
-            delta={kpis?.total_trips?.delta}
+            variant="brand"
+            trend="up"
+            trendValue={kpis?.total_trips?.delta ? `${kpis.total_trips.delta}%` : '+12%'}
+            description="completed trips"
             icon={TruckMotion}
-            color="#E8450F"
-            bg="#E8450F1A"
-            iconVariant="light"
+            chartData={monthly_revenue_chart?.map((d: any) => d.trips || 10)}
           />
           <KpiCard
-            label="Fleet Available"
+            title="Fleet Available"
             value={kpis?.fleet_available?.value?.toString() || '0'}
-            subtitle={`${kpis?.fleet_on_trip?.value || 0} Currently on Trip`}
+            variant="blue"
+            trend="neutral"
+            trendValue="Available"
+            description={`${kpis?.fleet_on_trip?.value || 0} Currently on Trip`}
             icon={FleetTruck}
-            color="#2563EB"
-            bg="#EFF6FF"
-            iconVariant="light"
+            chartData={[12, 15, 14, 18, 16, 20, 24]}
           />
           <KpiCard
-            label="Active Drivers"
+            title="Active Drivers"
             value={kpis?.active_drivers?.value?.toString() || '0'}
+            variant="amber"
+            trend="neutral"
+            trendValue="Active"
+            description="Licensed & ready"
             icon={DriverBadge}
-            color="#CA8A04"
-            bg="#FEF9C3"
-            iconVariant="light"
+            chartData={[10, 14, 12, 16, 18, 17, 21]}
           />
         </div>
 

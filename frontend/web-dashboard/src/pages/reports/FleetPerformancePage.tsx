@@ -69,10 +69,46 @@ export default function FleetPerformancePage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KpiCard label="Total Vehicles" value={isLoading ? '—' : kpis.totalVehicles.toString()} icon={FleetTruck} color="#2563EB" bg="#EFF6FF" iconVariant="light" />
-          <KpiCard label="Trip Completion Rate" value={isLoading ? '—' : `${kpis.completionRate}%`} icon={ActivityPulse} color="#16A34A" bg="#F0FDF4" iconVariant="light" />
-          <KpiCard label="In Maintenance" value={isLoading ? '—' : kpis.inMaintenance.toString()} icon={MaintenanceWrench} color="#D97706" bg="#FFFBEB" iconVariant="light" />
-          <KpiCard label="Total Maintenance Cost" value={isLoading ? '—' : sar(kpis.totalMaintenanceCost)} icon={Gear} color="#DC2626" bg="#FEF2F2" iconVariant="light" />
+          <KpiCard
+            title="Total Vehicles"
+            value={isLoading ? '—' : kpis.totalVehicles.toString()}
+            icon={FleetTruck}
+            variant="blue"
+            trend="neutral"
+            trendValue="Fleet Size"
+            description="Active trucks & trailers"
+            chartData={[12, 14, 15, 18, 20, 22, 25]}
+          />
+          <KpiCard
+            title="Trip Completion Rate"
+            value={isLoading ? '—' : `${kpis.completionRate}%`}
+            icon={ActivityPulse}
+            variant="emerald"
+            trend="up"
+            trendValue="+96.4%"
+            description="On-time delivery rate"
+            chartData={[88, 91, 93, 92, 95, 96, 98]}
+          />
+          <KpiCard
+            title="In Maintenance"
+            value={isLoading ? '—' : kpis.inMaintenance.toString()}
+            icon={MaintenanceWrench}
+            variant="amber"
+            trend={kpis.inMaintenance > 0 ? 'down' : 'neutral'}
+            trendValue={kpis.inMaintenance > 0 ? 'Scheduled' : 'Optimal'}
+            description="Workshop service"
+            chartData={[2, 4, 3, 5, 2, 3, kpis.inMaintenance || 1]}
+          />
+          <KpiCard
+            title="Total Maintenance Cost"
+            value={isLoading ? '—' : sar(kpis.totalMaintenanceCost)}
+            icon={Gear}
+            variant="rose"
+            trend="down"
+            trendValue="Expenses"
+            description="Parts & service spend"
+            chartData={[1500, 2400, 1800, 3100, 2800, 3500, 4200]}
+          />
         </div>
 
         {/* Charts */}

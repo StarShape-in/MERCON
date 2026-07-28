@@ -14,6 +14,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
 
+import KpiCard from '@/components/ui/KpiCard';
+
 export default function DriverListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -211,16 +213,37 @@ export default function DriverListPage() {
       }
     >
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
-        <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex items-center justify-between gap-3 flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-              <div className="flex flex-col min-w-0">
-                <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider leading-tight">{s.label} Drivers</p>
-              </div>
-              <s.icon className="w-12 h-12 shrink-0" style={{ color: s.color }} />
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 shrink-0">
+          <KpiCard
+            title="Total Drivers"
+            value={driversRes?.meta?.total || drivers.length}
+            variant="blue"
+            trend="neutral"
+            trendValue="Fleet Drivers"
+            description="All registered drivers"
+            icon={DriverBadge}
+            chartData={[10, 14, 18, 16, 22, 25, 28]}
+          />
+          <KpiCard
+            title="Available Now"
+            value={drivers.filter(d => d.status === 'Available').length}
+            variant="emerald"
+            trend="up"
+            trendValue="Available"
+            description="Ready for assignment"
+            icon={CheckBadge}
+            chartData={[8, 10, 12, 11, 15, 14, 16]}
+          />
+          <KpiCard
+            title="On Trip"
+            value={drivers.filter(d => d.status === 'OnTrip').length}
+            variant="brand"
+            trend="neutral"
+            trendValue="Dispatched"
+            description="Currently driving"
+            icon={TruckMotion}
+            chartData={[4, 6, 8, 7, 10, 9, 12]}
+          />
         </div>
 
         <div className="px-6 pb-6">

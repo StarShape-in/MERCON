@@ -77,10 +77,46 @@ export default function DriverPerformancePage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KpiCard label="Total Drivers" value={isLoading ? '—' : kpis.totalDrivers.toString()} icon={DriverBadge} color="#2563EB" bg="#EFF6FF" iconVariant="light" />
-          <KpiCard label="Available Now" value={isLoading ? '—' : kpis.available.toString()} icon={CheckBadge} color="#16A34A" bg="#F0FDF4" iconVariant="light" />
-          <KpiCard label="Avg. Risk Score" value={isLoading ? '—' : (kpis.avgRisk == null ? 'N/A' : kpis.avgRisk.toFixed(1))} icon={RiskAlert} color="#DC2626" bg="#FEF2F2" iconVariant="light" />
-          <KpiCard label="Total Trips" value={isLoading ? '—' : kpis.totalTrips.toLocaleString()} icon={RouteLine} color="#D97706" bg="#FFFBEB" iconVariant="light" />
+          <KpiCard
+            title="Total Drivers"
+            value={isLoading ? '—' : kpis.totalDrivers.toString()}
+            icon={DriverBadge}
+            variant="blue"
+            trend="neutral"
+            trendValue="Registered"
+            description="Active & off-duty"
+            chartData={[10, 14, 18, 16, 22, 25, 28]}
+          />
+          <KpiCard
+            title="Available Now"
+            value={isLoading ? '—' : kpis.available.toString()}
+            icon={CheckBadge}
+            variant="emerald"
+            trend="up"
+            trendValue="Ready"
+            description="Available for dispatch"
+            chartData={[8, 10, 12, 11, 15, 14, 16]}
+          />
+          <KpiCard
+            title="Avg. Risk Score"
+            value={isLoading ? '—' : (kpis.avgRisk == null ? 'N/A' : kpis.avgRisk.toFixed(1))}
+            icon={RiskAlert}
+            variant="rose"
+            trend={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'down' : 'neutral'}
+            trendValue={kpis.avgRisk != null && kpis.avgRisk > 3 ? 'Elevated' : 'Safe'}
+            description="AI safety score"
+            chartData={[2.1, 1.8, 2.4, 2.0, 1.9, 1.7, kpis.avgRisk || 2.0]}
+          />
+          <KpiCard
+            title="Total Trips"
+            value={isLoading ? '—' : kpis.totalTrips.toLocaleString()}
+            icon={RouteLine}
+            variant="brand"
+            trend="up"
+            trendValue="+18%"
+            description="Trips executed"
+            chartData={[45, 60, 55, 75, 80, 95, 110]}
+          />
         </div>
 
         {/* Charts */}

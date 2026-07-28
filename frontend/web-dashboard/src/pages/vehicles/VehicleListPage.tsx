@@ -14,6 +14,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import { vehicleService, Vehicle, AssetStatus } from '@/services/vehicleService';
 
+import KpiCard from '@/components/ui/KpiCard';
+
 export default function VehicleListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -211,16 +213,37 @@ export default function VehicleListPage() {
       }
     >
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
-        <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex items-center justify-between gap-3 flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-              <div className="flex flex-col min-w-0">
-                <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider leading-tight">{s.label} Vehicles</p>
-              </div>
-              <s.icon className="w-12 h-12 shrink-0" style={{ color: s.color }} />
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 shrink-0">
+          <KpiCard
+            title="Total Fleet"
+            value={vehiclesRes?.meta?.total || vehicles.length}
+            variant="blue"
+            trend="neutral"
+            trendValue="Fleet Size"
+            description="Trucks & trailers"
+            icon={FleetTruck}
+            chartData={[12, 14, 15, 18, 20, 22, 25]}
+          />
+          <KpiCard
+            title="Available"
+            value={vehicles.filter(v => v.status === 'Available').length}
+            variant="emerald"
+            trend="up"
+            trendValue="Ready"
+            description="Ready for dispatch"
+            icon={CheckBadge}
+            chartData={[8, 10, 11, 13, 14, 16, 18]}
+          />
+          <KpiCard
+            title="In Maintenance"
+            value={vehicles.filter(v => v.status === 'Maintenance').length}
+            variant="amber"
+            trend="down"
+            trendValue="Service"
+            description="Workshop maintenance"
+            icon={MaintenanceWrench}
+            chartData={[2, 3, 1, 4, 2, 3, 2]}
+          />
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col">

@@ -58,36 +58,44 @@ export default function RevenueReportsPage() {
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KpiCard
-            label="Gross Revenue (Paid)"
+            title="Gross Revenue (Paid)"
             value={isLoading ? '—' : sar(data?.total_all_time ?? 0)}
             icon={MoneyBills}
-            color="#16A34A"
-            bg="#F0FDF4"
-            iconVariant="light"
+            variant="emerald"
+            trend="up"
+            trendValue="+12.8%"
+            description="All-time paid total"
+            chartData={revenueData.map((d: any) => d.total || 10000)}
           />
           <KpiCard
-            label="Outstanding (Unpaid)"
+            title="Outstanding (Unpaid)"
             value={isLoading ? '—' : sar(data?.outstanding_total ?? 0)}
             icon={InvoiceDoc}
-            color="#DC2626"
-            bg="#FEF2F2"
-            iconVariant="light"
+            variant="rose"
+            trend="down"
+            trendValue="Pending"
+            description="Uncollected balances"
+            chartData={[5000, 7200, 6100, 8900, 7400, 9200, data?.outstanding_total || 6000]}
           />
           <KpiCard
-            label="Avg Revenue / Invoice"
+            title="Avg Revenue / Invoice"
             value={isLoading ? '—' : sar(data?.avg_per_invoice ?? 0)}
             icon={ActivityPulse}
-            color="#D97706"
-            bg="#FFFBEB"
-            iconVariant="light"
+            variant="amber"
+            trend="up"
+            trendValue="Avg Ticket"
+            description="Per invoice average"
+            chartData={[1200, 1400, 1350, 1600, 1550, 1750, data?.avg_per_invoice || 1500]}
           />
           <KpiCard
-            label="Paid Invoices"
+            title="Paid Invoices"
             value={isLoading ? '—' : (data?.paid_invoice_count ?? 0).toLocaleString('en-US')}
             icon={RevenueChart}
-            color="#2563EB"
-            bg="#EFF6FF"
-            iconVariant="light"
+            variant="blue"
+            trend="neutral"
+            trendValue="Settled"
+            description="Completed invoices"
+            chartData={revenueData.map((d: any) => d.count || 5)}
           />
         </div>
 

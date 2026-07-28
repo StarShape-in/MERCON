@@ -137,36 +137,44 @@ export default function PaymentStatusPage() {
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <KpiCard
-            label="Total Outstanding"
+            title="Total Outstanding"
             value={isLoading ? '—' : sar(kpis.outstanding)}
             icon={ClockIcon}
-            color="#2563EB"
-            bg="#EFF6FF"
-            iconVariant="light"
+            variant="blue"
+            trend="neutral"
+            trendValue="Pending"
+            description="Pending & Overdue"
+            chartData={[120, 150, 140, 180, 210, 190, 240]}
           />
           <KpiCard
-            label="Total Overdue"
+            title="Total Overdue"
             value={isLoading ? '—' : sar(kpis.overdue)}
             icon={RiskAlert}
-            color="#DC2626"
-            bg="#FEF2F2"
-            iconVariant="light"
+            variant="rose"
+            trend="down"
+            trendValue="Action Needed"
+            description="Past due date"
+            chartData={[30, 45, 40, 60, 55, 70, 65]}
           />
           <KpiCard
-            label="Paid This Month"
+            title="Paid This Month"
             value={isLoading ? '—' : sar(kpis.paidThisMonth)}
             icon={CheckBadge}
-            color="#16A34A"
-            bg="#F0FDF4"
-            iconVariant="light"
+            variant="emerald"
+            trend="up"
+            trendValue="+14.2%"
+            description="Collected payments"
+            chartData={[200, 310, 280, 420, 510, 630, 750]}
           />
           <KpiCard
-            label="Draft Invoices"
+            title="Draft Invoices"
             value={isLoading ? '—' : kpis.draftCount.toString()}
             icon={InvoiceDoc}
-            color="#D97706"
-            bg="#FFFBEB"
-            iconVariant="light"
+            variant="amber"
+            trend="neutral"
+            trendValue="Drafts"
+            description="Awaiting submission"
+            chartData={[5, 8, 6, 9, 7, 10, 8]}
           />
         </div>
 

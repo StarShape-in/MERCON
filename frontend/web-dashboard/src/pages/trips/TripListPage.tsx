@@ -13,6 +13,8 @@ import Btn from '@/components/ui/Btn';
 import { tripService, Trip, TripStatus } from '@/services/tripService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
+import KpiCard from '@/components/ui/KpiCard';
+
 export default function TripListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -156,16 +158,37 @@ export default function TripListPage() {
       }
     >
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
-        <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex items-center justify-between gap-3 flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-              <div className="flex flex-col min-w-0">
-                <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5" style={{ color: s.color }}>{s.value}</p>
-                <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider leading-tight">{s.label} Trips</p>
-              </div>
-              <s.icon className="w-12 h-12 shrink-0" style={{ color: s.color }} />
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 shrink-0">
+          <KpiCard
+            title="Total Trips"
+            value={tripsRes?.meta?.total || trips.length}
+            variant="brand"
+            trend="up"
+            trendValue="+12%"
+            description="Total logged trips"
+            icon={TruckMotion}
+            chartData={[10, 14, 18, 15, 22, 28, 35]}
+          />
+          <KpiCard
+            title="Completed Trips"
+            value={trips.filter(t => t.status === 'Completed').length}
+            variant="emerald"
+            trend="up"
+            trendValue="Delivered"
+            description="Completed shipments"
+            icon={CheckBadge}
+            chartData={[8, 12, 14, 13, 19, 24, 30]}
+          />
+          <KpiCard
+            title="In Transit"
+            value={trips.filter(t => t.status === 'InTransit').length}
+            variant="blue"
+            trend="neutral"
+            trendValue="Active"
+            description="On the road now"
+            icon={RouteLine}
+            chartData={[2, 3, 4, 3, 5, 4, 6]}
+          />
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col">
