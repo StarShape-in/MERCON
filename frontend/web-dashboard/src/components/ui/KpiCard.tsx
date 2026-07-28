@@ -173,7 +173,7 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        'group relative rounded-lg border border-border/80 shadow-xs transition-all duration-200 hover:border-border hover:shadow-sm py-4 gap-0 bg-gradient-to-b from-card via-card',
+        'group relative rounded-none border-border/70 shadow-none transition-all duration-200 hover:border-border py-4 gap-0 bg-gradient-to-b from-card via-card to-transparent',
         selectedStyle.cardBg,
         className
       )}
@@ -182,14 +182,14 @@ export function KpiCard({
       {/* Top accent rule — lights up on hover */}
       <div
         className={cn(
-          'absolute inset-x-0 top-0 h-[2px] opacity-70 transition-opacity duration-200 group-hover:opacity-100',
+          'absolute inset-x-0 top-0 h-px opacity-40 transition-opacity duration-200 group-hover:opacity-100',
           selectedStyle.accentLine
         )}
       />
 
       {/* Corner ticks — instrument-panel reference */}
-      <span className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-border/30 transition-colors duration-200 group-hover:border-border" />
-      <span className="pointer-events-none absolute bottom-0 right-0 h-2 w-2 border-b border-r border-border/30 transition-colors duration-200 group-hover:border-border" />
+      <span className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-border/20 transition-colors duration-200 group-hover:border-border" />
+      <span className="pointer-events-none absolute bottom-0 right-0 h-2 w-2 border-b border-r border-border/20 transition-colors duration-200 group-hover:border-border" />
 
       <CardHeader className="flex flex-row items-center justify-between gap-4 px-4 pb-2.5 pt-0">
         <CardTitle className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
@@ -197,7 +197,7 @@ export function KpiCard({
         </CardTitle>
         {renderedIcon && (
           <div className={cn(
-            "flex h-6 w-6 shrink-0 items-center justify-center border rounded-md transition-all duration-200",
+            "flex h-6 w-6 shrink-0 items-center justify-center border transition-all duration-200",
             selectedStyle.iconContainer
           )}>
             {renderedIcon}
