@@ -12,6 +12,8 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { TruckMotion, FleetTruck, MoneyBills, CalendarAlert } from '@/components/ui/kpi-icons';
+import { HeroStatBanner, TelemetryDarkCard, GlassmeterCard, CompactCapsulePill } from '@/components/ui/NewKpiCardStyles';
+import { DispatchTelemetryRadarKpi, SpeedometerGaugeKpi } from '@/components/ui/CustomKpiWidgets';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import { reportsService } from '@/services/reportsService';
@@ -90,59 +92,58 @@ export default function DashboardPage() {
     >
       <div className="px-6 pb-6 h-full flex flex-col gap-5 animate-fade-in">
         
-        {/* KPI Row */}
+        {/* Distinct KPI Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          <KpiCard 
-            title="Total Trips" 
-            value={kpis.total_trips.value} 
-            variant="brand"
+          
+          {/* Card 1: Hero Stat Banner */}
+          <HeroStatBanner
+            title="Total Freight Trips"
+            mainValue={kpis.total_trips.value}
             trend={kpis.total_trips.delta !== null ? (kpis.total_trips.delta >= 0 ? 'up' : 'down') : 'up'}
             trendValue={kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '+12.4%'}
-            description="vs last month"
-            icon={TruckMotion} 
-            progressSegments={[
-              { label: 'Completed', value: 75, color: 'bg-emerald-500' },
-              { label: 'Active', value: 20, color: 'bg-blue-500' },
-              { label: 'Draft/Cancel', value: 5, color: 'bg-slate-300' },
-            ]}
+            subLabel="vs last month"
+            icon={TruckMotion}
+            badgeText="Primary Metric"
+            accentColor="brand"
+          >
+            <DispatchTelemetryRadarKpi 
+              activeCount={kpis.fleet_on_trip.value || 0} 
+              totalCount={kpis.total_trips.value || 1} 
+              label="Live Dispatch Telemetry" 
+            />
+          </HeroStatBanner>
+
+          {/* Card 2: High-Tech Telemetry Dark Slate Card */}
+          <TelemetryDarkCard
+            title="Active Fleet (On Road)"
+            value={kpis.fleet_on_trip.value}
+            statusText="Live GPS Telemetry"
+            icon={FleetTruck}
+          >
+            <SpeedometerGaugeKpi 
+              percentage={Math.round(((kpis.fleet_on_trip.value || 1) / ((kpis.fleet_on_trip.value || 0) + (kpis.fleet_available.value || 1))) * 100)} 
+              label="Fleet Capacity Utilized"
+              subtext={`${kpis.fleet_available.value || 0} Standby Trucks`}
+            />
+          </TelemetryDarkCard>
+
+          {/* Card 3: Glassmorphic Ring Gauge Meter */}
+          <GlassmeterCard
+            title="Total Monthly Revenue"
+            value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`}
+            subtitle="Gross settled trips this month"
+            icon={MoneyBills}
+            percentage={84}
+            meterColor="bg-emerald-500"
           />
-          <KpiCard 
-            title="Active Fleet (On Trip)" 
-            value={kpis.fleet_on_trip.value} 
-            variant="blue"
-            trend="neutral"
-            trendValue="Operational"
-            description="Currently dispatched"
-            icon={FleetTruck} 
-            completionGauge={{
-              percentage: Math.round(((kpis.fleet_on_trip.value || 1) / ((kpis.fleet_on_trip.value || 0) + (kpis.fleet_available.value || 1))) * 100),
-              label: `${Math.round(((kpis.fleet_on_trip.value || 1) / ((kpis.fleet_on_trip.value || 0) + (kpis.fleet_available.value || 1))) * 100)}% Capacity Utilized`,
-              subtext: `${kpis.fleet_available.value || 0} Trucks Available`
-            }}
-          />
-          <KpiCard 
-            title="Total Revenue" 
-            value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`} 
-            variant="emerald"
-            trend={kpis.revenue_this_month.delta !== null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : 'up'}
-            trendValue={kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '+8.2%'}
-            description="this month"
-            icon={MoneyBills} 
-            chartData={trendData.length > 0 ? trendData.map((d: any) => d.revenue || 5000) : [3200, 4100, 3900, 5200, 6100, 7500, 8900]}
-          />
-          <KpiCard 
-            title="Renewals Due" 
-            value={kpis.docs_expiring_soon.value} 
-            variant="amber"
-            trend={kpis.docs_expiring_soon.value > 0 ? 'down' : 'neutral'} 
-            trendValue={kpis.docs_expiring_soon.value > 0 ? 'Action Needed' : 'All Clear'}
-            description="documents expiring soon"
-            icon={CalendarAlert} 
-            progressSegments={[
-              { label: `${Math.min(kpis.docs_expiring_soon.value || 0, Math.ceil((kpis.docs_expiring_soon.value || 0) * 0.4))} Critical (<7d)`, value: (kpis.docs_expiring_soon.value || 0) > 0 ? 35 : 0, color: 'bg-rose-500' },
-              { label: `${Math.max(0, (kpis.docs_expiring_soon.value || 0) - Math.ceil((kpis.docs_expiring_soon.value || 0) * 0.4))} Warning (30d)`, value: (kpis.docs_expiring_soon.value || 0) > 0 ? 45 : 0, color: 'bg-amber-500' },
-              { label: `${Math.max(5, 20 - (kpis.docs_expiring_soon.value || 0))} Safe`, value: (kpis.docs_expiring_soon.value || 0) > 0 ? 20 : 100, color: 'bg-slate-300' },
-            ]}
+
+          {/* Card 4: Compact Capsule Pill Container */}
+          <CompactCapsulePill
+            title="Compliance Renewals"
+            value={kpis.docs_expiring_soon.value}
+            badgeText={kpis.docs_expiring_soon.value > 0 ? "Action Required" : "All Clear"}
+            icon={CalendarAlert}
+            accentColor="border-amber-200 bg-amber-50/40"
           />
         </div>
 

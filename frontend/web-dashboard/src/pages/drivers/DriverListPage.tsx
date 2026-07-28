@@ -27,6 +27,7 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { DriverBadge, CheckBadge, RouteLine, TruckMotion, RiskAlert } from '@/components/ui/kpi-icons';
+import { GlassmeterCard, CompactCapsulePill } from '@/components/ui/NewKpiCardStyles';
 
 import { downloadCSV } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
@@ -431,51 +432,38 @@ export default function DriverListPage() {
           </div>
         </div>
 
-        {/* Instrument Panel KPI Section */}
+        {/* Distinct Driver Roster KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          <KpiCard
-            title="TOTAL REGISTERED DRIVERS"
+          <GlassmeterCard
+            title="Registered Roster"
             value={totalCount}
-            variant="brand"
-            trend="up"
-            trendValue="+5 Active"
-            description="→ Active fleet personnel"
+            subtitle="Active fleet personnel & drivers"
             icon={DriverBadge}
-            chartData={[12, 14, 18, 16, 22, 25, totalCount || 28]}
+            percentage={88}
+            meterColor="bg-[#E8450F]"
           />
-          <KpiCard
-            title="AVAILABLE NOW"
+          <GlassmeterCard
+            title="Available Now"
             value={availableCount}
-            variant="emerald"
-            trend="up"
-            trendValue="Available"
-            description="↑ Ready for trip assignment"
+            subtitle="Ready for immediate trip dispatch"
             icon={CheckBadge}
-            chartData={[8, 10, 12, 11, 15, 14, availableCount || 16]}
+            percentage={72}
+            meterColor="bg-emerald-500"
           />
-          <KpiCard
-            title="ACTIVE ON ROAD"
+          <GlassmeterCard
+            title="Active Dispatched"
             value={onTripCount}
-            variant="blue"
-            trend="neutral"
-            trendValue="Dispatched"
-            description="→ Dispatched on active manifest"
+            subtitle="Drivers currently on active route"
             icon={TruckMotion}
-            chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
+            percentage={65}
+            meterColor="bg-indigo-500"
           />
-          <KpiCard
-            title="HIGH RISK / EXPIRED"
-            value={highRiskCount}
-            variant="amber"
-            trend={highRiskCount > 0 ? "down" : "neutral"}
-            trendValue={highRiskCount > 0 ? "Review Required" : "All Clear"}
-            description="→ Safety review or renewal required"
+          <CompactCapsulePill
+            title="Saudi MOMRAH Permits"
+            value={`${totalCount - highRiskCount}/${totalCount}`}
+            badgeText={highRiskCount > 0 ? `${highRiskCount} Review Needed` : "100% Verified"}
             icon={RiskAlert}
-            progressSegments={[
-              { label: `High Risk (${highRiskDriversCount})`, value: Math.max(highRiskDriversCount > 0 ? 10 : 0, highRiskSegPct), color: 'bg-rose-500' },
-              { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-amber-500' },
-              { label: `Clear (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-slate-300' },
-            ]}
+            accentColor="border-amber-200 bg-amber-50/30"
           />
         </div>
 
