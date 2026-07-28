@@ -72,7 +72,7 @@ export default function InvoiceListPage() {
   const handleDeleteInvoice = async (id: string) => {
     if (!confirm('Are you sure you want to delete this invoice?')) return;
     try {
-      await invoiceService.delete(id);
+      await invoiceService.bulkDelete([id]);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } catch (e) {
       alert('Failed to delete invoice.');
