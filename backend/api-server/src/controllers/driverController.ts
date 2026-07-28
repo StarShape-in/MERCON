@@ -72,8 +72,8 @@ export const createDriver = async (req: Request, res: Response) => {
   try {
     const { first_name, last_name, phone_primary, license_number, license_expiry } = req.body; // validated by createDriverBody
 
-    const ref_id = await generateRefId('DRV', (c) =>
-      prisma.driver.findUnique({ where: { ref_id: c } }).then(Boolean));
+    const ref_id = await generateRefId('DRV', () =>
+      prisma.driver.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
     const newDriver = await prisma.driver.create({
       data: {

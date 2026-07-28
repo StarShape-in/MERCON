@@ -89,8 +89,8 @@ export const createTrip = async (req: Request, res: Response) => {
   try {
     const { customer_id, driver_id, vehicle_id, cargo_type, hazmat_flag, planned_start, stops } = req.body; // validated by createTripBody
 
-    const ref_id = await generateRefId('TRP', (c) =>
-      prisma.trip.findUnique({ where: { ref_id: c } }).then(Boolean));
+    const ref_id = await generateRefId('TRP', () =>
+      prisma.trip.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
     const trip = await prisma.trip.create({
       data: {
@@ -358,8 +358,8 @@ export const deliveryVerify = async (req: Request, res: Response) => {
 
         const subtotal = rateCard ? rateCard.base_price : 1000.0;
 
-        const invoiceRefId = await generateRefId('INV', (c) =>
-          tx.invoice.findUnique({ where: { ref_id: c } }).then(Boolean), { year: true });
+        const invoiceRefId = await generateRefId('INV', () =>
+          tx.invoice.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
         await tx.invoice.create({
           data: {

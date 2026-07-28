@@ -78,8 +78,8 @@ export const createVehicle = async (req: Request, res: Response) => {
       icces_device_id
     } = req.body;
 
-    const ref_id = await generateRefId('TRK', (c) =>
-      prisma.vehicle.findUnique({ where: { ref_id: c } }).then(Boolean));
+    const ref_id = await generateRefId('TRK', () =>
+      prisma.vehicle.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
     const vehicle = await prisma.vehicle.create({
       data: {

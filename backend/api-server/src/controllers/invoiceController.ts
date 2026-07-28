@@ -51,8 +51,8 @@ export const createInvoice = async (req: Request, res: Response) => {
   try {
     const { trip_id, customer_id, subtotal, total_amount, due_date } = req.body; // validated & coerced by createInvoiceBody
 
-    const ref_id = await generateRefId('INV', (c) =>
-      prisma.invoice.findUnique({ where: { ref_id: c } }).then(Boolean), { year: true });
+    const ref_id = await generateRefId('INV', () =>
+      prisma.invoice.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
     const invoice = await prisma.invoice.create({
       data: {
