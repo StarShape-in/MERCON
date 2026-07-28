@@ -7,10 +7,13 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import FormSection from '@/components/ui/FormSection';
 import FormInput from '@/components/ui/FormInput';
 import Btn from '@/components/ui/Btn';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { tripService, CreateTripPayload } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
+import LocationPickerMap from '@/components/trips/LocationPickerMap';
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
@@ -23,12 +26,12 @@ export default function CreateTripPage() {
   const [vehicleId, setVehicleId] = useState('');
 
   // Stops
-  const [pickupLat, setPickupLat] = useState('24.7136');
-  const [pickupLng, setPickupLng] = useState('46.6753');
+  const [pickupLat, setPickupLat] = useState<number | null>(null);
+  const [pickupLng, setPickupLng] = useState<number | null>(null);
   const [pickupTime, setPickupTime] = useState('');
 
-  const [dropoffLat, setDropoffLat] = useState('26.3927');
-  const [dropoffLng, setDropoffLng] = useState('49.9777');
+  const [dropoffLat, setDropoffLat] = useState<number | null>(null);
+  const [dropoffLng, setDropoffLng] = useState<number | null>(null);
   const [dropoffTime, setDropoffTime] = useState('');
 
   // Fetch Customers, Drivers, Vehicles for Select inputs
@@ -62,26 +65,27 @@ export default function CreateTripPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerId || !cargoType) return;
+    if (!customerId || !cargoType || !driverId || !vehicleId) return;
+    if (pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null) return;
 
     const payload: CreateTripPayload = {
       customer_id: customerId,
-      driver_id: driverId || undefined,
-      vehicle_id: vehicleId || undefined,
+      driver_id: driverId,
+      vehicle_id: vehicleId,
       cargo_type: cargoType,
       hazmat_flag: hazmat,
       planned_start: plannedStart || undefined,
       stops: [
         {
           stop_type: 'Pickup',
-          lat: parseFloat(pickupLat),
-          lng: parseFloat(pickupLng),
+          lat: pickupLat,
+          lng: pickupLng,
           planned_arrival: pickupTime || undefined,
         },
         {
           stop_type: 'Dropoff',
-          lat: parseFloat(dropoffLat),
-          lng: parseFloat(dropoffLng),
+          lat: dropoffLat,
+          lng: dropoffLng,
           planned_arrival: dropoffTime || undefined,
         },
       ],
@@ -89,6 +93,8 @@ export default function CreateTripPage() {
 
     createMutation.mutate(payload);
   };
+
+  const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
 
   return (
     <DashboardLayout 
@@ -106,7 +112,7 @@ export default function CreateTripPage() {
         />
       }
     >
-      <form onSubmit={handleSubmit} className="px-6 pb-6 max-w-4xl animate-fade-in">
+      <form onSubmit={handleSubmit} className="mx-auto w-full max-w-4xl px-6 pb-6 animate-fade-in">
         
         {/* Customer & Route Details */}
         <FormSection title="Customer & Route Information">
@@ -114,12 +120,10 @@ export default function CreateTripPage() {
             label="Customer"
             type="select"
             required
+            placeholder="Select Customer"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
-            options={[
-              { value: '', label: 'Select Customer' },
-              ...customers.map(c => ({ value: c.id, label: c.name }))
-            ]}
+            options={customers.map(c => ({ value: c.id, label: c.name }))}
           />
           <FormInput
             label="Cargo Type"
@@ -135,60 +139,46 @@ export default function CreateTripPage() {
             onChange={(e) => setPlannedStart(e.target.value)}
           />
           <div className="flex items-center gap-2 pt-5">
-            <input 
-              type="checkbox" 
+            <Checkbox
               id="hazmat"
               checked={hazmat}
-              onChange={(e) => setHazmat(e.target.checked)}
-              className="w-4 h-4 accent-[#E8450F] rounded"
+              onCheckedChange={(checked) => setHazmat(checked === true)}
             />
-            <label htmlFor="hazmat" className="text-xs font-bold text-[#111] cursor-pointer">
+            <Label htmlFor="hazmat" className="text-xs font-bold text-foreground cursor-pointer">
               Contains HAZMAT (Hazardous Materials)
-            </label>
+            </Label>
           </div>
         </FormSection>
 
         {/* Assignment details */}
         <FormSection title="Assignments">
           <FormInput
-            label="Assigned Driver (Optional)"
+            label="Assigned Driver"
             type="select"
+            required
+            placeholder="Select Driver"
             value={driverId}
             onChange={(e) => setDriverId(e.target.value)}
-            options={[
-              { value: '', label: 'Leave Unassigned' },
-              ...drivers.map(d => ({ value: d.id, label: `${d.first_name} ${d.last_name} (Risk: ${d.ai_risk_score})` }))
-            ]}
+            options={drivers.map(d => ({ value: d.id, label: `${d.first_name} ${d.last_name} (Risk: ${d.ai_risk_score})` }))}
           />
           <FormInput
-            label="Assigned Vehicle (Optional)"
+            label="Assigned Vehicle"
             type="select"
+            required
+            placeholder="Select Vehicle"
             value={vehicleId}
             onChange={(e) => setVehicleId(e.target.value)}
-            options={[
-              { value: '', label: 'Leave Unassigned' },
-              ...vehicles.map(v => ({ value: v.id, label: `${v.plate_number} (${v.asset_type})` }))
-            ]}
+            options={vehicles.map(v => ({ value: v.id, label: `${v.plate_number} (${v.asset_type})` }))}
           />
         </FormSection>
 
         {/* Stop details */}
         <FormSection title="Pickup Stop (Sequence 1)">
-          <FormInput
-            label="Pickup Latitude"
-            type="number"
-            step="0.000001"
-            required
-            value={pickupLat}
-            onChange={(e) => setPickupLat(e.target.value)}
-          />
-          <FormInput
-            label="Pickup Longitude"
-            type="number"
-            step="0.000001"
-            required
-            value={pickupLng}
-            onChange={(e) => setPickupLng(e.target.value)}
+          <LocationPickerMap
+            label="Pickup Location"
+            lat={pickupLat}
+            lng={pickupLng}
+            onChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
           />
           <FormInput
             label="Planned Pickup Arrival Time"
@@ -199,21 +189,11 @@ export default function CreateTripPage() {
         </FormSection>
 
         <FormSection title="Dropoff Stop (Sequence 2)">
-          <FormInput
-            label="Dropoff Latitude"
-            type="number"
-            step="0.000001"
-            required
-            value={dropoffLat}
-            onChange={(e) => setDropoffLat(e.target.value)}
-          />
-          <FormInput
-            label="Dropoff Longitude"
-            type="number"
-            step="0.000001"
-            required
-            value={dropoffLng}
-            onChange={(e) => setDropoffLng(e.target.value)}
+          <LocationPickerMap
+            label="Dropoff Location"
+            lat={dropoffLat}
+            lng={dropoffLng}
+            onChange={(lat, lng) => { setDropoffLat(lat); setDropoffLng(lng); }}
           />
           <FormInput
             label="Planned Dropoff Arrival Time"
@@ -225,7 +205,7 @@ export default function CreateTripPage() {
 
         {/* Error feedback */}
         {createMutation.isError && (
-          <div className="mt-4 rounded-lg border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-600">
+          <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive">
             {(createMutation.error as any)?.response?.data?.error?.message
               || 'Could not create the trip. Please check the fields and try again.'}
           </div>
@@ -239,11 +219,11 @@ export default function CreateTripPage() {
             type="button" 
             onClick={() => navigate('/trips')} 
           />
-          <Btn 
-            label="Save Trip" 
-            type="submit" 
+          <Btn
+            label="Save Trip"
+            type="submit"
             icon={<Save size={14} />}
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || missingLocation}
           />
         </div>
 

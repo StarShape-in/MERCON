@@ -69,10 +69,10 @@ export default function TripCompletionPage() {
         />
       }
     >
-      <div className="px-6 pb-6 max-w-2xl animate-fade-in">
-        <div className="bg-white rounded-lg border border-black/[0.06] p-5 shadow-sm mb-5">
-          <h3 className="text-sm font-bold text-[#111] mb-2">Completion Check</h3>
-          <p className="text-xs text-[#6E6E80] font-medium leading-relaxed">
+      <div className="mx-auto w-full max-w-2xl px-6 pb-6 animate-fade-in">
+        <div className="bg-card rounded-lg border border-border p-5 shadow-sm mb-5">
+          <h3 className="text-sm font-bold text-foreground mb-2">Completion Check</h3>
+          <p className="text-xs text-muted-foreground font-medium leading-relaxed">
             Verify the cargo has been safely delivered, upload the client's signed POD (Proof of Delivery) document, and close the shipment.
           </p>
         </div>

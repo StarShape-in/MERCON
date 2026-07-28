@@ -66,7 +66,7 @@ export default function EditTripPage() {
         />
       }
     >
-      <form onSubmit={handleSubmit} className="px-6 pb-6 max-w-xl animate-fade-in">
+      <form onSubmit={handleSubmit} className="mx-auto w-full max-w-xl px-6 pb-6 animate-fade-in">
         <FormSection title="Modify Status Machine State" description="Advance or revert this shipment's state.">
           <FormInput
             label="Current Status"

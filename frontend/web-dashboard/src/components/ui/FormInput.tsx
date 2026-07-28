@@ -1,6 +1,14 @@
 import React from 'react';
 import { Input } from './input';
 import { Label } from './label';
+import { Textarea } from './textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './select';
 import { cn } from '@/lib/utils';
 
 interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> {
@@ -12,6 +20,8 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement | HT
   icon?: React.ReactNode;
 }
 
+const fieldClasses = "bg-muted border-transparent focus-visible:border-primary/40 focus-visible:bg-card focus-visible:ring-primary/15 shadow-sm";
+
 export default function FormInput({
   label,
   error,
@@ -19,53 +29,87 @@ export default function FormInput({
   type = 'text',
   options,
   className = '',
+  name,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  required,
+  icon,
   ...props
 }: FormInputProps) {
   const isSelect = type === 'select';
   const isTextArea = type === 'textarea';
 
+  const emitChange = (newValue: string) => {
+    onChange?.({
+      target: { name, value: newValue },
+    } as unknown as React.ChangeEvent<HTMLSelectElement>);
+  };
+
   return (
     <div className={cn("flex flex-col gap-1.5", span ? "md:col-span-2" : "col-span-1")}>
-      <Label className="text-xs font-bold text-[#111]">{label}</Label>
-      
+      <Label className="text-xs font-bold text-foreground">
+        {label}
+        {required && <span className="text-primary">*</span>}
+      </Label>
+
       {isSelect ? (
-        <select
-          className={cn(
-            "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm bg-[#F5F5F7] border-transparent focus:border-[#E8450F]/30 focus:bg-white pr-10 cursor-pointer",
-            error && 'border-red-500 focus:border-red-500 focus-visible:ring-red-100',
-            className
-          )}
-          {...(props as React.SelectHTMLAttributes<HTMLSelectElement>)}
+        <Select
+          value={value as string}
+          onValueChange={emitChange}
+          disabled={disabled}
         >
-          {options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            className={cn(fieldClasses, "w-full", error && "border-destructive focus-visible:border-destructive")}
+          >
+            <SelectValue placeholder={placeholder || 'Select...'} />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : isTextArea ? (
-        <textarea
-          rows={3}
-          className={cn(
-            "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm bg-[#F5F5F7] border-transparent focus:border-[#E8450F]/30 focus:bg-white resize-none",
-            error && 'border-red-500 focus:border-red-500 focus-visible:ring-red-100',
-            className
-          )}
-          {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+        <Textarea
+          name={name}
+          value={value}
+          onChange={onChange as React.ChangeEventHandler<HTMLTextAreaElement>}
+          placeholder={placeholder}
+          disabled={disabled}
+          required={required}
+          className={cn(fieldClasses, "resize-none", error && 'border-destructive focus-visible:border-destructive')}
         />
       ) : (
-        <Input
-          type={type}
-          className={cn(
-            "bg-[#F5F5F7] border-transparent focus-visible:border-[#E8450F]/30 focus-visible:bg-white focus-visible:ring-0",
-            error && 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-100',
-            className
+        <div className="relative">
+          {icon && (
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+              {icon}
+            </span>
           )}
-          {...(props as React.InputHTMLAttributes<HTMLInputElement>)}
-        />
+          <Input
+            type={type}
+            name={name}
+            value={value}
+            onChange={onChange as React.ChangeEventHandler<HTMLInputElement>}
+            placeholder={placeholder}
+            disabled={disabled}
+            required={required}
+            className={cn(
+              fieldClasses,
+              icon && "pl-8",
+              error && 'border-destructive focus-visible:border-destructive',
+              className
+            )}
+            {...(props as React.InputHTMLAttributes<HTMLInputElement>)}
+          />
+        </div>
       )}
 
-      {error && <span className="text-[10px] font-bold text-red-500 animate-slide-in">{error}</span>}
+      {error && <span className="text-[10px] font-bold text-destructive animate-slide-in">{error}</span>}
     </div>
   );
 }

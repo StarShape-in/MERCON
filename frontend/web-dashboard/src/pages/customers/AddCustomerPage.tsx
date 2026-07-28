@@ -47,10 +47,10 @@ export default function AddCustomerPage() {
 
   return (
     <DashboardLayout active="Customers" title="Add New Customer">
-      <div className="px-6 pb-6 max-w-4xl">
-        <button 
+      <div className="mx-auto w-full max-w-4xl px-6 pb-6">
+        <button
           onClick={() => navigate('/customers')}
-          className="flex items-center gap-2 text-sm font-semibold text-[#6E6E80] hover:text-[#111] transition-colors mb-6"
+          className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
           <ArrowLeft size={16} /> Back to Customers
         </button>
@@ -100,12 +100,12 @@ export default function AddCustomerPage() {
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm font-semibold border border-destructive/20">
               {error}
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-black/[0.06]">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Btn 
               label="Cancel" 
               variant="outline" 

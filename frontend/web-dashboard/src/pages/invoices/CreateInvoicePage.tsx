@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import FormSection from '@/components/ui/FormSection';
+import FormInput from '@/components/ui/FormInput';
 import Btn from '@/components/ui/Btn';
 import StatusBadge from '@/components/ui/StatusBadge';
 
@@ -95,54 +96,49 @@ export default function CreateInvoicePage() {
 
         <div className="space-y-6">
           <FormSection title="Client Details" description="Select the customer to generate the invoice for.">
-            <div>
-              <label className="block text-xs font-bold text-[#111] mb-1.5">Customer / Client</label>
-              <select 
-                className="w-full bg-white border border-black/[0.08] rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F] transition-all"
-                value={customerId}
-                onChange={(e) => {
-                  setCustomerId(e.target.value);
-                  setSelectedTripId('');
-                }}
-              >
-                <option value="" disabled>Select a customer...</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
+            <FormInput
+              label="Customer / Client"
+              type="select"
+              span
+              value={customerId}
+              onChange={(e) => {
+                setCustomerId(e.target.value);
+                setSelectedTripId('');
+              }}
+              options={customers.map(c => ({ value: c.id, label: c.name }))}
+            />
           </FormSection>
 
           {customerId && (
             <FormSection title="Select Trip" description="Choose a completed, un-invoiced trip to bill. (One trip per invoice)">
-              <div className="bg-white border border-black/[0.08] rounded-lg overflow-hidden shadow-sm">
-                <div className="px-4 py-3 border-b border-black/[0.04] bg-[#FAFAFA] flex justify-between items-center">
-                  <span className="text-xs font-bold text-[#111]">Un-invoiced Trips</span>
+              <div className="md:col-span-2 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted flex justify-between items-center">
+                  <span className="text-xs font-bold text-foreground">Un-invoiced Trips</span>
                 </div>
-                
+
                 {isLoadingTrips ? (
                   <div className="p-10 flex justify-center">
-                    <Loader2 size={24} className="animate-spin text-[#E8450F]" />
+                    <Loader2 size={24} className="animate-spin text-primary" />
                   </div>
                 ) : trips.length === 0 ? (
-                  <div className="p-10 text-center text-[#6E6E80] text-sm">
+                  <div className="p-10 text-center text-muted-foreground text-sm">
                     No completed, un-invoiced trips found for this customer.
                   </div>
                 ) : (
-                  <div className="divide-y divide-black/[0.04]">
+                  <div className="divide-y divide-border">
                     {trips.map((trip) => (
-                      <label key={trip.id} className={`flex items-center gap-4 p-4 cursor-pointer hover:bg-[#FAFAFA] transition-colors ${selectedTripId === trip.id ? 'bg-[#FFF0EB]/30' : ''}`}>
-                        <input 
-                          type="radio" 
+                      <label key={trip.id} className={`flex items-center gap-4 p-4 cursor-pointer hover:bg-muted/60 transition-colors ${selectedTripId === trip.id ? 'bg-primary/5' : ''}`}>
+                        <input
+                          type="radio"
                           name="selectedTrip"
                           checked={selectedTripId === trip.id}
                           onChange={() => setSelectedTripId(trip.id)}
-                          className="w-4 h-4 rounded-full text-[#E8450F] border-gray-300 focus:ring-[#E8450F]"
+                          className="w-4 h-4 rounded-full text-primary border-input focus:ring-primary/30"
                         />
                         <div className="flex-1 flex justify-between items-center">
                           <div>
-                            <p className="text-sm font-bold text-[#111] font-mono">{trip.ref_id || 'N/A'}</p>
-                            <p className="text-xs text-[#6E6E80] mt-0.5">Completed: {trip.actual_end ? new Date(trip.actual_end).toLocaleDateString() : 'Unknown'}</p>
+                            <p className="text-sm font-bold text-foreground font-mono">{trip.ref_id || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Completed: {trip.actual_end ? new Date(trip.actual_end).toLocaleDateString() : 'Unknown'}</p>
                           </div>
                           <div className="text-right">
                             <StatusBadge status="Completed" />
@@ -155,7 +151,7 @@ export default function CreateInvoicePage() {
               </div>
 
               {selectedTripId && (
-                <div className="mt-6 p-5 bg-[#F0FDF4] border border-[#16A34A]/20 rounded-lg flex justify-between items-center shadow-sm">
+                <div className="md:col-span-2 mt-1 p-5 bg-[#F0FDF4] border border-[#16A34A]/20 rounded-lg flex justify-between items-center shadow-sm">
                   <div>
                     <h4 className="text-sm font-bold text-[#16A34A]">Invoice Total</h4>
                     <p className="text-xs text-[#16A34A]/80">Estimated amount based on rate card</p>

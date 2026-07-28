@@ -96,10 +96,10 @@ export default function EditVehiclePage() {
 
   return (
     <DashboardLayout active="Vehicles" title="Edit Vehicle">
-      <div className="px-6 pb-6 max-w-4xl">
-        <button 
+      <div className="mx-auto w-full max-w-4xl px-6 pb-6">
+        <button
           onClick={() => navigate('/vehicles')}
-          className="flex items-center gap-2 text-sm font-semibold text-[#6E6E80] hover:text-[#111] transition-colors mb-6"
+          className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
           <ArrowLeft size={16} /> Back to Vehicles
         </button>
@@ -118,45 +118,43 @@ export default function EditVehiclePage() {
                 onChange={handleChange}
                 required
               />
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-[#111]">Asset Type</label>
-                <select
-                  name="asset_type"
-                  value={formData.asset_type}
-                  onChange={handleChange}
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
-                >
-                  <option value="Flatbed">Flatbed</option>
-                  <option value="Reefer">Reefer</option>
-                  <option value="Box">Box</option>
-                  <option value="Tanker">Tanker</option>
-                </select>
-              </div>
-              <FormInput 
-                label="Capacity (kg)" 
-                name="capacity_kg" 
+              <FormInput
+                label="Asset Type"
+                type="select"
+                name="asset_type"
+                value={formData.asset_type}
+                onChange={handleChange}
+                options={[
+                  { value: 'Flatbed', label: 'Flatbed' },
+                  { value: 'Reefer', label: 'Reefer' },
+                  { value: 'Box', label: 'Box' },
+                  { value: 'Tanker', label: 'Tanker' },
+                ]}
+              />
+              <FormInput
+                label="Capacity (kg)"
+                name="capacity_kg"
                 type="number"
-                icon={<Activity size={16} />} 
+                icon={<Activity size={16} />}
                 value={formData.capacity_kg}
                 onChange={handleChange}
                 required
               />
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-[#111]">Status</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
-                >
-                  <option value="Available">Available</option>
-                  <option value="OnTrip">On Trip</option>
-                  <option value="Maintenance">Maintenance</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-              <FormInput 
-                label="GPS Device ID (Optional)" 
+              <FormInput
+                label="Status"
+                type="select"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                options={[
+                  { value: 'Available', label: 'Available' },
+                  { value: 'OnTrip', label: 'On Trip' },
+                  { value: 'Maintenance', label: 'Maintenance' },
+                  { value: 'Inactive', label: 'Inactive' },
+                ]}
+              />
+              <FormInput
+                label="GPS Device ID (Optional)"
                 name="gps_device_id" 
                 placeholder="GPS-XXXX" 
                 icon={<Navigation size={16} />} 
@@ -186,22 +184,21 @@ export default function EditVehiclePage() {
                 value={formData.trailer_number}
                 onChange={handleChange}
               />
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-[#111]">Trailer Type</label>
-                <select
-                  name="trailer_type"
-                  value={formData.trailer_type}
-                  onChange={handleChange}
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
-                >
-                  <option value="Flatbed">Flatbed</option>
-                  <option value="Reefer">Reefer</option>
-                  <option value="Box">Box</option>
-                  <option value="Tanker">Tanker</option>
-                </select>
-              </div>
-              <FormInput 
-                label="Trailer Capacity (kg)" 
+              <FormInput
+                label="Trailer Type"
+                type="select"
+                name="trailer_type"
+                value={formData.trailer_type}
+                onChange={handleChange}
+                options={[
+                  { value: 'Flatbed', label: 'Flatbed' },
+                  { value: 'Reefer', label: 'Reefer' },
+                  { value: 'Box', label: 'Box' },
+                  { value: 'Tanker', label: 'Tanker' },
+                ]}
+              />
+              <FormInput
+                label="Trailer Capacity (kg)"
                 name="trailer_capacity_kg" 
                 type="number"
                 icon={<Activity size={16} />} 
@@ -212,12 +209,12 @@ export default function EditVehiclePage() {
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm font-semibold border border-destructive/20">
               {error}
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-black/[0.06]">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Btn 
               label="Cancel" 
               variant="outline" 

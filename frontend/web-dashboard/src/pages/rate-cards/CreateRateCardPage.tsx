@@ -87,20 +87,14 @@ export default function CreateRateCardPage() {
                 onChange={(e) => handleChange('name', e.target.value)}
                 required
               />
-              <div>
-                <label className="block text-xs font-bold text-[#111] mb-1.5">Customer / Client</label>
-                <select 
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
-                  value={formData.customerId}
-                  onChange={(e) => handleChange('customerId', e.target.value)}
-                  required
-                >
-                  <option value="" disabled>Select a customer</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              <FormInput
+                label="Customer / Client"
+                type="select"
+                value={formData.customerId}
+                onChange={(e) => handleChange('customerId', e.target.value)}
+                required
+                options={customers.map(c => ({ value: c.id, label: c.name }))}
+              />
             </div>
           </FormSection>
 
@@ -129,23 +123,22 @@ export default function CreateRateCardPage() {
                 onChange={(e) => handleChange('base_price', e.target.value)}
                 required
               />
-              <div>
-                <label className="block text-xs font-bold text-[#111] mb-1.5">Currency</label>
-                <select 
-                  className="w-full bg-[#F5F5F7] border border-transparent rounded-lg px-4 py-2.5 text-sm font-medium text-[#111] focus:bg-white focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/10 outline-none transition-all"
-                  value={formData.currency}
-                  onChange={(e) => handleChange('currency', e.target.value)}
-                  required
-                >
-                  <option value="SAR">SAR (Saudi Riyal)</option>
-                  <option value="USD">USD (US Dollar)</option>
-                </select>
-              </div>
+              <FormInput
+                label="Currency"
+                type="select"
+                value={formData.currency}
+                onChange={(e) => handleChange('currency', e.target.value)}
+                required
+                options={[
+                  { value: 'SAR', label: 'SAR (Saudi Riyal)' },
+                  { value: 'USD', label: 'USD (US Dollar)' },
+                ]}
+              />
             </div>
           </FormSection>
 
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-semibold border border-red-100">
+            <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm font-semibold border border-destructive/20">
               {error}
             </div>
           )}
