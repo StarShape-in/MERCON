@@ -62,9 +62,9 @@ export default function Sidebar({ active }: SidebarProps) {
   ];
 
   return (
-    <div className="flex flex-col w-[220px] shrink-0 h-full bg-[#1C1C2E] border-r border-white/10">
+    <div className="flex flex-col w-[220px] shrink-0 h-full bg-[#18181B] border-r border-white/10">
       {/* Logo */}
-      <div className="flex items-center shrink-0 justify-center bg-[#1C1C2E] border-b border-white/10 h-[88px] overflow-hidden">
+      <div className="flex items-center shrink-0 justify-center bg-[#18181B] border-b border-white/10 h-[88px] overflow-hidden">
         <img src="/navbar-logo-final.png" alt="MERCON Logo" className="w-full h-full object-contain scale-[2.5] origin-center" />
       </div>
 
