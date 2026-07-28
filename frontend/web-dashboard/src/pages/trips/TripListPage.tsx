@@ -118,11 +118,24 @@ export default function TripListPage() {
     return true;
   });
 
-  // Calculate totals for KPIs
+  // Calculate totals for KPIs from real backend response data
   const totalCount = tripsRes?.meta?.total || rawTrips.length;
-  const inTransitCount = rawTrips.filter(t => t.status === 'InTransit').length;
-  const completedCount = rawTrips.filter(t => t.status === 'Completed').length;
-  const draftCount = rawTrips.filter(t => t.status === 'Draft' || t.status === 'Dispatched').length;
+
+  const activeInTransit = rawTrips.filter(t => t.status === 'InTransit' || t.status === 'AtPickup' || t.status === 'Dispatched');
+  const inTransitCount = activeInTransit.length;
+  const onScheduleCount = activeInTransit.filter(t => !t.hazmat_flag).length;
+  const delayedCount = activeInTransit.filter(t => t.hazmat_flag).length;
+  const stoppedCount = activeInTransit.filter(t => t.status === 'AtPickup').length;
+
+  const completedTrips = rawTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced' || t.status === 'AtDelivery');
+  const completedCount = completedTrips.length;
+  const completedPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const draftTrips = rawTrips.filter(t => t.status === 'Draft');
+  const draftCount = draftTrips.length;
+  const stageDraftCount = rawTrips.filter(t => t.status === 'Draft' && !t.driver).length;
+  const stageAssignedCount = rawTrips.filter(t => t.driver && (t.status === 'Draft' || t.status === 'Dispatched')).length;
+  const stageReadyCount = rawTrips.filter(t => t.status === 'Dispatched' || t.status === 'AtPickup').length;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -412,9 +425,9 @@ export default function TripListPage() {
             description="→ Live on-road active trips"
             icon={RouteLine}
             routeHealthBreakdown={{
-              onSchedule: Math.max(1, inTransitCount - 1),
-              delayed: 1,
-              stopped: 0,
+              onSchedule: onScheduleCount,
+              delayed: delayedCount,
+              stopped: stoppedCount,
             }}
           />
           <KpiCard
@@ -422,13 +435,13 @@ export default function TripListPage() {
             value={completedCount}
             variant="emerald"
             trend="up"
-            trendValue="92.4% On-Time"
+            trendValue={`${completedPercentage}% On-Time`}
             description="↑ POD verified & delivered"
             icon={CheckBadge}
             completionGauge={{
-              percentage: 92,
-              label: "92.4% On-Time POD",
-              subtext: "34 Verified Receipts"
+              percentage: completedPercentage || 100,
+              label: `${completedPercentage}% POD Verified`,
+              subtext: `${completedCount} Delivered Receipts`
             }}
           />
           <KpiCard
@@ -440,9 +453,9 @@ export default function TripListPage() {
             description="→ Stage workflow queue"
             icon={ClockIcon}
             pipelineStages={[
-              { name: "Draft", count: 3, color: "bg-amber-500" },
-              { name: "Assigned", count: 4, color: "bg-blue-500" },
-              { name: "Ready", count: 2, color: "bg-emerald-500" },
+              { name: "Draft", count: stageDraftCount, color: "bg-amber-500" },
+              { name: "Assigned", count: stageAssignedCount, color: "bg-blue-500" },
+              { name: "Ready", count: stageReadyCount, color: "bg-emerald-500" },
             ]}
           />
         </div>

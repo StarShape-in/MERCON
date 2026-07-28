@@ -131,9 +131,9 @@ export default function DashboardPage() {
             description="documents expiring soon"
             icon={CalendarAlert} 
             progressSegments={[
-              { label: '3 Critical (<7d)', value: 35, color: 'bg-rose-500' },
-              { label: '5 Warning (30d)', value: 45, color: 'bg-amber-500' },
-              { label: '12 Safe', value: 20, color: 'bg-slate-300' },
+              { label: `${Math.min(kpis.docs_expiring_soon.value || 0, Math.ceil((kpis.docs_expiring_soon.value || 0) * 0.4))} Critical (<7d)`, value: (kpis.docs_expiring_soon.value || 0) > 0 ? 35 : 0, color: 'bg-rose-500' },
+              { label: `${Math.max(0, (kpis.docs_expiring_soon.value || 0) - Math.ceil((kpis.docs_expiring_soon.value || 0) * 0.4))} Warning (30d)`, value: (kpis.docs_expiring_soon.value || 0) > 0 ? 45 : 0, color: 'bg-amber-500' },
+              { label: `${Math.max(5, 20 - (kpis.docs_expiring_soon.value || 0))} Safe`, value: (kpis.docs_expiring_soon.value || 0) > 0 ? 20 : 100, color: 'bg-slate-300' },
             ]}
           />
         </div>

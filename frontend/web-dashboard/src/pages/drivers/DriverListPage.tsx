@@ -114,10 +114,19 @@ export default function DriverListPage() {
     return true;
   });
 
-  // Calculate driver counts
+  // Calculate driver counts and dynamic progress segments from real backend data
   const availableCount = drivers.filter(d => d.status === 'Available').length;
   const onTripCount = drivers.filter(d => d.status === 'OnTrip').length;
-  const highRiskCount = drivers.filter(d => (d.ai_risk_score || 0) > 7 || new Date(d.license_expiry) < new Date()).length;
+
+  const highRiskDriversCount = drivers.filter(d => (d.ai_risk_score || 0) > 7).length;
+  const expiredLicenseCount = drivers.filter(d => new Date(d.license_expiry) < new Date()).length;
+  const clearDriversCount = drivers.filter(d => (d.ai_risk_score || 0) <= 7 && new Date(d.license_expiry) >= new Date()).length;
+  const highRiskCount = highRiskDriversCount + expiredLicenseCount;
+
+  const totalDriversCount = drivers.length || 1;
+  const highRiskSegPct = Math.round((highRiskDriversCount / totalDriversCount) * 100);
+  const expiredSegPct = Math.round((expiredLicenseCount / totalDriversCount) * 100);
+  const clearSegPct = Math.max(0, 100 - highRiskSegPct - expiredSegPct);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -458,14 +467,14 @@ export default function DriverListPage() {
             title="HIGH RISK / EXPIRED"
             value={highRiskCount}
             variant="amber"
-            trend="down"
-            trendValue="Review"
+            trend={highRiskCount > 0 ? "down" : "neutral"}
+            trendValue={highRiskCount > 0 ? "Review Required" : "All Clear"}
             description="→ Safety review or renewal required"
             icon={RiskAlert}
             progressSegments={[
-              { label: 'High Risk (>7)', value: 40, color: 'bg-rose-500' },
-              { label: 'Expired License', value: 35, color: 'bg-amber-500' },
-              { label: 'Clear', value: 25, color: 'bg-slate-300' },
+              { label: `High Risk (${highRiskDriversCount})`, value: Math.max(highRiskDriversCount > 0 ? 10 : 0, highRiskSegPct), color: 'bg-rose-500' },
+              { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-amber-500' },
+              { label: `Clear (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-slate-300' },
             ]}
           />
         </div>
