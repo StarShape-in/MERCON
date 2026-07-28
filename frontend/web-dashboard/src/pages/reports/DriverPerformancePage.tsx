@@ -77,10 +77,10 @@ export default function DriverPerformancePage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KpiCard label="Total Drivers" value={isLoading ? '—' : kpis.totalDrivers.toString()} icon={DriverBadge} color="#2563EB" bg="#EFF6FF" />
-          <KpiCard label="Available Now" value={isLoading ? '—' : kpis.available.toString()} icon={CheckBadge} color="#16A34A" bg="#F0FDF4" />
-          <KpiCard label="Avg. Risk Score" value={isLoading ? '—' : (kpis.avgRisk == null ? 'N/A' : kpis.avgRisk.toFixed(1))} icon={RiskAlert} color="#DC2626" bg="#FEF2F2" />
-          <KpiCard label="Total Trips" value={isLoading ? '—' : kpis.totalTrips.toLocaleString()} icon={RouteLine} color="#D97706" bg="#FFFBEB" />
+          <KpiCard label="Total Drivers" value={isLoading ? '—' : kpis.totalDrivers.toString()} icon={DriverBadge} color="#2563EB" bg="#EFF6FF" iconVariant="light" />
+          <KpiCard label="Available Now" value={isLoading ? '—' : kpis.available.toString()} icon={CheckBadge} color="#16A34A" bg="#F0FDF4" iconVariant="light" />
+          <KpiCard label="Avg. Risk Score" value={isLoading ? '—' : (kpis.avgRisk == null ? 'N/A' : kpis.avgRisk.toFixed(1))} icon={RiskAlert} color="#DC2626" bg="#FEF2F2" iconVariant="light" />
+          <KpiCard label="Total Trips" value={isLoading ? '—' : kpis.totalTrips.toLocaleString()} icon={RouteLine} color="#D97706" bg="#FFFBEB" iconVariant="light" />
         </div>
 
         {/* Charts */}

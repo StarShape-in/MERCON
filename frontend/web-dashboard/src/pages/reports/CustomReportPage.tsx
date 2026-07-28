@@ -201,6 +201,7 @@ export default function CustomReportPage() {
                 icon={TruckMotion}
                 color="#E8450F"
                 bg="#E8450F1A"
+                iconVariant="light"
               />
               <KpiCard
                 label="Total Revenue"
@@ -208,6 +209,7 @@ export default function CustomReportPage() {
                 icon={RevenueChart}
                 color="#16A34A"
                 bg="#F0FDF4"
+                iconVariant="light"
               />
               <div className="bg-white border border-black/[0.08] rounded-lg p-4 shadow-sm flex items-center gap-4">
                 <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">

@@ -81,6 +81,7 @@ export default function ReportsDashboardPage() {
             icon={RevenueChart}
             color="#16A34A"
             bg="#F0FDF4"
+            iconVariant="light"
           />
           <KpiCard
             label="Total Trips"
@@ -89,6 +90,7 @@ export default function ReportsDashboardPage() {
             icon={TruckMotion}
             color="#E8450F"
             bg="#E8450F1A"
+            iconVariant="light"
           />
           <KpiCard
             label="Fleet Available"
@@ -97,6 +99,7 @@ export default function ReportsDashboardPage() {
             icon={FleetTruck}
             color="#2563EB"
             bg="#EFF6FF"
+            iconVariant="light"
           />
           <KpiCard
             label="Active Drivers"
@@ -104,6 +107,7 @@ export default function ReportsDashboardPage() {
             icon={DriverBadge}
             color="#CA8A04"
             bg="#FEF9C3"
+            iconVariant="light"
           />
         </div>
 

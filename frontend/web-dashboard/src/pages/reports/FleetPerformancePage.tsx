@@ -69,10 +69,10 @@ export default function FleetPerformancePage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <KpiCard label="Total Vehicles" value={isLoading ? '—' : kpis.totalVehicles.toString()} icon={FleetTruck} color="#2563EB" bg="#EFF6FF" />
-          <KpiCard label="Trip Completion Rate" value={isLoading ? '—' : `${kpis.completionRate}%`} icon={ActivityPulse} color="#16A34A" bg="#F0FDF4" />
-          <KpiCard label="In Maintenance" value={isLoading ? '—' : kpis.inMaintenance.toString()} icon={MaintenanceWrench} color="#D97706" bg="#FFFBEB" />
-          <KpiCard label="Total Maintenance Cost" value={isLoading ? '—' : sar(kpis.totalMaintenanceCost)} icon={Gear} color="#DC2626" bg="#FEF2F2" />
+          <KpiCard label="Total Vehicles" value={isLoading ? '—' : kpis.totalVehicles.toString()} icon={FleetTruck} color="#2563EB" bg="#EFF6FF" iconVariant="light" />
+          <KpiCard label="Trip Completion Rate" value={isLoading ? '—' : `${kpis.completionRate}%`} icon={ActivityPulse} color="#16A34A" bg="#F0FDF4" iconVariant="light" />
+          <KpiCard label="In Maintenance" value={isLoading ? '—' : kpis.inMaintenance.toString()} icon={MaintenanceWrench} color="#D97706" bg="#FFFBEB" iconVariant="light" />
+          <KpiCard label="Total Maintenance Cost" value={isLoading ? '—' : sar(kpis.totalMaintenanceCost)} icon={Gear} color="#DC2626" bg="#FEF2F2" iconVariant="light" />
         </div>
 
         {/* Charts */}

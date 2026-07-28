@@ -175,12 +175,12 @@ export default function InvoiceListPage() {
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in">
         <div className="mb-4 flex gap-4 overflow-x-auto pb-2 shrink-0 hide-scrollbar">
           {stats.map((s) => (
-            <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
-                <s.icon className="w-6 h-6" style={{ color: s.color }} />
+            <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex items-center justify-between gap-3 flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+              <div className="flex flex-col min-w-0">
+                <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5" style={{ color: s.color }}>{s.value}</p>
+                <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider leading-tight">{s.label}</p>
               </div>
-              <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5 text-center" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider text-center px-1 leading-tight">{s.label}</p>
+              <s.icon className="w-12 h-12 shrink-0" style={{ color: s.bg }} />
             </div>
           ))}
         </div>

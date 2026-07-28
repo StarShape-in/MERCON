@@ -63,6 +63,7 @@ export default function RevenueReportsPage() {
             icon={MoneyBills}
             color="#16A34A"
             bg="#F0FDF4"
+            iconVariant="light"
           />
           <KpiCard
             label="Outstanding (Unpaid)"
@@ -70,6 +71,7 @@ export default function RevenueReportsPage() {
             icon={InvoiceDoc}
             color="#DC2626"
             bg="#FEF2F2"
+            iconVariant="light"
           />
           <KpiCard
             label="Avg Revenue / Invoice"
@@ -77,6 +79,7 @@ export default function RevenueReportsPage() {
             icon={ActivityPulse}
             color="#D97706"
             bg="#FFFBEB"
+            iconVariant="light"
           />
           <KpiCard
             label="Paid Invoices"
@@ -84,6 +87,7 @@ export default function RevenueReportsPage() {
             icon={RevenueChart}
             color="#2563EB"
             bg="#EFF6FF"
+            iconVariant="light"
           />
         </div>
 

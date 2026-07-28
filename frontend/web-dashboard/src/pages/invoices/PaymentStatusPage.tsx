@@ -142,6 +142,7 @@ export default function PaymentStatusPage() {
             icon={ClockIcon}
             color="#2563EB"
             bg="#EFF6FF"
+            iconVariant="light"
           />
           <KpiCard
             label="Total Overdue"
@@ -149,6 +150,7 @@ export default function PaymentStatusPage() {
             icon={RiskAlert}
             color="#DC2626"
             bg="#FEF2F2"
+            iconVariant="light"
           />
           <KpiCard
             label="Paid This Month"
@@ -156,6 +158,7 @@ export default function PaymentStatusPage() {
             icon={CheckBadge}
             color="#16A34A"
             bg="#F0FDF4"
+            iconVariant="light"
           />
           <KpiCard
             label="Draft Invoices"
@@ -163,6 +166,7 @@ export default function PaymentStatusPage() {
             icon={InvoiceDoc}
             color="#D97706"
             bg="#FFFBEB"
+            iconVariant="light"
           />
         </div>
 

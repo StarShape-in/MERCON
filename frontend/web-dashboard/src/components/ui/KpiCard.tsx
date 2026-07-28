@@ -20,6 +20,14 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 'v
   up?: boolean | null
   color?: string
   bg?: string
+
+  /**
+   * 'solid' (default) — current dashboard look: icon in the strong accent `color`.
+   * 'light' — icon rendered alone (no chip/border), larger, tinted with the
+   * pale `bg` color instead of the strong one. Used on every KpiCard page
+   * except the main Dashboard, which keeps the original solid look.
+   */
+  iconVariant?: 'solid' | 'light'
 }
 
 const trendColor = {
@@ -55,6 +63,7 @@ export default function KpiCard({
   up,
   color,
   bg,
+  iconVariant = 'solid',
   ...props
 }: KpiCardProps) {
   const displayTitle = title || label || '';
@@ -82,12 +91,16 @@ export default function KpiCard({
     })
   }, [chartData, hasChart])
 
+  const isLightIcon = iconVariant === 'light';
+  const iconColor = isLightIcon ? (bg || color) : color;
+  const iconSizeCls = isLightIcon ? 'h-12 w-12' : 'h-9 w-9';
+
   let renderedIcon = icon;
   if (icon && !React.isValidElement(icon)) {
-    // Treat as component type — render large, tinted with the card's brand color
-    renderedIcon = React.createElement(icon as React.ElementType, { className: 'h-9 w-9', style: color ? { color } : undefined });
+    // Treat as component type — render large, tinted with the card's accent color
+    renderedIcon = React.createElement(icon as React.ElementType, { className: iconSizeCls, style: iconColor ? { color: iconColor } : undefined });
   } else if (React.isValidElement(icon)) {
-    renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: 'h-9 w-9', style: color ? { color } : undefined });
+    renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: iconSizeCls, style: iconColor ? { color: iconColor } : undefined });
   }
 
   return (
