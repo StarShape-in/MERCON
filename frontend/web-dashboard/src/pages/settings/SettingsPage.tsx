@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   User, Shield, Building2, Bell, Key, Save, CheckCircle2, 
-  AlertTriangle, Lock, Phone, Mail, ShieldCheck, Cpu, Laptop, RefreshCw 
+  AlertTriangle, RefreshCw 
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
-import { UserBadge, ShieldIcon, FleetTruck, CalendarAlert } from '@/components/ui/kpi-icons';
+import { DriverBadge, CheckBadge, FleetTruck, CalendarAlert } from '@/components/ui/kpi-icons';
 import { authService } from '@/services/authService';
-import { authStore } from '@/store/authStore';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -71,7 +70,7 @@ export default function SettingsPage() {
   // Update Profile Mutation (Real Backend)
   const updateProfileMutation = useMutation({
     mutationFn: (payload: { name?: string; email?: string; phone?: string }) => authService.updateMe(payload),
-    onSuccess: (updatedUser) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       setProfileSuccess('Profile details successfully updated!');
       setProfileError(null);
@@ -189,9 +188,9 @@ export default function SettingsPage() {
             value={user?.name || 'Administrator'}
             variant="brand"
             trend="neutral"
-            trendValue={user?.role || 'OPERATOR'}
+            trendValue={user?.role || 'Operator'}
             description={`ID: ${user?.id ? user.id.slice(0, 8) : 'USR-9021'}`}
-            icon={UserBadge}
+            icon={DriverBadge}
             completionGauge={{
               percentage: 100,
               label: 'Active System User',
@@ -222,7 +221,7 @@ export default function SettingsPage() {
             trend="up"
             trendValue="SSL 256-Bit"
             description="Authentication Active"
-            icon={ShieldIcon}
+            icon={CheckBadge}
             completionGauge={{
               percentage: 95,
               label: 'High Security Rating',
@@ -233,7 +232,7 @@ export default function SettingsPage() {
           {/* Card 4: Compliance & Access Level — Segment Bar */}
           <KpiCard
             title="ACCESS LEVEL"
-            value={user?.role === 'admin' ? 'Enterprise Admin' : 'Operations Lead'}
+            value={String(user?.role).toLowerCase() === 'admin' ? 'Enterprise Admin' : 'Operations Lead'}
             variant="amber"
             trend="neutral"
             trendValue="Full Access"
