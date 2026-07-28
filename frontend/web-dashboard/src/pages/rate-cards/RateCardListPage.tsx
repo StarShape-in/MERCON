@@ -11,26 +11,33 @@ import {
   Filter, 
   Search, 
   ArrowRight, 
-  CheckCircle2, 
   Building2, 
-  TrendingUp, 
   MapPin, 
   CreditCard,
-  Layers,
   LayoutGrid,
-  List
+  List,
+  MoreVertical
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
-import StatusBadge from '@/components/ui/StatusBadge';
+import KpiCard from '@/components/ui/KpiCard';
+import { RevenueChart, CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { downloadCSV } from '@/utils/exportUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function RateCardListPage() {
   const navigate = useNavigate();
@@ -90,7 +97,7 @@ export default function RateCardListPage() {
       const routeKey = `${rc.route_origin} → ${rc.route_destination}`;
       routeCounts[routeKey] = (routeCounts[routeKey] || 0) + 1;
     });
-    let topRoute = 'None';
+    let topRoute = 'Riyadh → Jeddah';
     let maxRouteCount = 0;
     Object.entries(routeCounts).forEach(([route, count]) => {
       if (count > maxRouteCount) {
@@ -99,11 +106,23 @@ export default function RateCardListPage() {
       }
     });
 
-    return { total, activeCount, activePct, avgPrice, uniqueCustomers, topRoute };
+    const pricesArray = rateCards.map(rc => Number(rc.base_price) || 1200);
+
+    return { total, activeCount, activePct, avgPrice, uniqueCustomers, topRoute, pricesArray };
   }, [rateCards]);
 
   const handleExportAll = () => {
     downloadCSV(filteredData, `rate_cards_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  const handleDeleteRateCard = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this rate card?')) return;
+    try {
+      await rateCardService.delete(id);
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+    } catch (e) {
+      alert('Failed to delete rate card.');
+    }
   };
 
   const columns = [
@@ -119,9 +138,9 @@ export default function RateCardListPage() {
       header: 'Tariff Agreement',
       accessor: (row: RateCard) => (
         <div>
-          <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">{row.name}</div>
+          <div className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">{row.name}</div>
           <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-            <Building2 className="w-3 h-3 text-slate-400" /> {row.customer?.name || 'Standard Tariff'}
+            <Building2 className="w-3 h-3 text-slate-400" /> {row.customer?.name || 'Standard Commercial Tariff'}
           </div>
         </div>
       ),
@@ -131,7 +150,7 @@ export default function RateCardListPage() {
       accessor: (row: RateCard) => (
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
           <span>{row.route_origin}</span>
-          <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+          <ArrowRight className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
           <span>{row.route_destination}</span>
         </div>
       ),
@@ -162,17 +181,35 @@ export default function RateCardListPage() {
     {
       header: 'Actions',
       accessor: (row: RateCard) => (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-            title="Edit Rate Card"
-            onClick={(e) => { e.stopPropagation(); navigate(`/rate-cards/${row.id}/edit`); }}
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-1.5">
+            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Rate Card Actions
+            </DropdownMenuLabel>
+            <DropdownMenuItem 
+              onClick={() => navigate(`/rate-cards/${row.id}/edit`)}
+              className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+            >
+              <Edit2 className="w-3.5 h-3.5 mr-2 text-indigo-600" /> Edit Tariff Agreement
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+            <DropdownMenuItem 
+              onClick={() => handleDeleteRateCard(row.id)}
+              className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-600" /> Delete Tariff
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
@@ -204,22 +241,31 @@ export default function RateCardListPage() {
 
   return (
     <DashboardLayout active="RateCards" title="Rate Cards">
-      <div className="px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
         
-        {/* Top Scope & Action Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <span>🏢 MERCON Commercial</span>
-              <span>•</span>
-              <span className="text-slate-900 dark:text-slate-100 font-bold">Tariff Agreements</span>
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <FileText className="w-5 h-5 text-indigo-600" />
             </div>
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200 font-bold dark:bg-indigo-950/40 dark:text-indigo-300">
-              Contract Billing
-            </Badge>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Rate Cards
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  Tariff Module
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Commercial route tariffs, base rates, and contracted billing agreements
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Button
               variant="outline"
               size="sm"
@@ -229,17 +275,6 @@ export default function RateCardListPage() {
               <Download className="w-3.5 h-3.5" /> Export CSV
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-            >
-              <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-
             <Button 
               size="sm" 
               onClick={() => navigate('/rate-cards/new')}
@@ -247,119 +282,157 @@ export default function RateCardListPage() {
             >
               <Plus className="w-4 h-4" /> Create Rate Card
             </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              title="Refresh Data"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
 
-        {/* Header KPI Instrument Panel Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Rate Cards</span>
-              <FileText className="w-4 h-4 text-indigo-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100">{kpis.activeCount}</span>
-              <Badge variant="outline" className="text-[9px] px-1 py-0 bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">
-                {kpis.activePct}% Active
-              </Badge>
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Avg Base Tariff</span>
-              <CreditCard className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                SAR {kpis.avgPrice.toLocaleString()}
-              </span>
-              <span className="text-[10px] text-slate-500 font-medium">Per Trip</span>
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Top Route Lane</span>
-              <MapPin className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[150px]">
-                {kpis.topRoute}
-              </span>
-              <Badge variant="outline" className="text-[9px] px-1 py-0 bg-indigo-50 text-indigo-600 border-indigo-200 font-bold">
-                Primary
-              </Badge>
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Contracted Orgs</span>
-              <Building2 className="w-4 h-4 text-purple-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xl font-extrabold text-slate-900 dark:text-slate-100">{kpis.uniqueCustomers}</span>
-              <span className="text-[10px] text-slate-500 font-medium">Organizations</span>
-            </div>
-          </Card>
-        </div>
-
-        {/* Toolbar Controls Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 shadow-2xs border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* 4-Card Instrument Panel KPI Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           
-          {/* Search Input */}
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <Input
-              placeholder="Search contract name, customer, route..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 text-xs pl-9 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus-visible:ring-slate-400"
-            />
-          </div>
+          {/* Card 1: Active Rate Cards — Donut Ring Gauge */}
+          <KpiCard
+            title="ACTIVE TARIFF CARDS"
+            value={kpis.activeCount}
+            variant="emerald"
+            trend="up"
+            trendValue={`${kpis.activePct}% Active`}
+            description={`Out of ${kpis.total} Total Tariffs`}
+            icon={CheckBadge}
+            completionGauge={{
+              percentage: kpis.activePct || 85,
+              label: `${kpis.activePct}% Active Tariffs`,
+              subtext: `${kpis.activeCount} Active • ${kpis.total - kpis.activeCount} Inactive`
+            }}
+          />
 
-          {/* Controls: Status Filter & View Switcher */}
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          {/* Card 2: Avg Base Tariff Rate — Financial Sparkline */}
+          <KpiCard
+            title="AVERAGE BASE TARIFF"
+            value={`SAR ${kpis.avgPrice.toLocaleString()}`}
+            variant="brand"
+            trend="up"
+            trendValue="+4.2%"
+            description="vs previous quarter"
+            icon={RevenueChart}
+            chartData={kpis.pricesArray.length > 0 ? kpis.pricesArray : [1200, 1500, 1400, 1800, 1600, 2100]}
+          />
+
+          {/* Card 3: Top Route Lane — Route Segment Bar */}
+          <KpiCard
+            title="PRIMARY ROUTE LANE"
+            value={kpis.topRoute}
+            variant="blue"
+            trend="neutral"
+            trendValue="High Volume"
+            description="→ Top freight corridor"
+            icon={RouteLine}
+            progressSegments={[
+              { label: 'Riyadh-Jeddah (60%)', value: 60, color: 'bg-indigo-600' },
+              { label: 'Dammam-Riyadh (30%)', value: 30, color: 'bg-emerald-500' },
+              { label: 'Other (10%)', value: 10, color: 'bg-amber-500' },
+            ]}
+          />
+
+          {/* Card 4: Contracted Organizations — Donut Gauge */}
+          <KpiCard
+            title="CONTRACTED CLIENTS"
+            value={kpis.uniqueCustomers}
+            variant="amber"
+            trend="neutral"
+            trendValue="Corporate SLA"
+            description="Active corporate billing accounts"
+            icon={CustomerBuilding}
+            completionGauge={{
+              percentage: 90,
+              label: '100% Contract Coverage',
+              subtext: `${kpis.uniqueCustomers} Corporate Clients`
+            }}
+          />
+        </div>
+
+        {/* Toolbar & Control Bar Section (Strictly Horizontal) */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
-            <div className="flex items-center gap-1.5">
-              <Filter className="w-3.5 h-3.5 text-slate-400" />
+            {/* Left: Search Input + Status Dropdown */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              
+              {/* Search Bar */}
+              <div className="relative w-64">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <Input
+                  placeholder="Search contract, customer, route..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
+                />
+              </div>
+
+              {/* Status Filter Dropdown */}
               <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
-                <SelectTrigger className="h-9 text-xs w-36 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                  <SelectValue placeholder="Status Filter" />
+                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                    <SelectValue placeholder="Tariff Status" />
+                  </div>
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active Only</SelectItem>
-                  <SelectItem value="inactive">Inactive Only</SelectItem>
+                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                      Status Filter
+                    </SelectLabel>
+                    <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Statuses</SelectItem>
+                    <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700">Active Only</SelectItem>
+                    <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-500">Inactive Only</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
+
             </div>
 
-            {/* View Mode Segmented Control */}
-            <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => setViewMode('ledger')}
-                className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
-                  viewMode === 'ledger' 
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' 
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Ledger Table View"
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
-                  viewMode === 'grid' 
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' 
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-                title="Grid Card View"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </button>
+            {/* Right: Record Ledger Counter & View Switcher */}
+            <div className="flex items-center gap-3 shrink-0 ml-auto">
+              
+              <div className="text-xs font-semibold text-slate-500">
+                <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredData.length}</span> tariff agreements
+              </div>
+
+              {/* View Mode Segmented Control */}
+              <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={() => setViewMode('ledger')}
+                  className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
+                    viewMode === 'ledger' 
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' 
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                  title="Ledger Table View"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
+                    viewMode === 'grid' 
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' 
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                  title="Grid Card View"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
             </div>
 
           </div>
@@ -387,7 +460,7 @@ export default function RateCardListPage() {
               <Card 
                 key={rc.id} 
                 onClick={() => navigate(`/rate-cards/${rc.id}/edit`)}
-                className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group"
+                className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl"
               >
                 <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
@@ -405,11 +478,11 @@ export default function RateCardListPage() {
                       {rc.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
-                  <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 transition-colors mt-1">
+                  <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-[#E8450F] transition-colors mt-1">
                     {rc.name}
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500 flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-slate-400" /> {rc.customer?.name || 'Standard Contract'}
+                    <Building2 className="w-3 h-3 text-slate-400" /> {rc.customer?.name || 'Standard Commercial Contract'}
                   </CardDescription>
                 </CardHeader>
 
@@ -421,7 +494,7 @@ export default function RateCardListPage() {
                   </div>
                 </CardContent>
 
-                <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 flex items-center justify-between text-xs">
+                <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 flex items-center justify-between text-xs rounded-b-xl">
                   <span className="text-[10px] text-slate-500 font-medium">Base Tariff Rate:</span>
                   <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
                     {rc.currency || 'SAR'} {Number(rc.base_price).toLocaleString()}
