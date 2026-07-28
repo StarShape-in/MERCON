@@ -128,9 +128,13 @@ export default function DashboardPage() {
             variant="amber"
             trend={kpis.docs_expiring_soon.value > 0 ? 'down' : 'neutral'} 
             trendValue={kpis.docs_expiring_soon.value > 0 ? 'Action Needed' : 'All Clear'}
-            description="documents expiring"
+            description="documents expiring soon"
             icon={CalendarAlert} 
-            chartData={[4, 3, 5, 2, 4, 3, kpis.docs_expiring_soon.value || 1]}
+            progressSegments={[
+              { label: '3 Critical (<7d)', value: 35, color: 'bg-rose-500' },
+              { label: '5 Warning (30d)', value: 45, color: 'bg-amber-500' },
+              { label: '12 Safe', value: 20, color: 'bg-slate-300' },
+            ]}
           />
         </div>
 

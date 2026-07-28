@@ -6,6 +6,12 @@ import { cn } from '@/lib/utils'
 
 export type KpiCardVariant = 'brand' | 'blue' | 'emerald' | 'amber' | 'purple' | 'rose' | 'slate'
 
+export interface UrgencySegment {
+  label?: string
+  value: number
+  color: string
+}
+
 export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 'title' | 'value'> {
   title?: string
   label?: string
@@ -17,6 +23,7 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 't
   trendValue?: string
   variant?: KpiCardVariant
   chartData?: (number | { value: number; [key: string]: any })[]
+  progressSegments?: UrgencySegment[]
 
   // Backward compatibility props
   delta?: string | number | null
@@ -111,6 +118,7 @@ export function KpiCard({
   trendValue,
   variant,
   chartData,
+  progressSegments,
   className,
   delta,
   up,
@@ -226,36 +234,65 @@ export function KpiCard({
           </div>
         )}
 
-        {/* Mini Chart / Sparkline Area Chart */}
-        <div className="mt-3 -mx-4 -mb-4 h-10 overflow-hidden">
-          <ChartContainer
-            config={{
-              value: {
-                label: 'Value',
-                color: selectedStyle.chartColor,
-              },
-            }}
-            className="aspect-auto h-full w-full"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={normalizedChartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-                <defs>
-                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={selectedStyle.chartColor} stopOpacity={0.25} />
-                    <stop offset="100%" stopColor={selectedStyle.chartColor} stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke={selectedStyle.chartColor}
-                  strokeWidth={1.5}
-                  fill={`url(#${gradientId})`}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+        {/* Mini Chart OR Segmented Urgency Progress Bar */}
+        <div className="mt-3 -mx-4 -mb-4 overflow-hidden">
+          {progressSegments && progressSegments.length > 0 ? (
+            <div className="px-4 pb-3.5 pt-1 flex flex-col gap-2">
+              {/* Segmented Progress Bar */}
+              <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5 border border-black/[0.04]">
+                {progressSegments.map((seg, idx) => (
+                  <div
+                    key={idx}
+                    className={cn("h-full transition-all duration-300 rounded-full", seg.color)}
+                    style={{ width: `${seg.value}%` }}
+                    title={seg.label ? `${seg.label}: ${seg.value}%` : undefined}
+                  />
+                ))}
+              </div>
+              {/* Segment Legend Labels */}
+              {progressSegments.some(s => s.label) && (
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono font-medium truncate">
+                  {progressSegments.map((seg, idx) => seg.label ? (
+                    <span key={idx} className="flex items-center gap-1.5 truncate">
+                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", seg.color)} />
+                      <span className="truncate">{seg.label}</span>
+                    </span>
+                  ) : null)}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-10">
+              <ChartContainer
+                config={{
+                  value: {
+                    label: 'Value',
+                    color: selectedStyle.chartColor,
+                  },
+                }}
+                className="aspect-auto h-full w-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={normalizedChartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+                    <defs>
+                      <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={selectedStyle.chartColor} stopOpacity={0.25} />
+                        <stop offset="100%" stopColor={selectedStyle.chartColor} stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke={selectedStyle.chartColor}
+                      strokeWidth={1.5}
+                      fill={`url(#${gradientId})`}
+                      isAnimationActive={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

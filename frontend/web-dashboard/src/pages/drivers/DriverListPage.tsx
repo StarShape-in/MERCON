@@ -462,7 +462,11 @@ export default function DriverListPage() {
             trendValue="Review"
             description="→ Safety review or renewal required"
             icon={RiskAlert}
-            chartData={[2, 4, 3, 5, 2, 3, highRiskCount || 4]}
+            progressSegments={[
+              { label: 'High Risk (>7)', value: 40, color: 'bg-rose-500' },
+              { label: 'Expired License', value: 35, color: 'bg-amber-500' },
+              { label: 'Clear', value: 25, color: 'bg-slate-300' },
+            ]}
           />
         </div>
 
