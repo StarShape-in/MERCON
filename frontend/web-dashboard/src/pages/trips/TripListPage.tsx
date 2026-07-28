@@ -52,6 +52,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectLabel,
   SelectSeparator,
@@ -469,58 +470,62 @@ export default function TripListPage() {
                   </div>
                 </SelectTrigger>
                 <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                    Filter Status
-                  </SelectLabel>
-                  <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-medium text-slate-700">
-                      <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                      All Operations
-                    </span>
-                  </SelectItem>
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                      Filter Status
+                    </SelectLabel>
+                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-slate-700">
+                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                        All Operations
+                      </span>
+                    </SelectItem>
+                  </SelectGroup>
                   <SelectSeparator className="my-1 border-slate-100" />
-                  <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-medium text-amber-700">
-                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                      Drafts
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="Dispatched" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-medium text-blue-700">
-                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                      Dispatched
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="AtPickup" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-medium text-purple-700">
-                      <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                      At Pickup
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="InTransit" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-medium text-[#E8450F]">
-                      <span className="w-2 h-2 rounded-full bg-[#E8450F]"></span>
-                      In Transit
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="AtDelivery" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-medium text-indigo-700">
-                      <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                      At Delivery
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-medium text-emerald-700">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      Completed
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-medium text-rose-700">
-                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                      Cancelled
-                    </span>
-                  </SelectItem>
+                  <SelectGroup>
+                    <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-amber-700">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        Drafts
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="Dispatched" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-blue-700">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        Dispatched
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="AtPickup" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-purple-700">
+                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                        At Pickup
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="InTransit" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-[#E8450F]">
+                        <span className="w-2 h-2 rounded-full bg-[#E8450F]"></span>
+                        In Transit
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="AtDelivery" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-indigo-700">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        At Delivery
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-emerald-700">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Completed
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-rose-700">
+                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                        Cancelled
+                      </span>
+                    </SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
 
@@ -536,17 +541,19 @@ export default function TripListPage() {
                   </div>
                 </SelectTrigger>
                 <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                    Cargo Classification
-                  </SelectLabel>
-                  <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Cargo Types</SelectItem>
-                  <SelectItem value="Standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Standard Freight</SelectItem>
-                  <SelectItem value="Hazmat" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                    <span className="flex items-center gap-2 font-semibold text-rose-600">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      HAZMAT Only
-                    </span>
-                  </SelectItem>
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                      Cargo Classification
+                    </SelectLabel>
+                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Cargo Types</SelectItem>
+                    <SelectItem value="Standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Standard Freight</SelectItem>
+                    <SelectItem value="Hazmat" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-semibold text-rose-600">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        HAZMAT Only
+                      </span>
+                    </SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
 
@@ -562,13 +569,15 @@ export default function TripListPage() {
                   </div>
                 </SelectTrigger>
                 <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                    Date Horizon
-                  </SelectLabel>
-                  <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Dates</SelectItem>
-                  <SelectItem value="Today" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Today</SelectItem>
-                  <SelectItem value="ThisWeek" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Week</SelectItem>
-                  <SelectItem value="ThisMonth" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Month</SelectItem>
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                      Date Horizon
+                    </SelectLabel>
+                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Dates</SelectItem>
+                    <SelectItem value="Today" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Today</SelectItem>
+                    <SelectItem value="ThisWeek" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Week</SelectItem>
+                    <SelectItem value="ThisMonth" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Month</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
 
