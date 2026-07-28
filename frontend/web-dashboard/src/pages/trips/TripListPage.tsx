@@ -334,8 +334,8 @@ export default function TripListPage() {
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
-                <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Daily Operations & Dispatch
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Trips
                 </h1>
                 <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
                   Operations Module

@@ -35,14 +35,8 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
   return (
     <div className="shrink-0 bg-white border-b border-black/[0.08] px-6 h-[56px] flex items-center justify-between gap-4 relative z-20">
       
-      {/* Scope Selector Pill on Left */}
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#F5F5F7] border border-black/[0.06] text-xs font-semibold text-[#111] hover:bg-[#EBEBEF] cursor-pointer transition-colors">
-          <Building2 size={14} className="text-[#E8450F]" />
-          <span>MERCON Logistics</span>
-          <ChevronDown size={12} className="text-[#9898A4]" />
-        </div>
-      </div>
+      {/* Left side spacing */}
+      <div className="flex items-center gap-2"></div>
 
       {/* Right Side Controls */}
       <div className="flex items-center gap-3">
