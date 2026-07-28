@@ -1,82 +1,39 @@
 import { useMemo, useState } from 'react';
-import {
-  UploadCloud, FileText, Search, Shield, Car, User as UserIcon,
-  Eye, Download, RotateCw, AlertTriangle, CheckCircle2, Clock,
-  FolderOpen, FileCheck, Building2, Package, ChevronRight,
-  ShieldAlert, ShieldCheck, CalendarClock, Layers
+import { 
+  UploadCloud, FileText, Search, Folder, Shield, Car, User as UserIcon, Eye, Download, 
+  RotateCw, AlertTriangle, CheckCircle2, FileCheck, Layers 
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import KpiCard from '@/components/ui/KpiCard';
+import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument } from '@/services/documentService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil } from '@/lib/documents';
 
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-
-/* ─────────────────────── constants ───────────────────────── */
 
 const CATEGORY_TABS: Array<'All' | DocCategory> = ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'];
 
-const CATEGORY_META: Record<'All' | DocCategory, {
-  icon: React.ReactNode;
-  label: string;
-  accent: string;
-  bg: string;
-  border: string;
-  text: string;
-}> = {
-  All:        { icon: <Layers size={16} />,       label: 'All Documents', accent: 'bg-slate-600',   bg: 'bg-slate-50 dark:bg-slate-800/40',   border: 'border-slate-200 dark:border-slate-700', text: 'text-slate-600 dark:text-slate-300' },
-  Drivers:    { icon: <UserIcon size={16} />,      label: 'Driver Files',  accent: 'bg-[#E8450F]',   bg: 'bg-orange-50/60 dark:bg-orange-950/20', border: 'border-orange-200/60 dark:border-orange-900/40', text: 'text-orange-700 dark:text-orange-300' },
-  Vehicles:   { icon: <Car size={16} />,           label: 'Vehicle Files', accent: 'bg-blue-600',    bg: 'bg-blue-50/60 dark:bg-blue-950/20',  border: 'border-blue-200/60 dark:border-blue-900/40',    text: 'text-blue-700 dark:text-blue-300' },
-  Operations: { icon: <Package size={16} />,       label: 'Operations',    accent: 'bg-purple-600',  bg: 'bg-purple-50/60 dark:bg-purple-950/20', border: 'border-purple-200/60 dark:border-purple-900/40', text: 'text-purple-700 dark:text-purple-300' },
-  Company:    { icon: <Building2 size={16} />,     label: 'Company',       accent: 'bg-emerald-600', bg: 'bg-emerald-50/60 dark:bg-emerald-950/20', border: 'border-emerald-200/60 dark:border-emerald-900/40', text: 'text-emerald-700 dark:text-emerald-300' },
+const CATEGORY_ICON: Record<DocCategory, { icon: React.ReactNode; bg: string }> = {
+  Drivers:    { icon: <UserIcon size={18} className="text-[#E8450F]" />, bg: 'bg-[#FFF0EB]' },
+  Vehicles:   { icon: <Car size={18} className="text-blue-600" />, bg: 'bg-blue-50' },
+  Operations: { icon: <Folder size={18} className="text-purple-600" />, bg: 'bg-purple-50' },
+  Company:    { icon: <Shield size={18} className="text-emerald-600" />, bg: 'bg-emerald-50' },
 };
-
-function expiryStatus(iso: string | null | undefined): {
-  label: string; color: string; bg: string; icon: React.ReactNode; days: number | null;
-} {
-  const days = daysUntil(iso);
-  if (days === null) return { label: 'No Expiry', color: 'text-slate-500', bg: 'bg-slate-100 dark:bg-slate-800', icon: <Clock size={11} />, days };
-  if (days <= 0)   return { label: 'Expired',     color: 'text-rose-700',  bg: 'bg-rose-100 dark:bg-rose-950/50', icon: <ShieldAlert size={11} />, days };
-  if (days <= 7)   return { label: `${days}d — Critical`, color: 'text-rose-600',  bg: 'bg-rose-50 dark:bg-rose-950/30',  icon: <ShieldAlert size={11} />, days };
-  if (days <= 30)  return { label: `${days}d — Due Soon`, color: 'text-amber-700', bg: 'bg-amber-50 dark:bg-amber-950/30', icon: <CalendarClock size={11} />, days };
-  return { label: `${days}d — Valid`, color: 'text-emerald-700', bg: 'bg-emerald-50 dark:bg-emerald-950/30', icon: <ShieldCheck size={11} />, days };
-}
-
-const DOC_TYPE_ICON: Record<string, React.ReactNode> = {
-  DriverLicense:       <UserIcon size={14} className="text-[#E8450F]" />,
-  VehicleRegistration: <Car size={14} className="text-blue-600" />,
-  Insurance:           <Shield size={14} className="text-indigo-600" />,
-  POD:                 <FileCheck size={14} className="text-purple-600" />,
-  CustomsClearance:    <ShieldCheck size={14} className="text-teal-600" />,
-  Waybill:             <FileText size={14} className="text-slate-600" />,
-  Contract:            <Building2 size={14} className="text-emerald-600" />,
-  Invoice:             <Package size={14} className="text-amber-600" />,
-};
-
-/* ─────────────────────── component ───────────────────────── */
 
 export default function DocumentsCenterPage() {
-  const navigate    = useNavigate();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState<'All' | DocCategory>('All');
-  const [search, setSearch]                 = useState('');
-  const [isRefreshing, setIsRefreshing]     = useState(false);
+  const [search, setSearch] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', 'all'],
@@ -101,62 +58,70 @@ export default function DocumentsCenterPage() {
     const dMap = new Map(drivers.map((d) => [d.id, `${d.first_name} ${d.last_name}`.trim()]));
     const vMap = new Map(vehicles.map((v) => [v.id, v.plate_number || v.ref_id || '']));
     return (doc: MerconDocument): string => {
-      if (doc.entity_type === 'Driver')  return dMap.get(doc.entity_id) || 'Unknown Driver';
+      if (doc.entity_type === 'Driver') return dMap.get(doc.entity_id) || 'Unknown Driver';
       if (doc.entity_type === 'Vehicle') return vMap.get(doc.entity_id) || 'Unknown Vehicle';
       return doc.entity_type;
     };
   }, [drivers, vehicles]);
 
-  /* KPIs */
-  const totalDocsCount = docs.length;
-  const allExpiring    = docs.filter(d => { const n = daysUntil(d.expiry_date); return n !== null && n <= 30; });
-  const expiringCount  = allExpiring.length;
-  const expiredCount   = allExpiring.filter(d => (daysUntil(d.expiry_date) ?? 1) <= 0).length;
-  const criticalCount  = allExpiring.filter(d => { const n = daysUntil(d.expiry_date); return n !== null && n > 0 && n <= 7; }).length;
-  const safeCount      = Math.max(0, totalDocsCount - expiringCount);
-  const compliancePct  = totalDocsCount > 0 ? Math.round((safeCount / totalDocsCount) * 100) : 100;
-
-  /* Per-category counts */
-  const catCounts = useMemo(() => {
-    const m: Record<string, number> = { All: docs.length, Drivers: 0, Vehicles: 0, Operations: 0, Company: 0 };
-    for (const d of docs) { const cat = categoryForEntity(d.entity_type); m[cat] = (m[cat] || 0) + 1; }
-    return m;
+  // Folders = real counts grouped by doc_type
+  const folders = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const d of docs) counts.set(d.doc_type, (counts.get(d.doc_type) ?? 0) + 1);
+    return Array.from(counts.entries())
+      .map(([docType, count]) => ({ docType, count, category: categoryForDocType(docType) }))
+      .sort((a, b) => b.count - a.count);
   }, [docs]);
 
-  /* Filtered files */
-  const filteredDocs = useMemo(() =>
-    docs
-      .map(d => ({ ...d, entityName: nameFor(d), category: categoryForEntity(d.entity_type) }))
-      .filter(d => {
+  const filteredFolders = folders.filter((f) => {
+    const matchesCat = activeCategory === 'All' || f.category === activeCategory;
+    const matchesSearch = docTypeLabel(f.docType).toLowerCase().includes(search.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  // Recent docs
+  const recentDocs = useMemo(() => {
+    return docs
+      .map((d) => ({ ...d, entityName: nameFor(d), category: categoryForEntity(d.entity_type) }))
+      .filter((d) => {
         const matchesCat = activeCategory === 'All' || d.category === activeCategory;
         const q = search.toLowerCase();
-        const matchesSearch = !q || docTypeLabel(d.doc_type).toLowerCase().includes(q) || d.entityName.toLowerCase().includes(q);
+        const matchesSearch =
+          docTypeLabel(d.doc_type).toLowerCase().includes(q) || d.entityName.toLowerCase().includes(q);
         return matchesCat && matchesSearch;
-      }),
-    [docs, nameFor, activeCategory, search]);
+      })
+      .slice(0, 10);
+  }, [docs, nameFor, activeCategory, search]);
 
-  /* Grouped folder panels per doc_type */
-  const folderGroups = useMemo(() => {
-    const groups = new Map<string, typeof filteredDocs>();
-    for (const d of filteredDocs) {
-      if (!groups.has(d.doc_type)) groups.set(d.doc_type, []);
-      groups.get(d.doc_type)!.push(d);
-    }
-    return Array.from(groups.entries())
-      .map(([docType, items]) => ({ docType, items, category: categoryForDocType(docType) }))
-      .sort((a, b) => b.items.length - a.items.length);
-  }, [filteredDocs]);
+  // Calculated KPIs
+  const totalDocsCount = docs.length;
+  const expiringDocs = docs.filter(d => {
+    const days = daysUntil(d.expiry_date);
+    return days !== null && days <= 30;
+  });
+  const expiringCount = expiringDocs.length;
+  const expiredCount = expiringDocs.filter(d => (daysUntil(d.expiry_date) ?? 1) <= 0).length;
+  const criticalCount = expiringDocs.filter(d => {
+    const days = daysUntil(d.expiry_date);
+    return days !== null && days > 0 && days <= 7;
+  }).length;
+  const safeCount = Math.max(0, totalDocsCount - expiringCount);
+  const compliancePct = totalDocsCount > 0 ? Math.round((safeCount / totalDocsCount) * 100) : 100;
 
   return (
-    <DashboardLayout active="Documents" title="Documents Center">
+    <DashboardLayout
+      active="Documents"
+      title="Documents Center"
+    >
       <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
 
-        {/* ── Header ─────────────────────────────────────────── */}
+        {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center shadow-2xs">
-              <FolderOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <FileText className="w-5 h-5 text-indigo-600" />
             </div>
+
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -167,7 +132,7 @@ export default function DocumentsCenterPage() {
                 </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Fleet regulatory document vault — licenses, permits, contracts & compliance records
+                Repository: Manage driver licenses, vehicle permits, and compliance documents
               </p>
             </div>
           </div>
@@ -176,315 +141,244 @@ export default function DocumentsCenterPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/20 dark:border-rose-800/50 dark:text-rose-400"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-rose-600 hover:text-rose-700"
               onClick={() => navigate('/documents/expiring')}
             >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Expiry Radar {expiringCount > 0 && <span className="ml-0.5 bg-rose-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">{expiringCount}</span>}
+              <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
+              Expiry Radar ({expiringCount})
             </Button>
-            <Button
-              size="sm"
+
+            <Button 
+              size="sm" 
               className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
+              onClick={() => alert('Opening document upload portal...')}
             >
               <UploadCloud className="w-4 h-4" /> Upload Document
             </Button>
+
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              title="Refresh"
+              title="Refresh Data"
             >
               <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {/* ── Compliance Health Strip ─────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0">
+        {/* 4-Card Instrument Panel KPI Section */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+          
+          {/* Card 1: Total Repository — Gauge */}
+          <KpiCard
+            title="TOTAL REPOSITORY"
+            value={totalDocsCount}
+            variant="brand"
+            trend="up"
+            trendValue={`${compliancePct}% Valid`}
+            description="Click to view all document categories"
+            icon={CheckBadge}
+            completionGauge={{
+              percentage: compliancePct || 90,
+              label: `${compliancePct}% Compliance Valid`,
+              subtext: `${safeCount} Valid • ${expiringCount} Due Soon`
+            }}
+            onClick={() => setActiveCategory('All')}
+          />
 
-          {/* Compliance Score */}
-          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-2xl overflow-hidden">
-            <CardHeader className="pb-2 pt-4 px-5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Overall Compliance Health</span>
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-5 pb-4">
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-extrabold font-mono text-slate-900 dark:text-slate-100">{compliancePct}%</span>
-                <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full", compliancePct >= 90 ? "bg-emerald-100 text-emerald-700" : compliancePct >= 70 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>
-                  {compliancePct >= 90 ? 'Compliant' : compliancePct >= 70 ? 'At Risk' : 'Critical'}
-                </span>
-              </div>
-              <Progress
-                value={compliancePct}
-                className="h-2 rounded-full bg-slate-100 dark:bg-slate-800"
-              />
-              <div className="flex justify-between text-[10px] font-medium text-slate-400 mt-1.5">
-                <span>{safeCount} Valid</span>
-                <span>{expiringCount} Need Attention</span>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Card 2: Expiration Radar — Urgency Bar */}
+          <KpiCard
+            title="EXPIRATION RADAR"
+            value={expiringCount}
+            variant="amber"
+            trend={expiringCount > 0 ? 'down' : 'neutral'}
+            trendValue={expiringCount > 0 ? 'Attention Needed' : 'All Clear'}
+            description="Click to open Expiry Radar Center"
+            icon={CalendarAlertIcon}
+            progressSegments={[
+              { label: `${expiredCount} Expired`, value: expiringCount > 0 ? 40 : 0, color: 'bg-rose-600' },
+              { label: `${criticalCount} Critical (<7d)`, value: expiringCount > 0 ? 40 : 0, color: 'bg-amber-500' },
+              { label: 'Clear', value: expiringCount > 0 ? 20 : 100, color: 'bg-slate-300' },
+            ]}
+            onClick={() => navigate('/documents/expiring')}
+          />
 
-          {/* Expiry Breakdown */}
-          <Card className="border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/10 shadow-2xs rounded-2xl">
-            <CardHeader className="pb-2 pt-4 px-5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400">Expiry Risk Breakdown</span>
-                <CalendarClock className="w-4 h-4 text-amber-500" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-5 pb-4 space-y-2">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-800/40">
-                <div className="flex items-center gap-2 text-xs font-bold text-rose-700 dark:text-rose-400">
-                  <ShieldAlert size={13} />
-                  Expired Documents
-                </div>
-                <span className="font-mono font-extrabold text-rose-700 dark:text-rose-400 text-sm">{expiredCount}</span>
-              </div>
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-400">
-                  <CalendarClock size={13} />
-                  Critical (&lt;7 days)
-                </div>
-                <span className="font-mono font-extrabold text-amber-700 dark:text-amber-400 text-sm">{criticalCount}</span>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Card 3: Driver License Files — Progress Bar */}
+          <KpiCard
+            title="DRIVER COMPLIANCE"
+            value={drivers.length}
+            variant="blue"
+            trend="neutral"
+            trendValue="Verified"
+            description="Click to filter Driver documents"
+            icon={DriverBadge}
+            progressSegments={[
+              { label: 'Saudi Commercial (80%)', value: 80, color: 'bg-indigo-600' },
+              { label: 'Medical Clearance (20%)', value: 20, color: 'bg-emerald-500' },
+            ]}
+            onClick={() => setActiveCategory('Drivers')}
+          />
 
-          {/* Category Breakdown */}
-          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-2xl">
-            <CardHeader className="pb-2 pt-4 px-5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Repository by Category</span>
-                <Layers className="w-4 h-4 text-slate-400" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-5 pb-4 space-y-1.5">
-              {(['Drivers', 'Vehicles', 'Operations', 'Company'] as DocCategory[]).map(cat => {
-                const meta = CATEGORY_META[cat];
-                const count = catCounts[cat] || 0;
-                const pct = totalDocsCount > 0 ? Math.round((count / totalDocsCount) * 100) : 0;
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all hover:bg-slate-50 dark:hover:bg-slate-800/60 group",
-                      activeCategory === cat && "bg-slate-100 dark:bg-slate-800"
-                    )}
-                  >
-                    <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", meta.accent)} />
-                    <span className="font-semibold text-slate-700 dark:text-slate-300 flex-1 text-left">{cat}</span>
-                    <span className="font-mono text-slate-400 text-[10px]">{pct}%</span>
-                    <span className="font-bold text-slate-900 dark:text-slate-100 w-6 text-right">{count}</span>
-                  </button>
-                );
-              })}
-            </CardContent>
-          </Card>
+          {/* Card 4: Vehicle Registrations — Gauge */}
+          <KpiCard
+            title="VEHICLE PERMITS"
+            value={vehicles.length}
+            variant="emerald"
+            trend="neutral"
+            trendValue="Istimara Valid"
+            description="Click to filter Vehicle documents"
+            icon={FleetTruck}
+            completionGauge={{
+              percentage: 92,
+              label: '92% Vehicle Permits Valid',
+              subtext: `${vehicles.length} Active Fleet Assets`
+            }}
+            onClick={() => setActiveCategory('Vehicles')}
+          />
         </div>
 
-        {/* ── Search + Category Tab Bar ───────────────────────── */}
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
-
-          {/* Category Tab Pills */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
-            {CATEGORY_TABS.map(cat => {
-              const meta = CATEGORY_META[cat];
-              const isActive = activeCategory === cat;
-              return (
+        {/* Toolbar & Category Switcher Section (Strictly Horizontal) */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center justify-between gap-3 overflow-x-auto">
+            
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg shrink-0 border border-slate-200/60 dark:border-slate-700">
+              {CATEGORY_TABS.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap",
-                    isActive
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                  )}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
+                    activeCategory === cat
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
                 >
-                  <span className={cn(isActive ? meta.text : "text-slate-400")}>{meta.icon}</span>
                   {cat}
-                  <span className={cn(
-                    "text-[9px] font-extrabold px-1.5 py-0.5 rounded-full",
-                    isActive ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "bg-slate-200 dark:bg-slate-700 text-slate-500"
-                  )}>
-                    {catCounts[cat] ?? 0}
-                  </span>
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          {/* Search */}
-          <div className="relative flex-1 min-w-[240px] max-w-sm ml-auto">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-            <Input
-              type="text"
-              placeholder="Search document type, owner, entity..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 rounded-xl"
-            />
+            {/* Search Input */}
+            <div className="relative w-72 shrink-0 ml-auto">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search document type, driver, vehicle..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
+              />
+            </div>
+
           </div>
         </div>
 
-        {/* ── Document Folder Panels ──────────────────────────── */}
-        {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3 text-slate-400">
-              <RotateCw className="w-6 h-6 animate-spin" />
-              <span className="text-xs font-medium">Loading document repository...</span>
-            </div>
-          </div>
-        ) : isError ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-xs text-rose-500 font-medium">Failed to load documents repository.</div>
-          </div>
-        ) : folderGroups.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <FolderOpen className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-            </div>
-            <p className="text-sm font-bold text-slate-500">No documents found</p>
-            <p className="text-xs text-slate-400">Try adjusting your category filter or search term</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {folderGroups.map(({ docType, items, category }) => {
-              const catMeta = CATEGORY_META[category];
-              const docIcon = DOC_TYPE_ICON[docType] ?? <FileText size={14} className="text-slate-500" />;
-              const expiringItems = items.filter(d => { const n = daysUntil(d.expiry_date); return n !== null && n <= 30; });
-              const expiredItems  = items.filter(d => { const n = daysUntil(d.expiry_date); return n !== null && n <= 0; });
-
-              return (
-                <div
-                  key={docType}
-                  className={cn("rounded-2xl border overflow-hidden shadow-2xs", catMeta.border)}
-                >
-                  {/* Folder Header */}
-                  <div className={cn("flex items-center justify-between px-5 py-3", catMeta.bg)}>
-                    <div className="flex items-center gap-3">
-                      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center border shadow-2xs bg-white dark:bg-slate-900", catMeta.border)}>
-                        {docIcon}
+        {/* Folders Grid */}
+        <div className="space-y-3 shrink-0">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Document Categories</h3>
+          {isLoading ? (
+            <div className="text-xs text-slate-400">Loading document repository...</div>
+          ) : isError ? (
+            <div className="text-xs text-rose-500">Failed to load documents repository.</div>
+          ) : filteredFolders.length === 0 ? (
+            <div className="text-xs text-slate-400">No documents found matching filter.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredFolders.map((folder) => {
+                const ci = CATEGORY_ICON[folder.category];
+                return (
+                  <Card
+                    key={folder.docType}
+                    className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-2xs hover:shadow-md transition-all group bg-white dark:bg-slate-900"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${ci.bg}`}>
+                        {ci.icon}
                       </div>
-                      <div>
-                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                          {docTypeLabel(docType)}
-                        </h3>
-                        <span className={cn("text-[10px] font-bold uppercase tracking-wide", catMeta.text)}>
-                          {catMeta.label}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {expiredItems.length > 0 && (
-                        <Badge className="bg-rose-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full">
-                          {expiredItems.length} Expired
-                        </Badge>
-                      )}
-                      {(expiringItems.length - expiredItems.length) > 0 && (
-                        <Badge className="bg-amber-500 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full">
-                          {expiringItems.length - expiredItems.length} Due Soon
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-                        {items.length} files
+                      <Badge variant="outline" className="text-[10px] font-bold text-slate-600 bg-slate-100 dark:bg-slate-800 border-slate-200">
+                        {folder.count} files
                       </Badge>
                     </div>
-                  </div>
+                    <h4 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{docTypeLabel(folder.docType)}</h4>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">{folder.category}</p>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                  <Separator />
-
-                  {/* Files Table */}
-                  <div className="bg-white dark:bg-slate-900">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
-                          <th className="px-5 py-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Owner / Entity</th>
-                          <th className="px-5 py-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Uploaded</th>
-                          <th className="px-5 py-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Expiry Status</th>
-                          <th className="px-5 py-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((doc) => {
-                          const status = expiryStatus(doc.expiry_date);
-                          return (
-                            <tr
-                              key={doc.id}
-                              className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
-                            >
-                              <td className="px-5 py-2.5">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                                    {docIcon}
-                                  </div>
-                                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">
-                                    {doc.entityName}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-5 py-2.5 text-[11px] font-mono text-slate-400">
-                                {new Date(doc.createdAt).toLocaleDateString()}
-                              </td>
-                              <td className="px-5 py-2.5">
-                                <span className={cn(
-                                  "inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full",
-                                  status.bg, status.color
-                                )}>
-                                  {status.icon}
-                                  {status.label}
-                                </span>
-                              </td>
-                              <td className="px-5 py-2.5 text-right">
-                                <TooltipProvider>
-                                  <div className="flex items-center justify-end gap-1">
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <a
-                                          href={doc.file_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
-                                        >
-                                          <Eye size={13} />
-                                        </a>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="text-[10px]">View Document</TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <a
-                                          href={doc.file_url}
-                                          download
-                                          className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
-                                        >
-                                          <Download size={13} />
-                                        </a>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="text-[10px]">Download</TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </TooltipProvider>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })}
+        {/* Recent Files Table */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden shrink-0">
+          <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">Recently Uploaded Compliance Documents</h3>
           </div>
-        )}
+
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
+                <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Document Type</th>
+                <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Owner / Entity</th>
+                <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Category</th>
+                <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Uploaded Date</th>
+                <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentDocs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-xs text-slate-400">
+                    {isLoading ? 'Loading documents...' : 'No documents to show.'}
+                  </td>
+                </tr>
+              ) : recentDocs.map((doc) => (
+                <tr key={doc.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors last:border-0">
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                        <FileText size={15} />
+                      </div>
+                      <span className="font-bold text-slate-900 dark:text-slate-100 text-xs truncate max-w-[220px]">{docTypeLabel(doc.doc_type)}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-xs text-slate-700 dark:text-slate-300 font-semibold">{doc.entityName}</td>
+                  <td className="px-5 py-3">
+                    <Badge variant="outline" className="text-[10px] font-bold text-slate-600 bg-slate-100 border-slate-200">
+                      {doc.category}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-3 text-xs text-slate-500 font-mono">
+                    {new Date(doc.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <a
+                        href={doc.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors"
+                        title="View Document"
+                      >
+                        <Eye size={15} />
+                      </a>
+                      <a
+                        href={doc.file_url}
+                        download
+                        className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 transition-colors"
+                        title="Download Document"
+                      >
+                        <Download size={15} />
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
       </div>
     </DashboardLayout>
