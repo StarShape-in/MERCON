@@ -11,11 +11,11 @@ jobs:
     
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Rebuild and Restart Docker Containers
         env:
-          # Injected into docker-compose interpolation; stored as a GitHub
+          # Injected into docker compose interpolation; stored as a GitHub
           # Actions secret, never committed. Rotating it invalidates all
           # existing JWTs (everyone must log in again).
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -29,9 +29,7 @@ jobs:
           fi
 
           # Remove old containers to force clean restart
-          docker rm -f mercon-postgres mercon-api mercon-frontend || true
+          docker compose rm -f mercon-postgres mercon-api mercon-frontend 2>/dev/null || true
 
           # Build and start services in detached mode
-          docker-compose up -d --build
-
-
+          docker compose up -d --build
