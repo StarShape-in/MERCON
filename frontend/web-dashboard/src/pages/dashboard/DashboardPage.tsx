@@ -95,36 +95,42 @@ export default function DashboardPage() {
           <KpiCard 
             title="Total Trips" 
             value={kpis.total_trips.value} 
+            variant="brand"
             trend={kpis.total_trips.delta !== null ? (kpis.total_trips.delta >= 0 ? 'up' : 'down') : 'up'}
             trendValue={kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '+12.4%'}
             description="vs last month"
             icon={TruckMotion} 
-            chartData={trendData.map((d: any) => d.trips || d.revenue || 10)}
+            chartData={trendData.length > 0 ? trendData.map((d: any) => d.trips || 10) : [12, 18, 24, 30, 28, 42, 55]}
           />
           <KpiCard 
             title="Active Fleet (On Trip)" 
             value={kpis.fleet_on_trip.value} 
+            variant="blue"
             trend="neutral"
             trendValue="Operational"
             description="Currently dispatched"
             icon={FleetTruck} 
+            chartData={[8, 12, 15, 14, 19, 22, 25]}
           />
           <KpiCard 
             title="Total Revenue" 
             value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`} 
+            variant="emerald"
             trend={kpis.revenue_this_month.delta !== null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : 'up'}
             trendValue={kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '+8.2%'}
             description="this month"
             icon={MoneyBills} 
-            chartData={trendData.map((d: any) => d.revenue || 5000)}
+            chartData={trendData.length > 0 ? trendData.map((d: any) => d.revenue || 5000) : [3200, 4100, 3900, 5200, 6100, 7500, 8900]}
           />
           <KpiCard 
             title="Renewals Due" 
             value={kpis.docs_expiring_soon.value} 
+            variant="amber"
             trend={kpis.docs_expiring_soon.value > 0 ? 'down' : 'neutral'} 
             trendValue={kpis.docs_expiring_soon.value > 0 ? 'Action Needed' : 'All Clear'}
             description="documents expiring"
             icon={CalendarAlert} 
+            chartData={[4, 3, 5, 2, 4, 3, kpis.docs_expiring_soon.value || 1]}
           />
         </div>
 
