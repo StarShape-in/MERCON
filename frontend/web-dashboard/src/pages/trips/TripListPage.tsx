@@ -434,16 +434,15 @@ export default function TripListPage() {
             chartData={[4, 5, 3, 6, 4, 5, draftCount || 7]}
           />
         </div>
-
         {/* Filter & Control Bar */}
-        <div className="bg-white rounded-lg border border-black/[0.08] p-3 shadow-2xs shrink-0">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
+          <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
-            {/* Search Input & Inline Dropdown Controls */}
-            <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
+            <div className="flex items-center gap-2.5 shrink-0">
               
               {/* Search Input */}
-              <div className="relative w-full sm:w-72">
+              <div className="relative w-64 shrink-0">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Search trip ID, customer, driver..."
@@ -463,7 +462,7 @@ export default function TripListPage() {
                   }
                 }}
               >
-                <SelectTrigger className="h-9 px-3 min-w-[160px] border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
                   <div className="flex items-center gap-2">
                     <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="All Operations" />
@@ -534,7 +533,7 @@ export default function TripListPage() {
                 value={hazmatFilter}
                 onValueChange={(val) => { if (val) setHazmatFilter(val as any); }}
               >
-                <SelectTrigger className="h-9 px-3 min-w-[150px] border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+                <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
                   <div className="flex items-center gap-2">
                     <Layers className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="All Cargo" />
@@ -562,7 +561,7 @@ export default function TripListPage() {
                 value={dateFilter}
                 onValueChange={(val) => { if (val) setDateFilter(val); }}
               >
-                <SelectTrigger className="h-9 px-3 min-w-[140px] border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+                <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="All Dates" />
@@ -584,7 +583,7 @@ export default function TripListPage() {
             </div>
 
             {/* View Mode Switcher Pill */}
-            <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60 ml-auto md:ml-0">
+            <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shrink-0 ml-auto">
               <button
                 onClick={() => setViewMode('list')}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
