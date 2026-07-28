@@ -32,16 +32,17 @@ export function DriverBottomNav(_props: DriverBottomNavProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Capsule settles in when the active page changes. Start hidden (0) so the
-  // first paint doesn't flash the capsule before the entrance animation.
-  const anim = useRef(new Animated.Value(0)).current;
+  // Capsule settles in when the active page changes. Start fully visible (1) so the
+  // first paint doesn't flash or hide the capsule before/during navigation.
+  const anim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 7, tension: 90 }).start();
+    anim.setValue(0.95);
+    Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 9, tension: 120 }).start();
   }, [pathname, anim]);
 
   const capsuleStyle = {
     opacity: anim,
-    transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }],
+    transform: [{ scale: anim.interpolate({ inputRange: [0.95, 1], outputRange: [0.96, 1] }) }],
   };
 
   return (

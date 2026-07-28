@@ -102,17 +102,24 @@ export interface OperatorDriver {
   license_expiry: string;
 }
 
+let cacheOperatorTrips: OperatorTrip[] = [];
+let isOpTripsFetched = false;
+
 /** Loads all recent trips for the operator trip list. */
 export function useOperatorTrips() {
-  const [trips, setTrips] = useState<OperatorTrip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [trips, setTrips] = useState<OperatorTrip[]>(cacheOperatorTrips);
+  const [loading, setLoading] = useState(!isOpTripsFetched);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
+  const refetch = useCallback(async (opts?: { showLoading?: boolean } | any) => {
+    const showLoading = typeof opts === 'boolean' ? opts : typeof opts?.showLoading === 'boolean' ? opts.showLoading : !isOpTripsFetched;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      setTrips(await operatorService.trips());
+      const data = await operatorService.trips();
+      cacheOperatorTrips = data;
+      isOpTripsFetched = true;
+      setTrips(data);
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -125,17 +132,24 @@ export function useOperatorTrips() {
   return { trips, loading, error, refetch };
 }
 
+let cacheOperatorDrivers: OperatorDriver[] = [];
+let isOpDriversFetched = false;
+
 /** Loads all drivers for the operator driver list. */
 export function useOperatorDrivers() {
-  const [drivers, setDrivers] = useState<OperatorDriver[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [drivers, setDrivers] = useState<OperatorDriver[]>(cacheOperatorDrivers);
+  const [loading, setLoading] = useState(!isOpDriversFetched);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
+  const refetch = useCallback(async (opts?: { showLoading?: boolean } | any) => {
+    const showLoading = typeof opts === 'boolean' ? opts : typeof opts?.showLoading === 'boolean' ? opts.showLoading : !isOpDriversFetched;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      setDrivers(await operatorService.drivers());
+      const data = await operatorService.drivers();
+      cacheOperatorDrivers = data;
+      isOpDriversFetched = true;
+      setDrivers(data);
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -148,17 +162,24 @@ export function useOperatorDrivers() {
   return { drivers, loading, error, refetch };
 }
 
+let cacheOperatorVehicles: OperatorVehicle[] = [];
+let isOpVehiclesFetched = false;
+
 /** Loads all vehicles for the operator vehicle list. */
 export function useOperatorVehicles() {
-  const [vehicles, setVehicles] = useState<OperatorVehicle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [vehicles, setVehicles] = useState<OperatorVehicle[]>(cacheOperatorVehicles);
+  const [loading, setLoading] = useState(!isOpVehiclesFetched);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
+  const refetch = useCallback(async (opts?: { showLoading?: boolean } | any) => {
+    const showLoading = typeof opts === 'boolean' ? opts : typeof opts?.showLoading === 'boolean' ? opts.showLoading : !isOpVehiclesFetched;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      setVehicles(await operatorService.vehicles());
+      const data = await operatorService.vehicles();
+      cacheOperatorVehicles = data;
+      isOpVehiclesFetched = true;
+      setVehicles(data);
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -171,17 +192,24 @@ export function useOperatorVehicles() {
   return { vehicles, loading, error, refetch };
 }
 
+let cacheOperatorInvoices: OperatorInvoice[] = [];
+let isOpInvoicesFetched = false;
+
 /** Loads all invoices for the operator invoice list. */
 export function useOperatorInvoices() {
-  const [invoices, setInvoices] = useState<OperatorInvoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState<OperatorInvoice[]>(cacheOperatorInvoices);
+  const [loading, setLoading] = useState(!isOpInvoicesFetched);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
+  const refetch = useCallback(async (opts?: { showLoading?: boolean } | any) => {
+    const showLoading = typeof opts === 'boolean' ? opts : typeof opts?.showLoading === 'boolean' ? opts.showLoading : !isOpInvoicesFetched;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      setInvoices(await operatorService.invoices());
+      const data = await operatorService.invoices();
+      cacheOperatorInvoices = data;
+      isOpInvoicesFetched = true;
+      setInvoices(data);
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -194,18 +222,26 @@ export function useOperatorInvoices() {
   return { invoices, loading, error, refetch };
 }
 
+let cacheOperatorSummary: DashboardSummary | null = null;
+let cacheOperatorActiveTrips: OperatorTrip[] = [];
+let isOpDashboardFetched = false;
+
 /** Loads the operator dashboard (KPIs + active trips) with a manual refetch. */
 export function useOperatorDashboard() {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [activeTrips, setActiveTrips] = useState<OperatorTrip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<DashboardSummary | null>(cacheOperatorSummary);
+  const [activeTrips, setActiveTrips] = useState<OperatorTrip[]>(cacheOperatorActiveTrips);
+  const [loading, setLoading] = useState(!isOpDashboardFetched);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
+  const refetch = useCallback(async (opts?: { showLoading?: boolean } | any) => {
+    const showLoading = typeof opts === 'boolean' ? opts : typeof opts?.showLoading === 'boolean' ? opts.showLoading : !isOpDashboardFetched;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const [s, t] = await Promise.all([operatorService.summary(), operatorService.activeTrips()]);
+      cacheOperatorSummary = s;
+      cacheOperatorActiveTrips = t;
+      isOpDashboardFetched = true;
       setSummary(s);
       setActiveTrips(t);
     } catch (e) {

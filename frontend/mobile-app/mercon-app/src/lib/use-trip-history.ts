@@ -2,18 +2,24 @@ import { useCallback, useEffect, useState } from 'react';
 import { tripService, type MobileTrip } from './trips';
 import { getApiErrorMessage } from './api';
 
-/** Loads the driver's past trips (completed / invoiced / cancelled). Mirrors
- *  useCurrentTrip — fetch-on-mount with a manual refetch (no React Query on mobile). */
+let cachedHistory: MobileTrip[] = [];
+let isHistoryFetched = false;
+
+/** Loads the driver's past trips. Uses in-memory caching to eliminate tab-switch flickering. */
 export function useTripHistory() {
-  const [trips, setTrips] = useState<MobileTrip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [trips, setTrips] = useState<MobileTrip[]>(cachedHistory);
+  const [loading, setLoading] = useState(!isHistoryFetched);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
+  const refetch = useCallback(async (opts?: { showLoading?: boolean } | any) => {
+    const showLoading = typeof opts === 'boolean' ? opts : typeof opts?.showLoading === 'boolean' ? opts.showLoading : !isHistoryFetched;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      setTrips(await tripService.getHistory());
+      const data = await tripService.getHistory();
+      cachedHistory = data;
+      isHistoryFetched = true;
+      setTrips(data);
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
