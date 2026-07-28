@@ -22,6 +22,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
+import { RouteCorridorKpi } from '@/components/ui/CustomKpiWidgets';
 import { RevenueChart, CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { downloadCSV } from '@/utils/exportUtils';
@@ -324,7 +325,6 @@ export default function RateCardListPage() {
             trendValue="+4.2%"
             description="vs previous quarter"
             icon={RevenueChart}
-            chartData={kpis.pricesArray.length > 0 ? kpis.pricesArray : [1200, 1500, 1400, 1800, 1600, 2100]}
           />
 
           {/* Card 3: Top Route Lane — Route Segment Bar */}
@@ -336,12 +336,9 @@ export default function RateCardListPage() {
             trendValue="High Volume"
             description="→ Top freight corridor"
             icon={RouteLine}
-            progressSegments={[
-              { label: 'Riyadh-Jeddah (60%)', value: 60, color: 'bg-indigo-600' },
-              { label: 'Dammam-Riyadh (30%)', value: 30, color: 'bg-emerald-500' },
-              { label: 'Other (10%)', value: 10, color: 'bg-amber-500' },
-            ]}
-          />
+          >
+            <RouteCorridorKpi origin="Riyadh" destination="Jeddah" tripCount={42} />
+          </KpiCard>
 
           {/* Card 4: Contracted Organizations — Donut Gauge */}
           <KpiCard
