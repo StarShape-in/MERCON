@@ -41,9 +41,9 @@ export default function FormInput({
   const isSelect = type === 'select';
   const isTextArea = type === 'textarea';
 
-  const emitChange = (newValue: string) => {
+  const emitChange = (newValue: string | null) => {
     onChange?.({
-      target: { name, value: newValue },
+      target: { name, value: newValue ?? '' },
     } as unknown as React.ChangeEvent<HTMLSelectElement>);
   };
 

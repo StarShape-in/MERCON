@@ -178,7 +178,7 @@ export default function CreateTripPage() {
             label="Pickup Location"
             lat={pickupLat}
             lng={pickupLng}
-            onChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
+            onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); }}
           />
           <FormInput
             label="Planned Pickup Arrival Time"
@@ -193,7 +193,7 @@ export default function CreateTripPage() {
             label="Dropoff Location"
             lat={dropoffLat}
             lng={dropoffLng}
-            onChange={(lat, lng) => { setDropoffLat(lat); setDropoffLng(lng); }}
+            onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); }}
           />
           <FormInput
             label="Planned Dropoff Arrival Time"
