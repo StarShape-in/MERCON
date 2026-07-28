@@ -92,7 +92,7 @@ export default function KpiCard({
   }, [chartData, hasChart])
 
   const isLightIcon = iconVariant === 'light';
-  const iconColor = isLightIcon ? (bg || color) : color;
+  const iconColor = color;
   const iconSizeCls = isLightIcon ? 'h-12 w-12' : 'h-9 w-9';
 
   let renderedIcon = icon;

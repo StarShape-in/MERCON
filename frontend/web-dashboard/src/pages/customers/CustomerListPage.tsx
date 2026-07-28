@@ -129,7 +129,7 @@ export default function CustomerListPage() {
                 <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5" style={{ color: s.color }}>{s.value}</p>
                 <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider leading-tight">{s.label} Clients</p>
               </div>
-              <s.icon className="w-12 h-12 shrink-0" style={{ color: s.bg }} />
+              <s.icon className="w-12 h-12 shrink-0" style={{ color: s.color }} />
             </div>
           ))}
         </div>
