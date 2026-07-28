@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Plus, DollarSign, Download, Trash2, CheckCircle } from 'lucide-react';
-import { InvoiceDoc, ClockIcon, RiskAlert } from '@/components/ui/kpi-icons';
+import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
 

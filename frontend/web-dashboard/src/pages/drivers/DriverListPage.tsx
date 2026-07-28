@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download } from 'lucide-react';
-import { DriverBadge, CheckBadge, RouteLine } from '@/components/ui/kpi-icons';
+import { DriverBadge, CheckBadge, RouteLine, TruckMotion } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
