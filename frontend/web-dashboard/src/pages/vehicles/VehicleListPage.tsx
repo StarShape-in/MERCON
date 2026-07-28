@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, FileText, Truck, Trash2, CheckCircle, XCircle, Send, Download, Wrench } from 'lucide-react';
+import { Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, Wrench } from 'lucide-react';
+import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
@@ -37,9 +38,9 @@ export default function VehicleListPage() {
 
   // Stats
   const stats = [
-    { label: 'Total', value: vehiclesRes?.meta?.total || vehicles.length, bg: '#F5F5F7', color: '#111' },
-    { label: 'Available', value: vehicles.filter(v => v.status === 'Available').length, bg: '#F0FDF4', color: '#16A34A' },
-    { label: 'Maintenance', value: vehicles.filter(v => v.status === 'Maintenance').length, bg: '#FEF2F2', color: '#DC2626' },
+    { label: 'Total', value: vehiclesRes?.meta?.total || vehicles.length, bg: '#F5F5F7', color: '#111', icon: FleetTruck },
+    { label: 'Available', value: vehicles.filter(v => v.status === 'Available').length, bg: '#F0FDF4', color: '#16A34A', icon: CheckBadge },
+    { label: 'Maintenance', value: vehicles.filter(v => v.status === 'Maintenance').length, bg: '#FEF2F2', color: '#DC2626', icon: MaintenanceWrench },
   ];
 
   const columns = [
@@ -214,7 +215,7 @@ export default function VehicleListPage() {
           {stats.map((s) => (
             <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
-                <Truck size={24} style={{ color: s.color }} />
+                <s.icon className="w-6 h-6" style={{ color: s.color }} />
               </div>
               <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5 text-center" style={{ color: s.color }}>{s.value}</p>
               <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider text-center px-1 leading-tight">{s.label} Vehicles</p>

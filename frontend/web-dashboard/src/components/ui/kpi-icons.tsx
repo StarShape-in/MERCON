@@ -149,6 +149,16 @@ export const RouteLine = (p: IconProps) => (
   </Svg>
 )
 
+/** Office building — customers / companies. */
+export const CustomerBuilding = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16" />
+    <path d="M14 9h4a1 1 0 0 1 1 1v11" />
+    <path d="M3 21h18" />
+    <path d="M7 8h3M7 11.5h3M7 15h3" />
+  </Svg>
+)
+
 /** Clock — outstanding / time. */
 export const ClockIcon = (p: IconProps) => (
   <Svg {...p}>

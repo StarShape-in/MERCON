@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, DollarSign, Receipt, Download, Trash2, CheckCircle } from 'lucide-react';
+import { Plus, DollarSign, Download, Trash2, CheckCircle } from 'lucide-react';
+import { InvoiceDoc, ClockIcon, RiskAlert } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
 
@@ -35,9 +36,9 @@ export default function InvoiceListPage() {
 
   // Stats
   const stats = [
-    { label: 'Total Invoices', value: invoicesRes?.meta?.total || invoices.length, bg: '#F5F5F7', color: '#111' },
-    { label: 'Pending', value: invoices.filter(i => i.status === 'Pending').length, bg: '#FEF9C3', color: '#CA8A04' },
-    { label: 'Overdue', value: invoices.filter(i => i.status === 'Overdue').length, bg: '#FEF2F2', color: '#DC2626' },
+    { label: 'Total Invoices', value: invoicesRes?.meta?.total || invoices.length, bg: '#F5F5F7', color: '#111', icon: InvoiceDoc },
+    { label: 'Pending', value: invoices.filter(i => i.status === 'Pending').length, bg: '#FEF9C3', color: '#CA8A04', icon: ClockIcon },
+    { label: 'Overdue', value: invoices.filter(i => i.status === 'Overdue').length, bg: '#FEF2F2', color: '#DC2626', icon: RiskAlert },
   ];
 
   const getStatusBadge = (status: InvoiceStatus) => {
@@ -176,7 +177,7 @@ export default function InvoiceListPage() {
           {stats.map((s) => (
             <div key={s.label} className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex flex-col justify-center items-center flex-1 min-w-[200px] py-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: s.bg }}>
-                <Receipt size={24} style={{ color: s.color }} />
+                <s.icon className="w-6 h-6" style={{ color: s.color }} />
               </div>
               <p className="text-2xl font-extrabold leading-none tracking-tight mb-1.5 text-center" style={{ color: s.color }}>{s.value}</p>
               <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider text-center px-1 leading-tight">{s.label}</p>
