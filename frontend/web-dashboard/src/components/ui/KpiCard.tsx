@@ -12,6 +12,24 @@ export interface UrgencySegment {
   color: string
 }
 
+export interface LivePulseTrack {
+  statusText: string
+  subText?: string
+  pulseColor?: string
+}
+
+export interface CompletionGauge {
+  percentage: number
+  label: string
+  subtext?: string
+}
+
+export interface PipelineStage {
+  name: string
+  count: number
+  color: string
+}
+
 export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 'title' | 'value'> {
   title?: string
   label?: string
@@ -24,6 +42,9 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 't
   variant?: KpiCardVariant
   chartData?: (number | { value: number; [key: string]: any })[]
   progressSegments?: UrgencySegment[]
+  livePulseTrack?: LivePulseTrack
+  completionGauge?: CompletionGauge
+  pipelineStages?: PipelineStage[]
 
   // Backward compatibility props
   delta?: string | number | null
@@ -119,6 +140,9 @@ export function KpiCard({
   variant,
   chartData,
   progressSegments,
+  livePulseTrack,
+  completionGauge,
+  pipelineStages,
   className,
   delta,
   up,
@@ -234,11 +258,82 @@ export function KpiCard({
           </div>
         )}
 
-        {/* Mini Chart OR Segmented Urgency Progress Bar */}
+        {/* Specialized Visual Indicator Component Area */}
         <div className="mt-3 -mx-4 -mb-4 overflow-hidden">
-          {progressSegments && progressSegments.length > 0 ? (
+          {/* Mode 1: Live Pulse Track (GPS Radar Track for IN TRANSIT) */}
+          {livePulseTrack ? (
+            <div className="px-4 pb-3.5 pt-1 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                  </span>
+                  <span>{livePulseTrack.statusText}</span>
+                </div>
+                {livePulseTrack.subText && (
+                  <span className="text-[10px] text-muted-foreground font-normal">{livePulseTrack.subText}</span>
+                )}
+              </div>
+              <div className="w-full bg-blue-100 dark:bg-blue-950/60 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-blue-600 h-full rounded-full w-[74%] animate-pulse" />
+              </div>
+            </div>
+          ) : completionGauge ? (
+            /* Mode 2: Completion Ring Gauge (Donut Gauge for DELIVERED & COMPLETED) */
+            <div className="px-4 pb-3 pt-0.5 flex items-center justify-between gap-3">
+              <div className="flex flex-col">
+                <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+                  {completionGauge.label}
+                </span>
+                {completionGauge.subtext && (
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {completionGauge.subtext}
+                  </span>
+                )}
+              </div>
+              <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-100 dark:text-slate-800"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-emerald-500"
+                    strokeDasharray={`${completionGauge.percentage}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <span className="absolute text-[9px] font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                  {completionGauge.percentage}%
+                </span>
+              </div>
+            </div>
+          ) : pipelineStages && pipelineStages.length > 0 ? (
+            /* Mode 3: Pipeline Stages Stepper (Stage Cards for DISPATCH QUEUE) */
+            <div className="px-4 pb-3 pt-0.5 flex flex-col gap-1.5">
+              <div className="grid grid-cols-3 gap-1.5">
+                {pipelineStages.map((stage, idx) => (
+                  <div key={idx} className="flex flex-col p-1 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                    <div className="flex items-center gap-1">
+                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", stage.color)} />
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight truncate">{stage.name}</span>
+                    </div>
+                    <span className="text-xs font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">{stage.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : progressSegments && progressSegments.length > 0 ? (
+            /* Mode 4: Segmented Urgency Progress Bar */
             <div className="px-4 pb-3.5 pt-1 flex flex-col gap-2">
-              {/* Segmented Progress Bar */}
               <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5 border border-black/[0.04]">
                 {progressSegments.map((seg, idx) => (
                   <div
@@ -249,7 +344,6 @@ export function KpiCard({
                   />
                 ))}
               </div>
-              {/* Segment Legend Labels */}
               {progressSegments.some(s => s.label) && (
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono font-medium truncate">
                   {progressSegments.map((seg, idx) => seg.label ? (
@@ -262,6 +356,7 @@ export function KpiCard({
               )}
             </div>
           ) : (
+            /* Mode 5: Sparkline Area Chart */
             <div className="h-10">
               <ChartContainer
                 config={{

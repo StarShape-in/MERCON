@@ -411,7 +411,11 @@ export default function TripListPage() {
             trendValue="Active"
             description="→ Live on-road cargo routes"
             icon={RouteLine}
-            chartData={[2, 3, 4, 3, 5, 4, inTransitCount || 6]}
+            livePulseTrack={{
+              statusText: "En-Route • 74% On-Track",
+              subText: "Avg: 82 km/h",
+              pulseColor: "bg-blue-600"
+            }}
           />
           <KpiCard
             title="DELIVERED & COMPLETED"
@@ -421,11 +425,11 @@ export default function TripListPage() {
             trendValue="92.4% On-Time"
             description="↑ POD verified & delivered"
             icon={CheckBadge}
-            progressSegments={[
-              { label: '88% On-Time', value: 88, color: 'bg-emerald-500' },
-              { label: '8% Delay', value: 8, color: 'bg-amber-500' },
-              { label: '4% Exception', value: 4, color: 'bg-slate-300' },
-            ]}
+            completionGauge={{
+              percentage: 92,
+              label: "92.4% On-Time POD",
+              subtext: "34 Verified Receipts"
+            }}
           />
           <KpiCard
             title="DISPATCH QUEUE"
@@ -433,12 +437,12 @@ export default function TripListPage() {
             variant="amber"
             trend="neutral"
             trendValue="Pending Stage"
-            description="→ Pending driver & route prep"
+            description="→ Stage workflow queue"
             icon={ClockIcon}
-            progressSegments={[
-              { label: 'Pending Driver', value: 50, color: 'bg-amber-500' },
-              { label: 'Ready Dispatch', value: 35, color: 'bg-blue-500' },
-              { label: 'Unassigned', value: 15, color: 'bg-rose-500' },
+            pipelineStages={[
+              { name: "Draft", count: 3, color: "bg-amber-500" },
+              { name: "Assigned", count: 4, color: "bg-blue-500" },
+              { name: "Ready", count: 2, color: "bg-emerald-500" },
             ]}
           />
         </div>
