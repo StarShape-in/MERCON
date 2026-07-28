@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Truck, 
   Navigation, 
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { vehicleService, AssetType } from '@/services/vehicleService';
+import { vehicleService, AssetType, CreateVehiclePayload } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AddVehiclePage() {
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('tractor');
 
@@ -47,6 +48,18 @@ export default function AddVehiclePage() {
   });
 
   const [hasTrailer, setHasTrailer] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: (payload: CreateVehiclePayload) => vehicleService.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['fleet-performance'] });
+      navigate('/vehicles');
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.error?.message || err.message || 'Failed to add vehicle');
+    },
+  });
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -70,33 +83,34 @@ export default function AddVehiclePage() {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError(null);
-    setIsSubmitting(true);
 
-    try {
-      if (!formData.plate_number.trim()) {
-        setActiveTab('tractor');
-        throw new Error('Plate number is required');
-      }
-
-      if (!formData.capacity_kg || Number(formData.capacity_kg) <= 0) {
-        setActiveTab('tractor');
-        throw new Error('Valid tractor capacity (kg) is required');
-      }
-
-      await vehicleService.create({
-        ...formData,
-        capacity_kg: Number(formData.capacity_kg),
-        trailer_number: hasTrailer ? formData.trailer_number : undefined,
-        trailer_type: hasTrailer ? formData.trailer_type : undefined,
-        trailer_capacity_kg: hasTrailer && formData.trailer_capacity_kg ? Number(formData.trailer_capacity_kg) : undefined,
-      });
-      navigate('/vehicles');
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || err.message || 'Failed to add vehicle');
-    } finally {
-      setIsSubmitting(false);
+    if (!formData.plate_number.trim()) {
+      setActiveTab('tractor');
+      setError('Plate number is required');
+      return;
     }
+
+    if (!formData.capacity_kg || Number(formData.capacity_kg) <= 0) {
+      setActiveTab('tractor');
+      setError('Valid tractor capacity (kg) is required');
+      return;
+    }
+
+    const payload: CreateVehiclePayload = {
+      plate_number: formData.plate_number,
+      asset_type: formData.asset_type,
+      capacity_kg: Number(formData.capacity_kg),
+      trailer_number: hasTrailer && formData.trailer_number ? formData.trailer_number : undefined,
+      trailer_type: hasTrailer ? formData.trailer_type : undefined,
+      trailer_capacity_kg: hasTrailer && formData.trailer_capacity_kg ? Number(formData.trailer_capacity_kg) : undefined,
+      gps_device_id: formData.gps_device_id || undefined,
+      icces_device_id: formData.icces_device_id || undefined,
+    };
+
+    createMutation.mutate(payload);
   };
+
+  const isSubmitting = createMutation.isPending;
 
   const tractorCap = Number(formData.capacity_kg) || 0;
   const trailerCap = hasTrailer ? (Number(formData.trailer_capacity_kg) || 0) : 0;
