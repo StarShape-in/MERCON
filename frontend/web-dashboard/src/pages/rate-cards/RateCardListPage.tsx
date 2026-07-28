@@ -39,16 +39,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function RateCardListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showTariffModal, setShowTariffModal] = useState(false);
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['rate-cards'],
@@ -307,13 +317,14 @@ export default function RateCardListPage() {
             variant="emerald"
             trend="up"
             trendValue={`${kpis.activePct}% Active`}
-            description={`Out of ${kpis.total} Total Tariffs`}
+            description="Click to filter Active tariffs"
             icon={CheckBadge}
             completionGauge={{
               percentage: kpis.activePct || 85,
               label: `${kpis.activePct}% Active Tariffs`,
               subtext: `${kpis.activeCount} Active • ${kpis.total - kpis.activeCount} Inactive`
             }}
+            onClick={() => setSelectedStatus('Active')}
           />
 
           {/* Card 2: Avg Base Tariff Rate — Financial Sparkline */}
@@ -323,8 +334,9 @@ export default function RateCardListPage() {
             variant="brand"
             trend="up"
             trendValue="+4.2%"
-            description="vs previous quarter"
+            description="Click for tariff benchmark"
             icon={RevenueChart}
+            onClick={() => setShowTariffModal(true)}
           />
 
           {/* Card 3: Top Route Lane — Route Segment Bar */}
@@ -334,8 +346,9 @@ export default function RateCardListPage() {
             variant="blue"
             trend="neutral"
             trendValue="High Volume"
-            description="→ Top freight corridor"
+            description="Click to filter Riyadh corridor"
             icon={RouteLine}
+            onClick={() => setSearch('Riyadh')}
           >
             <RouteCorridorKpi origin="Riyadh" destination="Jeddah" tripCount={42} />
           </KpiCard>
@@ -501,6 +514,52 @@ export default function RateCardListPage() {
             ))}
           </div>
         )}
+
+        {/* Tariff Market Benchmark Modal */}
+        <Dialog open={showTariffModal} onOpenChange={setShowTariffModal}>
+          <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
+            <DialogHeader>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center mb-2">
+                <RevenueChart className="w-5 h-5 text-indigo-600" />
+              </div>
+              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                Tariff Market Benchmark Summary
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Quarterly base price averages across Saudi freight transport corridors.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 my-4 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60">
+                <div>
+                  <div className="font-bold text-indigo-900 dark:text-indigo-300">Average Freight Tariff</div>
+                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Mean base rate across active corridors</div>
+                </div>
+                <span className="font-mono font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">SAR {kpis.avgPrice.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">Active Rate Contracts</div>
+                  <div className="text-[10px] text-slate-400">Total tariff agreements in effect</div>
+                </div>
+                <Badge className="bg-[#E8450F] text-white font-mono font-bold text-xs">{kpis.activeCount} Active</Badge>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-bold border-slate-200"
+                onClick={() => setShowTariffModal(false)}
+              >
+                Close Benchmark Summary
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </DashboardLayout>

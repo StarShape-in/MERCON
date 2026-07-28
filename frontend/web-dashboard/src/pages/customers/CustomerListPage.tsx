@@ -53,6 +53,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function CustomerListPage() {
   const navigate = useNavigate();
@@ -64,6 +72,7 @@ export default function CustomerListPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -301,12 +310,13 @@ export default function CustomerListPage() {
             variant="brand"
             trend="up"
             trendValue="+8 Accounts"
-            description="→ Total corporate client ledger"
+            description="Click to view all accounts"
             icon={CustomerBuilding}
             progressSegments={[
               { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-[#E8450F]' },
               { label: `Commercial (${standardCreditCount})`, value: commercialTierPct, color: 'bg-blue-500' },
             ]}
+            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
 
           {/* Card 2: Active Clients — Donut Ratio Gauge */}
@@ -316,24 +326,26 @@ export default function CustomerListPage() {
             variant="emerald"
             trend="up"
             trendValue={`${activePercentage}% Active`}
-            description="↑ Accounts in good standing"
+            description="Click to filter Active accounts"
             icon={CheckBadge}
             completionGauge={{
               percentage: activePercentage || 100,
               label: `${activePercentage}% Active Ratio`,
               subtext: `${activeCount} Active • ${inactiveCount} Inactive`
             }}
+            onClick={() => { setSelectedStatus('Active'); setCurrentPage(1); }}
           />
 
-          {/* Card 3: Total Credit Exposure — Volume Sparkline */}
+          {/* Card 3: Total Credit Exposure — Credit Exposure Modal */}
           <KpiCard
             title="TOTAL CREDIT EXPOSURE"
             value={`SAR ${(totalCreditLimit / 1000).toFixed(0)}K`}
             variant="blue"
             trend="neutral"
             trendValue="Credit Portfolio"
-            description="Cumulative credit line extended"
+            description="Click for credit facility details"
             icon={MoneyBills}
+            onClick={() => setShowCreditModal(true)}
           >
             <CreditExposureKpi 
               usedAmount={Math.round(totalCreditLimit * 0.65)} 
@@ -545,6 +557,52 @@ export default function CustomerListPage() {
             })}
           </div>
         )}
+
+        {/* Credit Exposure Breakdown Modal */}
+        <Dialog open={showCreditModal} onOpenChange={setShowCreditModal}>
+          <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
+            <DialogHeader>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center mb-2">
+                <MoneyBills className="w-5 h-5 text-blue-600" />
+              </div>
+              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                Enterprise Credit Exposure & Facility
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Summary of approved corporate credit lines and utilized balance.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 my-4 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">Total Credit Line Facility</div>
+                  <div className="text-[10px] text-slate-400">Approved corporate credit ceiling</div>
+                </div>
+                <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100 text-sm">SAR {(totalCreditLimit || 500000).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60">
+                <div>
+                  <div className="font-bold text-indigo-900 dark:text-indigo-300">Currently Utilized Credit</div>
+                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Outstanding active trip billing balance</div>
+                </div>
+                <span className="font-mono font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">SAR {Math.round((totalCreditLimit || 500000) * 0.65).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs font-bold border-slate-200"
+                onClick={() => setShowCreditModal(false)}
+              >
+                Close Credit Facility Summary
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </DashboardLayout>
