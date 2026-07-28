@@ -6,8 +6,6 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import KpiCard from '@/components/ui/KpiCard';
-import { DriverBadge, CheckBadge, FleetTruck, CalendarAlert } from '@/components/ui/kpi-icons';
 import { authService } from '@/services/authService';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -151,19 +149,28 @@ export default function SettingsPage() {
       active="Account" 
       title="Settings" 
     >
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1200px] mx-auto w-full">
         
         {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <span>🏢 MERCON Fleet</span>
-              <span>•</span>
-              <span className="text-slate-900 dark:text-slate-100 font-bold">System Administration</span>
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <User className="w-5 h-5 text-indigo-600" />
             </div>
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200 font-bold dark:bg-indigo-950/40 dark:text-indigo-300 text-[10px] uppercase px-2 py-0.5">
-              Account & System Settings
-            </Badge>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Account Settings
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  System Administration
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Manage your user profile, security credentials, and organization preferences
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -179,76 +186,9 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* 4-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          
-          {/* Card 1: Account Identity — Gauge */}
-          <KpiCard
-            title="ACCOUNT IDENTITY"
-            value={user?.name || 'Administrator'}
-            variant="brand"
-            trend="neutral"
-            trendValue={user?.role || 'Operator'}
-            description={`ID: ${user?.id ? user.id.slice(0, 8) : 'USR-9021'}`}
-            icon={DriverBadge}
-            completionGauge={{
-              percentage: 100,
-              label: 'Active System User',
-              subtext: `Role: ${user?.role || 'System Operator'}`
-            }}
-          />
-
-          {/* Card 2: Organization Scope — Segment Bar */}
-          <KpiCard
-            title="ORGANIZATION SCOPE"
-            value="MERCON Logistics"
-            variant="blue"
-            trend="neutral"
-            trendValue="HQ Kingdom"
-            description="→ Legal & Operations HQ"
-            icon={FleetTruck}
-            progressSegments={[
-              { label: 'CR Active', value: 50, color: 'bg-indigo-600' },
-              { label: 'VAT Verified', value: 50, color: 'bg-emerald-500' },
-            ]}
-          />
-
-          {/* Card 3: Security Status — Gauge */}
-          <KpiCard
-            title="SECURITY HEALTH"
-            value="Encrypted & Safe"
-            variant="emerald"
-            trend="up"
-            trendValue="SSL 256-Bit"
-            description="Authentication Active"
-            icon={CheckBadge}
-            completionGauge={{
-              percentage: 95,
-              label: 'High Security Rating',
-              subtext: 'Token Session Active'
-            }}
-          />
-
-          {/* Card 4: Compliance & Access Level — Segment Bar */}
-          <KpiCard
-            title="ACCESS LEVEL"
-            value={String(user?.role).toLowerCase() === 'admin' ? 'Enterprise Admin' : 'Operations Lead'}
-            variant="amber"
-            trend="neutral"
-            trendValue="Full Access"
-            description="→ Operational Permissions"
-            icon={CalendarAlert}
-            progressSegments={[
-              { label: 'Dispatch', value: 40, color: 'bg-emerald-500' },
-              { label: 'Fleet Audit', value: 35, color: 'bg-[#E8450F]' },
-              { label: 'Financials', value: 25, color: 'bg-indigo-600' },
-            ]}
-          />
-        </div>
-
-        {/* Toolbar Segmented Tab Controller */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2 shadow-2xs shrink-0">
-          <div className="flex items-center gap-2 overflow-x-auto">
+        {/* Clean Horizontal Tab Controller */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-1.5 shadow-2xs shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto">
             <button
               onClick={() => setActiveTab('profile')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
@@ -295,15 +235,15 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Tab 1: Profile Information (Real Backend Wired) */}
+        {/* Tab 1: Profile Information */}
         {activeTab === 'profile' && (
           <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
             <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
               <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <User className="h-4.5 w-4.5 text-indigo-600" /> Profile Information
+                <User className="h-4.5 w-4.5 text-indigo-600" /> Personal Profile Information
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Update your personal identification and contact details (Wired live to backend).
+                Update your account details and contact information.
               </CardDescription>
             </CardHeader>
 
@@ -441,7 +381,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* Tab 3: Security & Passwords (Real Backend Wired) */}
+        {/* Tab 3: Security & Passwords */}
         {activeTab === 'security' && (
           <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
             <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -449,7 +389,7 @@ export default function SettingsPage() {
                 <Shield className="h-4.5 w-4.5 text-indigo-600" /> Security & Password Management
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Change account login password (Wired live to backend endpoint `/auth/change-password`).
+                Change account login password securely.
               </CardDescription>
             </CardHeader>
 
