@@ -57,14 +57,14 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
   };
 
   const navRoutes = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Trips', path: '/trips', icon: Truck },
-    { label: 'Vehicles', path: '/vehicles', icon: Truck },
-    { label: 'Drivers', path: '/drivers', icon: Users },
-    { label: 'Rate Cards', path: '/rate-cards', icon: FileText },
-    { label: 'Customers', path: '/customers', icon: Building2 },
-    { label: 'Invoices', path: '/invoices', icon: Receipt },
-    { label: 'Reports', path: '/reports', icon: PieChart },
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, activeClass: 'bg-violet-600 text-white shadow-2xs', iconActive: 'text-white', iconInactive: 'text-violet-500', hoverClass: 'hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-950/30 dark:hover:text-violet-300' },
+    { label: 'Trips',     path: '/trips',      icon: Truck,            activeClass: 'bg-indigo-600 text-white shadow-2xs', iconActive: 'text-white', iconInactive: 'text-indigo-500', hoverClass: 'hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/30 dark:hover:text-indigo-300' },
+    { label: 'Vehicles',  path: '/vehicles',   icon: Truck,            activeClass: 'bg-blue-600 text-white shadow-2xs',   iconActive: 'text-white', iconInactive: 'text-blue-500',   hoverClass: 'hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/30 dark:hover:text-blue-300' },
+    { label: 'Drivers',   path: '/drivers',    icon: Users,            activeClass: 'bg-emerald-600 text-white shadow-2xs', iconActive: 'text-white', iconInactive: 'text-emerald-500', hoverClass: 'hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300' },
+    { label: 'Rate Cards',path: '/rate-cards', icon: FileText,         activeClass: 'bg-[#E8450F] text-white shadow-2xs',  iconActive: 'text-white', iconInactive: 'text-orange-500', hoverClass: 'hover:bg-orange-50 hover:text-orange-700 dark:hover:bg-orange-950/30 dark:hover:text-orange-300' },
+    { label: 'Customers', path: '/customers',  icon: Building2,        activeClass: 'bg-cyan-600 text-white shadow-2xs',   iconActive: 'text-white', iconInactive: 'text-cyan-500',   hoverClass: 'hover:bg-cyan-50 hover:text-cyan-700 dark:hover:bg-cyan-950/30 dark:hover:text-cyan-300' },
+    { label: 'Invoices',  path: '/invoices',   icon: Receipt,          activeClass: 'bg-amber-500 text-white shadow-2xs',  iconActive: 'text-white', iconInactive: 'text-amber-500',  hoverClass: 'hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30 dark:hover:text-amber-300' },
+    { label: 'Reports',   path: '/reports',    icon: PieChart,         activeClass: 'bg-rose-600 text-white shadow-2xs',   iconActive: 'text-white', iconInactive: 'text-rose-500',   hoverClass: 'hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30 dark:hover:text-rose-300' },
   ];
 
   return (
@@ -85,11 +85,11 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
                 to={route.path}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   isActive 
-                    ? 'bg-[#E8450F] text-white shadow-2xs font-bold' 
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-900'
+                    ? route.activeClass
+                    : `text-slate-500 dark:text-slate-400 ${route.hoverClass}`
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? route.iconActive : route.iconInactive}`} />
                 <span>{route.label}</span>
               </Link>
             );
