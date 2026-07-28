@@ -1,260 +1,310 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ArrowLeft, Check, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button, Input } from '../../components';
+import { Button } from '../../components';
+import { getApiErrorMessage } from '../../lib/api';
+import {
+  operatorService, invalidateOperatorTrips,
+  type OperatorCustomer, type OperatorDriver, type OperatorVehicle,
+} from '../../lib/operator';
 
-const CUSTOMERS = ['Saudi Electronics Co.', 'Al-Jazeera Trading', 'Gulf Auto Parts', 'Aramco Supply'];
-const DRIVERS = [
-  { id: 'DRV-0112', name: 'Ahmed Al-Rashidi', status: 'available' },
-  { id: 'DRV-0147', name: 'Khalid Al-Zahrani', status: 'available' },
-  { id: 'DRV-0089', name: 'Faisal Al-Ghamdi', status: 'on_trip' },
-];
-const VEHICLES = [
-  { id: 'TRK-2041', model: 'Mercedes Actros', status: 'available' },
-  { id: 'TRK-2038', model: 'Volvo FH 540', status: 'available' },
-  { id: 'TRK-2035', model: 'MAN TGX', status: 'on_trip' },
-];
+const CreateTripScreen = () => {
+  const router = useRouter();
 
-const CreateTripScreen = ({ navigation }: any) => {
-  const [customer, setCustomer] = useState('');
-  const [pickup, setPickup] = useState('');
-  const [destination, setDestination] = useState('');
+  const [loadingOptions, setLoadingOptions] = useState(true);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<OperatorCustomer[]>([]);
+  const [drivers, setDrivers] = useState<OperatorDriver[]>([]);
+  const [vehicles, setVehicles] = useState<OperatorVehicle[]>([]);
+
+  const [customerId, setCustomerId] = useState('');
+  const [pickupLat, setPickupLat] = useState('');
+  const [pickupLng, setPickupLng] = useState('');
+  const [dropoffLat, setDropoffLat] = useState('');
+  const [dropoffLng, setDropoffLng] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [cargoDesc, setCargoDesc] = useState('');
-  const [cargoWeight, setCargoWeight] = useState('');
   const [selectedDriver, setSelectedDriver] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
-  const [notes, setNotes] = useState('');
 
-  const isValid = customer && pickup && destination && date && selectedDriver && selectedVehicle;
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setLoadingOptions(true);
+      setOptionsError(null);
+      try {
+        const [c, d, v] = await Promise.all([
+          operatorService.customers(),
+          operatorService.availableDrivers(),
+          operatorService.availableVehicles(),
+        ]);
+        setCustomers(c);
+        setDrivers(d);
+        setVehicles(v);
+      } catch (e) {
+        setOptionsError(getApiErrorMessage(e));
+      } finally {
+        setLoadingOptions(false);
+      }
+    })();
+  }, []);
+
+  const pickupLatNum = parseFloat(pickupLat);
+  const pickupLngNum = parseFloat(pickupLng);
+  const dropoffLatNum = parseFloat(dropoffLat);
+  const dropoffLngNum = parseFloat(dropoffLng);
+  const hasValidCoords =
+    !Number.isNaN(pickupLatNum) && !Number.isNaN(pickupLngNum) &&
+    !Number.isNaN(dropoffLatNum) && !Number.isNaN(dropoffLngNum);
+
+  const isValid = !!customerId && !!cargoDesc && !!selectedDriver && !!selectedVehicle && hasValidCoords;
+
+  function parsePlannedStart(): string | undefined {
+    // date: DD/MM/YYYY, time: HH:MM — both optional, best-effort parse.
+    const dateMatch = date.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!dateMatch) return undefined;
+    const [, dd, mm, yyyy] = dateMatch;
+    const timeMatch = time.trim().match(/^(\d{1,2}):(\d{2})$/) ?? ['', '0', '0'];
+    const [, hh, min] = timeMatch;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
+    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+  }
+
+  const handleSubmit = async () => {
+    if (!isValid || submitting) return;
+    setSubmitting(true);
+    try {
+      await operatorService.createTrip({
+        customer_id: customerId,
+        driver_id: selectedDriver,
+        vehicle_id: selectedVehicle,
+        cargo_type: cargoDesc,
+        planned_start: parsePlannedStart(),
+        stops: [
+          { stop_type: 'Pickup', lat: pickupLatNum, lng: pickupLngNum },
+          { stop_type: 'Dropoff', lat: dropoffLatNum, lng: dropoffLngNum },
+        ],
+      });
+      invalidateOperatorTrips();
+      router.back();
+    } catch (e) {
+      Alert.alert('Could not create trip', getApiErrorMessage(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
+        <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
           <ArrowLeft size={22} color={Colors.gray900} strokeWidth={2.2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create New Trip</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Section: Customer */}
-        <Text style={styles.sectionTitle}>Customer</Text>
-        <View style={styles.pickerCard}>
-          {CUSTOMERS.map((c) => (
-            <TouchableOpacity
-              key={c}
-              style={[styles.pickerItem, customer === c ? styles.pickerItemActive : null]}
-              activeOpacity={0.8}
-              onPress={() => setCustomer(c)}
-            >
-              <Text style={[styles.pickerItemText, customer === c ? styles.pickerItemTextActive : null]}>
-                {c}
-              </Text>
-              {customer === c && <Check size={18} color={Colors.primary} strokeWidth={3} />}
-            </TouchableOpacity>
-          ))}
-        </View>
+      {loadingOptions ? (
+        <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          {optionsError ? <Text style={styles.errorText}>{optionsError}</Text> : null}
 
-        {/* Section: Route */}
-        <Text style={styles.sectionTitle}>Route</Text>
-        <View style={styles.formCard}>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Pickup Location</Text>
-            <TextInput
-              style={styles.input}
-              value={pickup}
-              onChangeText={setPickup}
-              placeholder="e.g. Riyadh Industrial Zone, Gate 3"
-              placeholderTextColor={Colors.gray400}
-            />
+          {/* Section: Customer */}
+          <Text style={styles.sectionTitle}>Customer</Text>
+          <View style={styles.pickerCard}>
+            {customers.length === 0 ? (
+              <Text style={styles.emptyHint}>No customers found</Text>
+            ) : (
+              customers.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[styles.pickerItem, customerId === c.id ? styles.pickerItemActive : null]}
+                  activeOpacity={0.8}
+                  onPress={() => setCustomerId(c.id)}
+                >
+                  <Text style={[styles.pickerItemText, customerId === c.id ? styles.pickerItemTextActive : null]}>
+                    {c.name}
+                  </Text>
+                  {customerId === c.id && <Check size={18} color={Colors.primary} strokeWidth={3} />}
+                </TouchableOpacity>
+              ))
+            )}
           </View>
-          <View style={styles.formDivider} />
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Destination</Text>
-            <TextInput
-              style={styles.input}
-              value={destination}
-              onChangeText={setDestination}
-              placeholder="e.g. Jeddah Port, Gate 7"
-              placeholderTextColor={Colors.gray400}
-            />
-          </View>
-        </View>
 
-        {/* Section: Date & Time */}
-        <Text style={styles.sectionTitle}>Departure</Text>
-        <View style={styles.formCard}>
-          <View style={styles.rowFields}>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Date</Text>
-              <TextInput
-                style={styles.input}
-                value={date}
-                onChangeText={setDate}
-                placeholder="DD/MM/YYYY"
-                placeholderTextColor={Colors.gray400}
-                keyboardType="numeric"
-              />
+          {/* Section: Route */}
+          <Text style={styles.sectionTitle}>Route</Text>
+          <View style={styles.formCard}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Pickup Coordinates (lat, lng)</Text>
+              <View style={styles.rowFields}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={pickupLat}
+                  onChangeText={setPickupLat}
+                  placeholder="Latitude"
+                  placeholderTextColor={Colors.gray400}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={pickupLng}
+                  onChangeText={setPickupLng}
+                  placeholder="Longitude"
+                  placeholderTextColor={Colors.gray400}
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Time</Text>
-              <TextInput
-                style={styles.input}
-                value={time}
-                onChangeText={setTime}
-                placeholder="HH:MM"
-                placeholderTextColor={Colors.gray400}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Section: Cargo */}
-        <Text style={styles.sectionTitle}>Cargo</Text>
-        <View style={styles.formCard}>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={styles.input}
-              value={cargoDesc}
-              onChangeText={setCargoDesc}
-              placeholder="e.g. Consumer Electronics"
-              placeholderTextColor={Colors.gray400}
-            />
-          </View>
-          <View style={styles.formDivider} />
-          <View style={styles.rowFields}>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Weight (kg)</Text>
-              <TextInput
-                style={styles.input}
-                value={cargoWeight}
-                onChangeText={setCargoWeight}
-                placeholder="e.g. 2400"
-                placeholderTextColor={Colors.gray400}
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Pallets</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. 12"
-                placeholderTextColor={Colors.gray400}
-                keyboardType="numeric"
-              />
+            <View style={styles.formDivider} />
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Dropoff Coordinates (lat, lng)</Text>
+              <View style={styles.rowFields}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={dropoffLat}
+                  onChangeText={setDropoffLat}
+                  placeholder="Latitude"
+                  placeholderTextColor={Colors.gray400}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={dropoffLng}
+                  onChangeText={setDropoffLng}
+                  placeholder="Longitude"
+                  placeholderTextColor={Colors.gray400}
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Section: Driver */}
-        <Text style={styles.sectionTitle}>Assign Driver</Text>
-        <View style={styles.pickerCard}>
-          {DRIVERS.map((driver) => (
-            <TouchableOpacity
-              key={driver.id}
-              style={[
-                styles.driverItem,
-                selectedDriver === driver.id ? styles.driverItemActive : null,
-                driver.status === 'on_trip' ? styles.driverItemDisabled : null,
-              ]}
-              activeOpacity={driver.status === 'on_trip' ? 1 : 0.8}
-              onPress={() => driver.status !== 'on_trip' && setSelectedDriver(driver.id)}
-            >
-              <View style={styles.driverAvatar}>
-                <Text style={styles.driverAvatarText}>
-                  {driver.name.split(' ').map((n: string) => n[0]).join('')}
-                </Text>
+          {/* Section: Date & Time */}
+          <Text style={styles.sectionTitle}>Departure (Optional)</Text>
+          <View style={styles.formCard}>
+            <View style={styles.rowFields}>
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Date</Text>
+                <TextInput
+                  style={styles.input}
+                  value={date}
+                  onChangeText={setDate}
+                  placeholder="DD/MM/YYYY"
+                  placeholderTextColor={Colors.gray400}
+                  keyboardType="numeric"
+                />
               </View>
-              <View style={styles.driverInfo}>
-                <Text style={[styles.driverName, driver.status === 'on_trip' ? styles.disabledText : null]}>
-                  {driver.name}
-                </Text>
-                <Text style={[styles.driverId, driver.status === 'on_trip' ? styles.disabledText : null]}>
-                  {driver.id}
-                </Text>
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Time</Text>
+                <TextInput
+                  style={styles.input}
+                  value={time}
+                  onChangeText={setTime}
+                  placeholder="HH:MM"
+                  placeholderTextColor={Colors.gray400}
+                  keyboardType="numeric"
+                />
               </View>
-              <View style={[styles.driverStatusBadge, driver.status === 'on_trip' ? styles.driverBadgeBusy : styles.driverBadgeAvail]}>
-                <Text style={[styles.driverStatusText, driver.status === 'on_trip' ? styles.driverStatusBusy : styles.driverStatusAvail]}>
-                  {driver.status === 'on_trip' ? 'On Trip' : 'Available'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+            </View>
+          </View>
 
-        {/* Section: Vehicle */}
-        <Text style={styles.sectionTitle}>Assign Vehicle</Text>
-        <View style={styles.pickerCard}>
-          {VEHICLES.map((v) => (
-            <TouchableOpacity
-              key={v.id}
-              style={[
-                styles.driverItem,
-                selectedVehicle === v.id ? styles.driverItemActive : null,
-                v.status === 'on_trip' ? styles.driverItemDisabled : null,
-              ]}
-              activeOpacity={v.status === 'on_trip' ? 1 : 0.8}
-              onPress={() => v.status !== 'on_trip' && setSelectedVehicle(v.id)}
-            >
-              <View style={[styles.driverAvatar, styles.vehicleAvatarBg]}>
-                <Truck size={22} color={Colors.primary} strokeWidth={2} />
-              </View>
-              <View style={styles.driverInfo}>
-                <Text style={[styles.driverName, v.status === 'on_trip' ? styles.disabledText : null]}>
-                  {v.id}
-                </Text>
-                <Text style={[styles.driverId, v.status === 'on_trip' ? styles.disabledText : null]}>
-                  {v.model}
-                </Text>
-              </View>
-              <View style={[styles.driverStatusBadge, v.status === 'on_trip' ? styles.driverBadgeBusy : styles.driverBadgeAvail]}>
-                <Text style={[styles.driverStatusText, v.status === 'on_trip' ? styles.driverStatusBusy : styles.driverStatusAvail]}>
-                  {v.status === 'on_trip' ? 'On Trip' : 'Available'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+          {/* Section: Cargo */}
+          <Text style={styles.sectionTitle}>Cargo</Text>
+          <View style={styles.formCard}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={styles.input}
+                value={cargoDesc}
+                onChangeText={setCargoDesc}
+                placeholder="e.g. Consumer Electronics"
+                placeholderTextColor={Colors.gray400}
+              />
+            </View>
+          </View>
 
-        {/* Notes */}
-        <Text style={styles.sectionTitle}>Notes (Optional)</Text>
-        <View style={styles.formCard}>
-          <TextInput
-            style={styles.notesInput}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Any special instructions, customs requirements, or delivery notes..."
-            placeholderTextColor={Colors.gray400}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
+          {/* Section: Driver */}
+          <Text style={styles.sectionTitle}>Assign Driver</Text>
+          <View style={styles.pickerCard}>
+            {drivers.length === 0 ? (
+              <Text style={styles.emptyHint}>No available drivers</Text>
+            ) : (
+              drivers.map((driver) => (
+                <TouchableOpacity
+                  key={driver.id}
+                  style={[styles.driverItem, selectedDriver === driver.id ? styles.driverItemActive : null]}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedDriver(driver.id)}
+                >
+                  <View style={styles.driverAvatar}>
+                    <Text style={styles.driverAvatarText}>
+                      {`${driver.first_name[0] ?? ''}${driver.last_name[0] ?? ''}`.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.driverInfo}>
+                    <Text style={styles.driverName}>{driver.first_name} {driver.last_name}</Text>
+                    <Text style={styles.driverId}>{driver.ref_id ?? driver.license_number}</Text>
+                  </View>
+                  <View style={[styles.driverStatusBadge, styles.driverBadgeAvail]}>
+                    <Text style={[styles.driverStatusText, styles.driverStatusAvail]}>Available</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+
+          {/* Section: Vehicle */}
+          <Text style={styles.sectionTitle}>Assign Vehicle</Text>
+          <View style={styles.pickerCard}>
+            {vehicles.length === 0 ? (
+              <Text style={styles.emptyHint}>No available vehicles</Text>
+            ) : (
+              vehicles.map((v) => (
+                <TouchableOpacity
+                  key={v.id}
+                  style={[styles.driverItem, selectedVehicle === v.id ? styles.driverItemActive : null]}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedVehicle(v.id)}
+                >
+                  <View style={[styles.driverAvatar, styles.vehicleAvatarBg]}>
+                    <Truck size={22} color={Colors.primary} strokeWidth={2} />
+                  </View>
+                  <View style={styles.driverInfo}>
+                    <Text style={styles.driverName}>{v.plate_number}</Text>
+                    <Text style={styles.driverId}>{v.asset_type}</Text>
+                  </View>
+                  <View style={[styles.driverStatusBadge, styles.driverBadgeAvail]}>
+                    <Text style={[styles.driverStatusText, styles.driverStatusAvail]}>Available</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+
+          <Button
+            title={submitting ? 'Creating…' : 'Create Trip'}
+            onPress={handleSubmit}
+            disabled={!isValid || submitting}
+            loading={submitting}
           />
-        </View>
 
-        <Button
-          title="Create Trip"
-          onPress={() => navigation?.goBack()}
-          disabled={!isValid}
-        />
-
-        {!isValid && (
-          <Text style={styles.validationHint}>
-            Fill in customer, route, date, driver and vehicle to create the trip.
-          </Text>
-        )}
-      </ScrollView>
+          {!isValid && (
+            <Text style={styles.validationHint}>
+              Fill in customer, cargo, pickup/dropoff coordinates, driver and vehicle to create the trip.
+            </Text>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -278,10 +328,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 20,
-    color: Colors.gray900,
-  },
   headerTitle: {
     fontSize: Typography.lg,
     fontWeight: '700',
@@ -294,6 +340,11 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
     gap: Spacing.sm,
+  },
+  errorText: {
+    fontSize: Typography.sm,
+    color: Colors.error,
+    marginBottom: Spacing.sm,
   },
   sectionTitle: {
     fontSize: Typography.sm,
@@ -309,6 +360,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl,
     overflow: 'hidden',
     ...Shadows.sm,
+  },
+  emptyHint: {
+    padding: Spacing.lg,
+    fontSize: Typography.sm,
+    color: Colors.gray500,
   },
   pickerItem: {
     flexDirection: 'row',
@@ -328,11 +384,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   pickerItemTextActive: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  checkmark: {
-    fontSize: 16,
     color: Colors.primary,
     fontWeight: '700',
   },
@@ -378,9 +429,6 @@ const styles = StyleSheet.create({
   driverItemActive: {
     backgroundColor: '#FFF7ED',
   },
-  driverItemDisabled: {
-    opacity: 0.5,
-  },
   driverAvatar: {
     width: 40,
     height: 40,
@@ -397,9 +445,6 @@ const styles = StyleSheet.create({
   vehicleAvatarBg: {
     backgroundColor: Colors.gray200,
   },
-  vehicleAvatarEmoji: {
-    fontSize: 20,
-  },
   driverInfo: {
     flex: 1,
   },
@@ -412,9 +457,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs,
     color: Colors.gray500,
   },
-  disabledText: {
-    color: Colors.gray400,
-  },
   driverStatusBadge: {
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.sm,
@@ -423,24 +465,12 @@ const styles = StyleSheet.create({
   driverBadgeAvail: {
     backgroundColor: '#DCFCE7',
   },
-  driverBadgeBusy: {
-    backgroundColor: Colors.gray100,
-  },
   driverStatusText: {
     fontSize: Typography.xs,
     fontWeight: '700',
   },
   driverStatusAvail: {
     color: Colors.success,
-  },
-  driverStatusBusy: {
-    color: Colors.gray400,
-  },
-  notesInput: {
-    fontSize: Typography.sm,
-    color: Colors.gray900,
-    minHeight: 100,
-    textAlignVertical: 'top',
   },
   validationHint: {
     fontSize: Typography.xs,

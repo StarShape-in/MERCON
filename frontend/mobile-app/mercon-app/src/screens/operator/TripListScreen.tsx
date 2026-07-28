@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { User, Package, Calendar, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
@@ -28,8 +29,8 @@ function formatDate(iso?: string | null): string {
 const driverName = (t: OperatorTrip) =>
   t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned';
 
-const TripCard = ({ item }: { item: OperatorTrip }) => (
-  <View style={styles.card}>
+const TripCard = ({ item, onPress }: { item: OperatorTrip; onPress: () => void }) => (
+  <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
     <View style={styles.cardTop}>
       <Text style={styles.tripId}>#{item.ref_id ?? item.id.slice(0, 8)}</Text>
       <StatusBadge status={statusLabel(item.status as TripStatus)} />
@@ -49,10 +50,11 @@ const TripCard = ({ item }: { item: OperatorTrip }) => (
       <Calendar size={13} color={Colors.gray400} strokeWidth={2} />
       <Text style={styles.tripDate}>{formatDate(item.planned_start ?? item.createdAt)}</Text>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 const TripListScreen = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('Trips');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
@@ -124,7 +126,12 @@ const TripListScreen = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading && trips.length > 0} onRefresh={refetch} />}
-        renderItem={({ item }) => <TripCard item={item} />}
+        renderItem={({ item }) => (
+          <TripCard
+            item={item}
+            onPress={() => router.push({ pathname: '/operator/trip-details', params: { id: item.id } })}
+          />
+        )}
         ListEmptyComponent={
           loading ? (
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />

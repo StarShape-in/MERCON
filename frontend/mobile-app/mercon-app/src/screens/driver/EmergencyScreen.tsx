@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, Image, Alert,
+  StyleSheet, SafeAreaView, StatusBar, Image, Alert, Linking,
 } from 'react-native';
 import {
   ArrowLeft, Siren, Phone, Camera, MapPin, Zap, Wrench, Hospital, Shield,
@@ -11,6 +11,9 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Button } from '../../components';
 import { emergencyService } from '../../lib/emergency';
 import { getApiErrorMessage } from '../../lib/api';
+import { choosePhoto } from '../../lib/camera';
+
+const OPERATOR_EMERGENCY_PHONE = '+966112345678';
 
 const EmergencyScreen = ({ navigation }: any) => {
   const [notes, setNotes] = useState('');
@@ -24,6 +27,26 @@ const EmergencyScreen = ({ navigation }: any) => {
     { id: 'medical', label: 'Medical Emergency', Icon: Hospital },
     { id: 'security', label: 'Security Threat', Icon: Shield },
   ];
+
+  const callOperator = () => {
+    Linking.openURL(`tel:${OPERATOR_EMERGENCY_PHONE}`).catch(() => {
+      Alert.alert('Could not place call', 'Please dial the operator manually.');
+    });
+  };
+
+  const addPhoto = async (index: number) => {
+    try {
+      const photo = await choosePhoto();
+      if (!photo) return;
+      setPhotos((prev) => {
+        const next = [...prev];
+        next[index] = photo.uri;
+        return next;
+      });
+    } catch (e) {
+      Alert.alert('Could not add photo', getApiErrorMessage(e));
+    }
+  };
 
   const send = async () => {
     if (sending) return;
@@ -72,7 +95,7 @@ const EmergencyScreen = ({ navigation }: any) => {
         {/* Body */}
         <View style={styles.body}>
           {/* Call Operator */}
-          <TouchableOpacity style={styles.callBtn} activeOpacity={0.8} onPress={() => {}}>
+          <TouchableOpacity style={styles.callBtn} activeOpacity={0.8} onPress={callOperator}>
             <Phone size={26} color={Colors.error} strokeWidth={2.2} />
             <Text style={styles.callText}>Call Operator Now</Text>
             <Text style={styles.callSub}>+966 11 234 5678</Text>
@@ -104,7 +127,7 @@ const EmergencyScreen = ({ navigation }: any) => {
                 key={i}
                 style={[styles.photoSlot, photos[i] ? styles.photoFilled : null]}
                 activeOpacity={0.8}
-                onPress={() => {}}
+                onPress={() => addPhoto(i)}
               >
                 {photos[i] ? (
                   <Image source={{ uri: photos[i] }} style={styles.photoImg} />

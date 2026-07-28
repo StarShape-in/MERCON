@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions, Switch,
+  Dimensions, Switch, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -131,7 +131,7 @@ const SettingsScreen = ({ navigation }: any) => {
               key={row.label}
               style={[styles.row, i < CHEVRON_ROWS.length - 1 ? styles.rowBorder : null]}
               activeOpacity={0.8}
-              onPress={() => {}}
+              onPress={() => Alert.alert('Coming Soon', 'This section will be available in a future update.')}
             >
               <View style={styles.rowIconBox}>
                 <row.Icon size={18} color={Colors.gray600} strokeWidth={2} />
@@ -148,14 +148,22 @@ const SettingsScreen = ({ navigation }: any) => {
         {/* Account */}
         <Text style={styles.groupLabel}>Account</Text>
         <View style={styles.groupCard}>
-          <TouchableOpacity style={[styles.row, styles.rowBorder]} activeOpacity={0.8} onPress={() => {}}>
+          <TouchableOpacity
+            style={[styles.row, styles.rowBorder]}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Coming Soon', 'Password changes can be done through your operator.')}
+          >
             <View style={styles.rowIconBox}>
               <KeyRound size={18} color={Colors.gray600} strokeWidth={2} />
             </View>
             <Text style={styles.rowLabelSingle}>Change Password</Text>
             <ChevronRight size={18} color={Colors.gray400} strokeWidth={2} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row} activeOpacity={0.8} onPress={() => {}}>
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Contact Support', 'To delete your account, contact your fleet operator.')}
+          >
             <View style={styles.rowIconBox}>
               <Trash2 size={18} color={Colors.error} strokeWidth={2} />
             </View>

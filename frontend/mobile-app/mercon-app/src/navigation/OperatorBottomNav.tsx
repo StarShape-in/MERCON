@@ -18,6 +18,8 @@ interface OperatorBottomNavProps {
   onFabPress?: () => void;
 }
 
+const DEFAULT_FAB_ROUTE = '/operator/create-trip';
+
 const LEFT_TABS:  { label: 'Home' | 'Trips'; Icon: LucideIcon }[]   = [{ label: 'Home', Icon: House }, { label: 'Trips', Icon: Truck }];
 const RIGHT_TABS: { label: 'Drivers' | 'More'; Icon: LucideIcon }[] = [{ label: 'Drivers', Icon: User }, { label: 'More', Icon: Ellipsis }];
 
@@ -41,7 +43,7 @@ export function OperatorBottomNav({ activeTab: explicitActive, onTabPress, onFab
   };
 
   const renderTab = ({ label, Icon }: { label: OperatorTab; Icon: LucideIcon }) => {
-    const route = label === 'Home' ? '/' : label === 'Trips' ? '/trips' : label === 'Drivers' ? '/documents' : '/settings';
+    const route = label === 'Home' ? '/' : label === 'Trips' ? '/operator/trips' : label === 'Drivers' ? '/operator/drivers' : '/settings';
     const active = explicitActive
       ? explicitActive === label
       : route === '/' ? pathname === '/' : pathname.startsWith(route);
@@ -74,7 +76,11 @@ export function OperatorBottomNav({ activeTab: explicitActive, onTabPress, onFab
 
         {/* FAB */}
         <View style={styles.fabSlot}>
-          <TouchableOpacity onPress={onFabPress} activeOpacity={0.85} style={[styles.fab, Shadows.sm]}>
+          <TouchableOpacity
+            onPress={onFabPress ?? (() => router.push(DEFAULT_FAB_ROUTE as any))}
+            activeOpacity={0.85}
+            style={[styles.fab, Shadows.sm]}
+          >
             <Plus size={26} color={Colors.primary} strokeWidth={2.6} />
           </TouchableOpacity>
         </View>

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView, StatusBar,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import {
   Truck, ClipboardList, User, Route, Wallet, FileText, Hand, TriangleAlert,
   type LucideIcon,
@@ -37,6 +38,7 @@ const TripItem = ({ item }: { item: OperatorTrip }) => (
 );
 
 const OperatorHomeScreen = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('Home');
   const { profile } = useAuth();
   const { summary, activeTrips, loading, error, refetch } = useOperatorDashboard();
@@ -96,7 +98,11 @@ const OperatorHomeScreen = () => {
 
             {/* Docs expiring alert */}
             {docsExpiring > 0 && (
-              <View style={styles.renewalAlert}>
+              <TouchableOpacity
+                style={styles.renewalAlert}
+                activeOpacity={0.8}
+                onPress={() => router.push('/operator/vehicle-renewals')}
+              >
                 <View style={styles.renewalAlertLeft}>
                   <TriangleAlert size={20} color="#D97706" strokeWidth={2} />
                   <View>
@@ -104,7 +110,7 @@ const OperatorHomeScreen = () => {
                     <Text style={styles.renewalAlertSub}>Renewals due within the next 30 days</Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
 
             {/* Active Trips */}

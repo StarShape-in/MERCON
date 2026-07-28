@@ -74,9 +74,10 @@ export default function RateCardListPage() {
       header: 'Actions',
       accessor: (row: any) => (
         <div className="flex gap-1">
-          <button 
+          <button
             className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
             title="Edit Rate Card"
+            onClick={(e) => { e.stopPropagation(); navigate(`/rate-cards/${row.id}/edit`); }}
           >
             <Edit2 size={13} className="text-[#6E6E80]" />
           </button>

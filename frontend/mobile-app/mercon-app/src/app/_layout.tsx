@@ -9,7 +9,10 @@ import { OperatorBottomNav } from '@/navigation/OperatorBottomNav';
 
 SplashScreen.preventAutoHideAsync();
 
-const TAB_ROUTES = ['/', '/trips', '/profile', '/notifications', '/documents', '/vehicle', '/settings'];
+const TAB_ROUTES = [
+  '/', '/trips', '/profile', '/notifications', '/documents', '/vehicle', '/settings',
+  '/operator/trips', '/operator/drivers', '/operator/vehicles', '/operator/invoices',
+];
 
 function RootNavigator() {
   const { isLoggedIn, isLoading, role } = useAuth();
@@ -23,7 +26,7 @@ function RootNavigator() {
 
   if (isLoading) return null;
 
-  const showBottomNav = isLoggedIn && TAB_ROUTES.includes(pathname);
+  const showBottomNav = isLoggedIn && TAB_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
 
   return (
     <View style={styles.container}>
@@ -42,6 +45,14 @@ function RootNavigator() {
           <Stack.Screen name="trip/navigate" />
           <Stack.Screen name="trip/delivery" />
           <Stack.Screen name="trip/completed" />
+          {/* Operator screens */}
+          <Stack.Screen name="operator/trips" options={{ animation: 'none' }} />
+          <Stack.Screen name="operator/drivers" options={{ animation: 'none' }} />
+          <Stack.Screen name="operator/vehicles" options={{ animation: 'none' }} />
+          <Stack.Screen name="operator/invoices" options={{ animation: 'none' }} />
+          <Stack.Screen name="operator/trip-details" />
+          <Stack.Screen name="operator/create-trip" />
+          <Stack.Screen name="operator/vehicle-renewals" />
         </Stack.Protected>
 
         <Stack.Protected guard={!isLoggedIn}>
@@ -51,7 +62,7 @@ function RootNavigator() {
 
       {showBottomNav && (
         <View style={styles.floatingNavOverlay} pointerEvents="box-none">
-          {role === 'Operator' ? <OperatorBottomNav /> : <DriverBottomNav />}
+          {role === 'Operator' || role === 'Admin' ? <OperatorBottomNav /> : <DriverBottomNav />}
         </View>
       )}
     </View>

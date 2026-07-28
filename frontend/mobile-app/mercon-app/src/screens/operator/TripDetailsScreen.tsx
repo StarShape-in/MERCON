@@ -1,24 +1,92 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
-  Dimensions,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, SafeAreaView, StatusBar, Linking, Alert, ActivityIndicator,
 } from 'react-native';
-import { ArrowLeft, ArrowRight, Check, Star, Phone, Truck, MapPin } from 'lucide-react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { ArrowLeft, ArrowRight, Check, Phone, Truck, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, Badge, Avatar } from '../../components';
+import { StatusBadge, Avatar } from '../../components';
+import { useOperatorTripById, type OperatorTripDetail } from '../../lib/operator';
+import { statusLabel, type TripStatus } from '../../lib/trips';
 
-const TIMELINE_STEPS = [
-  { id: 1, label: 'Trip Created', time: '5 Jul 2024 22:10', done: true, active: false },
-  { id: 2, label: 'Driver Assigned', time: '5 Jul 2024 22:45', done: true, active: false },
-  { id: 3, label: 'Pickup Verified', time: '6 Jul 2024 06:15', done: true, active: false },
-  { id: 4, label: 'In Transit', time: '6 Jul 2024 06:30', done: true, active: true },
-  { id: 5, label: 'Destination Reached', time: 'ETA 14:30', done: false, active: false },
-  { id: 6, label: 'Delivery Confirmed', time: 'Pending', done: false, active: false },
+const STATUS_STEPS: { status: TripStatus; label: string }[] = [
+  { status: 'Draft', label: 'Trip Created' },
+  { status: 'Dispatched', label: 'Driver Assigned' },
+  { status: 'AtPickup', label: 'Pickup Verified' },
+  { status: 'InTransit', label: 'In Transit' },
+  { status: 'AtDelivery', label: 'Destination Reached' },
+  { status: 'Completed', label: 'Delivery Confirmed' },
 ];
 
-const TripDetailsScreen = ({ navigation, route }: any) => {
-  const tripId = route?.params?.tripId || 'TRP-2024-0891';
+function stepIndex(status: TripStatus): number {
+  const i = STATUS_STEPS.findIndex((s) => s.status === status);
+  return i === -1 ? STATUS_STEPS.length - 1 : i; // Invoiced/Cancelled treated as terminal
+}
+
+function formatDateTime(iso?: string | null): string {
+  if (!iso) return 'Pending';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'Pending';
+  return d.toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function buildTimeline(trip: OperatorTripDetail) {
+  const currentIndex = trip.status === 'Cancelled' ? -1 : stepIndex(trip.status);
+  const pickupStop = trip.stops.find((s) => s.stop_type === 'Pickup');
+  const dropoffStop = trip.stops.find((s) => s.stop_type === 'Dropoff');
+
+  const timeFor = (i: number): string | null => {
+    switch (STATUS_STEPS[i].status) {
+      case 'Draft': return trip.createdAt;
+      case 'Dispatched': return trip.planned_start ?? null;
+      case 'AtPickup': return pickupStop?.actual_arrival ?? null;
+      case 'InTransit': return trip.actual_start ?? null;
+      case 'AtDelivery': return dropoffStop?.actual_arrival ?? null;
+      case 'Completed': return trip.actual_end ?? null;
+      default: return null;
+    }
+  };
+
+  return STATUS_STEPS.map((step, i) => ({
+    id: step.status,
+    label: step.label,
+    time: i <= currentIndex ? formatDateTime(timeFor(i)) : 'Pending',
+    done: i < currentIndex || (i === currentIndex && trip.status === 'Completed'),
+    active: i === currentIndex && trip.status !== 'Completed',
+  }));
+}
+
+const driverName = (trip: OperatorTripDetail) =>
+  trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned';
+
+const TripDetailsScreen = () => {
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { trip, loading, error } = useOperatorTripById(id);
+
+  if (loading && !trip) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100, justifyContent: 'center' }}>
+        <ActivityIndicator color={Colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!trip) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={styles.emptyText}>{error ?? 'Trip not found'}</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: Spacing.lg }}>
+          <Text style={{ color: Colors.primary, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const pickupStop = trip.stops.find((s) => s.stop_type === 'Pickup');
+  const dropoffStop = trip.stops.find((s) => s.stop_type === 'Dropoff');
+  const timeline = buildTimeline(trip);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
@@ -26,18 +94,20 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Dark Header Card */}
         <View style={styles.darkHeader}>
-          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
+          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <ArrowLeft size={22} color={Colors.white} strokeWidth={2.2} />
           </TouchableOpacity>
           <View style={styles.headerBody}>
             <View style={styles.headerTop}>
-              <Text style={styles.tripId}>#{tripId}</Text>
-              <StatusBadge status="in_transit" label="In Transit" />
+              <Text style={styles.tripId}>#{trip.ref_id ?? trip.id.slice(0, 8)}</Text>
+              <StatusBadge status={statusLabel(trip.status)} />
             </View>
             <View style={styles.routeRow}>
               <View style={styles.routePoint}>
                 <View style={styles.routeDotGreen} />
-                <Text style={styles.routeCity}>Riyadh Industrial Zone</Text>
+                <Text style={styles.routeCity} numberOfLines={2}>
+                  {pickupStop ? `${pickupStop.location_lat.toFixed(3)}, ${pickupStop.location_lng.toFixed(3)}` : '—'}
+                </Text>
               </View>
               <View style={styles.routeArrow}>
                 <View style={styles.dashedLine} />
@@ -45,21 +115,25 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
               </View>
               <View style={styles.routePoint}>
                 <View style={styles.routeDotOrange} />
-                <Text style={styles.routeCity}>Jeddah Port, Gate 7</Text>
+                <Text style={styles.routeCity} numberOfLines={2}>
+                  {dropoffStop ? `${dropoffStop.location_lat.toFixed(3)}, ${dropoffStop.location_lng.toFixed(3)}` : '—'}
+                </Text>
               </View>
             </View>
             <View style={styles.headerStats}>
               <View style={styles.headerStat}>
                 <Text style={styles.headerStatLabel}>Distance</Text>
-                <Text style={styles.headerStatValue}>950 km</Text>
+                <Text style={styles.headerStatValue}>
+                  {trip.planned_distance ? `${Math.round(trip.planned_distance)} km` : '—'}
+                </Text>
               </View>
               <View style={styles.headerStat}>
-                <Text style={styles.headerStatLabel}>ETA</Text>
-                <Text style={styles.headerStatValue}>14:30 AST</Text>
+                <Text style={styles.headerStatLabel}>Planned End</Text>
+                <Text style={styles.headerStatValue}>{formatDateTime(trip.planned_end)}</Text>
               </View>
               <View style={styles.headerStat}>
-                <Text style={styles.headerStatLabel}>Progress</Text>
-                <Text style={styles.headerStatValue}>51%</Text>
+                <Text style={styles.headerStatLabel}>Cargo</Text>
+                <Text style={styles.headerStatValue} numberOfLines={1}>{trip.cargo_type}</Text>
               </View>
             </View>
           </View>
@@ -69,7 +143,7 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Trip Timeline</Text>
           <View style={styles.timeline}>
-            {TIMELINE_STEPS.map((step, i) => (
+            {timeline.map((step, i) => (
               <View key={step.id} style={styles.timelineItem}>
                 <View style={styles.timelineLeft}>
                   <View style={[
@@ -80,7 +154,7 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
                     {step.done && !step.active && <Check size={14} color={Colors.white} strokeWidth={3} />}
                     {step.active && <View style={styles.timelinePulse} />}
                   </View>
-                  {i < TIMELINE_STEPS.length - 1 && (
+                  {i < timeline.length - 1 && (
                     <View style={[styles.timelineLine, step.done ? styles.timelineLineDone : null]} />
                   )}
                 </View>
@@ -100,14 +174,10 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
           <Text style={styles.sectionTitle}>Cargo Details</Text>
           <View style={styles.detailCard}>
             {[
-              { label: 'Description', value: 'Consumer Electronics' },
-              { label: 'Weight', value: '2,400 kg' },
-              { label: 'Volume', value: '18 m³' },
-              { label: 'Pallets', value: '12 pallets' },
-              { label: 'Temperature', value: 'Ambient (15–25°C)' },
-              { label: 'Hazmat', value: 'None' },
-              { label: 'Customer', value: 'Saudi Electronics Co.' },
-              { label: 'PO Number', value: 'PO-2024-78901' },
+              { label: 'Description', value: trip.cargo_type },
+              { label: 'Hazmat', value: trip.hazmat_flag ? 'Yes' : 'None' },
+              { label: 'Customer', value: trip.customer?.name ?? '—' },
+              { label: 'Planned Start', value: formatDateTime(trip.planned_start) },
             ].map((row, i, arr) => (
               <View
                 key={row.label}
@@ -125,38 +195,58 @@ const TripDetailsScreen = ({ navigation, route }: any) => {
           <Text style={styles.sectionTitle}>Assignment</Text>
           <View style={styles.assignCard}>
             <View style={styles.assignRow}>
-              <Avatar initials="AK" size={48} />
+              <Avatar
+                initials={trip.driver ? `${trip.driver.first_name[0]}${trip.driver.last_name[0]}` : '?'}
+                size={48}
+              />
               <View style={styles.assignInfo}>
-                <Text style={styles.assignName}>Ahmed Al-Rashidi</Text>
-                <Text style={styles.assignRole}>Driver · DRV-2024-0112</Text>
-                <View style={styles.assignRating}>
-                  <Star size={14} color="#F5A623" strokeWidth={2} fill="#F5A623" />
-                  <Text style={styles.star}>4.9</Text>
-                  <Text style={styles.assignTrips}>243 trips</Text>
+                <Text style={styles.assignName}>{driverName(trip)}</Text>
+                <Text style={styles.assignRole}>
+                  Driver{trip.driver?.ref_id ? ` · ${trip.driver.ref_id}` : ''}
+                </Text>
+              </View>
+              {trip.driver?.phone_primary ? (
+                <TouchableOpacity
+                  style={styles.callBtn}
+                  activeOpacity={0.8}
+                  onPress={() => Linking.openURL(`tel:${trip.driver!.phone_primary}`).catch(() => {})}
+                >
+                  <Phone size={20} color={Colors.white} strokeWidth={2.2} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            {trip.vehicle ? (
+              <>
+                <View style={styles.assignDivider} />
+                <View style={styles.vehicleRow}>
+                  <Truck size={22} color={Colors.gray600} strokeWidth={2} />
+                  <View>
+                    <Text style={styles.vehicleName}>
+                      {trip.vehicle.plate_number} · {trip.vehicle.asset_type}
+                    </Text>
+                    {trip.vehicle.ref_id ? <Text style={styles.vehiclePlate}>{trip.vehicle.ref_id}</Text> : null}
+                  </View>
                 </View>
-              </View>
-              <TouchableOpacity style={styles.callBtn} activeOpacity={0.8} onPress={() => {}}>
-                <Phone size={20} color={Colors.white} strokeWidth={2.2} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.assignDivider} />
-            <View style={styles.vehicleRow}>
-              <Truck size={22} color={Colors.gray600} strokeWidth={2} />
-              <View>
-                <Text style={styles.vehicleName}>TRK-2041 · Mercedes-Benz Actros</Text>
-                <Text style={styles.vehiclePlate}>Plate: أ ب ج 1234</Text>
-              </View>
-            </View>
+              </>
+            ) : null}
           </View>
         </View>
 
         {/* Actions */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8} onPress={() => {}}>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Coming Soon', 'Live tracking will be available in a future update.')}
+          >
             <MapPin size={16} color={Colors.primary} strokeWidth={2.2} />
             <Text style={styles.secondaryBtnText}>Track Live</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.8} onPress={() => {}}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Coming Soon', 'Trip editing will be available in a future update.')}
+          >
             <Text style={styles.primaryBtnText}>Edit Trip</Text>
           </TouchableOpacity>
         </View>
@@ -183,10 +273,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
-  },
-  backIcon: {
-    fontSize: 20,
-    color: Colors.white,
   },
   headerBody: {
     gap: Spacing.md,
@@ -238,10 +324,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
     backgroundColor: Colors.gray600,
-  },
-  routeArrowIcon: {
-    color: Colors.gray400,
-    fontSize: 16,
   },
   headerStats: {
     flexDirection: 'row',
@@ -304,11 +386,6 @@ const styles = StyleSheet.create({
   timelineCircleActive: {
     borderColor: Colors.primary,
     backgroundColor: Colors.white,
-  },
-  timelineCheck: {
-    fontSize: 12,
-    color: Colors.white,
-    fontWeight: '900',
   },
   timelinePulse: {
     width: 10,
@@ -394,19 +471,6 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginBottom: 3,
   },
-  assignRating: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  star: {
-    fontSize: Typography.xs,
-    color: '#F59E0B',
-    fontWeight: '700',
-  },
-  assignTrips: {
-    fontSize: Typography.xs,
-    color: Colors.gray500,
-  },
   callBtn: {
     width: 40,
     height: 40,
@@ -414,9 +478,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  callBtnText: {
-    fontSize: 18,
   },
   assignDivider: {
     height: 1,
@@ -427,9 +488,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-  },
-  vehicleIcon: {
-    fontSize: 28,
   },
   vehicleName: {
     fontSize: Typography.sm,
@@ -474,6 +532,10 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.white,
     fontWeight: '700',
+  },
+  emptyText: {
+    fontSize: Typography.base,
+    color: Colors.gray500,
   },
 });
 
