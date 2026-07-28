@@ -100,7 +100,11 @@ export default function DashboardPage() {
             trendValue={kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '+12.4%'}
             description="vs last month"
             icon={TruckMotion} 
-            chartData={trendData.length > 0 ? trendData.map((d: any) => d.trips || 10) : [12, 18, 24, 30, 28, 42, 55]}
+            progressSegments={[
+              { label: 'Completed', value: 75, color: 'bg-emerald-500' },
+              { label: 'Active', value: 20, color: 'bg-blue-500' },
+              { label: 'Draft/Cancel', value: 5, color: 'bg-slate-300' },
+            ]}
           />
           <KpiCard 
             title="Active Fleet (On Trip)" 
@@ -110,7 +114,11 @@ export default function DashboardPage() {
             trendValue="Operational"
             description="Currently dispatched"
             icon={FleetTruck} 
-            chartData={[8, 12, 15, 14, 19, 22, 25]}
+            completionGauge={{
+              percentage: Math.round(((kpis.fleet_on_trip.value || 1) / ((kpis.fleet_on_trip.value || 0) + (kpis.fleet_available.value || 1))) * 100),
+              label: `${Math.round(((kpis.fleet_on_trip.value || 1) / ((kpis.fleet_on_trip.value || 0) + (kpis.fleet_available.value || 1))) * 100)}% Capacity Utilized`,
+              subtext: `${kpis.fleet_available.value || 0} Trucks Available`
+            }}
           />
           <KpiCard 
             title="Total Revenue" 
