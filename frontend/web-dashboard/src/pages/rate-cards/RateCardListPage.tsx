@@ -458,9 +458,6 @@ export default function RateCardListPage() {
               isLoading={isLoading}
               searchPlaceholder="Search contract name, customer..."
               onSearchChange={setSearch}
-              currentPage={currentPage}
-              totalPages={1}
-              onPageChange={setCurrentPage}
               onRowClick={(row) => navigate(`/rate-cards/${row.id}/edit`)}
             />
           </div>

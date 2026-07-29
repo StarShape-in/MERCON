@@ -84,6 +84,7 @@ export default function TripListPage() {
   const queryClient = useQueryClient();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<TripStatus | 'All'>('All');
   const [hazmatFilter, setHazmatFilter] = useState<'All' | 'Hazmat' | 'Standard'>('All');
   const [dateFilter, setDateFilter] = useState('All');
@@ -99,12 +100,12 @@ export default function TripListPage() {
 
   // Fetch trips using React Query
   const { data: tripsRes, isLoading } = useQuery({
-    queryKey: ['trips', selectedStatus, debouncedSearch, currentPage],
+    queryKey: ['trips', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () => tripService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       search: debouncedSearch || undefined,
       page: currentPage,
-      per_page: 10,
+      per_page: pageSize,
     }),
   });
 
@@ -643,6 +644,12 @@ export default function TripListPage() {
             bulkActions={bulkActions}
             currentPage={currentPage}
             totalPages={totalPages}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+            totalRecords={totalCount}
             onPageChange={(page) => setCurrentPage(page)}
             onRowClick={(row) => navigate(`/trips/${row.id}`)}
           />

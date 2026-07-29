@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, SlidersHorizontal, Download, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, SlidersHorizontal, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare } from 'lucide-react';
 import Btn from './Btn';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 import { Input } from './input';
@@ -31,6 +31,10 @@ interface DataTableProps<T> {
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  pageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSizeOptions?: number[];
+  totalRecords?: number;
   // Selection
   enableSelection?: boolean;
   onSelectionChange?: (selectedIndices: number[]) => void;
@@ -49,9 +53,13 @@ export default function DataTable<T>({
   onSearchChange,
   filterElement,
   onExport,
-  currentPage = 1,
-  totalPages = 1,
+  currentPage,
+  totalPages,
   onPageChange,
+  pageSize,
+  onPageSizeChange,
+  pageSizeOptions = [10, 25, 50, 100],
+  totalRecords,
   enableSelection = true,
   onSelectionChange,
   onRowClick,
@@ -59,14 +67,63 @@ export default function DataTable<T>({
 }: DataTableProps<T>) {
   const showToolbar = onSearchChange !== undefined || filterElement !== undefined || onExport !== undefined || enableSelection;
 
+  // Internal state for client-side pagination when onPageChange is not passed
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalPageSize, setInternalPageSize] = useState(pageSize || 10);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
 
+  // Reset internal page if data length changes drastically
+  useEffect(() => {
+    if (onPageChange === undefined) {
+      setInternalPage(1);
+    }
+  }, [data.length, searchValue]);
+
+  const isServerPaginated = onPageChange !== undefined;
+  const activePage = isServerPaginated ? (currentPage || 1) : internalPage;
+  const activePageSize = pageSize !== undefined ? pageSize : internalPageSize;
+
+  const totalCount = totalRecords !== undefined ? totalRecords : data.length;
+  const computedTotalPages = totalPages !== undefined 
+    ? totalPages 
+    : Math.max(1, Math.ceil(totalCount / activePageSize));
+
+  // If server paginated, data is already sliced by backend. If client paginated, slice here.
+  const displayData = isServerPaginated 
+    ? data 
+    : data.slice((activePage - 1) * activePageSize, activePage * activePageSize);
+
+  const handlePageChange = (newPage: number) => {
+    const validPage = Math.max(1, Math.min(newPage, computedTotalPages));
+    if (isServerPaginated) {
+      onPageChange?.(validPage);
+    } else {
+      setInternalPage(validPage);
+    }
+    setSelectedIndices(new Set());
+    onSelectionChange?.([]);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    if (onPageSizeChange) {
+      onPageSizeChange(newSize);
+    } else {
+      setInternalPageSize(newSize);
+      setInternalPage(1);
+    }
+    if (isServerPaginated && onPageChange) {
+      onPageChange(1);
+    }
+    setSelectedIndices(new Set());
+    onSelectionChange?.([]);
+  };
+
   const handleSelectAll = () => {
-    if (selectedIndices.size === data.length && data.length > 0) {
+    if (selectedIndices.size === displayData.length && displayData.length > 0) {
       setSelectedIndices(new Set());
       onSelectionChange?.([]);
     } else {
-      const newSet = new Set(data.map((_, i) => i));
+      const newSet = new Set(displayData.map((_, i) => i));
       setSelectedIndices(newSet);
       onSelectionChange?.(Array.from(newSet));
     }
@@ -82,6 +139,12 @@ export default function DataTable<T>({
     setSelectedIndices(newSet);
     onSelectionChange?.(Array.from(newSet));
   };
+
+  const fromIndex = totalCount === 0 ? 0 : (activePage - 1) * activePageSize + 1;
+  const toIndex = totalCount === 0 ? 0 : Math.min(
+    activePage * activePageSize,
+    isServerPaginated ? (fromIndex + displayData.length - 1) : totalCount
+  );
 
   return (
     <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden flex flex-col h-full animate-fade-in">
@@ -103,7 +166,7 @@ export default function DataTable<T>({
                     variant={action.variant || 'secondary'}
                     size="sm"
                     onClick={() => {
-                      const selectedRows = Array.from(selectedIndices).map(idx => data[idx]);
+                      const selectedRows = Array.from(selectedIndices).map(idx => displayData[idx]);
                       action.onClick(selectedRows);
                     }}
                   />
@@ -122,7 +185,7 @@ export default function DataTable<T>({
               <div className="flex items-center gap-3 flex-1 min-w-[200px]">
                 {enableSelection && (
                   <Btn
-                    label={selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}
+                    label={selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}
                     variant="secondary"
                     size="sm"
                     icon={<CheckSquare size={13} />}
@@ -168,7 +231,7 @@ export default function DataTable<T>({
                   <input
                     type="checkbox"
                     className="w-4 h-4 rounded border-gray-300 text-[#E8450F] focus:ring-[#E8450F] cursor-pointer"
-                    checked={selectedIndices.size === data.length && data.length > 0}
+                    checked={selectedIndices.size === displayData.length && displayData.length > 0}
                     onChange={handleSelectAll}
                   />
                 </TableHead>
@@ -183,7 +246,7 @@ export default function DataTable<T>({
           <TableBody>
             {isLoading ? (
               // Loading state skeleton rows
-              Array.from({ length: 5 }).map((_, rowIndex) => (
+              Array.from({ length: activePageSize > 10 ? 10 : activePageSize }).map((_, rowIndex) => (
                 <TableRow key={rowIndex}>
                   {enableSelection && (
                     <TableCell className="px-5 py-3 w-[40px]">
@@ -197,7 +260,7 @@ export default function DataTable<T>({
                   ))}
                 </TableRow>
               ))
-            ) : data.length === 0 ? (
+            ) : displayData.length === 0 ? (
               // Empty State
               <TableRow>
                 <TableCell colSpan={enableSelection ? columns.length + 1 : columns.length} className="text-center py-12">
@@ -210,11 +273,11 @@ export default function DataTable<T>({
               </TableRow>
             ) : (
               // Data Rows
-              data.map((row, rowIndex) => (
+              displayData.map((row, rowIndex) => (
                 <TableRow
                   key={rowIndex}
                   className={`animate-fade-in transition-colors ${onRowClick ? 'cursor-pointer hover:bg-[#F0F0F0]' : 'hover:bg-[#FAFAFA]'}`}
-                  style={{ animationDelay: `${rowIndex * 0.03}s` }}
+                  style={{ animationDelay: `${rowIndex * 0.02}s` }}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (
@@ -251,29 +314,77 @@ export default function DataTable<T>({
       </div>
 
       {/* Pagination Footer */}
-      {onPageChange && totalPages > 1 && (
-        <div className="shrink-0 p-4 border-t border-black/[0.06] flex items-center justify-between bg-[#FAFAFA]">
-          <span className="text-xs font-semibold text-[#6E6E80]">
-            Page {currentPage} of {totalPages}
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1 || isLoading}
-              className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+      <div className="shrink-0 p-3 px-4 border-t border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FAFAFA] text-xs font-semibold text-[#6E6E80]">
+        {/* Left Side: Rows Per Page & Summary Count */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500 font-medium">Rows per page:</span>
+            <select
+              value={activePageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="h-8 px-2.5 py-1 bg-white border border-black/[0.1] rounded-md text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#E8450F] cursor-pointer shadow-2xs"
             >
-              <ChevronLeft size={14} />
-            </button>
-            <button
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages || isLoading}
-              className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronRight size={14} />
-            </button>
+              {pageSizeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
           </div>
+
+          <span className="text-slate-500 font-medium border-l border-black/[0.08] pl-4 hidden sm:inline">
+            Showing <span className="font-bold text-slate-900">{fromIndex}</span> to <span className="font-bold text-slate-900">{toIndex}</span> of <span className="font-bold text-slate-900">{totalCount}</span> entries
+          </span>
         </div>
-      )}
+
+        {/* Right Side: Page Navigation Buttons */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <button
+            onClick={() => handlePageChange(1)}
+            disabled={activePage === 1 || isLoading}
+            title="First Page"
+            className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronsLeft size={14} />
+          </button>
+
+          <button
+            onClick={() => handlePageChange(activePage - 1)}
+            disabled={activePage === 1 || isLoading}
+            title="Previous Page"
+            className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronLeft size={14} />
+          </button>
+
+          <div className="flex items-center gap-1 px-1.5">
+            <span className="px-2 py-0.5 text-xs font-bold text-slate-900 bg-white rounded border border-black/[0.08] shadow-2xs">
+              {activePage}
+            </span>
+            <span className="text-slate-400 text-xs font-medium">/</span>
+            <span className="text-slate-600 text-xs font-semibold">{computedTotalPages}</span>
+          </div>
+
+          <button
+            onClick={() => handlePageChange(activePage + 1)}
+            disabled={activePage >= computedTotalPages || isLoading}
+            title="Next Page"
+            className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronRight size={14} />
+          </button>
+
+          <button
+            onClick={() => handlePageChange(computedTotalPages)}
+            disabled={activePage >= computedTotalPages || isLoading}
+            title="Last Page"
+            className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronsRight size={14} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
+

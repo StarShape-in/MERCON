@@ -74,6 +74,7 @@ export default function DriverListPage() {
   const queryClient = useQueryClient();
   
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<DriverStatus | 'All'>('All');
   const [riskFilter, setRiskFilter] = useState<'All' | 'Low' | 'Moderate' | 'High'>('All');
   const [licenseFilter, setLicenseFilter] = useState<'All' | 'Valid' | 'Expired'>('All');
@@ -91,12 +92,12 @@ export default function DriverListPage() {
 
   // Fetch drivers using React Query
   const { data: driversRes, isLoading } = useQuery({
-    queryKey: ['drivers', selectedStatus, debouncedSearch, currentPage],
+    queryKey: ['drivers', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () => driverService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       search: debouncedSearch || undefined,
       page: currentPage,
-      per_page: 15,
+      per_page: pageSize,
     }),
   });
 
@@ -661,6 +662,12 @@ export default function DriverListPage() {
               bulkActions={bulkActions}
               currentPage={currentPage}
               totalPages={totalPages}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+              totalRecords={totalCount}
               onPageChange={(page) => setCurrentPage(page)}
               onRowClick={(row) => navigate(`/drivers/${row.id}`)}
             />

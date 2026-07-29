@@ -49,6 +49,7 @@ export default function InvoiceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<InvoiceStatus | 'All'>('All');
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -57,12 +58,12 @@ export default function InvoiceListPage() {
 
   // Fetch invoices using React Query
   const { data: invoicesRes, isLoading } = useQuery({
-    queryKey: ['invoices', selectedStatus, debouncedSearch, currentPage],
+    queryKey: ['invoices', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () => invoiceService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       search: debouncedSearch || undefined,
       page: currentPage,
-      per_page: 10,
+      per_page: pageSize,
     }),
   });
 
@@ -433,6 +434,13 @@ export default function InvoiceListPage() {
             onSearchChange={setSearch}
             currentPage={currentPage}
             totalPages={totalPages}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+            totalRecords={totalCount}
+            onPageChange={(page) => setCurrentPage(page)}
             onRowClick={(row) => navigate(`/invoices/${row.id}`)}
           />
         </div>

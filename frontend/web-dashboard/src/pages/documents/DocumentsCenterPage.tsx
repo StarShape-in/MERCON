@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { 
   UploadCloud, FileText, Search, FolderOpen, Shield, Car, User as UserIcon, Eye, Download, 
-  RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronRight,
-  FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
+  RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
+  ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
   ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -101,6 +101,8 @@ export default function DocumentsCenterPage() {
   const queryClient = useQueryClient();
 
   // State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [activeCategory, setActiveCategory] = useState<'All' | DocCategory>('All');
   const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>('all');
   const [search, setSearch] = useState('');
@@ -482,7 +484,7 @@ export default function DocumentsCenterPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredDocs.map((doc) => {
+                {filteredDocs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((doc) => {
                   const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
                   const expBadge = EXPIRY_BADGE[doc.expStatus];
                   const catCfg = CATEGORY_CONFIG[doc.category];
@@ -599,6 +601,76 @@ export default function DocumentsCenterPage() {
                 })}
               </tbody>
             </table>
+
+            {/* Pagination Footer */}
+            <div className="p-3 px-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900 text-xs font-semibold text-slate-500">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 font-medium">Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-[#E8450F] cursor-pointer shadow-2xs"
+                  >
+                    {[10, 25, 50, 100].map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <span className="text-slate-500 font-medium border-l border-slate-200 dark:border-slate-700 pl-4 hidden sm:inline">
+                  Showing <span className="font-bold text-slate-900 dark:text-slate-100">{filteredDocs.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to <span className="font-bold text-slate-900 dark:text-slate-100">{Math.min(currentPage * pageSize, filteredDocs.length)}</span> of <span className="font-bold text-slate-900 dark:text-slate-100">{filteredDocs.length}</span> entries
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 ml-auto">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  title="First Page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  title="Previous Page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <div className="flex items-center gap-1 px-1.5">
+                  <span className="px-2 py-0.5 text-xs font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
+                    {currentPage}
+                  </span>
+                  <span className="text-slate-400 text-xs font-medium">/</span>
+                  <span className="text-slate-600 dark:text-slate-400 text-xs font-semibold">
+                    {Math.max(1, Math.ceil(filteredDocs.length / pageSize))}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(Math.max(1, Math.ceil(filteredDocs.length / pageSize)), prev + 1))}
+                  disabled={currentPage >= Math.max(1, Math.ceil(filteredDocs.length / pageSize))}
+                  title="Next Page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight size={14} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, Math.ceil(filteredDocs.length / pageSize)))}
+                  disabled={currentPage >= Math.max(1, Math.ceil(filteredDocs.length / pageSize))}
+                  title="Last Page"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           

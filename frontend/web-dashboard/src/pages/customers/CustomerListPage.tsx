@@ -67,6 +67,7 @@ export default function CustomerListPage() {
   const queryClient = useQueryClient();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<'All' | 'Active' | 'Inactive'>('All');
   const [creditTierFilter, setCreditTierFilter] = useState<'All' | 'High' | 'Standard'>('All');
   const [search, setSearch] = useState('');
@@ -78,11 +79,11 @@ export default function CustomerListPage() {
 
   // Fetch customers using React Query
   const { data: customersRes, isLoading } = useQuery({
-    queryKey: ['customers', debouncedSearch, currentPage],
+    queryKey: ['customers', debouncedSearch, currentPage, pageSize],
     queryFn: () => customerService.getAll({
       search: debouncedSearch || undefined,
       page: currentPage,
-      per_page: 15,
+      per_page: pageSize,
     }),
   });
 
@@ -494,6 +495,12 @@ export default function CustomerListPage() {
               isLoading={isLoading}
               currentPage={currentPage}
               totalPages={totalPages}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+              totalRecords={totalCount}
               onPageChange={setCurrentPage}
               onRowClick={(row) => navigate(`/customers/${row.id}`)}
             />

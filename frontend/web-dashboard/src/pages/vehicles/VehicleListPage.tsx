@@ -38,6 +38,7 @@ export default function VehicleListPage() {
   const queryClient = useQueryClient();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | 'All'>('All');
   const [selectedType, setSelectedType] = useState<string>('All');
   const [search, setSearch] = useState('');
@@ -48,12 +49,12 @@ export default function VehicleListPage() {
 
   // Fetch vehicles using React Query
   const { data: vehiclesRes, isLoading } = useQuery({
-    queryKey: ['vehicles', selectedStatus, debouncedSearch, currentPage],
+    queryKey: ['vehicles', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () => vehicleService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       search: debouncedSearch || undefined,
       page: currentPage,
-      per_page: 50,
+      per_page: pageSize,
     }),
   });
 
@@ -449,6 +450,12 @@ export default function VehicleListPage() {
               onSearchChange={setSearch}
               currentPage={currentPage}
               totalPages={totalPages}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+              totalRecords={totalCount}
               onPageChange={setCurrentPage}
               onRowClick={(row) => navigate(`/vehicles/${row.id}`)}
               filterElement={
