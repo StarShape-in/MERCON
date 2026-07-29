@@ -3,6 +3,8 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, StatusBar, Image, Alert, Linking,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import {
   ArrowLeft, Siren, Phone, Camera, MapPin, Zap, Wrench, Hospital, Shield,
   type LucideIcon,
@@ -11,13 +13,14 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Button } from '../../components';
 import { emergencyService } from '../../lib/emergency';
 import { getApiErrorMessage } from '../../lib/api';
-import { choosePhoto } from '../../lib/camera';
+import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 
 const OPERATOR_EMERGENCY_PHONE = '+966112345678';
 
-const EmergencyScreen = ({ navigation }: any) => {
+const EmergencyScreen = () => {
+  const router = useRouter();
   const [notes, setNotes] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<(CapturedPhoto | undefined)[]>([]);
   const [incidentType, setIncidentType] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -40,7 +43,7 @@ const EmergencyScreen = ({ navigation }: any) => {
       if (!photo) return;
       setPhotos((prev) => {
         const next = [...prev];
-        next[index] = photo.uri;
+        next[index] = photo;
         return next;
       });
     } catch (e) {
@@ -57,16 +60,33 @@ const EmergencyScreen = ({ navigation }: any) => {
     }
     setSending(true);
     try {
+      // Best-effort GPS attach — never block sending the alert on location.
+      let lat: number | undefined;
+      let lng: number | undefined;
+      try {
+        const perm = await Location.requestForegroundPermissionsAsync();
+        if (perm.granted) {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        }
+      } catch {
+        // Location unavailable — send the report without it rather than blocking.
+      }
+
       const { notified } = await emergencyService.raise({
         incident_type: selected.label,
         notes: notes.trim() || undefined,
+        lat,
+        lng,
+        photos: photos.filter((p): p is CapturedPhoto => !!p),
       });
       Alert.alert(
         'Emergency sent',
         notified > 0
           ? `Your operator has been alerted (${notified} notified).`
           : 'Your report was recorded.',
-        [{ text: 'OK', onPress: () => navigation?.goBack() }],
+        [{ text: 'OK', onPress: () => router.back() }],
       );
     } catch (e) {
       Alert.alert('Could not send', getApiErrorMessage(e));
@@ -81,7 +101,7 @@ const EmergencyScreen = ({ navigation }: any) => {
       <ScrollView contentContainerStyle={styles.scroll} stickyHeaderIndices={[0]}>
         {/* Red Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => navigation?.goBack()}>
+          <TouchableOpacity style={styles.backBtn} activeOpacity={0.8} onPress={() => router.back()}>
             <ArrowLeft size={22} color={Colors.white} strokeWidth={2.2} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -130,7 +150,7 @@ const EmergencyScreen = ({ navigation }: any) => {
                 onPress={() => addPhoto(i)}
               >
                 {photos[i] ? (
-                  <Image source={{ uri: photos[i] }} style={styles.photoImg} />
+                  <Image source={{ uri: photos[i]!.uri }} style={styles.photoImg} />
                 ) : (
                   <View style={styles.photoPlaceholder}>
                     <Camera size={24} color={Colors.gray400} strokeWidth={1.8} />
@@ -159,7 +179,7 @@ const EmergencyScreen = ({ navigation }: any) => {
             <MapPin size={22} color={Colors.gray600} strokeWidth={2} />
             <View>
               <Text style={styles.locationLabel}>Location</Text>
-              <Text style={styles.locationValue}>Live location sharing turns on with GPS (coming soon)</Text>
+              <Text style={styles.locationValue}>Your current GPS location is attached automatically when you send</Text>
             </View>
           </View>
 

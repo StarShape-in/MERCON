@@ -5,7 +5,7 @@ import {
 import { useRouter } from 'expo-router';
 import MapView, { Marker, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { ArrowLeft, MapPin, Truck } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Truck, Siren } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { tripService } from '../../lib/trips';
@@ -132,6 +132,9 @@ const LiveNavigationScreen = () => {
             <Text style={styles.headerTitle}>#{trip?.ref_id ?? '—'}</Text>
             <Text style={styles.headerSub}>{trip?.customer?.name ?? 'Delivery in progress'}</Text>
           </View>
+          <TouchableOpacity style={styles.sosCircle} activeOpacity={0.8} onPress={() => router.push('/trip/emergency')}>
+            <Siren size={20} color={Colors.white} strokeWidth={2.4} />
+          </TouchableOpacity>
         </View>
 
         {!position && (
@@ -216,6 +219,15 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.sm,
     paddingHorizontal: Spacing.md,
+    ...Shadows.md,
+  },
+  sosCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...Shadows.md,
   },
   headerTitle: {

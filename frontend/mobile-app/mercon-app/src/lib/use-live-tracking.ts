@@ -24,7 +24,8 @@ export function useLiveTracking(trip: MobileTrip | null, driverId: string | null
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted || cancelled) return;
 
-      const socket = getSocket();
+      const socket = await getSocket();
+      if (cancelled) return;
       const sub = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.Balanced,

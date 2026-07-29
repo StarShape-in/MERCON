@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { imageOrPdfFileFilter } from './uploadFileFilter';
 
 // Ensure uploads directory exists
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -21,7 +22,8 @@ const storage = multer.diskStorage({
 });
 
 // Configure file filters and size limits if necessary
-export const upload = multer({ 
+export const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: imageOrPdfFileFilter,
 });

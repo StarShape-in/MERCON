@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-07-29** (comprehensive idempotent seed data added for Users, Customers, Drivers, Vehicles, Rate Cards, Trips with stops, and Invoices; added dedicated `.github/workflows/seed-db.yml` workflow and workspace `seed` scripts) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-07-29** (full-stack security/correctness audit — Phase 0 + Phase 1 critical fixes shipped; Phase 2 (High) items 11–17 complete — see §6) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).
@@ -41,7 +41,7 @@ release builds.
 | Piece | State |
 |---|---|
 | 18 controllers (auth, users, drivers, vehicles, customers, trips, invoices, rate cards, documents, maintenance, notifications, reports, tracking, uploads + 2 mobile) | ✅ real DB logic |
-| Prisma schema (11 models, 10 enums), PostgreSQL, idempotent seed (Users, Customers, Drivers, Vehicles, Rate Cards, Trips with stops, Invoices, Maintenance Records, Documents, Notifications) + `.github/workflows/seed-db.yml` | ✅ (2026-07-29) |
+| Prisma schema (11 models, 10 enums), PostgreSQL, idempotent seed (admin + operator accounts only — see §6, fake demo data seeding was added and removed same day) | ✅ (2026-07-29) |
 | JWT auth + **RBAC** `authorizeRoles` on all feature routes | ✅ (`ddbe688`) |
 | Exactly 3 roles: Admin / Operator / Driver (Prisma enum + shared-types) | ✅ locked |
 | Live GPS relay (Socket.io: receives `driver:location_update`, broadcasts to web) | ✅ |
@@ -120,7 +120,7 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `ProfileScreen` — real identity/license/vehicle + working logout
 - ✅ `DocumentsScreen` → `GET /mobile/documents` (real docs, expiry status, open file)
 - ✅ `AssignedVehicleScreen` → `GET /mobile/vehicle` (active-trip vehicle + honest empty state)
-- ✅ `EmergencyScreen` → `POST /mobile/emergency` (incident type + notes; photos & GPS deferred to M2)
+- ✅ `EmergencyScreen` → `POST /mobile/emergency` (incident type + notes + GPS location now attached; reachable via SOS button on Home + Live Navigation — was previously unwired/unreachable); photo capture UI still local-only — backend has no attachment endpoint for emergency reports yet (needs a `DocType`/schema decision, flagged separately)
 - ✅ `SettingsScreen` — real logout (toggles are local-only); reachable (`/settings`)
 - ⬜ `ReplacementDriverScreen` / `SplashScreen` (as needed)
 
@@ -218,6 +218,91 @@ and refetches on focus (for a driver who backgrounds the app mid-flow).
 - `react-native-maps` added (mobile) for the new live-map screen; not yet run in a simulator/device — see below.
 - ❌ **Not yet run on a real phone against the live server** — this is the next real check.
 - Git identity reminder: ensure commits use `sayedhysampm@gmail.com`.
+
+---
+
+## 6. Full-stack audit remediation (2026-07-29)
+
+A full audit (backend/web/mobile/deploy) found 6 critical, ~13 high, ~10 medium, and
+several low-severity issues. Fixing in phases per `~/.claude/plans/hidden-painting-deer.md`
+(local plan file, not in repo). Status:
+
+- ✅ **Phase 0 — Credential rotation (code)**: `docker-compose.yml` now requires
+  `POSTGRES_USER`/`POSTGRES_PASSWORD` as GitHub secrets (was hardcoded `mercon_user`/
+  `mercon_password`), Postgres port bound to `127.0.0.1` only (was public on `15432`),
+  `ci-cd.yml` passes the new secrets through with the same abort-if-unset guard as
+  `JWT_SECRET`. **Owner action still needed**: generate a real password, add
+  `POSTGRES_USER`/`POSTGRES_PASSWORD`/`SEED_ADMIN_PASSWORD` as GitHub Actions secrets
+  before the next deploy, or the container will fail to start.
+- ✅ **Phase 1 — Critical, item 1**: `prisma/seed.ts` rewritten to seed only the two
+  canonical accounts (`admin`, `operator`) per this file's own rules — no more fake
+  customers/drivers/vehicles/trips/invoices seeded into production on every deploy.
+  **Not done yet**: already-seeded fake rows already in the production DB are untouched;
+  owner needs to review and manually clean those up.
+- ✅ **Phase 1, item 2**: `POST/PUT /users` now Zod-validates `role` to `Admin|Operator`
+  only — previously any string was accepted, so an Admin could set `role: "Driver"`
+  through User Management, contradicting the "Driver users must not be creatable there"
+  rule.
+- ✅ **Phase 1, item 3**: Socket.IO now requires a valid JWT in the connection handshake
+  (was fully open — anyone could connect and listen to every live GPS/notification
+  event). Sockets auto-join a private room by identity; trip GPS relay validated against
+  the sending driver's own assigned trip and scoped to a `trip:<id>` room; dashboards/
+  drivers must `join:trip` (authorized server-side) to receive it.
+- ✅ **Phase 1, item 4**: Driver `EmergencyScreen` was fully built but unreachable (no
+  route, no nav entry) and used a stale `navigation` prop that would have silently no-op'd
+  even if reachable. Fixed: converted to `expo-router`'s `useRouter`, added a
+  `/trip/emergency` route, added an SOS button on the driver Home screen header and on
+  `LiveNavigationScreen`'s top bar, and `send()` now attaches the device's current GPS
+  coordinates.
+- ✅ **Follow-up (owner-approved)**: `TripTrackingPage.tsx` (web) was found to no longer
+  use a real socket connection — it rendered simulated telemetry
+  (`useSimulatedTelemetry`/`PREDEFINED_ROUTES`) instead of live GPS, with fabricated
+  "Riyadh Dry Port"/"Jeddah Islamic Port" location names and a fake ETA/progress bar on
+  every trip regardless of actual route. Rewired to the real authenticated Socket.IO
+  connection (`join:trip`, listens on `trip:location_update:<id>`), shows real pickup/
+  dropoff coordinates instead of hardcoded port names, and a real "LIVE"/"DISCONNECTED"
+  status + "last update" timestamp instead of the always-green fake indicator. Verified
+  end-to-end locally (simulated a driver GPS emit over an authenticated socket, confirmed
+  the truck marker/speed/timestamp updated on the dashboard in real time).
+- ✅ **Follow-up (owner-approved)**: Emergency incident photos now actually reach the
+  backend — added `DocType.Emergency` to `schema.prisma` (additive enum value, pushed
+  locally via `prisma db push`, will auto-apply on next production deploy per this repo's
+  existing `prisma db push --accept-data-loss` deploy step), added multipart upload
+  (`upload.array('photos', 4)`) to `POST /mobile/emergency`, and the endpoint now creates
+  a `Document` per photo linked to the driver's active trip. Verified end-to-end via curl
+  (uploaded a real file, confirmed the `Document` row was created with the right
+  `entity_id`/`doc_type`).
+- ✅ **Phase 2 (High) — items 11–17 (session continued)**:
+  - **Item 11** (mobile global 401 handling): `api.ts` response interceptor now clears
+    SecureStore + routes to `/login` on any 401 — done in previous session.
+  - **Item 12** (duplicate photo upload on retry): `PickupVerificationScreen` and
+    `DeliveryVerificationScreen` now track uploaded-photo indices in a `useRef<Set<number>>`;
+    a retry only re-uploads photos that failed, not those already successfully sent. Also
+    added a `inFlight` ref to prevent double-tap re-entrancy (React state updates are async,
+    so a ref guard is needed in addition to the `submitting` state). Also fixed
+    `camera.ts` which had been accidentally doubled (all functions declared twice) — removed
+    the stale second copy; the first copy (with `expo-image-manipulator` resize to 1280px)
+    is the correct one.
+  - **Item 13** (web 401 vs 403 split): `src/lib/api.ts` now only force-clears the session
+    on 401 (expired/revoked token). A 403 (authorised user, wrong role) is now rejected
+    as a normal error so the calling page can show an inline "You don't have permission"
+    message instead of silently logging the operator out.
+  - **Item 14** (block expired-license driver onboarding): `AddDriverPage.tsx` now includes
+    `isExpiryValid` in `isFormValid` and in `handleSubmit`, blocking onboarding when the
+    license is already expired. Same check added to `CreateDriverModal.tsx` (the inline
+    "Add Driver" modal on Create Trip page).
+  - **Item 15** (cargo type field): `CreateTripPage.tsx` now has a real "Cargo Type"
+    dropdown (General Goods / Refrigerated / Hazmat / Oversized / Liquid Bulk / Dry Bulk)
+    instead of a hardcoded `'General Goods'`; the live KPI card now shows the selected
+    type, with a HAZMAT badge when that flag is also set.
+  - **Item 16** (time ordering check): `CreateTripPage.tsx` now validates
+    `dropoffTime > pickupTime` before submission and shows a clear error with the form
+    switching back to the Route tab.
+  - **Item 17** (invoice subtotal from rate card): `CreateInvoicePage.tsx` now fetches the
+    selected customer's active rate card on trip selection and auto-fills the subtotal from
+    `base_price`. The field stays editable; an "Auto-filled from rate card — editable" badge
+    appears and the input gets a green border when auto-filled.
+- ⬜ Phase 3 (Medium), Phase 4 (Low) — not started yet.
 
 ---
 

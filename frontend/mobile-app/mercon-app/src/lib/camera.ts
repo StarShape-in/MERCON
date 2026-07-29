@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Alert } from 'react-native';
 
 export interface CapturedPhoto {
@@ -7,10 +8,24 @@ export interface CapturedPhoto {
   fileName?: string | null;
 }
 
-function toPhoto(result: ImagePicker.ImagePickerResult): CapturedPhoto | null {
+/**
+ * Resize + compress a photo so it's safe to upload.
+ * Gallery photos from modern phones can be 5–10 MB. We cap them at 1280px wide
+ * and 0.7 JPEG quality → typical output is 150–400 KB, well under nginx's limit.
+ */
+async function compressPhoto(uri: string): Promise<CapturedPhoto> {
+  const result = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ resize: { width: 1280 } }], // height auto-calculated to preserve aspect ratio
+    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+  );
+  return { uri: result.uri, mimeType: 'image/jpeg', fileName: 'photo.jpg' };
+}
+
+async function toPhoto(result: ImagePicker.ImagePickerResult): Promise<CapturedPhoto | null> {
   if (result.canceled || !result.assets?.length) return null;
   const a = result.assets[0];
-  return { uri: a.uri, mimeType: a.mimeType, fileName: a.fileName };
+  return compressPhoto(a.uri);
 }
 
 /**
@@ -25,7 +40,8 @@ export async function capturePhoto(): Promise<CapturedPhoto | null> {
 
   const result = await ImagePicker.launchCameraAsync({
     mediaTypes: 'images',
-    quality: 0.5, // compress — drivers are often on mobile data
+    quality: 1, // pick at full quality — we compress ourselves in compressPhoto()
+    exif: false,
   });
 
   return toPhoto(result);
@@ -39,7 +55,8 @@ export async function capturePhoto(): Promise<CapturedPhoto | null> {
 export async function pickFromGallery(): Promise<CapturedPhoto | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: 'images',
-    quality: 0.5,
+    quality: 1, // pick at full quality — we compress ourselves in compressPhoto()
+    exif: false,
   });
 
   return toPhoto(result);

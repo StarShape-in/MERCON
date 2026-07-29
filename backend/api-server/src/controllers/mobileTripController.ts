@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
-import { TripStatus, DriverStatus, AssetStatus, DocType } from '@prisma/client';
+import { TripStatus, DocType } from '@prisma/client';
+import { isValidTransition, completeTripAndInvoice } from '../services/tripLifecycle';
 
 export const getCurrentTrip = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
@@ -94,25 +95,34 @@ export const updateTripStatus = async (req: Request, res: Response) => {
     if (!trip) {
       return res.status(404).json({ success: false, error: { message: 'Trip not found or not assigned to you' } });
     }
+    if (!isValidTransition(trip.status, status)) {
+      return res.status(400).json({ success: false, error: { message: 'That status change is not allowed from the trip\'s current state' } });
+    }
 
-    // Update trip status
+    // Completing a trip always goes through the shared helper — this is the
+    // path that previously let a driver mark a trip Completed without ever
+    // generating its invoice, since only the web dashboard's deliveryVerify
+    // did that.
+    if (status === TripStatus.Completed) {
+      // Pass null, not driverId: updated_by/created_by are User.id columns
+      // elsewhere in the schema — a driver-authenticated request has no
+      // User.id, and writing Driver.id there would silently mix ID spaces.
+      const updatedTrip = await prisma.$transaction((tx) => completeTripAndInvoice(tx, id, null));
+      const full = await prisma.trip.findUnique({
+        where: { id: updatedTrip.id },
+        include: { customer: true, vehicle: true, stops: true },
+      });
+      return res.json({ success: true, data: full });
+    }
+
     const updatedTrip = await prisma.trip.update({
       where: { id },
-      data: { 
+      data: {
         status,
         actual_start: status === TripStatus.InTransit && !trip.actual_start ? new Date() : undefined,
-        actual_end: status === TripStatus.Completed && !trip.actual_end ? new Date() : undefined,
       },
       include: { customer: true, vehicle: true, stops: true }
     });
-
-    // If trip completed, update driver and vehicle status to Available
-    if (status === TripStatus.Completed) {
-      await prisma.driver.update({ where: { id: driverId }, data: { status: DriverStatus.Available } });
-      if (trip.vehicleId) {
-        await prisma.vehicle.update({ where: { id: trip.vehicleId }, data: { status: AssetStatus.Available } });
-      }
-    }
 
     res.json({ success: true, data: updatedTrip });
   } catch (error) {

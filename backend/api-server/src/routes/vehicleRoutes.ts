@@ -3,7 +3,7 @@ import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicl
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
-import { createVehicleBody, listQuery } from '../schemas';
+import { createVehicleBody, updateVehicleBody, listQuery, idParam } from '../schemas';
 
 const router = Router();
 
@@ -15,8 +15,8 @@ router.post('/bulk-update-status', bulkUpdateVehicleStatus);
 
 router.get('/', validate({ query: listQuery }), getVehicles);
 router.post('/', validate({ body: createVehicleBody }), createVehicle);
-router.get('/:id', getVehicleById);
-router.patch('/:id', updateVehicle);
-router.delete('/:id', deleteVehicle);
+router.get('/:id', validate({ params: idParam }), getVehicleById);
+router.patch('/:id', validate({ params: idParam, body: updateVehicleBody }), updateVehicle);
+router.delete('/:id', validate({ params: idParam }), deleteVehicle);
 
 export default router;

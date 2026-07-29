@@ -6,11 +6,11 @@ services:
     container_name: mercon-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: mercon_user
-      POSTGRES_PASSWORD: mercon_password
+      POSTGRES_USER: "${POSTGRES_USER:?POSTGRES_USER must be provided (set it as a GitHub Actions secret / env var)}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be provided (set it as a GitHub Actions secret / env var)}"
       POSTGRES_DB: mercon_db
     ports:
-      - '15432:5432' # Exposed for Beekeeper Studio on a safe port
+      - '127.0.0.1:15432:5432' # Localhost-only: tunnel in via SSH for Beekeeper Studio, never exposed publicly
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -23,8 +23,9 @@ services:
     ports:
       - '3050:3000' # Exposed for Nginx proxy on a safe port
     environment:
-      DATABASE_URL: "postgresql://mercon_user:mercon_password@postgres-db:5432/mercon_db?schema=public"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:?POSTGRES_USER must be provided}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be provided}@postgres-db:5432/mercon_db?schema=public"
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be provided (set it as a GitHub Actions secret / env var)}"
+      SEED_ADMIN_PASSWORD: "${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD must be provided (set it as a GitHub Actions secret / env var)}"
       PORT: 3000
     volumes:
       - ./backend/api-server/uploads:/app/backend/api-server/uploads # Local VPS storage for files

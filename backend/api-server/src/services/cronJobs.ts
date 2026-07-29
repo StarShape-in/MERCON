@@ -51,8 +51,8 @@ export const initCronJobs = () => {
                   }
                 });
 
-                // Broadcast to live tracking dashboard
-                io.emit(`trip:location_update:${trip.id}`, gpsData);
+                // Broadcast to whoever has joined this trip's room (dashboards/driver)
+                io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, gpsData);
                 // logger.info(`[ICCES] Broadcasted location for Trip ${trip.ref_id}`);
               }
             }
@@ -123,8 +123,8 @@ export const initCronJobs = () => {
                   }
                 });
                 
-                // Broadcast for real-time toaster
-                io.emit('system:notification', newNotification);
+                // Broadcast for real-time toaster — to this user's room only
+                io.to(`user:${user.id}`).emit('system:notification', newNotification);
               }
             }
           }

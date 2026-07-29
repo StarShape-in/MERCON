@@ -18,13 +18,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/* ─── Response interceptor — handle 401 ────────────────────────────────────── */
+/* ─── Response interceptor — handle 401 and 403 ────────────────────────────── */
+// 401 = token expired / revoked: clear the session and redirect to login.
+// 403 = authenticated but not authorised: do NOT clear the session — let the
+//       calling page surface an inline "you don't have permission" message.
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    if (error.response?.status === 401) {
       authStore.clearSession();
-      // Hard redirect to login — keeps it simple without React Router dependency here
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

@@ -1,22 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Navigation, ShieldCheck, Play, Pause, FastForward, Gauge, MapPin } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
+import { ArrowLeft, Navigation, Wifi, WifiOff, Gauge } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import Btn from '@/components/ui/Btn';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { tripService } from '@/services/tripService';
-import { PREDEFINED_ROUTES } from '@/services/telemetrySimulator';
-import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
+import { authStore } from '@/store/authStore';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 
 // High-Tech Neon Pickup Marker (Emerald LED)
 const pickupMarkerIcon = L.divIcon({
@@ -48,21 +45,19 @@ const dropoffMarkerIcon = L.divIcon({
   iconAnchor: [17, 17],
 });
 
-function createTruckMarkerIcon(heading: number) {
-  return L.divIcon({
-    html: `
-      <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-        <div class="animate-ping" style="position: absolute; width: 46px; height: 46px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.4);"></div>
-        <div style="width: 36px; height: 36px; border-radius: 50%; background: #0F1017; color: #FF5500; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 24px rgba(255, 85, 0, 0.9), inset 0 0 10px #FF5500; border: 2px solid #FF5500; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        </div>
+const truckMarkerIcon = L.divIcon({
+  html: `
+    <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 46px; height: 46px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.4);"></div>
+      <div style="width: 36px; height: 36px; border-radius: 50%; background: #0F1017; color: #FF5500; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 24px rgba(255, 85, 0, 0.9), inset 0 0 10px #FF5500; border: 2px solid #FF5500;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
       </div>
-    `,
-    className: '',
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
-  });
-}
+    </div>
+  `,
+  className: '',
+  iconSize: [48, 48],
+  iconAnchor: [24, 24],
+});
 
 function MapUpdater({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
@@ -72,12 +67,21 @@ function MapUpdater({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+interface GpsPoint {
+  lat: number;
+  lng: number;
+  speed: number;
+  receivedAt: number;
+}
+
 export default function TripTrackingPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { fleet, isPlaying, speedMultiplier, togglePlay, changeSpeedMultiplier } = useSimulatedTelemetry(1);
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
+  const [gpsData, setGpsData] = useState<GpsPoint | null>(null);
+  const [connected, setConnected] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
 
   const { data: trip, isLoading } = useQuery({
     queryKey: ['trip-track', id],
@@ -85,8 +89,33 @@ export default function TripTrackingPage() {
     enabled: !!id,
   });
 
+  // Real live GPS: authenticate, join this trip's room, listen for updates.
+  useEffect(() => {
+    if (!id) return;
+
+    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+      auth: { token: authStore.getToken() },
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      setConnected(true);
+      socket.emit('join:trip', id);
+    });
+    socket.on('disconnect', () => setConnected(false));
+    socket.on('connect_error', () => setConnected(false));
+
+    socket.on(`trip:location_update:${id}`, (data: { lat: number; lng: number; speed: number }) => {
+      setGpsData({ lat: data.lat, lng: data.lng, speed: data.speed ?? 0, receivedAt: Date.now() });
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [id]);
+
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
-  const simulatedTruck = fleet.find((f) => f.tripId === id || f.refId === trip?.ref_id) || fleet[0];
 
   if (isLoading || !trip) {
     return (
@@ -101,30 +130,25 @@ export default function TripTrackingPage() {
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup');
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff');
 
-  const latCenter = simulatedTruck ? simulatedTruck.currentCoords.lat : pickup ? pickup.location_lat : 24.7136;
-  const lngCenter = simulatedTruck ? simulatedTruck.currentCoords.lng : pickup ? pickup.location_lng : 46.6753;
-  const currentSpeed = simulatedTruck ? simulatedTruck.speedKmH : 88;
-  const heading = simulatedTruck ? simulatedTruck.heading : 240;
-  const progress = simulatedTruck ? simulatedTruck.progressPercentage : 42;
-  const etaMinutes = simulatedTruck ? simulatedTruck.etaMinutes : 320;
+  const latCenter = gpsData ? gpsData.lat : pickup ? pickup.location_lat : 24.7136;
+  const lngCenter = gpsData ? gpsData.lng : pickup ? pickup.location_lng : 46.6753;
+  const currentSpeed = gpsData ? Math.round(gpsData.speed) : 0;
 
-  const route = PREDEFINED_ROUTES['riyadh-jeddah'];
-  const polylinePositions = route
-    ? route.waypoints.map((w) => [w.lat, w.lng] as [number, number])
-    : [
-        [pickup ? pickup.location_lat : 24.6432, pickup ? pickup.location_lng : 46.7214] as [number, number],
-        [dropoff ? dropoff.location_lat : 21.5433, dropoff ? dropoff.location_lng : 39.1728] as [number, number],
-      ];
+  const polylinePositions: [number, number][] = [
+    [pickup ? pickup.location_lat : latCenter, pickup ? pickup.location_lng : lngCenter],
+    [dropoff ? dropoff.location_lat : latCenter, dropoff ? dropoff.location_lng : lngCenter],
+  ];
+
+  const secondsSinceUpdate = gpsData ? Math.round((Date.now() - gpsData.receivedAt) / 1000) : null;
 
   return (
     <DashboardLayout
       active="Trips"
       title="Live Tracking"
       breadcrumb={`Trips / ${trip.ref_id || 'Track'}`}
-      pageTitle="Radar GPS Telemetry"
+      pageTitle="Live GPS Tracking"
       actions={
         <div className="flex items-center gap-2">
-          {/* Map Theme Dropdown Selector */}
           <MapThemeSelector
             currentThemeId={mapThemeId}
             onThemeChange={(newTheme) => setMapThemeId(newTheme)}
@@ -139,32 +163,11 @@ export default function TripTrackingPage() {
             <ArrowLeft size={13} />
             <span>Details</span>
           </Button>
-
-          <Button
-            size="sm"
-            onClick={togglePlay}
-            className={`h-8 text-xs font-bold gap-1 ${
-              isPlaying ? 'bg-[#1C1C2E] text-white' : 'bg-green-600 text-white'
-            }`}
-          >
-            {isPlaying ? <Pause size={12} /> : <Play size={12} />}
-            <span>{isPlaying ? 'Pause' : 'Play'}</span>
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => changeSpeedMultiplier(speedMultiplier === 1 ? 2 : speedMultiplier === 2 ? 5 : 1)}
-            className="h-8 text-xs font-bold gap-1 border-black/[0.08]"
-          >
-            <FastForward size={12} className="text-[#FF5500]" />
-            <span>{speedMultiplier}x</span>
-          </Button>
         </div>
       }
     >
       <div className="px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 h-[calc(100vh-170px)] animate-fade-in">
-        
+
         {/* Map panel */}
         <div className="lg:col-span-2 rounded-[24px] border border-black/[0.1] shadow-2xl relative overflow-hidden flex flex-col min-h-[400px] z-0" style={{ background: currentTheme.previewColor }}>
           <MapContainer
@@ -190,8 +193,8 @@ export default function TripTrackingPage() {
               <Marker position={[pickup.location_lat, pickup.location_lng]} icon={pickupMarkerIcon}>
                 <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                   <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#10B981]">Pickup Terminal</p>
-                    <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
+                    <p className="font-bold text-[#10B981]">Pickup Location</p>
+                    <p className="text-[10px] text-gray-500">{pickup.location_lat.toFixed(5)}, {pickup.location_lng.toFixed(5)}</p>
                   </div>
                 </Popup>
               </Marker>
@@ -201,21 +204,23 @@ export default function TripTrackingPage() {
               <Marker position={[dropoff.location_lat, dropoff.location_lng]} icon={dropoffMarkerIcon}>
                 <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                   <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#F43F5E]">Dropoff Terminal</p>
-                    <p className="text-[10px] text-gray-500">Jeddah Islamic Port</p>
+                    <p className="font-bold text-[#F43F5E]">Dropoff Location</p>
+                    <p className="text-[10px] text-gray-500">{dropoff.location_lat.toFixed(5)}, {dropoff.location_lng.toFixed(5)}</p>
                   </div>
                 </Popup>
               </Marker>
             )}
 
-            <Marker position={[latCenter, lngCenter]} icon={createTruckMarkerIcon(heading)}>
-              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                <div className="text-center font-sans p-1">
-                  <p className="font-bold text-[#FF5500]">{trip.vehicle?.plate_number || 'Truck'}</p>
-                  <p className="text-xs text-gray-500">Speed: {currentSpeed} km/h</p>
-                </div>
-              </Popup>
-            </Marker>
+            {gpsData && (
+              <Marker position={[latCenter, lngCenter]} icon={truckMarkerIcon}>
+                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                  <div className="text-center font-sans p-1">
+                    <p className="font-bold text-[#FF5500]">{trip.vehicle?.plate_number || 'Truck'}</p>
+                    <p className="text-xs text-gray-500">Speed: {currentSpeed} km/h</p>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
           </MapContainer>
 
           {/* Top Floating HUD Badges */}
@@ -223,16 +228,26 @@ export default function TripTrackingPage() {
             <div className={`px-3.5 py-2 rounded-xl shadow-xl border flex items-center gap-2 pointer-events-auto text-xs ${
               currentTheme.isDark ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
             }`}>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping" />
-              <span className="font-mono font-bold">TELEMETRY LOCK ({speedMultiplier}x Speed)</span>
+              {connected ? (
+                <>
+                  <Wifi size={13} className="text-green-500" />
+                  <span className="font-mono font-bold">LIVE</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff size={13} className="text-red-500" />
+                  <span className="font-mono font-bold">DISCONNECTED</span>
+                </>
+              )}
             </div>
 
-            <div className={`px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xl border flex items-center gap-2 pointer-events-auto ${
-              currentTheme.isDark ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
-            }`}>
-              <ShieldCheck size={15} className="text-green-500" />
-              <span>Route 40 Expressway Protocol</span>
-            </div>
+            {!gpsData && (
+              <div className={`px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xl border flex items-center gap-2 pointer-events-auto ${
+                currentTheme.isDark ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
+              }`}>
+                <span>Waiting for the driver's GPS signal…</span>
+              </div>
+            )}
           </div>
 
           {/* Bottom Floating Telemetry Panel */}
@@ -257,9 +272,9 @@ export default function TripTrackingPage() {
                 <p className="text-sm font-bold text-[#FF5500] mt-0.5">{currentSpeed} km/h</p>
               </div>
               <div className="text-right border-l border-gray-200 dark:border-white/10 pl-6">
-                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Estimated ETA</p>
+                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Last Update</p>
                 <p className="text-sm font-bold mt-0.5">
-                  ~{Math.floor(etaMinutes / 60)}h {etaMinutes % 60}m
+                  {secondsSinceUpdate === null ? '—' : secondsSinceUpdate < 60 ? `${secondsSinceUpdate}s ago` : `${Math.round(secondsSinceUpdate / 60)}m ago`}
                 </p>
               </div>
             </div>
@@ -311,11 +326,11 @@ export default function TripTrackingPage() {
                   <div className="mt-2 space-y-3 pl-3 border-l-2 border-[#F5F5F7]">
                     <div className="text-xs">
                       <p className="font-bold text-[#10B981]">1. Pickup Location</p>
-                      <p className="text-[10px] text-gray-500 font-medium">Riyadh Dry Port</p>
+                      <p className="text-[10px] text-gray-500 font-medium">{pickup.location_lat.toFixed(4)}, {pickup.location_lng.toFixed(4)}</p>
                     </div>
                     <div className="text-xs">
                       <p className="font-bold text-[#F43F5E]">2. Dropoff Destination</p>
-                      <p className="text-[10px] text-gray-500 font-medium">Jeddah Islamic Port</p>
+                      <p className="text-[10px] text-gray-500 font-medium">{dropoff.location_lat.toFixed(4)}, {dropoff.location_lng.toFixed(4)}</p>
                     </div>
                   </div>
                 </div>
@@ -327,9 +342,11 @@ export default function TripTrackingPage() {
             <div className="bg-[#FFF0EB] border border-[#FF5500]/10 p-3 rounded-xl flex items-start gap-2.5">
               <Navigation size={16} className="text-[#FF5500] shrink-0 mt-0.5 stroke-[2.2]" />
               <div>
-                <p className="text-xs font-bold text-[#FF5500]">Cyber Telemetry Active</p>
+                <p className="text-xs font-bold text-[#FF5500]">{connected ? 'Live Telemetry Connected' : 'Reconnecting…'}</p>
                 <p className="text-[10px] text-[#FF5500]/80 mt-0.5">
-                  GPS coordinates interpolate live along Saudi Route 40.
+                  {gpsData
+                    ? "Position updates from the driver's app in real time."
+                    : "No GPS ping received yet for this trip."}
                 </p>
               </div>
             </div>

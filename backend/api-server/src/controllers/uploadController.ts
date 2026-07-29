@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { imageOrPdfFileFilter } from '../middlewares/uploadFileFilter';
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, '../../uploads');
@@ -20,9 +21,10 @@ const storage = multer.diskStorage({
   }
 });
 
-export const upload = multer({ 
+export const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: imageOrPdfFileFilter,
 });
 
 export const handleUpload = (req: Request, res: Response) => {

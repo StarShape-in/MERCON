@@ -25,6 +25,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { customerService } from '@/services/customerService';
 import { tripService } from '@/services/tripService';
 import { invoiceService, CreateInvoicePayload } from '@/services/invoiceService';
+import { rateCardService } from '@/services/rateCardService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,8 @@ export default function CreateInvoicePage() {
   const [customerId, setCustomerId] = useState<string>('');
   const [selectedTripId, setSelectedTripId] = useState<string>('');
   const [paymentTermsDays, setPaymentTermsDays] = useState<number>(30);
-  const [customSubtotal, setCustomSubtotal] = useState<string>('3500');
+  const [customSubtotal, setCustomSubtotal] = useState<string>('');
+  const [subtotalAutoFilled, setSubtotalAutoFilled] = useState(false);
 
   // Fetch active customers for dropdown
   const { data: customersRes } = useQuery({
@@ -70,7 +72,30 @@ export default function CreateInvoicePage() {
 
   const trips = rawTrips.filter((t: any) => !t.invoices || t.invoices.length === 0);
 
+  // Fetch the customer's active rate card to auto-fill the subtotal
+  const { data: rateCardsRes } = useQuery({
+    queryKey: ['rate-cards', customerId],
+    queryFn: () => rateCardService.getAll(),
+    enabled: !!customerId,
+  });
+
+  const customerRateCard = (rateCardsRes?.data ?? []).find(
+    (rc) => rc.customerId === customerId && rc.is_active
+  ) ?? null;
+
   const selectedTrip = trips.find((t: any) => t.id === selectedTripId);
+
+  // When a trip is selected and a rate card exists, auto-fill the subtotal once
+  // (only if the operator hasn't already edited the field from a previous trip).
+  useEffect(() => {
+    if (selectedTripId && customerRateCard && !subtotalAutoFilled) {
+      setCustomSubtotal(String(customerRateCard.base_price));
+      setSubtotalAutoFilled(true);
+    }
+    if (!selectedTripId) {
+      setSubtotalAutoFilled(false);
+    }
+  }, [selectedTripId, customerRateCard, subtotalAutoFilled]);
 
   const subtotalAmount = parseFloat(customSubtotal || '3500') || 3500;
   const vatRate = 0.15; // 15% KSA VAT
@@ -87,7 +112,8 @@ export default function CreateInvoicePage() {
     setCustomerId('');
     setSelectedTripId('');
     setPaymentTermsDays(30);
-    setCustomSubtotal('3500');
+    setCustomSubtotal('');
+    setSubtotalAutoFilled(false);
     setError(null);
   };
 
@@ -529,8 +555,13 @@ export default function CreateInvoicePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                       
                       <div className="space-y-1.5">
-                        <Label htmlFor="customSubtotal" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          Base Subtotal Amount (SAR) <span className="text-rose-500">*</span>
+                        <Label htmlFor="customSubtotal" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                          <span>Base Subtotal Amount (SAR) <span className="text-rose-500">*</span></span>
+                          {subtotalAutoFilled && customerRateCard && (
+                            <span className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> Auto-filled from rate card — editable
+                            </span>
+                          )}
                         </Label>
                         <div className="relative">
                           <span className="absolute left-3 top-2 text-xs font-bold text-slate-400 font-mono">SAR</span>
@@ -538,10 +569,14 @@ export default function CreateInvoicePage() {
                             id="customSubtotal"
                             type="number"
                             step="0.01"
-                            placeholder="3500.00"
+                            placeholder={customerRateCard ? String(customerRateCard.base_price) : '3500.00'}
                             value={customSubtotal}
-                            onChange={(e) => setCustomSubtotal(e.target.value)}
-                            className="h-9 text-xs pl-12 font-mono font-bold border-slate-200"
+                            onChange={(e) => {
+                              setCustomSubtotal(e.target.value);
+                              // Mark as manually edited so future trip switches don't re-overwrite
+                              if (subtotalAutoFilled) setSubtotalAutoFilled(true);
+                            }}
+                            className={`h-9 text-xs pl-12 font-mono font-bold border-slate-200 ${subtotalAutoFilled ? 'border-emerald-300 dark:border-emerald-700' : ''}`}
                           />
                         </div>
                       </div>

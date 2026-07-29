@@ -4,6 +4,7 @@ import { generateRefId } from '../utils/refId';
 import { createDriverNotification } from './notificationController';
 import { TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { logger } from '../utils/logger';
+import { isValidTransition, completeTripAndInvoice } from '../services/tripLifecycle';
 
 const isUuid = (val: any): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -124,20 +125,32 @@ export const createTrip = async (req: Request, res: Response) => {
           if (!driver) {
             throw new Error('DRIVER_NOT_FOUND');
           }
-          if (driver.status !== 'Available') {
-            throw new Error('DRIVER_UNAVAILABLE');
-          }
 
           const vehicle = await tx.vehicle.findFirst({ where: { id: vehicle_id, deletedAt: null } });
           if (!vehicle) {
             throw new Error('VEHICLE_NOT_FOUND');
           }
-          if (vehicle.status !== 'Available') {
-            throw new Error('VEHICLE_UNAVAILABLE');
+
+          // Atomically claim the driver/vehicle: the UPDATE only matches (and
+          // locks) the row if it's still Available, so two concurrent requests
+          // racing for the same driver/vehicle can't both win — the loser's
+          // WHERE clause re-evaluates against the winner's committed status
+          // and matches zero rows.
+          const driverClaim = await tx.driver.updateMany({
+            where: { id: driver_id, status: 'Available' },
+            data: { status: 'OnTrip' },
+          });
+          if (driverClaim.count === 0) {
+            throw new Error('DRIVER_UNAVAILABLE');
           }
 
-          await tx.driver.update({ where: { id: driver_id }, data: { status: 'OnTrip' } });
-          await tx.vehicle.update({ where: { id: vehicle_id }, data: { status: 'OnTrip' } });
+          const vehicleClaim = await tx.vehicle.updateMany({
+            where: { id: vehicle_id, status: 'Available' },
+            data: { status: 'OnTrip' },
+          });
+          if (vehicleClaim.count === 0) {
+            throw new Error('VEHICLE_UNAVAILABLE');
+          }
 
           return tx.trip.create({
             data: {
@@ -202,21 +215,32 @@ export const createTrip = async (req: Request, res: Response) => {
 export const updateTripStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
+    const tripId = req.params.id as string;
 
-    const updateData: any = { status: status as TripStatus, updated_by: (req as any).user?.id };
-    if (status === 'Completed') updateData.actual_end = new Date();
-    if (status === 'InTransit') updateData.actual_start = new Date();
+    if (!Object.values(TripStatus).includes(status)) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid status' } });
+    }
 
     const trip = await prisma.$transaction(async (tx) => {
-      const updated = await tx.trip.update({
-        where: { id: req.params.id as string },
-        data: updateData
-      });
+      const current = await tx.trip.findUnique({ where: { id: tripId } });
+      if (!current) throw new Error('NOT_FOUND');
+      if (!isValidTransition(current.status, status)) throw new Error('INVALID_TRANSITION');
 
-      // Leaving the trip permanently (Completed/Cancelled) must release the
+      // Completing a trip always goes through the shared helper so every
+      // path that can complete a trip also generates its invoice.
+      if (status === TripStatus.Completed) {
+        return completeTripAndInvoice(tx, tripId, (req as any).user?.id);
+      }
+
+      const updateData: any = { status: status as TripStatus, updated_by: (req as any).user?.id };
+      if (status === 'InTransit') updateData.actual_start = new Date();
+
+      const updated = await tx.trip.update({ where: { id: tripId }, data: updateData });
+
+      // Leaving the trip permanently via Cancelled must release the
       // driver/vehicle back to Available — otherwise they stay stuck on
       // "OnTrip" with no trip left to free them.
-      if (status === TripStatus.Completed || status === TripStatus.Cancelled) {
+      if (status === TripStatus.Cancelled) {
         if (updated.driverId) {
           await tx.driver.update({ where: { id: updated.driverId }, data: { status: DriverStatus.Available } });
         }
@@ -229,7 +253,13 @@ export const updateTripStatus = async (req: Request, res: Response) => {
     });
 
     res.json({ success: true, data: trip });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'NOT_FOUND') {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
+    if (error.message === 'INVALID_TRANSITION') {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_TRANSITION', message: 'That status change is not allowed from the trip\'s current state' } });
+    }
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update trip status' } });
   }
 };
@@ -276,18 +306,23 @@ export const dispatchTrip = async (req: Request, res: Response) => {
 
     // Run in a transaction to ensure atomic state updates
     const result = await prisma.$transaction(async (tx) => {
-      const driver = await tx.driver.findUnique({ where: { id: driver_id } });
-      const vehicle = await tx.vehicle.findUnique({ where: { id: vehicle_id } });
-
-      if (!driver || driver.status !== 'Available') {
+      // Atomically claim the driver/vehicle — see createTrip for why this
+      // must be a conditional UPDATE rather than SELECT-then-UPDATE.
+      const driverClaim = await tx.driver.updateMany({
+        where: { id: driver_id, status: 'Available' },
+        data: { status: 'OnTrip' },
+      });
+      if (driverClaim.count === 0) {
         throw new Error('DRIVER_UNAVAILABLE');
       }
-      if (!vehicle || vehicle.status !== 'Available') {
+
+      const vehicleClaim = await tx.vehicle.updateMany({
+        where: { id: vehicle_id, status: 'Available' },
+        data: { status: 'OnTrip' },
+      });
+      if (vehicleClaim.count === 0) {
         throw new Error('VEHICLE_UNAVAILABLE');
       }
-
-      await tx.driver.update({ where: { id: driver_id }, data: { status: 'OnTrip' } });
-      await tx.vehicle.update({ where: { id: vehicle_id }, data: { status: 'OnTrip' } });
 
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
@@ -327,13 +362,16 @@ export const replaceDriver = async (req: Request, res: Response) => {
       const trip = await tx.trip.findUnique({ where: { id: tripId } });
       if (!trip || !trip.driverId) throw new Error('TRIP_OR_DRIVER_NOT_FOUND');
 
-      const newDriver = await tx.driver.findUnique({ where: { id: new_driver_id } });
-      if (!newDriver || newDriver.status !== 'Available') throw new Error('NEW_DRIVER_UNAVAILABLE');
+      // Atomically claim the new driver — see createTrip for why this must be
+      // a conditional UPDATE rather than SELECT-then-UPDATE.
+      const claim = await tx.driver.updateMany({
+        where: { id: new_driver_id, status: 'Available' },
+        data: { status: 'OnTrip' },
+      });
+      if (claim.count === 0) throw new Error('NEW_DRIVER_UNAVAILABLE');
 
       // Free old driver
       await tx.driver.update({ where: { id: trip.driverId }, data: { status: 'Available' } });
-      // Lock new driver
-      await tx.driver.update({ where: { id: new_driver_id }, data: { status: 'OnTrip' } });
 
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
@@ -365,9 +403,12 @@ export const replaceDriver = async (req: Request, res: Response) => {
 export const pickupArrive = async (req: Request, res: Response) => {
   try {
     const tripId = req.params.id as string;
-    
+
     const trip = await prisma.trip.findUnique({ where: { id: tripId }, include: { stops: true } });
     if (!trip) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    if (!isValidTransition(trip.status, TripStatus.AtPickup)) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_TRANSITION', message: 'That status change is not allowed from the trip\'s current state' } });
+    }
 
     const pickupStop = trip.stops.find(s => s.stop_type === 'Pickup');
     if (pickupStop) {
@@ -391,13 +432,19 @@ export const pickupArrive = async (req: Request, res: Response) => {
 export const pickupVerify = async (req: Request, res: Response) => {
   try {
     const tripId = req.params.id as string;
-    
+
+    const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    if (!isValidTransition(trip.status, TripStatus.InTransit)) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_TRANSITION', message: 'That status change is not allowed from the trip\'s current state' } });
+    }
+
     const updatedTrip = await prisma.trip.update({
       where: { id: tripId },
-      data: { 
-        status: 'InTransit', 
+      data: {
+        status: 'InTransit',
         actual_start: new Date(),
-        updated_by: (req as any).user?.id 
+        updated_by: (req as any).user?.id
       }
     });
 
@@ -412,68 +459,21 @@ export const deliveryVerify = async (req: Request, res: Response) => {
     const tripId = req.params.id as string;
 
     const result = await prisma.$transaction(async (tx) => {
-      const trip = await tx.trip.findUnique({ where: { id: tripId }, include: { stops: true } });
-      if (!trip) throw new Error('NOT_FOUND');
+      const current = await tx.trip.findUnique({ where: { id: tripId } });
+      if (!current) throw new Error('NOT_FOUND');
+      if (!isValidTransition(current.status, TripStatus.Completed)) throw new Error('INVALID_TRANSITION');
 
-      const dropoffStop = trip.stops.find(s => s.stop_type === 'Dropoff');
-      if (dropoffStop) {
-        await tx.tripStop.update({
-          where: { id: dropoffStop.id },
-          data: { actual_arrival: new Date() }
-        });
-      }
-
-      const updatedTrip = await tx.trip.update({
-        where: { id: tripId },
-        data: { 
-          status: 'Completed', 
-          actual_end: new Date(),
-          updated_by: (req as any).user?.id 
-        }
-      });
-
-      // Free assets
-      if (trip.driverId) await tx.driver.update({ where: { id: trip.driverId }, data: { status: 'Available' } });
-      if (trip.vehicleId) await tx.vehicle.update({ where: { id: trip.vehicleId }, data: { status: 'Available' } });
-
-      // Generate Automated Invoice
-      const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
-      if (!existingInvoice) {
-        let rateCard = await tx.rateCard.findFirst({
-          where: { customerId: trip.customerId, is_active: true }
-        });
-        
-        if (!rateCard) {
-          rateCard = await tx.rateCard.findFirst({
-            where: { customerId: null, is_active: true }
-          });
-        }
-
-        const subtotal = rateCard ? rateCard.base_price : 1000.0;
-
-        const invoiceRefId = await generateRefId('INV', () =>
-          tx.invoice.findMany({ select: { ref_id: true } }));
-
-        await tx.invoice.create({
-          data: {
-            ref_id: invoiceRefId,
-            tripId: trip.id,
-            customerId: trip.customerId,
-            status: 'Draft',
-            currency: rateCard ? rateCard.currency : 'SAR',
-            subtotal: subtotal,
-            total_amount: subtotal,
-            due_date: new Date(new Date().setDate(new Date().getDate() + 30)), // Net 30
-            created_by: (req as any).user?.id
-          }
-        });
-      }
-
-      return updatedTrip;
+      return completeTripAndInvoice(tx, tripId, (req as any).user?.id);
     });
 
     res.json({ success: true, data: result });
   } catch (error: any) {
+    if (error.message === 'NOT_FOUND') {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
+    if (error.message === 'INVALID_TRANSITION') {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_TRANSITION', message: 'That status change is not allowed from the trip\'s current state' } });
+    }
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to verify delivery' } });
   }
 };
@@ -537,38 +537,60 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
     if (!Array.isArray(ids) || ids.length === 0 || !status) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'IDs and status are required' } });
     }
+    if (!Object.values(TripStatus).includes(status)) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid status' } });
+    }
 
-    await prisma.$transaction(async (tx) => {
-      // Same release rule as the single-trip update: Completed/Cancelled
-      // frees the driver/vehicle back to Available.
-      let driverIds: string[] = [];
-      let vehicleIds: string[] = [];
-      if (status === TripStatus.Completed || status === TripStatus.Cancelled) {
-        const trips = await tx.trip.findMany({
-          where: { id: { in: ids }, deletedAt: null, status: { in: IN_FLIGHT_STATUSES } },
-          select: { driverId: true, vehicleId: true },
-        });
-        driverIds = [...new Set(trips.map((t) => t.driverId).filter((id): id is string => !!id))];
-        vehicleIds = [...new Set(trips.map((t) => t.vehicleId).filter((id): id is string => !!id))];
+    const { updated, skipped } = await prisma.$transaction(async (tx) => {
+      const trips = await tx.trip.findMany({
+        where: { id: { in: ids }, deletedAt: null },
+        select: { id: true, status: true, driverId: true, vehicleId: true },
+      });
+
+      const validIds = trips.filter((t) => isValidTransition(t.status, status)).map((t) => t.id);
+      const skippedCount = trips.length - validIds.length;
+
+      if (validIds.length === 0) return { updated: 0, skipped: skippedCount };
+
+      // Completing a trip always goes through the shared helper so bulk
+      // completion also generates invoices, same as the single-trip path.
+      if (status === TripStatus.Completed) {
+        for (const id of validIds) {
+          await completeTripAndInvoice(tx, id, userId);
+        }
+        return { updated: validIds.length, skipped: skippedCount };
       }
 
       await tx.trip.updateMany({
-        where: { id: { in: ids } },
-        data: {
-          status: status as TripStatus,
-          updated_by: userId
-        }
+        where: { id: { in: validIds } },
+        data: { status: status as TripStatus, updated_by: userId },
       });
 
-      if (driverIds.length) {
-        await tx.driver.updateMany({ where: { id: { in: driverIds } }, data: { status: DriverStatus.Available } });
+      // Same release rule as the single-trip update: Cancelled frees the
+      // driver/vehicle back to Available.
+      if (status === TripStatus.Cancelled) {
+        const affected = trips.filter((t) => validIds.includes(t.id));
+        const driverIds = [...new Set(affected.map((t) => t.driverId).filter((id): id is string => !!id))];
+        const vehicleIds = [...new Set(affected.map((t) => t.vehicleId).filter((id): id is string => !!id))];
+        if (driverIds.length) {
+          await tx.driver.updateMany({ where: { id: { in: driverIds } }, data: { status: DriverStatus.Available } });
+        }
+        if (vehicleIds.length) {
+          await tx.vehicle.updateMany({ where: { id: { in: vehicleIds } }, data: { status: AssetStatus.Available } });
+        }
       }
-      if (vehicleIds.length) {
-        await tx.vehicle.updateMany({ where: { id: { in: vehicleIds } }, data: { status: AssetStatus.Available } });
-      }
+
+      return { updated: validIds.length, skipped: skippedCount };
     });
 
-    res.json({ success: true, data: { message: `Successfully updated ${ids.length} trips` } });
+    res.json({
+      success: true,
+      data: {
+        message: skipped > 0
+          ? `Updated ${updated} trip(s); skipped ${skipped} with an invalid status transition`
+          : `Successfully updated ${updated} trips`,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update trips` } });
   }

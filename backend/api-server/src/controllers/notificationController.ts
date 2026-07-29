@@ -91,8 +91,8 @@ export const createNotification = async (
       }
     });
 
-    // Broadcast the notification to the specific user via WebSocket
-    io.emit(`user:notification:${userId}`, notification);
+    // Send to just this user's private room (they auto-join it on socket connect)
+    io.to(`user:${userId}`).emit(`user:notification:${userId}`, notification);
 
     return notification;
   } catch (error) {
@@ -115,7 +115,7 @@ export const createDriverNotification = async (
       data: { driverId, title, message, type, entity_type, entity_id }
     });
 
-    io.emit(`driver:notification:${driverId}`, notification);
+    io.to(`driver:${driverId}`).emit(`driver:notification:${driverId}`, notification);
 
     return notification;
   } catch (error) {

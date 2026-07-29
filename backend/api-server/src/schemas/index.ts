@@ -63,16 +63,64 @@ export const updateDriverBody = z.object({
   status: z.enum(['Available', 'OnTrip', 'OffDuty', 'Inactive']).optional(),
 });
 
+/* ─── Customers ──────────────────────────────────────────────────────────── */
+export const createCustomerBody = z.object({
+  name: nonEmpty('Customer name'),
+  contact_phone: nonEmpty('Contact phone'),
+  credit_limit: z.coerce.number().nonnegative().optional(),
+});
+
+export const updateCustomerBody = z.object({
+  name: nonEmpty('Customer name').optional(),
+  contact_phone: nonEmpty('Contact phone').optional(),
+  credit_limit: z.coerce.number().nonnegative().optional(),
+  isActive: z.boolean().optional(),
+});
+
 /* ─── Vehicles ───────────────────────────────────────────────────────────── */
 export const createVehicleBody = z.object({
   plate_number: nonEmpty('Plate number'),
   asset_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']),
-  capacity_kg: z.coerce.number().positive().optional(),
+  capacity_kg: z.coerce.number().int().positive('Capacity must be a whole number of kg'),
   trailer_number: z.string().trim().optional(),
   trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
-  trailer_capacity_kg: z.coerce.number().positive().optional(),
+  trailer_capacity_kg: z.coerce.number().int().positive().optional(),
   gps_device_id: z.string().trim().optional(),
   icces_device_id: z.string().trim().optional(),
+});
+
+export const updateVehicleBody = z.object({
+  plate_number: nonEmpty('Plate number').optional(),
+  asset_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
+  capacity_kg: z.coerce.number().int().positive().optional(),
+  trailer_number: z.string().trim().optional(),
+  trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
+  trailer_capacity_kg: z.coerce.number().int().positive().optional(),
+  gps_device_id: z.string().trim().optional(),
+  icces_device_id: z.string().trim().optional(),
+  status: z.enum(['Available', 'OnTrip', 'Maintenance', 'Inactive']).optional(),
+});
+
+/* ─── Users (Admin-only web dashboard accounts) ─────────────────────────────
+ * Only Admin/Operator are creatable here — Driver accounts are managed
+ * through the Drivers module, never through User Management. See
+ * CLAUDE.md "Roles" and "Who uses which app".
+ */
+const webUserRole = z.enum(['Admin', 'Operator']);
+
+export const createUserBody = z.object({
+  name: nonEmpty('Name'),
+  email: z.string().trim().email('A valid email is required'),
+  role: webUserRole,
+  password: nonEmpty('Password'),
+});
+
+export const updateUserBody = z.object({
+  name: nonEmpty('Name').optional(),
+  email: z.string().trim().email('A valid email is required').optional(),
+  role: webUserRole.optional(),
+  status: z.enum(['Active', 'Inactive']).optional(),
+  password: nonEmpty('Password').optional(),
 });
 
 /* ─── Invoices ───────────────────────────────────────────────────────────── */

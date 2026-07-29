@@ -4,7 +4,7 @@ import {
   StyleSheet, SafeAreaView, StatusBar, RefreshControl, ActivityIndicator, Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MapPin, Hand } from 'lucide-react-native';
+import { MapPin, Hand, Siren } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Badge, DarkCard } from '../../components';
 import { useAuth } from '../../lib/auth-context';
@@ -100,9 +100,19 @@ const HomeScreen = () => {
               <Hand size={20} color="#F5A623" strokeWidth={2.2} />
             </View>
           </View>
-          <TouchableOpacity onPress={signOut} activeOpacity={0.7} style={styles.signOutBtn}>
-            <Text style={styles.signOutText}>Sign out</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => router.push('/trip/emergency')}
+              activeOpacity={0.7}
+              style={styles.sosBtn}
+            >
+              <Siren size={16} color={Colors.white} strokeWidth={2.4} />
+              <Text style={styles.sosText}>SOS</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={signOut} activeOpacity={0.7} style={styles.signOutBtn}>
+              <Text style={styles.signOutText}>Sign out</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Active trip — centered in the remaining page space, whichever state renders */}
@@ -221,6 +231,18 @@ const styles = StyleSheet.create({
   driverName: { fontSize: Typography.xl, fontWeight: '700', color: Colors.gray900 },
   signOutBtn: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
   signOutText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: '600' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  sosBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.error,
+    borderRadius: Radius.full,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.sm,
+    ...Shadows.sm,
+  },
+  sosText: { fontSize: Typography.xs, fontWeight: '800', color: Colors.white },
 
   centerBox: { paddingVertical: Spacing['3xl'], alignItems: 'center', gap: Spacing.sm },
   errorText: { fontSize: Typography.sm, color: Colors.error, textAlign: 'center' },

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { getUsers, createUser, updateUser, deleteUser } from '../controllers/userController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
+import { validate } from '../middlewares/validate';
+import { createUserBody, updateUserBody, idParam } from '../schemas';
 
 const router = Router();
 
@@ -10,8 +12,8 @@ router.use(authenticateJWT);
 router.use(authorizeRoles('Admin'));
 
 router.get('/', getUsers);
-router.post('/', createUser);
-router.put('/:id', updateUser);
-router.delete('/:id', deleteUser);
+router.post('/', validate({ body: createUserBody }), createUser);
+router.put('/:id', validate({ params: idParam, body: updateUserBody }), updateUser);
+router.delete('/:id', validate({ params: idParam }), deleteUser);
 
 export default router;

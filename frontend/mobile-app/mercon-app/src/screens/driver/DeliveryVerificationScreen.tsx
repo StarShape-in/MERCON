@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, Image, Alert,
@@ -18,6 +18,10 @@ const DeliveryVerificationScreen = () => {
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // Track which photo indices have already been uploaded successfully so a retry
+  // doesn't re-upload them (prevents duplicate Document rows on a network hiccup).
+  const uploadedIndices = useRef<Set<number>>(new Set());
+  const inFlight = useRef(false);
 
   const addPhoto = async () => {
     try {
@@ -33,16 +37,24 @@ const DeliveryVerificationScreen = () => {
 
   const complete = async () => {
     if (!trip || !canComplete) return;
+    // Prevent double-tap re-entrancy
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSubmitting(true);
     try {
-      for (const photo of photos) {
-        await tripService.uploadPhoto(trip.id, 'pod', photo);
+      // Only upload photos not yet successfully uploaded (retry-safe)
+      for (let i = 0; i < photos.length; i++) {
+        if (!uploadedIndices.current.has(i)) {
+          await tripService.uploadPhoto(trip.id, 'pod', photos[i]);
+          uploadedIndices.current.add(i);
+        }
       }
       await tripService.updateStatus(trip.id, 'Completed');
       router.replace('/trip/completed');
     } catch (e) {
       Alert.alert('Could not complete', getApiErrorMessage(e));
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };

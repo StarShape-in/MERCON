@@ -67,12 +67,15 @@ export default function AddDriverPage() {
     },
   });
 
+  const isExpiryValid = formData.license_expiry ? new Date(formData.license_expiry) > new Date() : false;
+
   const isFormValid = 
     formData.first_name.trim() !== '' && 
     formData.last_name.trim() !== '' && 
     formData.phone_primary.trim() !== '' && 
     formData.license_number.trim() !== '' && 
-    formData.license_expiry !== '';
+    formData.license_expiry !== '' &&
+    isExpiryValid;
 
   const handleSubmit = useCallback(() => {
     setError(null);
@@ -95,6 +98,10 @@ export default function AddDriverPage() {
     }
     if (!formData.license_expiry) {
       setError('License expiry date is required');
+      return;
+    }
+    if (!isExpiryValid) {
+      setError('License is already expired. Only drivers with a valid, future-dated license can be onboarded.');
       return;
     }
 
@@ -124,7 +131,7 @@ export default function AddDriverPage() {
 
   const fullName = `${formData.first_name} ${formData.last_name}`.trim();
   const initials = (formData.first_name[0] || 'D') + (formData.last_name[0] || 'R');
-  const isExpiryValid = formData.license_expiry ? new Date(formData.license_expiry) > new Date() : false;
+  // isExpiryValid is now defined above isFormValid (moved up)
 
   return (
     <DashboardLayout active="Drivers" title="Onboard New Driver">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, Image, Alert,
@@ -19,6 +19,10 @@ const PickupVerificationScreen = () => {
   const { trip, loading } = useCurrentTrip();
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // Track which photo indices have already been uploaded successfully so a retry
+  // doesn't re-upload them (prevents duplicate Document rows on a network hiccup).
+  const uploadedIndices = useRef<Set<number>>(new Set());
+  const inFlight = useRef(false);
 
   const addPhoto = async () => {
     try {
@@ -34,16 +38,24 @@ const PickupVerificationScreen = () => {
 
   const confirm = async () => {
     if (!trip || !canConfirm) return;
+    // Prevent double-tap re-entrancy (state update is async, so guard with a ref too)
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSubmitting(true);
     try {
-      for (const photo of photos) {
-        await tripService.uploadPhoto(trip.id, 'cargo', photo);
+      // Only upload photos not yet successfully uploaded (retry-safe)
+      for (let i = 0; i < photos.length; i++) {
+        if (!uploadedIndices.current.has(i)) {
+          await tripService.uploadPhoto(trip.id, 'cargo', photos[i]);
+          uploadedIndices.current.add(i);
+        }
       }
       await tripService.updateStatus(trip.id, 'InTransit');
       router.replace('/trip/navigate');
     } catch (e) {
       Alert.alert('Could not start trip', getApiErrorMessage(e));
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };

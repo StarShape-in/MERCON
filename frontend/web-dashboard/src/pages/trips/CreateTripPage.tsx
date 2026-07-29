@@ -43,11 +43,22 @@ export default function CreateTripPage() {
 
   const [activeTab, setActiveTab] = useState<'customer' | 'assignment' | 'route'>('customer');
   const [hazmat, setHazmat] = useState(false);
+  const [cargoType, setCargoType] = useState('General Goods');
   const [plannedStart, setPlannedStart] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [driverId, setDriverId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Canonical cargo types used across the system
+  const CARGO_TYPES = [
+    'General Goods',
+    'Refrigerated',
+    'Hazmat',
+    'Oversized',
+    'Liquid Bulk',
+    'Dry Bulk',
+  ] as const;
 
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
@@ -116,6 +127,7 @@ export default function CreateTripPage() {
   const handleReset = () => {
     setActiveTab('customer');
     setHazmat(false);
+    setCargoType('General Goods');
     setPlannedStart('');
     setCustomerId('');
     setDriverId('');
@@ -158,11 +170,18 @@ export default function CreateTripPage() {
       return;
     }
 
+    // Client-side time ordering check (item 16)
+    if (pickupTime && dropoffTime && dropoffTime <= pickupTime) {
+      setActiveTab('route');
+      setError('Dropoff time must be after pickup time.');
+      return;
+    }
+
     const payload: CreateTripPayload = {
       customer_id: customerId,
       driver_id: driverId,
       vehicle_id: vehicleId,
-      cargo_type: 'General Goods',
+      cargo_type: cargoType,
       hazmat_flag: hazmat,
       planned_start: plannedStart || undefined,
       stops: [
@@ -362,16 +381,18 @@ export default function CreateTripPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hazard Class</span>
-              <AlertTriangle className={`w-4 h-4 ${hazmat ? 'text-amber-500' : 'text-slate-400'}`} />
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cargo Type</span>
+              <Package className={`w-4 h-4 ${hazmat ? 'text-amber-500' : 'text-slate-400'}`} />
             </div>
             <div className="mt-1 flex items-baseline justify-between">
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[130px]">
-                {hazmat ? 'Hazardous' : 'Standard'}
+                {cargoType}
               </span>
-              <Badge variant="outline" className={`text-[9px] px-1 py-0 font-bold ${hazmat ? 'bg-amber-50 text-amber-700 border-amber-300' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                {hazmat ? 'HAZMAT' : 'Standard'}
-              </Badge>
+              {hazmat && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 font-bold bg-amber-50 text-amber-700 border-amber-300">
+                  HAZMAT
+                </Badge>
+              )}
             </div>
           </Card>
 
@@ -511,6 +532,23 @@ export default function CreateTripPage() {
                         />
                       </div>
 
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="cargo_type" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                          <Package className="w-3.5 h-3.5 text-slate-400" /> Cargo Type <span className="text-rose-500">*</span>
+                        </Label>
+                        <Select value={cargoType} onValueChange={setCargoType}>
+                          <SelectTrigger id="cargo_type" className="h-9 text-xs border-slate-200 bg-white">
+                            <SelectValue placeholder="Select cargo type..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CARGO_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <div className="space-y-1.5 flex items-end">
                         <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-full h-9">
                           <input
@@ -526,6 +564,7 @@ export default function CreateTripPage() {
                           </Label>
                         </div>
                       </div>
+
 
                     </div>
 

@@ -81,6 +81,11 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
       setError('License expiry date is required.');
       return;
     }
+    const isExpiryValid = new Date(formData.license_expiry) > new Date();
+    if (!isExpiryValid) {
+      setError('License is already expired. Please enter a valid future expiry date.');
+      return;
+    }
 
     createMutation.mutate(formData);
   };
