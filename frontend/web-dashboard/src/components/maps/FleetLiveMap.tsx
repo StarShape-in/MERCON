@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
   Play, Pause, FastForward, Search, Navigation, 
-  ExternalLink, Truck, ShieldCheck, MapPin, Gauge, Activity, ListFilter, SlidersHorizontal
+  ExternalLink, Truck, ShieldCheck, MapPin, Gauge, Activity, Sun, Moon, Globe, Layers
 } from 'lucide-react';
 
 import { SimulatedTruckTelemetry } from '@/services/telemetrySimulator';
@@ -23,29 +23,63 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import StatusBadge from '@/components/ui/StatusBadge';
 
-// Custom SVG HTML marker generator for simulated trucks
-function createTruckDivIcon(truck: SimulatedTruckTelemetry) {
-  let color = '#E8450F'; // Default brand orange
-  let pulseAnimation = 'animate-pulse';
+// Vector Map Tile Provider Configurations
+export const MAP_TILES = {
+  midnight: {
+    name: 'Midnight Cyber',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    dark: true,
+  },
+  voyager: {
+    name: 'Voyager Minimal',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    dark: false,
+  },
+  satellite: {
+    name: 'Satellite Hybrid',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    dark: true,
+  },
+};
+
+// High-Tech Neon Vehicle Marker Generator
+function createNeonTruckDivIcon(truck: SimulatedTruckTelemetry) {
+  let color = '#FF5500'; // Neon Orange
+  let glowColor = 'rgba(255, 85, 0, 0.7)';
   
   if (truck.status === 'AtPickup') {
-    color = '#2563EB'; // Blue
-    pulseAnimation = '';
+    color = '#0088FF'; // Neon Blue
+    glowColor = 'rgba(0, 136, 255, 0.7)';
   } else if (truck.status === 'Idle') {
-    color = '#6E6E80'; // Muted
-    pulseAnimation = '';
+    color = '#94A3B8'; // Slate
+    glowColor = 'rgba(148, 163, 184, 0.4)';
   } else if (truck.status === 'Completed') {
-    color = '#16A34A'; // Green
-    pulseAnimation = '';
+    color = '#10B981'; // Neon Emerald
+    glowColor = 'rgba(16, 185, 129, 0.7)';
   }
 
   const svgIconHtml = `
-    <div style="position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;">
-      ${truck.status === 'InTransit' ? `<div class="${pulseAnimation}" style="position: absolute; width: 42px; height: 42px; border-radius: 50%; background-color: ${color}33; border: 1.5px solid ${color};"></div>` : ''}
-      <div style="width: 32px; height: 32px; border-radius: 50%; background-color: ${color}; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.35); border: 2px solid white; transform: rotate(${truck.heading}deg); transition: transform 0.3s ease;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+    <div style="position: relative; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;">
+      <!-- Neon Radial Pulsing Aura -->
+      ${truck.status === 'InTransit' ? `<div class="animate-ping" style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.4;"></div>` : ''}
+      
+      <!-- Directional Radar Headlamp Arc -->
+      <div style="position: absolute; width: 50px; height: 50px; transform: rotate(${truck.heading}deg); pointer-events: none;">
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; filter: drop-shadow(0 0 6px ${color});">
+          <path d="M50,50 L25,10 A35,35 0 0,1 75,10 Z" fill="${color}" opacity="0.25" />
+        </svg>
       </div>
-      <div style="position: absolute; bottom: -4px; background: #1C1C2E; color: white; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 4px; white-space: nowrap; border: 1px solid rgba(255,255,255,0.2);">
+
+      <!-- Center Vehicle Pod -->
+      <div style="width: 34px; height: 34px; border-radius: 50%; background: #0F1017; color: ${color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px ${glowColor}, inset 0 0 8px ${color}; border: 2px solid ${color}; transform: rotate(${truck.heading}deg); transition: transform 0.3s ease; z-index: 2;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      </div>
+
+      <!-- Vehicle Plate Badge -->
+      <div style="position: absolute; bottom: -6px; background: #0F1017; color: white; font-family: monospace; font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 4px; white-space: nowrap; border: 1px solid ${color}; box-shadow: 0 2px 8px rgba(0,0,0,0.8); z-index: 3;">
         ${truck.plateNumber}
       </div>
     </div>
@@ -54,8 +88,8 @@ function createTruckDivIcon(truck: SimulatedTruckTelemetry) {
   return L.divIcon({
     html: svgIconHtml,
     className: '',
-    iconSize: [42, 42],
-    iconAnchor: [21, 21],
+    iconSize: [46, 46],
+    iconAnchor: [23, 23],
   });
 }
 
@@ -65,6 +99,9 @@ export default function FleetLiveMap() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [mapTheme, setMapTheme] = useState<keyof typeof MAP_TILES>('midnight');
+
+  const currentTile = MAP_TILES[mapTheme];
 
   // Filter fleet based on user input
   const filteredFleet = fleet.filter((truck) => {
@@ -81,34 +118,65 @@ export default function FleetLiveMap() {
 
   return (
     <TooltipProvider>
-      <Card className="border-black/[0.06] shadow-sm rounded-[24px] bg-white overflow-hidden shrink-0">
+      <Card className="border-black/[0.06] shadow-md rounded-[24px] bg-white overflow-hidden shrink-0">
         <CardHeader className="border-b border-black/[0.04] pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
-                <CardTitle className="text-base font-bold text-[#111]">Live Fleet Location Radar</CardTitle>
-                <Badge variant="outline" className="text-[10px] font-mono border-green-200 bg-green-50 text-green-700">
-                  REALTIME SIMULATOR
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping" />
+                <CardTitle className="text-base font-extrabold text-[#111] tracking-tight">Cyber Radar Telemetry Map</CardTitle>
+                <Badge variant="outline" className="text-[10px] font-mono border-orange-300 bg-orange-50 text-[#FF5500]">
+                  SIMULATED GPS RADAR
                 </Badge>
               </div>
               <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
-                Interactive real-time positioning across Saudi Arabian freight expressways
+                Real-time high-contrast vector radar positioning across Saudi Arabia transport corridors
               </CardDescription>
             </div>
 
             {/* Controls & Toolbar */}
             <div className="flex flex-wrap items-center gap-2">
               
+              {/* Tile Theme Switcher */}
+              <div className="flex items-center bg-[#F5F5F7] p-1 rounded-xl border border-black/[0.05]">
+                <button
+                  onClick={() => setMapTheme('midnight')}
+                  className={`h-7 px-2.5 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all ${
+                    mapTheme === 'midnight' ? 'bg-[#1C1C2E] text-white shadow-sm' : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  <Moon size={11} className={mapTheme === 'midnight' ? 'text-orange-400' : ''} />
+                  <span>Midnight</span>
+                </button>
+                <button
+                  onClick={() => setMapTheme('voyager')}
+                  className={`h-7 px-2.5 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all ${
+                    mapTheme === 'voyager' ? 'bg-white text-black shadow-sm' : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  <Sun size={11} className={mapTheme === 'voyager' ? 'text-amber-500' : ''} />
+                  <span>Voyager</span>
+                </button>
+                <button
+                  onClick={() => setMapTheme('satellite')}
+                  className={`h-7 px-2.5 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all ${
+                    mapTheme === 'satellite' ? 'bg-[#1C1C2E] text-white shadow-sm' : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  <Globe size={11} className={mapTheme === 'satellite' ? 'text-cyan-400' : ''} />
+                  <span>Satellite</span>
+                </button>
+              </div>
+
               {/* Search input */}
               <div className="relative">
                 <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6E6E80]" />
                 <Input
                   type="text"
-                  placeholder="Filter truck, driver..."
+                  placeholder="Search truck, driver..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8 pl-8 pr-3 text-xs w-40 sm:w-48 bg-[#F5F5F7] border-transparent focus-visible:bg-white focus-visible:ring-[#E8450F]"
+                  className="h-8 pl-8 pr-3 text-xs w-36 sm:w-44 bg-[#F5F5F7] border-transparent focus-visible:bg-white focus-visible:ring-[#FF5500]"
                 />
               </div>
 
@@ -155,7 +223,7 @@ export default function FleetLiveMap() {
                     onClick={() => changeSpeedMultiplier(speedMultiplier === 1 ? 2 : speedMultiplier === 2 ? 5 : 1)}
                     className="h-8 text-xs font-bold gap-1 border-black/[0.08] hover:bg-[#F5F5F7]"
                   >
-                    <FastForward size={12} className="text-[#E8450F]" />
+                    <FastForward size={12} className="text-[#FF5500]" />
                     <span>{speedMultiplier}x Speed</span>
                   </Button>
                 </TooltipTrigger>
@@ -175,35 +243,35 @@ export default function FleetLiveMap() {
             <div className="flex items-center justify-between mb-3">
               <TabsList className="bg-[#F5F5F7] p-1 rounded-xl">
                 <TabsTrigger value="map" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  🗺️ Radar Map View
+                  🗺️ Radar Map
                 </TabsTrigger>
                 <TabsTrigger value="matrix" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  📋 Active Fleet Matrix
+                  📋 Fleet Matrix
                 </TabsTrigger>
                 <TabsTrigger value="logs" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
                   📡 Telemetry Feed
                 </TabsTrigger>
               </TabsList>
 
-              <div className="hidden md:flex items-center gap-3 text-xs font-semibold text-[#6E6E80]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#E8450F] animate-ping" />
-                  In Transit ({fleet.filter(f => f.status === 'InTransit').length})
+              <div className="hidden md:flex items-center gap-4 text-xs font-bold text-[#6E6E80]">
+                <span className="flex items-center gap-1.5 text-white bg-[#0F1017] px-2.5 py-1 rounded-full border border-white/10">
+                  <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
+                  {fleet.filter(f => f.status === 'InTransit').length} Active
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB]" />
-                  At Pickup ({fleet.filter(f => f.status === 'AtPickup').length})
+                <span className="flex items-center gap-1.5 text-white bg-[#0F1017] px-2.5 py-1 rounded-full border border-white/10">
+                  <span className="w-2 h-2 rounded-full bg-[#0088FF]" />
+                  {fleet.filter(f => f.status === 'AtPickup').length} At Pickup
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#6E6E80]" />
-                  Idle ({fleet.filter(f => f.status === 'Idle').length})
+                <span className="flex items-center gap-1.5 text-white bg-[#0F1017] px-2.5 py-1 rounded-full border border-white/10">
+                  <span className="w-2 h-2 rounded-full bg-[#94A3B8]" />
+                  {fleet.filter(f => f.status === 'Idle').length} Standby
                 </span>
               </div>
             </div>
 
             {/* TAB 1: RADAR MAP */}
             <TabsContent value="map" className="mt-0">
-              <div className="h-[460px] rounded-[20px] overflow-hidden border border-black/[0.06] relative z-0 shadow-inner">
+              <div className="h-[480px] rounded-[22px] overflow-hidden border border-black/[0.1] relative z-0 shadow-2xl bg-[#090A0F]">
                 <MapContainer
                   center={[24.5000, 44.5000]}
                   zoom={6}
@@ -211,66 +279,67 @@ export default function FleetLiveMap() {
                   style={{ height: '100%', width: '100%', zIndex: 0 }}
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    key={mapTheme}
+                    attribution={currentTile.attribution}
+                    url={currentTile.url}
                   />
 
                   {filteredFleet.map((truck) => (
                     <Marker
                       key={truck.tripId}
                       position={[truck.currentCoords.lat, truck.currentCoords.lng]}
-                      icon={createTruckDivIcon(truck)}
+                      icon={createNeonTruckDivIcon(truck)}
                     >
-                      <Popup className="fleet-map-popup" maxWidth={320}>
-                        <div className="p-1 space-y-3 font-sans">
+                      <Popup className="dark-map-popup" maxWidth={320}>
+                        <div className="p-2 space-y-3 font-sans text-white">
                           
-                          <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                          <div className="flex items-center justify-between border-b border-white/10 pb-2">
                             <div>
                               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{truck.refId}</span>
-                              <p className="text-sm font-extrabold text-[#111] leading-tight">{truck.plateNumber}</p>
+                              <p className="text-base font-black text-white leading-tight mt-0.5">{truck.plateNumber}</p>
                             </div>
                             <StatusBadge status={truck.status} />
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="bg-[#F8F9FA] p-2 rounded-lg">
+                            <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                               <p className="text-[9px] text-gray-400 font-bold uppercase">Driver</p>
-                              <p className="font-bold text-[#111] truncate">{truck.driverName}</p>
-                              <p className="text-[10px] text-gray-500">{truck.driverPhone}</p>
+                              <p className="font-bold text-white truncate">{truck.driverName}</p>
+                              <p className="text-[10px] text-gray-400">{truck.driverPhone}</p>
                             </div>
-                            <div className="bg-[#F8F9FA] p-2 rounded-lg">
+                            <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                               <p className="text-[9px] text-gray-400 font-bold uppercase">Speed & Progress</p>
-                              <p className="font-bold text-[#E8450F] flex items-center gap-1">
+                              <p className="font-bold text-[#FF5500] flex items-center gap-1">
                                 <Gauge size={11} /> {truck.speedKmH} km/h
                               </p>
-                              <p className="text-[10px] text-gray-500 font-medium">{truck.progressPercentage}% Completed</p>
+                              <p className="text-[10px] text-gray-300 font-medium">{truck.progressPercentage}% Completed</p>
                             </div>
                           </div>
 
-                          <div className="text-xs bg-[#FFF5F2] border border-[#E8450F]/10 p-2 rounded-lg">
-                            <p className="text-[9px] text-[#E8450F] font-bold uppercase tracking-wider">Logistics Route</p>
-                            <p className="font-semibold text-[#111] mt-0.5 truncate">{truck.originName}</p>
+                          <div className="text-xs bg-[#FF5500]/10 border border-[#FF5500]/20 p-2.5 rounded-lg">
+                            <p className="text-[9px] text-[#FF5500] font-bold uppercase tracking-wider">Expressway Corridor</p>
+                            <p className="font-semibold text-white mt-0.5 truncate">{truck.originName}</p>
                             <p className="text-[10px] text-gray-400 font-bold my-0.5">↓ Destination</p>
-                            <p className="font-semibold text-[#111] truncate">{truck.destinationName}</p>
+                            <p className="font-semibold text-white truncate">{truck.destinationName}</p>
                           </div>
 
                           <div className="pt-1 flex gap-2">
                             <Button
                               size="sm"
-                              variant="default"
+                              variant="outline"
                               onClick={() => navigate(`/trips/${truck.tripId}`)}
-                              className="flex-1 h-8 bg-[#1C1C2E] hover:bg-black text-white text-xs font-bold gap-1"
+                              className="flex-1 h-8 bg-white/10 hover:bg-white/20 text-white text-xs font-bold gap-1 border-white/10"
                             >
                               <ExternalLink size={12} />
-                              <span>Trip Details</span>
+                              <span>Details</span>
                             </Button>
                             <Button
                               size="sm"
                               onClick={() => navigate(`/trips/${truck.tripId}/track`)}
-                              className="flex-1 h-8 bg-[#E8450F] hover:bg-[#d03d0c] text-white text-xs font-bold gap-1"
+                              className="flex-1 h-8 bg-[#FF5500] hover:bg-[#D94800] text-white text-xs font-bold gap-1 border-0 shadow-lg"
                             >
                               <Navigation size={12} />
-                              <span>Live Track</span>
+                              <span>Live Radar</span>
                             </Button>
                           </div>
 
@@ -280,17 +349,28 @@ export default function FleetLiveMap() {
                   ))}
                 </MapContainer>
 
-                {/* Floating Bottom Status Bar */}
-                <div className="absolute bottom-3 left-3 right-3 sm:right-auto z-[400] bg-[#1C1C2E]/95 backdrop-blur text-white px-3.5 py-2 rounded-xl shadow-lg border border-white/10 text-xs flex items-center gap-3">
-                  <ShieldCheck size={14} className="text-green-400 shrink-0" />
-                  <span className="font-semibold">Simulated GPS Telemetry Active ({speedMultiplier}x Speed)</span>
+                {/* Glassmorphic Top Left HUD Info */}
+                <div className="absolute top-3 left-3 z-[400] bg-[#090A0F]/85 backdrop-blur-xl px-3.5 py-2.5 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 text-xs text-white">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping" />
+                    <span className="font-mono font-bold">{filteredFleet.length} VEHICLES IN SATELLITE RANGE</span>
+                  </div>
+                </div>
+
+                {/* Glassmorphic Bottom Floating HUD Bar */}
+                <div className="absolute bottom-3 left-3 right-3 sm:right-auto z-[400] bg-[#090A0F]/90 backdrop-blur-xl text-white px-4 py-2.5 rounded-xl shadow-2xl border border-white/10 text-xs flex items-center gap-3">
+                  <ShieldCheck size={16} className="text-green-400 shrink-0" />
+                  <div>
+                    <p className="font-bold text-white">Cyber Telemetry Engine Active ({speedMultiplier}x)</p>
+                    <p className="text-[10px] text-gray-400 font-mono">Tile Theme: {currentTile.name}</p>
+                  </div>
                 </div>
               </div>
             </TabsContent>
 
             {/* TAB 2: FLEET MATRIX TABLE */}
             <TabsContent value="matrix" className="mt-0">
-              <div className="border border-black/[0.06] rounded-xl overflow-hidden min-h-[460px]">
+              <div className="border border-black/[0.06] rounded-xl overflow-hidden min-h-[480px]">
                 <Table>
                   <TableHeader className="bg-[#FAFAFA]">
                     <TableRow>
@@ -306,7 +386,7 @@ export default function FleetLiveMap() {
                   <TableBody>
                     {filteredFleet.map((truck) => (
                       <TableRow key={truck.tripId} className="hover:bg-[#FAFAFA]">
-                        <TableCell className="font-mono text-xs font-bold text-[#E8450F]">{truck.refId}</TableCell>
+                        <TableCell className="font-mono text-xs font-bold text-[#FF5500]">{truck.refId}</TableCell>
                         <TableCell className="text-xs">
                           <p className="font-bold text-[#111]">{truck.plateNumber}</p>
                           <p className="text-[10px] text-gray-500">{truck.assetType}</p>
@@ -328,7 +408,7 @@ export default function FleetLiveMap() {
                             <Button size="sm" variant="ghost" className="h-7 text-xs font-bold" onClick={() => navigate(`/trips/${truck.tripId}`)}>
                               View
                             </Button>
-                            <Button size="sm" className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c]" onClick={() => navigate(`/trips/${truck.tripId}/track`)}>
+                            <Button size="sm" className="h-7 text-xs font-bold bg-[#FF5500] hover:bg-[#D94800]" onClick={() => navigate(`/trips/${truck.tripId}/track`)}>
                               Track
                             </Button>
                           </div>
@@ -342,19 +422,19 @@ export default function FleetLiveMap() {
 
             {/* TAB 3: TELEMETRY LOGS */}
             <TabsContent value="logs" className="mt-0">
-              <div className="bg-[#1C1C2E] text-white rounded-xl p-4 font-mono text-xs space-y-3 min-h-[460px] overflow-y-auto border border-white/10">
+              <div className="bg-[#090A0F] text-white rounded-xl p-4 font-mono text-xs space-y-3 min-h-[480px] overflow-y-auto border border-white/10 shadow-2xl">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <span className="text-[#E8450F] font-bold flex items-center gap-1.5">
-                    <Activity size={14} className="animate-spin" /> LIVE TELEMETRY SIMULATION STREAM
+                  <span className="text-[#FF5500] font-bold flex items-center gap-1.5">
+                    <Activity size={14} className="animate-spin text-[#FF5500]" /> CYBER TELEMETRY FEED STREAM
                   </span>
-                  <span className="text-[10px] text-gray-400">POLLING AT {speedMultiplier * 1000}ms</span>
+                  <span className="text-[10px] text-gray-400">SAT-LINK LOCK • {speedMultiplier * 1000}ms TICK</span>
                 </div>
                 {fleet.map((truck) => (
-                  <div key={truck.tripId} className="bg-white/5 p-3 rounded-lg border border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                  <div key={truck.tripId} className="bg-white/5 p-3 rounded-lg border border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-2 hover:border-[#FF5500]/40 transition-colors">
                     <div>
-                      <span className="text-[#E8450F] font-bold">[{truck.refId}]</span> <span className="text-white font-bold">{truck.plateNumber}</span> - {truck.driverName}
+                      <span className="text-[#FF5500] font-bold">[{truck.refId}]</span> <span className="text-white font-bold">{truck.plateNumber}</span> - {truck.driverName}
                       <p className="text-[11px] text-gray-400 mt-0.5">
-                        Route: {truck.originName} ➔ {truck.destinationName}
+                        Corridor: {truck.originName} ➔ {truck.destinationName}
                       </p>
                     </div>
                     <div className="text-right text-[11px]">

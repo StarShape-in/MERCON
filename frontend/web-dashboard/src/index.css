@@ -404,3 +404,30 @@ body {
 .stagger-group > *:nth-child(18) { animation-delay: 680ms; }
 .stagger-group > *:nth-child(19) { animation-delay: 720ms; }
 .stagger-group > *:nth-child(20) { animation-delay: 760ms; }
+
+/* ─── Leaflet Dark Glassmorphism Popups ───────────────────────────────────── */
+.dark-map-popup .leaflet-popup-content-wrapper {
+  background: rgba(15, 16, 23, 0.94) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+  padding: 4px !important;
+}
+
+.dark-map-popup .leaflet-popup-tip {
+  background: rgba(15, 16, 23, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark-map-popup .leaflet-popup-close-button {
+  color: rgba(255, 255, 255, 0.6) !important;
+  padding: 6px 8px !important;
+}
+
+.dark-map-popup .leaflet-popup-close-button:hover {
+  color: #FFFFFF !important;
+}
+

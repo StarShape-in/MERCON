@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Gauge, MapPin, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Navigation, Gauge, ShieldCheck } from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
+import { MAP_TILES } from '@/components/maps/FleetLiveMap';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -14,34 +15,49 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
-// Custom icons
+// High-Tech Neon Pickup Marker (Emerald LED)
 const pickupMarkerIcon = L.divIcon({
-  html: `<div style="background-color: #16A34A; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 2px solid white;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>`,
+  html: `
+    <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 30px; height: 30px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.4);"></div>
+      <div style="width: 26px; height: 26px; border-radius: 50%; background: #0F1017; color: #10B981; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(16, 185, 129, 0.8); border: 2px solid #10B981; z-index: 2;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+    </div>
+  `,
   className: '',
-  iconSize: [26, 26],
-  iconAnchor: [13, 26],
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 });
 
+// High-Tech Neon Dropoff Marker (Crimson LED)
 const dropoffMarkerIcon = L.divIcon({
-  html: `<div style="background-color: #DC2626; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 2px solid white;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>`,
+  html: `
+    <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 30px; height: 30px; border-radius: 50%; background-color: rgba(244, 63, 94, 0.4);"></div>
+      <div style="width: 26px; height: 26px; border-radius: 50%; background: #0F1017; color: #F43F5E; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(244, 63, 94, 0.8); border: 2px solid #F43F5E; z-index: 2;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+    </div>
+  `,
   className: '',
-  iconSize: [26, 26],
-  iconAnchor: [13, 26],
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 });
 
 function createLiveTruckIcon(heading: number) {
   return L.divIcon({
     html: `
-      <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
-        <div class="animate-ping" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background-color: rgba(232, 69, 15, 0.25); border: 1.5px solid #E8450F;"></div>
-        <div style="width: 28px; height: 28px; border-radius: 50%; background-color: #E8450F; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 2px solid white; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+        <div class="animate-ping" style="position: absolute; width: 40px; height: 40px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.4);"></div>
+        <div style="width: 30px; height: 30px; border-radius: 50%; background: #0F1017; color: #FF5500; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(255, 85, 0, 0.9), inset 0 0 8px #FF5500; border: 2px solid #FF5500; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
         </div>
       </div>
     `,
     className: '',
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
   });
 }
 
@@ -95,19 +111,19 @@ export default function TripLiveMapCard({
   const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 320;
 
   return (
-    <Card className="border-black/[0.06] shadow-sm rounded-2xl bg-white overflow-hidden">
+    <Card className="border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden">
       <CardHeader className="pb-3 border-b border-black/[0.04]">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
-              <CardTitle className="text-sm font-bold text-[#111]">Live Trip Route Tracking</CardTitle>
-              <Badge variant="outline" className="text-[10px] font-mono border-orange-200 bg-orange-50 text-[#E8450F]">
-                GPS LIVE
+              <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
+              <CardTitle className="text-sm font-extrabold text-[#111]">Cyber Trip Telemetry</CardTitle>
+              <Badge variant="outline" className="text-[10px] font-mono border-orange-300 bg-orange-50 text-[#FF5500]">
+                MIDNIGHT RADAR
               </Badge>
             </div>
             <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
-              Simulated telemetry feed from assigned truck vehicle
+              Live GPS telemetry positioning along Expressway Route 40
             </CardDescription>
           </div>
 
@@ -117,15 +133,15 @@ export default function TripLiveMapCard({
             onClick={() => navigate(`/trips/${tripId}/track`)}
             className="h-8 text-xs font-bold gap-1 border-black/[0.08] hover:bg-[#F5F5F7]"
           >
-            <Navigation size={13} className="text-[#E8450F]" />
-            <span>Full Tracker</span>
+            <Navigation size={13} className="text-[#FF5500]" />
+            <span>Full Radar</span>
           </Button>
         </div>
       </CardHeader>
 
       <CardContent className="p-4 space-y-3">
         {/* Map View */}
-        <div className="h-[290px] rounded-xl overflow-hidden border border-black/[0.06] relative z-0">
+        <div className="h-[310px] rounded-xl overflow-hidden border border-black/[0.1] relative z-0 shadow-2xl bg-[#090A0F]">
           <MapContainer
             center={[currentLat, currentLng]}
             zoom={8}
@@ -133,31 +149,31 @@ export default function TripLiveMapCard({
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution={MAP_TILES.midnight.attribution}
+              url={MAP_TILES.midnight.url}
             />
 
             <MapFlyTo lat={currentLat} lng={currentLng} />
 
             <Polyline
               positions={polylineWaypoints}
-              pathOptions={{ color: '#E8450F', weight: 4, opacity: 0.75, dashArray: '8, 8' }}
+              pathOptions={{ color: '#FF5500', weight: 4, opacity: 0.85, dashArray: '6, 10' }}
             />
 
             <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
-              <Popup>
-                <div className="text-xs">
-                  <p className="font-bold text-[#16A34A]">Pickup Origin</p>
-                  <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
+              <Popup className="dark-map-popup">
+                <div className="text-xs font-sans text-white p-1">
+                  <p className="font-bold text-[#10B981]">Pickup Terminal</p>
+                  <p className="text-[10px] text-gray-300">Riyadh Dry Port</p>
                 </div>
               </Popup>
             </Marker>
 
             <Marker position={[dropoffPoint.lat, dropoffPoint.lng]} icon={dropoffMarkerIcon}>
-              <Popup>
-                <div className="text-xs">
-                  <p className="font-bold text-[#DC2626]">Dropoff Destination</p>
-                  <p className="text-[10px] text-gray-500">Jeddah Islamic Port</p>
+              <Popup className="dark-map-popup">
+                <div className="text-xs font-sans text-white p-1">
+                  <p className="font-bold text-[#F43F5E]">Dropoff Terminal</p>
+                  <p className="text-[10px] text-gray-300">Jeddah Islamic Port</p>
                 </div>
               </Popup>
             </Marker>
@@ -166,39 +182,39 @@ export default function TripLiveMapCard({
               position={[currentLat, currentLng]}
               icon={createLiveTruckIcon(heading)}
             >
-              <Popup>
-                <div className="text-xs font-sans">
-                  <p className="font-bold text-[#111]">{simulatedTruck.plateNumber}</p>
-                  <p className="text-[10px] text-gray-500">Speed: {speed} km/h</p>
+              <Popup className="dark-map-popup">
+                <div className="text-xs font-sans text-white p-1">
+                  <p className="font-bold text-[#FF5500]">{simulatedTruck.plateNumber}</p>
+                  <p className="text-[10px] text-gray-300">Speed: {speed} km/h</p>
                 </div>
               </Popup>
             </Marker>
           </MapContainer>
 
-          {/* Bottom Telemetry Bar */}
-          <div className="absolute bottom-3 left-3 right-3 z-[400] bg-white/95 backdrop-blur p-3 rounded-xl shadow-md border border-black/[0.06] space-y-2">
+          {/* Dark Glassmorphism Bottom Telemetry Bar */}
+          <div className="absolute bottom-3 left-3 right-3 z-[400] bg-[#090A0F]/90 backdrop-blur-xl p-3.5 rounded-xl shadow-2xl border border-white/10 text-white space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="bg-[#FFF0EB] p-2 rounded-lg text-[#E8450F]">
-                  <Gauge size={16} />
+                <div className="bg-[#FF5500]/20 p-2 rounded-lg text-[#FF5500] border border-[#FF5500]/30">
+                  <Gauge size={18} />
                 </div>
                 <div>
-                  <p className="text-[9px] text-[#6E6E80] font-bold uppercase tracking-wider">Live Telemetry</p>
-                  <p className="text-xs font-bold text-[#111]">
-                    {speed} km/h • <span className="font-mono text-[11px]">{currentLat.toFixed(4)}, {currentLng.toFixed(4)}</span>
+                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Telemetry Stream</p>
+                  <p className="text-xs font-bold text-white">
+                    {speed} km/h • <span className="font-mono text-[11px] text-orange-400">{currentLat.toFixed(4)}, {currentLng.toFixed(4)}</span>
                   </p>
                 </div>
               </div>
 
               <div className="text-right">
-                <p className="text-[9px] text-[#6E6E80] font-bold uppercase tracking-wider">ETA Progress</p>
-                <p className="text-xs font-bold text-[#E8450F]">
+                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Progress / ETA</p>
+                <p className="text-xs font-bold text-[#FF5500]">
                   {progress}% • ~{Math.floor(etaMin / 60)}h {etaMin % 60}m
                 </p>
               </div>
             </div>
 
-            <Progress value={progress} className="h-1.5 bg-gray-100" />
+            <Progress value={progress} className="h-1.5 bg-white/10" />
           </div>
         </div>
       </CardContent>

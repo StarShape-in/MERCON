@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Navigation, ShieldCheck, Play, Pause, FastForward, Gauge, MapPin } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Navigation, ShieldCheck, Play, Pause, FastForward, Gauge, MapPin, Moon, Sun, Globe } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,35 +12,54 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { tripService } from '@/services/tripService';
 import { PREDEFINED_ROUTES } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
+import { MAP_TILES } from '@/components/maps/FleetLiveMap';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
-// Custom markers
+// High-Tech Neon Pickup Marker (Emerald LED)
 const pickupMarkerIcon = L.divIcon({
-  html: `<div style="background-color: #16A34A; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 2px solid white;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>`,
+  html: `
+    <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 32px; height: 32px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.4);"></div>
+      <div style="width: 28px; height: 28px; border-radius: 50%; background: #0F1017; color: #10B981; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(16, 185, 129, 0.8); border: 2px solid #10B981; z-index: 2;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+    </div>
+  `,
   className: '',
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
 });
 
+// High-Tech Neon Dropoff Marker (Crimson LED)
 const dropoffMarkerIcon = L.divIcon({
-  html: `<div style="background-color: #DC2626; color: white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 2px solid white;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>`,
+  html: `
+    <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 32px; height: 32px; border-radius: 50%; background-color: rgba(244, 63, 94, 0.4);"></div>
+      <div style="width: 28px; height: 28px; border-radius: 50%; background: #0F1017; color: #F43F5E; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(244, 63, 94, 0.8); border: 2px solid #F43F5E; z-index: 2;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+    </div>
+  `,
   className: '',
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
 });
 
 function createTruckMarkerIcon(heading: number) {
   return L.divIcon({
     html: `
-      <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-        <div class="animate-ping" style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background-color: rgba(232, 69, 15, 0.25); border: 1.5px solid #E8450F;"></div>
-        <div style="width: 34px; height: 34px; border-radius: 50%; background-color: #E8450F; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 2px solid white; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+        <div class="animate-ping" style="position: absolute; width: 46px; height: 46px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.4);"></div>
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: #0F1017; color: #FF5500; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 24px rgba(255, 85, 0, 0.9), inset 0 0 10px #FF5500; border: 2px solid #FF5500; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
         </div>
       </div>
     `,
     className: '',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
   });
 }
 
@@ -57,20 +76,22 @@ export default function TripTrackingPage() {
   const navigate = useNavigate();
 
   const { fleet, isPlaying, speedMultiplier, togglePlay, changeSpeedMultiplier } = useSimulatedTelemetry(1);
+  const [mapTheme, setMapTheme] = useState<keyof typeof MAP_TILES>('midnight');
 
-  const { data: trip, isLoading, refetch } = useQuery({
+  const { data: trip, isLoading } = useQuery({
     queryKey: ['trip-track', id],
     queryFn: () => tripService.getById(id!),
     enabled: !!id,
   });
 
+  const currentTile = MAP_TILES[mapTheme];
   const simulatedTruck = fleet.find((f) => f.tripId === id || f.refId === trip?.ref_id) || fleet[0];
 
   if (isLoading || !trip) {
     return (
       <DashboardLayout active="Trips" title="Live Tracking">
         <div className="p-8 flex items-center justify-center">
-          <div className="h-8 w-8 border-2 border-[#E8450F] border-t-transparent rounded-full animate-spin"></div>
+          <div className="h-8 w-8 border-2 border-[#FF5500] border-t-transparent rounded-full animate-spin"></div>
         </div>
       </DashboardLayout>
     );
@@ -99,39 +120,68 @@ export default function TripTrackingPage() {
       active="Trips"
       title="Live Tracking"
       breadcrumb={`Trips / ${trip.ref_id || 'Track'}`}
-      pageTitle="Live GPS Telemetry Tracking"
+      pageTitle="Cyber Radar Telemetry"
       actions={
         <div className="flex items-center gap-2">
-          <Btn
-            label="Back to Details"
-            variant="secondary"
+          {/* Tile Switcher */}
+          <div className="flex items-center bg-[#F5F5F7] p-1 rounded-xl border border-black/[0.05]">
+            <button
+              onClick={() => setMapTheme('midnight')}
+              className={`h-7 px-2.5 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all ${
+                mapTheme === 'midnight' ? 'bg-[#1C1C2E] text-white shadow-sm' : 'text-gray-600 hover:text-black'
+              }`}
+            >
+              <Moon size={11} className={mapTheme === 'midnight' ? 'text-orange-400' : ''} />
+              <span>Midnight</span>
+            </button>
+            <button
+              onClick={() => setMapTheme('voyager')}
+              className={`h-7 px-2.5 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all ${
+                mapTheme === 'voyager' ? 'bg-white text-black shadow-sm' : 'text-gray-600 hover:text-black'
+              }`}
+            >
+              <Sun size={11} className={mapTheme === 'voyager' ? 'text-amber-500' : ''} />
+              <span>Voyager</span>
+            </button>
+          </div>
+
+          <Button
             size="sm"
-            icon={<ArrowLeft size={13} />}
+            variant="outline"
             onClick={() => navigate(`/trips/${id}`)}
-          />
-          <button
+            className="h-8 text-xs font-bold gap-1 border-black/[0.08]"
+          >
+            <ArrowLeft size={13} />
+            <span>Details</span>
+          </Button>
+
+          <Button
+            size="sm"
             onClick={togglePlay}
-            className={`h-8 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+            className={`h-8 text-xs font-bold gap-1 ${
               isPlaying ? 'bg-[#1C1C2E] text-white' : 'bg-green-600 text-white'
             }`}
           >
             {isPlaying ? <Pause size={12} /> : <Play size={12} />}
-            <span>{isPlaying ? 'Pause Sim' : 'Play Sim'}</span>
-          </button>
-          <button
+            <span>{isPlaying ? 'Pause' : 'Play'}</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => changeSpeedMultiplier(speedMultiplier === 1 ? 2 : speedMultiplier === 2 ? 5 : 1)}
-            className="h-8 px-2.5 bg-white text-[#111] rounded-lg text-xs font-bold flex items-center gap-1 border border-black/[0.08]"
+            className="h-8 text-xs font-bold gap-1 border-black/[0.08]"
           >
-            <FastForward size={12} className="text-[#E8450F]" />
+            <FastForward size={12} className="text-[#FF5500]" />
             <span>{speedMultiplier}x</span>
-          </button>
+          </Button>
         </div>
       }
     >
       <div className="px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 h-[calc(100vh-170px)] animate-fade-in">
         
         {/* Map panel */}
-        <div className="lg:col-span-2 bg-[#EBEBED] rounded-[24px] border border-black/[0.06] shadow-sm relative overflow-hidden flex flex-col min-h-[400px] z-0">
+        <div className="lg:col-span-2 bg-[#090A0F] rounded-[24px] border border-white/10 shadow-2xl relative overflow-hidden flex flex-col min-h-[400px] z-0">
           <MapContainer
             center={[latCenter, lngCenter]}
             zoom={8}
@@ -139,23 +189,24 @@ export default function TripTrackingPage() {
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              key={mapTheme}
+              attribution={currentTile.attribution}
+              url={currentTile.url}
             />
 
             <MapUpdater lat={latCenter} lng={lngCenter} />
 
             <Polyline
               positions={polylinePositions}
-              pathOptions={{ color: '#E8450F', weight: 4, opacity: 0.8, dashArray: '8, 8' }}
+              pathOptions={{ color: '#FF5500', weight: 4, opacity: 0.85, dashArray: '6, 10' }}
             />
 
             {pickup && (
               <Marker position={[pickup.location_lat, pickup.location_lng]} icon={pickupMarkerIcon}>
-                <Popup>
-                  <div className="text-xs">
-                    <p className="font-bold text-[#16A34A]">Pickup Origin</p>
-                    <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
+                <Popup className="dark-map-popup">
+                  <div className="text-xs font-sans text-white p-1">
+                    <p className="font-bold text-[#10B981]">Pickup Terminal</p>
+                    <p className="text-[10px] text-gray-300">Riyadh Dry Port</p>
                   </div>
                 </Popup>
               </Marker>
@@ -163,47 +214,47 @@ export default function TripTrackingPage() {
 
             {dropoff && (
               <Marker position={[dropoff.location_lat, dropoff.location_lng]} icon={dropoffMarkerIcon}>
-                <Popup>
-                  <div className="text-xs">
-                    <p className="font-bold text-[#DC2626]">Dropoff Destination</p>
-                    <p className="text-[10px] text-gray-500">Jeddah Port Terminal 1</p>
+                <Popup className="dark-map-popup">
+                  <div className="text-xs font-sans text-white p-1">
+                    <p className="font-bold text-[#F43F5E]">Dropoff Terminal</p>
+                    <p className="text-[10px] text-gray-300">Jeddah Islamic Port</p>
                   </div>
                 </Popup>
               </Marker>
             )}
 
             <Marker position={[latCenter, lngCenter]} icon={createTruckMarkerIcon(heading)}>
-              <Popup>
-                <div className="text-center font-sans">
-                  <p className="font-bold text-[#111]">{trip.vehicle?.plate_number || 'Truck'}</p>
-                  <p className="text-xs text-gray-500">Speed: {currentSpeed} km/h</p>
+              <Popup className="dark-map-popup">
+                <div className="text-center font-sans text-white p-1">
+                  <p className="font-bold text-[#FF5500]">{trip.vehicle?.plate_number || 'Truck'}</p>
+                  <p className="text-xs text-gray-300">Speed: {currentSpeed} km/h</p>
                 </div>
               </Popup>
             </Marker>
           </MapContainer>
 
-          {/* Map Overlay Controls */}
+          {/* Top Floating HUD Badges */}
           <div className="absolute top-4 left-4 right-4 z-[400] flex justify-between items-start pointer-events-none">
-            <div className="bg-white/95 backdrop-blur px-3 py-2 rounded-xl shadow-sm border border-black/[0.06] flex items-center gap-2 pointer-events-auto">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
-              <span className="text-xs font-bold text-[#111]">Active GPS Signal ({speedMultiplier}x Speed)</span>
+            <div className="bg-[#090A0F]/90 backdrop-blur-xl px-3.5 py-2 rounded-xl shadow-2xl border border-white/10 flex items-center gap-2 pointer-events-auto text-white text-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping" />
+              <span className="font-mono font-bold">CYBER SATELLITE LOCK ({speedMultiplier}x Speed)</span>
             </div>
 
-            <div className="bg-[#1C1C2E] text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2 pointer-events-auto">
-              <ShieldCheck size={14} className="text-green-400" />
-              <span>Simulated Route Corridor Active</span>
+            <div className="bg-[#090A0F]/90 backdrop-blur-xl text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-2xl border border-white/10 flex items-center gap-2 pointer-events-auto">
+              <ShieldCheck size={15} className="text-green-400" />
+              <span>Route 40 Expressway Protocol</span>
             </div>
           </div>
 
-          {/* Bottom Telemetry Card */}
-          <div className="absolute bottom-4 left-4 right-4 z-[400] bg-white/95 backdrop-blur p-4 rounded-xl shadow-md border border-black/[0.06] flex items-center justify-between pointer-events-auto">
+          {/* Bottom Floating Telemetry Panel */}
+          <div className="absolute bottom-4 left-4 right-4 z-[400] bg-[#090A0F]/90 backdrop-blur-xl p-4 rounded-xl shadow-2xl border border-white/10 text-white flex items-center justify-between pointer-events-auto">
             <div className="flex items-center gap-4">
-              <div className="bg-[#FFF0EB] p-2.5 rounded-xl text-[#E8450F]">
+              <div className="bg-[#FF5500]/20 p-2.5 rounded-xl text-[#FF5500] border border-[#FF5500]/30">
                 <Gauge size={20} />
               </div>
               <div>
-                <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Live Coordinates</p>
-                <p className="text-xs font-mono font-bold text-[#111] mt-0.5">
+                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Live Coordinates</p>
+                <p className="text-xs font-mono font-bold text-white mt-0.5">
                   {latCenter.toFixed(5)}, {lngCenter.toFixed(5)}
                 </p>
               </div>
@@ -211,12 +262,12 @@ export default function TripTrackingPage() {
 
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Speed</p>
-                <p className="text-sm font-bold text-[#E8450F] mt-0.5">{currentSpeed} km/h</p>
+                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Speed</p>
+                <p className="text-sm font-bold text-[#FF5500] mt-0.5">{currentSpeed} km/h</p>
               </div>
-              <div className="text-right border-l border-black/[0.06] pl-6">
-                <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">ETA</p>
-                <p className="text-sm font-bold text-[#111] mt-0.5">
+              <div className="text-right border-l border-white/10 pl-6">
+                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Estimated ETA</p>
+                <p className="text-sm font-bold text-white mt-0.5">
                   ~{Math.floor(etaMinutes / 60)}h {etaMinutes % 60}m
                 </p>
               </div>
@@ -232,7 +283,7 @@ export default function TripTrackingPage() {
                 <span className="text-[10px] text-[#6E6E80] font-bold uppercase tracking-wider">Active Manifest</span>
                 <StatusBadge status={trip.status} />
               </div>
-              <p className="text-base font-bold text-[#111] mt-1">{trip.ref_id}</p>
+              <p className="text-base font-extrabold text-[#111] mt-1">{trip.ref_id}</p>
             </div>
 
             <div className="space-y-4">
@@ -265,14 +316,14 @@ export default function TripTrackingPage() {
 
               {pickup && dropoff && (
                 <div>
-                  <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Stops Sequence</p>
+                  <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Terminal Stops</p>
                   <div className="mt-2 space-y-3 pl-3 border-l-2 border-[#F5F5F7]">
                     <div className="text-xs">
-                      <p className="font-bold text-[#16A34A]">1. Pickup Location</p>
+                      <p className="font-bold text-[#10B981]">1. Pickup Location</p>
                       <p className="text-[10px] text-gray-500 font-medium">Riyadh Dry Port</p>
                     </div>
                     <div className="text-xs">
-                      <p className="font-bold text-[#DC2626]">2. Dropoff Destination</p>
+                      <p className="font-bold text-[#F43F5E]">2. Dropoff Destination</p>
                       <p className="text-[10px] text-gray-500 font-medium">Jeddah Islamic Port</p>
                     </div>
                   </div>
@@ -282,12 +333,12 @@ export default function TripTrackingPage() {
           </div>
 
           <div className="border-t border-black/[0.04] pt-4">
-            <div className="bg-[#FFF0EB] border border-[#E8450F]/10 p-3 rounded-xl flex items-start gap-2.5">
-              <Navigation size={16} className="text-[#E8450F] shrink-0 mt-0.5 stroke-[2.2]" />
+            <div className="bg-[#FFF0EB] border border-[#FF5500]/10 p-3 rounded-xl flex items-start gap-2.5">
+              <Navigation size={16} className="text-[#FF5500] shrink-0 mt-0.5 stroke-[2.2]" />
               <div>
-                <p className="text-xs font-bold text-[#E8450F]">Simulation Engine Active</p>
-                <p className="text-[10px] text-[#E8450F]/80 mt-0.5">
-                  GPS coordinates automatically interpolate along Route 40.
+                <p className="text-xs font-bold text-[#FF5500]">Cyber Telemetry Active</p>
+                <p className="text-[10px] text-[#FF5500]/80 mt-0.5">
+                  GPS coordinates interpolate live along Saudi Route 40.
                 </p>
               </div>
             </div>
