@@ -12,17 +12,19 @@ import {
   Lock, 
   CheckCircle2, 
   AlertCircle, 
-  Calendar, 
   Sliders, 
   Check, 
   RotateCcw, 
-  Sparkles, 
   Clock, 
-  Activity,
-  ShieldCheck,
-  Award,
-  Layers,
-  Bell
+  ShieldCheck, 
+  Award, 
+  Bell, 
+  Laptop, 
+  Smartphone, 
+  Globe, 
+  LogOut,
+  IdCard,
+  MapPin
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -34,6 +36,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+// Mock active sessions data
+interface LoginSession {
+  id: string;
+  device: string;
+  browser: string;
+  ip: string;
+  location: string;
+  lastActive: string;
+  isCurrent: boolean;
+  type: 'desktop' | 'mobile';
+}
+
+const INITIAL_SESSIONS: LoginSession[] = [
+  { id: 'sess_1', device: 'Windows PC (Chrome)', browser: 'Chrome 126.0', ip: '185.220.101.42', location: 'Riyadh, SA', lastActive: 'Active now', isCurrent: true, type: 'desktop' },
+  { id: 'sess_2', device: 'iPhone 15 Pro (Safari)', browser: 'Mobile Safari 17.4', ip: '94.201.18.99', location: 'Jeddah, SA', lastActive: '2 hours ago', isCurrent: false, type: 'mobile' },
+  { id: 'sess_3', device: 'MacBook Pro (Firefox)', browser: 'Firefox 127.0', ip: '213.166.138.10', location: 'Dammam, SA', lastActive: 'Yesterday at 18:40', isCurrent: false, type: 'desktop' },
+];
 
 export default function OperatorProfilePage() {
   const { data: user, isLoading, refetch, isFetching } = useQuery({
@@ -41,17 +62,23 @@ export default function OperatorProfilePage() {
     queryFn: authService.getMe,
   });
 
-  const [activeTab, setActiveTab] = useState<'identity' | 'security' | 'preferences'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'security' | 'notifications' | 'preferences'>('identity');
   const [isEditing, setIsEditing] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Active sessions state
+  const [sessions, setSessions] = useState<LoginSession[]>(INITIAL_SESSIONS);
+
+  // Profile Form state
   const [form, setForm] = useState({ 
     firstName: '', 
     lastName: '', 
     email: '', 
     phone: '',
+    iqamaNumber: '1092837465',
     department: 'Fleet Operations',
+    operatingHub: 'Riyadh Central Logistics Hub',
     timezone: 'Asia/Riyadh (GMT+3)'
   });
 
@@ -59,13 +86,22 @@ export default function OperatorProfilePage() {
   const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' });
   const [pwdMsg, setPwdMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Preference toggles
-  const [preferences, setPreferences] = useState({
-    landingPage: '/dashboard',
-    emailAlerts: true,
-    compactView: false,
+  // Preference & Notification Toggles
+  const [notifications, setNotifications] = useState({
+    criticalDelays: true,
+    documentExpiry: true,
+    creditLimits: true,
+    driverAlerts: false,
+    dailyDigest: true,
   });
 
+  const [preferences, setPreferences] = useState({
+    landingPage: '/dashboard',
+    compactView: false,
+    timezone: 'Asia/Riyadh',
+  });
+
+  // Load User Data
   useEffect(() => {
     if (user) {
       const [firstName = '', ...rest] = (user.name || '').split(' ');
@@ -83,6 +119,7 @@ export default function OperatorProfilePage() {
     setForm((p) => ({ ...p, [field]: value }));
   };
 
+  // Profile Save Mutation
   const saveMutation = useMutation({
     mutationFn: () =>
       authService.updateMe({
@@ -100,6 +137,7 @@ export default function OperatorProfilePage() {
     onError: (err: any) => setSaveError(err?.response?.data?.error?.message || 'Failed to update profile settings.'),
   });
 
+  // Password Change Mutation
   const pwdMutation = useMutation({
     mutationFn: () => authService.changePassword(pwd.current, pwd.next),
     onSuccess: () => { 
@@ -128,6 +166,10 @@ export default function OperatorProfilePage() {
     pwdMutation.mutate();
   };
 
+  const handleRevokeSession = (sessionId: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+  };
+
   // Keyboard Shortcuts Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -139,7 +181,8 @@ export default function OperatorProfilePage() {
       }
       if (e.altKey && e.key === '1') { e.preventDefault(); setActiveTab('identity'); }
       if (e.altKey && e.key === '2') { e.preventDefault(); setActiveTab('security'); }
-      if (e.altKey && e.key === '3') { e.preventDefault(); setActiveTab('preferences'); }
+      if (e.altKey && e.key === '3') { e.preventDefault(); setActiveTab('notifications'); }
+      if (e.altKey && e.key === '4') { e.preventDefault(); setActiveTab('preferences'); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -148,7 +191,7 @@ export default function OperatorProfilePage() {
   const initials = `${form.firstName[0] ?? ''}${form.lastName[0] ?? ''}`.toUpperCase() || (user?.username?.[0]?.toUpperCase() ?? 'OP');
   const roleTitle = user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Fleet Dispatcher';
 
-  // Password strength calculation
+  // Password strength calculator
   const getPasswordStrength = (pass: string) => {
     if (!pass) return { score: 0, label: 'None', color: 'bg-slate-200' };
     let score = 0;
@@ -166,24 +209,28 @@ export default function OperatorProfilePage() {
   const pwdStrength = getPasswordStrength(pwd.next);
 
   return (
-    <DashboardLayout 
-      active="Settings" 
-      title="My Profile" 
-      breadcrumb="Settings"
-    >
-      <div className="px-6 pb-6 space-y-5 animate-fade-in max-w-[1400px] mx-auto">
-        
-        {/* Top Bar Header & Action Control */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+    <DashboardLayout active="Settings" title="Operator Profile">
+      <div className="px-6 pb-6 space-y-6 animate-fade-in max-w-[1300px] mx-auto w-full">
+
+        {/* ── Page Content Header ─────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <span>🏢 MERCON Operations</span>
-              <span>•</span>
-              <span className="text-slate-900 dark:text-slate-100 font-bold">Profile Settings</span>
+            <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200/80 dark:border-violet-800/80 flex items-center justify-center text-violet-600 dark:text-violet-400 shrink-0 shadow-2xs">
+              <User className="w-5 h-5" />
             </div>
-            <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 font-bold dark:bg-violet-950/40 dark:text-violet-300">
-              Account & Security
-            </Badge>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Operator Profile
+                </h1>
+                <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 dark:bg-violet-950/40 dark:text-violet-300">
+                  Account & Security Hub
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Manage your profile details, security credentials, active sessions, and dispatch preferences
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -192,10 +239,10 @@ export default function OperatorProfilePage() {
               size="sm"
               onClick={() => refetch()}
               disabled={isFetching}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[#E8450F]' : 'text-slate-500'}`} />
-              Refresh Data
+              Refresh
             </Button>
 
             {isEditing ? (
@@ -215,10 +262,7 @@ export default function OperatorProfilePage() {
                   disabled={saveMutation.isPending}
                   className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs px-4"
                 >
-                  <Save className="w-3.5 h-3.5" /> {saveMutation.isPending ? 'Saving...' : 'Save Profile'}
-                  <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">
-                    Ctrl + S
-                  </kbd>
+                  <Save className="w-3.5 h-3.5" /> {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
               </>
             ) : (
@@ -228,13 +272,13 @@ export default function OperatorProfilePage() {
                 disabled={isLoading}
                 className="h-9 gap-1.5 text-xs bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-bold shadow-xs px-4"
               >
-                <User className="w-3.5 h-3.5" /> Edit Profile Details
+                <User className="w-3.5 h-3.5" /> Edit Profile
               </Button>
             )}
           </div>
         </div>
 
-        {/* Global Notifications Banners */}
+        {/* ── Status Banners ────────────────────────────────────────────── */}
         {saveError && (
           <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -245,70 +289,70 @@ export default function OperatorProfilePage() {
         {saveSuccess && (
           <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>Profile information successfully saved and updated across MERCON dispatch nodes.</span>
+            <span>Profile information successfully updated across MERCON dispatch nodes.</span>
           </div>
         )}
 
-        {/* Profile Command Overview Header Card */}
+        {/* ── Operator Command Profile Card ──────────────────────────────── */}
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-          {/* Gradient Banner Header */}
-          <div className="h-28 bg-gradient-to-r from-violet-600 via-indigo-600 to-[#E8450F] relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
-            <div className="absolute top-3 right-4 flex items-center gap-2">
+          <div className="h-24 bg-gradient-to-r from-violet-600 via-indigo-600 to-[#E8450F] relative">
+            <div className="absolute top-3 right-4">
               <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md text-[10px] font-mono font-bold">
                 MERCON Fleet Ops v2.4
               </Badge>
             </div>
           </div>
 
-          <CardContent className="p-6 relative pt-0">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-12">
+          <CardContent className="p-6 pt-0 relative">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-10">
               
-              {/* Avatar + Main Details */}
+              {/* Avatar + Main Information */}
               <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-md border-2 border-white dark:border-slate-800">
-                    <div className="w-full h-full rounded-xl bg-gradient-to-br from-violet-500 to-[#E8450F] flex items-center justify-center text-white text-3xl font-black shadow-inner">
+                  <div className="w-20 h-20 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-md border-2 border-white dark:border-slate-800">
+                    <div className="w-full h-full rounded-xl bg-gradient-to-br from-violet-500 to-[#E8450F] flex items-center justify-center text-white text-2xl font-black shadow-inner">
                       {initials}
                     </div>
                   </div>
-                  <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" title="Active Online Session"></span>
+                  <span className="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" title="Active Session"></span>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
                       {form.firstName} {form.lastName}
-                    </h1>
+                    </h2>
                     <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-extrabold dark:bg-emerald-950/40 dark:text-emerald-400">
-                      ● Active Operator
+                      ● Active Session
                     </Badge>
                   </div>
 
-                  <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                    <span className="font-semibold text-[#E8450F]">{roleTitle}</span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-[#E8450F]">{roleTitle}</span>
                     <span>•</span>
-                    <span className="font-mono text-slate-400">ID: OP-{user?.username?.toUpperCase() || 'SYS'}</span>
+                    <span className="font-mono text-slate-500">ID: OP-{user?.username?.toUpperCase() || 'SYS'}</span>
                     <span>•</span>
-                    <span className="flex items-center gap-1"><Building2 className="w-3 h-3 text-slate-400" /> {form.department}</span>
+                    <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" /> {form.department}
+                    </span>
                   </p>
                 </div>
               </div>
 
-              {/* Quick Operational Metrics */}
-              <div className="grid grid-cols-3 gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6">
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+              {/* Quick Operational Telematics Gauges */}
+              <div className="grid grid-cols-3 gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 shrink-0">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center min-w-[100px]">
                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Access Tier</div>
                   <div className="text-xs font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-0.5">Tier 1 Admin</div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Auth Status</div>
-                  <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">Verified</div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center min-w-[100px]">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Security 2FA</div>
+                  <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">Protected</div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Node Zone</div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center min-w-[100px]">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Operating Hub</div>
                   <div className="text-xs font-mono font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">Riyadh Hub</div>
                 </div>
               </div>
@@ -317,51 +361,47 @@ export default function OperatorProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Tabbed Workspace Section */}
+        {/* ── 4-Tab Workspace ────────────────────────────────────────────── */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full space-y-4">
-          <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl grid grid-cols-3 w-full sm:w-auto sm:inline-flex shadow-2xs">
-            <TabsTrigger value="identity" className="text-xs font-bold gap-2 data-[state=active]:bg-[#E8450F] data-[state=active]:text-white">
+          <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl grid grid-cols-2 sm:grid-cols-4 w-full shadow-2xs">
+            <TabsTrigger value="identity" className="text-xs font-bold gap-2 data-[state=active]:bg-[#E8450F] data-[state=active]:text-white rounded-lg">
               <User className="w-3.5 h-3.5" />
-              <span>Personal Identity</span>
-              <kbd className="hidden sm:inline px-1 py-0.2 text-[9px] font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                Alt+1
-              </kbd>
+              <span>Identity & Contact</span>
             </TabsTrigger>
 
-            <TabsTrigger value="security" className="text-xs font-bold gap-2 data-[state=active]:bg-[#E8450F] data-[state=active]:text-white">
+            <TabsTrigger value="security" className="text-xs font-bold gap-2 data-[state=active]:bg-[#E8450F] data-[state=active]:text-white rounded-lg">
               <Shield className="w-3.5 h-3.5" />
-              <span>Security & Password</span>
-              <kbd className="hidden sm:inline px-1 py-0.2 text-[9px] font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                Alt+2
-              </kbd>
+              <span>Security & 2FA</span>
             </TabsTrigger>
 
-            <TabsTrigger value="preferences" className="text-xs font-bold gap-2 data-[state=active]:bg-[#E8450F] data-[state=active]:text-white">
+            <TabsTrigger value="notifications" className="text-xs font-bold gap-2 data-[state=active]:bg-[#E8450F] data-[state=active]:text-white rounded-lg">
+              <Bell className="w-3.5 h-3.5" />
+              <span>Notification Rules</span>
+            </TabsTrigger>
+
+            <TabsTrigger value="preferences" className="text-xs font-bold gap-2 data-[state=active]:bg-[#E8450F] data-[state=active]:text-white rounded-lg">
               <Sliders className="w-3.5 h-3.5" />
-              <span>System & Preferences</span>
-              <kbd className="hidden sm:inline px-1 py-0.2 text-[9px] font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                Alt+3
-              </kbd>
+              <span>Roles & Preferences</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* TAB 1: Personal Identity */}
-          <TabsContent value="identity" className="m-0 space-y-4">
+          {/* ── TAB 1: Identity & Contact ──────────────────────────────────── */}
+          <TabsContent value="identity" className="m-0">
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <User className="w-4 h-4 text-[#E8450F]" /> Operator Contact Details
+                      <User className="w-4 h-4 text-[#E8450F]" /> Personal & Logistics Credentials
                     </CardTitle>
                     <CardDescription className="text-xs text-slate-500">
-                      Manage your official personal credentials used across MERCON logistics network.
+                      Manage your official personal contact details and regional dispatch assignment.
                     </CardDescription>
                   </div>
 
                   {!isEditing && (
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="h-8 text-xs font-bold">
-                      Edit Fields
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="h-8 text-xs font-bold border-slate-200 dark:border-slate-800">
+                      Edit Credentials
                     </Button>
                   )}
                 </div>
@@ -400,7 +440,7 @@ export default function OperatorProfilePage() {
                     />
                   </div>
 
-                  {/* Email */}
+                  {/* Work Email */}
                   <div className="space-y-1.5">
                     <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                       <Mail className="w-3.5 h-3.5 text-slate-400" /> Work Email Address
@@ -416,10 +456,10 @@ export default function OperatorProfilePage() {
                     />
                   </div>
 
-                  {/* Phone */}
+                  {/* Mobile Phone */}
                   <div className="space-y-1.5">
                     <Label htmlFor="phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" /> Mobile / Phone Number
+                      <Phone className="w-3.5 h-3.5 text-slate-400" /> Mobile / WhatsApp Number
                     </Label>
                     <Input
                       id="phone"
@@ -427,6 +467,35 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('phone', e.target.value)}
                       disabled={!isEditing}
                       placeholder="+966 50 123 4567"
+                      className="h-9 text-xs font-medium border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/50"
+                    />
+                  </div>
+
+                  {/* Saudi National ID / Iqama */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="iqama" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                      <IdCard className="w-3.5 h-3.5 text-slate-400" /> Saudi Iqama / National ID Ref
+                    </Label>
+                    <Input
+                      id="iqama"
+                      value={form.iqamaNumber}
+                      onChange={(e) => setFormField('iqamaNumber', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="1092837465"
+                      className="h-9 text-xs font-mono font-medium border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/50"
+                    />
+                  </div>
+
+                  {/* Operating Hub */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="hub" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" /> Primary Logistics Hub
+                    </Label>
+                    <Input
+                      id="hub"
+                      value={form.operatingHub}
+                      onChange={(e) => setFormField('operatingHub', e.target.value)}
+                      disabled={!isEditing}
                       className="h-9 text-xs font-medium border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/50"
                     />
                   </div>
@@ -475,11 +544,11 @@ export default function OperatorProfilePage() {
             </Card>
           </TabsContent>
 
-          {/* TAB 2: Security & Password */}
-          <TabsContent value="security" className="m-0 space-y-4">
+          {/* ── TAB 2: Security & 2FA ─────────────────────────────────────── */}
+          <TabsContent value="security" className="m-0 space-y-5">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
               
-              {/* Password Update Form (3/5) */}
+              {/* Password Form (3/5) */}
               <Card className="lg:col-span-3 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
                 <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
                   <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -494,11 +563,12 @@ export default function OperatorProfilePage() {
                   <CardContent className="p-6 space-y-4">
                     
                     {pwdMsg && (
-                      <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                      <div className={cn(
+                        'p-3 rounded-xl text-xs font-bold flex items-center gap-2 border',
                         pwdMsg.ok 
-                          ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200' 
-                          : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200'
-                      }`}>
+                          ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
+                          : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800'
+                      )}>
                         {pwdMsg.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />}
                         <span>{pwdMsg.text}</span>
                       </div>
@@ -540,10 +610,10 @@ export default function OperatorProfilePage() {
                         className="h-9 text-xs border-slate-200 dark:border-slate-800"
                       />
                       
-                      {/* Password Strength Bar */}
+                      {/* Strength Bar */}
                       {pwd.next && (
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
-                          <div className={`h-full ${pwdStrength.color} transition-all duration-300`} style={{ width: `${pwdStrength.score}%` }}></div>
+                          <div className={cn('h-full transition-all duration-300', pwdStrength.color)} style={{ width: `${pwdStrength.score}%` }} />
                         </div>
                       )}
                     </div>
@@ -569,7 +639,7 @@ export default function OperatorProfilePage() {
                     <Button
                       type="submit"
                       disabled={pwdMutation.isPending}
-                      className="h-9 gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs px-4"
+                      className="h-9 gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs px-4 rounded-lg"
                     >
                       <Lock className="w-3.5 h-3.5" />
                       {pwdMutation.isPending ? 'Updating Password...' : 'Update Password'}
@@ -578,12 +648,12 @@ export default function OperatorProfilePage() {
                 </form>
               </Card>
 
-              {/* Security Audit & Compliance Overview (2/5) */}
+              {/* Security Audit (2/5) */}
               <div className="lg:col-span-2 space-y-4">
                 <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
                   <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
                     <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" /> Security Compliance Audit
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" /> Security Audit Status
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 space-y-3">
@@ -591,7 +661,7 @@ export default function OperatorProfilePage() {
                     <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div>
                         <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Two-Factor Auth (2FA)</div>
-                        <div className="text-[10px] text-slate-500">MFA token protection enabled</div>
+                        <div className="text-[10px] text-slate-500">MFA token protection active</div>
                       </div>
                       <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-mono text-[10px] font-bold">
                         ACTIVE
@@ -603,17 +673,17 @@ export default function OperatorProfilePage() {
                         <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Last Session IP</div>
                         <div className="text-[10px] text-slate-500 font-mono">185.220.101.42 (Riyadh, SA)</div>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-mono font-bold">
+                      <Badge variant="outline" className="text-[10px] font-mono font-bold border-slate-200">
                         TRUSTED
                       </Badge>
                     </div>
 
                     <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div>
-                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Session Expiry</div>
-                        <div className="text-[10px] text-slate-500">JWT Token valid for 24h</div>
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">JWT Token Expiry</div>
+                        <div className="text-[10px] text-slate-500">Valid for 24 hours</div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">
+                      <span className="text-[10px] font-mono font-bold text-emerald-600">
                         23h remaining
                       </span>
                     </div>
@@ -623,40 +693,201 @@ export default function OperatorProfilePage() {
               </div>
 
             </div>
+
+            {/* Active Login Sessions Ledger */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Laptop className="w-4 h-4 text-violet-600" /> Logged-In Devices & Sessions
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500">
+                    Devices currently authorized to access your MERCON dispatch account.
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-mono font-bold text-slate-500">
+                  {sessions.length} Active Sessions
+                </Badge>
+              </CardHeader>
+
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {sessions.map((sess) => (
+                  <div key={sess.id} className="p-4 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+                        {sess.type === 'mobile' ? <Smartphone className="w-4 h-4 text-indigo-500" /> : <Laptop className="w-4 h-4 text-violet-500" />}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{sess.device}</span>
+                          {sess.isCurrent && (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-extrabold">
+                              THIS DEVICE
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-0.5">
+                          <span className="font-mono">{sess.ip}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1"><Globe className="w-3 h-3 text-slate-400" /> {sess.location}</span>
+                          <span>•</span>
+                          <span>{sess.lastActive}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {!sess.isCurrent && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRevokeSession(sess.id)}
+                        className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 gap-1 font-semibold"
+                      >
+                        <LogOut className="w-3.5 h-3.5" /> Revoke
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+
           </TabsContent>
 
-          {/* TAB 3: System & Preferences */}
-          <TabsContent value="preferences" className="m-0 space-y-4">
+          {/* ── TAB 3: Notification Rules ──────────────────────────────────── */}
+          <TabsContent value="notifications" className="m-0">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-[#E8450F]" /> Dispatch Notification & Alert Rules
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Configure automated alert thresholds and dispatch notification preferences.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="p-6 space-y-4">
+                
+                {/* Rule 1: Critical Trip Delays */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Critical Fleet Trip Delays</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">Receive immediate push & email notifications when a trip exceeds SLA tolerance (+30 mins)</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setNotifications((n) => ({ ...n, criticalDelays: !n.criticalDelays }))}
+                    className={cn(
+                      'h-8 text-xs font-bold min-w-[90px] rounded-lg transition-all',
+                      notifications.criticalDelays ? 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300' : 'text-slate-400'
+                    )}
+                  >
+                    {notifications.criticalDelays ? '● ENABLED' : 'DISABLED'}
+                  </Button>
+                </div>
+
+                {/* Rule 2: MOT Expiry Radar */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Saudi MOT & Istimara Expiry Alerts</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">Automated warnings when driver licenses or vehicle registrations enter 30-day expiry window</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setNotifications((n) => ({ ...n, documentExpiry: !n.documentExpiry }))}
+                    className={cn(
+                      'h-8 text-xs font-bold min-w-[90px] rounded-lg transition-all',
+                      notifications.documentExpiry ? 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300' : 'text-slate-400'
+                    )}
+                  >
+                    {notifications.documentExpiry ? '● ENABLED' : 'DISABLED'}
+                  </Button>
+                </div>
+
+                {/* Rule 3: Customer Credit Exposure Warnings */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Customer Credit Exposure Warnings</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">Alert dispatcher when corporate client exceeds 85% of approved credit limit</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setNotifications((n) => ({ ...n, creditLimits: !n.creditLimits }))}
+                    className={cn(
+                      'h-8 text-xs font-bold min-w-[90px] rounded-lg transition-all',
+                      notifications.creditLimits ? 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300' : 'text-slate-400'
+                    )}
+                  >
+                    {notifications.creditLimits ? '● ENABLED' : 'DISABLED'}
+                  </Button>
+                </div>
+
+                {/* Rule 4: Daily Operational Digest */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Daily Fleet Performance Digest</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">Receive a daily morning summary email of completed trips, revenue, and active fleet status</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setNotifications((n) => ({ ...n, dailyDigest: !n.dailyDigest }))}
+                    className={cn(
+                      'h-8 text-xs font-bold min-w-[90px] rounded-lg transition-all',
+                      notifications.dailyDigest ? 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300' : 'text-slate-400'
+                    )}
+                  >
+                    {notifications.dailyDigest ? '● ENABLED' : 'DISABLED'}
+                  </Button>
+                </div>
+
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── TAB 4: Roles & Preferences ─────────────────────────────────── */}
+          <TabsContent value="preferences" className="m-0 space-y-5">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               
-              {/* Account Role & Permission Matrix */}
+              {/* Granted Privilege Matrix */}
               <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
                 <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
                   <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Award className="w-4 h-4 text-[#E8450F]" /> System Role & Permissions
+                    <Award className="w-4 h-4 text-[#E8450F]" /> System Role & Granted Privileges
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500">
-                    Read-only authorization breakdown configured by system administrator.
+                    Read-only authorization Matrix assigned by your system administrator.
                   </CardDescription>
                 </CardHeader>
+
                 <CardContent className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <Label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Account Username</Label>
+                      <Label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Username</Label>
                       <Input value={user?.username || 'operator'} disabled className="h-9 font-mono font-bold text-xs bg-slate-50 dark:bg-slate-800/50" />
                     </div>
 
                     <div className="space-y-1">
                       <Label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">System Role</Label>
-                      <Input value={user?.role || 'operator'} disabled className="h-9 font-mono font-bold text-xs bg-slate-50 dark:bg-slate-800/50 text-[#E8450F]" />
+                      <Input value={user?.role || 'Admin'} disabled className="h-9 font-mono font-bold text-xs bg-slate-50 dark:bg-slate-800/50 text-[#E8450F]" />
                     </div>
                   </div>
 
                   <div className="pt-2">
-                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2">Granted Privilege Chips</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {['Trip Dispatch Write', 'Vehicle Ledger Read', 'Driver Management Write', 'Rate Card Authoring', 'Invoice Generation', 'System Logs View'].map((perm) => (
-                        <Badge key={perm} variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-semibold">
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2.5">Granted Dispatch Privileges</div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        'Trip Dispatch Write',
+                        'Vehicle Ledger Read',
+                        'Driver Management Write',
+                        'Rate Card Authoring',
+                        'Invoice Settlement Approval',
+                        'System Audit Logs View'
+                      ].map((perm) => (
+                        <Badge key={perm} variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-semibold py-1 px-2.5 rounded-md border-slate-200 dark:border-slate-700">
                           <Check className="w-3 h-3 text-emerald-500 mr-1" /> {perm}
                         </Badge>
                       ))}
@@ -665,51 +896,54 @@ export default function OperatorProfilePage() {
                 </CardContent>
               </Card>
 
-              {/* Operator Dashboard Preferences */}
+              {/* Startup & UI Preferences */}
               <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
                 <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
                   <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-violet-600" /> Interface & Dispatch Preferences
+                    <Sliders className="w-4 h-4 text-violet-600" /> Startup & Workspace Preferences
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500">
-                    Customize your personal view and automated dispatch notification alerts.
+                    Customize your personal view and default module settings.
                   </CardDescription>
                 </CardHeader>
+
                 <CardContent className="p-6 space-y-4">
                   
-                  {/* Default Landing Page */}
+                  {/* Landing Module */}
                   <div className="space-y-1.5">
                     <Label htmlFor="landingPage" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Default Startup Module
+                      Default Startup Module Page
                     </Label>
-                    <Select value={preferences.landingPage} onValueChange={(v) => setPreferences(p => ({ ...p, landingPage: v }))}>
+                    <Select value={preferences.landingPage} onValueChange={(v) => setPreferences((p) => ({ ...p, landingPage: v }))}>
                       <SelectTrigger className="h-9 text-xs font-medium border-slate-200 dark:border-slate-800">
-                        <SelectValue placeholder="Select landing page" />
+                        <SelectValue placeholder="Select startup page" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="/dashboard" className="text-xs">📊 Operational Dashboard</SelectItem>
-                        <SelectItem value="/trips" className="text-xs">🚚 Trip Control Center</SelectItem>
+                        <SelectItem value="/dashboard" className="text-xs">📊 Operational Command Dashboard</SelectItem>
+                        <SelectItem value="/trips" className="text-xs">🚚 Trip Control Ledger</SelectItem>
                         <SelectItem value="/vehicles" className="text-xs">🚛 Vehicle Fleet Ledger</SelectItem>
                         <SelectItem value="/drivers" className="text-xs">👤 Driver Duty Roster</SelectItem>
+                        <SelectItem value="/documents" className="text-xs">🛡️ Documents & Expiry Center</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  {/* Email Notifications Toggle */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <Bell className="w-3.5 h-3.5 text-violet-600" /> Dispatch Alerts & Notifications
-                      </div>
-                      <div className="text-[10px] text-slate-500">Receive email alerts for trip delays & MOT expirations</div>
+                  {/* Compact Table View Toggle */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 mt-2">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Compact Data Tables</div>
+                      <div className="text-[10px] text-slate-500">Reduce table row height for higher data density on screen</div>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setPreferences(p => ({ ...p, emailAlerts: !p.emailAlerts }))}
-                      className={`h-7 text-xs font-bold ${preferences.emailAlerts ? 'bg-violet-50 text-violet-700 border-violet-200' : ''}`}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPreferences((p) => ({ ...p, compactView: !p.compactView }))}
+                      className={cn(
+                        'h-7 text-[11px] font-bold min-w-[80px] rounded-lg transition-all',
+                        preferences.compactView ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'text-slate-400'
+                      )}
                     >
-                      {preferences.emailAlerts ? 'ENABLED' : 'DISABLED'}
+                      {preferences.compactView ? 'ENABLED' : 'OFF'}
                     </Button>
                   </div>
 
@@ -718,6 +952,7 @@ export default function OperatorProfilePage() {
 
             </div>
           </TabsContent>
+
         </Tabs>
 
       </div>
