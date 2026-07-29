@@ -43,6 +43,23 @@ export interface DriverPerfRow {
   ai_risk_score: number | null;
 }
 
+export interface PerformanceFilters {
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  per_page?: number;
+}
+
+export interface Paginated<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  };
+}
+
 export interface CustomReportFilters {
   startDate?: string;
   endDate?: string;
@@ -72,14 +89,14 @@ export const reportsService = {
     return res.data.data;
   },
 
-  async getFleetPerformance(): Promise<FleetPerfRow[]> {
-    const res = await api.get<ApiResponse<FleetPerfRow[]>>('/reports/fleet');
-    return res.data.data;
+  async getFleetPerformance(filters?: PerformanceFilters): Promise<Paginated<FleetPerfRow>> {
+    const res = await api.get<ApiResponse<Paginated<FleetPerfRow>>>('/reports/fleet', { params: filters });
+    return res.data as unknown as Paginated<FleetPerfRow>; // Since the response format changed to {success, data, meta} which matches Paginated<T> after unpacking data
   },
 
-  async getDriverPerformance(): Promise<DriverPerfRow[]> {
-    const res = await api.get<ApiResponse<DriverPerfRow[]>>('/reports/drivers');
-    return res.data.data;
+  async getDriverPerformance(filters?: PerformanceFilters): Promise<Paginated<DriverPerfRow>> {
+    const res = await api.get<ApiResponse<Paginated<DriverPerfRow>>>('/reports/drivers', { params: filters });
+    return res.data as unknown as Paginated<DriverPerfRow>; // Same here
   },
 
   async getRevenueReport(months = 6): Promise<RevenueReport> {

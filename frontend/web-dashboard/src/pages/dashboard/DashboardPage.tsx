@@ -95,7 +95,16 @@ export default function DashboardPage() {
       }
     >
       <div className="px-6 pb-6 h-full flex flex-col gap-5 animate-fade-in">
-        
+        {summaryError && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl shadow-xs flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
+            <div className="text-sm font-semibold">
+              Failed to load real-time dashboard KPIs. Showing cached or default values.
+              <span className="block text-xs font-normal opacity-80">{(summaryError as Error)?.message || 'Server connection error.'}</span>
+            </div>
+          </div>
+        )}
+
         {/* Instrument Panel KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           

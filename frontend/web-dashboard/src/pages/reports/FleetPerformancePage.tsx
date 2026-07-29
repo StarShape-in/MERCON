@@ -19,10 +19,12 @@ function sar(value: number): string {
 import ReportsHeader from '@/components/reports/ReportsHeader';
 
 export default function FleetPerformancePage() {
-  const { data: rows = [], isLoading, isError, refetch } = useQuery({
+  const { data: response, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'fleet'],
-    queryFn: reportsService.getFleetPerformance,
+    queryFn: () => reportsService.getFleetPerformance({ page: 1, per_page: 500 }),
   });
+
+  const rows = response?.data || [];
 
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8,Plate,RefID,Status,TotalTrips,CompletedTrips,MaintenanceCost\n" + rows.map(v => `${v.plate_number},${v.ref_id},${v.status},${v.total_trips},${v.completed_trips},${v.maintenance_cost}`).join("\n");

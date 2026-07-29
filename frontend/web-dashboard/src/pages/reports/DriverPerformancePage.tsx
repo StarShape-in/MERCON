@@ -24,10 +24,12 @@ function riskLevel(score: number | null): { label: string; cls: string } {
 import ReportsHeader from '@/components/reports/ReportsHeader';
 
 export default function DriverPerformancePage() {
-  const { data: rows = [], isLoading, isError, refetch } = useQuery({
+  const { data: response, isLoading, isError, refetch } = useQuery({
     queryKey: ['reports', 'drivers'],
-    queryFn: reportsService.getDriverPerformance,
+    queryFn: () => reportsService.getDriverPerformance({ page: 1, per_page: 500 }),
   });
+
+  const rows = response?.data || [];
 
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8,DriverName,RefID,Status,AIRiskScore,TotalTrips,CompletedTrips\n" + rows.map(d => `${d.name},${d.ref_id},${d.status},${d.ai_risk_score},${d.total_trips},${d.completed_trips}`).join("\n");

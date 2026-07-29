@@ -256,6 +256,7 @@ const styles = StyleSheet.create({
   bottomCard: {
     backgroundColor: Colors.white,
     padding: Spacing.lg,
+    paddingBottom: Spacing.xl + 12, // Extra padding for SafeArea
     ...Shadows.lg,
   },
   bottomTitle: {

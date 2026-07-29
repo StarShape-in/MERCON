@@ -240,6 +240,8 @@ model Trip {
 
   stops    TripStop[]
   invoices Invoice[]
+
+  @@index([vehicleId, driverId])
 }
 
 model TripStop {

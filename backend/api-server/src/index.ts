@@ -35,7 +35,6 @@ import invoiceRoutes from './routes/invoiceRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import documentRoutes from './routes/documentRoutes';
 import reportsRoutes from './routes/reportsRoutes';
-import trackingRoutes from './routes/trackingRoutes';
 import mobileAuthRoutes from './routes/mobileAuthRoutes';
 import mobileTripRoutes from './routes/mobileTripRoutes';
 import mobileNotificationRoutes from './routes/mobileNotificationRoutes';
@@ -48,8 +47,33 @@ import uploadRoutes from './routes/uploadRoutes';
 import userRoutes from './routes/userRoutes';
 import { initCronJobs } from './services/cronJobs';
 
+import helmet from 'helmet';
+
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3060',
+  process.env.VITE_APP_URL || 'https://dashboard.mercon.local'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+app.use(helmet());
+app.use(helmet.hsts({
+  maxAge: 31536000,
+  includeSubDomains: true,
+  preload: true
+}));
+
 app.use(express.json());
 app.use('/uploads', express.static('uploads')); // Serve uploaded files statically
 
@@ -62,7 +86,6 @@ app.use('/trips', tripRoutes);
 app.use('/invoices', invoiceRoutes);
 app.use('/maintenance', maintenanceRoutes);
 app.use('/reports', reportsRoutes);
-app.use('/tracking', trackingRoutes);
 app.use('/documents', documentRoutes);
 app.use('/rate-cards', rateCardRoutes);
 app.use('/notifications', notificationRoutes);

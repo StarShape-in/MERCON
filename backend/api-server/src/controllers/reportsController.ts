@@ -107,19 +107,41 @@ export const getSummary = async (req: Request, res: Response) => {
 /* ─── Fleet performance ───────────────────────────────────────────────────── */
 export const getFleetPerformance = async (req: Request, res: Response) => {
   try {
-    const vehicles = await prisma.vehicle.findMany({
-      where: { deletedAt: null },
-      include: {
-        trips: {
-          where: { deletedAt: null },
-          select: { status: true, actual_start: true, actual_end: true }
-        },
-        maintenanceRecords: {
-          where: { deletedAt: null },
-          select: { cost: true, service_date: true }
+    const { startDate, endDate, page = '1', per_page = '10' } = req.query;
+    
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(per_page as string, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build trips condition based on date filters
+    const tripsCondition: any = { deletedAt: null };
+    if (startDate) {
+      tripsCondition.createdAt = { ...tripsCondition.createdAt, gte: new Date(startDate as string) };
+    }
+    if (endDate) {
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      tripsCondition.createdAt = { ...tripsCondition.createdAt, lte: end };
+    }
+
+    const [total, vehicles] = await Promise.all([
+      prisma.vehicle.count({ where: { deletedAt: null } }),
+      prisma.vehicle.findMany({
+        where: { deletedAt: null },
+        skip,
+        take: limitNum,
+        include: {
+          trips: {
+            where: tripsCondition,
+            select: { status: true, actual_start: true, actual_end: true }
+          },
+          maintenanceRecords: {
+            where: { deletedAt: null },
+            select: { cost: true, service_date: true }
+          }
         }
-      }
-    });
+      })
+    ]);
 
     const data = vehicles.map((v) => ({
       id: v.id,
@@ -132,7 +154,16 @@ export const getFleetPerformance = async (req: Request, res: Response) => {
       maintenance_cost: v.maintenanceRecords.reduce((sum, m) => sum + m.cost, 0)
     }));
 
-    res.json({ success: true, data });
+    res.json({
+      success: true,
+      data,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to get fleet performance' } });
   }
@@ -141,15 +172,37 @@ export const getFleetPerformance = async (req: Request, res: Response) => {
 /* ─── Driver performance ──────────────────────────────────────────────────── */
 export const getDriverPerformance = async (req: Request, res: Response) => {
   try {
-    const drivers = await prisma.driver.findMany({
-      where: { deletedAt: null },
-      include: {
-        trips: {
-          where: { deletedAt: null },
-          select: { status: true, actual_start: true, actual_end: true, planned_start: true, planned_end: true }
+    const { startDate, endDate, page = '1', per_page = '10' } = req.query;
+    
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(per_page as string, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build trips condition based on date filters
+    const tripsCondition: any = { deletedAt: null };
+    if (startDate) {
+      tripsCondition.createdAt = { ...tripsCondition.createdAt, gte: new Date(startDate as string) };
+    }
+    if (endDate) {
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      tripsCondition.createdAt = { ...tripsCondition.createdAt, lte: end };
+    }
+
+    const [total, drivers] = await Promise.all([
+      prisma.driver.count({ where: { deletedAt: null } }),
+      prisma.driver.findMany({
+        where: { deletedAt: null },
+        skip,
+        take: limitNum,
+        include: {
+          trips: {
+            where: tripsCondition,
+            select: { status: true, actual_start: true, actual_end: true, planned_start: true, planned_end: true }
+          }
         }
-      }
-    });
+      })
+    ]);
 
     const data = drivers.map((d) => {
       const completed = d.trips.filter((t) => t.status === TripStatus.Completed);
@@ -164,7 +217,16 @@ export const getDriverPerformance = async (req: Request, res: Response) => {
       };
     });
 
-    res.json({ success: true, data });
+    res.json({
+      success: true,
+      data,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to get driver performance' } });
   }

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
 import { createDriverNotification } from './notificationController';
-import { TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
+import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice } from '../services/tripLifecycle';
 
@@ -39,7 +39,7 @@ export const getTrips = async (req: Request, res: Response) => {
     const limit = parseInt(per_page as string);
     const skip = (pageNumber - 1) * limit;
 
-    const whereClause: any = { deletedAt: null };
+    const whereClause: Prisma.TripWhereInput = { deletedAt: null };
     if (status) whereClause.status = status as TripStatus;
     if (driver_id) whereClause.driverId = driver_id as string;
     if (customer_id) whereClause.customerId = customer_id as string;

@@ -99,7 +99,7 @@ export default function TripListPage() {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Fetch trips using React Query
-  const { data: tripsRes, isLoading } = useQuery({
+  const { data: tripsRes, isLoading, isError, error } = useQuery({
     queryKey: ['trips', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () => tripService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
@@ -642,6 +642,8 @@ export default function TripListPage() {
             data={trips}
             columns={columns}
             isLoading={isLoading}
+            isError={isError}
+            errorMessage={(error as Error)?.message || 'Failed to load trips.'}
             bulkActions={bulkActions}
             currentPage={currentPage}
             totalPages={totalPages}
@@ -678,13 +680,35 @@ export default function TripListPage() {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className="w-full p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Draft</SelectItem>
-                  <SelectItem value="Dispatched" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Dispatched</SelectItem>
-                  <SelectItem value="AtPickup" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Pickup</SelectItem>
-                  <SelectItem value="InTransit" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">In Transit</SelectItem>
-                  <SelectItem value="AtDelivery" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Delivery</SelectItem>
-                  <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Completed</SelectItem>
-                  <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Cancelled</SelectItem>
+                  {(() => {
+                    const currentStatus = statusDialogTrip?.status as TripStatus;
+                    
+                    const ALLOWED_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
+                      Draft: ['Dispatched', 'Cancelled'] as TripStatus[],
+                      Dispatched: ['AtPickup', 'Cancelled'] as TripStatus[],
+                      AtPickup: ['InTransit', 'Cancelled'] as TripStatus[],
+                      InTransit: ['AtDelivery', 'Cancelled'] as TripStatus[],
+                      AtDelivery: ['Completed', 'Cancelled'] as TripStatus[],
+                      Completed: ['Invoiced'] as TripStatus[],
+                      Invoiced: [] as TripStatus[],
+                      Cancelled: [] as TripStatus[],
+                    };
+
+                    const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+                    const isValid = (status: string) => status === currentStatus || allowed.includes(status as TripStatus);
+
+                    return (
+                      <>
+                        <SelectItem value="Draft" disabled={!isValid('Draft')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Draft</SelectItem>
+                        <SelectItem value="Dispatched" disabled={!isValid('Dispatched')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Dispatched</SelectItem>
+                        <SelectItem value="AtPickup" disabled={!isValid('AtPickup')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Pickup</SelectItem>
+                        <SelectItem value="InTransit" disabled={!isValid('InTransit')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">In Transit</SelectItem>
+                        <SelectItem value="AtDelivery" disabled={!isValid('AtDelivery')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Delivery</SelectItem>
+                        <SelectItem value="Completed" disabled={!isValid('Completed')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Completed</SelectItem>
+                        <SelectItem value="Cancelled" disabled={!isValid('Cancelled')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Cancelled</SelectItem>
+                      </>
+                    );
+                  })()}
                 </SelectContent>
               </Select>
             </div>

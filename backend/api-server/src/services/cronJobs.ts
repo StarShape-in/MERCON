@@ -46,8 +46,7 @@ export const initCronJobs = () => {
                   where: { id: trip.vehicle.id },
                   data: { 
                     last_lat: gpsData.lat, 
-                    last_lng: gpsData.lng,
-                    current_odometer: trip.vehicle.current_odometer // would update if ICCES provides it here
+                    last_lng: gpsData.lng
                   }
                 });
 
@@ -102,6 +101,8 @@ export const initCronJobs = () => {
           where: { role: { in: ['Admin', 'Operator'] }, isActive: true }
         });
 
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
         for (const alert of alerts) {
           if (alert.deviceID) {
             const vehicle = await prisma.vehicle.findUnique({
@@ -110,6 +111,20 @@ export const initCronJobs = () => {
 
             if (vehicle) {
               const message = `ICCES Alert on ${vehicle.plate_number}: ${alert.alertType || 'Critical Tracking Issue'}`;
+              
+              // Skip if we already logged this exact alert for this vehicle recently
+              const recentAlert = await prisma.notification.findFirst({
+                where: {
+                  entity_id: vehicle.id,
+                  entity_type: 'Vehicle',
+                  message: message,
+                  created_at: { gte: fiveMinutesAgo }
+                }
+              });
+
+              if (recentAlert) {
+                continue;
+              }
               
               for (const user of operatorsAndAdmins) {
                 const newNotification = await prisma.notification.create({

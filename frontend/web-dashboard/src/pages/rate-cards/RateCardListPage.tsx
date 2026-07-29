@@ -16,7 +16,8 @@ import {
   CreditCard,
   LayoutGrid,
   List,
-  MoreVertical
+  MoreVertical,
+  XCircle
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -60,7 +61,7 @@ export default function RateCardListPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showTariffModal, setShowTariffModal] = useState(false);
 
-  const { data: response, isLoading } = useQuery({
+  const { data: response, isLoading, isError, error } = useQuery({
     queryKey: ['rate-cards'],
     queryFn: () => rateCardService.getAll(),
   });
@@ -457,6 +458,8 @@ export default function RateCardListPage() {
               data={filteredData}
               bulkActions={bulkActions}
               isLoading={isLoading}
+              isError={isError}
+              errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
               searchPlaceholder="Search contract name, customer..."
               onSearchChange={setSearch}
               onRowClick={(row) => navigate(`/rate-cards/${row.id}/edit`)}
@@ -464,7 +467,24 @@ export default function RateCardListPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredData.map((rc) => (
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 h-[200px] skeleton"></div>
+              ))
+            ) : isError ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
+                  <XCircle size={28} />
+                </div>
+                <p className="text-sm font-bold text-slate-900">Data Unavailable</p>
+                <p className="text-xs text-slate-500 mt-1">{(error as Error)?.message || 'Failed to load rate cards.'}</p>
+              </div>
+            ) : filteredData.length === 0 ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center">
+                <p className="text-sm font-bold text-slate-900">No Records Found</p>
+                <p className="text-xs text-slate-500 mt-1">There are no rate cards matching your filters.</p>
+              </div>
+            ) : filteredData.map((rc) => (
               <Card 
                 key={rc.id} 
                 onClick={() => navigate(`/rate-cards/${rc.id}/edit`)}

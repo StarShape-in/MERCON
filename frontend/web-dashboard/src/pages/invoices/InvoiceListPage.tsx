@@ -57,7 +57,7 @@ export default function InvoiceListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch invoices using React Query
-  const { data: invoicesRes, isLoading } = useQuery({
+  const { data: invoicesRes, isLoading, isError, error } = useQuery({
     queryKey: ['invoices', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () => invoiceService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
@@ -425,11 +425,13 @@ export default function InvoiceListPage() {
         {/* Content Workspace: Ledger Data Table */}
         <div className="flex-1 min-h-0 flex flex-col">
           <DataTable
-            title="📄 Billing & Invoice Ledger"
+            title="🧾 Invoices Ledger"
             columns={columns}
             data={invoices}
-            bulkActions={bulkActions}
             isLoading={isLoading}
+            isError={isError}
+            errorMessage={(error as Error)?.message || 'Failed to load invoices.'}
+            bulkActions={bulkActions}
             searchPlaceholder="Search invoices..."
             searchValue={search}
             onSearchChange={setSearch}

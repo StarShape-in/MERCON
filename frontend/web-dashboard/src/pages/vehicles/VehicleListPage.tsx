@@ -48,7 +48,7 @@ export default function VehicleListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch vehicles using React Query
-  const { data: vehiclesRes, isLoading } = useQuery({
+  const { data: vehiclesRes, isLoading, isError, error } = useQuery({
     queryKey: ['vehicles', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () => vehicleService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
@@ -447,6 +447,8 @@ export default function VehicleListPage() {
               data={vehicles}
               bulkActions={bulkActions}
               isLoading={isLoading}
+              isError={isError}
+              errorMessage={(error as Error)?.message || 'Failed to load fleet vehicles.'}
               searchPlaceholder="Search by plate number, ref ID, or asset type..."
               onSearchChange={setSearch}
               currentPage={currentPage}
@@ -505,7 +507,24 @@ export default function VehicleListPage() {
           
           /* GRID VIEW MODE */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 shrink-0">
-            {vehicles.map((v) => (
+            {isLoading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 h-[200px] skeleton"></div>
+              ))
+            ) : isError ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
+                  <XCircle size={28} />
+                </div>
+                <p className="text-sm font-bold text-slate-900">Data Unavailable</p>
+                <p className="text-xs text-slate-500 mt-1">{(error as Error)?.message || 'Failed to load vehicles.'}</p>
+              </div>
+            ) : vehicles.length === 0 ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center">
+                <p className="text-sm font-bold text-slate-900">No Records Found</p>
+                <p className="text-xs text-slate-500 mt-1">There are no vehicles matching your filters.</p>
+              </div>
+            ) : vehicles.map((v) => (
               <Card
                 key={v.id}
                 className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all bg-white dark:bg-slate-900 flex flex-col justify-between"

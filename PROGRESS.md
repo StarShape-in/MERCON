@@ -302,7 +302,23 @@ several low-severity issues. Fixing in phases per `~/.claude/plans/hidden-painti
     selected customer's active rate card on trip selection and auto-fills the subtotal from
     `base_price`. The field stays editable; an "Auto-filled from rate card — editable" badge
     appears and the input gets a green border when auto-filled.
-- ⬜ Phase 3 (Medium), Phase 4 (Low) — not started yet.
+- ✅ **Phase 3 (Medium) — completed (session continued)**:
+  - **Item 20** (sendBulkCommunication): UI updated to clearly state "Not connected to SMS provider" to avoid user confusion.
+  - **Item 21** (Reports pagination): Modified `reportsController`, `reportsService`, `FleetPerformancePage`, and `DriverPerformancePage` to handle pagination properly and extract data array.
+  - **Item 22** (isError handling/banners): Systematically updated `DataTable.tsx` references across all major list pages (Drivers, Vehicles, Trips, Invoices, Rate Cards, Customers, User Management) and `DashboardPage` to handle errors correctly.
+  - **Item 23** (Sidebar notification badge): Wired `Sidebar.tsx` to use react-query and `notificationService` to display real unread notification counts instead of a hardcoded value.
+  - **Item 24** (Trip-status transition guard): Implemented transition guard in `TripListPage.tsx` to prevent selecting invalid statuses for a trip, mirroring the backend validation. (`TripDetailsPage.tsx` was verified to already be safe).
+  - **Item 25** (Attach JWT to Socket.IO in TripTracking): Verified `TripTrackingPage.tsx` already attaches JWT to `auth.token` and has a live status indicator.
+  - **Item 26** (CI/CD health-check for docker): Added `pg_isready` healthcheck to `postgres-db` and `curl` healthcheck to `mercon-api` in `docker-compose.yml`.
+  - **Items 27 & 28** (TLS/HSTS and tighten CORS): Installed `helmet`, configured HSTS, and restricted CORS to specific dashboard origins in `backend/api-server/src/index.ts`.
+- ✅ **Phase 4 (Low/Cleanup) — completed (session continued)**:
+  - **Item 29** (Add Zod to createMaintenanceRecord): Added Zod schema validation to `maintenanceController.ts`.
+  - **Item 30** (Consolidate multer configs): Removed duplicate `multer` config from `uploadController.ts` and reused the one in `middlewares/upload.ts`.
+  - **Item 31** (Add index on Trip): Added `@@index([vehicleId, driverId])` to the `Trip` model in `schema.prisma`.
+  - **Item 32** (Dead code removal): Confirmed unused routes (like trackingRoutes) are deleted.
+  - **Item 33** (Replace implicit any): Replaced `any` with `Prisma.TripWhereInput` in `tripController.ts`.
+  - **Item 34** (Improve mobile NavigationCard UI padding): Improved bottom padding on the `LiveNavigationScreen` to handle safe area constraints gracefully.
+  - **Item 35** (Standardize error response shape): Refactored `uploadController.ts` to follow the standard `error: { code: '...', message: '...' }` pattern.
 
 ---
 

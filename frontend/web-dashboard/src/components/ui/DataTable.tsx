@@ -49,7 +49,10 @@ export interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   // Bulk Actions
   bulkActions?: BulkAction<T>[];
-  // Empty State Override
+  // State overrides
+  isError?: boolean;
+  errorTitle?: string;
+  errorMessage?: string;
   emptyTitle?: string;
   emptyMessage?: string;
   // Custom height/compactness
@@ -63,6 +66,9 @@ export default function DataTable<T>({
   columns,
   data,
   isLoading = false,
+  isError = false,
+  errorTitle = 'Data Unavailable',
+  errorMessage = 'Failed to load records from the server. Please try again.',
   searchPlaceholder = 'Search records...',
   searchValue,
   onSearchChange,
@@ -308,6 +314,19 @@ export default function DataTable<T>({
                   ))}
                 </TableRow>
               ))
+            ) : isError ? (
+              // Error State
+              <TableRow>
+                <TableCell colSpan={enableSelection ? columns.length + 1 : columns.length} className="text-center py-16">
+                  <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                    <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center text-rose-500">
+                      <X size={28} className="stroke-[2]" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-2">{errorTitle}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-xs">{errorMessage}</p>
+                  </div>
+                </TableCell>
+              </TableRow>
             ) : displayData.length === 0 ? (
               // Empty State
               <TableRow>

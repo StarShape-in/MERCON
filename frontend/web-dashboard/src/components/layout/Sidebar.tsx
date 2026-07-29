@@ -1,10 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Home, Bell, Truck, Users, Car, Building2, 
   CreditCard, ReceiptText, FileText, BarChart3, 
   Settings, User, LogOut 
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
+import { notificationService } from '@/services/notificationService';
 
 interface SidebarProps {
   active?: string;
@@ -20,12 +22,20 @@ export default function Sidebar({ active }: SidebarProps) {
     navigate('/login');
   };
 
+  const { data: notificationsRes } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: notificationService.getAll,
+    refetchInterval: 60000, // Poll every minute
+  });
+
+  const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 0;
+
   const groups = [
     {
       label: 'OVERVIEW',
       items: [
         { icon: Home, label: 'Dashboard', path: '/' },
-        { icon: Bell, label: 'Notifications', path: '/notifications', badge: 5 },
+        { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
       ],
     },
     {
@@ -94,9 +104,9 @@ export default function Sidebar({ active }: SidebarProps) {
                         className={`transition-transform duration-150 group-hover:scale-105 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`} 
                       />
                       <span className="text-xs font-semibold flex-1">{item.label}</span>
-                      {item.badge && !isActive && (
+                      {item.badge !== undefined && item.badge > 0 && !isActive && (
                         <span className="w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse">
-                          {item.badge}
+                          {item.badge > 9 ? '9+' : item.badge}
                         </span>
                       )}
                     </>

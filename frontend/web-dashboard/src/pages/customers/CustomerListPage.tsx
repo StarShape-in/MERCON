@@ -78,7 +78,7 @@ export default function CustomerListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch customers using React Query
-  const { data: customersRes, isLoading } = useQuery({
+  const { data: customersRes, isLoading, isError, error } = useQuery({
     queryKey: ['customers', debouncedSearch, currentPage, pageSize],
     queryFn: () => customerService.getAll({
       search: debouncedSearch || undefined,
@@ -494,6 +494,8 @@ export default function CustomerListPage() {
               columns={columns}
               data={filteredCustomers}
               isLoading={isLoading}
+              isError={isError}
+              errorMessage={(error as Error)?.message || 'Failed to load customers.'}
               currentPage={currentPage}
               totalPages={totalPages}
               pageSize={pageSize}
@@ -508,7 +510,24 @@ export default function CustomerListPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 overflow-y-auto">
-            {filteredCustomers.map(c => {
+            {isLoading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 h-[120px] skeleton"></div>
+              ))
+            ) : isError ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
+                  <XCircle size={28} />
+                </div>
+                <p className="text-sm font-bold text-slate-900">Data Unavailable</p>
+                <p className="text-xs text-slate-500 mt-1">{(error as Error)?.message || 'Failed to load customers.'}</p>
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center">
+                <p className="text-sm font-bold text-slate-900">No Records Found</p>
+                <p className="text-xs text-slate-500 mt-1">There are no customers matching your filters.</p>
+              </div>
+            ) : filteredCustomers.map(c => {
               return (
                 <div 
                   key={c.id} 

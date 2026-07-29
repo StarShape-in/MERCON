@@ -38,13 +38,29 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
   }
 };
 
+import { z } from 'zod';
+
+const maintenanceSchema = z.object({
+  vehicle_id: z.string().uuid(),
+  workshop_name: z.string().min(1, "Workshop name is required"),
+  workshop_contact: z.string().optional(),
+  maintenance_type: z.enum(['Routine', 'Repair', 'Inspection', 'Emergency']),
+  service_date: z.string().datetime().or(z.date()),
+  odometer_reading: z.union([z.string(), z.number()]).transform(v => parseFloat(v as string)),
+  cost: z.union([z.string(), z.number()]).optional().transform(v => v ? parseFloat(v as string) : 0),
+  invoice_number: z.string().optional(),
+  next_service_due: z.string().datetime().or(z.date()).optional().nullable(),
+  remarks: z.string().optional()
+});
+
 export const createMaintenanceRecord = async (req: Request, res: Response) => {
   try {
-    const { vehicle_id, workshop_name, workshop_contact, maintenance_type, service_date, odometer_reading, cost, invoice_number, next_service_due, remarks } = req.body;
-
-    if (!vehicle_id || !workshop_name || !maintenance_type || !service_date || !odometer_reading) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Missing required maintenance fields' } });
+    const parseResult = maintenanceSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: parseResult.error.errors[0].message, details: parseResult.error.format() } });
     }
+    
+    const { vehicle_id, workshop_name, workshop_contact, maintenance_type, service_date, odometer_reading, cost, invoice_number, next_service_due, remarks } = parseResult.data;
 
     const record = await prisma.maintenanceRecord.create({
       data: {

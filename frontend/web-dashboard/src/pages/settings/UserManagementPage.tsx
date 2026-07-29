@@ -16,7 +16,7 @@ export default function UserManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserDTO | null>(null);
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading, isError, error } = useQuery({
     queryKey: ['users'],
     queryFn: userService.getUsers,
   });
@@ -165,6 +165,8 @@ export default function UserManagementPage() {
           columns={columns}
           data={filteredUsers}
           isLoading={isLoading}
+          isError={isError}
+          errorMessage={(error as Error)?.message || 'Failed to load users.'}
           searchPlaceholder="Search by name or email..."
           searchValue={search}
           onSearchChange={setSearch}

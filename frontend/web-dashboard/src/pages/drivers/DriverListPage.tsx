@@ -91,7 +91,7 @@ export default function DriverListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch drivers using React Query
-  const { data: driversRes, isLoading } = useQuery({
+  const { data: driversRes, isLoading, isError, error } = useQuery({
     queryKey: ['drivers', selectedStatus, debouncedSearch, currentPage, pageSize],
     queryFn: () => driverService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
@@ -333,11 +333,11 @@ export default function DriverListPage() {
       }
     },
     {
-      label: 'Send SMS Alert',
+      label: 'Log communication (not yet wired to SMS)',
       icon: <Send size={13} />,
       variant: 'secondary' as const,
       onClick: async (selectedRows: Driver[]) => {
-        const msg = prompt('Enter message content to send via SMS to selected drivers:');
+        const msg = prompt('Enter message content to log for selected drivers (NOTE: not yet wired to real SMS provider):');
         if (!msg) return;
         try {
           await notificationService.sendBulkCommunication({
@@ -347,8 +347,8 @@ export default function DriverListPage() {
             subject: 'Dashboard Operational Notification',
             message: msg
           });
-          alert('Messages sent successfully via SMS dispatch queue.');
-        } catch (e) { alert('Failed to send messages'); }
+          alert('Messages logged successfully (SMS dispatch pending real provider integration).');
+        } catch (e) { alert('Failed to log messages'); }
       }
     },
     {
@@ -660,6 +660,8 @@ export default function DriverListPage() {
               data={filteredDrivers}
               columns={columns}
               isLoading={isLoading}
+              isError={isError}
+              errorMessage={(error as Error)?.message || 'Failed to load drivers.'}
               bulkActions={bulkActions}
               currentPage={currentPage}
               totalPages={totalPages}
@@ -675,7 +677,24 @@ export default function DriverListPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 overflow-y-auto">
-            {filteredDrivers.map(d => {
+            {isLoading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 h-[120px] skeleton"></div>
+              ))
+            ) : isError ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
+                  <X size={28} />
+                </div>
+                <p className="text-sm font-bold text-slate-900">Data Unavailable</p>
+                <p className="text-xs text-slate-500 mt-1">{(error as Error)?.message || 'Failed to load drivers.'}</p>
+              </div>
+            ) : filteredDrivers.length === 0 ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center">
+                <p className="text-sm font-bold text-slate-900">No Records Found</p>
+                <p className="text-xs text-slate-500 mt-1">There are no drivers matching your current filters.</p>
+              </div>
+            ) : filteredDrivers.map(d => {
               const initials = `${d.first_name?.[0] || ''}${d.last_name?.[0] || ''}`.toUpperCase() || 'DR';
               const isExpired = new Date(d.license_expiry) < new Date();
               return (
