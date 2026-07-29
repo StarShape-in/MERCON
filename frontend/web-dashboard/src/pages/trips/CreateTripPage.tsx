@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function CreateTripPage() {
@@ -79,6 +80,18 @@ export default function CreateTripPage() {
   const customers = customersRes?.data || [];
   const drivers = driversRes?.data || [];
   const vehicles = vehiclesRes?.data || [];
+
+  const driverOptions = drivers.map((d) => ({
+    value: d.id,
+    label: `${d.first_name} ${d.last_name} (Risk: ${d.ai_risk_score ?? 'Low'})`,
+    keywords: `${d.first_name} ${d.last_name}`,
+  }));
+
+  const vehicleOptions = vehicles.map((v) => ({
+    value: v.id,
+    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
+    keywords: `${v.plate_number} ${v.asset_type}`,
+  }));
 
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedDriver = drivers.find(d => d.id === driverId);
@@ -550,36 +563,15 @@ export default function CreateTripPage() {
                             <Plus className="w-3 h-3" /> Add New Driver
                           </Button>
                         </div>
-                        <Select 
-                          value={driverId} 
-                          onValueChange={(val) => {
-                            if (val === '__add_new_driver__') {
-                              setIsAddDriverOpen(true);
-                            } else {
-                              setDriverId(val);
-                            }
-                          }}
-                        >
-                          <SelectTrigger id="driver_id" className="h-9 text-xs border-slate-200 bg-white">
-                            <SelectValue placeholder="Choose available driver..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem 
-                              value="__add_new_driver__" 
-                              className="font-medium text-indigo-600 dark:text-indigo-400 focus:text-indigo-600 focus:bg-indigo-50 dark:focus:bg-indigo-950/50 border-b border-slate-100 dark:border-slate-800 mb-1"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>+ Add New Driver</span>
-                              </div>
-                            </SelectItem>
-                            {drivers.map((d) => (
-                              <SelectItem key={d.id} value={d.id}>
-                                {d.first_name} {d.last_name} (Risk: {d.ai_risk_score ?? 'Low'})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Combobox
+                          id="driver_id"
+                          value={driverId}
+                          onChange={setDriverId}
+                          options={driverOptions}
+                          placeholder="Choose available driver..."
+                          searchPlaceholder="Search drivers..."
+                          emptyText="No available drivers found."
+                        />
                       </div>
 
                       <div className="space-y-1.5">
@@ -597,36 +589,15 @@ export default function CreateTripPage() {
                             <Plus className="w-3 h-3" /> Add New Vehicle
                           </Button>
                         </div>
-                        <Select 
-                          value={vehicleId} 
-                          onValueChange={(val) => {
-                            if (val === '__add_new_vehicle__') {
-                              setIsAddVehicleOpen(true);
-                            } else {
-                              setVehicleId(val);
-                            }
-                          }}
-                        >
-                          <SelectTrigger id="vehicle_id" className="h-9 text-xs border-slate-200 bg-white">
-                            <SelectValue placeholder="Choose available vehicle..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem 
-                              value="__add_new_vehicle__" 
-                              className="font-medium text-indigo-600 dark:text-indigo-400 focus:text-indigo-600 focus:bg-indigo-50 dark:focus:bg-indigo-950/50 border-b border-slate-100 dark:border-slate-800 mb-1"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>+ Add New Vehicle</span>
-                              </div>
-                            </SelectItem>
-                            {vehicles.map((v) => (
-                              <SelectItem key={v.id} value={v.id}>
-                                {v.plate_number} ({v.asset_type} • {v.capacity_kg.toLocaleString()} kg)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Combobox
+                          id="vehicle_id"
+                          value={vehicleId}
+                          onChange={setVehicleId}
+                          options={vehicleOptions}
+                          placeholder="Choose available vehicle..."
+                          searchPlaceholder="Search vehicles..."
+                          emptyText="No available vehicles found."
+                        />
                       </div>
 
                     </div>
