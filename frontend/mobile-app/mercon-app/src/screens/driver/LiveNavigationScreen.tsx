@@ -96,7 +96,6 @@ const LiveNavigationScreen = () => {
       <View style={styles.mapContainer}>
         <MapView
           provider={PROVIDER_DEFAULT}
-          mapType="none"
           style={styles.map}
           initialRegion={{
             latitude: center.lat,
