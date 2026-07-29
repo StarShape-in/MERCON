@@ -16,7 +16,6 @@ import { HeroStatBanner, TelemetryDarkCard, GlassmeterCard, CompactCapsulePill }
 import { DispatchTelemetryRadarKpi, SpeedometerGaugeKpi } from '@/components/ui/CustomKpiWidgets';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
-import FleetLiveMap from '@/components/maps/FleetLiveMap';
 import TripCardSwiper from '@/components/trips/TripCardSwiper';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -173,11 +172,6 @@ export default function DashboardPage() {
         {/* Horizontal Trip Cards Swiper Section */}
         <div className="shrink-0 w-full">
           <TripCardSwiper />
-        </div>
-
-        {/* Live Fleet Radar Map Section (with shrink-0 layout stability) */}
-        <div className="shrink-0 w-full">
-          <FleetLiveMap />
         </div>
 
         {/* Charts Row */}
