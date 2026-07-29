@@ -50,6 +50,12 @@ export default function EditDriverPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!formData.license_expiry || Number.isNaN(new Date(formData.license_expiry).getTime())) {
+      setError('License Expiry is required and must be a valid date.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -57,7 +63,9 @@ export default function EditDriverPage() {
       await driverService.update(id, formData);
       navigate(`/drivers/${id}`);
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || err.message || 'Failed to update driver');
+      const details = err.response?.data?.error?.details as { path: string; message: string }[] | undefined;
+      const detailMessage = details?.map((d) => `${d.path}: ${d.message}`).join('; ');
+      setError(detailMessage || err.response?.data?.error?.message || err.message || 'Failed to update driver');
     } finally {
       setIsSubmitting(false);
     }
