@@ -65,9 +65,10 @@ export const tripService = {
       // React Native's FormData file shape isn't in the DOM lib types.
     } as unknown as Blob);
     form.append('kind', kind);
-    await api.post(`/mobile/trips/${id}/photo`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    // Don't set Content-Type manually — axios/RN needs to generate it
+    // itself so it includes the multipart boundary. A hardcoded header
+    // here strips the boundary and the backend fails to parse the body.
+    await api.post(`/mobile/trips/${id}/photo`, form);
   },
 };
 
