@@ -17,6 +17,7 @@ import { DispatchTelemetryRadarKpi, SpeedometerGaugeKpi } from '@/components/ui/
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import FleetLiveMap from '@/components/maps/FleetLiveMap';
+import TripCardSwiper from '@/components/trips/TripCardSwiper';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -167,6 +168,11 @@ export default function DashboardPage() {
             ]}
             onClick={() => navigate('/documents/expiring')}
           />
+        </div>
+
+        {/* Horizontal Trip Cards Swiper Section */}
+        <div className="shrink-0 w-full">
+          <TripCardSwiper />
         </div>
 
         {/* Live Fleet Radar Map Section (with shrink-0 layout stability) */}
