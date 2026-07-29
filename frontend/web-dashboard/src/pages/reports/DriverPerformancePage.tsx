@@ -8,6 +8,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import DataTable from '@/components/ui/DataTable';
 import { DriverBadge, CheckBadge, RiskAlert, RouteLine } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import { reportsService, type DriverPerfRow } from '@/services/reportsService';
@@ -177,39 +178,32 @@ export default function DriverPerformancePage() {
         </div>
 
         {/* Top Drivers Table */}
-        <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-black/[0.04] bg-[#FAFAFA]">
-            <h3 className="text-sm font-bold text-[#111]">Top Drivers by Completed Trips</h3>
-          </div>
-
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-black/[0.04]">
-                <th className="px-5 py-3 font-semibold text-[10px] uppercase text-[#9898A4] tracking-wider">Driver</th>
-                <th className="px-5 py-3 font-semibold text-[10px] uppercase text-[#9898A4] tracking-wider">Completed / Total</th>
-                <th className="px-5 py-3 font-semibold text-[10px] uppercase text-[#9898A4] tracking-wider">Completion %</th>
-                <th className="px-5 py-3 font-semibold text-[10px] uppercase text-[#9898A4] tracking-wider">AI Risk Level</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topDrivers.length === 0 ? (
-                <tr><td colSpan={4} className="px-5 py-10 text-center text-xs text-[#9898A4]">{isLoading ? 'Loading…' : 'No drivers yet.'}</td></tr>
-              ) : topDrivers.map((d) => {
+        <DataTable
+          title="🏆 Top Drivers by Completed Trips"
+          columns={[
+            {
+              header: 'Driver',
+              accessor: (d: DriverPerfRow) => <span className="font-bold text-slate-900 dark:text-slate-100">{d.name}</span>
+            },
+            {
+              header: 'Completed / Total',
+              accessor: (d: DriverPerfRow) => <span className="text-slate-700 dark:text-slate-300 font-medium">{d.completed_trips} / {d.total_trips}</span>
+            },
+            {
+              header: 'Completion %',
+              accessor: (d: DriverPerfRow) => <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{completion(d)}%</span>
+            },
+            {
+              header: 'AI Risk Level',
+              accessor: (d: DriverPerfRow) => {
                 const risk = riskLevel(d.ai_risk_score);
-                return (
-                  <tr key={d.id} className="border-b border-black/[0.04] hover:bg-[#FAFAFA] transition-colors last:border-0">
-                    <td className="px-5 py-3.5"><span className="font-semibold text-[#111]">{d.name}</span></td>
-                    <td className="px-5 py-3.5 text-[#444] font-medium">{d.completed_trips} / {d.total_trips}</td>
-                    <td className="px-5 py-3.5"><span className="font-bold text-[#16A34A]">{completion(d)}%</span></td>
-                    <td className="px-5 py-3.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${risk.cls}`}>{risk.label}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                return <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${risk.cls}`}>{risk.label}</span>;
+              }
+            }
+          ]}
+          data={topDrivers}
+          isLoading={isLoading}
+        />
 
       </div>
     </DashboardLayout>

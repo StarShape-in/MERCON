@@ -217,8 +217,9 @@ export default function CustomReportPage() {
               </div>
             </div>
 
-            <div className="h-[500px]">
+            <div className="flex-1 min-h-0 flex flex-col">
               <DataTable
+                title="📊 Custom Operational Report"
                 columns={columns}
                 data={reportData.trips}
                 isLoading={false}

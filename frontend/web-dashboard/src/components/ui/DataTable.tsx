@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare } from 'lucide-react';
+import { Search, SlidersHorizontal, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, X, FileSearch } from 'lucide-react';
 import Btn from './Btn';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 import { Input } from './input';
+import { Badge } from './badge';
+import { cn } from '@/lib/utils';
 
-interface Column<T> {
+export interface Column<T> {
   header: string;
   accessor: (row: T) => React.ReactNode;
+  className?: string;
+  headerClassName?: string;
 }
 
 export interface BulkAction<T> {
@@ -16,15 +20,18 @@ export interface BulkAction<T> {
   onClick: (selectedRows: T[]) => void | Promise<void>;
 }
 
-interface DataTableProps<T> {
+export interface DataTableProps<T> {
+  title?: string;
+  subtitle?: string;
   columns: Column<T>[];
   data: T[];
   isLoading?: boolean;
   searchPlaceholder?: string;
   searchValue?: string;
   onSearchChange?: (val: string) => void;
-  // Filters
+  // Filters & Action Slots
   filterElement?: React.ReactNode;
+  actionsElement?: React.ReactNode;
   // Export Action
   onExport?: () => void;
   // Pagination
@@ -42,9 +49,17 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   // Bulk Actions
   bulkActions?: BulkAction<T>[];
+  // Empty State Override
+  emptyTitle?: string;
+  emptyMessage?: string;
+  // Custom height/compactness
+  compact?: boolean;
+  className?: string;
 }
 
 export default function DataTable<T>({
+  title,
+  subtitle,
   columns,
   data,
   isLoading = false,
@@ -52,6 +67,7 @@ export default function DataTable<T>({
   searchValue,
   onSearchChange,
   filterElement,
+  actionsElement,
   onExport,
   currentPage,
   totalPages,
@@ -60,19 +76,21 @@ export default function DataTable<T>({
   onPageSizeChange,
   pageSizeOptions = [10, 25, 50, 100],
   totalRecords,
-  enableSelection = true,
+  enableSelection = false,
   onSelectionChange,
   onRowClick,
   bulkActions = [],
+  emptyTitle = 'No Records Found',
+  emptyMessage = 'There are no entries matching your current filters or search query.',
+  compact = false,
+  className,
 }: DataTableProps<T>) {
-  const showToolbar = onSearchChange !== undefined || filterElement !== undefined || onExport !== undefined || enableSelection;
-
   // Internal state for client-side pagination when onPageChange is not passed
   const [internalPage, setInternalPage] = useState(1);
   const [internalPageSize, setInternalPageSize] = useState(pageSize || 10);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
 
-  // Reset internal page if data length changes drastically
+  // Reset internal page if data length changes or search changes
   useEffect(() => {
     if (onPageChange === undefined) {
       setInternalPage(1);
@@ -88,7 +106,7 @@ export default function DataTable<T>({
     ? totalPages 
     : Math.max(1, Math.ceil(totalCount / activePageSize));
 
-  // If server paginated, data is already sliced by backend. If client paginated, slice here.
+  // Display data: server-paginated data is already sliced; client-paginated data is sliced here
   const displayData = isServerPaginated 
     ? data 
     : data.slice((activePage - 1) * activePageSize, activePage * activePageSize);
@@ -146,17 +164,20 @@ export default function DataTable<T>({
     isServerPaginated ? (fromIndex + displayData.length - 1) : totalCount
   );
 
+  const showToolbar = title || onSearchChange !== undefined || filterElement !== undefined || onExport !== undefined || actionsElement !== undefined || enableSelection;
+
   return (
-    <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden flex flex-col h-full animate-fade-in">
-      {/* Table Toolbar */}
+    <div className={cn("bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full h-full min-h-[460px] animate-fade-in", className)}>
+      
+      {/* Table Toolbar Header */}
       {showToolbar && (
-        <div className="shrink-0 p-4 border-b border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FAFAFA]">
+        <div className="shrink-0 p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
           {selectedIndices.size > 0 && bulkActions.length > 0 ? (
-            <div className="flex items-center gap-3 w-full bg-blue-50/50 p-1 rounded-lg">
-              <span className="text-sm font-semibold text-blue-700 px-2">
-                {selectedIndices.size} selected
+            <div className="flex items-center gap-3 w-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 p-2 rounded-lg transition-all">
+              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 px-2">
+                {selectedIndices.size} row{selectedIndices.size > 1 ? 's' : ''} selected
               </span>
-              <div className="h-4 w-[1px] bg-blue-200" />
+              <div className="h-4 w-[1px] bg-indigo-200 dark:bg-indigo-800" />
               <div className="flex items-center gap-2 flex-1 flex-wrap">
                 {bulkActions.map((action, i) => (
                   <Btn
@@ -177,12 +198,24 @@ export default function DataTable<T>({
                 variant="ghost"
                 size="sm"
                 onClick={handleSelectAll}
-                className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100/60 text-xs font-bold"
               />
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+              {/* Left Side: Ledger Title & Search / Filter Controls */}
+              <div className="flex items-center gap-3 flex-1 flex-wrap min-w-[240px]">
+                {title && (
+                  <div className="flex items-center gap-2.5 mr-2">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                      {title}
+                    </h3>
+                    <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                      {totalCount} {totalCount === 1 ? 'record' : 'records'}
+                    </Badge>
+                  </div>
+                )}
+
                 {enableSelection && (
                   <Btn
                     label={selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}
@@ -193,51 +226,66 @@ export default function DataTable<T>({
                     className="whitespace-nowrap"
                   />
                 )}
+
                 {onSearchChange !== undefined && (
-                  <div className="relative flex-1 max-w-sm">
-                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9898A4]" />
+                  <div className="relative flex-1 max-w-sm min-w-[200px]">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <Input
                       type="text"
                       placeholder={searchPlaceholder}
-                      value={searchValue}
+                      value={searchValue || ''}
                       onChange={(e) => onSearchChange(e.target.value)}
-                      className="w-full pl-9 bg-white border-black/[0.07] focus-visible:ring-[#E8450F]/20 rounded-lg"
+                      className="w-full pl-9 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500/20 rounded-lg font-medium"
                     />
+                    {searchValue && (
+                      <button 
+                        onClick={() => onSearchChange('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
                   </div>
                 )}
+
                 {filterElement}
               </div>
-              {onExport && (
-                <Btn
-                  label="Export"
-                  variant="secondary"
-                  size="sm"
-                  icon={<Download size={13} />}
-                  onClick={onExport}
-                />
-              )}
+
+              {/* Right Side: Actions & Export */}
+              <div className="flex items-center gap-2.5 shrink-0">
+                {actionsElement}
+                {onExport && (
+                  <Btn
+                    label="Export"
+                    variant="secondary"
+                    size="sm"
+                    icon={<Download size={13} />}
+                    onClick={onExport}
+                  />
+                )}
+              </div>
             </>
           )}
         </div>
       )}
 
-      {/* Main Table Content */}
-      <div className="flex-1 overflow-auto min-h-0">
-        <Table className="min-w-full">
+      {/* Main Table Container */}
+      <div className="flex-1 overflow-auto min-h-0 w-full">
+        <Table className="w-full">
           <TableHeader>
-            <TableRow className="bg-[#FAFAFA] hover:bg-[#FAFAFA]">
+            <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
               {enableSelection && (
-                <TableHead className="w-[40px] px-5">
+                <TableHead className="w-[48px] px-5">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 rounded border-gray-300 text-[#E8450F] focus:ring-[#E8450F] cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     checked={selectedIndices.size === displayData.length && displayData.length > 0}
                     onChange={handleSelectAll}
                   />
                 </TableHead>
               )}
               {columns.map((c, i) => (
-                <TableHead key={i} className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] h-10 px-5">
+                <TableHead key={i} className={cn("text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 h-11 px-5", c.headerClassName)}>
                   {c.header}
                 </TableHead>
               ))}
@@ -247,15 +295,15 @@ export default function DataTable<T>({
             {isLoading ? (
               // Loading state skeleton rows
               Array.from({ length: activePageSize > 10 ? 10 : activePageSize }).map((_, rowIndex) => (
-                <TableRow key={rowIndex}>
+                <TableRow key={rowIndex} className="border-b border-slate-100 dark:border-slate-800/60">
                   {enableSelection && (
-                    <TableCell className="px-5 py-3 w-[40px]">
+                    <TableCell className="px-5 py-4 w-[48px]">
                       <div className="h-4 skeleton w-4 rounded"></div>
                     </TableCell>
                   )}
                   {columns.map((_, colIndex) => (
-                    <TableCell key={colIndex} className="px-5 py-3">
-                      <div className="h-4 skeleton w-full max-w-[120px]"></div>
+                    <TableCell key={colIndex} className="px-5 py-4">
+                      <div className="h-4 skeleton w-full max-w-[140px] rounded-md"></div>
                     </TableCell>
                   ))}
                 </TableRow>
@@ -263,11 +311,13 @@ export default function DataTable<T>({
             ) : displayData.length === 0 ? (
               // Empty State
               <TableRow>
-                <TableCell colSpan={enableSelection ? columns.length + 1 : columns.length} className="text-center py-12">
-                  <div className="flex flex-col items-center justify-center gap-2 max-w-xs mx-auto">
-                    <SlidersHorizontal size={36} className="text-gray-300 stroke-[1.5]" />
-                    <p className="text-sm font-bold text-[#111] mt-2">No Records Found</p>
-                    <p className="text-xs text-[#6E6E80] text-center">There are no entries matching your current filters or search query.</p>
+                <TableCell colSpan={enableSelection ? columns.length + 1 : columns.length} className="text-center py-16">
+                  <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                      <FileSearch size={28} className="stroke-[1.5]" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-2">{emptyTitle}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-xs">{emptyMessage}</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -276,7 +326,10 @@ export default function DataTable<T>({
               displayData.map((row, rowIndex) => (
                 <TableRow
                   key={rowIndex}
-                  className={`animate-fade-in transition-colors ${onRowClick ? 'cursor-pointer hover:bg-[#F0F0F0]' : 'hover:bg-[#FAFAFA]'}`}
+                  className={cn(
+                    "animate-fade-in transition-colors border-b border-slate-100 dark:border-slate-800/60",
+                    onRowClick ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                  )}
                   style={{ animationDelay: `${rowIndex * 0.02}s` }}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
@@ -292,17 +345,17 @@ export default function DataTable<T>({
                   }}
                 >
                   {enableSelection && (
-                    <TableCell className="px-5 py-3 border-b border-[#F5F5F7] w-[40px]">
+                    <TableCell className="px-5 py-4 w-[48px]">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 rounded border-gray-300 text-[#E8450F] focus:ring-[#E8450F] cursor-pointer"
+                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         checked={selectedIndices.has(rowIndex)}
                         onChange={() => handleSelectRow(rowIndex)}
                       />
                     </TableCell>
                   )}
                   {columns.map((col, colIndex) => (
-                    <TableCell key={colIndex} className="px-5 py-3 text-[13px] border-b border-[#F5F5F7]">
+                    <TableCell key={colIndex} className={cn(compact ? "px-5 py-3 text-xs" : "px-5 py-4 text-sm font-medium text-slate-800 dark:text-slate-200", col.className)}>
                       {col.accessor(row)}
                     </TableCell>
                   ))}
@@ -313,16 +366,16 @@ export default function DataTable<T>({
         </Table>
       </div>
 
-      {/* Pagination Footer */}
-      <div className="shrink-0 p-3 px-4 border-t border-black/[0.06] flex flex-wrap items-center justify-between gap-3 bg-[#FAFAFA] text-xs font-semibold text-[#6E6E80]">
+      {/* Spacious Pagination Footer */}
+      <div className="shrink-0 p-3.5 px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
         {/* Left Side: Rows Per Page & Summary Count */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-medium">Rows per page:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Rows per page:</span>
             <select
               value={activePageSize}
               onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              className="h-8 px-2.5 py-1 bg-white border border-black/[0.1] rounded-md text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#E8450F] cursor-pointer shadow-2xs"
+              className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-2xs"
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>
@@ -332,8 +385,8 @@ export default function DataTable<T>({
             </select>
           </div>
 
-          <span className="text-slate-500 font-medium border-l border-black/[0.08] pl-4 hidden sm:inline">
-            Showing <span className="font-bold text-slate-900">{fromIndex}</span> to <span className="font-bold text-slate-900">{toIndex}</span> of <span className="font-bold text-slate-900">{totalCount}</span> entries
+          <span className="text-slate-500 dark:text-slate-400 font-medium border-l border-slate-200 dark:border-slate-700 pl-4 hidden sm:inline">
+            Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{fromIndex}</span> to <span className="font-extrabold text-slate-900 dark:text-slate-100">{toIndex}</span> of <span className="font-extrabold text-slate-900 dark:text-slate-100">{totalCount}</span> entries
           </span>
         </div>
 
@@ -343,7 +396,7 @@ export default function DataTable<T>({
             onClick={() => handlePageChange(1)}
             disabled={activePage === 1 || isLoading}
             title="First Page"
-            className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
           >
             <ChevronsLeft size={14} />
           </button>
@@ -352,24 +405,24 @@ export default function DataTable<T>({
             onClick={() => handlePageChange(activePage - 1)}
             disabled={activePage === 1 || isLoading}
             title="Previous Page"
-            className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
           >
             <ChevronLeft size={14} />
           </button>
 
-          <div className="flex items-center gap-1 px-1.5">
-            <span className="px-2 py-0.5 text-xs font-bold text-slate-900 bg-white rounded border border-black/[0.08] shadow-2xs">
+          <div className="flex items-center gap-1 px-2">
+            <span className="px-2.5 py-1 text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
               {activePage}
             </span>
             <span className="text-slate-400 text-xs font-medium">/</span>
-            <span className="text-slate-600 text-xs font-semibold">{computedTotalPages}</span>
+            <span className="text-slate-600 dark:text-slate-400 text-xs font-bold">{computedTotalPages}</span>
           </div>
 
           <button
             onClick={() => handlePageChange(activePage + 1)}
             disabled={activePage >= computedTotalPages || isLoading}
             title="Next Page"
-            className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
           >
             <ChevronRight size={14} />
           </button>
@@ -378,7 +431,7 @@ export default function DataTable<T>({
             onClick={() => handlePageChange(computedTotalPages)}
             disabled={activePage >= computedTotalPages || isLoading}
             title="Last Page"
-            className="p-1.5 rounded-lg border border-black/[0.07] bg-white text-[#444] hover:bg-gray-50 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
           >
             <ChevronsRight size={14} />
           </button>
@@ -387,4 +440,5 @@ export default function DataTable<T>({
     </div>
   );
 }
+
 

@@ -258,36 +258,20 @@ export default function ExpiryManagementPage() {
           />
         </div>
 
-        {/* Toolbar & Search Bar (Strictly Horizontal) */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center justify-between gap-3 overflow-x-auto">
-            
-            <div className="relative w-72 shrink-0">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Search entity name or document type..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
-              />
-            </div>
-
-            <div className="text-xs font-semibold text-slate-500 ml-auto shrink-0">
-              Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredItems.length}</span> documents needing action
-            </div>
-
-          </div>
-        </div>
-
         {/* Content Workspace: Data Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden shrink-0">
-          {isError ? (
-            <div className="p-12 text-center text-rose-600 text-xs font-bold">Failed to load radar documents.</div>
-          ) : (
-            <DataTable columns={columns} data={filteredItems} isLoading={isLoading} />
-          )}
-        </div>
+        {isError ? (
+          <div className="p-12 text-center text-rose-600 text-xs font-bold bg-white rounded-xl border border-slate-200">Failed to load radar documents.</div>
+        ) : (
+          <DataTable
+            title="⚠️ Document Expiry Radar Ledger"
+            columns={columns}
+            data={filteredItems}
+            isLoading={isLoading}
+            searchPlaceholder="Search entity name or document type..."
+            searchValue={search}
+            onSearchChange={setSearch}
+          />
+        )}
 
       </div>
     </DashboardLayout>

@@ -450,8 +450,9 @@ export default function RateCardListPage() {
 
         {/* Content Workspace: Ledger Table vs Grid Cards */}
         {viewMode === 'ledger' ? (
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col">
             <DataTable
+              title="🛣 Tariff & Rate Card Ledger"
               columns={columns}
               data={filteredData}
               bulkActions={bulkActions}

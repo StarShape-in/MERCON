@@ -423,8 +423,9 @@ export default function InvoiceListPage() {
         </div>
 
         {/* Content Workspace: Ledger Data Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden shrink-0">
+        <div className="flex-1 min-h-0 flex flex-col">
           <DataTable
+            title="📄 Billing & Invoice Ledger"
             columns={columns}
             data={invoices}
             bulkActions={bulkActions}

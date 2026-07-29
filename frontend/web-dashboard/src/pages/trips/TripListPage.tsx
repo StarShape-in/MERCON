@@ -636,8 +636,9 @@ export default function TripListPage() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 bg-white rounded-lg border border-black/[0.08] shadow-2xs overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col">
           <DataTable
+            title="🥞 Trip Ledger"
             data={trips}
             columns={columns}
             isLoading={isLoading}

@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
+import DataTable, { Column } from '@/components/ui/DataTable';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument } from '@/services/documentService';
 import { driverService } from '@/services/driverService';
@@ -461,217 +462,119 @@ export default function DocumentsCenterPage() {
             </div>
           </div>
         ) : viewMode === 'list' ? (
-          
-          /* LIST VIEW TABLE */
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden shrink-0">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
-                  <th className="w-10 px-4 py-2.5">
-                    <input
-                      type="checkbox"
-                      checked={selectedDocIds.length > 0 && selectedDocIds.length === filteredDocs.length}
-                      onChange={toggleSelectAll}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                  </th>
-                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Document Name</th>
-                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Entity Owner</th>
-                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Issuer Authority</th>
-                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Expiry Status</th>
-                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Days Left</th>
-                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredDocs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((doc) => {
-                  const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
-                  const expBadge = EXPIRY_BADGE[doc.expStatus];
-                  const catCfg = CATEGORY_CONFIG[doc.category];
-                  const isSelected = selectedDocIds.includes(doc.id);
-
+          <DataTable
+            title="📁 Compliance Document Repository"
+            columns={[
+              {
+                header: 'Document Name',
+                accessor: (row) => {
+                  const DocIcon = DOC_TYPE_ICON[row.doc_type] ?? FileText;
+                  const catCfg = CATEGORY_CONFIG[row.category];
                   return (
-                    <tr
-                      key={doc.id}
-                      className={cn(
-                        'hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors',
-                        isSelected && 'bg-indigo-50/30 dark:bg-indigo-950/20',
-                        doc.expStatus === 'expired' && 'bg-rose-50/30 dark:bg-rose-950/10',
-                        doc.expStatus === 'critical' && 'bg-amber-50/20 dark:bg-amber-950/10'
-                      )}
-                    >
-                      {/* Checkbox */}
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectRow(doc.id)}
-                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                      </td>
-
-                      {/* Document Name */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', catCfg.iconBg)}>
-                            <DocIcon className={cn('w-4 h-4', catCfg.color)} />
-                          </div>
-                          <div>
-                            <span 
-                              onClick={() => setPreviewDoc(doc)}
-                              className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer block"
-                            >
-                              {docTypeLabel(doc.doc_type)}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-mono">#{doc.id.toString().slice(0, 8)}</span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Entity Owner */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          {catCfg && <catCfg.icon className={cn('w-3.5 h-3.5 shrink-0', catCfg.color)} />}
-                          <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[160px]">{doc.entityName}</span>
-                        </div>
-                      </td>
-
-                      {/* Issuer Authority */}
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-slate-500 font-medium">{doc.issuer}</span>
-                      </td>
-
-                      {/* Expiry Status Badge */}
-                      <td className="px-4 py-3">
-                        <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border', expBadge.className)}>
-                          {doc.expStatus === 'expired' || doc.expStatus === 'critical' ? (
-                            <AlertTriangle className="w-2.5 h-2.5" />
-                          ) : doc.expStatus === 'valid' ? (
-                            <CheckCircle2 className="w-2.5 h-2.5" />
-                          ) : doc.expStatus === 'warning' ? (
-                            <Clock className="w-2.5 h-2.5" />
-                          ) : null}
-                          {expBadge.label}
+                    <div className="flex items-center gap-3">
+                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', catCfg?.iconBg)}>
+                        <DocIcon className={cn('w-4 h-4', catCfg?.color)} />
+                      </div>
+                      <div>
+                        <span 
+                          onClick={() => setPreviewDoc(row)}
+                          className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer block"
+                        >
+                          {docTypeLabel(row.doc_type)}
                         </span>
-                      </td>
-
-                      {/* Days Left */}
-                      <td className="px-4 py-3">
-                        {doc.expiry_date ? (
-                          <div>
-                            <span className="text-xs text-slate-700 dark:text-slate-300 font-mono block">
-                              {new Date(doc.expiry_date).toLocaleDateString()}
-                            </span>
-                            {doc.daysLeft !== null && (
-                              <span className={cn(
-                                'text-[10px] font-bold',
-                                doc.daysLeft <= 0 ? 'text-rose-600' : doc.daysLeft <= 7 ? 'text-rose-500' : doc.daysLeft <= 30 ? 'text-amber-600' : 'text-emerald-600'
-                              )}>
-                                {doc.daysLeft <= 0 ? `${Math.abs(doc.daysLeft)}d overdue` : `${doc.daysLeft}d remaining`}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => setPreviewDoc(doc)}
-                            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors"
-                            title="Preview File"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <a
-                            href={doc.file_url}
-                            download
-                            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-                            title="Download File"
-                          >
-                            <Download size={14} />
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
+                        <span className="text-[10px] text-slate-400 font-mono">#{row.id.toString().slice(0, 8)}</span>
+                      </div>
+                    </div>
                   );
-                })}
-              </tbody>
-            </table>
-
-            {/* Pagination Footer */}
-            <div className="p-3 px-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900 text-xs font-semibold text-slate-500">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500 font-medium">Rows per page:</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-[#E8450F] cursor-pointer shadow-2xs"
-                  >
-                    {[10, 25, 50, 100].map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <span className="text-slate-500 font-medium border-l border-slate-200 dark:border-slate-700 pl-4 hidden sm:inline">
-                  Showing <span className="font-bold text-slate-900 dark:text-slate-100">{filteredDocs.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</span> to <span className="font-bold text-slate-900 dark:text-slate-100">{Math.min(currentPage * pageSize, filteredDocs.length)}</span> of <span className="font-bold text-slate-900 dark:text-slate-100">{filteredDocs.length}</span> entries
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 ml-auto">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  title="First Page"
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <ChevronsLeft size={14} />
-                </button>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  title="Previous Page"
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                <div className="flex items-center gap-1 px-1.5">
-                  <span className="px-2 py-0.5 text-xs font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
-                    {currentPage}
-                  </span>
-                  <span className="text-slate-400 text-xs font-medium">/</span>
-                  <span className="text-slate-600 dark:text-slate-400 text-xs font-semibold">
-                    {Math.max(1, Math.ceil(filteredDocs.length / pageSize))}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(Math.max(1, Math.ceil(filteredDocs.length / pageSize)), prev + 1))}
-                  disabled={currentPage >= Math.max(1, Math.ceil(filteredDocs.length / pageSize))}
-                  title="Next Page"
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <ChevronRight size={14} />
-                </button>
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, Math.ceil(filteredDocs.length / pageSize)))}
-                  disabled={currentPage >= Math.max(1, Math.ceil(filteredDocs.length / pageSize))}
-                  title="Last Page"
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <ChevronsRight size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
+                }
+              },
+              {
+                header: 'Entity Owner',
+                accessor: (row) => {
+                  const catCfg = CATEGORY_CONFIG[row.category];
+                  return (
+                    <div className="flex items-center gap-1.5">
+                      {catCfg && <catCfg.icon className={cn('w-3.5 h-3.5 shrink-0', catCfg.color)} />}
+                      <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[160px]">{row.entityName}</span>
+                    </div>
+                  );
+                }
+              },
+              {
+                header: 'Issuer Authority',
+                accessor: (row) => <span className="text-xs text-slate-500 font-medium">{row.issuer}</span>
+              },
+              {
+                header: 'Expiry Status',
+                accessor: (row) => {
+                  const expBadge = EXPIRY_BADGE[row.expStatus];
+                  return (
+                    <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border', expBadge.className)}>
+                      {row.expStatus === 'expired' || row.expStatus === 'critical' ? (
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                      ) : row.expStatus === 'valid' ? (
+                        <CheckCircle2 className="w-2.5 h-2.5" />
+                      ) : row.expStatus === 'warning' ? (
+                        <Clock className="w-2.5 h-2.5" />
+                      ) : null}
+                      {expBadge.label}
+                    </span>
+                  );
+                }
+              },
+              {
+                header: 'Days Left',
+                accessor: (row) => (
+                  row.expiry_date ? (
+                    <div>
+                      <span className="text-xs text-slate-700 dark:text-slate-300 font-mono block">
+                        {new Date(row.expiry_date).toLocaleDateString()}
+                      </span>
+                      {row.daysLeft !== null && (
+                        <span className={cn(
+                          'text-[10px] font-bold',
+                          row.daysLeft <= 0 ? 'text-rose-600' : row.daysLeft <= 7 ? 'text-rose-500' : row.daysLeft <= 30 ? 'text-amber-600' : 'text-emerald-600'
+                        )}>
+                          {row.daysLeft <= 0 ? `${Math.abs(row.daysLeft)}d overdue` : `${row.daysLeft}d remaining`}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400">—</span>
+                  )
+                )
+              },
+              {
+                header: 'Actions',
+                headerClassName: 'text-right',
+                accessor: (row) => (
+                  <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setPreviewDoc(row)}
+                      className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors"
+                      title="Preview File"
+                    >
+                      <Eye size={14} />
+                    </button>
+                    <a
+                      href={row.file_url}
+                      download
+                      className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                      title="Download File"
+                    >
+                      <Download size={14} />
+                    </a>
+                  </div>
+                )
+              }
+            ]}
+            data={filteredDocs}
+            isLoading={isLoading}
+            searchPlaceholder="Search document name or entity..."
+            searchValue={search}
+            onSearchChange={setSearch}
+            onRowClick={(row) => setPreviewDoc(row)}
+          />
         ) : (
           
           /* GRID VIEW MODE */

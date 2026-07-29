@@ -233,49 +233,36 @@ export default function PaymentStatusPage() {
         </div>
 
         {/* Data Table Area */}
-        <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-black/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAFAFA]">
-
-            <div className="flex items-center gap-1 p-1 bg-[#F5F5F7] rounded-lg overflow-x-auto">
-              {TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
-                    activeTab === tab
-                      ? 'bg-white text-[#111] shadow-sm'
-                      : 'text-[#6E6E80] hover:text-[#111]'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="relative max-w-xs w-full">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9898A4]" />
-                <input
-                  type="text"
-                  placeholder="Search invoice or client..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-white border border-black/[0.08] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:border-[#E8450F] shadow-sm transition-all"
-                />
+        {isError ? (
+          <div className="p-12 text-center text-rose-600 text-sm font-semibold bg-white rounded-xl border border-slate-200">Failed to load invoices.</div>
+        ) : (
+          <DataTable
+            title="💳 Payment Transactions Ledger"
+            columns={columns}
+            data={filteredInvoices}
+            isLoading={isLoading}
+            searchPlaceholder="Search invoice or client..."
+            searchValue={search}
+            onSearchChange={setSearch}
+            filterElement={
+              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-x-auto">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all whitespace-nowrap ${
+                      activeTab === tab
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
               </div>
-            </div>
-          </div>
-
-          {isError ? (
-            <div className="p-12 text-center text-[#DC2626] text-sm">Failed to load invoices.</div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={filteredInvoices}
-              isLoading={isLoading}
-            />
-          )}
-        </div>
+            }
+          />
+        )}
 
       </div>
     </DashboardLayout>

@@ -160,28 +160,15 @@ export default function UserManagementPage() {
       }
     >
       <div className="px-6 pb-6">
-        <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden mb-6">
-          <div className="p-5 border-b border-black/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h3 className="text-sm font-bold text-[#111]">Active Users</h3>
-            
-            <div className="relative max-w-xs w-full">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9898A4]" />
-              <input 
-                type="text" 
-                placeholder="Search by name or email..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#F9F9FB] border border-black/[0.05] rounded-lg pl-9 pr-4 py-2 text-xs outline-none focus:bg-white focus:border-[#E8450F] transition-all"
-              />
-            </div>
-          </div>
-          
-          <DataTable
-            columns={columns}
-            data={filteredUsers}
-            isLoading={isLoading}
-          />
-        </div>
+        <DataTable
+          title="👥 Platform Operators Ledger"
+          columns={columns}
+          data={filteredUsers}
+          isLoading={isLoading}
+          searchPlaceholder="Search by name or email..."
+          searchValue={search}
+          onSearchChange={setSearch}
+        />
       </div>
 
       <UserModal 
