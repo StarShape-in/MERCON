@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Navigation, ShieldCheck, Play, Pause, FastForward, Gauge, MapPin, Moon, Sun, Globe } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Navigation, ShieldCheck, Play, Pause, FastForward, Gauge, MapPin } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,7 +12,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { tripService } from '@/services/tripService';
 import { PREDEFINED_ROUTES } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
-import { MAP_TILES } from '@/components/maps/FleetLiveMap';
+import { MAP_THEMES } from '@/components/maps/mapThemes';
+import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -76,7 +77,7 @@ export default function TripTrackingPage() {
   const navigate = useNavigate();
 
   const { fleet, isPlaying, speedMultiplier, togglePlay, changeSpeedMultiplier } = useSimulatedTelemetry(1);
-  const [mapTheme, setMapTheme] = useState<keyof typeof MAP_TILES>('midnight');
+  const [mapThemeId, setMapThemeId] = useState<string>('voyager');
 
   const { data: trip, isLoading } = useQuery({
     queryKey: ['trip-track', id],
@@ -84,7 +85,7 @@ export default function TripTrackingPage() {
     enabled: !!id,
   });
 
-  const currentTile = MAP_TILES[mapTheme];
+  const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
   const simulatedTruck = fleet.find((f) => f.tripId === id || f.refId === trip?.ref_id) || fleet[0];
 
   if (isLoading || !trip) {
@@ -120,30 +121,14 @@ export default function TripTrackingPage() {
       active="Trips"
       title="Live Tracking"
       breadcrumb={`Trips / ${trip.ref_id || 'Track'}`}
-      pageTitle="Cyber Radar Telemetry"
+      pageTitle="Radar GPS Telemetry"
       actions={
         <div className="flex items-center gap-2">
-          {/* Tile Switcher */}
-          <div className="flex items-center bg-[#F5F5F7] p-1 rounded-xl border border-black/[0.05]">
-            <button
-              onClick={() => setMapTheme('midnight')}
-              className={`h-7 px-2.5 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all ${
-                mapTheme === 'midnight' ? 'bg-[#1C1C2E] text-white shadow-sm' : 'text-gray-600 hover:text-black'
-              }`}
-            >
-              <Moon size={11} className={mapTheme === 'midnight' ? 'text-orange-400' : ''} />
-              <span>Midnight</span>
-            </button>
-            <button
-              onClick={() => setMapTheme('voyager')}
-              className={`h-7 px-2.5 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all ${
-                mapTheme === 'voyager' ? 'bg-white text-black shadow-sm' : 'text-gray-600 hover:text-black'
-              }`}
-            >
-              <Sun size={11} className={mapTheme === 'voyager' ? 'text-amber-500' : ''} />
-              <span>Voyager</span>
-            </button>
-          </div>
+          {/* Map Theme Dropdown Selector */}
+          <MapThemeSelector
+            currentThemeId={mapThemeId}
+            onThemeChange={(newTheme) => setMapThemeId(newTheme)}
+          />
 
           <Button
             size="sm"
@@ -181,7 +166,7 @@ export default function TripTrackingPage() {
       <div className="px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 h-[calc(100vh-170px)] animate-fade-in">
         
         {/* Map panel */}
-        <div className="lg:col-span-2 bg-[#090A0F] rounded-[24px] border border-white/10 shadow-2xl relative overflow-hidden flex flex-col min-h-[400px] z-0">
+        <div className="lg:col-span-2 rounded-[24px] border border-black/[0.1] shadow-2xl relative overflow-hidden flex flex-col min-h-[400px] z-0" style={{ background: currentTheme.previewColor }}>
           <MapContainer
             center={[latCenter, lngCenter]}
             zoom={8}
@@ -189,9 +174,9 @@ export default function TripTrackingPage() {
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
             <TileLayer
-              key={mapTheme}
-              attribution={currentTile.attribution}
-              url={currentTile.url}
+              key={currentTheme.id}
+              attribution={currentTheme.attribution}
+              url={currentTheme.url}
             />
 
             <MapUpdater lat={latCenter} lng={lngCenter} />
@@ -203,10 +188,10 @@ export default function TripTrackingPage() {
 
             {pickup && (
               <Marker position={[pickup.location_lat, pickup.location_lng]} icon={pickupMarkerIcon}>
-                <Popup className="dark-map-popup">
-                  <div className="text-xs font-sans text-white p-1">
+                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                  <div className="text-xs font-sans p-1">
                     <p className="font-bold text-[#10B981]">Pickup Terminal</p>
-                    <p className="text-[10px] text-gray-300">Riyadh Dry Port</p>
+                    <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
                   </div>
                 </Popup>
               </Marker>
@@ -214,20 +199,20 @@ export default function TripTrackingPage() {
 
             {dropoff && (
               <Marker position={[dropoff.location_lat, dropoff.location_lng]} icon={dropoffMarkerIcon}>
-                <Popup className="dark-map-popup">
-                  <div className="text-xs font-sans text-white p-1">
+                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                  <div className="text-xs font-sans p-1">
                     <p className="font-bold text-[#F43F5E]">Dropoff Terminal</p>
-                    <p className="text-[10px] text-gray-300">Jeddah Islamic Port</p>
+                    <p className="text-[10px] text-gray-500">Jeddah Islamic Port</p>
                   </div>
                 </Popup>
               </Marker>
             )}
 
             <Marker position={[latCenter, lngCenter]} icon={createTruckMarkerIcon(heading)}>
-              <Popup className="dark-map-popup">
-                <div className="text-center font-sans text-white p-1">
+              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                <div className="text-center font-sans p-1">
                   <p className="font-bold text-[#FF5500]">{trip.vehicle?.plate_number || 'Truck'}</p>
-                  <p className="text-xs text-gray-300">Speed: {currentSpeed} km/h</p>
+                  <p className="text-xs text-gray-500">Speed: {currentSpeed} km/h</p>
                 </div>
               </Popup>
             </Marker>
@@ -235,26 +220,32 @@ export default function TripTrackingPage() {
 
           {/* Top Floating HUD Badges */}
           <div className="absolute top-4 left-4 right-4 z-[400] flex justify-between items-start pointer-events-none">
-            <div className="bg-[#090A0F]/90 backdrop-blur-xl px-3.5 py-2 rounded-xl shadow-2xl border border-white/10 flex items-center gap-2 pointer-events-auto text-white text-xs">
+            <div className={`px-3.5 py-2 rounded-xl shadow-xl border flex items-center gap-2 pointer-events-auto text-xs ${
+              currentTheme.isDark ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
+            }`}>
               <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping" />
-              <span className="font-mono font-bold">CYBER SATELLITE LOCK ({speedMultiplier}x Speed)</span>
+              <span className="font-mono font-bold">TELEMETRY LOCK ({speedMultiplier}x Speed)</span>
             </div>
 
-            <div className="bg-[#090A0F]/90 backdrop-blur-xl text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-2xl border border-white/10 flex items-center gap-2 pointer-events-auto">
-              <ShieldCheck size={15} className="text-green-400" />
+            <div className={`px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xl border flex items-center gap-2 pointer-events-auto ${
+              currentTheme.isDark ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
+            }`}>
+              <ShieldCheck size={15} className="text-green-500" />
               <span>Route 40 Expressway Protocol</span>
             </div>
           </div>
 
           {/* Bottom Floating Telemetry Panel */}
-          <div className="absolute bottom-4 left-4 right-4 z-[400] bg-[#090A0F]/90 backdrop-blur-xl p-4 rounded-xl shadow-2xl border border-white/10 text-white flex items-center justify-between pointer-events-auto">
+          <div className={`absolute bottom-4 left-4 right-4 z-[400] p-4 rounded-xl shadow-2xl border flex items-center justify-between pointer-events-auto ${
+            currentTheme.isDark ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
+          }`}>
             <div className="flex items-center gap-4">
               <div className="bg-[#FF5500]/20 p-2.5 rounded-xl text-[#FF5500] border border-[#FF5500]/30">
                 <Gauge size={20} />
               </div>
               <div>
                 <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Live Coordinates</p>
-                <p className="text-xs font-mono font-bold text-white mt-0.5">
+                <p className="text-xs font-mono font-bold mt-0.5">
                   {latCenter.toFixed(5)}, {lngCenter.toFixed(5)}
                 </p>
               </div>
@@ -265,9 +256,9 @@ export default function TripTrackingPage() {
                 <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Speed</p>
                 <p className="text-sm font-bold text-[#FF5500] mt-0.5">{currentSpeed} km/h</p>
               </div>
-              <div className="text-right border-l border-white/10 pl-6">
+              <div className="text-right border-l border-gray-200 dark:border-white/10 pl-6">
                 <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Estimated ETA</p>
-                <p className="text-sm font-bold text-white mt-0.5">
+                <p className="text-sm font-bold mt-0.5">
                   ~{Math.floor(etaMinutes / 60)}h {etaMinutes % 60}m
                 </p>
               </div>

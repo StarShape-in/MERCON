@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -7,7 +7,8 @@ import { Navigation, Gauge, ShieldCheck } from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
-import { MAP_TILES } from '@/components/maps/FleetLiveMap';
+import { MAP_THEMES } from '@/components/maps/mapThemes';
+import MapThemeSelector from '@/components/maps/MapThemeSelector';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -88,8 +89,9 @@ export default function TripLiveMapCard({
 }: TripLiveMapCardProps) {
   const navigate = useNavigate();
   const { fleet } = useSimulatedTelemetry(1);
+  const [mapThemeId, setMapThemeId] = useState<string>('voyager');
 
-  // Find matching truck from fleet hook or fallback
+  const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
   const simulatedTruck = fleet.find((f) => f.tripId === tripId || f.refId === refId) || fleet[0];
 
   const pickupPoint: GeoPoint = { lat: pickupLat, lng: pickupLng };
@@ -113,13 +115,13 @@ export default function TripLiveMapCard({
   return (
     <Card className="border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden">
       <CardHeader className="pb-3 border-b border-black/[0.04]">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
-              <CardTitle className="text-sm font-extrabold text-[#111]">Cyber Trip Telemetry</CardTitle>
-              <Badge variant="outline" className="text-[10px] font-mono border-orange-300 bg-orange-50 text-[#FF5500]">
-                MIDNIGHT RADAR
+              <CardTitle className="text-sm font-extrabold text-[#111]">Live Trip Route Tracking</CardTitle>
+              <Badge variant="outline" className={`text-[10px] font-mono ${currentTheme.badgeColor}`}>
+                {currentTheme.name}
               </Badge>
             </div>
             <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
@@ -127,21 +129,29 @@ export default function TripLiveMapCard({
             </CardDescription>
           </div>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate(`/trips/${tripId}/track`)}
-            className="h-8 text-xs font-bold gap-1 border-black/[0.08] hover:bg-[#F5F5F7]"
-          >
-            <Navigation size={13} className="text-[#FF5500]" />
-            <span>Full Radar</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Map Theme Dropdown Selector */}
+            <MapThemeSelector
+              currentThemeId={mapThemeId}
+              onThemeChange={(newTheme) => setMapThemeId(newTheme)}
+            />
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/trips/${tripId}/track`)}
+              className="h-8 text-xs font-bold gap-1 border-black/[0.08] hover:bg-[#F5F5F7]"
+            >
+              <Navigation size={13} className="text-[#FF5500]" />
+              <span>Full Radar</span>
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="p-4 space-y-3">
         {/* Map View */}
-        <div className="h-[310px] rounded-xl overflow-hidden border border-black/[0.1] relative z-0 shadow-2xl bg-[#090A0F]">
+        <div className="h-[310px] rounded-xl overflow-hidden border border-black/[0.1] relative z-0 shadow-xl" style={{ background: currentTheme.previewColor }}>
           <MapContainer
             center={[currentLat, currentLng]}
             zoom={8}
@@ -149,8 +159,9 @@ export default function TripLiveMapCard({
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
             <TileLayer
-              attribution={MAP_TILES.midnight.attribution}
-              url={MAP_TILES.midnight.url}
+              key={currentTheme.id}
+              attribution={currentTheme.attribution}
+              url={currentTheme.url}
             />
 
             <MapFlyTo lat={currentLat} lng={currentLng} />
@@ -161,19 +172,19 @@ export default function TripLiveMapCard({
             />
 
             <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
-              <Popup className="dark-map-popup">
-                <div className="text-xs font-sans text-white p-1">
+              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                <div className="text-xs font-sans p-1">
                   <p className="font-bold text-[#10B981]">Pickup Terminal</p>
-                  <p className="text-[10px] text-gray-300">Riyadh Dry Port</p>
+                  <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
                 </div>
               </Popup>
             </Marker>
 
             <Marker position={[dropoffPoint.lat, dropoffPoint.lng]} icon={dropoffMarkerIcon}>
-              <Popup className="dark-map-popup">
-                <div className="text-xs font-sans text-white p-1">
+              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                <div className="text-xs font-sans p-1">
                   <p className="font-bold text-[#F43F5E]">Dropoff Terminal</p>
-                  <p className="text-[10px] text-gray-300">Jeddah Islamic Port</p>
+                  <p className="text-[10px] text-gray-500">Jeddah Islamic Port</p>
                 </div>
               </Popup>
             </Marker>
@@ -182,17 +193,21 @@ export default function TripLiveMapCard({
               position={[currentLat, currentLng]}
               icon={createLiveTruckIcon(heading)}
             >
-              <Popup className="dark-map-popup">
-                <div className="text-xs font-sans text-white p-1">
+              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                <div className="text-xs font-sans p-1">
                   <p className="font-bold text-[#FF5500]">{simulatedTruck.plateNumber}</p>
-                  <p className="text-[10px] text-gray-300">Speed: {speed} km/h</p>
+                  <p className="text-[10px] text-gray-500">Speed: {speed} km/h</p>
                 </div>
               </Popup>
             </Marker>
           </MapContainer>
 
-          {/* Dark Glassmorphism Bottom Telemetry Bar */}
-          <div className="absolute bottom-3 left-3 right-3 z-[400] bg-[#090A0F]/90 backdrop-blur-xl p-3.5 rounded-xl shadow-2xl border border-white/10 text-white space-y-2">
+          {/* Bottom Telemetry Bar */}
+          <div className={`absolute bottom-3 left-3 right-3 z-[400] p-3.5 rounded-xl shadow-xl border text-xs space-y-2 ${
+            currentTheme.isDark 
+              ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' 
+              : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
+          }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="bg-[#FF5500]/20 p-2 rounded-lg text-[#FF5500] border border-[#FF5500]/30">
@@ -200,8 +215,8 @@ export default function TripLiveMapCard({
                 </div>
                 <div>
                   <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Telemetry Stream</p>
-                  <p className="text-xs font-bold text-white">
-                    {speed} km/h • <span className="font-mono text-[11px] text-orange-400">{currentLat.toFixed(4)}, {currentLng.toFixed(4)}</span>
+                  <p className="text-xs font-bold">
+                    {speed} km/h • <span className="font-mono text-[11px] text-orange-500">{currentLat.toFixed(4)}, {currentLng.toFixed(4)}</span>
                   </p>
                 </div>
               </div>
@@ -214,7 +229,7 @@ export default function TripLiveMapCard({
               </div>
             </div>
 
-            <Progress value={progress} className="h-1.5 bg-white/10" />
+            <Progress value={progress} className="h-1.5 bg-gray-200 dark:bg-white/10" />
           </div>
         </div>
       </CardContent>
