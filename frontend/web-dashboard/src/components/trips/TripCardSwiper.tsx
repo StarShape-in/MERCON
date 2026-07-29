@@ -1,13 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useEmblaCarousel from 'embla-carousel-react';
 import { 
   ChevronLeft, ChevronRight, Truck, User, ArrowRight, 
-  Gauge, ExternalLink, Navigation, ShieldAlert, MapPin, Sparkles 
+  Gauge, ExternalLink, Navigation 
 } from 'lucide-react';
 
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
-import { SimulatedTruckTelemetry } from '@/services/telemetrySimulator';
 import TripMicroMap from '@/components/trips/TripMicroMap';
 
 // Shadcn UI primitives
@@ -20,183 +18,173 @@ import StatusBadge from '@/components/ui/StatusBadge';
 export default function TripCardSwiper() {
   const navigate = useNavigate();
   const { fleet } = useSimulatedTelemetry(1);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: 'start',
-    loop: true,
-    skipSnaps: false,
-    dragFree: false,
-  });
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
 
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
+  const checkScrollState = () => {
+    if (!scrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    setCanScrollLeft(scrollLeft > 5);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
 
-  const scrollPrev = useCallback(() => emblaApi && emblaApi.scrollPrev(), [emblaApi]);
-  const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
+    const index = Math.round(scrollLeft / 290);
+    setActiveCardIndex(Math.min(index, fleet.length - 1));
+  };
 
   useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    setScrollSnaps(emblaApi.scrollSnapList());
-    emblaApi.on('select', onSelect);
-    emblaApi.on('reInit', onSelect);
-  }, [emblaApi, onSelect]);
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkScrollState, { passive: true });
+    checkScrollState();
+    return () => el.removeEventListener('scroll', checkScrollState);
+  }, [fleet.length]);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    const scrollAmount = direction === 'left' ? -300 : 300;
+    scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  };
 
   return (
     <Card className="border-black/[0.06] shadow-md rounded-[24px] bg-white overflow-hidden shrink-0">
-      <CardHeader className="border-b border-black/[0.04] pb-4">
+      <CardHeader className="border-b border-black/[0.04] pb-3.5 pt-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping" />
-              <CardTitle className="text-base font-extrabold text-[#111] tracking-tight">Active Freight Trips Swiper</CardTitle>
+              <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
+              <CardTitle className="text-sm font-extrabold text-[#111] tracking-tight">Active Freight Trips Carousel</CardTitle>
               <Badge variant="outline" className="text-[10px] font-mono border-orange-300 bg-orange-50 text-[#FF5500]">
-                {fleet.length} LIVE CARDS
+                {fleet.length} TRIPS
               </Badge>
             </div>
             <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
-              Swipe horizontally across active truck manifests to view individual micro-maps and driver details
+              Swipe or scroll horizontally to inspect active manifest cards and click to view full details
             </CardDescription>
           </div>
 
-          {/* Carousel Navigation Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Glitch-Free Arrow Navigation Controls */}
+          <div className="flex items-center gap-1.5">
             <span className="text-xs font-mono font-bold text-gray-500 mr-1 hidden sm:inline-block">
-              {selectedIndex + 1} / {fleet.length}
+              {activeCardIndex + 1} / {fleet.length}
             </span>
 
             <Button
               size="icon"
               variant="outline"
-              onClick={scrollPrev}
-              className="h-8 w-8 rounded-full border-black/[0.08] hover:bg-[#F5F5F7]"
-              title="Previous trip"
+              onClick={() => handleScroll('left')}
+              disabled={!canScrollLeft}
+              className="h-7 w-7 rounded-full border-black/[0.08] hover:bg-[#F5F5F7] disabled:opacity-30"
+              title="Scroll Left"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={15} />
             </Button>
+
             <Button
               size="icon"
               variant="outline"
-              onClick={scrollNext}
-              className="h-8 w-8 rounded-full border-black/[0.08] hover:bg-[#F5F5F7]"
-              title="Next trip"
+              onClick={() => handleScroll('right')}
+              disabled={!canScrollRight}
+              className="h-7 w-7 rounded-full border-black/[0.08] hover:bg-[#F5F5F7] disabled:opacity-30"
+              title="Scroll Right"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={15} />
             </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-5">
+      <CardContent className="p-4">
         
-        {/* Embla Carousel Viewport */}
-        <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex gap-4">
-            {fleet.map((truck) => (
-              <div
-                key={truck.tripId}
-                className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_80%] lg:flex-[0_0_48%] xl:flex-[0_0_32%] transition-all"
-              >
-                <div
-                  onClick={() => navigate(`/trips/${truck.tripId}`)}
-                  className="bg-[#FAFAFA] hover:bg-white border border-black/[0.08] hover:border-[#FF5500]/40 rounded-2xl p-4 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer space-y-3 group"
-                >
-                  
-                  {/* Card Top Header */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-[#FF5500] uppercase tracking-wider">{truck.refId}</span>
-                      <p className="text-sm font-extrabold text-[#111] leading-tight mt-0.5 group-hover:text-[#FF5500] transition-colors flex items-center gap-1">
-                        <span>{truck.plateNumber}</span>
-                        <ArrowRight size={13} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all text-[#FF5500]" />
-                      </p>
-                    </div>
-                    <StatusBadge status={truck.status} />
-                  </div>
+        {/* Hardware-Accelerated Native Glitch-Free Carousel Scroll Container */}
+        <div
+          ref={scrollRef}
+          className="flex gap-3.5 overflow-x-auto snap-x snap-mandatory scrollbar-none py-1 px-0.5 select-none"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {fleet.map((truck) => (
+            <div
+              key={truck.tripId}
+              onClick={() => navigate(`/trips/${truck.tripId}`)}
+              className="w-[280px] shrink-0 snap-start bg-[#FAFAFA] hover:bg-white border border-black/[0.08] hover:border-[#FF5500]/40 rounded-2xl p-3 shadow-xs hover:shadow-lg transition-all duration-200 cursor-pointer space-y-2.5 group"
+            >
+              
+              {/* Card Header: Ref ID & Status */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[9px] font-mono font-bold text-[#FF5500] uppercase tracking-wider">{truck.refId}</span>
+                  <p className="text-xs font-black text-[#111] leading-tight group-hover:text-[#FF5500] transition-colors flex items-center gap-1">
+                    <span>{truck.plateNumber}</span>
+                    <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all text-[#FF5500]" />
+                  </p>
+                </div>
+                <StatusBadge status={truck.status} />
+              </div>
 
-                  {/* Micro Route Map */}
-                  <TripMicroMap
-                    currentLat={truck.currentCoords.lat}
-                    currentLng={truck.currentCoords.lng}
-                    heading={truck.heading}
-                    pickupCoords={truck.pickupCoords}
-                    dropoffCoords={truck.dropoffCoords}
-                    routeKey={
-                      truck.refId === 'TRP-8922' ? 'dammam-riyadh' :
-                      truck.refId === 'TRP-8923' ? 'medina-mecca' :
-                      truck.refId === 'TRP-8924' ? 'riyadh-tabuk' : 'riyadh-jeddah'
-                    }
-                  />
+              {/* Compact Route Micro-Map (h-[120px]) */}
+              <TripMicroMap
+                currentLat={truck.currentCoords.lat}
+                currentLng={truck.currentCoords.lng}
+                heading={truck.heading}
+                pickupCoords={truck.pickupCoords}
+                dropoffCoords={truck.dropoffCoords}
+                routeKey={
+                  truck.refId === 'TRP-8922' ? 'dammam-riyadh' :
+                  truck.refId === 'TRP-8923' ? 'medina-mecca' :
+                  truck.refId === 'TRP-8924' ? 'riyadh-tabuk' : 'riyadh-jeddah'
+                }
+              />
 
-                  {/* Corridor Path */}
-                  <div className="bg-white p-2.5 rounded-xl border border-black/[0.05] space-y-1">
-                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Corridor</p>
-                    <p className="text-xs font-bold text-[#111] truncate">{truck.originName}</p>
-                    <div className="flex items-center gap-1 text-[10px] text-[#FF5500] font-semibold">
-                      <span>↓ {truck.destinationName}</span>
-                    </div>
-                  </div>
-
-                  {/* Driver & Vehicle Details Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-white p-2.5 rounded-xl border border-black/[0.05]">
-                      <p className="text-[9px] text-gray-400 font-bold uppercase flex items-center gap-1">
-                        <User size={10} /> Driver
-                      </p>
-                      <p className="font-bold text-[#111] truncate mt-0.5">{truck.driverName}</p>
-                      <p className="text-[10px] text-gray-500 truncate">{truck.driverPhone}</p>
-                    </div>
-
-                    <div className="bg-white p-2.5 rounded-xl border border-black/[0.05]">
-                      <p className="text-[9px] text-gray-400 font-bold uppercase flex items-center gap-1">
-                        <Truck size={10} /> Vehicle
-                      </p>
-                      <p className="font-bold text-[#111] truncate mt-0.5">{truck.plateNumber}</p>
-                      <p className="text-[10px] text-gray-500 truncate">{truck.assetType}</p>
-                    </div>
-                  </div>
-
-                  {/* Progress & Speed Overlay */}
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex justify-between items-center text-xs font-bold">
-                      <span className="text-[#FF5500] flex items-center gap-1">
-                        <Gauge size={12} /> {truck.speedKmH} km/h
-                      </span>
-                      <span className="text-gray-600">{truck.progressPercentage}% Completed</span>
-                    </div>
-                    <Progress value={truck.progressPercentage} className="h-1.5 bg-gray-200" />
-                  </div>
-
-                  {/* Card Bottom CTA */}
-                  <Button
-                    size="sm"
-                    className="w-full h-8 bg-[#1C1C2E] group-hover:bg-[#FF5500] text-white text-xs font-bold gap-1 rounded-xl transition-all"
-                  >
-                    <span>View Full Trip & Tracking</span>
-                    <ExternalLink size={12} />
-                  </Button>
-
+              {/* Origin ➔ Destination Corridor */}
+              <div className="bg-white p-2 rounded-xl border border-black/[0.05]">
+                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Route Corridor</p>
+                <div className="flex items-center justify-between text-[11px] font-bold text-[#111] mt-0.5">
+                  <span className="truncate max-w-[110px]">{truck.originName.split(' ')[0]}</span>
+                  <span className="text-[#FF5500] font-mono text-[10px]">➔</span>
+                  <span className="truncate max-w-[110px] text-right">{truck.destinationName.split(' ')[0]}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Carousel Dots Pagination */}
-        <div className="flex justify-center gap-1.5 mt-4">
-          {scrollSnaps.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => emblaApi && emblaApi.scrollTo(idx)}
-              className={`h-2 rounded-full transition-all ${
-                idx === selectedIndex ? 'w-6 bg-[#FF5500]' : 'w-2 bg-gray-300 hover:bg-gray-400'
-              }`}
-            />
+              {/* Driver & Vehicle Summary Row */}
+              <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                <div className="bg-white p-2 rounded-lg border border-black/[0.04]">
+                  <p className="text-[8px] text-gray-400 font-bold uppercase flex items-center gap-0.5">
+                    <User size={9} /> Driver
+                  </p>
+                  <p className="font-bold text-[#111] truncate mt-0.5 text-[10px]">{truck.driverName}</p>
+                </div>
+
+                <div className="bg-white p-2 rounded-lg border border-black/[0.04]">
+                  <p className="text-[8px] text-gray-400 font-bold uppercase flex items-center gap-0.5">
+                    <Truck size={9} /> Vehicle
+                  </p>
+                  <p className="font-bold text-[#111] truncate mt-0.5 text-[10px]">{truck.assetType}</p>
+                </div>
+              </div>
+
+              {/* Speed & Progress Bar */}
+              <div className="space-y-1 pt-0.5">
+                <div className="flex justify-between items-center text-[10px] font-bold">
+                  <span className="text-[#FF5500] flex items-center gap-1">
+                    <Gauge size={11} /> {truck.speedKmH} km/h
+                  </span>
+                  <span className="text-gray-500">{truck.progressPercentage}%</span>
+                </div>
+                <Progress value={truck.progressPercentage} className="h-1 bg-gray-200" />
+              </div>
+
+              {/* CTA Action Button */}
+              <Button
+                size="sm"
+                className="w-full h-7 bg-[#1C1C2E] group-hover:bg-[#FF5500] text-white text-[10px] font-bold gap-1 rounded-lg transition-all"
+              >
+                <span>View Full Details</span>
+                <ExternalLink size={10} />
+              </Button>
+
+            </div>
           ))}
         </div>
 
