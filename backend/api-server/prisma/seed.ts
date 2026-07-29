@@ -231,13 +231,17 @@ async function main() {
     const userId = d.usernameKey ? driverUserMap.get(d.usernameKey) : null;
     const existing = await prisma.driver.findUnique({ where: { ref_id: d.ref_id } });
 
+    // `status` is live operational state (changes with real dispatch/trip
+    // activity) — only set it when the driver is first created. Re-applying
+    // the seed's hardcoded status on every container restart/deploy would
+    // clobber a driver's real status (e.g. reset them from OnTrip back to
+    // Available mid-trip).
     const driverPayload = {
       first_name: d.first_name,
       last_name: d.last_name,
       phone_primary: d.phone_primary,
       license_number: d.license_number,
       license_expiry: d.license_expiry,
-      status: d.status,
       ai_risk_score: d.ai_risk_score,
       userId: userId || undefined,
       isActive: true,
@@ -245,7 +249,7 @@ async function main() {
 
     const driver = existing
       ? await prisma.driver.update({ where: { ref_id: d.ref_id }, data: driverPayload })
-      : await prisma.driver.create({ data: { ref_id: d.ref_id, ...driverPayload } });
+      : await prisma.driver.create({ data: { ref_id: d.ref_id, status: d.status, ...driverPayload } });
 
     driverMap.set(d.ref_id, driver.id);
   }
@@ -382,15 +386,16 @@ async function main() {
   const vehicleMap = new Map<string, string>();
   for (const v of vehiclesData) {
     const existing = await prisma.vehicle.findUnique({ where: { plate_number: v.plate_number } });
+    // `status`, `current_odometer`, `last_lat`/`last_lng` are live operational
+    // state (change with real dispatch/GPS activity) — only set them when the
+    // vehicle is first created. Re-applying the seed's hardcoded values on
+    // every container restart/deploy would clobber a vehicle's real state
+    // (e.g. reset it from OnTrip back to Available mid-trip).
     const vehiclePayload = {
       ref_id: v.ref_id,
       asset_type: v.asset_type,
-      status: v.status,
       capacity_kg: v.capacity_kg,
-      current_odometer: v.current_odometer,
       gps_device_id: v.gps_device_id,
-      last_lat: v.last_lat,
-      last_lng: v.last_lng,
       trailer_number: v.trailer_number,
       trailer_type: v.trailer_type,
       trailer_capacity_kg: v.trailer_capacity_kg,
@@ -400,7 +405,16 @@ async function main() {
 
     const vehicle = existing
       ? await prisma.vehicle.update({ where: { plate_number: v.plate_number }, data: vehiclePayload })
-      : await prisma.vehicle.create({ data: { plate_number: v.plate_number, ...vehiclePayload } });
+      : await prisma.vehicle.create({
+          data: {
+            plate_number: v.plate_number,
+            status: v.status,
+            current_odometer: v.current_odometer,
+            last_lat: v.last_lat,
+            last_lng: v.last_lng,
+            ...vehiclePayload,
+          },
+        });
 
     vehicleMap.set(v.ref_id, vehicle.id);
   }
