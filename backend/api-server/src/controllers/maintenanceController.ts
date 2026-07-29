@@ -57,7 +57,7 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
   try {
     const parseResult = maintenanceSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: parseResult.error.errors[0].message, details: parseResult.error.format() } });
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: parseResult.error.issues[0].message, details: parseResult.error.format() } });
     }
     
     const { vehicle_id, workshop_name, workshop_contact, maintenance_type, service_date, odometer_reading, cost, invoice_number, next_service_due, remarks } = parseResult.data;
@@ -69,8 +69,8 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
         workshop_contact,
         maintenance_type,
         service_date: new Date(service_date),
-        odometer_reading: parseFloat(odometer_reading),
-        cost: parseFloat(cost || 0),
+        odometer_reading,
+        cost,
         invoice_number,
         next_service_due: next_service_due ? new Date(next_service_due) : null,
         remarks,
