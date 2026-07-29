@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { 
   UploadCloud, FileText, Search, FolderOpen, Shield, Car, User as UserIcon, Eye, Download, 
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronRight,
-  FileBadge2, FileBarChart2, FileClock, FileKey2
+  FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -19,9 +20,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { cn } from '@/lib/utils';
 
-// ─── Category Config ─────────────────────────────────────────────────────────
+// ─── Category & Icon Config ──────────────────────────────────────────────────
 
 const CATEGORY_TABS: Array<'All' | DocCategory> = ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'];
 
@@ -30,14 +34,13 @@ const CATEGORY_CONFIG: Record<DocCategory, {
   color: string;
   iconBg: string;
   borderColor: string;
-  lightBg: string;
   label: string;
   description: string;
 }> = {
-  Drivers:    { icon: UserIcon,      color: 'text-[#E8450F]',   iconBg: 'bg-[#FFF0EB] dark:bg-[#E8450F]/10', borderColor: 'border-[#E8450F]/20', lightBg: 'bg-[#FFF8F5]', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
-  Vehicles:   { icon: Car,           color: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/30',    borderColor: 'border-blue-200/60',   lightBg: 'bg-blue-50/50', label: 'Vehicle Documents', description: 'Registrations, insurance & inspections' },
-  Operations: { icon: Briefcase,     color: 'text-violet-600',  iconBg: 'bg-violet-50 dark:bg-violet-950/30',borderColor: 'border-violet-200/60', lightBg: 'bg-violet-50/50', label: 'Operations Files', description: 'Waybills, PODs & customs clearance' },
-  Company:    { icon: Shield,        color: 'text-emerald-600', iconBg: 'bg-emerald-50 dark:bg-emerald-950/30', borderColor: 'border-emerald-200/60', lightBg: 'bg-emerald-50/50', label: 'Company Records', description: 'Contracts, invoices & corporate filings' },
+  Drivers:    { icon: UserIcon,      color: 'text-[#E8450F]',   iconBg: 'bg-[#FFF0EB] dark:bg-[#E8450F]/10', borderColor: 'border-[#E8450F]/20', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
+  Vehicles:   { icon: Car,           color: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/30',    borderColor: 'border-blue-200/60',   label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
+  Operations: { icon: Briefcase,     color: 'text-violet-600',  iconBg: 'bg-violet-50 dark:bg-violet-950/30',borderColor: 'border-violet-200/60', label: 'Operations Files', description: 'Waybills, PODs & customs clearance' },
+  Company:    { icon: Shield,        color: 'text-emerald-600', iconBg: 'bg-emerald-50 dark:bg-emerald-950/30', borderColor: 'border-emerald-200/60', label: 'Company Records', description: 'Contracts, invoices & corporate filings' },
 };
 
 const DOC_TYPE_ICON: Record<string, React.ElementType> = {
@@ -51,7 +54,18 @@ const DOC_TYPE_ICON: Record<string, React.ElementType> = {
   Invoice:             FileBarChart2,
 };
 
-// ─── Expiry Status ────────────────────────────────────────────────────────────
+const REGULATORY_BODY: Record<string, string> = {
+  DriverLicense:       'Saudi MOT / Transport Auth',
+  VehicleRegistration: 'MOMRAH / Istimara',
+  Insurance:           'Najm Insurance Protection',
+  POD:                 'MERCON Dispatch System',
+  CustomsClearance:    'ZATCA Saudi Customs',
+  Waybill:             'Saudi Land Transport Auth',
+  Contract:            'Ministry of Commerce',
+  Invoice:             'ZATCA Tax Authority',
+};
+
+// ─── Expiry Status Helpers ───────────────────────────────────────────────────
 
 function expiryStatus(iso: string | null | undefined): 'expired' | 'critical' | 'warning' | 'valid' | 'none' {
   const days = daysUntil(iso);
@@ -70,99 +84,33 @@ const EXPIRY_BADGE: Record<string, { label: string; className: string }> = {
   none:     { label: 'No Expiry',    className: 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' },
 };
 
-// ─── Category Folder Panel ────────────────────────────────────────────────────
+// ─── Enriched Document Type ──────────────────────────────────────────────────
 
-function CategoryFolderPanel({
-  category,
-  folders,
-  totalDocs,
-  expiringCount,
-  isActive,
-  onClick,
-}: {
+type EnrichedDocument = MerconDocument & {
+  entityName: string;
   category: DocCategory;
-  folders: { docType: string; count: number; category: DocCategory }[];
-  totalDocs: number;
-  expiringCount: number;
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  const cfg = CATEGORY_CONFIG[category];
-  const Icon = cfg.icon;
-  const categoryTotal = folders.reduce((s, f) => s + f.count, 0);
+  expStatus: 'expired' | 'critical' | 'warning' | 'valid' | 'none';
+  daysLeft: number | null;
+  issuer: string;
+};
 
-  return (
-    <Card
-      onClick={onClick}
-      className={cn(
-        'group border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md',
-        isActive ? `border-2 ${cfg.borderColor} shadow-sm` : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
-      )}
-    >
-      {/* Card top accent strip */}
-      <div className={cn('h-1 w-full', isActive ? `bg-gradient-to-r from-slate-300 via-slate-200 to-transparent` : 'bg-slate-100 dark:bg-slate-800/60 group-hover:bg-slate-200')} />
-
-      <CardContent className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', cfg.iconBg)}>
-            <Icon className={cn('w-5 h-5', cfg.color)} />
-          </div>
-          <div className="flex items-center gap-1.5">
-            {expiringCount > 0 && (
-              <span className="flex items-center gap-0.5 text-[9px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 px-1.5 py-0.5 rounded-full">
-                <AlertTriangle className="w-2.5 h-2.5" />{expiringCount}
-              </span>
-            )}
-            <Badge variant="outline" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-              {categoryTotal} files
-            </Badge>
-          </div>
-        </div>
-
-        {/* Label & Description */}
-        <h4 className={cn('font-extrabold text-sm mb-0.5 transition-colors', cfg.color)}>{cfg.label}</h4>
-        <p className="text-[10px] text-slate-400 font-medium mb-3">{cfg.description}</p>
-
-        {/* Document Type Chips */}
-        <div className="flex flex-wrap gap-1 mb-3">
-          {folders.slice(0, 3).map(f => (
-            <span key={f.docType} className="text-[9px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
-              {docTypeLabel(f.docType)} ({f.count})
-            </span>
-          ))}
-          {folders.length > 3 && (
-            <span className="text-[9px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-1.5 py-0.5 rounded-md">
-              +{folders.length - 3} more
-            </span>
-          )}
-        </div>
-
-        {/* Fill bar */}
-        <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-          <div
-            className={cn('h-full rounded-full transition-all duration-500', cfg.color.replace('text-', 'bg-'))}
-            style={{ width: `${totalDocs > 0 ? Math.round((categoryTotal / totalDocs) * 100) : 0}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[9px] font-mono text-slate-400 mt-1">
-          <span>{Math.round((categoryTotal / (totalDocs || 1)) * 100)}% of repository</span>
-          <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Main Page Component ──────────────────────────────────────────────────────
 
 export default function DocumentsCenterPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // State
   const [activeCategory, setActiveCategory] = useState<'All' | DocCategory>('All');
+  const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>('all');
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Queries
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', 'all'],
     queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
@@ -182,6 +130,7 @@ export default function DocumentsCenterPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  // Entity lookup name map
   const nameFor = useMemo(() => {
     const dMap = new Map(drivers.map((d) => [d.id, `${d.first_name} ${d.last_name}`.trim()]));
     const vMap = new Map(vehicles.map((v) => [v.id, v.plate_number || v.ref_id || '']));
@@ -192,74 +141,76 @@ export default function DocumentsCenterPage() {
     };
   }, [drivers, vehicles]);
 
-  // Folders grouped by doc_type
-  const folders = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const d of docs) counts.set(d.doc_type, (counts.get(d.doc_type) ?? 0) + 1);
-    return Array.from(counts.entries())
-      .map(([docType, count]) => ({ docType, count, category: categoryForDocType(docType) }))
-      .sort((a, b) => b.count - a.count);
-  }, [docs]);
-
-  // Folders grouped by category
+  // Grouped Folders by Category
   const foldersByCategory = useMemo(() => {
-    const map: Partial<Record<DocCategory, typeof folders>> = {};
-    for (const f of folders) {
-      if (!map[f.category]) map[f.category] = [];
-      map[f.category]!.push(f);
+    const map: Record<DocCategory, { count: number; docTypes: string[] }> = {
+      Drivers: { count: 0, docTypes: [] },
+      Vehicles: { count: 0, docTypes: [] },
+      Operations: { count: 0, docTypes: [] },
+      Company: { count: 0, docTypes: [] },
+    };
+
+    for (const d of docs) {
+      const cat = categoryForEntity(d.entity_type);
+      map[cat].count += 1;
+      if (!map[cat].docTypes.includes(d.doc_type)) {
+        map[cat].docTypes.push(d.doc_type);
+      }
     }
     return map;
-  }, [folders]);
+  }, [docs]);
 
-  // Recent docs with enriched fields
-  const enrichedDocs = useMemo(() => {
+  // Enriched & Filtered Documents
+  const filteredDocs = useMemo(() => {
     return docs
       .map((d) => ({
         ...d,
         entityName: nameFor(d),
         category: categoryForEntity(d.entity_type),
-        expiryStatus: expiryStatus(d.expiry_date),
+        expStatus: expiryStatus(d.expiry_date),
         daysLeft: daysUntil(d.expiry_date),
+        issuer: REGULATORY_BODY[d.doc_type] || 'Saudi Authority',
       }))
       .filter((d) => {
         const matchesCat = activeCategory === 'All' || d.category === activeCategory;
+        const matchesExpiry = expiryFilter === 'all' || d.expStatus === expiryFilter;
         const q = search.toLowerCase();
         const matchesSearch =
-          docTypeLabel(d.doc_type).toLowerCase().includes(q) || d.entityName.toLowerCase().includes(q);
-        return matchesCat && matchesSearch;
-      })
-      .sort((a, b) => {
-        // Sort expired/critical first
-        const order = { expired: 0, critical: 1, warning: 2, valid: 3, none: 4 };
-        return (order[a.expiryStatus] ?? 4) - (order[b.expiryStatus] ?? 4);
-      })
-      .slice(0, 15);
-  }, [docs, nameFor, activeCategory, search]);
+          docTypeLabel(d.doc_type).toLowerCase().includes(q) ||
+          d.entityName.toLowerCase().includes(q) ||
+          d.issuer.toLowerCase().includes(q) ||
+          d.id.toString().includes(q);
+        return matchesCat && matchesExpiry && matchesSearch;
+      });
+  }, [docs, nameFor, activeCategory, expiryFilter, search]);
 
-  // Expiring docs
-  const expiringDocs = docs.filter(d => {
+  // Calculated Vault Telematics
+  const totalDocsCount = docs.length;
+  const expiringDocs = docs.filter((d) => {
     const days = daysUntil(d.expiry_date);
     return days !== null && days <= 30;
   });
   const expiringCount = expiringDocs.length;
-  const expiredCount = docs.filter(d => (daysUntil(d.expiry_date) ?? 1) <= 0).length;
-  const criticalCount = expiringDocs.filter(d => {
+  const expiredCount = docs.filter((d) => (daysUntil(d.expiry_date) ?? 1) <= 0).length;
+  const criticalCount = expiringDocs.filter((d) => {
     const days = daysUntil(d.expiry_date);
     return days !== null && days > 0 && days <= 7;
   }).length;
-  const totalDocsCount = docs.length;
   const safeCount = Math.max(0, totalDocsCount - expiringCount);
   const compliancePct = totalDocsCount > 0 ? Math.round((safeCount / totalDocsCount) * 100) : 100;
 
-  // Expiring by category for folder panels
-  const expiringByCategory = useMemo(() => {
-    const map: Partial<Record<DocCategory, number>> = {};
-    for (const d of expiringDocs) {
-      const cat = categoryForEntity(d.entity_type);
-      map[cat] = (map[cat] ?? 0) + 1;
+  // Selection handlers
+  const toggleSelectAll = () => {
+    if (selectedDocIds.length === filteredDocs.length) {
+      setSelectedDocIds([]);
+    } else {
+      setSelectedDocIds(filteredDocs.map((d) => d.id));
     }
-    return map;
-  }, [expiringDocs]);
+  };
+
+  const toggleSelectRow = (id: string) => {
+    setSelectedDocIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  };
 
   return (
     <DashboardLayout active="Documents" title="Documents Center">
@@ -268,72 +219,103 @@ export default function DocumentsCenterPage() {
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
-              <FileText className="w-5 h-5 text-indigo-600" />
+            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 shrink-0 shadow-2xs">
+              <FolderOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                   Documents Center
                 </h1>
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
                   Compliance Repository
                 </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Fleet compliance vault — driver licenses, vehicle permits, and operational documents
+                Centralized vault — driver licenses, Istimara permits, waybills, and compliance filings
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Expiry Radar Trigger */}
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-rose-50 shadow-2xs text-rose-600 hover:text-rose-700 hover:border-rose-200"
-              onClick={() => navigate('/documents/expiring')}
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-rose-50 shadow-2xs text-rose-600 hover:text-rose-700 dark:bg-slate-900 dark:border-slate-800"
+              onClick={() => navigate('/documents/expiry')}
             >
               <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
               Expiry Radar {expiringCount > 0 && <span className="ml-0.5 bg-rose-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">{expiringCount}</span>}
             </Button>
 
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="List View"
+              >
+                <List size={14} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Grid View"
+              >
+                <LayoutGrid size={14} />
+              </button>
+            </div>
+
+            {/* Upload Button */}
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-lg px-4"
-              onClick={() => alert('Opening document upload portal...')}
+              onClick={() => setIsUploadOpen(true)}
             >
               <UploadCloud className="w-4 h-4" /> Upload Document
             </Button>
 
+            {/* Refresh Button */}
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              title="Refresh"
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+              title="Refresh Vault"
             >
               <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {/* ── Compliance Health KPI Strip ──────────────────────────────────── */}
+        {/* ── 4 Vault KPI Telematics Bar ───────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           <KpiCard
             title="TOTAL REPOSITORY"
             value={totalDocsCount}
             variant="brand"
             trend="up"
-            trendValue={`${compliancePct}% Compliant`}
-            description="Click to view full repository"
+            trendValue={`${compliancePct}% Valid`}
+            description="Click to clear all category filters"
             icon={CheckBadge}
             completionGauge={{
               percentage: compliancePct || 90,
               label: `${compliancePct}% Compliance Health`,
               subtext: `${safeCount} Valid • ${expiringCount} Due Soon`
             }}
-            onClick={() => setActiveCategory('All')}
+            onClick={() => { setActiveCategory('All'); setExpiryFilter('all'); }}
           />
 
           <KpiCard
@@ -341,15 +323,15 @@ export default function DocumentsCenterPage() {
             value={expiringCount}
             variant="amber"
             trend={expiringCount > 0 ? 'down' : 'neutral'}
-            trendValue={expiringCount > 0 ? 'Action Required' : 'All Clear'}
+            trendValue={expiringCount > 0 ? 'Action Needed' : 'All Clear'}
             description="Click to open Expiry Radar Center"
             icon={CalendarAlertIcon}
             progressSegments={[
               { label: `${expiredCount} Expired`, value: expiringCount > 0 ? Math.round((expiredCount / (totalDocsCount || 1)) * 100) || 30 : 0, color: 'bg-rose-600' },
               { label: `${criticalCount} Critical`, value: expiringCount > 0 ? Math.round((criticalCount / (totalDocsCount || 1)) * 100) || 25 : 0, color: 'bg-amber-500' },
-              { label: 'Clear', value: Math.round((safeCount / (totalDocsCount || 1)) * 100) || 100, color: 'bg-slate-200' },
+              { label: 'Safe', value: Math.round((safeCount / (totalDocsCount || 1)) * 100) || 100, color: 'bg-slate-200' },
             ]}
-            onClick={() => navigate('/documents/expiring')}
+            onClick={() => navigate('/documents/expiry')}
           />
 
           <KpiCard
@@ -357,7 +339,7 @@ export default function DocumentsCenterPage() {
             value={drivers.length}
             variant="blue"
             trend="neutral"
-            trendValue="Verified"
+            trendValue="Saudi License Valid"
             description="Click to filter Driver documents"
             icon={DriverBadge}
             progressSegments={[
@@ -373,34 +355,48 @@ export default function DocumentsCenterPage() {
             variant="emerald"
             trend="neutral"
             trendValue="Istimara Valid"
-            description="Click to filter Vehicle documents"
+            description="Click to filter Vehicle permits"
             icon={FleetTruck}
             completionGauge={{
               percentage: 92,
               label: '92% Permits Active',
-              subtext: `${vehicles.length} Registered Assets`
+              subtext: `${vehicles.length} Registered Fleet Assets`
             }}
             onClick={() => setActiveCategory('Vehicles')}
           />
         </div>
 
-        {/* ── Repository Category Panels ───────────────────────────────────── */}
+        {/* ── Folder Explorer & Breadcrumb ─────────────────────────────────── */}
         <div className="shrink-0 space-y-3">
+          {/* Path Breadcrumb */}
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Document Repository</h2>
-              <p className="text-[10px] text-slate-400 font-medium mt-0.5">Select a category folder to filter documents below</p>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <FolderOpen className="w-4 h-4 text-indigo-500" />
+              <span>Vault Root</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+              <span className="text-slate-900 dark:text-slate-100 font-bold">{activeCategory} Category</span>
+              {expiryFilter !== 'all' && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                  <Badge variant="outline" className="text-[10px] font-bold capitalize bg-amber-50 text-amber-700 border-amber-200">
+                    {expiryFilter} Expiry Filter
+                  </Badge>
+                </>
+              )}
             </div>
+
+            {/* Folder Tabs Switcher */}
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/60 dark:border-slate-700">
               {CATEGORY_TABS.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all whitespace-nowrap ${
+                  className={cn(
+                    'px-3 py-1.5 text-[11px] font-bold rounded-md transition-all whitespace-nowrap',
                     activeCategory === cat
                       ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
                       : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
+                  )}
                 >
                   {cat}
                 </button>
@@ -408,106 +404,185 @@ export default function DocumentsCenterPage() {
             </div>
           </div>
 
-          {/* 4 Category Folder Panels */}
+          {/* 4 Category Folder Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {(['Drivers', 'Vehicles', 'Operations', 'Company'] as DocCategory[]).map((cat) => (
-              <CategoryFolderPanel
-                key={cat}
-                category={cat}
-                folders={foldersByCategory[cat] ?? []}
-                totalDocs={totalDocsCount || 1}
-                expiringCount={expiringByCategory[cat] ?? 0}
-                isActive={activeCategory === cat}
-                onClick={() => setActiveCategory(activeCategory === cat ? 'All' : cat)}
-              />
-            ))}
+            {(['Drivers', 'Vehicles', 'Operations', 'Company'] as DocCategory[]).map((cat) => {
+              const cfg = CATEGORY_CONFIG[cat];
+              const Icon = cfg.icon;
+              const catData = foldersByCategory[cat];
+              const isActive = activeCategory === cat;
+
+              return (
+                <Card
+                  key={cat}
+                  onClick={() => setActiveCategory(isActive ? 'All' : cat)}
+                  className={cn(
+                    'group border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md bg-white dark:bg-slate-900',
+                    isActive ? `border-2 ${cfg.borderColor} shadow-sm` : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                  )}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', cfg.iconBg)}>
+                        <Icon className={cn('w-4 h-4', cfg.color)} />
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                        {catData.count} files
+                      </Badge>
+                    </div>
+
+                    <h4 className={cn('font-extrabold text-sm mb-0.5', cfg.color)}>{cfg.label}</h4>
+                    <p className="text-[10px] text-slate-400 font-medium mb-3">{cfg.description}</p>
+
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <span>{catData.docTypes.length} Document Types</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
 
-        {/* ── Document Ledger ──────────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden shrink-0">
-
-          {/* Ledger Header */}
-          <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-900">
-            <div className="flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-indigo-500" />
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                {activeCategory === 'All' ? 'All Compliance Documents' : `${activeCategory} Documents`}
-              </h3>
-              <Badge variant="outline" className="text-[10px] font-mono font-bold text-slate-500 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 ml-1">
-                {enrichedDocs.length} files
-              </Badge>
-            </div>
-
-            {/* Search */}
-            <div className="relative w-60">
+        {/* ── Control Toolbar & Filters ───────────────────────────────────── */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3 shrink-0">
+          
+          <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-sm">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <Input
                 type="text"
-                placeholder="Search document or entity..."
+                placeholder="Search by file name, driver, vehicle plate, or issuer..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 rounded-lg"
               />
             </div>
+
+            {/* Expiry Dropdown Filter */}
+            <div className="w-44">
+              <Select value={expiryFilter} onValueChange={(v) => setExpiryFilter(v as any)}>
+                <SelectTrigger className="h-9 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50">
+                  <div className="flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <SelectValue placeholder="Expiry Status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
+                  <SelectItem value="expired" className="text-xs text-rose-600 font-semibold">🔴 Expired</SelectItem>
+                  <SelectItem value="critical" className="text-xs text-rose-500 font-semibold">⚠️ Critical (&lt;7d)</SelectItem>
+                  <SelectItem value="warning" className="text-xs text-amber-600 font-semibold">🟡 Due Soon (&lt;30d)</SelectItem>
+                  <SelectItem value="valid" className="text-xs text-emerald-600 font-semibold">✅ Valid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Table */}
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-              <RotateCw className="w-8 h-8 animate-spin text-indigo-400 opacity-60" />
-              <p className="text-xs font-medium">Loading document repository...</p>
+          {/* Bulk Action Controls */}
+          <div className="flex items-center gap-2">
+            {selectedDocIds.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
+                onClick={() => alert(`Downloading ZIP archive for ${selectedDocIds.length} documents...`)}
+              >
+                <Download className="w-3.5 h-3.5" />
+                Bulk Download ({selectedDocIds.length})
+              </Button>
+            )}
+
+            <Badge variant="outline" className="text-[11px] font-mono font-bold text-slate-500 px-3 py-1 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+              Showing {filteredDocs.length} of {totalDocsCount} files
+            </Badge>
+          </div>
+        </div>
+
+        {/* ── Document Vault Area (List vs Grid View) ──────────────────────── */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <RotateCw className="w-8 h-8 animate-spin text-indigo-500 opacity-70" />
+            <p className="text-xs font-medium">Loading compliance repository...</p>
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <AlertTriangle className="w-8 h-8 text-rose-400 opacity-70" />
+            <p className="text-xs text-rose-500 font-medium">Failed to load repository files.</p>
+          </div>
+        ) : filteredDocs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <FolderOpen className="w-7 h-7 text-slate-300 dark:text-slate-600" />
             </div>
-          ) : isError ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-2">
-              <AlertTriangle className="w-8 h-8 text-rose-400 opacity-60" />
-              <p className="text-xs text-rose-500 font-medium">Failed to load documents repository.</p>
+            <div className="text-center">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No documents found</p>
+              <p className="text-xs text-slate-400 mt-0.5">Try clearing your search query or status filter</p>
             </div>
-          ) : enrichedDocs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <FileText className="w-7 h-7 text-slate-300 dark:text-slate-600" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-400">No documents found</p>
-                <p className="text-xs text-slate-400 mt-0.5">Try adjusting the category filter or search query</p>
-              </div>
-            </div>
-          ) : (
+          </div>
+        ) : viewMode === 'list' ? (
+          
+          /* LIST VIEW TABLE */
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden shrink-0">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900">
-                  <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Document</th>
-                  <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Owner</th>
-                  <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Category</th>
-                  <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Expiry Status</th>
-                  <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Expires</th>
-                  <th className="px-5 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Actions</th>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
+                  <th className="w-10 px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={selectedDocIds.length > 0 && selectedDocIds.length === filteredDocs.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </th>
+                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Document Name</th>
+                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Entity Owner</th>
+                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Issuer Authority</th>
+                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Expiry Status</th>
+                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Days Left</th>
+                  <th className="px-4 py-2.5 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {enrichedDocs.map((doc) => {
+                {filteredDocs.map((doc) => {
                   const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
-                  const expBadge = EXPIRY_BADGE[doc.expiryStatus];
+                  const expBadge = EXPIRY_BADGE[doc.expStatus];
                   const catCfg = CATEGORY_CONFIG[doc.category];
+                  const isSelected = selectedDocIds.includes(doc.id);
 
                   return (
                     <tr
                       key={doc.id}
                       className={cn(
-                        'hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors',
-                        doc.expiryStatus === 'expired' && 'bg-rose-50/30 dark:bg-rose-950/10',
-                        doc.expiryStatus === 'critical' && 'bg-amber-50/20 dark:bg-amber-950/10',
+                        'hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors',
+                        isSelected && 'bg-indigo-50/30 dark:bg-indigo-950/20',
+                        doc.expStatus === 'expired' && 'bg-rose-50/30 dark:bg-rose-950/10',
+                        doc.expStatus === 'critical' && 'bg-amber-50/20 dark:bg-amber-950/10'
                       )}
                     >
-                      {/* Document */}
-                      <td className="px-5 py-3">
+                      {/* Checkbox */}
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectRow(doc.id)}
+                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </td>
+
+                      {/* Document Name */}
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', catCfg.iconBg)}>
                             <DocIcon className={cn('w-4 h-4', catCfg.color)} />
                           </div>
                           <div>
-                            <span className="font-bold text-slate-900 dark:text-slate-100 text-xs block">
+                            <span 
+                              onClick={() => setPreviewDoc(doc)}
+                              className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer block"
+                            >
                               {docTypeLabel(doc.doc_type)}
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono">#{doc.id.toString().slice(0, 8)}</span>
@@ -515,37 +590,35 @@ export default function DocumentsCenterPage() {
                         </div>
                       </td>
 
-                      {/* Owner */}
-                      <td className="px-5 py-3">
+                      {/* Entity Owner */}
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          {catCfg && <catCfg.icon className={cn('w-3 h-3 shrink-0', catCfg.color)} />}
-                          <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[150px]">{doc.entityName}</span>
+                          {catCfg && <catCfg.icon className={cn('w-3.5 h-3.5 shrink-0', catCfg.color)} />}
+                          <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[160px]">{doc.entityName}</span>
                         </div>
                       </td>
 
-                      {/* Category */}
-                      <td className="px-5 py-3">
-                        <Badge variant="outline" className={cn('text-[10px] font-bold border', catCfg.borderColor, catCfg.iconBg, catCfg.color)}>
-                          {doc.category}
-                        </Badge>
+                      {/* Issuer Authority */}
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-slate-500 font-medium">{doc.issuer}</span>
                       </td>
 
-                      {/* Expiry Status */}
-                      <td className="px-5 py-3">
+                      {/* Expiry Status Badge */}
+                      <td className="px-4 py-3">
                         <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border', expBadge.className)}>
-                          {doc.expiryStatus === 'expired' || doc.expiryStatus === 'critical' ? (
+                          {doc.expStatus === 'expired' || doc.expStatus === 'critical' ? (
                             <AlertTriangle className="w-2.5 h-2.5" />
-                          ) : doc.expiryStatus === 'valid' ? (
+                          ) : doc.expStatus === 'valid' ? (
                             <CheckCircle2 className="w-2.5 h-2.5" />
-                          ) : doc.expiryStatus === 'warning' ? (
+                          ) : doc.expStatus === 'warning' ? (
                             <Clock className="w-2.5 h-2.5" />
                           ) : null}
                           {expBadge.label}
                         </span>
                       </td>
 
-                      {/* Expires */}
-                      <td className="px-5 py-3">
+                      {/* Days Left */}
+                      <td className="px-4 py-3">
                         {doc.expiry_date ? (
                           <div>
                             <span className="text-xs text-slate-700 dark:text-slate-300 font-mono block">
@@ -566,22 +639,20 @@ export default function DocumentsCenterPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <a
-                            href={doc.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-8 h-8 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"
-                            title="View Document"
+                          <button
+                            onClick={() => setPreviewDoc(doc)}
+                            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors"
+                            title="Preview File"
                           >
                             <Eye size={14} />
-                          </a>
+                          </button>
                           <a
                             href={doc.file_url}
                             download
-                            className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
-                            title="Download Document"
+                            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                            title="Download File"
                           >
                             <Download size={14} />
                           </a>
@@ -592,11 +663,176 @@ export default function DocumentsCenterPage() {
                 })}
               </tbody>
             </table>
-          )}
+          </div>
+        ) : (
+          
+          /* GRID VIEW MODE */
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 shrink-0">
+            {filteredDocs.map((doc) => {
+              const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
+              const expBadge = EXPIRY_BADGE[doc.expStatus];
+              const catCfg = CATEGORY_CONFIG[doc.category];
 
-        </div>
+              return (
+                <Card
+                  key={doc.id}
+                  className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all bg-white dark:bg-slate-900 flex flex-col justify-between"
+                >
+                  <CardContent className="p-4 space-y-3">
+                    {/* Header Top */}
+                    <div className="flex items-center justify-between">
+                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', catCfg.iconBg)}>
+                        <DocIcon className={cn('w-4.5 h-4.5', catCfg.color)} />
+                      </div>
+                      <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', expBadge.className)}>
+                        {expBadge.label}
+                      </span>
+                    </div>
+
+                    {/* Document Info */}
+                    <div>
+                      <h4 
+                        onClick={() => setPreviewDoc(doc)}
+                        className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-indigo-600 cursor-pointer truncate"
+                      >
+                        {docTypeLabel(doc.doc_type)}
+                      </h4>
+                      <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{doc.entityName}</p>
+                    </div>
+
+                    {/* Issuer & Expiry */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1 text-[11px]">
+                      <div className="flex justify-between text-slate-500">
+                        <span>Issuer:</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{doc.issuer}</span>
+                      </div>
+                      {doc.expiry_date && (
+                        <div className="flex justify-between text-slate-500">
+                          <span>Expires:</span>
+                          <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                            {new Date(doc.expiry_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+
+                  {/* Actions Footer */}
+                  <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPreviewDoc(doc)}
+                      className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 gap-1"
+                    >
+                      <Eye size={13} /> Preview
+                    </Button>
+
+                    <a
+                      href={doc.file_url}
+                      download
+                      className="h-7 px-2.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 flex items-center gap-1 shadow-2xs"
+                    >
+                      <Download size={13} /> Download
+                    </a>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
       </div>
+
+      {/* ── Document Preview Modal Drawer ─────────────────────────────────── */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+        <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-600" />
+                <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                  {previewDoc ? docTypeLabel(previewDoc.doc_type) : 'Document Preview'}
+                </DialogTitle>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {previewDoc && (
+            <div className="p-6 space-y-5">
+              {/* Document File Viewer Placeholder Card */}
+              <div className="w-full h-48 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 p-4 text-center">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                    {docTypeLabel(previewDoc.doc_type)} File
+                  </h4>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">#{previewDoc.id}</p>
+                </div>
+                <a
+                  href={previewDoc.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  <ExternalLink size={13} /> Open Full Resolution File
+                </a>
+              </div>
+
+              {/* Metadata Key-Value Grid */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Entity Owner</span>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{nameFor(previewDoc)}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Category</span>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{categoryForEntity(previewDoc.entity_type)}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Issuing Regulatory Body</span>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{REGULATORY_BODY[previewDoc.doc_type] || 'Saudi Authority'}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Expiry Date</span>
+                  <p className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                    {previewDoc.expiry_date ? new Date(previewDoc.expiry_date).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(null)} className="text-xs">
+              Close
+            </Button>
+            {previewDoc && (
+              <a
+                href={previewDoc.file_url}
+                download
+                className="h-8 px-4 rounded-md bg-[#E8450F] text-white text-xs font-bold hover:bg-[#d03d0c] inline-flex items-center gap-1.5"
+              >
+                <Download size={14} /> Download Document
+              </a>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Upload Document Modal ────────────────────────────────────────── */}
+      <UploadDocumentModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        entityType="Driver"
+        entityId={drivers[0]?.id || '1'}
+        onUploadSuccess={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}
+      />
     </DashboardLayout>
   );
 }
