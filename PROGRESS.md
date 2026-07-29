@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-07-28** (operator mobile screens wired up: Admin now sees the operator nav, `/operator/*` routes exist and are reachable from the bottom nav + FAB, TripDetails and CreateTrip hit the real API, trip cards navigate to details, driver EmergencyScreen call/photo buttons work, driver SettingsScreen no-ops replaced with "coming soon" alerts, web Rate Cards Edit button fixed) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-07-29** (comprehensive idempotent seed data added for Users, Customers, Drivers, Vehicles, Rate Cards, Trips with stops, and Invoices; added dedicated `.github/workflows/seed-db.yml` workflow and workspace `seed` scripts) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).
@@ -41,7 +41,7 @@ release builds.
 | Piece | State |
 |---|---|
 | 18 controllers (auth, users, drivers, vehicles, customers, trips, invoices, rate cards, documents, maintenance, notifications, reports, tracking, uploads + 2 mobile) | ✅ real DB logic |
-| Prisma schema (11 models, 10 enums), PostgreSQL, idempotent seed | ✅ |
+| Prisma schema (11 models, 10 enums), PostgreSQL, idempotent seed (Users, Customers, Drivers, Vehicles, Rate Cards, Trips with stops, Invoices) + `.github/workflows/seed-db.yml` | ✅ (2026-07-29) |
 | JWT auth + **RBAC** `authorizeRoles` on all feature routes | ✅ (`ddbe688`) |
 | Exactly 3 roles: Admin / Operator / Driver (Prisma enum + shared-types) | ✅ locked |
 | Live GPS relay (Socket.io: receives `driver:location_update`, broadcasts to web) | ✅ |
