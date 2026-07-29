@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, Wrench, 
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
-  Gauge, Calendar, CheckCircle2, Clock
+  Gauge, Calendar, CheckCircle2, Clock, MoreVertical
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
@@ -23,6 +23,14 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator,
+  DropdownMenuLabel 
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 export default function VehicleListPage() {
@@ -80,11 +88,11 @@ export default function VehicleListPage() {
       ),
     },
     {
-      header: 'Plate & Model',
+      header: 'Plate & Spec',
       accessor: (row: Vehicle) => (
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
-            <Truck size={14} />
+          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+            <Truck size={15} />
           </div>
           <div>
             <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
@@ -144,28 +152,47 @@ export default function VehicleListPage() {
     {
       header: 'Actions',
       accessor: (row: Vehicle) => (
-        <div className="flex items-center justify-end gap-1">
-          <button 
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button 
+            variant="ghost"
+            size="sm"
             onClick={() => navigate(`/vehicles/${row.id}`)}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors"
+            className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600"
             title="View Details"
           >
-            <Eye size={13} />
-          </button>
-          <button 
-            onClick={() => navigate(`/vehicles/${row.id}/edit`)}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-            title="Edit Vehicle"
-          >
-            <Edit2 size={13} />
-          </button>
-          <button 
-            onClick={() => navigate(`/vehicles/${row.id}/documents`)}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-            title="Documents Vault"
-          >
-            <FileText size={13} />
-          </button>
+            <Eye size={14} />
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
+                <MoreVertical size={14} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Asset Options</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigate(`/vehicles/${row.id}`)} className="text-xs font-semibold">
+                <Eye size={13} className="mr-2 text-indigo-500" /> View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/vehicles/${row.id}/edit`)} className="text-xs font-semibold">
+                <Edit2 size={13} className="mr-2 text-slate-500" /> Edit Vehicle
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/vehicles/${row.id}/documents`)} className="text-xs font-semibold">
+                <FileText size={13} className="mr-2 text-slate-500" /> Documents Vault
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={async () => {
+                  if (!confirm(`Mark ${row.plate_number} as Maintenance?`)) return;
+                  await vehicleService.bulkUpdateStatus([row.id], 'Maintenance');
+                  queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                }} 
+                className="text-xs font-semibold text-amber-600"
+              >
+                <Wrench size={13} className="mr-2 text-amber-500" /> Mark Maintenance
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ),
     },
@@ -426,32 +453,42 @@ export default function VehicleListPage() {
               onRowClick={(row) => navigate(`/vehicles/${row.id}`)}
               filterElement={
                 <div className="flex items-center gap-2">
-                  <select
+                  {/* Status Dropdown using shadcn Select */}
+                  <Select
                     value={selectedStatus}
-                    onChange={(e) => {
-                      setSelectedStatus(e.target.value as AssetStatus | 'All');
+                    onValueChange={(val) => {
+                      setSelectedStatus(val as AssetStatus | 'All');
                       setCurrentPage(1);
                     }}
-                    className="text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-lg outline-none focus:border-[#E8450F] transition-colors"
                   >
-                    <option value="All">All Statuses</option>
-                    <option value="Available">Available</option>
-                    <option value="OnTrip">On Trip</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
+                    <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All" className="text-xs font-semibold">All Statuses</SelectItem>
+                      <SelectItem value="Available" className="text-xs font-semibold">Available</SelectItem>
+                      <SelectItem value="OnTrip" className="text-xs font-semibold">On Trip</SelectItem>
+                      <SelectItem value="Maintenance" className="text-xs font-semibold">Maintenance</SelectItem>
+                      <SelectItem value="Inactive" className="text-xs font-semibold">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                  <select
+                  {/* Asset Type Dropdown using shadcn Select */}
+                  <Select
                     value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                    className="text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-lg outline-none focus:border-[#E8450F] transition-colors"
+                    onValueChange={(val) => setSelectedType(val)}
                   >
-                    <option value="All">All Asset Types</option>
-                    <option value="Tractor">Heavy Tractor</option>
-                    <option value="Reefer">Reefer Truck</option>
-                    <option value="Flatbed">Flatbed Trailer</option>
-                    <option value="Tanker">Tanker Unit</option>
-                  </select>
+                    <SelectTrigger className="h-9 w-40 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                      <SelectValue placeholder="Asset Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All" className="text-xs font-semibold">All Asset Types</SelectItem>
+                      <SelectItem value="Tractor" className="text-xs font-semibold">Heavy Tractor</SelectItem>
+                      <SelectItem value="Reefer" className="text-xs font-semibold">Reefer Truck</SelectItem>
+                      <SelectItem value="Flatbed" className="text-xs font-semibold">Flatbed Trailer</SelectItem>
+                      <SelectItem value="Tanker" className="text-xs font-semibold">Tanker Unit</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               }
             />
