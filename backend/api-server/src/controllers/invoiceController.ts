@@ -52,7 +52,7 @@ export const createInvoice = async (req: Request, res: Response) => {
     const { trip_id, customer_id, subtotal, total_amount, due_date } = req.body; // validated & coerced by createInvoiceBody
 
     const ref_id = await generateRefId('INV', () =>
-      prisma.invoice.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
+      prisma.invoice.findMany({ select: { ref_id: true } }));
 
     const invoice = await prisma.invoice.create({
       data: {

@@ -99,65 +99,86 @@ export const createTrip = async (req: Request, res: Response) => {
   try {
     const { customer_id, driver_id, vehicle_id, cargo_type, hazmat_flag, planned_start, stops } = req.body;
 
-    const ref_id = await generateRefId('TRP', () =>
-      prisma.trip.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
-
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
     const parsedPlannedStart = (planned_start && !isNaN(Date.parse(planned_start)))
       ? new Date(planned_start)
       : null;
 
-    const trip = await prisma.$transaction(async (tx) => {
-      const customer = await tx.customer.findFirst({ where: { id: customer_id, deletedAt: null } });
-      if (!customer) {
-        throw new Error('CUSTOMER_NOT_FOUND');
-      }
+    let trip;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-      const driver = await tx.driver.findFirst({ where: { id: driver_id, deletedAt: null } });
-      if (!driver) {
-        throw new Error('DRIVER_NOT_FOUND');
-      }
-      if (driver.status !== 'Available') {
-        throw new Error('DRIVER_UNAVAILABLE');
-      }
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        const ref_id = await generateRefId('TRP', () =>
+          prisma.trip.findMany({ select: { ref_id: true } }));
 
-      const vehicle = await tx.vehicle.findFirst({ where: { id: vehicle_id, deletedAt: null } });
-      if (!vehicle) {
-        throw new Error('VEHICLE_NOT_FOUND');
-      }
-      if (vehicle.status !== 'Available') {
-        throw new Error('VEHICLE_UNAVAILABLE');
-      }
-
-      await tx.driver.update({ where: { id: driver_id }, data: { status: 'OnTrip' } });
-      await tx.vehicle.update({ where: { id: vehicle_id }, data: { status: 'OnTrip' } });
-
-      return tx.trip.create({
-        data: {
-          ref_id,
-          customerId: customer_id,
-          driverId: driver_id,
-          vehicleId: vehicle_id,
-          cargo_type: cargo_type || 'General Goods',
-          hazmat_flag: hazmat_flag || false,
-          planned_start: parsedPlannedStart,
-          status: TripStatus.Dispatched,
-          ...(createdBy ? { created_by: createdBy } : {}),
-          stops: {
-            create: (stops || []).map((stop: any, index: number) => ({
-              stop_sequence: index + 1,
-              stop_type: stop.stop_type as StopType,
-              location_lat: parseFloat(stop.lat),
-              location_lng: parseFloat(stop.lng),
-              planned_arrival: (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival)))
-                ? new Date(stop.planned_arrival)
-                : null
-            }))
+        trip = await prisma.$transaction(async (tx) => {
+          const customer = await tx.customer.findFirst({ where: { id: customer_id, deletedAt: null } });
+          if (!customer) {
+            throw new Error('CUSTOMER_NOT_FOUND');
           }
-        },
-        include: { stops: true }
-      });
-    });
+
+          const driver = await tx.driver.findFirst({ where: { id: driver_id, deletedAt: null } });
+          if (!driver) {
+            throw new Error('DRIVER_NOT_FOUND');
+          }
+          if (driver.status !== 'Available') {
+            throw new Error('DRIVER_UNAVAILABLE');
+          }
+
+          const vehicle = await tx.vehicle.findFirst({ where: { id: vehicle_id, deletedAt: null } });
+          if (!vehicle) {
+            throw new Error('VEHICLE_NOT_FOUND');
+          }
+          if (vehicle.status !== 'Available') {
+            throw new Error('VEHICLE_UNAVAILABLE');
+          }
+
+          await tx.driver.update({ where: { id: driver_id }, data: { status: 'OnTrip' } });
+          await tx.vehicle.update({ where: { id: vehicle_id }, data: { status: 'OnTrip' } });
+
+          return tx.trip.create({
+            data: {
+              ref_id,
+              customerId: customer_id,
+              driverId: driver_id,
+              vehicleId: vehicle_id,
+              cargo_type: cargo_type || 'General Goods',
+              hazmat_flag: hazmat_flag || false,
+              planned_start: parsedPlannedStart,
+              status: TripStatus.Dispatched,
+              ...(createdBy ? { created_by: createdBy } : {}),
+              stops: {
+                create: (stops || []).map((stop: any, index: number) => ({
+                  stop_sequence: index + 1,
+                  stop_type: stop.stop_type as StopType,
+                  location_lat: parseFloat(stop.lat),
+                  location_lng: parseFloat(stop.lng),
+                  planned_arrival: (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival)))
+                    ? new Date(stop.planned_arrival)
+                    : null
+                }))
+              }
+            },
+            include: { stops: true }
+          });
+        });
+
+        break;
+      } catch (err: any) {
+        if (err.code === 'P2002' && attempts < maxAttempts) {
+          logger.warn({ err }, `Unique constraint collision on ref_id. Retrying attempt ${attempts + 1}...`);
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!trip) {
+      throw new Error('FAILED_TO_CREATE_TRIP');
+    }
 
     // Notify driver asynchronously without throwing
     await notifyDriverAssigned(driver_id, trip);
@@ -415,7 +436,7 @@ export const deliveryVerify = async (req: Request, res: Response) => {
         const subtotal = rateCard ? rateCard.base_price : 1000.0;
 
         const invoiceRefId = await generateRefId('INV', () =>
-          tx.invoice.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
+          tx.invoice.findMany({ select: { ref_id: true } }));
 
         await tx.invoice.create({
           data: {

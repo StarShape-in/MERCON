@@ -79,7 +79,7 @@ export const createVehicle = async (req: Request, res: Response) => {
     } = req.body;
 
     const ref_id = await generateRefId('TRK', () =>
-      prisma.vehicle.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
+      prisma.vehicle.findMany({ select: { ref_id: true } }));
 
     const vehicle = await prisma.vehicle.create({
       data: {
