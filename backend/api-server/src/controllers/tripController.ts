@@ -3,6 +3,10 @@ import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
 import { createDriverNotification } from './notificationController';
 import { TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
+import { logger } from '../utils/logger';
+
+const isUuid = (val: any): boolean =>
+  typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
 /**
  * Notify a driver they've been assigned a trip. Notifications target the driver
@@ -12,14 +16,18 @@ async function notifyDriverAssigned(
   driverId: string,
   trip: { id: string; ref_id: string | null },
 ) {
-  await createDriverNotification(
-    driverId,
-    'Trip Assignment',
-    `You've been assigned trip ${trip.ref_id ?? ''}. Open the app to start.`.replace('  ', ' '),
-    'Trip',
-    'Trip',
-    trip.id,
-  );
+  try {
+    await createDriverNotification(
+      driverId,
+      'Trip Assignment',
+      `You've been assigned trip ${trip.ref_id ?? ''}. Open the app to start.`.replace('  ', ' '),
+      'Trip',
+      'Trip',
+      trip.id,
+    );
+  } catch (err) {
+    logger.error({ err }, 'Failed to send driver assignment notification');
+  }
 }
 
 export const getTrips = async (req: Request, res: Response) => {
@@ -64,6 +72,7 @@ export const getTrips = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to fetch trips');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch trips' } });
   }
 };
@@ -81,27 +90,42 @@ export const getTripById = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: trip });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to fetch trip by id');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch trip' } });
   }
 };
 
 export const createTrip = async (req: Request, res: Response) => {
   try {
-    const { customer_id, driver_id, vehicle_id, cargo_type, hazmat_flag, planned_start, stops } = req.body; // validated by createTripBody
+    const { customer_id, driver_id, vehicle_id, cargo_type, hazmat_flag, planned_start, stops } = req.body;
 
     const ref_id = await generateRefId('TRP', () =>
       prisma.trip.findMany({ where: { deletedAt: null }, select: { ref_id: true } }));
 
-    // A trip must always have a driver + vehicle, so it's created already
-    // dispatched — mirrors the availability checks & side effects in dispatchTrip.
-    const trip = await prisma.$transaction(async (tx) => {
-      const driver = await tx.driver.findUnique({ where: { id: driver_id } });
-      const vehicle = await tx.vehicle.findUnique({ where: { id: vehicle_id } });
+    const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
+    const parsedPlannedStart = (planned_start && !isNaN(Date.parse(planned_start)))
+      ? new Date(planned_start)
+      : null;
 
-      if (!driver || driver.status !== 'Available') {
+    const trip = await prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.findFirst({ where: { id: customer_id, deletedAt: null } });
+      if (!customer) {
+        throw new Error('CUSTOMER_NOT_FOUND');
+      }
+
+      const driver = await tx.driver.findFirst({ where: { id: driver_id, deletedAt: null } });
+      if (!driver) {
+        throw new Error('DRIVER_NOT_FOUND');
+      }
+      if (driver.status !== 'Available') {
         throw new Error('DRIVER_UNAVAILABLE');
       }
-      if (!vehicle || vehicle.status !== 'Available') {
+
+      const vehicle = await tx.vehicle.findFirst({ where: { id: vehicle_id, deletedAt: null } });
+      if (!vehicle) {
+        throw new Error('VEHICLE_NOT_FOUND');
+      }
+      if (vehicle.status !== 'Available') {
         throw new Error('VEHICLE_UNAVAILABLE');
       }
 
@@ -116,16 +140,18 @@ export const createTrip = async (req: Request, res: Response) => {
           vehicleId: vehicle_id,
           cargo_type: cargo_type || 'General Goods',
           hazmat_flag: hazmat_flag || false,
-          planned_start: planned_start ? new Date(planned_start) : null,
+          planned_start: parsedPlannedStart,
           status: TripStatus.Dispatched,
-          created_by: (req as any).user?.id,
+          ...(createdBy ? { created_by: createdBy } : {}),
           stops: {
-            create: stops.map((stop: any, index: number) => ({
+            create: (stops || []).map((stop: any, index: number) => ({
               stop_sequence: index + 1,
               stop_type: stop.stop_type as StopType,
               location_lat: parseFloat(stop.lat),
               location_lng: parseFloat(stop.lng),
-              planned_arrival: stop.planned_arrival ? new Date(stop.planned_arrival) : null
+              planned_arrival: (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival)))
+                ? new Date(stop.planned_arrival)
+                : null
             }))
           }
         },
@@ -133,15 +159,22 @@ export const createTrip = async (req: Request, res: Response) => {
       });
     });
 
-    // Notify the driver after the creation + dispatch commits.
+    // Notify driver asynchronously without throwing
     await notifyDriverAssigned(driver_id, trip);
 
     res.status(201).json({ success: true, data: trip });
   } catch (error: any) {
-    if (error.message === 'DRIVER_UNAVAILABLE' || error.message === 'VEHICLE_UNAVAILABLE') {
+    logger.error({ err: error, body: req.body }, 'Failed to create trip');
+    if (
+      error.message === 'CUSTOMER_NOT_FOUND' ||
+      error.message === 'DRIVER_NOT_FOUND' ||
+      error.message === 'VEHICLE_NOT_FOUND' ||
+      error.message === 'DRIVER_UNAVAILABLE' ||
+      error.message === 'VEHICLE_UNAVAILABLE'
+    ) {
       return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
     }
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create trip' } });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to create trip' } });
   }
 };
 
