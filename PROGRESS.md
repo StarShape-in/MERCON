@@ -41,7 +41,7 @@ release builds.
 | Piece | State |
 |---|---|
 | 18 controllers (auth, users, drivers, vehicles, customers, trips, invoices, rate cards, documents, maintenance, notifications, reports, tracking, uploads + 2 mobile) | ✅ real DB logic |
-| Prisma schema (11 models, 10 enums), PostgreSQL, idempotent seed (Users, Customers, Drivers, Vehicles, Rate Cards, Trips with stops, Invoices) + `.github/workflows/seed-db.yml` | ✅ (2026-07-29) |
+| Prisma schema (11 models, 10 enums), PostgreSQL, idempotent seed (Users, Customers, Drivers, Vehicles, Rate Cards, Trips with stops, Invoices, Maintenance Records, Documents, Notifications) + `.github/workflows/seed-db.yml` | ✅ (2026-07-29) |
 | JWT auth + **RBAC** `authorizeRoles` on all feature routes | ✅ (`ddbe688`) |
 | Exactly 3 roles: Admin / Operator / Driver (Prisma enum + shared-types) | ✅ locked |
 | Live GPS relay (Socket.io: receives `driver:location_update`, broadcasts to web) | ✅ |
