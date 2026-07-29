@@ -202,14 +202,30 @@ export const createTrip = async (req: Request, res: Response) => {
 export const updateTripStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
-    
+
     const updateData: any = { status: status as TripStatus, updated_by: (req as any).user?.id };
     if (status === 'Completed') updateData.actual_end = new Date();
     if (status === 'InTransit') updateData.actual_start = new Date();
 
-    const trip = await prisma.trip.update({
-      where: { id: req.params.id as string },
-      data: updateData
+    const trip = await prisma.$transaction(async (tx) => {
+      const updated = await tx.trip.update({
+        where: { id: req.params.id as string },
+        data: updateData
+      });
+
+      // Leaving the trip permanently (Completed/Cancelled) must release the
+      // driver/vehicle back to Available — otherwise they stay stuck on
+      // "OnTrip" with no trip left to free them.
+      if (status === TripStatus.Completed || status === TripStatus.Cancelled) {
+        if (updated.driverId) {
+          await tx.driver.update({ where: { id: updated.driverId }, data: { status: DriverStatus.Available } });
+        }
+        if (updated.vehicleId) {
+          await tx.vehicle.update({ where: { id: updated.vehicleId }, data: { status: AssetStatus.Available } });
+        }
+      }
+
+      return updated;
     });
 
     res.json({ success: true, data: trip });
@@ -463,6 +479,11 @@ export const deliveryVerify = async (req: Request, res: Response) => {
 };
 
 
+/** Trip statuses where the assigned driver/vehicle are actively held as `OnTrip`. */
+const IN_FLIGHT_STATUSES: TripStatus[] = [
+  TripStatus.Dispatched, TripStatus.AtPickup, TripStatus.InTransit, TripStatus.AtDelivery,
+];
+
 export const bulkDeleteTrips = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -472,14 +493,36 @@ export const bulkDeleteTrips = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    await prisma.trip.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: userId
+    await prisma.$transaction(async (tx) => {
+      // Deleting an in-flight trip must release its driver/vehicle back to
+      // Available — otherwise they stay stuck on "OnTrip" forever with no
+      // trip left to complete them (this was a real bug: deleted trip, driver
+      // still showed on duty).
+      const trips = await tx.trip.findMany({
+        where: { id: { in: ids }, deletedAt: null, status: { in: IN_FLIGHT_STATUSES } },
+        select: { driverId: true, vehicleId: true },
+      });
+
+      await tx.trip.updateMany({
+        where: { id: { in: ids } },
+        data: {
+          deletedAt: new Date(),
+          isActive: false,
+          deleted_by: userId
+        }
+      });
+
+      const driverIds = [...new Set(trips.map((t) => t.driverId).filter((id): id is string => !!id))];
+      const vehicleIds = [...new Set(trips.map((t) => t.vehicleId).filter((id): id is string => !!id))];
+
+      if (driverIds.length) {
+        await tx.driver.updateMany({ where: { id: { in: driverIds } }, data: { status: DriverStatus.Available } });
+      }
+      if (vehicleIds.length) {
+        await tx.vehicle.updateMany({ where: { id: { in: vehicleIds } }, data: { status: AssetStatus.Available } });
       }
     });
+
     res.json({ success: true, data: { message: `Successfully deleted ${ids.length} trips` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete trips` } });
@@ -495,13 +538,36 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'IDs and status are required' } });
     }
 
-    await prisma.trip.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        status: status as TripStatus,
-        updated_by: userId
+    await prisma.$transaction(async (tx) => {
+      // Same release rule as the single-trip update: Completed/Cancelled
+      // frees the driver/vehicle back to Available.
+      let driverIds: string[] = [];
+      let vehicleIds: string[] = [];
+      if (status === TripStatus.Completed || status === TripStatus.Cancelled) {
+        const trips = await tx.trip.findMany({
+          where: { id: { in: ids }, deletedAt: null, status: { in: IN_FLIGHT_STATUSES } },
+          select: { driverId: true, vehicleId: true },
+        });
+        driverIds = [...new Set(trips.map((t) => t.driverId).filter((id): id is string => !!id))];
+        vehicleIds = [...new Set(trips.map((t) => t.vehicleId).filter((id): id is string => !!id))];
+      }
+
+      await tx.trip.updateMany({
+        where: { id: { in: ids } },
+        data: {
+          status: status as TripStatus,
+          updated_by: userId
+        }
+      });
+
+      if (driverIds.length) {
+        await tx.driver.updateMany({ where: { id: { in: driverIds } }, data: { status: DriverStatus.Available } });
+      }
+      if (vehicleIds.length) {
+        await tx.vehicle.updateMany({ where: { id: { in: vehicleIds } }, data: { status: AssetStatus.Available } });
       }
     });
+
     res.json({ success: true, data: { message: `Successfully updated ${ids.length} trips` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update trips` } });
