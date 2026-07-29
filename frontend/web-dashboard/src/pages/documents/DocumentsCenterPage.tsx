@@ -300,71 +300,7 @@ export default function DocumentsCenterPage() {
           </div>
         </div>
 
-        {/* ── 4 Vault KPI Telematics Bar ───────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-          <KpiCard
-            title="TOTAL REPOSITORY"
-            value={totalDocsCount}
-            variant="brand"
-            trend="up"
-            trendValue={`${compliancePct}% Valid`}
-            description="Click to clear all category filters"
-            icon={CheckBadge}
-            completionGauge={{
-              percentage: compliancePct || 90,
-              label: `${compliancePct}% Compliance Health`,
-              subtext: `${safeCount} Valid • ${expiringCount} Due Soon`
-            }}
-            onClick={() => { setActiveCategory('All'); setExpiryFilter('all'); }}
-          />
 
-          <KpiCard
-            title="EXPIRATION RADAR"
-            value={expiringCount}
-            variant="amber"
-            trend={expiringCount > 0 ? 'down' : 'neutral'}
-            trendValue={expiringCount > 0 ? 'Action Needed' : 'All Clear'}
-            description="Click to open Expiry Radar Center"
-            icon={CalendarAlertIcon}
-            progressSegments={[
-              { label: `${expiredCount} Expired`, value: expiringCount > 0 ? Math.round((expiredCount / (totalDocsCount || 1)) * 100) || 30 : 0, color: 'bg-rose-600' },
-              { label: `${criticalCount} Critical`, value: expiringCount > 0 ? Math.round((criticalCount / (totalDocsCount || 1)) * 100) || 25 : 0, color: 'bg-amber-500' },
-              { label: 'Safe', value: Math.round((safeCount / (totalDocsCount || 1)) * 100) || 100, color: 'bg-slate-200' },
-            ]}
-            onClick={() => navigate('/documents/expiry')}
-          />
-
-          <KpiCard
-            title="DRIVER COMPLIANCE"
-            value={drivers.length}
-            variant="blue"
-            trend="neutral"
-            trendValue="Saudi License Valid"
-            description="Click to filter Driver documents"
-            icon={DriverBadge}
-            progressSegments={[
-              { label: 'Licensed', value: 80, color: 'bg-indigo-500' },
-              { label: 'Medical', value: 20, color: 'bg-emerald-500' },
-            ]}
-            onClick={() => setActiveCategory('Drivers')}
-          />
-
-          <KpiCard
-            title="VEHICLE PERMITS"
-            value={vehicles.length}
-            variant="emerald"
-            trend="neutral"
-            trendValue="Istimara Valid"
-            description="Click to filter Vehicle permits"
-            icon={FleetTruck}
-            completionGauge={{
-              percentage: 92,
-              label: '92% Permits Active',
-              subtext: `${vehicles.length} Registered Fleet Assets`
-            }}
-            onClick={() => setActiveCategory('Vehicles')}
-          />
-        </div>
 
         {/* ── Folder Explorer & Breadcrumb ─────────────────────────────────── */}
         <div className="shrink-0 space-y-3">
