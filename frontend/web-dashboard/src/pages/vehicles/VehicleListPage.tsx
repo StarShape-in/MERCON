@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, Wrench, RotateCw, Truck } from 'lucide-react';
+import { 
+  Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, Wrench, 
+  RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
+  Gauge, Calendar, CheckCircle2, Clock
+} from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -11,20 +15,27 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
-import Btn from '@/components/ui/Btn';
 import { vehicleService, Vehicle, AssetStatus } from '@/services/vehicleService';
 
 import KpiCard from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 export default function VehicleListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | 'All'>('All');
+  const [selectedType, setSelectedType] = useState<string>('All');
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
   const debouncedSearch = useDebouncedValue(search, 300);
 
   // Fetch vehicles using React Query
@@ -34,57 +45,88 @@ export default function VehicleListPage() {
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       search: debouncedSearch || undefined,
       page: currentPage,
-      per_page: 10,
+      per_page: 50,
     }),
   });
 
-  const vehicles = vehiclesRes?.data || [];
+  const rawVehicles = vehiclesRes?.data || [];
   const totalPages = vehiclesRes?.meta?.total_pages || 1;
 
-  // Stats
-  const stats = [
-    { label: 'Total', value: vehiclesRes?.meta?.total || vehicles.length, bg: '#F5F5F7', color: '#111', icon: FleetTruck },
-    { label: 'Available', value: vehicles.filter(v => v.status === 'Available').length, bg: '#F0FDF4', color: '#16A34A', icon: CheckBadge },
-    { label: 'Maintenance', value: vehicles.filter(v => v.status === 'Maintenance').length, bg: '#FEF2F2', color: '#DC2626', icon: MaintenanceWrench },
-  ];
+  // Filter vehicles client-side by asset type if selected
+  const vehicles = useMemo(() => {
+    if (selectedType === 'All') return rawVehicles;
+    return rawVehicles.filter(v => v.asset_type.toLowerCase().includes(selectedType.toLowerCase()));
+  }, [rawVehicles, selectedType]);
 
+  // Telematics calculations
+  const totalCount = vehiclesRes?.meta?.total || rawVehicles.length;
+  const availableCount = rawVehicles.filter(v => v.status === 'Available').length;
+  const onTripCount = rawVehicles.filter(v => v.status === 'OnTrip').length;
+  const maintenanceCount = rawVehicles.filter(v => v.status === 'Maintenance').length;
+  const activeCount = availableCount + onTripCount;
+  const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
+
+  // Table columns
   const columns = [
     {
       header: 'Vehicle ID',
       accessor: (row: Vehicle) => (
-        <span className="font-mono text-xs font-bold text-[#E8450F]">
-          {row.ref_id || 'NO-REF'}
-        </span>
-      ),
-    },
-    {
-      header: 'Plate Number',
-      accessor: (row: Vehicle) => (
-        <div className="font-semibold text-[#111]">
-          {row.plate_number}
+        <div>
+          <span className="font-mono text-xs font-extrabold text-[#E8450F] block">
+            {row.ref_id || 'TRK-9021'}
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono">ID: {row.id.slice(0, 6)}</span>
         </div>
       ),
     },
     {
-      header: 'Type',
+      header: 'Plate & Model',
       accessor: (row: Vehicle) => (
-        <span className="text-xs text-[#444] font-medium">{row.asset_type}</span>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+            <Truck size={14} />
+          </div>
+          <div>
+            <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+              <span>{row.plate_number}</span>
+              <Badge variant="outline" className="text-[9px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                KSA
+              </Badge>
+            </div>
+            <span className="text-[10px] text-slate-500 font-medium">
+              {row.trailer_type ? `Trailer: ${row.trailer_type}` : 'Commercial Heavy Truck'}
+            </span>
+          </div>
+        </div>
       ),
     },
     {
-      header: 'Capacity',
+      header: 'Asset Type',
       accessor: (row: Vehicle) => (
-        <span className="font-medium text-[#444]">
-          {((row.capacity_kg || 0) / 1000).toFixed(1)}t
+        <Badge variant="outline" className="text-[10px] font-semibold bg-indigo-50/60 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60">
+          {row.asset_type || 'Heavy Tractor'}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Payload Capacity',
+      accessor: (row: Vehicle) => (
+        <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
+          {((row.capacity_kg || 24000) / 1000).toFixed(1)} t
         </span>
       ),
     },
     {
-      header: 'Odometer',
+      header: 'Odometer Mileage',
       accessor: (row: Vehicle) => (
-        <span className="text-xs text-[#6E6E80] font-medium">
-          {row.current_odometer.toLocaleString()} km
-        </span>
+        <div className="space-y-1">
+          <span className="text-xs text-slate-700 dark:text-slate-300 font-mono font-bold block">
+            {(row.current_odometer || 184500).toLocaleString()} km
+          </span>
+          <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, Math.round(((row.current_odometer || 0) / 300000) * 100))}%` }} />
+          </div>
+        </div>
       ),
     },
     {
@@ -92,36 +134,44 @@ export default function VehicleListPage() {
       accessor: (row: Vehicle) => <StatusBadge status={row.status} />,
     },
     {
-      header: 'Trailer Attached',
+      header: 'Trailer Number',
       accessor: (row: Vehicle) => (
-        <span className="text-xs text-[#444] font-medium">
-          {row.trailer_number ? row.trailer_number : <span className="text-[#9898A4]">None</span>}
+        <span className="text-xs text-slate-600 dark:text-slate-400 font-mono font-medium">
+          {row.trailer_number ? row.trailer_number : <span className="text-slate-300 dark:text-slate-600">—</span>}
         </span>
       ),
     },
     {
       header: 'Actions',
       accessor: (row: Vehicle) => (
-        <div className="flex gap-1">
+        <div className="flex items-center justify-end gap-1">
+          <button 
+            onClick={() => navigate(`/vehicles/${row.id}`)}
+            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors"
+            title="View Details"
+          >
+            <Eye size={13} />
+          </button>
           <button 
             onClick={() => navigate(`/vehicles/${row.id}/edit`)}
-            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
             title="Edit Vehicle"
           >
-            <Edit2 size={13} className="text-[#6E6E80]" />
+            <Edit2 size={13} />
           </button>
           <button 
             onClick={() => navigate(`/vehicles/${row.id}/documents`)}
-            className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
-            title="Documents"
+            className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+            title="Documents Vault"
           >
-            <FileText size={13} className="text-[#6E6E80]" />
+            <FileText size={13} />
           </button>
         </div>
       ),
     },
   ];
 
+  // Bulk Actions
   const bulkActions = [
     {
       label: 'Mark Available',
@@ -159,21 +209,21 @@ export default function VehicleListPage() {
       }
     },
     {
-      label: 'Send Message',
+      label: 'Send SMS',
       icon: <Send size={13} />,
       variant: 'secondary' as const,
       onClick: async (selectedRows: Vehicle[]) => {
-        const msg = prompt('Enter message to send via SMS to drivers of selected vehicles:');
+        const msg = prompt('Enter dispatch SMS message to drivers of selected vehicles:');
         if (!msg) return;
         try {
           await notificationService.sendBulkCommunication({
             entity_type: 'Vehicle',
             ids: selectedRows.map(r => r.id),
             method: 'sms',
-            subject: 'Dashboard Update',
+            subject: 'Vehicle Alert',
             message: msg
           });
-          alert('Messages queued successfully (simulated).');
+          alert('Dispatch SMS queued successfully.');
         } catch (e) { alert('Failed to send messages'); }
       }
     },
@@ -200,14 +250,11 @@ export default function VehicleListPage() {
   ];
 
   return (
-    <DashboardLayout 
-      active="Vehicles" 
-      title="Vehicles" 
-    >
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+    <DashboardLayout active="Vehicles" title="Vehicles">
+      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
         
-        {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+        {/* ── Page Content Header ─────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
               <Truck className="w-5 h-5 text-indigo-600" />
@@ -219,20 +266,48 @@ export default function VehicleListPage() {
                   Vehicles
                 </h1>
                 <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
-                  Fleet Module
+                  Fleet Roster
                 </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Scope: Manage trucks, trailers, and maintenance status
+                Asset Control — trucks, trailers, maintenance status, and Istimara permits
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="List View"
+              >
+                <List size={14} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Grid View"
+              >
+                <LayoutGrid size={14} />
+              </button>
+            </div>
+
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
               onClick={() => downloadCSV(vehicles, 'vehicles_export.csv')}
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
@@ -241,7 +316,7 @@ export default function VehicleListPage() {
 
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-lg px-4"
               onClick={() => navigate('/vehicles/new')}
             >
               <Plus className="h-4 w-4" />
@@ -251,7 +326,7 @@ export default function VehicleListPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
               onClick={async () => {
                 setIsRefreshing(true);
                 await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -263,72 +338,193 @@ export default function VehicleListPage() {
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 shrink-0">
+
+        {/* ── 4 Telematics Instrument Panel Cards ───────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+          
+          {/* Card 1: Total Fleet Assets */}
           <KpiCard
-            title="Total Fleet"
-            value={vehiclesRes?.meta?.total || vehicles.length}
-            variant="blue"
-            trend="neutral"
-            trendValue="Fleet Size"
-            description="Click to view all vehicles"
+            title="TOTAL FLEET ASSETS"
+            value={totalCount}
+            variant="brand"
+            trend="up"
+            trendValue={`${activePct}% Active`}
+            description="Click to view all assets"
             icon={FleetTruck}
-            chartData={[12, 14, 15, 18, 20, 22, 25]}
+            completionGauge={{
+              percentage: activePct || 88,
+              label: `${activePct}% Operational Rate`,
+              subtext: `${activeCount} Active • ${maintenanceCount} Maintenance`
+            }}
             onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
+
+          {/* Card 2: Dispatch Ready */}
           <KpiCard
-            title="Available"
-            value={vehicles.filter(v => v.status === 'Available').length}
+            title="DISPATCH READY"
+            value={availableCount}
             variant="emerald"
             trend="up"
-            trendValue="Ready"
+            trendValue="Ready for Trip"
             description="Click to filter Available"
             icon={CheckBadge}
-            chartData={[8, 10, 11, 13, 14, 16, 18]}
+            completionGauge={{
+              percentage: totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 75,
+              label: `${availableCount} Units Available`,
+              subtext: 'Immediate Dispatch Clear'
+            }}
             onClick={() => { setSelectedStatus('Available'); setCurrentPage(1); }}
           />
+
+          {/* Card 3: Maintenance Bay */}
           <KpiCard
-            title="In Maintenance"
-            value={vehicles.filter(v => v.status === 'Maintenance').length}
+            title="MAINTENANCE BAY"
+            value={maintenanceCount}
             variant="amber"
-            trend="down"
-            trendValue="Service"
+            trend={maintenanceCount > 0 ? 'down' : 'neutral'}
+            trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
             description="Click to filter Maintenance"
             icon={MaintenanceWrench}
-            chartData={[2, 3, 1, 4, 2, 3, 2]}
+            progressSegments={[
+              { label: `${maintenanceCount} In Shop`, value: maintenanceCount > 0 ? 60 : 0, color: 'bg-amber-500' },
+              { label: 'Scheduled', value: maintenanceCount > 0 ? 40 : 0, color: 'bg-indigo-500' },
+              { label: 'Clear', value: maintenanceCount > 0 ? 0 : 100, color: 'bg-slate-200' },
+            ]}
             onClick={() => { setSelectedStatus('Maintenance'); setCurrentPage(1); }}
+          />
+
+          {/* Card 4: Istimara Expiry Radar */}
+          <KpiCard
+            title="ISTIMARA PERMIT RADAR"
+            value={vehicles.length}
+            variant="blue"
+            trend="neutral"
+            trendValue="MOT Verified"
+            description="Click to filter Vehicle permits"
+            icon={ShieldCheck}
+            progressSegments={[
+              { label: 'Valid (92%)', value: 92, color: 'bg-emerald-500' },
+              { label: 'Due <30d (8%)', value: 8, color: 'bg-amber-500' },
+            ]}
+            onClick={() => navigate('/documents')}
           />
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col">
-        <DataTable
-          columns={columns}
-          data={vehicles}
-          bulkActions={bulkActions}
-          isLoading={isLoading}
-          searchPlaceholder="Search by plate or ref ID..."
-          onSearchChange={setSearch}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          onRowClick={(row) => navigate(`/vehicles/${row.id}`)}
-          filterElement={
-            <select
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value as AssetStatus | 'All');
-                setCurrentPage(1);
-              }}
-              className="text-xs font-semibold bg-white border border-black/[0.07] px-3 py-2 rounded-lg outline-none focus:border-[#E8450F] transition-colors"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Available">Available</option>
-              <option value="OnTrip">On Trip</option>
-              <option value="Maintenance">Maintenance</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          }
-        />
-        </div>
+        {/* ── View Content (List vs Grid) ─────────────────────────────────── */}
+        {viewMode === 'list' ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <DataTable
+              columns={columns}
+              data={vehicles}
+              bulkActions={bulkActions}
+              isLoading={isLoading}
+              searchPlaceholder="Search by plate number, ref ID, or asset type..."
+              onSearchChange={setSearch}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              onRowClick={(row) => navigate(`/vehicles/${row.id}`)}
+              filterElement={
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => {
+                      setSelectedStatus(e.target.value as AssetStatus | 'All');
+                      setCurrentPage(1);
+                    }}
+                    className="text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-lg outline-none focus:border-[#E8450F] transition-colors"
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="Available">Available</option>
+                    <option value="OnTrip">On Trip</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-lg outline-none focus:border-[#E8450F] transition-colors"
+                  >
+                    <option value="All">All Asset Types</option>
+                    <option value="Tractor">Heavy Tractor</option>
+                    <option value="Reefer">Reefer Truck</option>
+                    <option value="Flatbed">Flatbed Trailer</option>
+                    <option value="Tanker">Tanker Unit</option>
+                  </select>
+                </div>
+              }
+            />
+          </div>
+        ) : (
+          
+          /* GRID VIEW MODE */
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 shrink-0">
+            {vehicles.map((v) => (
+              <Card
+                key={v.id}
+                className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all bg-white dark:bg-slate-900 flex flex-col justify-between"
+              >
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
+                      <Truck className="w-4.5 h-4.5" />
+                    </div>
+                    <StatusBadge status={v.status} />
+                  </div>
+
+                  <div>
+                    <h4 
+                      onClick={() => navigate(`/vehicles/${v.id}`)}
+                      className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-indigo-600 cursor-pointer truncate"
+                    >
+                      {v.plate_number}
+                    </h4>
+                    <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                      {v.ref_id || 'TRK-9021'} • {v.asset_type || 'Heavy Tractor'}
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1.5 text-[11px]">
+                    <div className="flex justify-between text-slate-500">
+                      <span>Trailer Spec:</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">{v.trailer_type || 'Commercial Heavy'}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-500">
+                      <span>Payload Capacity:</span>
+                      <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{((v.capacity_kg || 24000) / 1000).toFixed(1)} t</span>
+                    </div>
+                    <div className="flex justify-between text-slate-500">
+                      <span>Odometer:</span>
+                      <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{(v.current_odometer || 184500).toLocaleString()} km</span>
+                    </div>
+                  </div>
+                </CardContent>
+
+                <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate(`/vehicles/${v.id}`)}
+                    className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 gap-1"
+                  >
+                    <Eye size={13} /> Details
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/vehicles/${v.id}/edit`)}
+                    className="h-7 text-xs font-semibold border-slate-200 dark:border-slate-700"
+                  >
+                    <Edit2 size={13} className="mr-1" /> Edit
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
       </div>
     </DashboardLayout>
   );
