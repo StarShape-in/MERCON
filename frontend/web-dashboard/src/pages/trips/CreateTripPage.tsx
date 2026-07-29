@@ -22,6 +22,8 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationPickerMap from '@/components/trips/LocationPickerMap';
+import CreateDriverModal from '@/components/trips/CreateDriverModal';
+import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import { tripService, CreateTripPayload } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
@@ -45,6 +47,9 @@ export default function CreateTripPage() {
   const [driverId, setDriverId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
+  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
 
   // Stops
   const [pickupLat, setPickupLat] = useState<number | null>(24.7136); // Default Riyadh
@@ -531,17 +536,43 @@ export default function CreateTripPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       
                       <div className="space-y-1.5">
-                        <Label htmlFor="driver_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          Assigned Driver <span className="text-rose-500">*</span>
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="driver_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            Assigned Driver <span className="text-rose-500">*</span>
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsAddDriverOpen(true)}
+                            className="h-6 px-2 text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-medium gap-1"
+                          >
+                            <Plus className="w-3 h-3" /> Add New Driver
+                          </Button>
+                        </div>
                         <Select 
                           value={driverId} 
-                          onValueChange={(val) => setDriverId(val)}
+                          onValueChange={(val) => {
+                            if (val === '__add_new_driver__') {
+                              setIsAddDriverOpen(true);
+                            } else {
+                              setDriverId(val);
+                            }
+                          }}
                         >
                           <SelectTrigger id="driver_id" className="h-9 text-xs border-slate-200 bg-white">
                             <SelectValue placeholder="Choose available driver..." />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem 
+                              value="__add_new_driver__" 
+                              className="font-medium text-indigo-600 dark:text-indigo-400 focus:text-indigo-600 focus:bg-indigo-50 dark:focus:bg-indigo-950/50 border-b border-slate-100 dark:border-slate-800 mb-1"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>+ Add New Driver</span>
+                              </div>
+                            </SelectItem>
                             {drivers.map((d) => (
                               <SelectItem key={d.id} value={d.id}>
                                 {d.first_name} {d.last_name} (Risk: {d.ai_risk_score ?? 'Low'})
@@ -552,17 +583,43 @@ export default function CreateTripPage() {
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label htmlFor="vehicle_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          Assigned Vehicle <span className="text-rose-500">*</span>
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="vehicle_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            Assigned Vehicle <span className="text-rose-500">*</span>
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsAddVehicleOpen(true)}
+                            className="h-6 px-2 text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-medium gap-1"
+                          >
+                            <Plus className="w-3 h-3" /> Add New Vehicle
+                          </Button>
+                        </div>
                         <Select 
                           value={vehicleId} 
-                          onValueChange={(val) => setVehicleId(val)}
+                          onValueChange={(val) => {
+                            if (val === '__add_new_vehicle__') {
+                              setIsAddVehicleOpen(true);
+                            } else {
+                              setVehicleId(val);
+                            }
+                          }}
                         >
                           <SelectTrigger id="vehicle_id" className="h-9 text-xs border-slate-200 bg-white">
                             <SelectValue placeholder="Choose available vehicle..." />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem 
+                              value="__add_new_vehicle__" 
+                              className="font-medium text-indigo-600 dark:text-indigo-400 focus:text-indigo-600 focus:bg-indigo-50 dark:focus:bg-indigo-950/50 border-b border-slate-100 dark:border-slate-800 mb-1"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>+ Add New Vehicle</span>
+                              </div>
+                            </SelectItem>
                             {vehicles.map((v) => (
                               <SelectItem key={v.id} value={v.id}>
                                 {v.plate_number} ({v.asset_type} • {v.capacity_kg.toLocaleString()} kg)
@@ -880,6 +937,17 @@ export default function CreateTripPage() {
         </div>
 
       </div>
-    </DashboardLayout>
-  );
-}
+
+        <CreateDriverModal 
+          isOpen={isAddDriverOpen} 
+          onClose={() => setIsAddDriverOpen(false)} 
+          onCreated={(newDriver) => setDriverId(newDriver.id)} 
+        />
+        <CreateVehicleModal 
+          isOpen={isAddVehicleOpen} 
+          onClose={() => setIsAddVehicleOpen(false)} 
+          onCreated={(newVehicle) => setVehicleId(newVehicle.id)} 
+        />
+      </DashboardLayout>
+    );
+  }
