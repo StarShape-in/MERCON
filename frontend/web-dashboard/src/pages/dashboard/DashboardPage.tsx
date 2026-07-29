@@ -16,6 +16,7 @@ import { HeroStatBanner, TelemetryDarkCard, GlassmeterCard, CompactCapsulePill }
 import { DispatchTelemetryRadarKpi, SpeedometerGaugeKpi } from '@/components/ui/CustomKpiWidgets';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
+import FleetLiveMap from '@/components/maps/FleetLiveMap';
 import { reportsService } from '@/services/reportsService';
 import { tripService } from '@/services/tripService';
 import { authStore } from '@/store/authStore';
@@ -164,6 +165,9 @@ export default function DashboardPage() {
             onClick={() => navigate('/documents/expiring')}
           />
         </div>
+
+        {/* Live Fleet Radar Map Section */}
+        <FleetLiveMap />
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0">

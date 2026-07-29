@@ -13,6 +13,7 @@ import Btn from '@/components/ui/Btn';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import FormInput from '@/components/ui/FormInput';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
+import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
 import { tripService, TripStatus } from '@/services/tripService';
 
 export default function TripDetailsPage() {
@@ -172,6 +173,16 @@ export default function TripDetailsPage() {
               </div>
             </div>
           </div>
+
+          {/* Live Map Tracking Preview Card */}
+          <TripLiveMapCard 
+            tripId={trip.id}
+            refId={trip.ref_id || 'TRP-8921'}
+            pickupLat={trip.stops?.find(s => s.stop_type === 'Pickup')?.location_lat}
+            pickupLng={trip.stops?.find(s => s.stop_type === 'Pickup')?.location_lng}
+            dropoffLat={trip.stops?.find(s => s.stop_type === 'Dropoff')?.location_lat}
+            dropoffLng={trip.stops?.find(s => s.stop_type === 'Dropoff')?.location_lng}
+          />
 
           {/* Stops List */}
           <div className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm">
