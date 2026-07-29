@@ -17,6 +17,9 @@ import { DispatchTelemetryRadarKpi, SpeedometerGaugeKpi } from '@/components/ui/
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import FleetLiveMap from '@/components/maps/FleetLiveMap';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { reportsService } from '@/services/reportsService';
 import { tripService } from '@/services/tripService';
 import { authStore } from '@/store/authStore';
@@ -166,20 +169,20 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Live Fleet Radar Map Section */}
-        <FleetLiveMap />
+        {/* Live Fleet Radar Map Section (with shrink-0 layout stability) */}
+        <div className="shrink-0 w-full">
+          <FleetLiveMap />
+        </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0">
           {/* Revenue / Trip Trend */}
-          <div className="lg:col-span-2 bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4 shrink-0">
-              <div>
-                <p className="text-sm font-bold text-[#111]">Revenue Trend</p>
-                <p className="text-xs text-[#6E6E80]">Monthly completed payments (SAR)</p>
-              </div>
-            </div>
-            <div className="flex-1 min-h-[180px]">
+          <Card className="lg:col-span-2 border-black/[0.06] shadow-sm rounded-2xl bg-white flex flex-col justify-between">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold text-[#111]">Revenue Trend</CardTitle>
+              <CardDescription className="text-xs text-[#6E6E80]">Monthly completed freight payments (SAR)</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
@@ -195,122 +198,128 @@ export default function DashboardPage() {
                   <Area type="monotone" dataKey="revenue" stroke="#E8450F" strokeWidth={2} fill="url(#revenueGrad)" name="Revenue" />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Trip Status distribution */}
-          <div className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm flex flex-col justify-between">
-            <div className="shrink-0">
-              <p className="text-sm font-bold text-[#111] mb-1">Trip Status</p>
-              <p className="text-xs text-[#6E6E80] mb-3">Distribution this month</p>
-            </div>
-            
-            <div className="flex items-center justify-center flex-1 my-2">
-              <PieChart width={160} height={140}>
-                <Pie 
-                  data={pieData} 
-                  cx="50%" 
-                  cy="50%" 
-                  innerRadius={42} 
-                  outerRadius={62} 
-                  dataKey="value" 
-                  strokeWidth={0}
-                >
-                  {pieData.map((e, index) => (
-                    <Cell key={`cell-${index}`} fill={e.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </div>
+          {/* Trip Status Distribution */}
+          <Card className="border-black/[0.06] shadow-sm rounded-2xl bg-white flex flex-col justify-between">
+            <CardHeader className="pb-0">
+              <CardTitle className="text-sm font-bold text-[#111]">Trip Status Distribution</CardTitle>
+              <CardDescription className="text-xs text-[#6E6E80]">Manifest progress status overview</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col justify-between flex-1 pt-2">
+              <div className="flex items-center justify-center my-2">
+                <PieChart width={160} height={140}>
+                  <Pie 
+                    data={pieData} 
+                    cx="50%" 
+                    cy="50%" 
+                    innerRadius={42} 
+                    outerRadius={62} 
+                    dataKey="value" 
+                    strokeWidth={0}
+                  >
+                    {pieData.map((e, index) => (
+                      <Cell key={`cell-${index}`} fill={e.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </div>
 
-            <div className="space-y-1.5 shrink-0 border-t border-black/[0.04] pt-3">
-              {pieData.map((d) => (
-                <div key={d.name} className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5 font-medium text-[#444]">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
-                    {d.name}
-                  </span>
-                  <span className="font-bold text-[#111]">{d.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+              <div className="space-y-1.5 shrink-0 border-t border-black/[0.04] pt-3">
+                {pieData.map((d) => (
+                  <div key={d.name} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 font-medium text-[#444]">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
+                      {d.name}
+                    </span>
+                    <span className="font-bold text-[#111]">{d.value}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Recent Trips Table */}
-        <div className="bg-white rounded-lg border border-black/[0.06] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F2] shrink-0">
-            <p className="text-sm font-bold text-[#111]">Recent Operations Trips</p>
-            <button 
+        {/* Recent Trips Table Ledger */}
+        <Card className="border-black/[0.06] shadow-sm rounded-2xl bg-white overflow-hidden shrink-0">
+          <CardHeader className="py-4 px-5 border-b border-[#F0F0F2] flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-bold text-[#111]">Recent Operations Trips</CardTitle>
+              <CardDescription className="text-xs text-[#6E6E80]">Latest active and dispatched manifests</CardDescription>
+            </div>
+            <Button 
+              variant="ghost"
+              size="sm"
               onClick={() => navigate('/trips')}
-              className="text-xs text-[#E8450F] font-bold flex items-center gap-1 hover:underline hover:scale-[1.02] transition-all"
+              className="text-xs text-[#E8450F] font-bold gap-1 hover:text-[#d03d0c]"
             >
               <span>View All Trips</span>
               <ArrowRight size={13} />
-            </button>
-          </div>
+            </Button>
+          </CardHeader>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#FAFAFA] border-b border-black/[0.04]">
-                  <th className="px-5 py-3 text-left text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Trip ID</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Customer</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Cargo Type</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Driver</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Vehicle</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Planned Start</th>
-                </tr>
-              </thead>
-              <tbody>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-[#FAFAFA]">
+                <TableRow>
+                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Trip ID</TableHead>
+                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Customer</TableHead>
+                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Cargo Type</TableHead>
+                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Driver</TableHead>
+                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Vehicle</TableHead>
+                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Status</TableHead>
+                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Planned Start</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {tripsLoading ? (
                   Array.from({ length: 3 }).map((_, index) => (
-                    <tr key={index} className="border-b border-[#F5F5F7]">
-                      <td className="px-5 py-4"><div className="h-4 skeleton w-12" /></td>
-                      <td className="px-5 py-4"><div className="h-4 skeleton w-24" /></td>
-                      <td className="px-5 py-4"><div className="h-4 skeleton w-20" /></td>
-                      <td className="px-5 py-4"><div className="h-4 skeleton w-28" /></td>
-                      <td className="px-5 py-4"><div className="h-4 skeleton w-16" /></td>
-                      <td className="px-5 py-4"><div className="h-5 skeleton w-16 rounded-full" /></td>
-                      <td className="px-5 py-4"><div className="h-4 skeleton w-24" /></td>
-                    </tr>
+                    <TableRow key={index}>
+                      <TableCell><div className="h-4 skeleton w-12" /></TableCell>
+                      <TableCell><div className="h-4 skeleton w-24" /></TableCell>
+                      <TableCell><div className="h-4 skeleton w-20" /></TableCell>
+                      <TableCell><div className="h-4 skeleton w-28" /></TableCell>
+                      <TableCell><div className="h-4 skeleton w-16" /></TableCell>
+                      <TableCell><div className="h-5 skeleton w-16 rounded-full" /></TableCell>
+                      <TableCell><div className="h-4 skeleton w-24" /></TableCell>
+                    </TableRow>
                   ))
                 ) : recentTrips.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-10 text-xs font-semibold text-[#9898A4]">
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 text-xs font-semibold text-[#9898A4]">
                       No recent trips available. Click 'New Trip' to create one.
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   recentTrips.map((t) => (
-                    <tr 
+                    <TableRow 
                       key={t.id} 
                       onClick={() => navigate(`/trips/${t.id}`)}
-                      className="border-b border-[#F5F5F7] last:border-0 hover:bg-[#FAFAFA] cursor-pointer transition-colors"
+                      className="cursor-pointer hover:bg-[#FAFAFA] transition-colors"
                     >
-                      <td className="px-5 py-3.5 font-mono text-xs font-bold text-[#E8450F]">{t.ref_id || 'Draft'}</td>
-                      <td className="px-5 py-3.5 text-xs font-semibold text-[#111]">{t.customer?.name || '—'}</td>
-                      <td className="px-5 py-3.5 text-xs font-medium text-[#444]">{t.cargo_type}</td>
-                      <td className="px-5 py-3.5 text-xs font-medium text-[#444]">
+                      <TableCell className="font-mono text-xs font-bold text-[#E8450F]">{t.ref_id || 'Draft'}</TableCell>
+                      <TableCell className="text-xs font-semibold text-[#111]">{t.customer?.name || '—'}</TableCell>
+                      <TableCell className="text-xs font-medium text-[#444]">{t.cargo_type}</TableCell>
+                      <TableCell className="text-xs font-medium text-[#444]">
                         {t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'}
-                      </td>
-                      <td className="px-5 py-3.5 font-mono text-xs font-semibold text-[#6E6E80]">
+                      </TableCell>
+                      <TableCell className="font-mono text-xs font-semibold text-[#6E6E80]">
                         {t.vehicle?.plate_number || 'Unassigned'}
-                      </td>
-                      <td className="px-5 py-3.5">
+                      </TableCell>
+                      <TableCell>
                         <StatusBadge status={t.status} />
-                      </td>
-                      <td className="px-5 py-3.5 text-xs font-medium text-[#9898A4]">
+                      </TableCell>
+                      <TableCell className="text-xs font-medium text-[#9898A4]">
                         {t.planned_start ? new Date(t.planned_start).toLocaleDateString() : '—'}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
       </div>
     </DashboardLayout>

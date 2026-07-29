@@ -5,9 +5,14 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Navigation, Gauge, MapPin, ExternalLink, ShieldCheck } from 'lucide-react';
 
-import { PREDEFINED_ROUTES, interpolateRoutePosition, GeoPoint } from '@/services/telemetrySimulator';
+import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
-import Btn from '@/components/ui/Btn';
+
+// Shadcn UI components
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 // Custom icons
 const pickupMarkerIcon = L.divIcon({
@@ -74,7 +79,6 @@ export default function TripLiveMapCard({
   const pickupPoint: GeoPoint = { lat: pickupLat, lng: pickupLng };
   const dropoffPoint: GeoPoint = { lat: dropoffLat, lng: dropoffLng };
 
-  // Use waypoints from route definition for Polyline curve
   const route = PREDEFINED_ROUTES['riyadh-jeddah'];
   const polylineWaypoints = route
     ? route.waypoints.map((w) => [w.lat, w.lng] as [number, number])
@@ -91,104 +95,113 @@ export default function TripLiveMapCard({
   const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 320;
 
   return (
-    <div className="bg-white rounded-lg p-5 border border-black/[0.06] shadow-sm space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
-            <h3 className="text-sm font-bold text-[#111]">Live Trip Route Tracking</h3>
+    <Card className="border-black/[0.06] shadow-sm rounded-2xl bg-white overflow-hidden">
+      <CardHeader className="pb-3 border-b border-black/[0.04]">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
+              <CardTitle className="text-sm font-bold text-[#111]">Live Trip Route Tracking</CardTitle>
+              <Badge variant="outline" className="text-[10px] font-mono border-orange-200 bg-orange-50 text-[#E8450F]">
+                GPS LIVE
+              </Badge>
+            </div>
+            <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
+              Simulated telemetry feed from assigned truck vehicle
+            </CardDescription>
           </div>
-          <p className="text-xs text-[#6E6E80] mt-0.5">
-            Simulated live telemetry signal from assigned vehicle
-          </p>
-        </div>
 
-        <Btn
-          label="Full Screen Tracker"
-          variant="secondary"
-          size="sm"
-          icon={<Navigation size={13} />}
-          onClick={() => navigate(`/trips/${tripId}/track`)}
-        />
-      </div>
-
-      {/* Map Container */}
-      <div className="h-[280px] rounded-xl overflow-hidden border border-black/[0.06] relative z-0">
-        <MapContainer
-          center={[currentLat, currentLng]}
-          zoom={8}
-          scrollWheelZoom={true}
-          style={{ height: '100%', width: '100%', zIndex: 0 }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-
-          <MapFlyTo lat={currentLat} lng={currentLng} />
-
-          {/* Polyline connecting stops */}
-          <Polyline
-            positions={polylineWaypoints}
-            pathOptions={{ color: '#E8450F', weight: 4, opacity: 0.75, dashArray: '8, 8' }}
-          />
-
-          {/* Pickup Marker */}
-          <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
-            <Popup>
-              <div className="text-xs">
-                <p className="font-bold text-[#16A34A]">Pickup Location</p>
-                <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
-              </div>
-            </Popup>
-          </Marker>
-
-          {/* Dropoff Marker */}
-          <Marker position={[dropoffPoint.lat, dropoffPoint.lng]} icon={dropoffMarkerIcon}>
-            <Popup>
-              <div className="text-xs">
-                <p className="font-bold text-[#DC2626]">Dropoff Destination</p>
-                <p className="text-[10px] text-gray-500">Jeddah Islamic Port</p>
-              </div>
-            </Popup>
-          </Marker>
-
-          {/* Animated Truck Marker */}
-          <Marker
-            position={[currentLat, currentLng]}
-            icon={createLiveTruckIcon(heading)}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate(`/trips/${tripId}/track`)}
+            className="h-8 text-xs font-bold gap-1 border-black/[0.08] hover:bg-[#F5F5F7]"
           >
-            <Popup>
-              <div className="text-xs font-sans">
-                <p className="font-bold text-[#111]">{simulatedTruck.plateNumber}</p>
-                <p className="text-[10px] text-gray-500">Speed: {speed} km/h</p>
+            <Navigation size={13} className="text-[#E8450F]" />
+            <span>Full Tracker</span>
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-4 space-y-3">
+        {/* Map View */}
+        <div className="h-[290px] rounded-xl overflow-hidden border border-black/[0.06] relative z-0">
+          <MapContainer
+            center={[currentLat, currentLng]}
+            zoom={8}
+            scrollWheelZoom={true}
+            style={{ height: '100%', width: '100%', zIndex: 0 }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+
+            <MapFlyTo lat={currentLat} lng={currentLng} />
+
+            <Polyline
+              positions={polylineWaypoints}
+              pathOptions={{ color: '#E8450F', weight: 4, opacity: 0.75, dashArray: '8, 8' }}
+            />
+
+            <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
+              <Popup>
+                <div className="text-xs">
+                  <p className="font-bold text-[#16A34A]">Pickup Origin</p>
+                  <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
+                </div>
+              </Popup>
+            </Marker>
+
+            <Marker position={[dropoffPoint.lat, dropoffPoint.lng]} icon={dropoffMarkerIcon}>
+              <Popup>
+                <div className="text-xs">
+                  <p className="font-bold text-[#DC2626]">Dropoff Destination</p>
+                  <p className="text-[10px] text-gray-500">Jeddah Islamic Port</p>
+                </div>
+              </Popup>
+            </Marker>
+
+            <Marker
+              position={[currentLat, currentLng]}
+              icon={createLiveTruckIcon(heading)}
+            >
+              <Popup>
+                <div className="text-xs font-sans">
+                  <p className="font-bold text-[#111]">{simulatedTruck.plateNumber}</p>
+                  <p className="text-[10px] text-gray-500">Speed: {speed} km/h</p>
+                </div>
+              </Popup>
+            </Marker>
+          </MapContainer>
+
+          {/* Bottom Telemetry Bar */}
+          <div className="absolute bottom-3 left-3 right-3 z-[400] bg-white/95 backdrop-blur p-3 rounded-xl shadow-md border border-black/[0.06] space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-[#FFF0EB] p-2 rounded-lg text-[#E8450F]">
+                  <Gauge size={16} />
+                </div>
+                <div>
+                  <p className="text-[9px] text-[#6E6E80] font-bold uppercase tracking-wider">Live Telemetry</p>
+                  <p className="text-xs font-bold text-[#111]">
+                    {speed} km/h • <span className="font-mono text-[11px]">{currentLat.toFixed(4)}, {currentLng.toFixed(4)}</span>
+                  </p>
+                </div>
               </div>
-            </Popup>
-          </Marker>
-        </MapContainer>
 
-        {/* Live GPS Coords & Telemetry Overlay */}
-        <div className="absolute bottom-3 left-3 right-3 z-[400] bg-white/95 backdrop-blur p-3 rounded-xl shadow-md border border-black/[0.06] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#FFF0EB] p-2 rounded-lg text-[#E8450F]">
-              <Gauge size={16} />
+              <div className="text-right">
+                <p className="text-[9px] text-[#6E6E80] font-bold uppercase tracking-wider">ETA Progress</p>
+                <p className="text-xs font-bold text-[#E8450F]">
+                  {progress}% • ~{Math.floor(etaMin / 60)}h {etaMin % 60}m
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[9px] text-[#6E6E80] font-bold uppercase tracking-wider">Current Telemetry</p>
-              <p className="text-xs font-bold text-[#111] mt-0.5">
-                {speed} km/h • <span className="font-mono text-[11px]">{currentLat.toFixed(4)}, {currentLng.toFixed(4)}</span>
-              </p>
-            </div>
-          </div>
 
-          <div className="text-right">
-            <p className="text-[9px] text-[#6E6E80] font-bold uppercase tracking-wider">Progress / ETA</p>
-            <p className="text-xs font-bold text-[#E8450F] mt-0.5">
-              {progress}% • ~{Math.floor(etaMin / 60)}h {etaMin % 60}m
-            </p>
+            <Progress value={progress} className="h-1.5 bg-gray-100" />
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
