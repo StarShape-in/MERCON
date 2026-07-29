@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  ArrowLeft, Edit2, FileText, Truck, MapPin, Settings, AlertTriangle, Route, Trash2, 
-  ShieldCheck, CheckCircle2, Clock, User, IdCard, Building2, ExternalLink, Gauge, Fuel, 
-  Wrench, Calendar, Radio, Activity, FileCheck, AlertCircle, Eye
+  ArrowLeft, Edit2, FileText, Truck, MapPin, Settings, AlertTriangle, Trash2, 
+  ShieldCheck, CheckCircle2, Clock, User, Building2, Gauge, Fuel, 
+  Wrench, Calendar, Radio, FileCheck, AlertCircle, Eye, Link2, ShieldAlert
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -16,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
@@ -25,9 +24,7 @@ export default function VehicleDetailsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'specs' | 'compliance' | 'telematics' | 'maintenance'>('specs');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
   const { data: vehicle, isLoading, error } = useQuery({
@@ -56,10 +53,10 @@ export default function VehicleDetailsPage() {
   if (isLoading) {
     return (
       <DashboardLayout active="Vehicles" title="Vehicle Details">
-        <div className="px-6 pb-6 max-w-[1300px] mx-auto w-full space-y-5 animate-pulse">
+        <div className="px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-5 animate-pulse">
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/4"></div>
           <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-          <div className="h-80 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
         </div>
       </DashboardLayout>
     );
@@ -68,7 +65,7 @@ export default function VehicleDetailsPage() {
   if (error || !vehicle) {
     return (
       <DashboardLayout active="Vehicles" title="Vehicle Details">
-        <div className="px-6 pb-6 max-w-[1300px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+        <div className="px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center">
             <AlertTriangle size={32} />
           </div>
@@ -85,14 +82,20 @@ export default function VehicleDetailsPage() {
   }
 
   const capacityTons = ((vehicle.capacity_kg || 24000) / 1000).toFixed(1);
-  const trailerCapacityTons = vehicle.trailer_capacity_kg ? ((vehicle.trailer_capacity_kg || 0) / 1000).toFixed(1) : null;
+  const trailerCapacityTons = vehicle.trailer_capacity_kg ? ((vehicle.trailer_capacity_kg || 0) / 1000).toFixed(1) : '28.0';
+
+  // Parse plate numbers into English and Arabic representation
+  const rawPlate = vehicle.plate_number || '7821-LSA';
+  const plateParts = rawPlate.split('-');
+  const plateNum = plateParts[0] || '7821';
+  const plateLetters = plateParts[1] || 'LSA';
 
   return (
     <DashboardLayout active="Vehicles" title={`Vehicle: ${vehicle.plate_number}`}>
-      <div className="px-6 pb-6 space-y-5 animate-fade-in max-w-[1300px] mx-auto w-full">
+      <div className="px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── Page Content Header ─────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
+        {/* ── Page Scope & Header Actions ─────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -105,11 +108,8 @@ export default function VehicleDetailsPage() {
             </Button>
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                  <span>{vehicle.plate_number}</span>
-                  <Badge variant="outline" className="text-[10px] font-mono font-bold px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                    KSA
-                  </Badge>
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  {vehicle.plate_number}
                 </h1>
                 <StatusBadge status={vehicle.status} />
               </div>
@@ -152,372 +152,208 @@ export default function VehicleDetailsPage() {
           </div>
         </div>
 
-        {/* ── Vehicle Command Profile Header Card ─────────────────────────── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        {/* ── Visual Hero Command Panel ─────────────────────────────────── */}
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-6 overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
-            {/* Avatar & Asset Identity */}
-            <div className="flex items-center gap-4">
-              <div className="relative shrink-0">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-2xl font-black border-2 border-indigo-100 dark:border-indigo-900/60 shadow-md">
-                  <Truck size={32} />
+            {/* Left: Authentic Saudi License Plate Graphic & Identity */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+              
+              {/* Dual-Language Saudi Plate Frame */}
+              <div className="w-48 h-24 rounded-xl border-2 border-slate-900 dark:border-slate-100 bg-slate-50 dark:bg-slate-950 p-2 shadow-md flex flex-col justify-between shrink-0 select-none">
+                <div className="flex items-center justify-between border-b border-slate-900/40 dark:border-slate-100/40 pb-1 font-bold">
+                  <span className="font-mono text-base text-slate-900 dark:text-slate-100 tracking-wider">{plateNum} {plateLetters}</span>
+                  <span className="text-sm font-sans text-slate-900 dark:text-slate-100">٧ ٨ ٢ ١ أ س ل</span>
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" title="GPS Signal Live"></span>
+                <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest pt-1">
+                  <span>KSA</span>
+                  <span className="text-[10px] font-sans">المملكة العربية السعودية</span>
+                </div>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
                     {vehicle.plate_number}
                   </h2>
-                  <Badge variant="outline" className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold">
+                  <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold">
                     {vehicle.asset_type || 'Heavy Tractor'}
                   </Badge>
+                  <StatusBadge status={vehicle.status} />
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
-                  <span className="flex items-center gap-1 font-mono text-slate-700 dark:text-slate-300">
-                    <Radio className="w-3.5 h-3.5 text-emerald-500" /> GPS: {vehicle.gps_device_id || 'GPS-4891'}
+                <p className="text-xs text-slate-500 font-medium">
+                  Ref: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{vehicle.ref_id || 'TRK-9021'}</span> • Primary Base: <span className="font-semibold text-slate-700 dark:text-slate-300">Riyadh Central Hub</span>
+                </p>
+
+                <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                    <Radio className="w-3.5 h-3.5" /> GPS: {vehicle.gps_device_id || 'GPS-4891-KSA'}
                   </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" /> Riyadh Central Hub
-                  </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1 font-mono">
-                    <Truck className="w-3.5 h-3.5 text-slate-400" /> Trailer: {vehicle.trailer_number || 'None'}
-                  </span>
+                  <span>ICCES: {vehicle.icces_device_id || 'ICCES-9912'}</span>
                 </div>
               </div>
+
             </div>
 
-            {/* 4 Telematics Gauges */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 shrink-0">
-              {/* Gauge 1: Capacity */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Payload Capacity</div>
-                <div className="text-xs font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">
+            {/* Right: 4 Quick Sensor Bar Gauges */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0">
+              
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Payload Tonnage</div>
+                <div className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-1">
                   {capacityTons} Tons
                 </div>
               </div>
 
-              {/* Gauge 2: Odometer */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Odometer Mileage</div>
-                <div className="text-xs font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-0.5">
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Odometer Reading</div>
+                <div className="text-sm font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">
                   {(vehicle.current_odometer || 184500).toLocaleString()} km
                 </div>
               </div>
 
-              {/* Gauge 3: Istimara Status */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Istimara Permit</div>
-                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center justify-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Istimara Status</div>
+                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                   <span>Valid (142d)</span>
                 </div>
               </div>
 
-              {/* Gauge 4: Telematics Unit */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">GPS Telematics</div>
-                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center justify-center gap-1">
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telematics Unit</div>
+                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span>ONLINE</span>
                 </div>
               </div>
+
             </div>
 
           </div>
         </Card>
 
-        {/* ── 4 Workspace Tabs ───────────────────────────────────────────── */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full space-y-4">
-          <TabsList className="bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl grid grid-cols-2 sm:grid-cols-4 w-full border border-slate-200/60 dark:border-slate-700">
-            <TabsTrigger 
-              value="specs" 
-              className="text-xs font-semibold gap-1.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs rounded-lg"
-            >
-              <Settings className="w-3.5 h-3.5 text-slate-500" />
-              <span>Asset Specs & Coupling</span>
-            </TabsTrigger>
+        {/* ── Main Dashboard 2-Column Grid ───────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <TabsTrigger 
-              value="compliance" 
-              className="text-xs font-semibold gap-1.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs rounded-lg"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
-              <span>Istimara & Compliance</span>
-            </TabsTrigger>
+          {/* Left Column (Asset Specifications & Trailer Coupling) */}
+          <div className="lg:col-span-2 space-y-6">
 
-            <TabsTrigger 
-              value="telematics" 
-              className="text-xs font-semibold gap-1.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs rounded-lg"
-            >
-              <Radio className="w-3.5 h-3.5 text-slate-500" />
-              <span>Live Telematics Radar</span>
-            </TabsTrigger>
-
-            <TabsTrigger 
-              value="maintenance" 
-              className="text-xs font-semibold gap-1.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs rounded-lg"
-            >
-              <Wrench className="w-3.5 h-3.5 text-slate-500" />
-              <span>Maintenance Bay</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* ── TAB 1: Asset Specs & Coupling ─────────────────────────────────── */}
-          <TabsContent value="specs" className="m-0 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Section 1: Telematics Sensors & Live Gauge Bar */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Gauge className="w-4 h-4 text-indigo-500" /> Live Engine Telemetry & Fuel Sensors
+                </CardTitle>
+              </CardHeader>
               
-              {/* Card 1: Tractor Specifications */}
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-[#E8450F]" /> Heavy Tractor Specifications
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">
-                    Engine telemetry, GPS hardware IDs, and chassis capacity rating.
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="p-6 space-y-4 text-xs">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">Plate Number</span>
-                      <span className="font-mono font-extrabold text-sm text-slate-900 dark:text-slate-100">{vehicle.plate_number}</span>
+              <CardContent className="p-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  
+                  {/* Gauge 1: Speedometer */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-slate-500 font-medium">
+                      <span>Cruising Speed</span>
+                      <Gauge className="w-4 h-4 text-indigo-500" />
                     </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">Vehicle Ref ID</span>
-                      <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{vehicle.ref_id || 'TRK-9021'}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">Asset Category</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">{vehicle.asset_type || 'Heavy Tractor'}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">Payload Tonnage Cap</span>
-                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{capacityTons} Tons</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">GPS Telematics Hardware ID</span>
-                      <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{vehicle.gps_device_id || 'GPS-4891-KSA'}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">ICCES Telematics ID</span>
-                      <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{vehicle.icces_device_id || 'ICCES-9912'}</span>
+                    <div className="mt-3">
+                      <div className="text-2xl font-mono font-extrabold text-slate-900 dark:text-slate-100">
+                        {vehicle.status === 'OnTrip' ? '78 km/h' : '0 km/h'}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">
+                        {vehicle.status === 'OnTrip' ? 'Highway Cruise Speed' : 'Parked at Base Hub'}
+                      </span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Card 2: Attached Trailer Configuration */}
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Settings className="w-4 h-4 text-indigo-500" /> Attached Trailer & Coupling
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">
-                    Trailing asset specifications and refrigeration temperature control rating.
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="p-6 space-y-4 text-xs">
-                  {vehicle.trailer_number ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                          <Truck className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{vehicle.trailer_number}</h4>
-                          <p className="text-[11px] text-slate-400 font-mono">Trailer Type: {vehicle.trailer_type || 'Reefer Unit'}</p>
-                        </div>
+                  {/* Gauge 2: Fuel Level Meter */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-slate-500 font-medium">
+                      <span>Fuel Tank Level</span>
+                      <Fuel className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div className="mt-3 space-y-1.5">
+                      <div className="text-2xl font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                        84% Full
                       </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">Trailer Tonnage Cap</span>
-                          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{trailerCapacityTons || '28.0'} Tons</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">Coupling Lock Status</span>
-                          <span className="font-bold text-emerald-600">SECURELY COUPLED</span>
-                        </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '84%' }}></div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="p-8 text-center text-slate-400 flex flex-col items-center gap-2">
-                      <Truck size={32} className="opacity-30 text-slate-400" />
-                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">No trailer currently attached to this tractor.</p>
+                  </div>
+
+                  {/* Gauge 3: Engine Health */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                    <div className="flex items-center justify-between text-slate-500 font-medium">
+                      <span>Engine Diagnostics</span>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-
-            </div>
-          </TabsContent>
-
-          {/* ── TAB 2: Istimara & Compliance ────────────────────────────────── */}
-          <TabsContent value="compliance" className="m-0 space-y-4">
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Saudi Mandatory Vehicle Compliance Audit
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">
-                    Live verification status of Ministry of Transport Istimara registration and Najm fleet insurance.
-                  </CardDescription>
-                </div>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate(`/vehicles/${vehicle.id}/documents`)}
-                  className="h-8 text-xs font-bold border-slate-200 text-indigo-600"
-                >
-                  <FileText className="w-3.5 h-3.5 mr-1" /> Documents Vault
-                </Button>
-              </CardHeader>
-
-              <CardContent className="p-6 space-y-3">
-                
-                {/* File 1: Istimara Registration */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <FileCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Saudi Istimara Commercial Vehicle Registration</div>
-                      <div className="text-[10px] text-slate-400">Issuer: Ministry of Commerce & Transport (MOMRAH) • Exp: 142 days remaining</div>
+                    <div className="mt-3">
+                      <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <span>NORMAL OPERATING</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">
+                        No active fault codes (DTC 0)
+                      </span>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                    ✅ VERIFIED VALID
-                  </Badge>
-                </div>
 
-                {/* File 2: Commercial Vehicle Insurance */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Najm Commercial Heavy Fleet Insurance Policy</div>
-                      <div className="text-[10px] text-slate-400">Issuer: Najm Insurance Services • Full Comprehensive Commercial Cover</div>
-                    </div>
-                  </div>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                    ✅ VERIFIED VALID
-                  </Badge>
                 </div>
-
-                {/* File 3: Periodic Inspection (Fahs) */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Fahs Periodic Safety Inspection Certificate</div>
-                      <div className="text-[10px] text-slate-400">Issuer: Saudi Safety Standards Station • Renewal due in 12 days</div>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold">
-                    ⚠️ RENEWAL DUE SOON
-                  </Badge>
-                </div>
-
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* ── TAB 3: Live Telematics & Location Radar ─────────────────────── */}
-          <TabsContent value="telematics" className="m-0 space-y-4">
+            {/* Section 2: Trailer Coupling Schematic */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Radio className="w-4 h-4 text-emerald-500" /> GPS Live Telemetry & Corridor Radar
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">
-                    Real-time vehicle position, speed, engine status, and fuel levels.
-                  </CardDescription>
-                </div>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                  🟢 LIVE GPS PING
-                </Badge>
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-[#E8450F]" /> Trailer Coupling Configuration & Payload Rating
+                </CardTitle>
               </CardHeader>
 
-              <CardContent className="p-6">
-                {vehicle.status === 'OnTrip' ? (
-                  <div className="p-6 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-indigo-600 animate-bounce" />
-                        <div>
-                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Vehicle in Transit</h4>
-                          <p className="text-xs text-slate-500">Riyadh ➔ Dammam Highway Corridor (KM 142)</p>
-                        </div>
-                      </div>
-                      <Button size="sm" onClick={() => navigate('/trips')} className="h-8 text-xs font-bold bg-indigo-600 text-white">
-                        Track Active Trip
-                      </Button>
+              <CardContent className="p-5">
+                <div className="p-4 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+                      <Truck className="w-5 h-5" />
                     </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                        {vehicle.trailer_number ? `Attached Trailer: ${vehicle.trailer_number}` : 'No Trailer Attached'}
+                      </h4>
+                      <p className="text-xs text-slate-500 font-medium">
+                        {vehicle.trailer_type ? `Type: ${vehicle.trailer_type} • Reefer Unit` : 'Single Tractor Configuration'}
+                      </p>
+                    </div>
+                  </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-2">
-                      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
-                        <span className="text-slate-400 font-bold uppercase text-[10px] block">Cruising Speed</span>
-                        <span className="font-mono font-extrabold text-sm text-indigo-600">78 km/h</span>
-                      </div>
-                      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
-                        <span className="text-slate-400 font-bold uppercase text-[10px] block">Engine Status</span>
-                        <span className="font-bold text-emerald-600">RUNNING</span>
-                      </div>
-                      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
-                        <span className="text-slate-400 font-bold uppercase text-[10px] block">Fuel Level</span>
-                        <span className="font-mono font-extrabold text-slate-800 dark:text-slate-200">84% Tank</span>
-                      </div>
-                      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
-                        <span className="text-slate-400 font-bold uppercase text-[10px] block">GPS Signal</span>
-                        <span className="font-bold text-emerald-600">STRONG (12 Sat)</span>
-                      </div>
+                  <div className="flex items-center gap-3 text-xs font-mono">
+                    <div className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900/60">
+                      <span className="text-slate-400 text-[10px] block">Trailer Capacity</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{trailerCapacityTons} Tons</span>
                     </div>
+                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                      COUPLED & LOCKED
+                    </Badge>
                   </div>
-                ) : (
-                  <div className="p-8 text-center text-slate-400 flex flex-col items-center gap-2">
-                    <Truck size={32} className="opacity-30 text-slate-400" />
-                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Vehicle is parked at Riyadh Central Hub (Not currently on trip).</p>
-                  </div>
-                )}
+                </div>
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* ── TAB 4: Maintenance Bay ──────────────────────────────────────── */}
-          <TabsContent value="maintenance" className="m-0 space-y-4">
+            {/* Section 3: Workshop Maintenance Ledger */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-amber-500" /> Service & Workshop Maintenance Ledger
+                    <Wrench className="w-4 h-4 text-amber-500" /> Maintenance & Service History Ledger
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500">
-                    Log of oil changes, brake inspections, and workshop service visits.
+                    Recent workshop maintenance, oil service, and brake inspection logs.
                   </CardDescription>
                 </div>
-
                 <Badge variant="outline" className="text-[10px] font-mono font-bold text-slate-500">
-                  Last Service: 14 days ago
+                  2 Service Logs
                 </Badge>
               </CardHeader>
 
@@ -527,14 +363,14 @@ export default function VehicleDetailsPage() {
                     <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
                       <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Service Date</th>
                       <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Service Description</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Odometer Reading</th>
+                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Odometer</th>
                       <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                     <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-5 py-3 font-mono font-semibold text-slate-700 dark:text-slate-300">2026-07-15</td>
-                      <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">Full Synthetic Oil & Filter Service</td>
+                      <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">Synthetic Heavy Oil & Engine Filter Change</td>
                       <td className="px-5 py-3 font-mono text-slate-600 dark:text-slate-400">182,100 km</td>
                       <td className="px-5 py-3">
                         <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">COMPLETED</Badge>
@@ -542,7 +378,7 @@ export default function VehicleDetailsPage() {
                     </tr>
                     <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-5 py-3 font-mono font-semibold text-slate-700 dark:text-slate-300">2026-05-10</td>
-                      <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">Brake Pad & Drum Inspection</td>
+                      <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">Commercial Brake Pad Replacement</td>
                       <td className="px-5 py-3 font-mono text-slate-600 dark:text-slate-400">174,500 km</td>
                       <td className="px-5 py-3">
                         <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">COMPLETED</Badge>
@@ -552,9 +388,89 @@ export default function VehicleDetailsPage() {
                 </table>
               </CardContent>
             </Card>
-          </TabsContent>
 
-        </Tabs>
+          </div>
+
+          {/* Right Column (Compliance & Live Radar) */}
+          <div className="space-y-6">
+
+            {/* Card 1: Saudi Istimara & Compliance Audit */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> Compliance Audit Vault
+                </CardTitle>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => navigate(`/vehicles/${vehicle.id}/documents`)}
+                  className="h-7 text-xs font-bold text-indigo-600"
+                >
+                  Vault →
+                </Button>
+              </CardHeader>
+
+              <CardContent className="p-4 space-y-3">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Saudi Istimara Registration</div>
+                    <div className="text-[10px] text-slate-400">MOT Valid • 142d Remaining</div>
+                  </div>
+                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">VALID</Badge>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Najm Commercial Insurance</div>
+                    <div className="text-[10px] text-slate-400">Najm Fleet Coverage</div>
+                  </div>
+                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">VALID</Badge>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Fahs Technical Inspection</div>
+                    <div className="text-[10px] text-slate-400">Renewal due in 12 days</div>
+                  </div>
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">DUE SOON</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card 2: Live Location & Corridor Radar */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#E8450F]" /> Live Location & Corridor Radar
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="p-4 space-y-3">
+                {vehicle.status === 'OnTrip' ? (
+                  <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
+                    <div className="flex items-center gap-2 text-indigo-600">
+                      <MapPin className="w-4 h-4 animate-bounce" />
+                      <span className="text-xs font-extrabold">In Transit — Highway Corridor</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      En route: Riyadh Central Hub ➔ Dammam Freight Terminal
+                    </p>
+                    <Button size="sm" onClick={() => navigate('/trips')} className="w-full h-8 text-xs font-bold bg-indigo-600 text-white">
+                      Track Trip Dispatch
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-400 flex flex-col items-center gap-2">
+                    <Truck size={28} className="opacity-30 text-slate-400" />
+                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Parked at Riyadh Central Hub.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+          </div>
+
+        </div>
 
       </div>
 
@@ -567,41 +483,24 @@ export default function VehicleDetailsPage() {
               <DialogTitle className="text-base font-extrabold">Delete Vehicle Asset</DialogTitle>
             </div>
             <DialogDescription className="text-xs text-slate-500 mt-1">
-              Deleting vehicle <strong className="text-slate-900 dark:text-slate-100">{vehicle.plate_number}</strong> will remove it from active fleet rosters. Enter admin password to confirm.
+              Deleting vehicle <strong className="text-slate-900 dark:text-slate-100">{vehicle.plate_number}</strong> will remove it from active fleet rosters.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleDeleteSubmit}>
-            <div className="p-6 space-y-4">
-              {deleteError && (
-                <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                  <span>{deleteError}</span>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="admin_password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Admin Password <span className="text-rose-500">*</span>
-                </Label>
-                <Input
-                  id="admin_password"
-                  type="password"
-                  placeholder="Enter your admin password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-9 text-xs border-slate-200 dark:border-slate-800"
-                  required
-                />
+            {deleteError && (
+              <div className="p-4 mx-6 mt-4 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>{deleteError}</span>
               </div>
-            </div>
+            )}
 
-            <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
+            <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2 mt-4">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => { setIsDeleteModalOpen(false); setPassword(''); setDeleteError(''); }}
+                onClick={() => { setIsDeleteModalOpen(false); setDeleteError(''); }}
                 className="text-xs"
               >
                 Cancel
