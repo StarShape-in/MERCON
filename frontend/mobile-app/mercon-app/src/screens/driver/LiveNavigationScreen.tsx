@@ -31,6 +31,7 @@ const LiveNavigationScreen = () => {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [arriving, setArriving] = useState(false);
   const hasArrivedRef = useRef(false);
+  const mapRef = useRef<MapView>(null);
 
   const isHeadingToPickup = trip?.status === 'Dispatched';
   const pickup = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
@@ -85,6 +86,19 @@ const LiveNavigationScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStop?.id]);
 
+  // Frame both the driver and the active stop whenever they change.
+  useEffect(() => {
+    if (position && activeStop && mapRef.current) {
+      mapRef.current.fitToCoordinates(
+        [
+          { latitude: position.lat, longitude: position.lng },
+          { latitude: activeStop.location_lat, longitude: activeStop.location_lng }
+        ],
+        { edgePadding: { top: 80, right: 80, bottom: 80, left: 80 }, animated: true }
+      );
+    }
+  }, [position, activeStop]);
+
   if (loading && !trip) {
     return (
       <SafeAreaView style={[styles.container, styles.centerBox]}>
@@ -101,6 +115,7 @@ const LiveNavigationScreen = () => {
 
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           provider={PROVIDER_DEFAULT}
           style={styles.map}
           initialRegion={{
@@ -109,7 +124,6 @@ const LiveNavigationScreen = () => {
             latitudeDelta: 0.2,
             longitudeDelta: 0.2,
           }}
-          region={position ? { latitude: position.lat, longitude: position.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 } : undefined}
         >
           <UrlTile urlTemplate={OSM_TILE_URL} maximumZ={19} flipY={false} />
 
