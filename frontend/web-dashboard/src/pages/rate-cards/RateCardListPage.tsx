@@ -453,7 +453,12 @@ export default function RateCardListPage() {
         {viewMode === 'ledger' ? (
           <div className="flex-1 min-h-0 flex flex-col">
             <DataTable
-              title="🛣 Tariff & Rate Card Ledger"
+              title={
+                <span className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-orange-500" />
+                  <span>Tariff & Rate Card Ledger</span>
+                </span>
+              }
               columns={columns}
               data={filteredData}
               bulkActions={bulkActions}

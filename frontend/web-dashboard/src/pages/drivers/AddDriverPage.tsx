@@ -14,7 +14,8 @@ import {
   ShieldCheck, 
   Keyboard, 
   UserCheck, 
-  BadgeCheck 
+  BadgeCheck,
+  Building2
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -141,7 +142,8 @@ export default function AddDriverPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <span>🏢 MERCON Fleet</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+              <span>MERCON Fleet</span>
               <span>•</span>
               <span className="text-slate-900 dark:text-slate-100 font-bold">Human Capital</span>
             </div>
@@ -447,7 +449,7 @@ export default function AddDriverPage() {
                 <div className="bg-gradient-to-br from-emerald-50 to-teal-100/60 dark:from-emerald-950/40 dark:to-teal-900/20 border-2 border-emerald-300 dark:border-emerald-700/60 rounded-xl p-3.5 space-y-2.5 shadow-2xs relative">
                   <div className="flex items-center justify-between border-b border-emerald-300/60 dark:border-emerald-700/60 pb-1.5">
                     <div className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
-                      <span>KSA</span> <span>🇸🇦</span> <span>Kingdom of Saudi Arabia</span>
+                      <span>KSA</span> <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block" /> <span>Kingdom of Saudi Arabia</span>
                     </div>
                     <Badge className="bg-emerald-600 text-white text-[9px] px-1.5 py-0 font-bold">
                       COMMERCIAL

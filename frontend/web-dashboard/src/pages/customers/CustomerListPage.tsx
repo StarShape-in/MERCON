@@ -512,7 +512,12 @@ export default function CustomerListPage() {
         {viewMode === 'list' ? (
           <div className="flex-1 min-h-0 flex flex-col">
             <DataTable
-              title="🏢 Customer Accounts Ledger"
+              title={
+                <span className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-cyan-500" />
+                  <span>Customer Accounts Ledger</span>
+                </span>
+              }
               columns={columns}
               data={filteredCustomers}
               bulkActions={bulkActions}

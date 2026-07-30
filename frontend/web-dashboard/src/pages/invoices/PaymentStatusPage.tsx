@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, FileText, CheckCircle2, Clock, AlertTriangle, Search, RotateCw, DollarSign, Plus } from 'lucide-react';
+import { Download, FileText, CheckCircle2, Clock, AlertTriangle, Search, RotateCw, DollarSign, Plus, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -237,7 +237,12 @@ export default function PaymentStatusPage() {
           <div className="p-12 text-center text-rose-600 text-sm font-semibold bg-white rounded-xl border border-slate-200">Failed to load invoices.</div>
         ) : (
           <DataTable
-            title="💳 Payment Transactions Ledger"
+            title={
+              <span className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-green-500" />
+                <span>Payment Transactions Ledger</span>
+              </span>
+            }
             columns={columns}
             data={filteredInvoices}
             bulkActions={[

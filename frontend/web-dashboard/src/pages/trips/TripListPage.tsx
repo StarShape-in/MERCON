@@ -634,7 +634,12 @@ export default function TripListPage() {
 
         <div className="flex-1 min-h-0 flex flex-col">
           <DataTable
-            title="🥞 Trip Ledger"
+            title={
+              <span className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-indigo-500" />
+                <span>Trip Ledger</span>
+              </span>
+            }
             data={trips}
             columns={columns}
             enableSelection={true}

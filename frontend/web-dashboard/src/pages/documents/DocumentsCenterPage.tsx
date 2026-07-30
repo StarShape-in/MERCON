@@ -421,10 +421,30 @@ export default function DocumentsCenterPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
-                  <SelectItem value="expired" className="text-xs text-rose-600 font-semibold">🔴 Expired</SelectItem>
-                  <SelectItem value="critical" className="text-xs text-rose-500 font-semibold">⚠️ Critical (&lt;7d)</SelectItem>
-                  <SelectItem value="warning" className="text-xs text-amber-600 font-semibold">🟡 Due Soon (&lt;30d)</SelectItem>
-                  <SelectItem value="valid" className="text-xs text-emerald-600 font-semibold">✅ Valid</SelectItem>
+                  <SelectItem value="expired" className="text-xs text-rose-600 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
+                      <span>Expired</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="critical" className="text-xs text-rose-500 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <span>Critical (&lt;7d)</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="warning" className="text-xs text-amber-600 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                      <span>Due Soon (&lt;30d)</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="valid" className="text-xs text-emerald-600 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Valid</span>
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -473,7 +493,12 @@ export default function DocumentsCenterPage() {
           </div>
         ) : viewMode === 'list' ? (
           <DataTable
-            title="📁 Compliance Document Repository"
+            title={
+              <span className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4 text-indigo-500" />
+                <span>Compliance Document Repository</span>
+              </span>
+            }
             columns={[
               {
                 header: 'Document Name',

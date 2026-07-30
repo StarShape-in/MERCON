@@ -236,7 +236,8 @@ export default function CreateInvoicePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <span>🏢 MERCON Financials</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+              <span>MERCON Financials</span>
               <span>•</span>
               <span className="text-slate-900 dark:text-slate-100 font-bold">Billing & Invoicing</span>
             </div>

@@ -368,8 +368,9 @@ export default function DriverDetailsPage() {
                       <div className="text-[10px] text-slate-400">Issuer: Ministry of Transport (MOT) • Exp: {new Date(driver.license_expiry).toLocaleDateString()}</div>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                    ✅ VERIFIED VALID
+                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block animate-pulse" />
+                    <span>VERIFIED VALID</span>
                   </Badge>
                 </div>
 
@@ -384,8 +385,9 @@ export default function DriverDetailsPage() {
                       <div className="text-[10px] text-slate-400">Issuer: Saudi MOMRAH Approved Clinic • Valid for 12 months</div>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                    ✅ VERIFIED VALID
+                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block animate-pulse" />
+                    <span>VERIFIED VALID</span>
                   </Badge>
                 </div>
 
@@ -400,8 +402,9 @@ export default function DriverDetailsPage() {
                       <div className="text-[10px] text-slate-400">Issuer: Internal Fleet Operations • Renewal due in 18 days</div>
                     </div>
                   </div>
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold">
-                    ⚠️ RENEWAL DUE SOON
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
+                    <span>RENEWAL DUE SOON</span>
                   </Badge>
                 </div>
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, Truck, TrendingUp } from 'lucide-react';
+import { Download, FileText, Truck, TrendingUp, BarChart3 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -297,9 +297,14 @@ export default function CustomReportPage() {
             <div className="flex-1 min-h-0 flex flex-col">
               <DataTable
                 title={
-                  customerId !== 'all' && customers.find((c: any) => c.id === customerId)
-                    ? `📊 Customer Report: ${customers.find((c: any) => c.id === customerId)?.name || customers.find((c: any) => c.id === customerId)?.company_name}`
-                    : "📊 Custom Operational & Trip Ledger Report"
+                  <span className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-[#E8450F]" />
+                    <span>
+                      {customerId !== 'all' && customers.find((c: any) => c.id === customerId)
+                        ? `Customer Report: ${customers.find((c: any) => c.id === customerId)?.name || customers.find((c: any) => c.id === customerId)?.company_name}`
+                        : "Custom Operational & Trip Ledger Report"}
+                    </span>
+                  </span>
                 }
                 columns={columns}
                 data={reportData.trips}

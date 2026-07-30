@@ -142,11 +142,13 @@ export default function EditCustomerPage() {
               type="button" 
               onClick={() => navigate('/customers')} 
               disabled={isSubmitting} 
+              shortcut={{ key: 'Escape' }}
             />
             <Btn 
               label={isSubmitting ? 'Saving...' : 'Save Changes'} 
               type="submit" 
               disabled={isSubmitting} 
+              shortcut={{ key: 'Enter', metaOrControl: true }}
             />
           </div>
         </form>

@@ -92,12 +92,14 @@ export default function EditTripPage() {
             variant="secondary" 
             type="button" 
             onClick={() => navigate(`/trips/${id}`)} 
+            shortcut={{ key: 'Escape' }}
           />
           <Btn 
             label="Update Status" 
             type="submit" 
             icon={<Save size={14} />}
             disabled={updateMutation.isPending}
+            shortcut={{ key: 'Enter', metaOrControl: true }}
           />
         </div>
       </form>

@@ -11,6 +11,7 @@ import {
   AlertTriangle, 
   RefreshCw, 
   User, 
+  Users,
   CheckCircle2, 
   RotateCw, 
   List, 
@@ -595,7 +596,12 @@ export default function DriverListPage() {
         {viewMode === 'list' ? (
           <div className="flex-1 min-h-0 flex flex-col">
             <DataTable
-              title="🥞 Driver Roster Ledger"
+              title={
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-emerald-500" />
+                  <span>Driver Roster Ledger</span>
+                </span>
+              }
               data={filteredDrivers}
               columns={columns}
               enableSelection={true}

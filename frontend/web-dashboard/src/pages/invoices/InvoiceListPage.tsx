@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, DollarSign, Download, Trash2, CheckCircle, RotateCw, FileText, 
-  Search, Filter, MoreVertical, ExternalLink 
+  Search, Filter, MoreVertical, ExternalLink, Receipt
 } from 'lucide-react';
 import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge, RevenueChart } from '@/components/ui/kpi-icons';
 
@@ -432,7 +432,12 @@ export default function InvoiceListPage() {
         {/* Content Workspace: Ledger Data Table */}
         <div className="flex-1 min-h-0 flex flex-col">
           <DataTable
-            title="🧾 Invoices Ledger"
+            title={
+              <span className="flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-amber-500" />
+                <span>Invoices Ledger</span>
+              </span>
+            }
             columns={columns}
             data={invoices}
             bulkActions={bulkActions}

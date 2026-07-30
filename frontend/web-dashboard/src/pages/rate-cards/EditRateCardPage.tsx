@@ -89,8 +89,8 @@ export default function EditRateCardPage() {
       pageTitle={`Edit Rate Card: ${id}`} 
       actions={
         <div className="flex gap-2">
-          <Btn label="Cancel" variant="ghost" onClick={() => navigate('/rate-cards')} disabled={updateMutation.isPending} />
-          <Btn label="Save Changes" icon={<Save size={14} />} onClick={handleSubmit} isLoading={updateMutation.isPending} />
+          <Btn label="Cancel" variant="ghost" onClick={() => navigate('/rate-cards')} disabled={updateMutation.isPending} shortcut={{ key: 'Escape' }} />
+          <Btn label="Save Changes" icon={<Save size={14} />} onClick={handleSubmit} isLoading={updateMutation.isPending} shortcut={{ key: 'Enter', metaOrControl: true }} />
         </div>
       }
     >

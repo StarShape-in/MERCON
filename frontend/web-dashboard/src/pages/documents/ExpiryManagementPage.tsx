@@ -264,7 +264,12 @@ export default function ExpiryManagementPage() {
           <div className="p-12 text-center text-rose-600 text-xs font-bold bg-white rounded-xl border border-slate-200">Failed to load radar documents.</div>
         ) : (
           <DataTable
-            title="⚠️ Document Expiry Radar Ledger"
+            title={
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                <span>Document Expiry Radar Ledger</span>
+              </span>
+            }
             columns={columns}
             data={filteredItems}
             bulkActions={[

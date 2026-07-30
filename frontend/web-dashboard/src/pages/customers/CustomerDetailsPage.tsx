@@ -186,7 +186,8 @@ export default function CustomerDetailsPage() {
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Customers
             </Button>
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <span>🏢 MERCON Commercial</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+              <span>MERCON Commercial</span>
               <span>•</span>
               <span className="text-slate-900 dark:text-slate-100 font-bold">Account Center</span>
             </div>

@@ -177,11 +177,13 @@ export default function EditDriverPage() {
               type="button" 
               onClick={() => navigate('/drivers')} 
               disabled={isSubmitting} 
+              shortcut={{ key: 'Escape' }}
             />
             <Btn 
               label={isSubmitting ? 'Saving...' : 'Save Changes'} 
               type="submit" 
               disabled={isSubmitting} 
+              shortcut={{ key: 'Enter', metaOrControl: true }}
             />
           </div>
         </form>

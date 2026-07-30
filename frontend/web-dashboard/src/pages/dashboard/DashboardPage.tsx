@@ -110,7 +110,7 @@ export default function DashboardPage() {
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  {getGreeting()}, {operatorName} 👋
+                  {getGreeting()}, {operatorName}
                 </h1>
                 <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
                   Dashboard Overview
@@ -130,6 +130,7 @@ export default function DashboardPage() {
               size="sm" 
               icon={<RefreshCw size={13} />} 
               onClick={() => { refetchSummary(); refetchUnsettled(); }} 
+              shortcut={{ key: 'r', alt: true }}
             />
           </div>
         </div>

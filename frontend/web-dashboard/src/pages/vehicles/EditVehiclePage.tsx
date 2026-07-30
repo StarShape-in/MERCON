@@ -221,11 +221,13 @@ export default function EditVehiclePage() {
               type="button" 
               onClick={() => navigate('/vehicles')} 
               disabled={isSubmitting} 
+              shortcut={{ key: 'Escape' }}
             />
             <Btn 
               label={isSubmitting ? 'Saving...' : 'Save Changes'} 
               type="submit" 
               disabled={isSubmitting} 
+              shortcut={{ key: 'Enter', metaOrControl: true }}
             />
           </div>
         </form>

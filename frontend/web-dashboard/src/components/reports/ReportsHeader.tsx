@@ -8,7 +8,8 @@ import {
   SlidersHorizontal, 
   Download, 
   RotateCw,
-  Sparkles
+  Sparkles,
+  Building2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ export default function ReportsHeader({
   onExport
 }: ReportsHeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3, path: '/reports' },
@@ -42,7 +44,8 @@ export default function ReportsHeader({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-            <span>🏢 MERCON Fleet Analytics</span>
+            <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+            <span>MERCON Fleet Analytics</span>
             <span>•</span>
             <span className="text-slate-900 dark:text-slate-100 font-bold">Reports & Intelligence</span>
           </div>

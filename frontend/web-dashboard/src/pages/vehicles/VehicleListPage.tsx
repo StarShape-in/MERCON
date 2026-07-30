@@ -461,7 +461,12 @@ export default function VehicleListPage() {
         {viewMode === 'list' ? (
           <div className="flex-1 min-h-0 flex flex-col">
             <DataTable
-              title="🚚 Fleet Vehicle Ledger"
+              title={
+                <span className="flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-blue-500" />
+                  <span>Fleet Vehicle Ledger</span>
+                </span>
+              }
               columns={columns}
               data={vehicles}
               bulkActions={bulkActions}

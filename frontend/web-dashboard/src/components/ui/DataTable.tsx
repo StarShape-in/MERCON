@@ -21,7 +21,7 @@ export interface BulkAction<T> {
 }
 
 export interface DataTableProps<T> {
-  title?: string;
+  title?: React.ReactNode;
   subtitle?: string;
   columns: Column<T>[];
   data: T[];

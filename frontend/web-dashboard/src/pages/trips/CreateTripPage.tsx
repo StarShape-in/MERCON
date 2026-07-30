@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   User,
   Truck,
-  MapPin
+  MapPin,
+  Building2
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -31,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
+import Btn from '@/components/ui/Btn';
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
@@ -221,7 +223,8 @@ export default function CreateTripPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <span>🏢 MERCON Fleet</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+              <span>MERCON Fleet</span>
               <span>•</span>
               <span className="text-slate-900 dark:text-slate-100 font-bold">Dispatch & Operations</span>
             </div>
@@ -231,14 +234,15 @@ export default function CreateTripPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button 
+            <Btn 
               variant="outline" 
               size="sm" 
               onClick={() => navigate('/trips')}
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Trips
-            </Button>
+              label="Back to Trips"
+              icon={<ArrowLeft className="w-3.5 h-3.5" />}
+              shortcut={{ key: 'b', alt: true }}
+            />
             <Button 
               variant="ghost" 
               size="sm" 
@@ -360,9 +364,13 @@ export default function CreateTripPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t border-slate-100 dark:border-slate-800 p-4 flex justify-end bg-slate-50 dark:bg-slate-900/50">
-                <Button onClick={nextStep} className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 px-6">
-                  Next Step <ChevronRight className="w-4 h-4" />
-                </Button>
+                <Btn 
+                  label="Next Step"
+                  icon={<ChevronRight className="w-4 h-4" />}
+                  onClick={nextStep}
+                  className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 px-6"
+                  shortcut={{ key: 'Enter', metaOrControl: true }}
+                />
               </CardFooter>
             </Card>
           )}
@@ -440,12 +448,21 @@ export default function CreateTripPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between bg-slate-50 dark:bg-slate-900/50">
-                <Button variant="outline" onClick={prevStep} className="h-10 gap-1.5 px-6">
-                  <ChevronLeft className="w-4 h-4" /> Back
-                </Button>
-                <Button onClick={nextStep} className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 px-6">
-                  Next Step <ChevronRight className="w-4 h-4" />
-                </Button>
+                <Btn 
+                  variant="outline" 
+                  onClick={prevStep} 
+                  className="h-10 gap-1.5 px-6"
+                  label="Back"
+                  icon={<ChevronLeft className="w-4 h-4" />}
+                  shortcut={{ key: 'Escape' }}
+                />
+                <Btn 
+                  onClick={nextStep} 
+                  className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 px-6"
+                  label="Next Step"
+                  icon={<ChevronRight className="w-4 h-4" />}
+                  shortcut={{ key: 'Enter', metaOrControl: true }}
+                />
               </CardFooter>
             </Card>
           )}
@@ -528,16 +545,21 @@ export default function CreateTripPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between bg-slate-50 dark:bg-slate-900/50">
-                <Button variant="outline" onClick={prevStep} className="h-10 gap-1.5 px-6">
-                  <ChevronLeft className="w-4 h-4" /> Back
-                </Button>
-                <Button 
+                <Btn 
+                  variant="outline" 
+                  onClick={prevStep} 
+                  className="h-10 gap-1.5 px-6"
+                  label="Back"
+                  icon={<ChevronLeft className="w-4 h-4" />}
+                  shortcut={{ key: 'Escape' }}
+                />
+                <Btn 
                   onClick={handleSubmit} 
                   disabled={createMutation.isPending || !isFormValid}
                   className="h-10 bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold gap-1.5 px-8 shadow-xs"
-                >
-                  {createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
-                </Button>
+                  label={createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
+                  shortcut={{ key: 'Enter', metaOrControl: true }}
+                />
               </CardFooter>
             </Card>
           )}

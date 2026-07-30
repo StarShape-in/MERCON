@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit2, Trash2, Shield, Search, Download } from 'lucide-react';
+import { Plus, Edit2, Trash2, Shield, Search, Download, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -162,7 +162,12 @@ export default function UserManagementPage() {
     >
       <div className="px-6 pb-6">
         <DataTable
-          title="👥 Platform Operators Ledger"
+          title={
+            <span className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-violet-500" />
+              <span>Platform Operators Ledger</span>
+            </span>
+          }
           columns={columns}
           data={filteredUsers}
           bulkActions={[

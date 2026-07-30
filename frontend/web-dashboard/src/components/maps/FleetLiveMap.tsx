@@ -5,7 +5,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
   Play, Pause, FastForward, Search, Navigation, 
-  ExternalLink, ShieldCheck, Gauge, Activity
+  ExternalLink, ShieldCheck, Gauge, Activity,
+  Map, Table2, Radio
 } from 'lucide-react';
 
 import { SimulatedTruckTelemetry } from '@/services/telemetrySimulator';
@@ -200,14 +201,17 @@ export default function FleetLiveMap() {
           <Tabs defaultValue="map" className="w-full">
             <div className="flex items-center justify-between mb-3">
               <TabsList className="bg-[#F5F5F7] p-1 rounded-xl">
-                <TabsTrigger value="map" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  🗺️ Radar Map
+                <TabsTrigger value="map" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-1.5">
+                  <Map className="w-3.5 h-3.5 text-[#E8450F]" />
+                  <span>Radar Map</span>
                 </TabsTrigger>
-                <TabsTrigger value="matrix" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  📋 Fleet Matrix
+                <TabsTrigger value="matrix" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-1.5">
+                  <Table2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Fleet Matrix</span>
                 </TabsTrigger>
-                <TabsTrigger value="logs" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  📡 Telemetry Feed
+                <TabsTrigger value="logs" className="text-xs font-bold rounded-lg px-3 py-1 data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-1.5">
+                  <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                  <span>Telemetry Feed</span>
                 </TabsTrigger>
               </TabsList>
 
