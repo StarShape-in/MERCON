@@ -204,6 +204,7 @@ export default function DriverPerformancePage() {
             }
           ]}
           data={topDrivers}
+          enableSelection={true}
           isLoading={isLoading}
         />
 

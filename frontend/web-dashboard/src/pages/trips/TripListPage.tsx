@@ -641,6 +641,7 @@ export default function TripListPage() {
             title="🥞 Trip Ledger"
             data={trips}
             columns={columns}
+            enableSelection={true}
             isLoading={isLoading}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load trips.'}

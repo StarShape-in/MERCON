@@ -457,6 +457,7 @@ export default function RateCardListPage() {
               columns={columns}
               data={filteredData}
               bulkActions={bulkActions}
+              enableSelection={true}
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}

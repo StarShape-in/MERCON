@@ -82,7 +82,7 @@ export default function DataTable<T>({
   onPageSizeChange,
   pageSizeOptions = [10, 25, 50, 100],
   totalRecords,
-  enableSelection = false,
+  enableSelection = true,
   onSelectionChange,
   onRowClick,
   bulkActions = [],
@@ -153,6 +153,11 @@ export default function DataTable<T>({
     }
   };
 
+  const clearSelection = () => {
+    setSelectedIndices(new Set());
+    onSelectionChange?.([]);
+  };
+
   const handleSelectRow = (index: number) => {
     const newSet = new Set(selectedIndices);
     if (newSet.has(index)) {
@@ -178,7 +183,7 @@ export default function DataTable<T>({
       {/* Table Toolbar Header */}
       {showToolbar && (
         <div className="shrink-0 p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
-          {selectedIndices.size > 0 && bulkActions.length > 0 ? (
+          {selectedIndices.size > 0 ? (
             <div className="flex items-center gap-3 w-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 p-2 rounded-lg transition-all">
               <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 px-2">
                 {selectedIndices.size} row{selectedIndices.size > 1 ? 's' : ''} selected
@@ -203,7 +208,7 @@ export default function DataTable<T>({
                 label="Clear"
                 variant="ghost"
                 size="sm"
-                onClick={handleSelectAll}
+                onClick={clearSelection}
                 className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100/60 text-xs font-bold"
               />
             </div>

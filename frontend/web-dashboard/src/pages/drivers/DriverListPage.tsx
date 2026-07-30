@@ -660,6 +660,7 @@ export default function DriverListPage() {
               title="🥞 Driver Roster Ledger"
               data={filteredDrivers}
               columns={columns}
+              enableSelection={true}
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load drivers.'}

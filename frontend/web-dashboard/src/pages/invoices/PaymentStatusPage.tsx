@@ -240,6 +240,28 @@ export default function PaymentStatusPage() {
             title="💳 Payment Transactions Ledger"
             columns={columns}
             data={filteredInvoices}
+            bulkActions={[
+              {
+                label: 'Mark Paid',
+                icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+                onClick: async (selectedRows: Invoice[]) => {
+                  if (!confirm(`Mark ${selectedRows.length} invoices as Paid?`)) return;
+                  try {
+                    await invoiceService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Paid');
+                    queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                  } catch (e) { alert('Failed to update status'); }
+                }
+              },
+              {
+                label: 'Export CSV',
+                icon: <Download className="w-3.5 h-3.5" />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: Invoice[]) => {
+                  downloadCSV(selectedRows, 'payments_export.csv');
+                }
+              }
+            ]}
+            enableSelection={true}
             isLoading={isLoading}
             searchPlaceholder="Search invoice or client..."
             searchValue={search}

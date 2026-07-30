@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit2, Trash2, Shield, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Shield, Search, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { downloadCSV } from '@/utils/exportUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import Btn from '@/components/ui/Btn';
@@ -164,6 +165,17 @@ export default function UserManagementPage() {
           title="👥 Platform Operators Ledger"
           columns={columns}
           data={filteredUsers}
+          bulkActions={[
+            {
+              label: 'Export CSV',
+              icon: <Download size={13} />,
+              variant: 'secondary' as const,
+              onClick: (selectedRows: UserDTO[]) => {
+                downloadCSV(selectedRows, 'platform_users_export.csv');
+              }
+            }
+          ]}
+          enableSelection={true}
           isLoading={isLoading}
           isError={isError}
           errorMessage={(error as Error)?.message || 'Failed to load users.'}

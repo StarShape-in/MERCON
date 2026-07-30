@@ -241,6 +241,29 @@ export default function CustomerListPage() {
     },
   ];
 
+  const bulkActions = [
+    {
+      label: 'Export CSV',
+      icon: <Download size={13} />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: Customer[]) => {
+        downloadCSV(selectedRows, 'customers_export.csv');
+      }
+    },
+    {
+      label: 'Delete Selected',
+      icon: <Trash2 size={13} />,
+      variant: 'danger' as const,
+      onClick: async (selectedRows: Customer[]) => {
+        if (!confirm(`Are you sure you want to delete ${selectedRows.length} customers?`)) return;
+        try {
+          await Promise.all(selectedRows.map(c => customerService.delete(c.id)));
+          queryClient.invalidateQueries({ queryKey: ['customers'] });
+        } catch (e) { alert('Failed to delete selected customers'); }
+      }
+    }
+  ];
+
   return (
     <DashboardLayout 
       active="Customers" 
@@ -493,6 +516,8 @@ export default function CustomerListPage() {
               title="🏢 Customer Accounts Ledger"
               columns={columns}
               data={filteredCustomers}
+              bulkActions={bulkActions}
+              enableSelection={true}
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load customers.'}

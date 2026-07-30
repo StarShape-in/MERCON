@@ -13,6 +13,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument } from '@/services/documentService';
+import { downloadCSV } from '@/utils/exportUtils';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil } from '@/lib/documents';
@@ -569,6 +570,17 @@ export default function DocumentsCenterPage() {
               }
             ]}
             data={filteredDocs}
+            bulkActions={[
+              {
+                label: 'Export CSV',
+                icon: <Download size={13} />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: MerconDocument[]) => {
+                  downloadCSV(selectedRows, 'documents_export.csv');
+                }
+              }
+            ]}
+            enableSelection={true}
             isLoading={isLoading}
             searchPlaceholder="Search document name or entity..."
             searchValue={search}

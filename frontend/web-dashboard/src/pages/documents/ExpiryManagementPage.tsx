@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Clock, Search, ShieldAlert, ArrowLeft, RotateCw } from 'lucide-react';
+import { AlertTriangle, Clock, Search, ShieldAlert, ArrowLeft, RotateCw, Download } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import { RiskAlert, CalendarAlert, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument } from '@/services/documentService';
+import { downloadCSV } from '@/utils/exportUtils';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { docTypeLabel, daysUntil } from '@/lib/documents';
@@ -266,6 +267,17 @@ export default function ExpiryManagementPage() {
             title="⚠️ Document Expiry Radar Ledger"
             columns={columns}
             data={filteredItems}
+            bulkActions={[
+              {
+                label: 'Export CSV',
+                icon: <Download size={13} />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: ExpiryRow[]) => {
+                  downloadCSV(selectedRows, 'expiry_radar_export.csv');
+                }
+              }
+            ]}
+            enableSelection={true}
             isLoading={isLoading}
             searchPlaceholder="Search entity name or document type..."
             searchValue={search}

@@ -222,6 +222,7 @@ export default function CustomReportPage() {
                 title="📊 Custom Operational Report"
                 columns={columns}
                 data={reportData.trips}
+                enableSelection={true}
                 isLoading={false}
               />
             </div>

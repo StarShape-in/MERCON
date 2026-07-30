@@ -428,10 +428,11 @@ export default function InvoiceListPage() {
             title="🧾 Invoices Ledger"
             columns={columns}
             data={invoices}
+            bulkActions={bulkActions}
+            enableSelection={true}
             isLoading={isLoading}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load invoices.'}
-            bulkActions={bulkActions}
             searchPlaceholder="Search invoices..."
             searchValue={search}
             onSearchChange={setSearch}
