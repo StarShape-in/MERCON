@@ -234,6 +234,15 @@ model Trip {
   payment_status       PaymentStatus?
   payment_date         DateTime?      @db.Timestamptz
 
+  // Post-Trip Financial & Ledger Fields
+  waiting_labor_charges   Float    @default(0.0)
+  additional_stop_charges Float    @default(0.0)
+  trip_charges            Float    @default(0.0)
+  billing_amount          Float?
+  carrier_name            String?  @default("MERCON LOGISTICS")
+  is_post_trip_settled    Boolean  @default(false)
+
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid

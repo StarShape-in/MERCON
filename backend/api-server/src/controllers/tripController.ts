@@ -595,3 +595,100 @@ export const bulkUpdateTripStatus = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update trips` } });
   }
 };
+
+/**
+ * Get all completed trips pending post-trip financial settlement / waiting-labor check
+ */
+export const getUnsettledCompletedTrips = async (req: Request, res: Response) => {
+  try {
+    const trips = await prisma.trip.findMany({
+      where: {
+        deletedAt: null,
+        status: { in: [TripStatus.Completed, TripStatus.Invoiced] },
+        is_post_trip_settled: false,
+      },
+      include: {
+        customer: true,
+        driver: true,
+        vehicle: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      data: trips,
+      count: trips.length,
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to fetch unsettled completed trips');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch unsettled trips' } });
+  }
+};
+
+/**
+ * Update post-trip financial fields (Waiting/Labor, Additional Stops, Trip Charges, Carrier)
+ * and automatically update linked Invoice total.
+ */
+export const updateTripFinancials = async (req: Request, res: Response) => {
+  try {
+    const tripId = req.params.id as string;
+    const {
+      waiting_labor_charges,
+      additional_stop_charges,
+      trip_charges,
+      billing_amount,
+      carrier_name,
+      is_post_trip_settled = true,
+    } = req.body;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({
+        where: { id: tripId, deletedAt: null },
+      });
+
+      if (!trip) throw new Error('NOT_FOUND');
+
+      const updatedTrip = await tx.trip.update({
+        where: { id: tripId },
+        data: {
+          waiting_labor_charges: waiting_labor_charges !== undefined ? parseFloat(waiting_labor_charges) : trip.waiting_labor_charges,
+          additional_stop_charges: additional_stop_charges !== undefined ? parseFloat(additional_stop_charges) : trip.additional_stop_charges,
+          trip_charges: trip_charges !== undefined ? parseFloat(trip_charges) : trip.trip_charges,
+          billing_amount: billing_amount !== undefined ? parseFloat(billing_amount) : trip.billing_amount,
+          carrier_name: carrier_name !== undefined ? carrier_name : trip.carrier_name,
+          is_post_trip_settled: Boolean(is_post_trip_settled),
+          updated_by: (req as any).user?.id,
+        },
+        include: { customer: true, driver: true, vehicle: true, invoices: true },
+      });
+
+      // Recalculate invoice total if an invoice exists for this trip
+      const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
+      if (existingInvoice) {
+        const baseBilling = updatedTrip.billing_amount ?? existingInvoice.subtotal;
+        const newTotal = baseBilling + updatedTrip.waiting_labor_charges + updatedTrip.additional_stop_charges;
+
+        await tx.invoice.update({
+          where: { id: existingInvoice.id },
+          data: {
+            subtotal: baseBilling,
+            total_amount: newTotal,
+            updated_by: (req as any).user?.id,
+          },
+        });
+      }
+
+      return updatedTrip;
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    if (error.message === 'NOT_FOUND') {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
+    logger.error({ err: error }, 'Failed to update trip financials');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update trip financials' } });
+  }
+};
+

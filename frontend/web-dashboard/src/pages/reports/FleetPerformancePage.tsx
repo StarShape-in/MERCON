@@ -27,15 +27,46 @@ export default function FleetPerformancePage() {
   const rows = response?.data || [];
 
   const handleExport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Plate,RefID,Status,TotalTrips,CompletedTrips,MaintenanceCost\n" + rows.map(v => `${v.plate_number},${v.ref_id},${v.status},${v.total_trips},${v.completed_trips},${v.maintenance_cost}`).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `fleet_performance_${new Date().toISOString().slice(0,10)}.csv`);
+    if (!rows || rows.length === 0) return;
+
+    const headers = ['S/L', 'Plate Number', 'Vehicle Ref ID', 'Status', 'Odometer Reading (KM)', 'Total Trips', 'Completed Trips', 'Completion Rate (%)', 'Maintenance Cost (SAR)'];
+    
+    let sumTrips = 0;
+    let sumCompleted = 0;
+    let sumCost = 0;
+
+    const dataRows = rows.map((v, idx) => {
+      sumTrips += v.total_trips || 0;
+      sumCompleted += v.completed_trips || 0;
+      sumCost += v.maintenance_cost || 0;
+      const rate = v.total_trips > 0 ? Math.round((v.completed_trips / v.total_trips) * 100) : 0;
+
+      return [
+        idx + 1,
+        `"${v.plate_number || ''}"`,
+        `"${v.ref_id || ''}"`,
+        `"${v.status || ''}"`,
+        v.odometer || 0,
+        v.total_trips || 0,
+        v.completed_trips || 0,
+        `${rate}%`,
+        v.maintenance_cost || 0,
+      ];
+    });
+
+    const totalRate = sumTrips > 0 ? Math.round((sumCompleted / sumTrips) * 100) : 0;
+    const summaryRow = ['TOTALS', '', '', '', '', sumTrips, sumCompleted, `${totalRate}%`, sumCost];
+
+    const csvContent = [headers.join(','), ...dataRows.map((r) => r.join(',')), summaryRow.join(',')].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `fleet_performance_report_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
 
   const kpis = useMemo(() => {
     const totalVehicles = rows.length;

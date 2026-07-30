@@ -29,15 +29,32 @@ export default function RevenueReportsPage() {
   });
 
   const handleExport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Month,Revenue\n" + (data?.monthly_breakdown ?? []).map(r => `${r.month},${r.revenue}`).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `revenue_report_${new Date().toISOString().slice(0,10)}.csv`);
+    if (!data) return;
+
+    const rows = [
+      ['SECTION', 'METRIC / CATEGORY', 'VALUE (SAR)'],
+      ['Revenue Overview', 'All-Time Gross Paid Revenue', data.total_all_time || 0],
+      ['Revenue Overview', 'Outstanding Unpaid Invoices', data.outstanding_total || 0],
+      ['Revenue Overview', 'Paid Invoices Count', data.paid_invoice_count || 0],
+      ['Revenue Overview', 'Average Revenue Per Invoice', Math.round(data.avg_per_invoice || 0)],
+      ['', '', ''],
+      ['Monthly Revenue Breakdown', 'Month', 'Gross Paid Revenue (SAR)'],
+      ...(data.monthly_breakdown || []).map((r) => ['Monthly Revenue Breakdown', r.month, r.revenue]),
+      ['', '', ''],
+      ['Top Customers by Revenue', 'Customer Name', 'Paid Revenue (SAR)'],
+      ...(data.top_customers || []).map((c) => ['Top Customers by Revenue', `"${c.name}"`, c.value]),
+    ];
+
+    const csvContent = rows.map((r) => r.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `revenue_analytics_report_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
 
   const revenueData = useMemo(
     () => (data?.monthly_breakdown ?? []).map((r) => ({

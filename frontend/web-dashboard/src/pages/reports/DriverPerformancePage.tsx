@@ -32,15 +32,40 @@ export default function DriverPerformancePage() {
   const rows = response?.data || [];
 
   const handleExport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,DriverName,RefID,Status,AIRiskScore,TotalTrips,CompletedTrips\n" + rows.map(d => `${d.name},${d.ref_id},${d.status},${d.ai_risk_score},${d.total_trips},${d.completed_trips}`).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `driver_safety_report_${new Date().toISOString().slice(0,10)}.csv`);
+    if (!rows || rows.length === 0) return;
+
+    const headers = ['S/L', 'Driver Name', 'Driver Ref ID', 'Status', 'AI Safety Risk Score', 'Risk Level', 'Total Trips', 'Completed Trips'];
+    let sumTrips = 0;
+    let sumCompleted = 0;
+
+    const dataRows = rows.map((d, idx) => {
+      sumTrips += d.total_trips || 0;
+      sumCompleted += d.completed_trips || 0;
+      const risk = riskLevel(d.ai_risk_score);
+
+      return [
+        idx + 1,
+        `"${d.name || ''}"`,
+        `"${d.ref_id || ''}"`,
+        `"${d.status || ''}"`,
+        d.ai_risk_score ?? 'N/A',
+        `"${risk.label}"`,
+        d.total_trips || 0,
+        d.completed_trips || 0,
+      ];
+    });
+
+    const summaryRow = ['TOTALS', '', '', '', '', '', sumTrips, sumCompleted];
+    const csvContent = [headers.join(','), ...dataRows.map((r) => r.join(',')), summaryRow.join(',')].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `driver_safety_report_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
 
   const kpis = useMemo(() => {
     const totalDrivers = rows.length;

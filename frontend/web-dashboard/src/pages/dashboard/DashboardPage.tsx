@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Truck, Car, DollarSign, AlertTriangle, 
-  ArrowRight, ArrowUpRight, Loader2, RefreshCw 
+  ArrowRight, ArrowUpRight, Loader2, RefreshCw, Clock, CheckCircle2 
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -17,17 +18,19 @@ import { DispatchTelemetryRadarKpi, SpeedometerGaugeKpi } from '@/components/ui/
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import TripCardSwiper from '@/components/trips/TripCardSwiper';
+import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { reportsService } from '@/services/reportsService';
-import { tripService } from '@/services/tripService';
+import { tripService, Trip } from '@/services/tripService';
 import { authStore } from '@/store/authStore';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const user = authStore.getUser();
   const operatorName = user?.name ? user.name.split(' ')[0] : 'Mohammed';
+  const [selectedSettlementTrip, setSelectedSettlementTrip] = useState<Trip | null>(null);
 
   // Fetch Reports Summary
   const { 
@@ -38,6 +41,15 @@ export default function DashboardPage() {
   } = useQuery({
     queryKey: ['reports-summary'],
     queryFn: reportsService.getSummary,
+  });
+
+  // Fetch Unsettled Completed Trips (Waiting/Labor Check)
+  const { 
+    data: unsettledTrips = [], 
+    refetch: refetchUnsettled 
+  } = useQuery({
+    queryKey: ['unsettled-trips'],
+    queryFn: tripService.getUnsettled,
   });
 
   // Fetch Recent Trips
@@ -90,7 +102,7 @@ export default function DashboardPage() {
           variant="secondary" 
           size="sm" 
           icon={<RefreshCw size={13} />} 
-          onClick={() => refetchSummary()} 
+          onClick={() => { refetchSummary(); refetchUnsettled(); }} 
         />
       }
     >
@@ -101,6 +113,45 @@ export default function DashboardPage() {
             <div className="text-sm font-semibold">
               Failed to load real-time dashboard KPIs. Showing cached or default values.
               <span className="block text-xs font-normal opacity-80">{(summaryError as Error)?.message || 'Server connection error.'}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Pending Post-Trip Financial Settlement Notification Banner */}
+        {unsettledTrips.length > 0 && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <Clock size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Action Required</span>
+                  <span className="bg-amber-200/60 text-amber-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                    {unsettledTrips.length} Pending
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-gray-900 mt-0.5">
+                  Post-Trip Waiting / Labor Charges Check Pending
+                </h4>
+                <p className="text-xs text-gray-600">
+                  Trips have been completed. Please review if waiting time or labor charges need to be entered before final invoice settlement.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 shrink-0">
+              {unsettledTrips.slice(0, 3).map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedSettlementTrip(t)}
+                  className="px-3 py-2 bg-white hover:bg-amber-100/50 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 shadow-2xs flex items-center gap-1.5 transition-all"
+                >
+                  <DollarSign size={13} className="text-[#E8450F]" />
+                  <span>#{t.ref_id || t.id.substring(0, 6)}</span>
+                  <span className="text-[10px] font-normal text-amber-700">Review</span>
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -182,6 +233,7 @@ export default function DashboardPage() {
         <div className="shrink-0 w-full">
           <TripCardSwiper />
         </div>
+
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0">
@@ -330,7 +382,19 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Post-Trip Settlement Modal */}
+        <PostTripSettlementModal
+          isOpen={!!selectedSettlementTrip}
+          trip={selectedSettlementTrip}
+          onClose={() => setSelectedSettlementTrip(null)}
+          onSuccess={() => {
+            refetchSummary();
+            refetchUnsettled();
+          }}
+        />
+
       </div>
     </DashboardLayout>
   );
 }
+

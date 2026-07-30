@@ -73,39 +73,121 @@ export default function CustomReportPage() {
   const handleExportCSV = () => {
     if (!reportData?.trips || reportData.trips.length === 0) return;
     
-    const headers = ['Ref ID', 'Customer', 'Driver', 'Vehicle', 'Status', 'Date'];
-    const rows = reportData.trips.map(t => [
-      t.ref_id,
-      `"${t.customer}"`,
-      `"${t.driver}"`,
-      t.vehicle,
-      t.status,
-      format(new Date(t.date), 'yyyy-MM-dd HH:mm')
-    ]);
-    
+    const headers = [
+      'S/L',
+      'DATE',
+      'JOB #',
+      'DRIVER NAME',
+      'VEHICLE NO:',
+      'VEHICLE TYPE',
+      'MOBILE NUMBER',
+      'ASTOOL AL SHAHLA OR 3RD PARTY',
+      'SENDER/CUSTOMER',
+      'RECEIVER',
+      'WAITING/LABOR CHARGES',
+      'ADDITIONAL STOPS',
+      'BILLING AMOUNT',
+      'TOTAL AMOUNT',
+      'TRIP CHARGES',
+      'BALANCE AMOUNT',
+      'COMPANY NAME'
+    ];
+
+    let sumWaitingLabor = 0;
+    let sumAdditionalStops = 0;
+    let sumBilling = 0;
+    let sumTotal = 0;
+    let sumTripCharges = 0;
+    let sumBalance = 0;
+
+    const rows = reportData.trips.map((t: any, index: number) => {
+      const waiting = Number(t.waiting_labor_charges || 0);
+      const stops = Number(t.additional_stop_charges || 0);
+      const billing = Number(t.billing_amount || 0);
+      const total = Number(t.total_amount || 0);
+      const tripCharges = Number(t.trip_charges || 0);
+      const balance = Number(t.balance_amount || 0);
+
+      sumWaitingLabor += waiting;
+      sumAdditionalStops += stops;
+      sumBilling += billing;
+      sumTotal += total;
+      sumTripCharges += tripCharges;
+      sumBalance += balance;
+
+      return [
+        index + 1,
+        format(new Date(t.date), 'dd-MM-yyyy'),
+        t.ref_id || 'N/A',
+        `"${t.driver}"`,
+        `"${t.vehicle}"`,
+        `"${t.vehicle_type || '10 TON'}"`,
+        `"${t.driver_phone || ''}"`,
+        `"${t.carrier_name || 'MERCON LOGISTICS'}"`,
+        `"${t.customer}"`,
+        `"${t.receiver || ''}"`,
+        waiting,
+        stops,
+        billing,
+        total,
+        tripCharges,
+        balance,
+        `"${t.company_name || t.customer}"`
+      ];
+    });
+
+    const summaryRow = [
+      'TOTALS',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      sumWaitingLabor,
+      sumAdditionalStops,
+      sumBilling,
+      sumTotal,
+      sumTripCharges,
+      sumBalance,
+      ''
+    ];
+
     const csvContent = [
       headers.join(','),
-      ...rows.map(e => e.join(','))
+      ...rows.map(e => e.join(',')),
+      summaryRow.join(',')
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `mercon_custom_report_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+    link.setAttribute('download', `mercon_trip_ledger_report_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const columns = [
-    { header: 'Ref ID', accessor: (row: any) => <span className="font-mono text-xs">{row.ref_id}</span> },
-    { header: 'Customer', accessor: (row: any) => <span className="font-semibold text-[#111]">{row.customer}</span> },
-    { header: 'Driver', accessor: (row: any) => row.driver },
-    { header: 'Vehicle', accessor: (row: any) => row.vehicle },
-    { header: 'Date', accessor: (row: any) => format(new Date(row.date), 'MMM dd, yyyy HH:mm') },
+    { header: 'S/L', accessor: (_: any, idx: number) => <span className="text-gray-400 font-mono text-xs">{idx + 1}</span> },
+    { header: 'Date', accessor: (row: any) => format(new Date(row.date), 'dd-MM-yyyy') },
+    { header: 'Job #', accessor: (row: any) => <span className="font-mono text-xs font-bold text-[#E8450F]">{row.ref_id}</span> },
+    { header: 'Driver Name', accessor: (row: any) => <span className="font-semibold text-[#111]">{row.driver}</span> },
+    { header: 'Vehicle No:', accessor: (row: any) => <span className="font-mono text-xs">{row.vehicle}</span> },
+    { header: 'Carrier / Provider', accessor: (row: any) => <span className="text-xs text-gray-600">{row.carrier_name || 'MERCON LOGISTICS'}</span> },
+    { header: 'Sender / Customer', accessor: (row: any) => <span className="font-semibold text-[#111]">{row.customer}</span> },
+    { header: 'Waiting / Labor', accessor: (row: any) => <span className="font-mono text-xs font-semibold text-amber-700">SAR {Number(row.waiting_labor_charges || 0).toLocaleString()}</span> },
+    { header: 'Billing Amount', accessor: (row: any) => <span className="font-mono text-xs font-semibold">SAR {Number(row.billing_amount || 0).toLocaleString()}</span> },
+    { header: 'Total Amount', accessor: (row: any) => <span className="font-mono text-xs font-bold text-green-700">SAR {Number(row.total_amount || 0).toLocaleString()}</span> },
+    { header: 'Trip Charges', accessor: (row: any) => <span className="font-mono text-xs font-bold text-red-600">SAR {Number(row.trip_charges || 0).toLocaleString()}</span> },
+    { header: 'Balance Amount', accessor: (row: any) => <span className="font-mono text-xs font-bold text-indigo-700">SAR {Number(row.balance_amount || 0).toLocaleString()}</span> },
     { header: 'Status', accessor: (row: any) => <StatusBadge status={row.status} /> },
   ];
+
 
   return (
     <DashboardLayout active="Reports" title="Custom Generator">
@@ -164,7 +246,7 @@ export default function CustomReportPage() {
               >
                 <option value="all">All Customers</option>
                 {customers.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.company_name}</option>
+                  <option key={c.id} value={c.id}>{c.name || c.company_name}</option>
                 ))}
               </select>
             </div>
@@ -219,7 +301,11 @@ export default function CustomReportPage() {
 
             <div className="flex-1 min-h-0 flex flex-col">
               <DataTable
-                title="📊 Custom Operational Report"
+                title={
+                  customerId !== 'all' && customers.find((c: any) => c.id === customerId)
+                    ? `📊 Customer Report: ${customers.find((c: any) => c.id === customerId)?.name || customers.find((c: any) => c.id === customerId)?.company_name}`
+                    : "📊 Custom Operational & Trip Ledger Report"
+                }
                 columns={columns}
                 data={reportData.trips}
                 enableSelection={true}
@@ -227,6 +313,7 @@ export default function CustomReportPage() {
               />
             </div>
           </>
+
         ) : (
           <div className="text-center text-[#6E6E80] py-12">
             No data generated yet. Adjust your filters above to build a report.

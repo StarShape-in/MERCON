@@ -61,7 +61,8 @@ export async function completeTripAndInvoice(
       rateCard = await tx.rateCard.findFirst({ where: { customerId: null, is_active: true } });
     }
 
-    const subtotal = rateCard ? rateCard.base_price : 1000.0;
+    const baseBilling = trip.billing_amount ?? (rateCard ? rateCard.base_price : 1000.0);
+    const totalAmount = baseBilling + (trip.waiting_labor_charges ?? 0) + (trip.additional_stop_charges ?? 0);
     const invoiceRefId = await generateRefId('INV', () => tx.invoice.findMany({ select: { ref_id: true } }));
 
     await tx.invoice.create({
@@ -71,8 +72,8 @@ export async function completeTripAndInvoice(
         customerId: trip.customerId,
         status: 'Draft',
         currency: rateCard ? rateCard.currency : 'SAR',
-        subtotal,
-        total_amount: subtotal,
+        subtotal: baseBilling,
+        total_amount: totalAmount,
         due_date: new Date(new Date().setDate(new Date().getDate() + 30)), // Net 30
         created_by: userId ?? undefined,
       },
@@ -81,3 +82,4 @@ export async function completeTripAndInvoice(
 
   return updatedTrip;
 }
+

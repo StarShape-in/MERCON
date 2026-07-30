@@ -98,6 +98,80 @@ export default function CustomerDetailsPage() {
   const activeTripsCount = customerTrips.filter(t => ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status)).length;
   const completedTripsCount = customerTrips.filter(t => t.status === 'Completed' || t.status === 'Delivered').length;
 
+  const handleExportLedger = () => {
+    if (!customerTrips || customerTrips.length === 0) return;
+    
+    const headers = [
+      'S/L', 'DATE', 'JOB #', 'DRIVER NAME', 'VEHICLE NO:', 'VEHICLE TYPE',
+      'MOBILE NUMBER', 'ASTOOL AL SHAHLA OR 3RD PARTY', 'SENDER/CUSTOMER',
+      'RECEIVER', 'WAITING/LABOR CHARGES', 'ADDITIONAL STOPS', 'BILLING AMOUNT',
+      'TOTAL AMOUNT', 'TRIP CHARGES', 'BALANCE AMOUNT', 'COMPANY NAME'
+    ];
+
+    let sumWaitingLabor = 0;
+    let sumAdditionalStops = 0;
+    let sumBilling = 0;
+    let sumTotal = 0;
+    let sumTripCharges = 0;
+    let sumBalance = 0;
+
+    const rows = customerTrips.map((t: any, index: number) => {
+      const waiting = Number(t.waiting_labor_charges || 0);
+      const stops = Number(t.additional_stop_charges || 0);
+      const billing = Number(t.billing_amount || 0);
+      const total = Number(t.total_amount || 0);
+      const tripCharges = Number(t.trip_charges || 0);
+      const balance = Number(t.balance_amount || total - tripCharges);
+
+      sumWaitingLabor += waiting;
+      sumAdditionalStops += stops;
+      sumBilling += billing;
+      sumTotal += total;
+      sumTripCharges += tripCharges;
+      sumBalance += balance;
+
+      return [
+        index + 1,
+        new Date(t.createdAt).toLocaleDateString('en-GB'),
+        t.ref_id || 'N/A',
+        `"${t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'}"`,
+        `"${t.vehicle?.plate_number || 'Unassigned'}"`,
+        `"${t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON` : '10 TON'}"`,
+        `"${t.driver?.phone_primary || ''}"`,
+        `"${t.carrier_name || 'MERCON LOGISTICS'}"`,
+        `"${customer.name}"`,
+        `"Dropoff"`,
+        waiting,
+        stops,
+        billing,
+        total,
+        tripCharges,
+        balance,
+        `"${customer.name}"`
+      ];
+    });
+
+    const summaryRow = [
+      'TOTALS', '', '', '', '', '', '', '', '', '',
+      sumWaitingLabor, sumAdditionalStops, sumBilling, sumTotal, sumTripCharges, sumBalance, ''
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(e => e.join(',')),
+      summaryRow.join(',')
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${customer.name.toLowerCase().replace(/\s+/g, '_')}_trip_ledger_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <DashboardLayout 
       active="Customers" 
@@ -141,6 +215,16 @@ export default function CustomerDetailsPage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleExportLedger}
+              disabled={customerTrips.length === 0}
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-emerald-700"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-600" /> Export Customer Report (CSV)
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigate(`/customers/${customer.id}/contracts`)}
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
             >
@@ -174,6 +258,7 @@ export default function CustomerDetailsPage() {
             </Button>
           </div>
         </div>
+
 
         {/* ── Hero Executive Card & Credit Exposure Meter ────────────────── */}
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden border-l-4 border-l-cyan-600 p-6 space-y-6">

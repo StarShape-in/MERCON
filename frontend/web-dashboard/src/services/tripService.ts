@@ -16,6 +16,12 @@ export interface Trip {
   extra_driver_payment: number | null;
   payment_reason: string | null;
   payment_status: string | null;
+  waiting_labor_charges?: number;
+  additional_stop_charges?: number;
+  trip_charges?: number;
+  billing_amount?: number;
+  carrier_name?: string;
+  is_post_trip_settled?: boolean;
   createdAt: string;
   customer?: { id: string; name: string; contact_phone: string };
   driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; ai_risk_score?: number } | null;
@@ -53,6 +59,15 @@ export interface TripFilters {
   per_page?: number;
 }
 
+export interface UpdateTripFinancialsPayload {
+  waiting_labor_charges?: number;
+  additional_stop_charges?: number;
+  trip_charges?: number;
+  billing_amount?: number;
+  carrier_name?: string;
+  is_post_trip_settled?: boolean;
+}
+
 export const tripService = {
   async getAll(filters: TripFilters = {}): Promise<ApiResponse<Trip[]>> {
     const res = await api.get<ApiResponse<Trip[]>>('/trips', { params: filters });
@@ -64,6 +79,11 @@ export const tripService = {
     return res.data.data;
   },
 
+  async getUnsettled(): Promise<Trip[]> {
+    const res = await api.get<ApiResponse<Trip[]>>('/trips/unsettled');
+    return res.data.data;
+  },
+
   async create(payload: CreateTripPayload): Promise<Trip> {
     const res = await api.post<ApiResponse<Trip>>('/trips', payload);
     return res.data.data;
@@ -71,6 +91,11 @@ export const tripService = {
 
   async updateStatus(id: string, status: TripStatus): Promise<Trip> {
     const res = await api.patch<ApiResponse<Trip>>(`/trips/${id}/status`, { status });
+    return res.data.data;
+  },
+
+  async updateFinancials(id: string, payload: UpdateTripFinancialsPayload): Promise<Trip> {
+    const res = await api.patch<ApiResponse<Trip>>(`/trips/${id}/financials`, payload);
     return res.data.data;
   },
 
@@ -87,3 +112,4 @@ export const tripService = {
     await api.post('/trips/bulk-update-status', { ids, status });
   },
 };
+

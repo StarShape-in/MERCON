@@ -334,11 +334,13 @@ export const getCustomReport = async (req: Request, res: Response) => {
       prisma.trip.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
-        take: 100, // Limit to 100 for the table
+        take: 500, // Increase limit for ledger exports
         include: {
           customer: { select: { name: true } },
-          driver: { select: { first_name: true, last_name: true } },
-          vehicle: { select: { plate_number: true } }
+          driver: { select: { first_name: true, last_name: true, phone_primary: true } },
+          vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
+          stops: { orderBy: { stop_sequence: 'asc' } },
+          invoices: true,
         }
       })
     ]);
@@ -369,15 +371,36 @@ export const getCustomReport = async (req: Request, res: Response) => {
           total_revenue: totalRevenue._sum.total_amount ?? 0,
         },
         trip_status_distribution: statusMap,
-        trips: recentTrips.map(t => ({
-          id: t.id,
-          ref_id: t.ref_id,
-          customer: t.customer?.name || 'N/A',
-          driver: t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'N/A',
-          vehicle: t.vehicle?.plate_number || 'N/A',
-          status: t.status,
-          date: t.createdAt
-        }))
+        trips: recentTrips.map(t => {
+          const dropoff = t.stops.find(s => s.stop_type === 'Dropoff');
+          const invoice = t.invoices[0];
+          const billing = t.billing_amount ?? (invoice?.subtotal || 0);
+          const totalAmt = invoice?.total_amount ?? (billing + t.waiting_labor_charges + t.additional_stop_charges);
+          const balance = totalAmt - t.trip_charges;
+          const vehicleTypeLabel = t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON (${t.vehicle.asset_type})` : 'N/A';
+
+          return {
+            id: t.id,
+            ref_id: t.ref_id,
+            date: t.actual_start || t.createdAt,
+            driver: t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'N/A',
+            driver_phone: t.driver?.phone_primary || 'N/A',
+            vehicle: t.vehicle?.plate_number || 'N/A',
+            vehicle_type: vehicleTypeLabel,
+            carrier_name: t.carrier_name || 'MERCON LOGISTICS',
+            customer: t.customer?.name || 'N/A',
+            receiver: dropoff ? `Dropoff Stop ${dropoff.stop_sequence}` : 'N/A',
+            waiting_labor_charges: t.waiting_labor_charges,
+            additional_stop_charges: t.additional_stop_charges,
+            billing_amount: billing,
+            total_amount: totalAmt,
+            trip_charges: t.trip_charges,
+            balance_amount: balance,
+            company_name: t.customer?.name || 'MERCON',
+            status: t.status,
+            is_post_trip_settled: t.is_post_trip_settled
+          };
+        })
       }
     });
   } catch (error) {
@@ -385,3 +408,4 @@ export const getCustomReport = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to generate custom report' } });
   }
 };
+

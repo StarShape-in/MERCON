@@ -51,15 +51,34 @@ export default function ReportsDashboardPage() {
   };
 
   const handleExport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,KPI,Value\nTotal Trips," + (summary?.kpis?.total_trips?.value || 0) + "\nFleet Utilization," + (summary?.kpis?.fleet_on_trip?.value || 0);
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `reports_summary_${new Date().toISOString().slice(0,10)}.csv`);
+    if (!summary) return;
+
+    const rows = [
+      ['SECTION', 'METRIC / CATEGORY', 'VALUE'],
+      ['KPI Summary', 'Total Freight Trips', summary.kpis?.total_trips?.value || 0],
+      ['KPI Summary', 'Active Drivers', summary.kpis?.active_drivers?.value || 0],
+      ['KPI Summary', 'Fleet Available (Standby)', summary.kpis?.fleet_available?.value || 0],
+      ['KPI Summary', 'Fleet On Road', summary.kpis?.fleet_on_trip?.value || 0],
+      ['KPI Summary', 'Revenue This Month (SAR)', summary.kpis?.revenue_this_month?.value || 0],
+      ['KPI Summary', 'Documents Expiring Soon (30d)', summary.kpis?.docs_expiring_soon?.value || 0],
+      ['', '', ''],
+      ['Trip Status Distribution', 'Status', 'Count'],
+      ...Object.entries(summary.trip_status_distribution || {}).map(([status, count]) => ['Trip Status Distribution', status, count]),
+      ['', '', ''],
+      ['Monthly Revenue', 'Month', 'Revenue (SAR)'],
+      ...(summary.monthly_revenue_chart || []).map((m: any) => ['Monthly Revenue', m.month, m.revenue]),
+    ];
+
+    const csvContent = rows.map((r) => r.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `executive_reports_summary_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
 
   if (isLoading) {
     return (
