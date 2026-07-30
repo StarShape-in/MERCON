@@ -75,16 +75,31 @@ export default function VehicleListPage() {
   const activeCount = availableCount + onTripCount;
   const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
 
+  const getTypeStyle = (type: string) => {
+    const t = (type || '').toLowerCase();
+    if (t.includes('tractor') || t.includes('heavy')) return 'bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800';
+    if (t.includes('reefer')) return 'bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-800';
+    if (t.includes('flatbed')) return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    if (t.includes('tanker')) return 'bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800';
+    return 'bg-slate-50 text-slate-600 border-slate-200';
+  };
+
   // Table columns
   const columns = [
     {
       header: 'Vehicle ID',
       accessor: (row: Vehicle) => (
-        <div>
+        <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs font-extrabold text-[#E8450F] block">
             {row.ref_id || 'TRK-9021'}
           </span>
           <span className="text-[10px] text-slate-400 font-mono">ID: {row.id.slice(0, 6)}</span>
+          {row.status === 'Maintenance' && (
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-1.5 py-0 h-4 w-fit flex items-center gap-0.5 mt-0.5">
+              <Wrench size={9} className="text-amber-500" />
+              IN SHOP
+            </Badge>
+          )}
         </div>
       ),
     },
@@ -112,7 +127,7 @@ export default function VehicleListPage() {
     {
       header: 'Asset Type',
       accessor: (row: Vehicle) => (
-        <Badge variant="outline" className="text-[10px] font-semibold bg-indigo-50/60 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60">
+        <Badge variant="outline" className={cn("text-[10px] font-bold px-2 py-0.5", getTypeStyle(row.asset_type))}>
           {row.asset_type || 'Heavy Tractor'}
         </Badge>
       ),
@@ -127,16 +142,20 @@ export default function VehicleListPage() {
     },
     {
       header: 'Odometer Mileage',
-      accessor: (row: Vehicle) => (
-        <div className="space-y-1">
-          <span className="text-xs text-slate-700 dark:text-slate-300 font-mono font-bold block">
-            {(row.current_odometer || 184500).toLocaleString()} km
-          </span>
-          <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, Math.round(((row.current_odometer || 0) / 300000) * 100))}%` }} />
+      accessor: (row: Vehicle) => {
+        const mileagePct = Math.min(100, Math.round(((row.current_odometer || 0) / 300000) * 100));
+        const mileageColor = mileagePct > 80 ? 'bg-rose-500' : mileagePct > 50 ? 'bg-amber-500' : 'bg-indigo-500';
+        return (
+          <div className="space-y-1">
+            <span className="text-xs text-slate-700 dark:text-slate-300 font-mono font-bold block">
+              {(row.current_odometer || 184500).toLocaleString()} km
+            </span>
+            <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div className={cn("h-full rounded-full transition-all duration-300", mileageColor)} style={{ width: `${mileagePct}%` }} />
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       header: 'Status',
@@ -368,7 +387,7 @@ export default function VehicleListPage() {
         </div>
 
         {/* ── 4 Telematics Instrument Panel Cards ───────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           
           {/* Card 1: Total Fleet Assets */}
           <KpiCard
@@ -377,7 +396,7 @@ export default function VehicleListPage() {
             variant="brand"
             trend="up"
             trendValue={`${activePct}% Active`}
-            description="Click to view all assets"
+            description="Total assets in database"
             icon={FleetTruck}
             completionGauge={{
               percentage: activePct || 88,
@@ -394,7 +413,7 @@ export default function VehicleListPage() {
             variant="emerald"
             trend="up"
             trendValue="Ready for Trip"
-            description="Click to filter Available"
+            description="Ready for operational trip"
             icon={CheckBadge}
             completionGauge={{
               percentage: totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 75,
@@ -411,7 +430,7 @@ export default function VehicleListPage() {
             variant="amber"
             trend={maintenanceCount > 0 ? 'down' : 'neutral'}
             trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
-            description="Click to filter Maintenance"
+            description="Active servicing units"
             icon={MaintenanceWrench}
             progressSegments={[
               { label: `${maintenanceCount} In Shop`, value: maintenanceCount > 0 ? 60 : 0, color: 'bg-amber-500' },
@@ -428,7 +447,7 @@ export default function VehicleListPage() {
             variant="blue"
             trend="neutral"
             trendValue="MOT Verified"
-            description="Click to filter Vehicle permits"
+            description="Vehicle permit status radar"
             icon={ShieldCheck}
             progressSegments={[
               { label: 'Valid (92%)', value: 92, color: 'bg-emerald-500' },
@@ -463,7 +482,7 @@ export default function VehicleListPage() {
               onPageChange={setCurrentPage}
               onRowClick={(row) => navigate(`/vehicles/${row.id}`)}
               filterElement={
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {/* Status Dropdown using shadcn Select */}
                   <Select
                     value={selectedStatus}
@@ -472,7 +491,7 @@ export default function VehicleListPage() {
                       setCurrentPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-[#E8450F]/20">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -489,7 +508,7 @@ export default function VehicleListPage() {
                     value={selectedType}
                     onValueChange={(val) => setSelectedType(val)}
                   >
-                    <SelectTrigger className="h-9 w-40 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <SelectTrigger className="h-9 w-40 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-[#E8450F]/20">
                       <SelectValue placeholder="Asset Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -507,7 +526,7 @@ export default function VehicleListPage() {
         ) : (
           
           /* GRID VIEW MODE */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 shrink-0">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 h-[200px] skeleton"></div>
@@ -528,7 +547,16 @@ export default function VehicleListPage() {
             ) : vehicles.map((v) => (
               <Card
                 key={v.id}
-                className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all bg-white dark:bg-slate-900 flex flex-col justify-between"
+                className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs hover:border-[#E8450F]/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
+                tabIndex={0}
+                role="button"
+                aria-label={`Vehicle plate ${v.plate_number}, type ${v.asset_type}, status ${v.status}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/vehicles/${v.id}`);
+                  }
+                }}
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -541,7 +569,7 @@ export default function VehicleListPage() {
                   <div>
                     <h4 
                       onClick={() => navigate(`/vehicles/${v.id}`)}
-                      className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-indigo-600 cursor-pointer truncate"
+                      className="font-extrabold text-sm text-slate-950 dark:text-slate-50 hover:text-[#E8450F] cursor-pointer truncate"
                     >
                       {v.plate_number}
                     </h4>
@@ -571,7 +599,7 @@ export default function VehicleListPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate(`/vehicles/${v.id}`)}
-                    className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 gap-1"
+                    className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#E8450F] gap-1"
                   >
                     <Eye size={13} /> Details
                   </Button>

@@ -137,7 +137,7 @@ export default function ReportsDashboardPage() {
         />
 
         {/* 4-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           {/* Card 1: Monthly Revenue Trend — Financial Sparkline */}
           <KpiCard
             title="TOTAL REVENUE (MONTH)"
@@ -157,7 +157,7 @@ export default function ReportsDashboardPage() {
             variant="brand"
             trend="up"
             trendValue={kpis?.total_trips?.delta ? `${kpis.total_trips.delta}%` : '+12%'}
-            description="→ Active trip volume"
+            description="Active trip volume"
             icon={TruckMotion}
             progressSegments={[
               { label: 'Completed', value: 70, color: 'bg-emerald-500' },
@@ -189,7 +189,7 @@ export default function ReportsDashboardPage() {
             variant="amber"
             trend={docsExpiringVal > 0 ? 'down' : 'neutral'}
             trendValue={docsExpiringVal > 0 ? 'Action Needed' : 'All Clear'}
-            description="→ Documents expiring soon"
+            description="Documents expiring soon"
             icon={CalendarAlert}
             progressSegments={[
               { label: `${criticalDocs} Critical (<7d)`, value: docsExpiringVal > 0 ? 35 : 0, color: 'bg-rose-500' },
@@ -204,11 +204,11 @@ export default function ReportsDashboardPage() {
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
             {/* Inline Dropdown Controls (Strictly Horizontal) */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               
               {/* Date Horizon Dropdown */}
               <Select value={dateHorizon} onValueChange={(val) => { if (val) setDateHorizon(val); }}>
-                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs focus-visible:ring-[#E8450F]/20">
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="Date Horizon" />
@@ -228,7 +228,7 @@ export default function ReportsDashboardPage() {
 
               {/* Module Filter Dropdown */}
               <Select value={moduleFilter} onValueChange={(val) => { if (val) setModuleFilter(val); }}>
-                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
+                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs focus-visible:ring-[#E8450F]/20">
                   <div className="flex items-center gap-2">
                     <Layers className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="Analytics Module" />
@@ -286,7 +286,7 @@ export default function ReportsDashboardPage() {
             </div>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthly_revenue_chart || []} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <BarChart data={monthly_revenue_chart || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#00000010" />
                   <XAxis 
                     dataKey="month" 

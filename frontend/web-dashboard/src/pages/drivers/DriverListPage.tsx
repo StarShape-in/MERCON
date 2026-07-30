@@ -399,14 +399,14 @@ export default function DriverListPage() {
         </div>
 
         {/* Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
             title="TOTAL REGISTERED DRIVERS"
             value={totalCount}
             variant="brand"
             trend="up"
             trendValue="+5 Active"
-            description="Click to view all drivers"
+            description="Total driver profiles"
             icon={DriverBadge}
             onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           >
@@ -423,7 +423,7 @@ export default function DriverListPage() {
             variant="emerald"
             trend="up"
             trendValue="Available"
-            description="Click to filter Available drivers"
+            description="Available for dispatch"
             icon={CheckBadge}
             completionGauge={{
               percentage: Math.round((availableCount / (totalCount || 1)) * 100) || 75,
@@ -439,7 +439,7 @@ export default function DriverListPage() {
             variant="blue"
             trend="neutral"
             trendValue="Dispatched"
-            description="Click to filter On-Trip drivers"
+            description="Active en-route drivers"
             icon={TruckMotion}
             chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
             onClick={() => { setSelectedStatus('OnTrip'); setCurrentPage(1); }}
@@ -451,7 +451,7 @@ export default function DriverListPage() {
             variant="amber"
             trend={expiredLicenseCount > 0 ? "down" : "neutral"}
             trendValue={expiredLicenseCount > 0 ? "Renewal Required" : "All Valid"}
-            description="Click for MOT compliance details"
+            description="Permits requiring renewal"
             icon={RiskAlert}
             progressSegments={[
               { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-amber-500' },
@@ -466,7 +466,7 @@ export default function DriverListPage() {
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
             {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               
               {/* Search Input */}
               <div className="relative w-64 shrink-0">
@@ -475,7 +475,7 @@ export default function DriverListPage() {
                   placeholder="Search driver ID, name, phone..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-slate-400 bg-white"
+                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
                 />
               </div>
 
@@ -616,7 +616,7 @@ export default function DriverListPage() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 flex-1 overflow-y-auto">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 h-[120px] skeleton"></div>
@@ -640,16 +640,25 @@ export default function DriverListPage() {
               return (
                 <div 
                   key={d.id} 
-                  className="bg-white rounded-xl border border-black/[0.08] p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-indigo-200 transition-all cursor-pointer"
+                  className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-[#E8450F]/40 hover:-translate-y-0.5 hover:shadow-xs transition-all duration-150 ease-in-out cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Driver: ${d.first_name} ${d.last_name}, status: ${d.status}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/drivers/${d.id}`);
+                    }
+                  }}
                   onClick={() => navigate(`/drivers/${d.id}`)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600 shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
                         {initials}
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 text-sm">
+                        <span className="font-bold text-slate-950 dark:text-slate-50 text-sm">
                           {d.first_name} {d.last_name}
                         </span>
                         <span className="font-mono text-[11px] text-[#E8450F] font-bold">
@@ -660,18 +669,18 @@ export default function DriverListPage() {
                     <StatusBadge status={d.status} />
                   </div>
 
-                  <div className="space-y-1.5 py-2 border-y border-slate-100 text-xs">
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="font-medium text-slate-400">Phone:</span>
-                      <span className="font-semibold text-slate-800">{d.phone_primary}</span>
+                  <div className="space-y-1.5 py-2 border-y border-slate-100 dark:border-slate-800 text-xs">
+                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                      <span className="font-medium text-slate-400 dark:text-slate-500">Phone:</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{d.phone_primary}</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="font-medium text-slate-400">License:</span>
-                      <span className="font-mono font-semibold text-slate-800">{d.license_number || 'N/A'}</span>
+                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                      <span className="font-medium text-slate-400 dark:text-slate-500">License:</span>
+                      <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{d.license_number || 'N/A'}</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="font-medium text-slate-400">Expiry:</span>
-                      <span className={`font-medium ${isExpired ? 'text-rose-600 font-bold' : 'text-slate-700'}`}>
+                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                      <span className="font-medium text-slate-400 dark:text-slate-500">Expiry:</span>
+                      <span className={`font-medium ${isExpired ? 'text-rose-600 font-bold' : 'text-slate-700 dark:text-slate-300'}`}>
                         {new Date(d.license_expiry).toLocaleDateString()}
                       </span>
                     </div>

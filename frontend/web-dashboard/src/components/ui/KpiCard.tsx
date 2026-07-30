@@ -213,8 +213,8 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        'group relative rounded-none border-border/70 shadow-none transition-all duration-200 hover:border-border py-4 gap-0 bg-gradient-to-b from-card via-card to-transparent',
-        props.onClick && 'cursor-pointer hover:scale-[1.015] active:scale-[0.99] hover:shadow-sm',
+        'group relative rounded-none border-border/70 shadow-none transition-all duration-150 hover:-translate-y-0.5 hover:border-black/[0.12] dark:hover:border-white/20 p-5 gap-0 bg-gradient-to-b from-card via-card to-transparent',
+        props.onClick && 'cursor-pointer active:scale-[0.99] hover:shadow-md',
         selectedStyle.cardBg,
         className
       )}
@@ -223,22 +223,22 @@ export function KpiCard({
       {/* Top accent rule — lights up on hover */}
       <div
         className={cn(
-          'absolute inset-x-0 top-0 h-px opacity-40 transition-opacity duration-200 group-hover:opacity-100',
+          'absolute inset-x-0 top-0 h-px opacity-40 transition-opacity duration-150 group-hover:opacity-100',
           selectedStyle.accentLine
         )}
       />
 
       {/* Corner ticks — instrument-panel reference */}
-      <span className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-border/20 transition-colors duration-200 group-hover:border-border" />
-      <span className="pointer-events-none absolute bottom-0 right-0 h-2 w-2 border-b border-r border-border/20 transition-colors duration-200 group-hover:border-border" />
+      <span className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-border/20 transition-colors duration-150 group-hover:border-border" />
+      <span className="pointer-events-none absolute bottom-0 right-0 h-2 w-2 border-b border-r border-border/20 transition-colors duration-150 group-hover:border-border" />
 
-      <CardHeader className="flex flex-row items-center justify-between gap-4 px-4 pb-2.5 pt-0">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 p-0 pb-3">
         <CardTitle className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
           {displayTitle}
         </CardTitle>
         {renderedIcon && (
           <div className={cn(
-            "flex h-6 w-6 shrink-0 items-center justify-center border transition-all duration-200",
+            "flex h-6 w-6 shrink-0 items-center justify-center border transition-all duration-150",
             selectedStyle.iconContainer
           )}>
             {renderedIcon}
@@ -246,15 +246,15 @@ export function KpiCard({
         )}
       </CardHeader>
 
-      <div className="mx-4 h-px bg-border/40" />
+      <div className="h-px bg-border/40" />
 
-      <CardContent className="flex flex-col gap-1.5 px-4 pt-2.5 pb-0">
+      <CardContent className="flex flex-col gap-1.5 p-0 pt-3">
         <div className="font-mono text-2xl font-bold leading-none tracking-tight text-foreground tabular-nums">
           {value}
         </div>
 
         {(displayDescription || computedTrendValue) && (
-          <div className="flex items-baseline gap-1.5 text-[11px]">
+          <div className="flex items-baseline gap-1.5 text-[11px] font-medium leading-none">
             {computedTrend && computedTrendValue && (
               <span className={cn('inline-flex items-center gap-0.5 font-mono font-semibold tabular-nums', selectedStyle.textColor)}>
                 <span aria-hidden="true">{trendGlyph[computedTrend]}</span>
@@ -262,16 +262,16 @@ export function KpiCard({
               </span>
             )}
             {displayDescription && (
-              <span className="text-muted-foreground">{displayDescription}</span>
+              <span className="text-slate-500">{displayDescription}</span>
             )}
           </div>
         )}
 
         {/* Specialized Visual Indicator Component Area */}
-        <div className="mt-3 -mx-4 -mb-4 overflow-hidden">
+        <div className="mt-3 -mx-5 -mb-5 overflow-hidden">
           {/* Mode 1: Active Route Health Breakdown (For IN TRANSIT active trips) */}
           {routeHealthBreakdown ? (
-            <div className="px-4 pb-3.5 pt-1 flex flex-col gap-1.5">
+            <div className="px-5 pb-5 pt-1 flex flex-col gap-1.5">
               {/* 3-Color Route Health Bar */}
               <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5 border border-black/[0.04]">
                 <div 
@@ -312,7 +312,7 @@ export function KpiCard({
             </div>
           ) : livePulseTrack ? (
             /* Mode 2: Live Pulse Track */
-            <div className="px-4 pb-3.5 pt-1 flex flex-col gap-1.5">
+            <div className="px-5 pb-5 pt-1 flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400">
                 <div className="flex items-center gap-2">
                   <span className="relative flex h-2 w-2">
@@ -331,7 +331,7 @@ export function KpiCard({
             </div>
           ) : completionGauge ? (
             /* Mode 2: Completion Ring Gauge (Donut Gauge for DELIVERED & COMPLETED) */
-            <div className="px-4 pb-3 pt-0.5 flex items-center justify-between gap-3">
+            <div className="px-5 pb-5 pt-0.5 flex items-center justify-between gap-3">
               <div className="flex flex-col">
                 <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
                   {completionGauge.label}
@@ -368,7 +368,7 @@ export function KpiCard({
             </div>
           ) : pipelineStages && pipelineStages.length > 0 ? (
             /* Mode 3: Pipeline Stages Stepper (Stage Cards for DISPATCH QUEUE) */
-            <div className="px-4 pb-3 pt-0.5 flex flex-col gap-1.5">
+            <div className="px-5 pb-5 pt-0.5 flex flex-col gap-1.5">
               <div className="grid grid-cols-3 gap-1.5">
                 {pipelineStages.map((stage, idx) => (
                   <div key={idx} className="flex flex-col p-1 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
@@ -383,7 +383,7 @@ export function KpiCard({
             </div>
           ) : progressSegments && progressSegments.length > 0 ? (
             /* Mode 4: Segmented Urgency Progress Bar */
-            <div className="px-4 pb-3.5 pt-1 flex flex-col gap-2">
+            <div className="px-5 pb-5 pt-1 flex flex-col gap-2">
               <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5 border border-black/[0.04]">
                 {progressSegments.map((seg, idx) => (
                   <div

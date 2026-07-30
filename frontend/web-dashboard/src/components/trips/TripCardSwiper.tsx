@@ -54,9 +54,9 @@ export default function TripCardSwiper() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-[#E8450F] animate-ping" />
               <CardTitle className="text-sm font-extrabold text-[#111] tracking-tight">Active Freight Trips Carousel</CardTitle>
-              <Badge variant="outline" className="text-[10px] font-mono border-orange-300 bg-orange-50 text-[#FF5500]">
+              <Badge variant="outline" className="text-[10px] font-mono border-orange-300 bg-orange-50 text-[#E8450F]">
                 {fleet.length} TRIPS
               </Badge>
             </div>
@@ -108,16 +108,16 @@ export default function TripCardSwiper() {
             <div
               key={truck.tripId}
               onClick={() => navigate(`/trips/${truck.tripId}`)}
-              className="w-[280px] shrink-0 snap-start bg-[#FAFAFA] hover:bg-white border border-black/[0.08] hover:border-[#FF5500]/40 rounded-2xl p-3 shadow-xs hover:shadow-lg transition-all duration-200 cursor-pointer space-y-2.5 group"
+              className="w-[280px] shrink-0 snap-start bg-[#FAFAFA] hover:bg-white border border-black/[0.08] hover:border-[#E8450F]/40 rounded-2xl p-3.5 shadow-2xs hover:shadow-md hover:-translate-y-1 transition-all duration-150 ease-in-out cursor-pointer space-y-2.5 group"
             >
               
               {/* Card Header: Ref ID & Status */}
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[9px] font-mono font-bold text-[#FF5500] uppercase tracking-wider">{truck.refId}</span>
-                  <p className="text-xs font-black text-[#111] leading-tight group-hover:text-[#FF5500] transition-colors flex items-center gap-1">
+                  <span className="text-[9px] font-mono font-bold text-[#E8450F] uppercase tracking-wider">{truck.refId}</span>
+                  <p className="text-xs font-black text-[#111] leading-tight group-hover:text-[#E8450F] transition-colors flex items-center gap-1">
                     <span>{truck.plateNumber}</span>
-                    <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all text-[#FF5500]" />
+                    <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all text-[#E8450F]" />
                   </p>
                 </div>
                 <StatusBadge status={truck.status} />
@@ -142,7 +142,7 @@ export default function TripCardSwiper() {
                 <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Route Corridor</p>
                 <div className="flex items-center justify-between text-[11px] font-bold text-[#111] mt-0.5">
                   <span className="truncate max-w-[110px]">{truck.originName.split(' ')[0]}</span>
-                  <span className="text-[#FF5500] font-mono text-[10px]">➔</span>
+                  <span className="text-[#E8450F] font-mono text-[10px]">➔</span>
                   <span className="truncate max-w-[110px] text-right">{truck.destinationName.split(' ')[0]}</span>
                 </div>
               </div>
@@ -153,32 +153,32 @@ export default function TripCardSwiper() {
                   <p className="text-[8px] text-gray-400 font-bold uppercase flex items-center gap-0.5">
                     <User size={9} /> Driver
                   </p>
-                  <p className="font-bold text-[#111] truncate mt-0.5 text-[10px]">{truck.driverName}</p>
+                  <p className="font-bold text-[#111] truncate mt-0.5 text-[10px] h-[15px]">{truck.driverName}</p>
                 </div>
 
                 <div className="bg-white p-2 rounded-lg border border-black/[0.04]">
                   <p className="text-[8px] text-gray-400 font-bold uppercase flex items-center gap-0.5">
                     <Truck size={9} /> Vehicle
                   </p>
-                  <p className="font-bold text-[#111] truncate mt-0.5 text-[10px]">{truck.assetType}</p>
+                  <p className="font-bold text-[#111] truncate mt-0.5 text-[10px] h-[15px]">{truck.assetType}</p>
                 </div>
               </div>
 
               {/* Speed & Progress Bar */}
-              <div className="space-y-1 pt-0.5">
+              <div className="space-y-1.5 pt-0.5">
                 <div className="flex justify-between items-center text-[10px] font-bold">
-                  <span className="text-[#FF5500] flex items-center gap-1">
+                  <span className="text-[#E8450F] flex items-center gap-1">
                     <Gauge size={11} /> {truck.speedKmH} km/h
                   </span>
                   <span className="text-gray-500">{truck.progressPercentage}%</span>
                 </div>
-                <Progress value={truck.progressPercentage} className="h-1 bg-gray-200" />
+                <Progress value={truck.progressPercentage} className="h-1.5 bg-slate-100 [&>div]:bg-[#E8450F]" />
               </div>
 
               {/* CTA Action Button */}
               <Button
                 size="sm"
-                className="w-full h-7 bg-[#1C1C2E] group-hover:bg-[#FF5500] text-white text-[10px] font-bold gap-1 rounded-lg transition-all"
+                className="w-full h-7 bg-[#1C1C2E] group-hover:bg-[#E8450F] text-white text-[10px] font-bold gap-1 rounded-lg transition-all"
               >
                 <span>View Full Details</span>
                 <ExternalLink size={10} />

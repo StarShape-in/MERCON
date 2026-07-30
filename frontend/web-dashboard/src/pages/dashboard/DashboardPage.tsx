@@ -107,22 +107,17 @@ export default function DashboardPage() {
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            {/* Page Icon Container */}
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
-              <LayoutDashboard className="w-5 h-5 text-indigo-600" />
-            </div>
-
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Dashboard
+                  {getGreeting()}, {operatorName} 👋
                 </h1>
                 <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
-                  Overview
+                  Dashboard Overview
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                {getGreeting()}, {operatorName}. Here's what's happening today.
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Here's what's happening today across your operations.
               </p>
             </div>
           </div>
@@ -189,16 +184,33 @@ export default function DashboardPage() {
         )}
 
         {/* Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           
-          {/* Card 1: Total Freight Trips with Telemetry Radar Widget */}
+          {/* Card 1: Monthly Revenue — Donut Gauge (Strongest Emphasis / Brand Variant) */}
+          <KpiCard
+            title="MONTHLY REVENUE"
+            value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`}
+            variant="brand"
+            trend={kpis.revenue_this_month.delta !== null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : 'up'}
+            trendValue={kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '+14.8%'}
+            description="Gross settled payments"
+            icon={MoneyBills}
+            completionGauge={{
+              percentage: 84,
+              label: '84% Monthly Target Reached',
+              subtext: 'SAR 420K Monthly Target'
+            }}
+            onClick={() => navigate('/invoices')}
+          />
+          
+          {/* Card 2: Total Freight Trips with Telemetry Radar Widget */}
           <KpiCard
             title="TOTAL FREIGHT TRIPS"
             value={kpis.total_trips.value}
-            variant="brand"
+            variant="purple"
             trend={kpis.total_trips.delta !== null ? (kpis.total_trips.delta >= 0 ? 'up' : 'down') : 'up'}
             trendValue={kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '+12.4%'}
-            description="→ Active & completed manifests"
+            description="Active & completed manifests"
             icon={TruckMotion}
             onClick={() => navigate('/trips')}
           >
@@ -209,14 +221,14 @@ export default function DashboardPage() {
             />
           </KpiCard>
 
-          {/* Card 2: Active Fleet with Speedometer Dial Widget */}
+          {/* Card 3: Active Fleet with Speedometer Dial Widget */}
           <KpiCard
             title="ACTIVE FLEET (ON ROAD)"
             value={kpis.fleet_on_trip.value}
             variant="blue"
             trend="up"
             trendValue={`${Math.round(((kpis.fleet_on_trip.value || 1) / ((kpis.fleet_on_trip.value || 0) + (kpis.fleet_available.value || 1))) * 100)}%`}
-            description="↑ Fleet active capacity"
+            description="Fleet active capacity"
             icon={FleetTruck}
             onClick={() => navigate('/vehicles')}
           >
@@ -227,23 +239,6 @@ export default function DashboardPage() {
             />
           </KpiCard>
 
-          {/* Card 3: Monthly Revenue — Donut Gauge */}
-          <KpiCard
-            title="MONTHLY REVENUE"
-            value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`}
-            variant="emerald"
-            trend={kpis.revenue_this_month.delta !== null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : 'up'}
-            trendValue={kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '+14.8%'}
-            description="↑ Gross settled payments"
-            icon={MoneyBills}
-            completionGauge={{
-              percentage: 84,
-              label: '84% Monthly Target Reached',
-              subtext: 'SAR 420K Monthly Target'
-            }}
-            onClick={() => navigate('/invoices')}
-          />
-
           {/* Card 4: Compliance Renewals — Urgency Segments */}
           <KpiCard
             title="COMPLIANCE RENEWALS"
@@ -251,7 +246,7 @@ export default function DashboardPage() {
             variant="amber"
             trend={kpis.docs_expiring_soon.value > 0 ? 'down' : 'neutral'}
             trendValue={kpis.docs_expiring_soon.value > 0 ? 'Action Required' : 'All Clear'}
-            description="→ Permits expiring within 30d"
+            description="Permits expiring within 30d"
             icon={CalendarAlert}
             progressSegments={[
               { label: `${kpis.docs_expiring_soon.value} Due Soon`, value: kpis.docs_expiring_soon.value > 0 ? 80 : 0, color: 'bg-amber-500' },
@@ -266,18 +261,17 @@ export default function DashboardPage() {
           <TripCardSwiper />
         </div>
 
-
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 shrink-0">
           {/* Revenue / Trip Trend */}
           <Card className="lg:col-span-2 border-black/[0.06] shadow-sm rounded-2xl bg-white flex flex-col justify-between">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-[#111]">Revenue Trend</CardTitle>
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Revenue Trend</CardTitle>
               <CardDescription className="text-xs text-[#6E6E80]">Monthly completed freight payments (SAR)</CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 min-h-[200px]">
+            <CardContent className="flex-1 min-h-[200px] pb-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <AreaChart data={trendData} margin={{ top: 10, right: 15, left: -10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#E8450F" stopOpacity={0.12} />
@@ -285,8 +279,8 @@ export default function DashboardPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F2" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9898A4' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: '#9898A4' }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#6E6E80', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#6E6E80', fontWeight: 600 }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ borderRadius: 12, fontSize: 11, border: '1px solid #F0F0F2', fontFamily: 'Plus Jakarta Sans' }} />
                   <Area type="monotone" dataKey="revenue" stroke="#E8450F" strokeWidth={2} fill="url(#revenueGrad)" name="Revenue" />
                 </AreaChart>
@@ -297,10 +291,10 @@ export default function DashboardPage() {
           {/* Trip Status Distribution */}
           <Card className="border-black/[0.06] shadow-sm rounded-2xl bg-white flex flex-col justify-between">
             <CardHeader className="pb-0">
-              <CardTitle className="text-sm font-bold text-[#111]">Trip Status Distribution</CardTitle>
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Trip Status Distribution</CardTitle>
               <CardDescription className="text-xs text-[#6E6E80]">Manifest progress status overview</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col justify-between flex-1 pt-2">
+            <CardContent className="flex flex-col justify-between flex-1 pt-2 pb-4">
               <div className="flex items-center justify-center my-2">
                 <PieChart width={160} height={140}>
                   <Pie 
@@ -338,7 +332,7 @@ export default function DashboardPage() {
         <Card className="border-black/[0.06] shadow-sm rounded-2xl bg-white overflow-hidden shrink-0">
           <CardHeader className="py-4 px-5 border-b border-[#F0F0F2] flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-sm font-bold text-[#111]">Recent Operations Trips</CardTitle>
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Recent Operations Trips</CardTitle>
               <CardDescription className="text-xs text-[#6E6E80]">Latest active and dispatched manifests</CardDescription>
             </div>
             <Button 

@@ -184,7 +184,7 @@ export default function DataTable<T>({
       {showToolbar && (
         <div className="shrink-0 p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
           {selectedIndices.size > 0 ? (
-            <div className="flex items-center gap-3 w-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 p-2 rounded-lg transition-all">
+            <div className="flex items-center gap-3 w-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 p-2 rounded-lg transition-all" role="alert">
               <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 px-2">
                 {selectedIndices.size} row{selectedIndices.size > 1 ? 's' : ''} selected
               </span>
@@ -246,12 +246,14 @@ export default function DataTable<T>({
                       placeholder={searchPlaceholder}
                       value={searchValue || ''}
                       onChange={(e) => onSearchChange(e.target.value)}
-                      className="w-full pl-9 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500/20 rounded-lg font-medium"
+                      className="w-full pl-9 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
+                      aria-label="Search Table"
                     />
                     {searchValue && (
                       <button 
                         onClick={() => onSearchChange('')}
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                        aria-label="Clear search"
                       >
                         <X size={12} />
                       </button>
@@ -282,7 +284,7 @@ export default function DataTable<T>({
 
       {/* Main Table Container */}
       <div className="flex-1 overflow-auto min-h-0 w-full">
-        <Table className="w-full">
+        <Table className="w-full" role="table">
           <TableHeader>
             <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
               {enableSelection && (
@@ -292,6 +294,7 @@ export default function DataTable<T>({
                     className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     checked={selectedIndices.size === displayData.length && displayData.length > 0}
                     onChange={handleSelectAll}
+                    aria-label="Select all rows"
                   />
                 </TableHead>
               )}
@@ -347,51 +350,68 @@ export default function DataTable<T>({
               </TableRow>
             ) : (
               // Data Rows
-              displayData.map((row, rowIndex) => (
-                <TableRow
-                  key={rowIndex}
-                  className={cn(
-                    "animate-fade-in transition-colors border-b border-slate-100 dark:border-slate-800/60",
-                    onRowClick ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
-                  )}
-                  style={{ animationDelay: `${rowIndex * 0.02}s` }}
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement;
-                    if (
-                      target.tagName.toLowerCase() === 'input' ||
-                      target.tagName.toLowerCase() === 'button' ||
-                      target.closest('button') ||
-                      target.closest('a')
-                    ) {
-                      return;
-                    }
-                    onRowClick?.(row);
-                  }}
-                >
-                  {enableSelection && (
-                    <TableCell className="px-5 py-4 w-[48px]">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                        checked={selectedIndices.has(rowIndex)}
-                        onChange={() => handleSelectRow(rowIndex)}
-                      />
-                    </TableCell>
-                  )}
-                  {columns.map((col, colIndex) => (
-                    <TableCell key={colIndex} className={cn(compact ? "px-5 py-3 text-xs" : "px-5 py-4 text-sm font-medium text-slate-800 dark:text-slate-200", col.className)}>
-                      {col.accessor(row, rowIndex)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              displayData.map((row, rowIndex) => {
+                const isSelected = selectedIndices.has(rowIndex);
+                return (
+                  <TableRow
+                    key={rowIndex}
+                    className={cn(
+                      "animate-fade-in transition-colors border-b border-slate-100 dark:border-slate-800/60 focus-visible:bg-slate-50 dark:focus-visible:bg-slate-800/80 outline-none",
+                      isSelected 
+                        ? "bg-indigo-50/25 dark:bg-indigo-950/20 hover:bg-indigo-50/45 dark:hover:bg-indigo-950/30" 
+                        : onRowClick 
+                          ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" 
+                          : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                    )}
+                    style={{ animationDelay: `${rowIndex * 0.02}s` }}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    aria-selected={isSelected}
+                    role="row"
+                    onKeyDown={(e) => {
+                      if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
+                    }}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (
+                        target.tagName.toLowerCase() === 'input' ||
+                        target.tagName.toLowerCase() === 'button' ||
+                        target.closest('button') ||
+                        target.closest('a')
+                      ) {
+                        return;
+                      }
+                      onRowClick?.(row);
+                    }}
+                  >
+                    {enableSelection && (
+                      <TableCell className="px-5 py-4 w-[48px]">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          checked={isSelected}
+                          onChange={() => handleSelectRow(rowIndex)}
+                          aria-label={`Select row ${rowIndex + 1}`}
+                        />
+                      </TableCell>
+                    )}
+                    {columns.map((col, colIndex) => (
+                      <TableCell key={colIndex} className={cn(compact ? "px-5 py-3 text-xs" : "px-5 py-4 text-sm font-medium text-slate-800 dark:text-slate-200", col.className)}>
+                        {col.accessor(row, rowIndex)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
 
       {/* Spacious Pagination Footer */}
-      <div className="shrink-0 p-3.5 px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
+      <div className="shrink-0 p-4 px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
         {/* Left Side: Rows Per Page & Summary Count */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
@@ -400,6 +420,7 @@ export default function DataTable<T>({
               value={activePageSize}
               onChange={(e) => handlePageSizeChange(Number(e.target.value))}
               className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-2xs"
+              aria-label="Rows per page"
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>
@@ -415,12 +436,12 @@ export default function DataTable<T>({
         </div>
 
         {/* Right Side: Page Navigation Buttons */}
-        <div className="flex items-center gap-1.5 ml-auto">
+        <div className="flex items-center gap-1.5 ml-auto" role="navigation" aria-label="Pagination Navigation">
           <button
             onClick={() => handlePageChange(1)}
             disabled={activePage === 1 || isLoading}
-            title="First Page"
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+            aria-label="First page"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/40"
           >
             <ChevronsLeft size={14} />
           </button>
@@ -428,13 +449,13 @@ export default function DataTable<T>({
           <button
             onClick={() => handlePageChange(activePage - 1)}
             disabled={activePage === 1 || isLoading}
-            title="Previous Page"
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+            aria-label="Previous page"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/40"
           >
             <ChevronLeft size={14} />
           </button>
 
-          <div className="flex items-center gap-1 px-2">
+          <div className="flex items-center gap-1 px-2" aria-live="polite">
             <span className="px-2.5 py-1 text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 shadow-2xs">
               {activePage}
             </span>
@@ -445,8 +466,8 @@ export default function DataTable<T>({
           <button
             onClick={() => handlePageChange(activePage + 1)}
             disabled={activePage >= computedTotalPages || isLoading}
-            title="Next Page"
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+            aria-label="Next page"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/40"
           >
             <ChevronRight size={14} />
           </button>
@@ -454,8 +475,8 @@ export default function DataTable<T>({
           <button
             onClick={() => handlePageChange(computedTotalPages)}
             disabled={activePage >= computedTotalPages || isLoading}
-            title="Last Page"
-            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+            aria-label="Last page"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/40"
           >
             <ChevronsRight size={14} />
           </button>

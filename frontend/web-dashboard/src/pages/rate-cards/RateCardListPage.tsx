@@ -309,7 +309,7 @@ export default function RateCardListPage() {
         </div>
 
         {/* 4-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           
           {/* Card 1: Active Rate Cards — Donut Ring Gauge */}
           <KpiCard
@@ -318,7 +318,7 @@ export default function RateCardListPage() {
             variant="emerald"
             trend="up"
             trendValue={`${kpis.activePct}% Active`}
-            description="Click to filter Active tariffs"
+            description="Active contracted tariffs"
             icon={CheckBadge}
             completionGauge={{
               percentage: kpis.activePct || 85,
@@ -335,7 +335,7 @@ export default function RateCardListPage() {
             variant="brand"
             trend="up"
             trendValue="+4.2%"
-            description="Click for tariff benchmark"
+            description="Tariff benchmark index"
             icon={RevenueChart}
             onClick={() => setShowTariffModal(true)}
           />
@@ -347,7 +347,7 @@ export default function RateCardListPage() {
             variant="blue"
             trend="neutral"
             trendValue="High Volume"
-            description="Click to filter Riyadh corridor"
+            description="Riyadh transport corridor"
             icon={RouteLine}
             onClick={() => setSearch('Riyadh')}
           >
@@ -361,7 +361,7 @@ export default function RateCardListPage() {
             variant="amber"
             trend="neutral"
             trendValue="Corporate SLA"
-            description="Active corporate billing accounts"
+            description="Active corporate accounts"
             icon={CustomerBuilding}
             completionGauge={{
               percentage: 90,
@@ -376,7 +376,7 @@ export default function RateCardListPage() {
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
             {/* Left: Search Input + Status Dropdown */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               
               {/* Search Bar */}
               <div className="relative w-64">
@@ -385,13 +385,13 @@ export default function RateCardListPage() {
                   placeholder="Search contract, customer, route..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
+                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
                 />
               </div>
 
               {/* Status Filter Dropdown */}
               <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
-                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs">
+                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus-visible:ring-[#E8450F]/20">
                   <div className="flex items-center gap-2">
                     <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="Tariff Status" />
@@ -467,7 +467,7 @@ export default function RateCardListPage() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {isLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 h-[200px] skeleton"></div>
@@ -489,7 +489,16 @@ export default function RateCardListPage() {
               <Card 
                 key={rc.id} 
                 onClick={() => navigate(`/rate-cards/${rc.id}`)}
-                className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl"
+                className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs hover:border-[#E8450F]/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
+                tabIndex={0}
+                role="button"
+                aria-label={`Rate card ${rc.name}, base tariff ${rc.currency || 'SAR'} ${rc.base_price}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/rate-cards/${rc.id}`);
+                  }
+                }}
               >
                 <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
@@ -507,7 +516,7 @@ export default function RateCardListPage() {
                       {rc.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
-                  <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-[#E8450F] transition-colors mt-1">
+                  <CardTitle className="text-sm font-extrabold text-slate-955 dark:text-slate-50 group-hover:text-[#E8450F] transition-colors mt-1">
                     {rc.name}
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500 flex items-center gap-1">
@@ -518,14 +527,14 @@ export default function RateCardListPage() {
                 <CardContent className="py-3 space-y-2">
                   <div className="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                     <span className="font-bold text-slate-700 dark:text-slate-300">{rc.route_origin}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#E8450F]" />
+                    <ArrowRight className="w-3.5 h-3.5 text-[#E8450F]/70" />
                     <span className="font-bold text-slate-700 dark:text-slate-300">{rc.route_destination}</span>
                   </div>
                 </CardContent>
 
                 <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 flex items-center justify-between text-xs rounded-b-xl">
                   <span className="text-[10px] text-slate-500 font-medium">Base Tariff Rate:</span>
-                  <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
+                  <span className="font-mono font-extrabold text-slate-955 dark:text-slate-50">
                     {rc.currency || 'SAR'} {Number(rc.base_price).toLocaleString()}
                   </span>
                 </CardFooter>

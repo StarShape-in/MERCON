@@ -28,9 +28,11 @@ import { downloadCSV } from '@/utils/exportUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { CreditExposureKpi } from '@/components/ui/CustomKpiWidgets';
 import { customerService, Customer } from '@/services/customerService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { cn } from '@/lib/utils';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -119,6 +121,21 @@ export default function CustomerListPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
+  const getCreditTierBadge = (limit: number) => {
+    if (limit >= 100000) {
+      return (
+        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200/80 text-[10px] font-bold px-1.5 py-0 w-fit">
+          Enterprise Key Account
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-semibold px-1.5 py-0 w-fit">
+        Standard Commercial
+      </Badge>
+    );
+  };
+
   const columns = [
     {
       header: 'Customer ID',
@@ -155,35 +172,17 @@ export default function CustomerListPage() {
     {
       header: 'Credit Limit Exposure',
       accessor: (row: Customer) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-xs font-bold text-slate-800">
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-xs font-bold text-slate-850 dark:text-slate-200">
             SAR {(row.credit_limit || 0).toLocaleString()}
           </span>
-          {(row.credit_limit || 0) >= 100000 ? (
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] font-bold py-0 px-1.5 w-fit">
-              Enterprise Key Account
-            </Badge>
-          ) : (
-            <span className="text-[10px] text-slate-500 font-medium">Standard Commercial</span>
-          )}
+          {getCreditTierBadge(row.credit_limit || 0)}
         </div>
       ),
     },
     {
       header: 'Account Status',
-      accessor: (row: Customer) => (
-        row.isActive ? (
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold py-0.5 px-2 gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Active Client
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-bold py-0.5 px-2 gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-            Inactive
-          </Badge>
-        )
-      ),
+      accessor: (row: Customer) => <StatusBadge status={row.isActive ? 'Active' : 'Inactive'} />,
     },
     {
       header: 'Actions',
@@ -209,19 +208,19 @@ export default function CustomerListPage() {
                 <Eye className="mr-2 h-3.5 w-3.5 text-blue-600 shrink-0" />
                 View Customer Details
               </DropdownMenuItem>
-
+ 
               <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-purple-50" onClick={() => navigate(`/customers/${row.id}/contracts`)}>
                 <FileText className="mr-2 h-3.5 w-3.5 text-purple-600 shrink-0" />
                 Rate Cards & Contracts
               </DropdownMenuItem>
-
+ 
               <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/customers/${row.id}/edit`)}>
                 <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600 shrink-0" />
                 Edit Profile Details
               </DropdownMenuItem>
-
+ 
               <DropdownMenuSeparator className="my-1 border-slate-100" />
-
+ 
               <DropdownMenuItem
                 className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg text-rose-600 focus:text-rose-600 focus:bg-rose-50"
                 onClick={async () => {
@@ -240,7 +239,7 @@ export default function CustomerListPage() {
       ),
     },
   ];
-
+ 
   const bulkActions = [
     {
       label: 'Export CSV',
@@ -263,7 +262,7 @@ export default function CustomerListPage() {
       }
     }
   ];
-
+ 
   return (
     <DashboardLayout 
       active="Customers" 
@@ -277,7 +276,7 @@ export default function CustomerListPage() {
             <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
               <Building2 className="w-5 h-5 text-indigo-600" />
             </div>
-
+ 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -292,7 +291,7 @@ export default function CustomerListPage() {
               </p>
             </div>
           </div>
-
+ 
           <div className="flex items-center gap-2.5">
             <Button
               variant="outline"
@@ -303,7 +302,7 @@ export default function CustomerListPage() {
               <Download className="h-3.5 w-3.5 text-slate-600" />
               Export CSV
             </Button>
-
+ 
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
@@ -312,7 +311,7 @@ export default function CustomerListPage() {
               <Plus className="h-4 w-4" />
               Add Customer
             </Button>
-
+ 
             <Button
               variant="outline"
               size="sm"
@@ -324,9 +323,9 @@ export default function CustomerListPage() {
             </Button>
           </div>
         </div>
-
+ 
         {/* 4-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           {/* Card 1: Total Customers — Tier Breakdown Bar */}
           <KpiCard
             title="TOTAL CUSTOMERS"
@@ -334,7 +333,7 @@ export default function CustomerListPage() {
             variant="brand"
             trend="up"
             trendValue="+8 Accounts"
-            description="Click to view all accounts"
+            description="Corporate client accounts"
             icon={CustomerBuilding}
             progressSegments={[
               { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-[#E8450F]' },
@@ -342,7 +341,7 @@ export default function CustomerListPage() {
             ]}
             onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
-
+ 
           {/* Card 2: Active Clients — Donut Ratio Gauge */}
           <KpiCard
             title="ACTIVE CLIENTS"
@@ -350,7 +349,7 @@ export default function CustomerListPage() {
             variant="emerald"
             trend="up"
             trendValue={`${activePercentage}% Active`}
-            description="Click to filter Active accounts"
+            description="Active account profiles"
             icon={CheckBadge}
             completionGauge={{
               percentage: activePercentage || 100,
@@ -359,7 +358,7 @@ export default function CustomerListPage() {
             }}
             onClick={() => { setSelectedStatus('Active'); setCurrentPage(1); }}
           />
-
+ 
           {/* Card 3: Total Credit Exposure — Credit Exposure Modal */}
           <KpiCard
             title="TOTAL CREDIT EXPOSURE"
@@ -367,7 +366,7 @@ export default function CustomerListPage() {
             variant="blue"
             trend="neutral"
             trendValue="Credit Portfolio"
-            description="Click for credit facility details"
+            description="Credit facility summary"
             icon={MoneyBills}
             onClick={() => setShowCreditModal(true)}
           >
@@ -376,7 +375,7 @@ export default function CustomerListPage() {
               limitAmount={totalCreditLimit || 500000} 
             />
           </KpiCard>
-
+ 
           {/* Card 4: Contract Renewals Due — Urgency Progress Bar */}
           <KpiCard
             title="CONTRACT RENEWALS"
@@ -384,7 +383,7 @@ export default function CustomerListPage() {
             variant="amber"
             trend="neutral"
             trendValue="30-90 Days"
-            description="→ Commercial contract horizon"
+            description="Commercial contract horizon"
             icon={CalendarIcon}
             progressSegments={[
               { label: '1 Expiring (<30d)', value: 25, color: 'bg-rose-500' },
@@ -393,13 +392,13 @@ export default function CustomerListPage() {
             ]}
           />
         </div>
-
+ 
         {/* Filter & Control Bar */}
         <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
             {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               
               {/* Search Input */}
               <div className="relative w-64 shrink-0">
@@ -408,10 +407,10 @@ export default function CustomerListPage() {
                   placeholder="Search company name, phone..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-slate-400 bg-white"
+                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
                 />
               </div>
-
+ 
               {/* Status Filter Dropdown */}
               <Select
                 value={selectedStatus}
@@ -454,7 +453,7 @@ export default function CustomerListPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-
+ 
               {/* Credit Tier Filter Dropdown */}
               <Select
                 value={creditTierFilter}
@@ -477,9 +476,9 @@ export default function CustomerListPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-
+ 
             </div>
-
+ 
             {/* View Mode Switcher Pill */}
             <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shrink-0 ml-auto">
               <button
@@ -505,10 +504,10 @@ export default function CustomerListPage() {
                 <span>Grid</span>
               </button>
             </div>
-
+ 
           </div>
         </div>
-
+ 
         {/* Dynamic Table or Grid Render */}
         {viewMode === 'list' ? (
           <div className="flex-1 min-h-0 flex flex-col">
@@ -534,7 +533,7 @@ export default function CustomerListPage() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 flex-1 overflow-y-auto">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 h-[120px] skeleton"></div>
@@ -556,16 +555,25 @@ export default function CustomerListPage() {
               return (
                 <div 
                   key={c.id} 
-                  className="bg-white rounded-xl border border-black/[0.08] p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-indigo-200 transition-all cursor-pointer"
+                  className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-[#E8450F]/40 hover:-translate-y-0.5 hover:shadow-xs transition-all duration-150 ease-in-out cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Customer: ${c.name}, Status: ${c.isActive ? 'Active' : 'Inactive'}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/customers/${c.id}`);
+                    }
+                  }}
                   onClick={() => navigate(`/customers/${c.id}`)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600 shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
                         {c.name?.[0]?.toUpperCase() || 'C'}
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 text-sm">
+                        <span className="font-bold text-slate-955 dark:text-slate-50 text-sm">
                           {c.name}
                         </span>
                         <span className="font-mono text-[11px] text-[#E8450F] font-bold">
@@ -573,25 +581,17 @@ export default function CustomerListPage() {
                         </span>
                       </div>
                     </div>
-                    {c.isActive ? (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-bold">
-                        Inactive
-                      </Badge>
-                    )}
+                    <StatusBadge status={c.isActive ? 'Active' : 'Inactive'} />
                   </div>
 
-                  <div className="space-y-1.5 py-2 border-y border-slate-100 text-xs">
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="font-medium text-slate-400">Phone:</span>
-                      <span className="font-semibold text-slate-800">{c.contact_phone}</span>
+                  <div className="space-y-1.5 py-2 border-y border-slate-100 dark:border-slate-800 text-xs">
+                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                      <span className="font-medium text-slate-400 dark:text-slate-500">Phone:</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{c.contact_phone}</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-600">
-                      <span className="font-medium text-slate-400">Credit Limit:</span>
-                      <span className="font-mono font-bold text-slate-800">SAR {(c.credit_limit || 0).toLocaleString()}</span>
+                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                      <span className="font-medium text-slate-400 dark:text-slate-500">Credit Limit:</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">SAR {(c.credit_limit || 0).toLocaleString()}</span>
                     </div>
                   </div>
 

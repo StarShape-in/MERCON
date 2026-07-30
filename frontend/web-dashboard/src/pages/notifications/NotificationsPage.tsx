@@ -15,6 +15,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 type NotificationType = 'alert' | 'trip' | 'document' | 'system';
 
@@ -361,36 +362,63 @@ export default function NotificationsPage() {
               {filteredNotifications.map((notif) => {
                 const type = normalizeType(notif.type);
                 const link = linkFor(notif);
+                
+                // Class names for type badges
+                const badgeClasses: Record<NotificationType, string> = {
+                  alert: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800',
+                  trip: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800',
+                  document: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800',
+                  system: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800',
+                };
+
                 return (
                   <div
                     key={notif.id}
-                    className={`p-4 flex gap-4 transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/50 ${
-                      !notif.is_read ? 'bg-indigo-50/30 dark:bg-indigo-950/20' : 'bg-white dark:bg-slate-900'
-                    }`}
+                    className={cn(
+                      "p-4 flex gap-4 transition-all duration-150 ease-in-out hover:bg-slate-100/70 dark:hover:bg-slate-800/80 cursor-pointer outline-none border-l-4",
+                      !notif.is_read 
+                        ? 'bg-indigo-50/20 dark:bg-indigo-950/15 border-l-[#E8450F]' 
+                        : 'bg-white dark:bg-slate-900 border-l-transparent focus-visible:bg-slate-50'
+                    )}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Notification: ${notif.title}. ${notif.message}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (!notif.is_read) markAsRead(notif.id);
+                        if (link) navigate(link);
+                      }
+                    }}
                     onClick={() => {
                       if (!notif.is_read) markAsRead(notif.id);
                     }}
                   >
-                    <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center border ${getBg(type)}`}>
+                    <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center border shadow-3xs ${getBg(type)}`}>
                       {getIcon(type)}
                     </div>
 
-                    <div className="flex-1 pt-0.5 cursor-pointer">
+                    <div className="flex-1 pt-0.5">
                       <div className="flex justify-between items-start mb-1 gap-4">
-                        <div className="flex items-center gap-2">
-                          <h4 className={`text-xs ${!notif.is_read ? 'font-extrabold text-slate-900 dark:text-slate-100' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className={cn(
+                            "text-xs tracking-tight",
+                            !notif.is_read 
+                              ? 'font-extrabold text-slate-950 dark:text-slate-50' 
+                              : 'font-semibold text-slate-700 dark:text-slate-300'
+                          )}>
                             {notif.title}
                           </h4>
-                          <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0 bg-slate-100 text-slate-600 border-slate-200">
+                          <Badge variant="outline" className={cn("text-[9px] font-bold uppercase tracking-wider px-1.5 py-0", badgeClasses[type])}>
                             {type}
                           </Badge>
                         </div>
 
-                        <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap flex items-center gap-1">
-                          <Clock size={11} /> {relativeTime(notif.createdAt)}
+                        <span className="text-[10px] font-mono font-medium text-slate-400 whitespace-nowrap flex items-center gap-1">
+                          <Clock size={11} className="stroke-[2]" /> {relativeTime(notif.createdAt)}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 leading-relaxed mb-2.5 pr-6">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-2.5 pr-6 font-medium">
                         {notif.message}
                       </p>
 
@@ -399,7 +427,7 @@ export default function NotificationsPage() {
                           <Button
                             variant="link"
                             size="sm"
-                            className="h-auto p-0 text-xs font-bold text-[#E8450F] hover:underline gap-1"
+                            className="h-auto p-0 text-xs font-bold text-[#E8450F] hover:underline gap-1 focus-visible:ring-1 focus-visible:ring-[#E8450F]"
                             onClick={(e) => { 
                               e.stopPropagation(); 
                               markAsRead(notif.id); 
@@ -412,16 +440,16 @@ export default function NotificationsPage() {
                         {!notif.is_read && (
                           <button
                             onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
-                            className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1 py-0.5 px-1.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
                           >
-                            <Check size={12} /> Mark as read
+                            <Check size={12} className="stroke-[2.5]" /> Mark as read
                           </button>
                         )}
                       </div>
                     </div>
 
                     {!notif.is_read && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#E8450F] shrink-0 mt-2" />
+                      <div className="w-2 h-2 rounded-full bg-[#E8450F] shrink-0 mt-2.5 animate-pulse" />
                     )}
                   </div>
                 );

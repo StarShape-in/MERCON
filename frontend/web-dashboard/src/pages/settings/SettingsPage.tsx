@@ -263,45 +263,45 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <Label htmlFor="prof_name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name</Label>
+                    <Label htmlFor="prof_name" className="text-xs font-bold text-slate-700 dark:text-slate-300">Full Name</Label>
                     <Input
                       id="prof_name"
                       value={profileForm.name}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="h-9 text-xs font-medium border-slate-200"
+                      className="h-9 text-xs font-semibold border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="prof_email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Email Address</Label>
+                    <Label htmlFor="prof_email" className="text-xs font-bold text-slate-700 dark:text-slate-300">Email Address</Label>
                     <Input
                       id="prof_email"
                       type="email"
                       value={profileForm.email}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="h-9 text-xs font-medium border-slate-200"
+                      className="h-9 text-xs font-semibold border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="prof_phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Phone Number</Label>
+                    <Label htmlFor="prof_phone" className="text-xs font-bold text-slate-700 dark:text-slate-300">Phone Number</Label>
                     <Input
                       id="prof_phone"
                       value={profileForm.phone}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
                       placeholder="+966 50 000 0000"
-                      className="h-9 text-xs font-mono border-slate-200"
+                      className="h-9 text-xs font-mono font-medium border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Account Role</Label>
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Account Role</Label>
                     <Input
                       value={user?.role || 'Operator'}
                       readOnly
-                      className="h-9 text-xs font-semibold bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-500 cursor-not-allowed"
+                      className="h-9 text-xs font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-500 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -395,41 +395,41 @@ export default function SettingsPage() {
 
             <form onSubmit={handlePasswordSubmit}>
               <CardContent className="pt-5 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   
                   <div className="space-y-1.5">
-                    <Label htmlFor="cur_pwd" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Current Password</Label>
+                    <Label htmlFor="cur_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">Current Password</Label>
                     <Input
                       id="cur_pwd"
                       type="password"
                       value={passwordForm.current_password}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, current_password: e.target.value }))}
                       placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200"
+                      className="h-9 text-xs border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="new_pwd" className="text-xs font-semibold text-slate-700 dark:text-slate-300">New Password</Label>
+                    <Label htmlFor="new_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">New Password</Label>
                     <Input
                       id="new_pwd"
                       type="password"
                       value={passwordForm.new_password}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password: e.target.value }))}
                       placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200"
+                      className="h-9 text-xs border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="cnf_pwd" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Confirm New Password</Label>
+                    <Label htmlFor="cnf_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">Confirm New Password</Label>
                     <Input
                       id="cnf_pwd"
                       type="password"
                       value={passwordForm.confirm_password}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm_password: e.target.value }))}
                       placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200"
+                      className="h-9 text-xs border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 

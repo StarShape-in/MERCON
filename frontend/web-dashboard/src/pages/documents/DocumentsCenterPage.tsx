@@ -345,7 +345,7 @@ export default function DocumentsCenterPage() {
           </div>
 
           {/* 4 Category Folder Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {(['Drivers', 'Vehicles', 'Operations', 'Company'] as DocCategory[]).map((cat) => {
               const cfg = CATEGORY_CONFIG[cat];
               const Icon = cfg.icon;
@@ -357,13 +357,22 @@ export default function DocumentsCenterPage() {
                   key={cat}
                   onClick={() => setActiveCategory(isActive ? 'All' : cat)}
                   className={cn(
-                    'group border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md bg-white dark:bg-slate-900',
-                    isActive ? `border-2 ${cfg.borderColor} shadow-sm` : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                    'group border rounded-2xl overflow-hidden cursor-pointer transition-all duration-150 hover:shadow-xs hover:-translate-y-0.5 bg-white dark:bg-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30',
+                    isActive ? `border-2 ${cfg.borderColor} shadow-xs` : 'border-slate-200 dark:border-slate-800 hover:border-[#E8450F]/45'
                   )}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${cfg.label} folder, ${catData.count} files`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setActiveCategory(isActive ? 'All' : cat);
+                    }
+                  }}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2.5">
-                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', cfg.iconBg)}>
+                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105', cfg.iconBg)}>
                         <Icon className={cn('w-4 h-4', cfg.color)} />
                       </div>
                       <Badge variant="outline" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
@@ -371,12 +380,12 @@ export default function DocumentsCenterPage() {
                       </Badge>
                     </div>
 
-                    <h4 className={cn('font-extrabold text-sm mb-0.5', cfg.color)}>{cfg.label}</h4>
+                    <h4 className={cn('font-extrabold text-sm mb-0.5 transition-colors group-hover:text-slate-900 dark:group-hover:text-white', cfg.color)}>{cfg.label}</h4>
                     <p className="text-[10px] text-slate-400 font-medium mb-3">{cfg.description}</p>
 
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
                       <span>{catData.docTypes.length} Document Types</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
                     </div>
                   </CardContent>
                 </Card>
@@ -388,7 +397,7 @@ export default function DocumentsCenterPage() {
         {/* ── Control Toolbar & Filters ───────────────────────────────────── */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3 shrink-0">
           
-          <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+          <div className="flex items-center gap-3 flex-1 min-w-[280px]">
             {/* Search Input */}
             <div className="relative flex-1 max-w-sm">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
@@ -397,14 +406,14 @@ export default function DocumentsCenterPage() {
                 placeholder="Search by file name, driver, vehicle plate, or issuer..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 rounded-lg"
+                className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
               />
             </div>
 
             {/* Expiry Dropdown Filter */}
             <div className="w-44">
               <Select value={expiryFilter} onValueChange={(v) => setExpiryFilter(v as any)}>
-                <SelectTrigger className="h-9 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50">
+                <SelectTrigger className="h-9 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20">
                   <div className="flex items-center gap-1.5">
                     <Filter className="w-3.5 h-3.5 text-slate-400" />
                     <SelectValue placeholder="Expiry Status" />
@@ -590,7 +599,7 @@ export default function DocumentsCenterPage() {
         ) : (
           
           /* GRID VIEW MODE */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 shrink-0">
             {filteredDocs.map((doc) => {
               const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
               const expBadge = EXPIRY_BADGE[doc.expStatus];
@@ -599,7 +608,16 @@ export default function DocumentsCenterPage() {
               return (
                 <Card
                   key={doc.id}
-                  className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition-all bg-white dark:bg-slate-900 flex flex-col justify-between"
+                  className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs hover:border-[#E8450F]/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Document: ${docTypeLabel(doc.doc_type)} for ${doc.entityName}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setPreviewDoc(doc);
+                    }
+                  }}
                 >
                   <CardContent className="p-4 space-y-3">
                     {/* Header Top */}

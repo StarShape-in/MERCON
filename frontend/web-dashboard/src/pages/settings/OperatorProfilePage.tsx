@@ -370,10 +370,10 @@ export default function OperatorProfilePage() {
               </CardHeader>
 
               <CardContent className="p-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   
                   <div className="space-y-1.5">
-                    <Label htmlFor="firstName" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <Label htmlFor="firstName" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       First Name <span className="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -382,12 +382,12 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('firstName', e.target.value)}
                       disabled={!isEditing}
                       placeholder="First Name"
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="lastName" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <Label htmlFor="lastName" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       Last Name
                     </Label>
                     <Input
@@ -396,12 +396,12 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('lastName', e.target.value)}
                       disabled={!isEditing}
                       placeholder="Last Name"
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <Label htmlFor="email" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       Work Email
                     </Label>
                     <Input
@@ -411,12 +411,12 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('email', e.target.value)}
                       disabled={!isEditing}
                       placeholder="operator@mercon.sa"
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="phone" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <Label htmlFor="phone" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       Phone Number
                     </Label>
                     <Input
@@ -425,12 +425,12 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('phone', e.target.value)}
                       disabled={!isEditing}
                       placeholder="+966 50 000 0000"
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="iqama" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <Label htmlFor="iqama" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       Saudi Iqama / National ID Reference
                     </Label>
                     <Input
@@ -438,12 +438,12 @@ export default function OperatorProfilePage() {
                       value={form.iqamaNumber}
                       onChange={(e) => setFormField('iqamaNumber', e.target.value)}
                       disabled={!isEditing}
-                      className="h-9 text-xs font-mono border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40"
+                      className="h-9 text-xs font-mono border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="hub" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <Label htmlFor="hub" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       Logistics Hub Location
                     </Label>
                     <Input
@@ -451,12 +451,12 @@ export default function OperatorProfilePage() {
                       value={form.operatingHub}
                       onChange={(e) => setFormField('operatingHub', e.target.value)}
                       disabled={!isEditing}
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="department" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <Label htmlFor="department" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       Department
                     </Label>
                     <Input
@@ -464,12 +464,12 @@ export default function OperatorProfilePage() {
                       value={form.department}
                       onChange={(e) => setFormField('department', e.target.value)}
                       disabled={!isEditing}
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="timezone" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <Label htmlFor="timezone" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       Timezone
                     </Label>
                     <Input
@@ -477,7 +477,7 @@ export default function OperatorProfilePage() {
                       value={form.timezone}
                       onChange={(e) => setFormField('timezone', e.target.value)}
                       disabled={!isEditing}
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                     />
                   </div>
 
@@ -528,7 +528,7 @@ export default function OperatorProfilePage() {
                     )}
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="current_pwd" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      <Label htmlFor="current_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                         Current Password
                       </Label>
                       <Input
@@ -537,13 +537,13 @@ export default function OperatorProfilePage() {
                         placeholder="••••••••••••"
                         value={pwd.current}
                         onChange={(e) => setPwd((p) => ({ ...p, current: e.target.value }))}
-                        className="h-9 text-xs border-slate-200 dark:border-slate-800"
+                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                       />
                     </div>
 
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="next_pwd" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        <Label htmlFor="next_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                           New Password
                         </Label>
                         {pwd.next && (
@@ -558,7 +558,7 @@ export default function OperatorProfilePage() {
                         placeholder="At least 8 characters"
                         value={pwd.next}
                         onChange={(e) => setPwd((p) => ({ ...p, next: e.target.value }))}
-                        className="h-9 text-xs border-slate-200 dark:border-slate-800"
+                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                       />
                       
                       {pwd.next && (
@@ -569,7 +569,7 @@ export default function OperatorProfilePage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="confirm_pwd" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      <Label htmlFor="confirm_pwd" className="text-xs font-bold text-slate-700 dark:text-slate-300">
                         Confirm New Password
                       </Label>
                       <Input
@@ -578,7 +578,7 @@ export default function OperatorProfilePage() {
                         placeholder="Re-enter new password"
                         value={pwd.confirm}
                         onChange={(e) => setPwd((p) => ({ ...p, confirm: e.target.value }))}
-                        className="h-9 text-xs border-slate-200 dark:border-slate-800"
+                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
                       />
                     </div>
 
@@ -588,7 +588,7 @@ export default function OperatorProfilePage() {
                     <Button
                       type="submit"
                       disabled={pwdMutation.isPending}
-                      className="h-8 text-xs bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold px-4 rounded-md"
+                      className="h-8 text-xs bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold px-4 rounded-md focus-visible:ring-[#E8450F]/20"
                     >
                       {pwdMutation.isPending ? 'Updating...' : 'Update Password'}
                     </Button>

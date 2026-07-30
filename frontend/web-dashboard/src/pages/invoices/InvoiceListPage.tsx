@@ -139,7 +139,7 @@ export default function InvoiceListPage() {
     {
       header: 'Total Amount',
       accessor: (row: Invoice) => (
-        <span className="text-xs text-slate-900 dark:text-slate-100 font-extrabold font-mono">
+        <span className="text-xs text-slate-950 dark:text-slate-55 font-extrabold font-mono tabular-nums">
           {row.currency || 'SAR'} {Number(row.total_amount).toLocaleString()}
         </span>
       ),
@@ -149,9 +149,16 @@ export default function InvoiceListPage() {
       accessor: (row: Invoice) => {
         const isOverdue = new Date(row.due_date) < new Date() && row.status !== 'Paid';
         return (
-          <span className={`text-xs font-mono font-medium ${isOverdue ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
-            {new Date(row.due_date).toLocaleDateString()}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className={`text-xs font-mono font-bold ${isOverdue ? 'text-rose-600' : 'text-slate-500'}`}>
+              {new Date(row.due_date).toLocaleDateString()}
+            </span>
+            {isOverdue && (
+              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-[8px] font-extrabold px-1 py-0 h-4 w-fit shrink-0">
+                OVERDUE
+              </Badge>
+            )}
+          </div>
         );
       },
     },
@@ -303,7 +310,7 @@ export default function InvoiceListPage() {
         </div>
 
         {/* 4-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           
           {/* Card 1: Total Invoices — Billing Ratio Donut Gauge */}
           <KpiCard
@@ -312,7 +319,7 @@ export default function InvoiceListPage() {
             variant="blue"
             trend="neutral"
             trendValue={`${paidRatioPct}% Paid`}
-            description="Click to view all billing records"
+            description="Total billing records"
             icon={InvoiceDoc}
             completionGauge={{
               percentage: paidRatioPct || 70,
@@ -329,7 +336,7 @@ export default function InvoiceListPage() {
             variant="emerald"
             trend="up"
             trendValue="+14.8%"
-            description="Click for revenue summary"
+            description="Revenue settlement summary"
             icon={RevenueChart}
             chartData={[15000, 22000, 19000, 28000, 31000, 42000]}
             onClick={() => setShowRevenueModal(true)}
@@ -342,7 +349,7 @@ export default function InvoiceListPage() {
             variant="brand"
             trend="neutral"
             trendValue="In Progress"
-            description="Click to filter Pending invoices"
+            description="Pending invoices overview"
             icon={ClockIcon}
             onClick={() => { setSelectedStatus('Pending'); setCurrentPage(1); }}
           >
@@ -356,7 +363,7 @@ export default function InvoiceListPage() {
             variant="rose"
             trend={overdueCount > 0 ? 'down' : 'neutral'}
             trendValue={overdueCount > 0 ? 'Overdue Action' : 'All Clear'}
-            description="Click to filter Overdue invoices"
+            description="Overdue invoice risk warning"
             icon={RiskAlert}
             progressSegments={[
               { label: `${overdueCount} Overdue`, value: overdueCount > 0 ? 80 : 0, color: 'bg-rose-600' },
@@ -371,7 +378,7 @@ export default function InvoiceListPage() {
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
             {/* Left: Search Bar + Status Filter Dropdown */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               
               {/* Search Bar */}
               <div className="relative w-64">
@@ -380,7 +387,7 @@ export default function InvoiceListPage() {
                   placeholder="Search invoice ID, customer..."
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50"
+                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
                 />
               </div>
 
@@ -389,7 +396,7 @@ export default function InvoiceListPage() {
                 value={selectedStatus} 
                 onValueChange={(val: any) => { setSelectedStatus(val); setCurrentPage(1); }}
               >
-                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs">
+                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus-visible:ring-[#E8450F]/20">
                   <div className="flex items-center gap-2">
                     <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="Invoice Status" />

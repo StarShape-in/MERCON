@@ -401,14 +401,14 @@ export default function TripListPage() {
         </div>
         
         {/* Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
             title="TOTAL TRIPS"
             value={totalCount}
             variant="brand"
             trend="up"
             trendValue="+12%"
-            description="→ Active logged site operations"
+            description="Active logged site operations"
             icon={TruckMotion}
             chartData={[10, 14, 18, 15, 22, 28, totalCount || 35]}
           />
@@ -418,13 +418,14 @@ export default function TripListPage() {
             variant="blue"
             trend="neutral"
             trendValue="En-Route"
-            description="→ Live on-road active trips"
+            description="Live on-road active trips"
             icon={RouteLine}
             routeHealthBreakdown={{
               onSchedule: onScheduleCount,
               delayed: delayedCount,
               stopped: stoppedCount,
-            }}
+              total: inTransitCount,
+            } as any}
           />
           <KpiCard
             title="DELIVERED & COMPLETED"
@@ -432,7 +433,7 @@ export default function TripListPage() {
             variant="emerald"
             trend="up"
             trendValue={`${completedPercentage}% On-Time`}
-            description="↑ POD verified & delivered"
+            description="POD verified & delivered"
             icon={CheckBadge}
             completionGauge={{
               percentage: completedPercentage || 100,
@@ -446,7 +447,7 @@ export default function TripListPage() {
             variant="amber"
             trend="neutral"
             trendValue="Pending Stage"
-            description="→ Stage workflow queue"
+            description="Stage workflow queue"
             icon={ClockIcon}
             pipelineStages={[
               { name: "Draft", count: stageDraftCount, color: "bg-amber-500" },
@@ -460,7 +461,7 @@ export default function TripListPage() {
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
             {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
-            <div className="flex items-center gap-2.5 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               
               {/* Search Input */}
               <div className="relative w-64 shrink-0">
@@ -469,7 +470,7 @@ export default function TripListPage() {
                   placeholder="Search trip ID, customer, driver..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-slate-400 bg-white"
+                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
                 />
               </div>
 
