@@ -173,7 +173,7 @@ export default function CustomReportPage() {
   };
 
   const columns = [
-    { header: 'S/L', accessor: (_: any, idx: number) => <span className="text-gray-400 font-mono text-xs">{idx + 1}</span> },
+    { header: 'S/L', accessor: (_row: any, idx: number) => <span className="text-gray-400 font-mono text-xs">{idx + 1}</span> },
     { header: 'Date', accessor: (row: any) => format(new Date(row.date), 'dd-MM-yyyy') },
     { header: 'Job #', accessor: (row: any) => <span className="font-mono text-xs font-bold text-[#E8450F]">{row.ref_id}</span> },
     { header: 'Driver Name', accessor: (row: any) => <span className="font-semibold text-[#111]">{row.driver}</span> },

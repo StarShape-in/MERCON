@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-07-29** (full-stack security/correctness audit — Phase 0 + Phase 1 critical fixes shipped; Phase 2 (High) items 11–17 complete — see §6) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-07-30** (fixed CI build break in Custom Reports — `reportsService.CustomReportData.trips` type was missing fields the backend already returns (waiting/labor charges, billing/total/trip charges, balance, carrier name, settlement flag); `DataTable`'s `Column.accessor` now also receives the row index for S/L-style columns) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).

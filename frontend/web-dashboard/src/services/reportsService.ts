@@ -75,11 +75,23 @@ export interface CustomReportData {
   trips: {
     id: string;
     ref_id: string;
-    customer: string;
-    driver: string;
-    vehicle: string;
-    status: string;
     date: string;
+    driver: string;
+    driver_phone: string;
+    vehicle: string;
+    vehicle_type: string;
+    carrier_name: string;
+    customer: string;
+    receiver: string;
+    waiting_labor_charges: number;
+    additional_stop_charges: number;
+    billing_amount: number;
+    total_amount: number;
+    trip_charges: number;
+    balance_amount: number;
+    company_name: string;
+    status: string;
+    is_post_trip_settled: boolean;
   }[];
 }
 

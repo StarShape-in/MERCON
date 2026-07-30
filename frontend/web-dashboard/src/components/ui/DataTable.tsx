@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 export interface Column<T> {
   header: string;
-  accessor: (row: T) => React.ReactNode;
+  accessor: (row: T, index: number) => React.ReactNode;
   className?: string;
   headerClassName?: string;
 }
@@ -380,7 +380,7 @@ export default function DataTable<T>({
                   )}
                   {columns.map((col, colIndex) => (
                     <TableCell key={colIndex} className={cn(compact ? "px-5 py-3 text-xs" : "px-5 py-4 text-sm font-medium text-slate-800 dark:text-slate-200", col.className)}>
-                      {col.accessor(row)}
+                      {col.accessor(row, rowIndex)}
                     </TableCell>
                   ))}
                 </TableRow>
