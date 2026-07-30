@@ -463,7 +463,7 @@ export default function RateCardListPage() {
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
               searchPlaceholder="Search contract name, customer..."
               onSearchChange={setSearch}
-              onRowClick={(row) => navigate(`/rate-cards/${row.id}/edit`)}
+              onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}
             />
           </div>
         ) : (
@@ -488,7 +488,7 @@ export default function RateCardListPage() {
             ) : filteredData.map((rc) => (
               <Card 
                 key={rc.id} 
-                onClick={() => navigate(`/rate-cards/${rc.id}/edit`)}
+                onClick={() => navigate(`/rate-cards/${rc.id}`)}
                 className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl"
               >
                 <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
