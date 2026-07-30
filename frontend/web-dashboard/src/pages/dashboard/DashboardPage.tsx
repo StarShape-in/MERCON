@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Truck, Car, DollarSign, AlertTriangle, 
-  ArrowRight, ArrowUpRight, Loader2, RefreshCw, Clock, CheckCircle2 
+  ArrowRight, ArrowUpRight, Loader2, RefreshCw, Clock, CheckCircle2, LayoutDashboard
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -22,6 +22,7 @@ import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { reportsService } from '@/services/reportsService';
 import { tripService, Trip } from '@/services/tripService';
 import { authStore } from '@/store/authStore';
@@ -31,6 +32,13 @@ export default function DashboardPage() {
   const user = authStore.getUser();
   const operatorName = user?.name ? user.name.split(' ')[0] : 'Mohammed';
   const [selectedSettlementTrip, setSelectedSettlementTrip] = useState<Trip | null>(null);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   // Fetch Reports Summary
   const { 
@@ -94,19 +102,43 @@ export default function DashboardPage() {
     <DashboardLayout 
       active="Dashboard" 
       title="Dashboard" 
-      pageTitle="Dashboard" 
-      pageSub={`Good morning, ${operatorName}. Here's what's happening today.`}
-      actions={
-        <Btn 
-          label="Refresh" 
-          variant="secondary" 
-          size="sm" 
-          icon={<RefreshCw size={13} />} 
-          onClick={() => { refetchSummary(); refetchUnsettled(); }} 
-        />
-      }
     >
       <div className="px-6 pb-6 h-full flex flex-col gap-5 animate-fade-in">
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          <div className="flex items-center gap-3">
+            {/* Page Icon Container */}
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <LayoutDashboard className="w-5 h-5 text-indigo-600" />
+            </div>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Dashboard
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  Overview
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                {getGreeting()}, {operatorName}. Here's what's happening today.
+              </p>
+            </div>
+          </div>
+
+          {/* Page-Level Action Buttons */}
+          <div className="flex items-center gap-2.5">
+            <Btn 
+              label="Refresh Data" 
+              variant="secondary" 
+              size="sm" 
+              icon={<RefreshCw size={13} />} 
+              onClick={() => { refetchSummary(); refetchUnsettled(); }} 
+            />
+          </div>
+        </div>
+
         {summaryError && (
           <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl shadow-xs flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
