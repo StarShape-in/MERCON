@@ -80,7 +80,7 @@ export default function CreateTripPage() {
 
   const driverOptions = drivers.map((d) => ({
     value: d.id,
-    label: `${d.first_name} ${d.last_name} (Risk: ${d.ai_risk_score ?? 'Low'})`,
+    label: `${d.first_name} ${d.last_name}`,
     keywords: `${d.first_name} ${d.last_name}`,
   }));
 
@@ -387,11 +387,6 @@ export default function CreateTripPage() {
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[130px]">
                 {selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : 'Unassigned'}
               </span>
-              {selectedDriver && (
-                <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-300">
-                  Risk: {selectedDriver.ai_risk_score ?? 'Low'}
-                </span>
-              )}
             </div>
           </Card>
 
@@ -797,11 +792,6 @@ export default function CreateTripPage() {
                     <span className="font-bold text-slate-900 dark:text-slate-100 mt-0.5 block truncate">
                       {selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : 'Unassigned'}
                     </span>
-                    {selectedDriver && (
-                      <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-semibold block mt-0.5">
-                        Risk Score: {selectedDriver.ai_risk_score ?? 'Low'}
-                      </span>
-                    )}
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">

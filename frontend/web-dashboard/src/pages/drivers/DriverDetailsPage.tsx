@@ -222,15 +222,7 @@ export default function DriverDetailsPage() {
                 </div>
               </div>
 
-              {/* Gauge 3: AI Risk Score */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">AI Risk Score</div>
-                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                  {(driver.ai_risk_score || 1.2).toFixed(1)} / 10
-                </div>
-              </div>
-
-              {/* Gauge 4: Completed Trips */}
+              {/* Gauge 3: Completed Trips */}
               <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Completed Trips</div>
                 <div className="text-xs font-mono font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">

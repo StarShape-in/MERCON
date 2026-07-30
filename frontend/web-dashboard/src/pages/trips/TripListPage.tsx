@@ -206,11 +206,6 @@ export default function TripListPage() {
             <span className="text-xs font-semibold text-[#222] truncate">
               {row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}
             </span>
-            {row.driver?.ai_risk_score != null && (
-              <span className="text-[10px] font-bold text-emerald-600">
-                Risk: {row.driver.ai_risk_score.toFixed(1)}
-              </span>
-            )}
           </div>
         </div>
       ),

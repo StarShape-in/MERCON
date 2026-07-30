@@ -77,7 +77,6 @@ export default function DriverListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<DriverStatus | 'All'>('All');
-  const [riskFilter, setRiskFilter] = useState<'All' | 'Low' | 'Moderate' | 'High'>('All');
   const [licenseFilter, setLicenseFilter] = useState<'All' | 'Valid' | 'Expired'>('All');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -106,15 +105,10 @@ export default function DriverListPage() {
   const totalPages = driversRes?.meta?.total_pages || 1;
   const totalCount = driversRes?.meta?.total || drivers.length;
 
-  // Filter local data based on Risk and License filters
+  // Filter local data based on License filter
   const filteredDrivers = drivers.filter(d => {
-    if (riskFilter === 'Low' && (d.ai_risk_score || 0) >= 3) return false;
-    if (riskFilter === 'Moderate' && ((d.ai_risk_score || 0) < 3 || (d.ai_risk_score || 0) > 7)) return false;
-    if (riskFilter === 'High' && (d.ai_risk_score || 0) <= 7) return false;
-
     if (licenseFilter === 'Expired' && new Date(d.license_expiry) >= new Date()) return false;
     if (licenseFilter === 'Valid' && new Date(d.license_expiry) < new Date()) return false;
-
     return true;
   });
 
@@ -122,15 +116,12 @@ export default function DriverListPage() {
   const availableCount = drivers.filter(d => d.status === 'Available').length;
   const onTripCount = drivers.filter(d => d.status === 'OnTrip').length;
 
-  const highRiskDriversCount = drivers.filter(d => (d.ai_risk_score || 0) > 7).length;
   const expiredLicenseCount = drivers.filter(d => new Date(d.license_expiry) < new Date()).length;
-  const clearDriversCount = drivers.filter(d => (d.ai_risk_score || 0) <= 7 && new Date(d.license_expiry) >= new Date()).length;
-  const highRiskCount = highRiskDriversCount + expiredLicenseCount;
+  const clearDriversCount = drivers.filter(d => new Date(d.license_expiry) >= new Date()).length;
 
   const totalDriversCount = drivers.length || 1;
-  const highRiskSegPct = Math.round((highRiskDriversCount / totalDriversCount) * 100);
   const expiredSegPct = Math.round((expiredLicenseCount / totalDriversCount) * 100);
-  const clearSegPct = Math.max(0, 100 - highRiskSegPct - expiredSegPct);
+  const clearSegPct = Math.max(0, 100 - expiredSegPct);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -216,34 +207,6 @@ export default function DriverListPage() {
     {
       header: 'Duty Status',
       accessor: (row: Driver) => <StatusBadge status={row.status} />,
-    },
-    {
-      header: 'AI Risk Score',
-      accessor: (row: Driver) => {
-        const score = row.ai_risk_score || 0;
-        let badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-        let dotColor = 'bg-emerald-500';
-        let label = 'Low Risk';
-
-        if (score > 3 && score <= 7) {
-          badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-          dotColor = 'bg-amber-500';
-          label = 'Moderate Risk';
-        } else if (score > 7) {
-          badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-          dotColor = 'bg-rose-500';
-          label = 'High Risk';
-        }
-
-        return (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={`${badgeColor} text-[10px] font-bold py-0.5 px-2 gap-1.5`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`}></span>
-              {score.toFixed(1)} — {label}
-            </Badge>
-          </div>
-        );
-      },
     },
     {
       header: 'Actions',
@@ -445,7 +408,7 @@ export default function DriverListPage() {
             trendValue="+5 Active"
             description="Click to view all drivers"
             icon={DriverBadge}
-            onClick={() => { setSelectedStatus('All'); setRiskFilter('All'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           >
             <DriverRosterKpi 
               count={totalCount} 
@@ -483,17 +446,16 @@ export default function DriverListPage() {
           />
 
           <KpiCard
-            title="HIGH RISK / EXPIRED"
-            value={highRiskCount}
+            title="EXPIRED LICENSES"
+            value={expiredLicenseCount}
             variant="amber"
-            trend={highRiskCount > 0 ? "down" : "neutral"}
-            trendValue={highRiskCount > 0 ? "Review Required" : "All Clear"}
+            trend={expiredLicenseCount > 0 ? "down" : "neutral"}
+            trendValue={expiredLicenseCount > 0 ? "Renewal Required" : "All Valid"}
             description="Click for MOT compliance details"
             icon={RiskAlert}
             progressSegments={[
-              { label: `High Risk (${highRiskDriversCount})`, value: Math.max(highRiskDriversCount > 0 ? 10 : 0, highRiskSegPct), color: 'bg-rose-500' },
               { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-amber-500' },
-              { label: `Clear (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-slate-300' },
+              { label: `Valid (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-emerald-500' },
             ]}
             onClick={() => setShowMotModal(true)}
           />
@@ -571,30 +533,6 @@ export default function DriverListPage() {
                         Inactive
                       </span>
                     </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* AI Risk Filter Dropdown */}
-              <Select
-                value={riskFilter}
-                onValueChange={(val) => { if (val) setRiskFilter(val as any); }}
-              >
-                <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="AI Risk Score" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      AI Safety Score
-                    </SelectLabel>
-                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Risk Scores</SelectItem>
-                    <SelectItem value="Low" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700">Low Risk (&lt; 3.0)</SelectItem>
-                    <SelectItem value="Moderate" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-amber-700">Moderate (3.0 - 7.0)</SelectItem>
-                    <SelectItem value="High" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-700">High Risk (&gt; 7.0)</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -739,11 +677,7 @@ export default function DriverListPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1">
-                    <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 text-[10px] font-bold px-2 py-0.5">
-                      Risk: {(d.ai_risk_score || 0).toFixed(1)}
-                    </Badge>
-
+                  <div className="flex items-center justify-end pt-1">
                     <Button variant="outline" size="sm" className="h-7 text-xs font-semibold">
                       View Profile
                     </Button>
@@ -829,7 +763,7 @@ export default function DriverListPage() {
                   <div className="font-bold text-emerald-900 dark:text-emerald-300">Verified MOT Licenses</div>
                   <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Active commercial heavy transport</div>
                 </div>
-                <Badge className="bg-emerald-600 text-white font-mono font-bold text-xs">{totalCount - highRiskCount}</Badge>
+                <Badge className="bg-emerald-600 text-white font-mono font-bold text-xs">{clearDriversCount}</Badge>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60">
@@ -837,7 +771,7 @@ export default function DriverListPage() {
                   <div className="font-bold text-amber-900 dark:text-amber-300">Pending Renewal / Expired</div>
                   <div className="text-[10px] text-amber-700 dark:text-amber-400">Action required with Ministry portal</div>
                 </div>
-                <Badge className="bg-amber-600 text-white font-mono font-bold text-xs">{highRiskCount}</Badge>
+                <Badge className="bg-amber-600 text-white font-mono font-bold text-xs">{expiredLicenseCount}</Badge>
               </div>
             </div>
 

@@ -229,9 +229,6 @@ export default function TripDetailsPage() {
                 <div>
                   <p className="text-sm font-bold text-[#111]">{trip.driver.first_name} {trip.driver.last_name}</p>
                   <p className="text-xs text-[#6E6E80] mt-0.5">{trip.driver.phone_primary}</p>
-                  <div className="flex items-center gap-1 bg-[#FEF2F2] text-[#DC2626] font-bold text-[9px] px-1.5 py-0.5 rounded mt-2 w-max">
-                    <ShieldAlert size={10} /> Risk Score: {trip.driver.ai_risk_score || '0.0'}
-                  </div>
                 </div>
                 <Btn 
                   label="View" 
