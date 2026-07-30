@@ -56,10 +56,18 @@ export default function NotificationsPage() {
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: notifications = [], isLoading, isError } = useQuery({
+  const { data: rawNotifications, isLoading, isError } = useQuery({
     queryKey: ['notifications'],
-    queryFn: async () => (await notificationService.getAll()).data,
+    queryFn: async () => {
+      const res = await notificationService.getAll();
+      const raw = res?.data;
+      if (Array.isArray(raw)) return raw;
+      if (raw && Array.isArray((raw as any).notifications)) return (raw as any).notifications;
+      return [];
+    },
   });
+
+  const notifications = useMemo(() => Array.isArray(rawNotifications) ? rawNotifications : [], [rawNotifications]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -98,8 +106,8 @@ export default function NotificationsPage() {
 
       const q = search.toLowerCase();
       const matchesSearch = 
-        n.title.toLowerCase().includes(q) || 
-        n.message.toLowerCase().includes(q);
+        (n.title || '').toLowerCase().includes(q) || 
+        (n.message || '').toLowerCase().includes(q);
 
       return matchesTab && matchesSearch;
     });
