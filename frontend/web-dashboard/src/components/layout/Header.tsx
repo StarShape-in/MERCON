@@ -68,13 +68,16 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
   ];
 
   return (
-    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 h-[62px] flex items-center justify-between gap-4 relative z-20 overflow-x-auto">
+    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 h-[62px] flex items-center justify-between gap-4 relative z-20">
       
       {/* Center-Left: Horizontal Route Navigation Hub */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div 
+        className="flex items-center gap-3 min-w-0 overflow-x-auto scrollbar-none"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         
         {/* HORIZONTAL ROUTE PILL BAR */}
-        <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/80 dark:border-slate-700">
+        <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/80 dark:border-slate-700 shrink-0">
           {navRoutes.map((route) => {
             const isActive = location.pathname === route.path || (route.path !== '/dashboard' && location.pathname.startsWith(route.path));
             const Icon = route.icon;
