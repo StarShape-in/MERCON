@@ -122,6 +122,11 @@ model Customer {
   contact_phone String
   credit_limit  Float  @default(0)
 
+  default_pickup_lat  Float?
+  default_pickup_lng  Float?
+  default_dropoff_lat Float?
+  default_dropoff_lng Float?
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid

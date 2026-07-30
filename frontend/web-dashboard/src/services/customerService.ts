@@ -7,6 +7,10 @@ export interface Customer {
   credit_limit: number;
   isActive: boolean;
   createdAt: string;
+  default_pickup_lat?: number | null;
+  default_pickup_lng?: number | null;
+  default_dropoff_lat?: number | null;
+  default_dropoff_lng?: number | null;
   trips?: { id: string; ref_id: string; status: string; createdAt: string }[];
 }
 
@@ -14,6 +18,10 @@ export interface CreateCustomerPayload {
   name: string;
   contact_phone: string;
   credit_limit?: number;
+  default_pickup_lat?: number | null;
+  default_pickup_lng?: number | null;
+  default_dropoff_lat?: number | null;
+  default_dropoff_lng?: number | null;
 }
 
 export interface CustomerFilters {

@@ -32,15 +32,21 @@ const LiveNavigationScreen = () => {
   const [arriving, setArriving] = useState(false);
   const hasArrivedRef = useRef(false);
 
+  const isHeadingToPickup = trip?.status === 'Dispatched';
+  const pickup = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const dropoff = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
+  
+  const activeStop = isHeadingToPickup ? pickup : dropoff;
+  const targetStatus = isHeadingToPickup ? 'AtPickup' : 'AtDelivery';
+  const nextRoute = isHeadingToPickup ? '/trip/pickup' : '/trip/delivery';
 
-  const goToDelivery = async () => {
+  const goToStop = async () => {
     if (!trip || hasArrivedRef.current) return;
     hasArrivedRef.current = true;
     setArriving(true);
     try {
-      await tripService.updateStatus(trip.id, 'AtDelivery');
-      router.replace('/trip/delivery');
+      await tripService.updateStatus(trip.id, targetStatus);
+      router.replace(nextRoute as any);
     } catch (e) {
       hasArrivedRef.current = false;
       setArriving(false);
@@ -64,9 +70,9 @@ const LiveNavigationScreen = () => {
           const lng = loc.coords.longitude;
           setPosition({ lat, lng });
 
-          if (dropoff && !hasArrivedRef.current) {
-            const dist = distanceMeters(lat, lng, dropoff.location_lat, dropoff.location_lng);
-            if (dist <= ARRIVAL_RADIUS_M) goToDelivery();
+          if (activeStop && !hasArrivedRef.current) {
+            const dist = distanceMeters(lat, lng, activeStop.location_lat, activeStop.location_lng);
+            if (dist <= ARRIVAL_RADIUS_M) goToStop();
           }
         },
       );
@@ -77,7 +83,7 @@ const LiveNavigationScreen = () => {
       sub?.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dropoff?.id]);
+  }, [activeStop?.id]);
 
   if (loading && !trip) {
     return (
@@ -87,7 +93,7 @@ const LiveNavigationScreen = () => {
     );
   }
 
-  const center = position ?? (dropoff ? { lat: dropoff.location_lat, lng: dropoff.location_lng } : { lat: 24.7136, lng: 46.6753 });
+  const center = position ?? (activeStop ? { lat: activeStop.location_lat, lng: activeStop.location_lng } : { lat: 24.7136, lng: 46.6753 });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -115,8 +121,8 @@ const LiveNavigationScreen = () => {
             </Marker>
           )}
 
-          {dropoff && (
-            <Marker coordinate={{ latitude: dropoff.location_lat, longitude: dropoff.location_lng }} anchor={{ x: 0.5, y: 1 }}>
+          {activeStop && (
+            <Marker coordinate={{ latitude: activeStop.location_lat, longitude: activeStop.location_lng }} anchor={{ x: 0.5, y: 1 }}>
               <View style={styles.destPin}>
                 <MapPin size={18} color={Colors.white} strokeWidth={2.4} />
               </View>
@@ -145,14 +151,14 @@ const LiveNavigationScreen = () => {
       </View>
 
       <View style={styles.bottomCard}>
-        <Text style={styles.bottomTitle}>Heading to delivery</Text>
+        <Text style={styles.bottomTitle}>Heading to {isHeadingToPickup ? 'pickup' : 'delivery'}</Text>
         <Text style={styles.bottomSub}>
           The app will detect your arrival automatically. If it doesn't, confirm manually below.
         </Text>
         <TouchableOpacity
           style={[styles.arrivedBtn, arriving && { opacity: 0.6 }]}
           activeOpacity={0.8}
-          onPress={goToDelivery}
+          onPress={goToStop}
           disabled={arriving}
         >
           <Text style={styles.arrivedBtnText}>{arriving ? 'Updating…' : "I've Arrived"}</Text>

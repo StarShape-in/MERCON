@@ -70,6 +70,7 @@ const HomeScreen = () => {
   const advance = () => {
     if (!trip || !next) return;
     // The pickup and arrival steps have their own screens.
+    if (trip.status === 'Dispatched') { router.push('/trip/navigate'); return; }
     if (trip.status === 'AtPickup') { router.push('/trip/pickup'); return; }
     if (trip.status === 'InTransit') { router.push('/trip/navigate'); return; }
     if (trip.status === 'AtDelivery') { router.push('/trip/delivery'); return; }

@@ -5,17 +5,13 @@ import {
   ArrowLeft, 
   RotateCcw, 
   Plus, 
-  MapPin, 
   UserCheck, 
   Truck, 
   CheckCircle2, 
   Circle, 
   Navigation, 
   Clock,
-  ArrowRight,
-  Keyboard,
-  ChevronRight,
-  ChevronLeft
+  ArrowRight
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -33,13 +29,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'customer' | 'assignment' | 'route'>('customer');
   const [plannedStart, setPlannedStart] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [driverId, setDriverId] = useState('');
@@ -94,12 +88,41 @@ export default function CreateTripPage() {
   const selectedDriver = drivers.find(d => d.id === driverId);
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
 
+  // Auto-populate locations when customer changes
+  useEffect(() => {
+    if (selectedCustomer) {
+      if (selectedCustomer.default_pickup_lat && selectedCustomer.default_pickup_lng) {
+        setPickupLat(selectedCustomer.default_pickup_lat);
+        setPickupLng(selectedCustomer.default_pickup_lng);
+      }
+      if (selectedCustomer.default_dropoff_lat && selectedCustomer.default_dropoff_lng) {
+        setDropoffLat(selectedCustomer.default_dropoff_lat);
+        setDropoffLng(selectedCustomer.default_dropoff_lng);
+      }
+    }
+  }, [selectedCustomer]);
+
   // Create Trip Mutation
   const createMutation = useMutation({
     mutationFn: (payload: CreateTripPayload) => tripService.create(payload),
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Auto-save locations to customer
+      if (customerId && pickupLat && pickupLng && dropoffLat && dropoffLng) {
+        try {
+          await customerService.update(customerId, {
+            default_pickup_lat: pickupLat,
+            default_pickup_lng: pickupLng,
+            default_dropoff_lat: dropoffLat,
+            default_dropoff_lng: dropoffLng
+          });
+        } catch (e) {
+          console.error("Failed to auto-save locations", e);
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['fleet-performance'] });
+      queryClient.invalidateQueries({ queryKey: ['customers-select'] });
       navigate('/trips');
     },
     onError: (err: any) => {
@@ -111,7 +134,6 @@ export default function CreateTripPage() {
   const isFormValid = customerId !== '' && driverId !== '' && vehicleId !== '' && !missingLocation;
 
   const handleReset = () => {
-    setActiveTab('customer');
     setPlannedStart('');
     setCustomerId('');
     setDriverId('');
@@ -129,34 +151,27 @@ export default function CreateTripPage() {
     setError(null);
 
     if (!customerId) {
-      setActiveTab('customer');
       setError('Please select a customer.');
       return;
     }
     if (!driverId) {
-      setActiveTab('assignment');
       setError('Please assign a driver.');
       return;
     }
     if (!vehicleId) {
-      setActiveTab('assignment');
       setError('Please assign a vehicle.');
       return;
     }
     if (pickupLat == null || pickupLng == null) {
-      setActiveTab('route');
       setError('Please select a pickup location on the map.');
       return;
     }
     if (dropoffLat == null || dropoffLng == null) {
-      setActiveTab('route');
       setError('Please select a dropoff location on the map.');
       return;
     }
 
-    // Client-side time ordering check (item 16)
     if (pickupTime && dropoffTime && dropoffTime <= pickupTime) {
-      setActiveTab('route');
       setError('Dropoff time must be after pickup time.');
       return;
     }
@@ -186,84 +201,6 @@ export default function CreateTripPage() {
 
     createMutation.mutate(payload);
   }, [customerId, driverId, vehicleId, pickupLat, pickupLng, dropoffLat, dropoffLng, plannedStart, pickupTime, dropoffTime, createMutation]);
-
-  // Tab Navigation Functions
-  const goToNextTab = useCallback(() => {
-    setActiveTab((prev) => {
-      if (prev === 'customer') return 'assignment';
-      if (prev === 'assignment') return 'route';
-      return 'route';
-    });
-  }, []);
-
-  const goToPrevTab = useCallback(() => {
-    setActiveTab((prev) => {
-      if (prev === 'route') return 'assignment';
-      if (prev === 'assignment') return 'customer';
-      return 'customer';
-    });
-  }, []);
-
-  // Keyboard Shortcuts Listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
-
-      // 1. Dispatch Trip: Ctrl + Enter or Cmd + Enter
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (isFormValid && !createMutation.isPending) {
-          handleSubmit();
-        }
-        return;
-      }
-
-      // 2. Direct Tab Jumping: Alt + 1, Alt + 2, Alt + 3
-      if (e.altKey && e.key === '1') {
-        e.preventDefault();
-        setActiveTab('customer');
-        return;
-      }
-      if (e.altKey && e.key === '2') {
-        e.preventDefault();
-        setActiveTab('assignment');
-        return;
-      }
-      if (e.altKey && e.key === '3') {
-        e.preventDefault();
-        setActiveTab('route');
-        return;
-      }
-
-      // 3. Tab Navigation: Alt + ArrowRight / Alt + ArrowLeft or Ctrl + Right / Left
-      if ((e.altKey || e.ctrlKey) && e.key === 'ArrowRight') {
-        e.preventDefault();
-        goToNextTab();
-        return;
-      }
-
-      if ((e.altKey || e.ctrlKey) && e.key === 'ArrowLeft') {
-        e.preventDefault();
-        goToPrevTab();
-        return;
-      }
-
-      // 4. Tab switching when not typing in inputs: Right/Left arrow
-      if (!isInput) {
-        if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          goToNextTab();
-        } else if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          goToPrevTab();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToNextTab, goToPrevTab, handleSubmit, isFormValid, createMutation.isPending]);
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
@@ -308,421 +245,195 @@ export default function CreateTripPage() {
               className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
             >
               <Plus className="w-3.5 h-3.5" /> {createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
-              <kbd className="ml-1.5 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">
-                Ctrl + ↵
-              </kbd>
             </Button>
           </div>
         </div>
 
-        {/* THEMED KEYBOARD QUICK CONTROLS BAR */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 px-4 shadow-2xs border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 flex items-center justify-center">
-              <Keyboard className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <span className="font-bold text-slate-900 dark:text-slate-100">Keyboard Quick Controls:</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            
-            {/* Tab Switching Keycaps */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Switch Tabs:</span>
-              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded border border-slate-300 dark:border-slate-600 shadow-2xs">
-                Alt
-              </kbd>
-              <span className="text-slate-400 font-bold">+</span>
-              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded border border-slate-300 dark:border-slate-600 shadow-2xs">
-                ← / →
-              </kbd>
-            </div>
-
-            {/* Jump to Tab Keycaps */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Jump Tab:</span>
-              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded border border-slate-300 dark:border-slate-600 shadow-2xs">
-                Alt
-              </kbd>
-              <span className="text-slate-400 font-bold">+</span>
-              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded border border-slate-300 dark:border-slate-600 shadow-2xs">
-                1 / 2 / 3
-              </kbd>
-            </div>
-
-            {/* Submit Dispatch Keycaps */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Dispatch Trip:</span>
-              <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded border border-slate-300 dark:border-slate-600 shadow-2xs">
-                Ctrl + Enter ↵
-              </kbd>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Header KPI Instrument Panel Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer Org</span>
-              <UserCheck className="w-4 h-4 text-indigo-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[130px]">
-                {selectedCustomer ? selectedCustomer.name : 'Unselected'}
-              </span>
-              <Badge variant="outline" className={`text-[9px] px-1 py-0 font-bold ${selectedCustomer ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-300'}`}>
-                {selectedCustomer ? 'Selected' : 'Required'}
-              </Badge>
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Assigned Driver</span>
-              <UserCheck className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[130px]">
-                {selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : 'Unassigned'}
-              </span>
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Assigned Vehicle</span>
-              <Truck className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[130px]">
-                {selectedVehicle ? selectedVehicle.plate_number : 'Unassigned'}
-              </span>
-              {selectedVehicle && (
-                <span className="text-[10px] text-slate-500 font-medium">
-                  {selectedVehicle.asset_type}
-                </span>
-              )}
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Route Geofence</span>
-              <Navigation className="w-4 h-4 text-purple-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                {pickupLat && dropoffLat ? '2 Stops Set' : 'Incomplete'}
-              </span>
-              <Badge variant="outline" className={`text-[9px] px-1 py-0 font-bold ${!missingLocation ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                {!missingLocation ? 'Ready' : 'Pending'}
-              </Badge>
-            </div>
-          </Card>
-        </div>
-
         {/* Main 2-Column Content Workspace */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start pt-4">
           
-          {/* Left Column: 3 Tabs Workspace (7 Cols) */}
+          {/* Left Column: Form Workspace (7 Cols) */}
           <div className="lg:col-span-7 space-y-4">
+            
+            {/* 1. Customer Info */}
             <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
               <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <Navigation className="w-4.5 h-4.5 text-indigo-600" /> Dispatch Setup
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500">
-                      Configure customer organization, assignments, and geofence locations.
-                    </CardDescription>
+                <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                  1. Customer Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="customer_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Select Customer <span className="text-rose-500">*</span>
+                  </Label>
+                  <Select 
+                    value={customerId} 
+                    onValueChange={(val) => setCustomerId(val)}
+                  >
+                    <SelectTrigger id="customer_id" className="h-9 text-xs border-slate-200 bg-white">
+                      <SelectValue placeholder="Choose customer organization..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name} ({c.contact_phone || 'No Phone'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="planned_start" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" /> Planned Start Time
+                  </Label>
+                  <Input
+                    id="planned_start"
+                    type="datetime-local"
+                    value={plannedStart}
+                    onChange={(e) => setPlannedStart(e.target.value)}
+                    className="h-9 text-xs font-mono border-slate-200"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 2. Driver & Vehicle Assignment */}
+            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                  2. Driver & Vehicle Assignment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="driver_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Assigned Driver <span className="text-rose-500">*</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsAddDriverOpen(true)}
+                      className="h-6 px-2 text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-medium gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add New Driver
+                    </Button>
+                  </div>
+                  <Combobox
+                    id="driver_id"
+                    value={driverId}
+                    onChange={setDriverId}
+                    options={driverOptions}
+                    placeholder="Choose available driver..."
+                    searchPlaceholder="Search drivers..."
+                    emptyText="No available drivers found."
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="vehicle_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Assigned Vehicle <span className="text-rose-500">*</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsAddVehicleOpen(true)}
+                      className="h-6 px-2 text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-medium gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add New Vehicle
+                    </Button>
+                  </div>
+                  <Combobox
+                    id="vehicle_id"
+                    value={vehicleId}
+                    onChange={setVehicleId}
+                    options={vehicleOptions}
+                    placeholder="Choose available vehicle..."
+                    searchPlaceholder="Search vehicles..."
+                    emptyText="No available vehicles found."
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 3. Route Stops & Geofencing */}
+            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                  3. Route Stops
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Locations are saved per customer and will auto-populate next time.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {/* Pickup Stop */}
+                <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Pickup Stop (Sequence 1)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">
+                      {pickupLat && pickupLng ? `${pickupLat.toFixed(4)}, ${pickupLng.toFixed(4)}` : 'Not Set'}
+                    </span>
+                  </div>
+
+                  <LocationPickerMap
+                    label="Pickup Location (Click map to pin)"
+                    lat={pickupLat}
+                    lng={pickupLng}
+                    onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); }}
+                  />
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pickup_time" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Planned Pickup Arrival Time
+                    </Label>
+                    <Input
+                      id="pickup_time"
+                      type="datetime-local"
+                      value={pickupTime}
+                      onChange={(e) => setPickupTime(e.target.value)}
+                      className="h-9 text-xs font-mono border-slate-200"
+                    />
                   </div>
                 </div>
-              </CardHeader>
 
-              <CardContent className="pt-4">
-                <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
-                  
-                  {/* Tabs Navigation Header */}
-                  <TabsList className="grid grid-cols-3 w-full mb-4 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    
-                    <TabsTrigger value="customer" className="text-xs font-semibold flex items-center justify-between gap-1">
-                      <span>1. Customer Info</span>
-                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
-                        Alt+1
-                      </kbd>
-                    </TabsTrigger>
+                {/* Dropoff Stop */}
+                <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Dropoff Stop (Sequence 2)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">
+                      {dropoffLat && dropoffLng ? `${dropoffLat.toFixed(4)}, ${dropoffLng.toFixed(4)}` : 'Not Set'}
+                    </span>
+                  </div>
 
-                    <TabsTrigger value="assignment" className="text-xs font-semibold flex items-center justify-between gap-1">
-                      <span>2. Driver & Vehicle</span>
-                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
-                        Alt+2
-                      </kbd>
-                    </TabsTrigger>
+                  <LocationPickerMap
+                    label="Dropoff Location (Click map to pin)"
+                    lat={dropoffLat}
+                    lng={dropoffLng}
+                    onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); }}
+                  />
 
-                    <TabsTrigger value="route" className="text-xs font-semibold flex items-center justify-between gap-1">
-                      <span>3. Route Stops</span>
-                      <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
-                        Alt+3
-                      </kbd>
-                    </TabsTrigger>
-
-                  </TabsList>
-
-                  {/* TAB 1: Customer Info */}
-                  <TabsContent value="customer" className="space-y-4 m-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label htmlFor="customer_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          Select Customer <span className="text-rose-500">*</span>
-                        </Label>
-                        <Select 
-                          value={customerId} 
-                          onValueChange={(val) => setCustomerId(val)}
-                        >
-                          <SelectTrigger id="customer_id" className="h-9 text-xs border-slate-200 bg-white">
-                            <SelectValue placeholder="Choose customer organization..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {customers.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name} ({c.contact_phone || 'No Phone'})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label htmlFor="planned_start" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" /> Planned Start Time
-                        </Label>
-                        <Input
-                          id="planned_start"
-                          type="datetime-local"
-                          value={plannedStart}
-                          onChange={(e) => setPlannedStart(e.target.value)}
-                          className="h-9 text-xs font-mono border-slate-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex justify-end">
-                      <Button 
-                        type="button" 
-                        size="sm"
-                        onClick={goToNextTab}
-                        className="h-9 text-xs gap-1.5 bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold rounded-md px-4 shadow-xs"
-                      >
-                        Next: Assignments <ChevronRight className="w-3.5 h-3.5" />
-                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">
-                          Alt + →
-                        </kbd>
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                  {/* TAB 2: Driver & Vehicle Assignment */}
-                  <TabsContent value="assignment" className="space-y-4 m-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="driver_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            Assigned Driver <span className="text-rose-500">*</span>
-                          </Label>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddDriverOpen(true)}
-                            className="h-6 px-2 text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-medium gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> Add New Driver
-                          </Button>
-                        </div>
-                        <Combobox
-                          id="driver_id"
-                          value={driverId}
-                          onChange={setDriverId}
-                          options={driverOptions}
-                          placeholder="Choose available driver..."
-                          searchPlaceholder="Search drivers..."
-                          emptyText="No available drivers found."
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="vehicle_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            Assigned Vehicle <span className="text-rose-500">*</span>
-                          </Label>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsAddVehicleOpen(true)}
-                            className="h-6 px-2 text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-medium gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> Add New Vehicle
-                          </Button>
-                        </div>
-                        <Combobox
-                          id="vehicle_id"
-                          value={vehicleId}
-                          onChange={setVehicleId}
-                          options={vehicleOptions}
-                          placeholder="Choose available vehicle..."
-                          searchPlaceholder="Search vehicles..."
-                          emptyText="No available vehicles found."
-                        />
-                      </div>
-
-                    </div>
-
-                    {selectedDriver && selectedVehicle && (
-                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                          <div>
-                            <span className="font-bold text-slate-900 dark:text-slate-100">{selectedDriver.first_name} {selectedDriver.last_name}</span> paired with <span className="font-bold text-slate-900 dark:text-slate-100">{selectedVehicle.plate_number}</span>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[10px] font-bold">
-                          Pairing Ready
-                        </Badge>
-                      </div>
-                    )}
-
-                    <div className="pt-2 flex justify-between">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={goToPrevTab}
-                        className="h-9 text-xs gap-1 border-slate-200 bg-white"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" /> Back
-                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 text-slate-700 rounded border border-slate-200">
-                          Alt + ←
-                        </kbd>
-                      </Button>
-
-                      <Button 
-                        type="button" 
-                        size="sm"
-                        onClick={goToNextTab}
-                        className="h-9 text-xs gap-1.5 bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold rounded-md px-4 shadow-xs"
-                      >
-                        Next: Route Stops <ChevronRight className="w-3.5 h-3.5" />
-                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">
-                          Alt + →
-                        </kbd>
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                  {/* TAB 3: Route Stops & Geofencing */}
-                  <TabsContent value="route" className="space-y-4 m-0">
-                    
-                    {/* Pickup Stop */}
-                    <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Pickup Stop (Sequence 1)
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-500">
-                          {pickupLat && pickupLng ? `${pickupLat.toFixed(4)}, ${pickupLng.toFixed(4)}` : 'Not Set'}
-                        </span>
-                      </div>
-
-                      <LocationPickerMap
-                        label="Pickup Location (Click map to pin)"
-                        lat={pickupLat}
-                        lng={pickupLng}
-                        onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); }}
-                      />
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="pickup_time" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          Planned Pickup Arrival Time
-                        </Label>
-                        <Input
-                          id="pickup_time"
-                          type="datetime-local"
-                          value={pickupTime}
-                          onChange={(e) => setPickupTime(e.target.value)}
-                          className="h-9 text-xs font-mono border-slate-200"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Dropoff Stop */}
-                    <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Dropoff Stop (Sequence 2)
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-500">
-                          {dropoffLat && dropoffLng ? `${dropoffLat.toFixed(4)}, ${dropoffLng.toFixed(4)}` : 'Not Set'}
-                        </span>
-                      </div>
-
-                      <LocationPickerMap
-                        label="Dropoff Location (Click map to pin)"
-                        lat={dropoffLat}
-                        lng={dropoffLng}
-                        onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); }}
-                      />
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="dropoff_time" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          Planned Dropoff Arrival Time
-                        </Label>
-                        <Input
-                          id="dropoff_time"
-                          type="datetime-local"
-                          value={dropoffTime}
-                          onChange={(e) => setDropoffTime(e.target.value)}
-                          className="h-9 text-xs font-mono border-slate-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex justify-between">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={goToPrevTab}
-                        className="h-9 text-xs gap-1 border-slate-200 bg-white"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" /> Back
-                        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-slate-100 text-slate-700 rounded border border-slate-200">
-                          Alt + ←
-                        </kbd>
-                      </Button>
-
-                      <Button 
-                        type="button" 
-                        size="sm"
-                        onClick={() => handleSubmit()}
-                        disabled={createMutation.isPending || !isFormValid}
-                        className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold gap-1.5 shadow-xs rounded-md px-4"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Dispatch Trip
-                        <kbd className="ml-1.5 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">
-                          Ctrl + ↵
-                        </kbd>
-                      </Button>
-                    </div>
-
-                  </TabsContent>
-
-                </Tabs>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dropoff_time" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Planned Dropoff Arrival Time
+                    </Label>
+                    <Input
+                      id="dropoff_time"
+                      type="datetime-local"
+                      value={dropoffTime}
+                      onChange={(e) => setDropoffTime(e.target.value)}
+                      className="h-9 text-xs font-mono border-slate-200"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -742,7 +453,6 @@ export default function CreateTripPage() {
                   <Badge variant="outline" className="bg-white text-[10px] uppercase font-bold tracking-wider text-slate-700 border-slate-200">
                     Live Trip Manifest
                   </Badge>
-                  <span className="text-[10px] text-slate-400 font-mono">DISPATCH-{Date.now().toString().slice(-4)}</span>
                 </div>
                 <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-2">
                   {selectedCustomer ? selectedCustomer.name : 'Select Customer Organization'}
@@ -782,8 +492,6 @@ export default function CreateTripPage() {
                     </div>
                   </div>
                 </div>
-
-
 
                 {/* Driver & Vehicle Pairing Spec */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -859,9 +567,6 @@ export default function CreateTripPage() {
                   className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-4 gap-1.5 shadow-xs rounded-md"
                 >
                   {createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
-                  <kbd className="ml-1.5 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white/20 text-white rounded border border-white/30">
-                    Ctrl + ↵
-                  </kbd>
                 </Button>
               </CardFooter>
             </Card>
