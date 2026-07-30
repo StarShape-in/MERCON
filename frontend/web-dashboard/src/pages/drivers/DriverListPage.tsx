@@ -23,6 +23,7 @@ import {
   Layers,
   CheckCircle,
   XCircle,
+  X,
   Send,
   Calendar as CalendarIcon
 } from 'lucide-react';
