@@ -155,6 +155,7 @@ const LiveNavigationScreen = () => {
   const center = position ?? (activeStop ? { lat: activeStop.location_lat, lng: activeStop.location_lng } : { lat: 24.7136, lng: 46.6753 });
 
   let displayEta = '';
+  let displayDistance = '';
   if (baseDuration && baseDistance && distanceToTarget != null) {
     const ratio = Math.min(1, distanceToTarget / baseDistance);
     let secondsLeft = baseDuration * ratio;
@@ -162,8 +163,12 @@ const LiveNavigationScreen = () => {
     
     const mins = Math.round(secondsLeft / 60);
     displayEta = mins > 60 
-      ? `(~${Math.floor(mins / 60)}h ${mins % 60}m)` 
-      : `(~${mins} min)`;
+      ? `${Math.floor(mins / 60)}h ${mins % 60}m` 
+      : `${mins} min`;
+      
+    displayDistance = distanceToTarget > 1000 
+      ? `${(distanceToTarget / 1000).toFixed(1)} km` 
+      : `${Math.round(distanceToTarget)} m`;
   }
 
   return (
@@ -183,7 +188,7 @@ const LiveNavigationScreen = () => {
             longitudeDelta: 0.2,
           }}
         >
-          <UrlTile urlTemplate={OSM_TILE_URL} maximumZ={19} flipY={false} />
+          {/* Native vector map replaces OSM tiles for a premium Google Maps / Apple Maps look */}
 
           {position && (
             <Marker coordinate={{ latitude: position.lat, longitude: position.lng }} anchor={{ x: 0.5, y: 0.5 }}>
@@ -204,8 +209,10 @@ const LiveNavigationScreen = () => {
           {routeCoords && (
             <Polyline
               coordinates={routeCoords}
-              strokeColor={Colors.primary}
-              strokeWidth={4.5}
+              strokeColor="#4285F4"
+              strokeWidth={6}
+              lineCap="round"
+              lineJoin="round"
             />
           )}
         </MapView>
@@ -231,14 +238,14 @@ const LiveNavigationScreen = () => {
       </View>
 
       <View style={styles.bottomCard}>
-        <Text style={styles.bottomTitle}>Heading to {isHeadingToPickup ? 'pickup' : 'delivery'}</Text>
-        <Text style={styles.bottomSub}>
-          {distanceToTarget != null
-            ? (distanceToTarget > 1000 
-                ? `You are ${(distanceToTarget / 1000).toFixed(1)} km away. ${displayEta}` 
-                : `You are ${Math.round(distanceToTarget)} meters away. ${displayEta}`)
-            : 'Calculating distance...'}
-        </Text>
+        {distanceToTarget != null ? (
+          <View style={styles.navStats}>
+            <Text style={styles.navEta}>{displayEta}</Text>
+            <Text style={styles.navDistance}>{displayDistance}</Text>
+          </View>
+        ) : (
+          <Text style={styles.navDistance}>Calculating route...</Text>
+        )}
         
         {distanceToTarget != null && distanceToTarget <= 2000 && (
           <TouchableOpacity
@@ -350,19 +357,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     padding: Spacing.lg,
     paddingBottom: Spacing.xl + 12, // Extra padding for SafeArea
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
     ...Shadows.lg,
   },
-  bottomTitle: {
-    fontSize: Typography.base,
-    fontWeight: '800',
-    color: Colors.gray900,
-    marginBottom: 4,
-  },
-  bottomSub: {
-    fontSize: Typography.sm,
-    color: Colors.gray500,
+  navStats: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: Spacing.sm,
     marginBottom: Spacing.md,
-    lineHeight: 20,
+  },
+  navEta: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0F9D58', // Google Maps Green
+  },
+  navDistance: {
+    fontSize: Typography.base,
+    color: Colors.gray500,
+    fontWeight: '600',
   },
   arrivedBtn: {
     backgroundColor: Colors.primary,
