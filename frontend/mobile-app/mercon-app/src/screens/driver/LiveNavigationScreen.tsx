@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import MapView, { Marker, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, UrlTile, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { ArrowLeft, MapPin, Truck, Siren } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
@@ -30,6 +30,11 @@ const LiveNavigationScreen = () => {
   const { trip, loading } = useCurrentTrip();
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
+  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[] | null>(null);
+  const [baseDuration, setBaseDuration] = useState<number | null>(null);
+  const [baseDistance, setBaseDistance] = useState<number | null>(null);
+  const routeFetchedRef = useRef<string | null>(null);
+  
   const [arriving, setArriving] = useState(false);
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<MapView>(null);
@@ -98,6 +103,34 @@ const LiveNavigationScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStop?.id]);
 
+  // Fetch the driving route from OSRM to draw the polyline and get ETA
+  useEffect(() => {
+    if (!position || !activeStop) return;
+    if (routeFetchedRef.current === activeStop.id) return;
+
+    routeFetchedRef.current = activeStop.id;
+    const fetchRoute = async () => {
+      try {
+        const res = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${position.lng},${position.lat};${activeStop.location_lng},${activeStop.location_lat}?overview=full&geometries=geojson`
+        );
+        const data = await res.json();
+        if (data.code === 'Ok' && data.routes.length > 0) {
+          const r = data.routes[0];
+          setBaseDuration(r.duration);
+          setBaseDistance(r.distance);
+          setRouteCoords(r.geometry.coordinates.map((c: any) => ({
+            latitude: c[1],
+            longitude: c[0]
+          })));
+        }
+      } catch (e) {
+        console.warn('Failed to fetch route from OSRM:', e);
+      }
+    };
+    fetchRoute();
+  }, [position, activeStop]);
+
   // Frame both the driver and the active stop whenever they change.
   useEffect(() => {
     if (position && activeStop && mapRef.current) {
@@ -121,10 +154,23 @@ const LiveNavigationScreen = () => {
 
   const center = position ?? (activeStop ? { lat: activeStop.location_lat, lng: activeStop.location_lng } : { lat: 24.7136, lng: 46.6753 });
 
+  let displayEta = '';
+  if (baseDuration && baseDistance && distanceToTarget != null) {
+    const ratio = Math.min(1, distanceToTarget / baseDistance);
+    let secondsLeft = baseDuration * ratio;
+    if (secondsLeft < 60 && distanceToTarget > 100) secondsLeft = 60; // minimum 1 min if not right there
+    
+    const mins = Math.round(secondsLeft / 60);
+    displayEta = mins > 60 
+      ? `(~${Math.floor(mins / 60)}h ${mins % 60}m)` 
+      : `(~${mins} min)`;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1A2B1A" />
-
+      
+      {/* Map implementation above... */}
       <View style={styles.mapContainer}>
         <MapView
           ref={mapRef}
@@ -154,6 +200,14 @@ const LiveNavigationScreen = () => {
               </View>
             </Marker>
           )}
+
+          {routeCoords && (
+            <Polyline
+              coordinates={routeCoords}
+              strokeColor={Colors.primary}
+              strokeWidth={4.5}
+            />
+          )}
         </MapView>
 
         <View style={styles.topOverlay}>
@@ -181,8 +235,8 @@ const LiveNavigationScreen = () => {
         <Text style={styles.bottomSub}>
           {distanceToTarget != null
             ? (distanceToTarget > 1000 
-                ? `You are ${(distanceToTarget / 1000).toFixed(1)} km away.` 
-                : `You are ${Math.round(distanceToTarget)} meters away.`)
+                ? `You are ${(distanceToTarget / 1000).toFixed(1)} km away. ${displayEta}` 
+                : `You are ${Math.round(distanceToTarget)} meters away. ${displayEta}`)
             : 'Calculating distance...'}
         </Text>
         
