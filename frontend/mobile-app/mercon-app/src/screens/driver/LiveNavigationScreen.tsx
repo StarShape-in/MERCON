@@ -67,8 +67,18 @@ const LiveNavigationScreen = () => {
       sub = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
         (loc) => {
-          const lat = loc.coords.latitude;
-          const lng = loc.coords.longitude;
+          let lat = loc.coords.latitude;
+          let lng = loc.coords.longitude;
+
+          // HACK FOR DEVELOPMENT: If the iOS Simulator is stuck in San Francisco (Apple HQ),
+          // teleport the driver to be near the active stop so the map looks realistic!
+          if (Math.abs(lat - 37.785834) < 0.1 && Math.abs(lng - -122.406417) < 0.1) {
+            if (activeStop) {
+              lat = activeStop.location_lat - 0.02; // ~2km away
+              lng = activeStop.location_lng - 0.02;
+            }
+          }
+
           setPosition({ lat, lng });
 
           if (activeStop && !hasArrivedRef.current) {
