@@ -29,6 +29,7 @@ const LiveNavigationScreen = () => {
   const router = useRouter();
   const { trip, loading } = useCurrentTrip();
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
   const [arriving, setArriving] = useState(false);
   const hasArrivedRef = useRef(false);
   const mapRef = useRef<MapView>(null);
@@ -74,16 +75,17 @@ const LiveNavigationScreen = () => {
           // teleport the driver to be near the active stop so the map looks realistic!
           if (Math.abs(lat - 37.785834) < 0.1 && Math.abs(lng - -122.406417) < 0.1) {
             if (activeStop) {
-              lat = activeStop.location_lat - 0.02; // ~2km away
-              lng = activeStop.location_lng - 0.02;
+              lat = activeStop.location_lat - 0.005; // ~500m away
+              lng = activeStop.location_lng - 0.005;
             }
           }
 
           setPosition({ lat, lng });
 
-          if (activeStop && !hasArrivedRef.current) {
+          if (activeStop) {
             const dist = distanceMeters(lat, lng, activeStop.location_lat, activeStop.location_lng);
-            if (dist <= ARRIVAL_RADIUS_M) goToStop();
+            setDistanceToTarget(dist);
+            if (dist <= ARRIVAL_RADIUS_M && !hasArrivedRef.current) goToStop();
           }
         },
       );
@@ -177,16 +179,23 @@ const LiveNavigationScreen = () => {
       <View style={styles.bottomCard}>
         <Text style={styles.bottomTitle}>Heading to {isHeadingToPickup ? 'pickup' : 'delivery'}</Text>
         <Text style={styles.bottomSub}>
-          The app will detect your arrival automatically. If it doesn't, confirm manually below.
+          {distanceToTarget != null
+            ? (distanceToTarget > 1000 
+                ? `You are ${(distanceToTarget / 1000).toFixed(1)} km away.` 
+                : `You are ${Math.round(distanceToTarget)} meters away.`)
+            : 'Calculating distance...'}
         </Text>
-        <TouchableOpacity
-          style={[styles.arrivedBtn, arriving && { opacity: 0.6 }]}
-          activeOpacity={0.8}
-          onPress={goToStop}
-          disabled={arriving}
-        >
-          <Text style={styles.arrivedBtnText}>{arriving ? 'Updating…' : "I've Arrived"}</Text>
-        </TouchableOpacity>
+        
+        {distanceToTarget != null && distanceToTarget <= 2000 && (
+          <TouchableOpacity
+            style={[styles.arrivedBtn, arriving && { opacity: 0.6 }]}
+            activeOpacity={0.8}
+            onPress={goToStop}
+            disabled={arriving}
+          >
+            <Text style={styles.arrivedBtnText}>{arriving ? 'Updating…' : "I've Arrived"}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
