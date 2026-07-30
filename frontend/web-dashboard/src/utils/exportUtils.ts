@@ -128,3 +128,105 @@ export function downloadCSV<T extends Record<string, any>>(data: T[], filename: 
     document.body.removeChild(link);
   }
 }
+
+export function downloadExcel(title: string, headers: string[], rows: any[][], filename: string = 'mercon_export.xls') {
+  let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
+  html += `<head><meta charset="utf-8" />`;
+  html += `<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>${title.slice(0,30).replace(/[\\*?:/[\]]/g, '')}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->`;
+  html += `<style>
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th { background-color: #4F46E5; color: #FFFFFF; font-weight: bold; text-align: center; border: 0.5pt solid #CBD5E1; padding: 10px 14px; font-size: 11px; }
+    td { border: 0.5pt solid #E2E8F0; padding: 8px 12px; font-size: 10px; color: #334155; }
+    .title-row { font-size: 16px; font-weight: bold; color: #1E293B; height: 35px; border: none; }
+    .subtitle-row { font-size: 11px; color: #64748B; height: 20px; border: none; padding-bottom: 10px; }
+    .even { background-color: #F8FAFC; }
+    .odd { background-color: #FFFFFF; }
+    .total-row td { font-weight: bold; background-color: #F1F5F9; border-top: 1pt solid #475569; border-bottom: 2.5pt double #475569; color: #0F172A; }
+    .text { mso-number-format: "\\@"; text-align: left; }
+    .number { mso-number-format: "#,##0"; text-align: right; }
+    .decimal { mso-number-format: "#,##0.00"; text-align: right; }
+    .currency { mso-number-format: "[$SAR ]#,##0.00"; text-align: right; }
+    .date { mso-number-format: "YYYY-MM-DD"; text-align: center; }
+    .status-active { background-color: #DCFCE7; color: #166534; font-weight: bold; text-align: center; }
+    .status-inactive { background-color: #FEE2E2; color: #991B1B; font-weight: bold; text-align: center; }
+    .charges-cell { color: #DC2626; font-weight: bold; text-align: right; mso-number-format: "[$SAR ]#,##0.00"; }
+    .balance-cell { color: #4F46E5; font-weight: bold; text-align: right; mso-number-format: "[$SAR ]#,##0.00"; }
+  </style></head><body>`;
+  
+  html += `<table>`;
+  // Title Row
+  html += `<tr><td colspan="${headers.length}" class="title-row" style="border:none;">${title}</td></tr>`;
+  html += `<tr><td colspan="${headers.length}" class="subtitle-row" style="border:none;">Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} | MERCON Logistics Platform</td></tr>`;
+  html += `<tr><td colspan="${headers.length}" style="border:none; height: 10px;"></td></tr>`; // Spacing row
+
+  // Headers Row
+  html += `<tr>`;
+  headers.forEach(h => {
+    html += `<th>${h}</th>`;
+  });
+  html += `</tr>`;
+
+  // Data Rows
+  rows.forEach((row, rIdx) => {
+    const isTotalRow = row[0] === 'TOTALS' || row[0] === 'Total' || row[0] === 'Totals';
+    const rowClass = isTotalRow ? 'total-row' : (rIdx % 2 === 0 ? 'even' : 'odd');
+    
+    html += `<tr class="${rowClass}">`;
+    row.forEach((cell, cIdx) => {
+      let cellClass = 'text';
+      const headerLower = headers[cIdx]?.toLowerCase() || '';
+
+      if (isTotalRow) {
+        if (typeof cell === 'number') {
+          cellClass = (headerLower.includes('charges') || headerLower.includes('amount') || headerLower.includes('billing') || headerLower.includes('revenue') || headerLower.includes('cost') || headerLower.includes('total') || headerLower.includes('balance')) 
+            ? 'currency' 
+            : 'number';
+        }
+      } else {
+        if (typeof cell === 'number') {
+          if (headerLower.includes('charges') || headerLower.includes('amount') || headerLower.includes('billing') || headerLower.includes('revenue') || headerLower.includes('cost') || headerLower.includes('total') || headerLower.includes('balance')) {
+            cellClass = 'currency';
+            if (headerLower.includes('trip charges') || headerLower.includes('maintenance cost')) {
+              cellClass = 'charges-cell';
+            } else if (headerLower.includes('balance amount') || headerLower.includes('net balance')) {
+              cellClass = 'balance-cell';
+            }
+          } else if (headerLower.includes('odometer') || headerLower.includes('capacity') || headerLower.includes('trips')) {
+            cellClass = 'number';
+          } else {
+            cellClass = 'number';
+          }
+        } else if (typeof cell === 'string') {
+          // Date format detection
+          if (/^\d{4}-\d{2}-\d{2}$/.test(cell) || /^\d{2}-\d{2}-\d{4}$/.test(cell)) {
+            cellClass = 'date';
+          } else if (headerLower.includes('status')) {
+            if (cell.toLowerCase().includes('active') || cell.toLowerCase().includes('completed') || cell.toLowerCase().includes('delivered') || cell.toLowerCase().includes('paid')) {
+              cellClass = 'status-active';
+            } else if (cell.toLowerCase().includes('inactive') || cell.toLowerCase().includes('cancelled') || cell.toLowerCase().includes('overdue')) {
+              cellClass = 'status-inactive';
+            } else {
+              cellClass = 'center';
+            }
+          }
+        }
+      }
+
+      html += `<td class="${cellClass}">${cell !== null && cell !== undefined ? cell : ''}</td>`;
+    });
+    html += `</tr>`;
+  });
+
+  html += `</table></body></html>`;
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+

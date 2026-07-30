@@ -16,6 +16,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+import { downloadExcel } from '@/utils/exportUtils';
+
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -134,20 +136,20 @@ export default function CustomerDetailsPage() {
         index + 1,
         new Date(t.createdAt).toLocaleDateString('en-GB'),
         t.ref_id || 'N/A',
-        `"${t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'}"`,
-        `"${t.vehicle?.plate_number || 'Unassigned'}"`,
-        `"${t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON` : '10 TON'}"`,
-        `"${t.driver?.phone_primary || ''}"`,
-        `"${t.carrier_name || 'MERCON LOGISTICS'}"`,
-        `"${customer.name}"`,
-        `"Dropoff"`,
+        t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned',
+        t.vehicle?.plate_number || 'Unassigned',
+        t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON` : '10 TON',
+        t.driver?.phone_primary || '',
+        t.carrier_name || 'MERCON LOGISTICS',
+        customer.name,
+        'Dropoff',
         waiting,
         stops,
         billing,
         total,
         tripCharges,
         balance,
-        `"${customer.name}"`
+        customer.name
       ];
     });
 
@@ -156,21 +158,14 @@ export default function CustomerDetailsPage() {
       sumWaitingLabor, sumAdditionalStops, sumBilling, sumTotal, sumTripCharges, sumBalance, ''
     ];
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(e => e.join(',')),
-      summaryRow.join(',')
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${customer.name.toLowerCase().replace(/\s+/g, '_')}_trip_ledger_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadExcel(
+      `MERCON Customer Ledger - ${customer.name}`, 
+      headers, 
+      [...rows, summaryRow], 
+      `${customer.name.toLowerCase().replace(/\s+/g, '_')}_trip_ledger_${new Date().toISOString().slice(0,10)}.xls`
+    );
   };
+
 
   return (
     <DashboardLayout 

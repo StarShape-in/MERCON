@@ -12,6 +12,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { reportsService } from '@/services/reportsService';
 import { customerService } from '@/services/customerService';
 
+import { downloadExcel } from '@/utils/exportUtils';
+
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
 import ReportsHeader from '@/components/reports/ReportsHeader';
@@ -119,20 +121,20 @@ export default function CustomReportPage() {
         index + 1,
         format(new Date(t.date), 'dd-MM-yyyy'),
         t.ref_id || 'N/A',
-        `"${t.driver}"`,
-        `"${t.vehicle}"`,
-        `"${t.vehicle_type || '10 TON'}"`,
-        `"${t.driver_phone || ''}"`,
-        `"${t.carrier_name || 'MERCON LOGISTICS'}"`,
-        `"${t.customer}"`,
-        `"${t.receiver || ''}"`,
+        t.driver,
+        t.vehicle,
+        t.vehicle_type || '10 TON',
+        t.driver_phone || '',
+        t.carrier_name || 'MERCON LOGISTICS',
+        t.customer,
+        t.receiver || '',
         waiting,
         stops,
         billing,
         total,
         tripCharges,
         balance,
-        `"${t.company_name || t.customer}"`
+        t.company_name || t.customer
       ];
     });
 
@@ -156,21 +158,14 @@ export default function CustomReportPage() {
       ''
     ];
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(e => e.join(',')),
-      summaryRow.join(',')
-    ].join('\n');
+    const selectedCust = customers.find((c: any) => c.id === customerId);
+    const titleText = selectedCust 
+      ? `MERCON Trip Ledger Report - ${selectedCust.name || selectedCust.company_name}`
+      : 'MERCON Custom Operational & Trip Ledger Report';
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `mercon_trip_ledger_report_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadExcel(titleText, headers, [...rows, summaryRow], `mercon_trip_ledger_${format(new Date(), 'yyyyMMdd_HHmm')}.xls`);
   };
+
 
   const columns = [
     { header: 'S/L', accessor: (_row: any, idx: number) => <span className="text-gray-400 font-mono text-xs">{idx + 1}</span> },
