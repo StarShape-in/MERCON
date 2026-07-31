@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   Home, Bell, Truck, Users, Car, Building2, 
   CreditCard, ReceiptText, FileText, BarChart3, 
-  Settings, User, LogOut 
+  Settings, User, LogOut, Wrench
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -44,6 +44,7 @@ export default function Sidebar({ active }: SidebarProps) {
         { icon: Truck, label: 'Trips', path: '/trips' },
         { icon: Users, label: 'Drivers', path: '/drivers' },
         { icon: Car, label: 'Vehicles', path: '/vehicles' },
+        { icon: Wrench, label: 'Maintenance', path: '/maintenance' },
         { icon: Building2, label: 'Customers', path: '/customers' },
       ],
     },

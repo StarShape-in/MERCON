@@ -183,3 +183,86 @@ export const bulkUpdateVehicleStatus = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update vehicles` } });
   }
 };
+
+export const getVehicleFinancials = async (req: Request, res: Response) => {
+  try {
+    const vehicleId = req.params.id as string;
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId, deletedAt: null },
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Vehicle not found' } });
+    }
+
+    const trips = await prisma.trip.findMany({
+      where: { vehicleId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        customer: { select: { name: true } },
+        invoices: { where: { deletedAt: null } },
+      },
+    });
+
+    const maintenanceRecords = await prisma.maintenanceRecord.findMany({
+      where: { vehicleId, deletedAt: null },
+      orderBy: [{ start_date: 'desc' }, { service_date: 'desc' }],
+    });
+
+    let totalIncome = 0;
+    const tripBreakdown = trips.map((t) => {
+      const invoice = t.invoices[0];
+      const income = (t.billing_amount && t.billing_amount > 0)
+        ? t.billing_amount
+        : (invoice?.total_amount && invoice.total_amount > 0)
+          ? invoice.total_amount
+          : (t.trip_charges || 0);
+      if (t.status === 'Completed' || t.status === 'Invoiced') {
+        totalIncome += income;
+      }
+      return {
+        id: t.id,
+        ref_id: t.ref_id,
+        status: t.status,
+        customer_name: t.customer?.name || 'N/A',
+        cargo_type: t.cargo_type,
+        date: t.actual_end || t.actual_start || t.createdAt,
+        income,
+      };
+    });
+
+    const totalMaintenanceExpense = maintenanceRecords.reduce((sum, m) => sum + (m.cost || 0), 0);
+    const renewalExpenses = maintenanceRecords
+      .filter((m) => m.maintenance_type === 'Renewal')
+      .reduce((sum, m) => sum + (m.cost || 0), 0);
+
+    const totalExpenses = totalMaintenanceExpense;
+    const netProfit = totalIncome - totalExpenses;
+    const marginPercent = totalIncome > 0 ? Math.round((netProfit / totalIncome) * 1000) / 10 : 0;
+
+    res.json({
+      success: true,
+      data: {
+        vehicle_id: vehicle.id,
+        plate_number: vehicle.plate_number,
+        ref_id: vehicle.ref_id,
+        asset_type: vehicle.asset_type,
+        summary: {
+          total_income: totalIncome,
+          total_expenses: totalExpenses,
+          maintenance_expenses: totalMaintenanceExpense,
+          renewal_expenses: renewalExpenses,
+          net_profit: netProfit,
+          margin_percent: marginPercent,
+          completed_trips_count: trips.filter((t) => t.status === 'Completed' || t.status === 'Invoiced').length,
+          total_maintenance_count: maintenanceRecords.length,
+        },
+        income_sources: tripBreakdown,
+        expense_records: maintenanceRecords,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch vehicle financial report' } });
+  }
+};
+

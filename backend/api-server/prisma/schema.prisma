@@ -323,7 +323,11 @@ model MaintenanceRecord {
   workshop_contact String?
   maintenance_type String
 
+  start_date       DateTime @default(now()) @db.Timestamptz
+  end_date         DateTime? @db.Timestamptz
   service_date     DateTime @db.Timestamptz
+  status           String   @default("Completed")
+  work_done        String?  @db.Text
   odometer_reading Float
   cost             Float    @default(0.0)
 
@@ -340,6 +344,9 @@ model MaintenanceRecord {
   deletedAt  DateTime? @db.Timestamptz
   isActive   Boolean   @default(true)
   version    Int       @default(1)
+
+  @@index([vehicleId, status])
+  @@index([deletedAt])
 }
 
 // -----------------------------------------

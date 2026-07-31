@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { getMaintenanceRecords, createMaintenanceRecord } from '../controllers/maintenanceController';
+import { 
+  getMaintenanceRecords, 
+  createMaintenanceRecord, 
+  updateMaintenanceRecord, 
+  deleteMaintenanceRecord 
+} from '../controllers/maintenanceController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 
@@ -10,5 +15,7 @@ router.use(authorizeRoles('Admin', 'Operator'));
 
 router.get('/', getMaintenanceRecords);
 router.post('/', createMaintenanceRecord);
+router.patch('/:id', updateMaintenanceRecord);
+router.delete('/:id', deleteMaintenanceRecord);
 
 export default router;
