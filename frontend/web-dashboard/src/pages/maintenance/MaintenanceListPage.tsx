@@ -5,7 +5,7 @@ import {
   Wrench, Download, Plus, RotateCw, Search, Filter, 
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
-  Building2, Gauge, Layers
+  Building2, Gauge, Layers, ChevronDown, Eye
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -16,6 +16,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 import { maintenanceService, MaintenanceRecord, CreateMaintenancePayload, MaintenanceType, MaintenanceStatus } from '@/services/maintenanceService';
 import { vehicleService } from '@/services/vehicleService';
@@ -564,26 +572,25 @@ export default function MaintenanceListPage() {
 
                         {/* Actions */}
                         <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenEditModal(r)}
-                              className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900"
-                              title="Edit Record"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setRecordToDelete(r)}
-                              className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                              title="Delete Record"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs font-semibold gap-1">
+                                Actions <ChevronDown className="w-3 h-3 text-slate-400" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40 text-xs font-medium">
+                              <DropdownMenuItem onClick={() => navigate(`/maintenance/${r.id}`)}>
+                                <Eye className="w-3.5 h-3.5 mr-2 text-indigo-500" /> View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenEditModal(r)}>
+                                <Edit2 className="w-3.5 h-3.5 mr-2 text-slate-500" /> Edit Log
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => setRecordToDelete(r)} className="text-rose-600 focus:text-rose-600">
+                                <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-500" /> Delete Record
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
 
                       </tr>
