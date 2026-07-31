@@ -218,8 +218,9 @@ export default function MaintenanceDetailsPage() {
 
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-extrabold text-slate-700 dark:text-slate-300">
-                    🏢 MERCON Logistics
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-extrabold text-slate-700 dark:text-slate-300">
+                    <Building2 className="w-3 h-3 text-indigo-500" />
+                    MERCON Logistics
                   </span>
                   <Badge className="bg-[#E8450F]/10 text-[#E8450F] border-[#E8450F]/20 font-bold text-[10px]">
                     Fleet Operations

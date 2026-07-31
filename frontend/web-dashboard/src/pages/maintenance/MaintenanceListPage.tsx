@@ -5,7 +5,8 @@ import {
   Wrench, Download, Plus, RotateCw, Search, Filter, 
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
-  Building2, Gauge, Layers, ChevronDown, Eye
+  Building2, Gauge, Layers, ChevronDown, Eye,
+  ChevronsUpDown, ArrowUp, LayoutGrid, List, Phone, Database
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -253,8 +254,9 @@ export default function MaintenanceListPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 select-none">
-              <span>🏢 MERCON Logistics</span>
-              <span className="text-slate-400">↕</span>
+              <Building2 className="w-3.5 h-3.5 text-indigo-500" />
+              <span>MERCON Logistics</span>
+              <ChevronsUpDown className="w-3 h-3 text-slate-400" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
@@ -320,7 +322,10 @@ export default function MaintenanceListPage() {
               SAR {kpis.total_cost.toLocaleString()}
             </div>
             <div className="text-[11px] text-slate-500 font-semibold mt-1 flex items-center gap-1">
-              <span className="text-rose-500 font-bold">↑ Operational Cost</span>
+              <span className="text-rose-500 font-bold flex items-center gap-0.5">
+                <ArrowUp className="w-3 h-3 text-rose-500" />
+                Operational Cost
+              </span>
               <span>• {records.length} records</span>
             </div>
           </Card>
@@ -431,20 +436,22 @@ export default function MaintenanceListPage() {
                 <button
                   onClick={() => setViewMode('list')}
                   className={cn(
-                    "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors",
+                    "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5",
                     viewMode === 'list' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs" : "text-slate-500 hover:text-slate-900"
                   )}
                 >
-                  ☰ List
+                  <List className="w-3.5 h-3.5" />
+                  List
                 </button>
                 <button
                   onClick={() => setViewMode('grid')}
                   className={cn(
-                    "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors",
+                    "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5",
                     viewMode === 'grid' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs" : "text-slate-500 hover:text-slate-900"
                   )}
                 >
-                  🎛 Grid
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  Grid
                 </button>
               </div>
 
@@ -458,7 +465,7 @@ export default function MaintenanceListPage() {
           
           <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-base">🥞</span>
+              <Database className="w-4 h-4 text-indigo-500" />
               <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 Maintenance Ledger
               </CardTitle>
@@ -475,8 +482,8 @@ export default function MaintenanceListPage() {
               </div>
             ) : records.length === 0 ? (
               <div className="p-16 flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl mb-3">
-                  📄
+                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
+                  <FileText className="w-8 h-8" />
                 </div>
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
                   No Maintenance Records Found
@@ -547,8 +554,9 @@ export default function MaintenanceListPage() {
                             {r.workshop_name}
                           </div>
                           {r.workshop_contact && (
-                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                              📞 {r.workshop_contact}
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              {r.workshop_contact}
                             </div>
                           )}
                         </td>
