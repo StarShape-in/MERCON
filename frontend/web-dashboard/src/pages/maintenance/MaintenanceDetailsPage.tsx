@@ -393,18 +393,33 @@ export default function MaintenanceDetailsPage() {
           {/* ── 3. High-Density Shadcn Tabs View ─────────────────────────────── */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
             
-            <TabsList className="bg-slate-100 dark:bg-slate-800/60 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60 w-full sm:w-auto grid grid-cols-2 sm:flex">
-              <TabsTrigger value="overview" className="text-xs font-bold gap-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-                <Wrench className="w-3.5 h-3.5 text-[#E8450F]" /> Overview & Work Done
+            <TabsList className="h-auto p-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 w-full sm:w-auto flex flex-wrap sm:inline-flex gap-1.5 shadow-2xs">
+              <TabsTrigger 
+                value="overview" 
+                className="px-4 py-2.5 sm:px-5 sm:py-3 min-h-[44px] text-xs sm:text-sm font-extrabold gap-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm cursor-pointer transition-all"
+              >
+                <Wrench className="w-4 h-4 text-[#E8450F]" /> Overview & Work Done
               </TabsTrigger>
-              <TabsTrigger value="parts" className="text-xs font-bold gap-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-                <FileCheck2 className="w-3.5 h-3.5 text-indigo-500" /> Itemized Checklist ({checklistItems.length})
+              
+              <TabsTrigger 
+                value="parts" 
+                className="px-4 py-2.5 sm:px-5 sm:py-3 min-h-[44px] text-xs sm:text-sm font-extrabold gap-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm cursor-pointer transition-all"
+              >
+                <FileCheck2 className="w-4 h-4 text-indigo-500" /> Itemized Checklist ({checklistItems.length})
               </TabsTrigger>
-              <TabsTrigger value="financial" className="text-xs font-bold gap-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-                <DollarSign className="w-3.5 h-3.5 text-emerald-500" /> Financial Invoice Vault
+              
+              <TabsTrigger 
+                value="financial" 
+                className="px-4 py-2.5 sm:px-5 sm:py-3 min-h-[44px] text-xs sm:text-sm font-extrabold gap-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm cursor-pointer transition-all"
+              >
+                <DollarSign className="w-4 h-4 text-emerald-500" /> Financial Invoice Vault
               </TabsTrigger>
-              <TabsTrigger value="vehicle" className="text-xs font-bold gap-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-                <Truck className="w-3.5 h-3.5 text-amber-500" /> Vehicle Telemetry & Profile
+              
+              <TabsTrigger 
+                value="vehicle" 
+                className="px-4 py-2.5 sm:px-5 sm:py-3 min-h-[44px] text-xs sm:text-sm font-extrabold gap-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm cursor-pointer transition-all"
+              >
+                <Truck className="w-4 h-4 text-amber-500" /> Vehicle Telemetry & Profile
               </TabsTrigger>
             </TabsList>
 
