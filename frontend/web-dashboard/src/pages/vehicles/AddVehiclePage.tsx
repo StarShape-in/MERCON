@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Btn from '@/components/ui/Btn';
 
 export default function AddVehiclePage() {
   const navigate = useNavigate();
@@ -142,16 +143,16 @@ export default function AddVehiclePage() {
               Operations Module
             </Badge>
           </div>
-
           <div className="flex items-center gap-2">
-            <Button 
+            <Btn 
               variant="outline" 
               size="sm" 
               onClick={() => navigate('/vehicles')}
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Vehicles
-            </Button>
+              label="Back to Vehicles"
+              icon={<ArrowLeft className="w-3.5 h-3.5" />}
+              shortcut={{ key: 'b', alt: true }}
+            />
 
             <Button 
               variant="ghost" 
@@ -162,275 +163,216 @@ export default function AddVehiclePage() {
               <RotateCcw className="w-3.5 h-3.5" /> Reset Form
             </Button>
 
-            <Button 
+            <Btn 
               size="sm" 
               onClick={() => handleSubmit()}
               disabled={isSubmitting || !isFormValid}
               className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
-            >
-              <Plus className="w-3.5 h-3.5" /> {isSubmitting ? 'Registering...' : 'Register Vehicle'}
-            </Button>
+              label={isSubmitting ? 'Registering...' : 'Register Vehicle'}
+              icon={<Plus className="w-3.5 h-3.5" />}
+              shortcut={{ key: 'Enter', metaOrControl: true }}
+            />
           </div>
         </div>
 
-        {/* Header KPI Instrument Panel Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Asset Class</span>
-              {getAssetIcon(formData.asset_type)}
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-base font-extrabold text-slate-900 dark:text-slate-100">{formData.asset_type}</span>
-              <span className="text-[10px] text-slate-500 font-medium">Tractor Unit</span>
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Payload Capacity</span>
-              <Package className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 font-mono">
-                {totalCapacity > 0 ? `${totalCapacity.toLocaleString()} kg` : '0 kg'}
-              </span>
-              <span className="text-[10px] text-slate-500 font-medium">
-                {hasTrailer ? 'Tractor + Trailer' : 'Standalone'}
-              </span>
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Telematics</span>
-              <Radio className={`w-4 h-4 ${formData.gps_device_id ? 'text-blue-600' : 'text-slate-400'}`} />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[120px]">
-                {formData.gps_device_id || 'No GPS Attached'}
-              </span>
-              <Badge 
-                variant="outline" 
-                className={`text-[9px] px-1 py-0 font-bold ${
-                  formData.gps_device_id 
-                    ? 'bg-blue-50 text-blue-600 border-blue-200' 
-                    : 'bg-slate-100 text-slate-500 border-slate-200'
-                }`}
-              >
-                {formData.gps_device_id ? 'Connected' : 'Pending'}
-              </Badge>
-            </div>
-          </Card>
-
-          <Card className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">ICCES Tracker</span>
-              <ShieldCheck className={`w-4 h-4 ${formData.icces_device_id ? 'text-emerald-600' : 'text-slate-400'}`} />
-            </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[120px]">
-                {formData.icces_device_id || 'Optional'}
-              </span>
-              <Badge 
-                variant="outline" 
-                className={`text-[9px] px-1 py-0 font-bold ${
-                  formData.icces_device_id 
-                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
-                    : 'bg-slate-100 text-slate-500 border-slate-200'
-                }`}
-              >
-                {formData.icces_device_id ? 'Verified' : 'Optional'}
-              </Badge>
-            </div>
-          </Card>
-        </div>
-
-        {/* Main 2-Column Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          
-          {/* Left Column: 3 Form Sections Stacked (7 Cols) */}
-          <div className="lg:col-span-7 space-y-4">
+        {/* Top Horizontal Live Preview / Manifest */}
+        <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+          <div className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
             
-            {/* SECTION 1: Tractor Specs */}
-            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Truck className="w-4.5 h-4.5 text-[#E8450F]" /> 1. Tractor Specifications
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
-                  Primary tractor vehicle identity, plate number, asset type, and payload capacity.
-                </CardDescription>
-              </CardHeader>
+            {/* Vehicle Unit Segment */}
+            <div className="flex-1 p-4 flex items-center gap-3 w-full">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 shrink-0">
+                {getAssetIcon(formData.asset_type)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Vehicle Unit</span>
+                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
+                  {formData.plate_number ? formData.plate_number : 'ABC 1234'} ({formData.asset_type})
+                </p>
+              </div>
+              {formData.plate_number && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+            </div>
 
-              <CardContent className="pt-4 space-y-4">
+            {/* Capacity Segment */}
+            <div className="flex-1 p-4 flex items-center gap-3 w-full">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400 shrink-0">
+                <Package className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Total Capacity</span>
+                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
+                  {totalCapacity.toLocaleString()} kg {hasTrailer ? '(with Trailer)' : ''}
+                </p>
+              </div>
+              {totalCapacity > 0 && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+            </div>
+
+            {/* Devices Linked Segment */}
+            <div className="flex-1 p-4 flex items-center gap-3 w-full">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 shrink-0">
+                <Radio className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">GPS & ICCES Telematics</span>
+                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
+                  {formData.gps_device_id ? `GPS Connected` : 'No GPS linked'}
+                </p>
+              </div>
+              {formData.gps_device_id && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+            </div>
+
+          </div>
+        </Card>
+
+        {/* Main Content Workspace (Single Column Centered) */}
+        <div className="max-w-4xl mx-auto w-full pt-2">
+          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
+            <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Truck className="w-4.5 h-4.5 text-indigo-600" /> Vehicle Registration Details
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500 mt-0.5">
+                    Register a heavy transport truck unit or tractor including attached trailers.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-6 space-y-6">
+              
+              {/* SECTION 1: Asset Core Details */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <Truck className="w-4 h-4 text-indigo-600" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    1. Primary Asset Identifier
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
                   <div className="space-y-1.5">
-                    <Label htmlFor="plate_number" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Plate Number <span className="text-rose-500">*</span></span>
-                      <span className="text-[10px] text-slate-400 font-normal">e.g. ABC 1234</span>
+                    <Label htmlFor="plate_number" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Saudi License Plate Number <span className="text-rose-500">*</span>
                     </Label>
                     <Input
                       id="plate_number"
                       placeholder="e.g. ABC 1234"
                       value={formData.plate_number}
                       onChange={(e) => handleChange('plate_number', e.target.value.toUpperCase())}
-                      className="h-9 text-xs uppercase font-mono font-medium border-slate-200"
+                      className="h-9 text-xs font-mono border-slate-200"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <Label htmlFor="asset_type" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Asset Type <span className="text-rose-500">*</span>
+                      Asset Classification Type <span className="text-rose-500">*</span>
                     </Label>
                     <Select 
                       value={formData.asset_type} 
                       onValueChange={(val) => handleChange('asset_type', val as AssetType)}
                     >
                       <SelectTrigger id="asset_type" className="h-9 text-xs border-slate-200 bg-white">
-                        <SelectValue placeholder="Select asset type" />
+                        <SelectValue placeholder="Select class type..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Flatbed">Flatbed (Heavy Cargo)</SelectItem>
-                        <SelectItem value="Reefer">Reefer (Temperature Controlled)</SelectItem>
+                        <SelectItem value="Flatbed">Flatbed Tractor Unit</SelectItem>
+                        <SelectItem value="Reefer">Reefer / Coldchain Unit</SelectItem>
                         <SelectItem value="Box">Box Truck (Dry Van)</SelectItem>
-                        <SelectItem value="Tanker">Tanker (Liquid / Bulk)</SelectItem>
+                        <SelectItem value="Tanker">Liquid Tanker Unit</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              </div>
 
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="capacity_kg" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Payload Capacity (kg) <span className="text-rose-500">*</span></span>
-                      <span className="text-[10px] text-indigo-600 font-semibold">Presets available</span>
+              {/* SECTION 2: Payload Capacity & Weight */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <Package className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    2. Tractor Payload Weight Specs
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="capacity_kg" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Tractor Gross Payload Capacity (kg) <span className="text-rose-500">*</span>
                     </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="capacity_kg"
-                        type="number"
-                        placeholder="20000"
-                        value={formData.capacity_kg}
-                        onChange={(e) => handleChange('capacity_kg', e.target.value)}
-                        className="h-9 text-xs font-mono border-slate-200"
-                      />
-                    </div>
-                    {/* Capacity Presets */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {['15000', '20000', '25000', '30000', '40000'].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => handleChange('capacity_kg', preset)}
-                          className={`text-[11px] px-2.5 py-1 rounded-md border transition-all ${
-                            formData.capacity_kg === preset 
-                              ? 'bg-[#E8450F] text-white border-[#E8450F] font-bold shadow-2xs' 
-                              : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                          }`}
-                        >
-                          {Number(preset).toLocaleString()} kg
-                        </button>
-                      ))}
-                    </div>
+                    <Input
+                      id="capacity_kg"
+                      type="number"
+                      placeholder="e.g. 25000"
+                      value={formData.capacity_kg}
+                      onChange={(e) => handleChange('capacity_kg', e.target.value)}
+                      className="h-9 text-xs font-mono border-slate-200"
+                    />
                   </div>
 
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* SECTION 2: Telematics */}
-            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Navigation className="w-4.5 h-4.5 text-blue-600" /> 2. Telematics & Sensors
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
-                  GPS tracker IDs and Saudi ICCES transport telemetry integration.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="pt-4 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
                   <div className="space-y-1.5">
-                    <Label htmlFor="gps_device_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Radio className="w-3.5 h-3.5 text-blue-600" /> GPS Device ID
+                    <Label htmlFor="gps_device_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      GPS Telematics Hardware ID
                     </Label>
                     <Input
                       id="gps_device_id"
-                      placeholder="e.g. GPS-8821-X"
+                      placeholder="GPS-XXXXXX-M"
                       value={formData.gps_device_id}
                       onChange={(e) => handleChange('gps_device_id', e.target.value)}
                       className="h-9 text-xs font-mono border-slate-200"
                     />
-                    <p className="text-[10px] text-slate-500">Used for real-time location telemetry & trip route tracking.</p>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="icces_device_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-indigo-600" /> ICCES Tracker ID
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="icces_device_id" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Saudi ICCES Security Tracking ID (Optional)
                     </Label>
                     <Input
                       id="icces_device_id"
-                      placeholder="e.g. 351777091234"
+                      placeholder="ICCES-9988-TRACK"
                       value={formData.icces_device_id}
                       onChange={(e) => handleChange('icces_device_id', e.target.value)}
                       className="h-9 text-xs font-mono border-slate-200"
                     />
-                    <p className="text-[10px] text-slate-500">Saudi Transport ICCES telemetry compliance device ID.</p>
                   </div>
-
                 </div>
+              </div>
 
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
-                  <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Automatic Integration Ready
+              {/* SECTION 3: Optional Trailer Configuration */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-purple-600" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      3. Attached Trailer Configuration
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Once saved, telemetry sensors automatically link to active trip telemetry streams for instant dispatch tracking.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* SECTION 3: Trailer (Optional) */}
-            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <Layers className="w-4.5 h-4.5 text-[#E8450F]" /> 3. Trailer Unit (Optional)
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500">
-                      Attach or configure a secondary trailer linked to this tractor.
-                    </CardDescription>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setHasTrailer(!hasTrailer)}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      hasTrailer ? 'bg-[#E8450F]' : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                        hasTrailer ? 'translate-x-4' : 'translate-x-0'
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setHasTrailer(!hasTrailer)}
+                      className={`text-[11px] px-2.5 py-1 rounded-md border font-bold transition-all ${
+                        hasTrailer 
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' 
+                          : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                       }`}
-                    />
-                  </button>
+                    >
+                      {hasTrailer ? '✓ Trailer Attached' : '+ Attach Trailer'}
+                    </button>
+                  </div>
                 </div>
-              </CardHeader>
 
-              <CardContent className="pt-4">
                 {hasTrailer ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl border border-purple-100 bg-purple-50/20 dark:border-purple-900/40 dark:bg-purple-950/10 animate-fade-in">
                     <div className="space-y-1.5">
                       <Label htmlFor="trailer_number" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Trailer Number / Plate
+                        Trailer Plate / Registration ID <span className="text-rose-500">*</span>
                       </Label>
                       <Input
                         id="trailer_number"
-                        placeholder="e.g. TRL-9920"
+                        placeholder="TR-8812-B"
                         value={formData.trailer_number}
                         onChange={(e) => handleChange('trailer_number', e.target.value.toUpperCase())}
                         className="h-9 text-xs font-mono border-slate-200"
@@ -439,7 +381,7 @@ export default function AddVehiclePage() {
 
                     <div className="space-y-1.5">
                       <Label htmlFor="trailer_type" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Trailer Type
+                        Trailer Body Classification <span className="text-rose-500">*</span>
                       </Label>
                       <Select 
                         value={formData.trailer_type} 
@@ -476,148 +418,39 @@ export default function AddVehiclePage() {
                     No trailer unit attached. Toggle above to configure attached trailer specifications.
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            {error && (
-              <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                {error}
               </div>
-            )}
-          </div>
 
-          {/* Right Column: Live Visual Asset Preview Card (5 Cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl overflow-hidden sticky top-4 bg-white dark:bg-slate-900">
-              <CardHeader className="pb-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="bg-white text-[10px] uppercase font-bold tracking-wider text-slate-700 border-slate-200">
-                    Live Asset Preview
-                  </Badge>
-                  <span className="text-[10px] text-slate-400 font-mono">VIN: TEMP-{Date.now().toString().slice(-4)}</span>
-                </div>
-                <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 mt-2 flex items-center gap-2">
-                  {formData.plate_number ? formData.plate_number : '--- ----'}
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
-                  Real-time visualization of registered fleet unit metadata.
-                </CardDescription>
-              </CardHeader>
+            </CardContent>
 
-              <CardContent className="pt-4 space-y-4">
-                
-                {/* Saudi License Plate Preview */}
-                <div className="bg-amber-50/80 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/60 rounded-xl p-3 text-center shadow-2xs relative">
-                  <div className="absolute top-1.5 left-2.5 text-[9px] font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1">
-                    <span>KSA</span> <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 inline-block" />
-                  </div>
-                  <div className="text-xl font-black font-mono tracking-widest text-amber-950 dark:text-amber-100 pt-2">
-                    {formData.plate_number || 'ABC 1234'}
-                  </div>
-                  <div className="text-[9px] uppercase tracking-wider font-bold text-amber-700/80 dark:text-amber-300/80 mt-0.5">
-                    Kingdom of Saudi Arabia • Commercial Transport
-                  </div>
-                </div>
+            <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between items-center rounded-b-xl">
+              <Btn 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReset}
+                className="h-9 text-xs font-semibold border-slate-200 bg-white"
+                label="Reset Form"
+              />
 
-                {/* Asset Spec Summary Grid */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] text-slate-500 block font-medium">Tractor Type</span>
-                    <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 mt-0.5">
-                      {getAssetIcon(formData.asset_type)} {formData.asset_type}
-                    </span>
-                  </div>
+              <Btn 
+                type="button" 
+                size="sm"
+                onClick={() => handleSubmit()}
+                disabled={isSubmitting || !isFormValid}
+                className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5 shadow-xs gap-1.5 rounded-md"
+                label={isSubmitting ? 'Registering...' : 'Register Vehicle'}
+                icon={<Plus className="w-4 h-4" />}
+                shortcut={{ key: 'Enter', metaOrControl: true }}
+              />
+            </CardFooter>
+          </Card>
 
-                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] text-slate-500 block font-medium">Gross Capacity</span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 block font-mono">
-                      {totalCapacity > 0 ? `${totalCapacity.toLocaleString()} kg` : '0 kg'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Capacity Meter Bar */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[11px]">
-                    <span className="font-semibold text-slate-500">Payload Allocation</span>
-                    <span className="font-mono text-slate-900 dark:text-slate-100 font-extrabold">{totalCapacity.toLocaleString()} kg</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
-                    <div 
-                      className="bg-[#E8450F] h-full transition-all duration-300" 
-                      style={{ width: `${Math.min(100, (tractorCap / 50000) * 100)}%` }} 
-                    />
-                    {hasTrailer && (
-                      <div 
-                        className="bg-emerald-500 h-full transition-all duration-300" 
-                        style={{ width: `${Math.min(100, (trailerCap / 50000) * 100)}%` }} 
-                      />
-                    )}
-                  </div>
-                  <div className="flex justify-between text-[9px] text-slate-500 font-medium">
-                    <span>Tractor: {tractorCap.toLocaleString()} kg</span>
-                    {hasTrailer && <span>Trailer: {trailerCap.toLocaleString()} kg</span>}
-                  </div>
-                </div>
-
-                {/* Readiness Checklist */}
-                <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Registration Readiness</span>
-                  
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-                        {formData.plate_number ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : <Circle className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
-                        Plate Number Provided
-                      </span>
-                      <span className="font-semibold font-mono text-[11px]">{formData.plate_number || 'Missing'}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-                        {tractorCap > 0 ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : <Circle className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
-                        Tractor Payload Capacity
-                      </span>
-                      <span className="font-semibold font-mono text-[11px]">{tractorCap > 0 ? `${tractorCap.toLocaleString()} kg` : '0 kg'}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-                        {formData.gps_device_id ? <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" /> : <Circle className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
-                        GPS Telematics Linked
-                      </span>
-                      <span className="font-semibold text-[11px]">{formData.gps_device_id ? 'Yes' : 'Optional'}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-                        {hasTrailer ? <CheckCircle2 className="w-3.5 h-3.5 text-[#E8450F] shrink-0" /> : <Circle className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
-                        Attached Trailer Unit
-                      </span>
-                      <span className="font-semibold text-[11px]">{hasTrailer ? formData.trailer_number || 'Attached' : 'None'}</span>
-                    </div>
-                  </div>
-                </div>
-
-              </CardContent>
-
-              <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 flex justify-between items-center">
-                <div className="text-[11px] text-slate-500">
-                  Status: <span className="font-bold text-emerald-600 dark:text-emerald-400">Available on Register</span>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleSubmit()}
-                  disabled={isSubmitting || !isFormValid}
-                  className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-4 rounded-md shadow-xs"
-                >
-                  {isSubmitting ? 'Saving...' : 'Submit Vehicle'}
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-
+          {error && (
+            <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2 mt-4">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
+              {error}
+            </div>
+          )}
         </div>
 
       </div>
