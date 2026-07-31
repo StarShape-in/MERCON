@@ -99,6 +99,17 @@ export default function Btn({
     return parts.join(isMac ? '' : '+');
   };
 
+  const getShortcutClassName = () => {
+    const base = "ml-1.5 px-1 py-0.5 text-[9px] font-extrabold font-mono tracking-wide rounded leading-none select-none pointer-events-none border transition-all";
+    if (variant === 'primary' || variant === 'danger') {
+      return cn(base, "bg-white/20 text-white border-white/30");
+    } else if (variant === 'secondary') {
+      return cn(base, "bg-slate-200/60 dark:bg-white/10 text-slate-800 dark:text-slate-200 border-slate-300/40 dark:border-slate-700/40");
+    } else {
+      return cn(base, "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700");
+    }
+  };
+
   return (
     <Button 
       ref={buttonRef}
@@ -111,7 +122,7 @@ export default function Btn({
       {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : icon}
       <span>{isLoading ? 'Loading...' : label}</span>
       {shortcut && !isLoading && (
-        <kbd className="ml-1 px-1 py-0.5 text-[9px] font-bold font-mono tracking-wide rounded bg-black/10 dark:bg-white/15 text-slate-500 dark:text-slate-400 border border-slate-200/20 dark:border-slate-800/20 leading-none select-none pointer-events-none">
+        <kbd className={getShortcutClassName()}>
           {getShortcutText()}
         </kbd>
       )}
