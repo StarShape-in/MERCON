@@ -95,6 +95,42 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
   }
 };
 
+export const getMaintenanceRecordById = async (req: Request, res: Response) => {
+  try {
+    const recordId = req.params.id as string;
+    const record = await prisma.maintenanceRecord.findUnique({
+      where: { id: recordId },
+      include: {
+        vehicle: true,
+      },
+    });
+
+    if (!record || record.deletedAt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Maintenance record not found' },
+      });
+    }
+
+    const documents = await prisma.document.findMany({
+      where: { entity_type: 'MaintenanceRecord', entity_id: record.id, deletedAt: null },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        ...record,
+        documents,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch maintenance record details' },
+    });
+  }
+};
+
 const maintenanceSchema = z.object({
   vehicle_id: z.string().uuid(),
   workshop_name: z.string().min(1, 'Workshop name is required'),

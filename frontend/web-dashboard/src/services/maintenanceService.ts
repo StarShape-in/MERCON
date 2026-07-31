@@ -87,6 +87,11 @@ export const maintenanceService = {
     return res.data;
   },
 
+  async getById(id: string): Promise<MaintenanceRecord> {
+    const res = await api.get<ApiResponse<MaintenanceRecord>>(`/maintenance/${id}`);
+    return res.data.data;
+  },
+
   async create(payload: CreateMaintenancePayload): Promise<MaintenanceRecord> {
     const res = await api.post<ApiResponse<MaintenanceRecord>>('/maintenance', payload);
     return res.data.data;

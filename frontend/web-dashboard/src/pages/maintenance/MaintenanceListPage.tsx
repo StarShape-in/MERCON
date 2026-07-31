@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Wrench, Download, Plus, RotateCw, Search, Filter, 
@@ -23,6 +24,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 
 export default function MaintenanceListPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -499,7 +501,10 @@ export default function MaintenanceListPage() {
                       <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                         
                         {/* Vehicle info */}
-                        <td className="px-5 py-4">
+                        <td 
+                          className="px-5 py-4 cursor-pointer hover:underline"
+                          onClick={() => navigate(`/maintenance/${r.id}`)}
+                        >
                           <div className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                             <Truck className="w-3.5 h-3.5 text-indigo-500" />
                             {r.vehicle?.plate_number || 'TRK-UNKNOWN'}

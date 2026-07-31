@@ -33,7 +33,8 @@ const VehicleDetailsPage      = lazy(() => import('@/pages/vehicles/VehicleDetai
 const AddVehiclePage          = lazy(() => import('@/pages/vehicles/AddVehiclePage'));
 const EditVehiclePage         = lazy(() => import('@/pages/vehicles/EditVehiclePage'));
 const VehicleDocumentsPage    = lazy(() => import('@/pages/vehicles/VehicleDocumentsPage'));
-const MaintenanceListPage    = lazy(() => import('@/pages/maintenance/MaintenanceListPage'));
+const MaintenanceListPage     = lazy(() => import('@/pages/maintenance/MaintenanceListPage'));
+const MaintenanceDetailsPage  = lazy(() => import('@/pages/maintenance/MaintenanceDetailsPage'));
 
 // Customers
 const CustomerListPage        = lazy(() => import('@/pages/customers/CustomerListPage'));
@@ -116,6 +117,7 @@ export default function AppRouter() {
           <Route path="/vehicles/:id/edit"        element={<ProtectedRoute><EditVehiclePage /></ProtectedRoute>} />
           <Route path="/vehicles/:id/documents"   element={<ProtectedRoute><VehicleDocumentsPage /></ProtectedRoute>} />
           <Route path="/maintenance"              element={<ProtectedRoute><MaintenanceListPage /></ProtectedRoute>} />
+          <Route path="/maintenance/:id"          element={<ProtectedRoute><MaintenanceDetailsPage /></ProtectedRoute>} />
 
           {/* Customers */}
           <Route path="/customers"                element={<ProtectedRoute><CustomerListPage /></ProtectedRoute>} />

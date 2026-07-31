@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { 
   getMaintenanceRecords, 
+  getMaintenanceRecordById,
   createMaintenanceRecord, 
   updateMaintenanceRecord, 
   deleteMaintenanceRecord 
@@ -14,6 +15,7 @@ router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
 
 router.get('/', getMaintenanceRecords);
+router.get('/:id', getMaintenanceRecordById);
 router.post('/', createMaintenanceRecord);
 router.patch('/:id', updateMaintenanceRecord);
 router.delete('/:id', deleteMaintenanceRecord);
