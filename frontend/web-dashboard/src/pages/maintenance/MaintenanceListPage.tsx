@@ -621,6 +621,8 @@ export default function MaintenanceListPage() {
                         Delete
                       </Button>
                     </div>
+                  </Card>
+                ))}
               </div>
             )}
 

@@ -230,3 +230,5 @@ export function downloadExcel(title: string, headers: string[], rows: any[][], f
   document.body.removeChild(link);
 }
 
+export const exportToCSV = downloadCSV;
+
