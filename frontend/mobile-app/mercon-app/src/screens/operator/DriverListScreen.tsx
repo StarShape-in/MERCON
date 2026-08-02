@@ -3,10 +3,10 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, FlatList, ActivityIndicator, RefreshControl, Linking,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Phone, User } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, Avatar, SearchInput } from '../../components';
-import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
+import { StatusBadge, Avatar, SearchInput, FilterChip, Button } from '../../components';
 import { useOperatorDrivers, type OperatorDriver } from '../../lib/operator';
 
 const FILTERS: { label: string; status: string | null }[] = [
@@ -30,9 +30,9 @@ function initials(d: OperatorDriver) {
   return `${d.first_name?.[0] ?? ''}${d.last_name?.[0] ?? ''}`.toUpperCase() || '?';
 }
 
-const DriverCard = ({ item }: { item: OperatorDriver }) => (
+const DriverCard = ({ item, onPress }: { item: OperatorDriver; onPress: () => void }) => (
   <View style={styles.card}>
-    <View style={styles.cardMain}>
+    <TouchableOpacity style={styles.cardMain} activeOpacity={0.8} onPress={onPress}>
       <Avatar initials={initials(item)} size={52} />
       <View style={styles.info}>
         <Text style={styles.driverName}>{fullName(item)}</Text>
@@ -47,24 +47,24 @@ const DriverCard = ({ item }: { item: OperatorDriver }) => (
       <View style={styles.rightCol}>
         <StatusBadge status={STATUS_LABELS[item.status] ?? item.status} />
       </View>
-    </View>
+    </TouchableOpacity>
     {item.phone_primary ? (
       <View style={styles.cardFooter}>
-        <TouchableOpacity
-          style={[styles.footerBtn, { borderRightWidth: 0 }]}
-          activeOpacity={0.8}
+        <Button
+          variant="ghost"
+          size="sm"
+          label="Call"
+          iconLeft={<Phone size={14} color={Colors.primary} strokeWidth={2} />}
           onPress={() => Linking.openURL(`tel:${item.phone_primary}`).catch(() => {})}
-        >
-          <Phone size={14} color={Colors.primary} strokeWidth={2} />
-          <Text style={styles.footerBtnText}>Call</Text>
-        </TouchableOpacity>
+          style={styles.footerBtn}
+        />
       </View>
     ) : null}
   </View>
 );
 
 const DriverListScreen = () => {
-  const [activeTab, setActiveTab] = useState('Drivers');
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const { drivers, loading, error, refetch } = useOperatorDrivers();
@@ -100,16 +100,12 @@ const DriverListScreen = () => {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
         {FILTERS.map((f) => (
-          <TouchableOpacity
+          <FilterChip
             key={f.label}
-            style={[styles.filterPill, statusFilter === f.label ? styles.filterPillActive : null]}
-            activeOpacity={0.8}
+            label={f.label}
+            active={statusFilter === f.label}
             onPress={() => setStatusFilter(f.label)}
-          >
-            <Text style={[styles.filterText, statusFilter === f.label ? styles.filterTextActive : null]}>
-              {f.label}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
@@ -118,7 +114,12 @@ const DriverListScreen = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading && drivers.length > 0} onRefresh={refetch} />}
-        renderItem={({ item }) => <DriverCard item={item} />}
+        renderItem={({ item }) => (
+          <DriverCard
+            item={item}
+            onPress={() => router.push({ pathname: '/operator/driver-edit', params: { id: item.id } })}
+          />
+        )}
         ListEmptyComponent={
           loading ? (
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
@@ -162,26 +163,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     gap: Spacing.xs,
-  },
-  filterPill: {
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  filterPillActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterText: {
-    fontSize: Typography.sm,
-    color: Colors.gray600,
-    fontWeight: '600',
-  },
-  filterTextActive: {
-    color: Colors.white,
   },
   list: {
     padding: Spacing.lg,
@@ -235,18 +216,7 @@ const styles = StyleSheet.create({
   },
   footerBtn: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: Colors.gray100,
-  },
-  footerBtnText: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
-    fontWeight: '600',
+    borderRadius: 0,
   },
   empty: {
     alignItems: 'center',

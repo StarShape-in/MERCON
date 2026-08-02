@@ -6,8 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { User, Package, Calendar, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, SearchInput } from '../../components';
-import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
+import { StatusBadge, SearchInput, FilterChip } from '../../components';
 import { useOperatorTrips, type OperatorTrip } from '../../lib/operator';
 import { statusLabel, type TripStatus } from '../../lib/trips';
 
@@ -55,7 +54,6 @@ const TripCard = ({ item, onPress }: { item: OperatorTrip; onPress: () => void }
 
 const TripListScreen = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('Trips');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const { trips, loading, error, refetch } = useOperatorTrips();
@@ -108,16 +106,12 @@ const TripListScreen = () => {
       {/* Filter Pills */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
         {FILTERS.map((f) => (
-          <TouchableOpacity
+          <FilterChip
             key={f.label}
-            style={[styles.filterPill, filter === f.label ? styles.filterPillActive : null]}
-            activeOpacity={0.8}
+            label={f.label}
+            active={filter === f.label}
             onPress={() => setFilter(f.label)}
-          >
-            <Text style={[styles.filterText, filter === f.label ? styles.filterTextActive : null]}>
-              {f.label}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
@@ -194,26 +188,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.sm,
     gap: Spacing.xs,
-  },
-  filterPill: {
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  filterPillActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterText: {
-    fontSize: Typography.sm,
-    color: Colors.gray600,
-    fontWeight: '600',
-  },
-  filterTextActive: {
-    color: Colors.white,
   },
   list: {
     padding: Spacing.lg,

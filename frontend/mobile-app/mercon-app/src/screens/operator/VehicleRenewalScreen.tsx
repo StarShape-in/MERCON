@@ -7,7 +7,7 @@ import {
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, ArrowRight, CircleCheck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge } from '../../components';
+import { StatusBadge, FilterChip, Button } from '../../components';
 import { useOperatorVehicleRenewals, type VehicleRenewal } from '../../lib/operator';
 
 type Bucket = 'due' | 'critical' | 'overdue' | 'ok';
@@ -92,14 +92,13 @@ const RenewalCard = ({ item }: { item: VehicleRenewal }) => {
       <View style={styles.cardFooter}>
         <Text style={styles.statusText}>Status: {item.status}</Text>
         {bucket !== 'ok' && (
-          <TouchableOpacity
-            style={styles.renewBtn}
-            activeOpacity={0.8}
+          <Button
+            variant="primary"
+            size="sm"
+            label="Renew Now"
+            iconRight={<ArrowRight size={16} color={Colors.white} strokeWidth={2.4} />}
             onPress={() => Alert.alert('Coming Soon', 'Uploading a renewed document will be available in a future update.')}
-          >
-            <Text style={styles.renewBtnText}>Renew Now</Text>
-            <ArrowRight size={16} color={Colors.white} strokeWidth={2.4} />
-          </TouchableOpacity>
+          />
         )}
       </View>
     </View>
@@ -138,9 +137,9 @@ const VehicleRenewalScreen = () => {
       {/* Stat Chips */}
       <View style={styles.statsRow}>
         {[
-          { label: 'Due Soon', value: stats.due, color: '#D97706', bg: '#FFF7ED' },
-          { label: 'Critical', value: stats.critical, color: Colors.error, bg: '#FFF5F5' },
-          { label: 'Overdue', value: stats.overdue, color: Colors.error, bg: '#FFF5F5' },
+          { label: 'Due Soon', value: stats.due, color: Colors.warning, bg: Colors.warningLight },
+          { label: 'Critical', value: stats.critical, color: Colors.error, bg: Colors.errorLight },
+          { label: 'Overdue', value: stats.overdue, color: Colors.error, bg: Colors.errorLight },
         ].map((s) => (
           <View key={s.label} style={[styles.statChip, { backgroundColor: s.bg }]}>
             <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
@@ -152,16 +151,12 @@ const VehicleRenewalScreen = () => {
       {/* Filter Tabs */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
         {FILTER_TABS.map((tab) => (
-          <TouchableOpacity
+          <FilterChip
             key={tab.label}
-            style={[styles.filterPill, filter === tab.label ? styles.filterPillActive : null]}
-            activeOpacity={0.8}
+            label={tab.label}
+            active={filter === tab.label}
             onPress={() => setFilter(tab.label)}
-          >
-            <Text style={[styles.filterText, filter === tab.label ? styles.filterTextActive : null]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
@@ -239,26 +234,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     gap: Spacing.xs,
   },
-  filterPill: {
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  filterPillActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterText: {
-    fontSize: Typography.sm,
-    color: Colors.gray600,
-    fontWeight: '600',
-  },
-  filterTextActive: {
-    color: Colors.white,
-  },
   list: {
     padding: Spacing.lg,
     gap: Spacing.md,
@@ -321,7 +296,7 @@ const styles = StyleSheet.create({
   daysLeftValue: {
     fontSize: Typography.sm,
     fontWeight: '700',
-    color: '#D97706',
+    color: Colors.warning,
   },
   overdueDays: {
     color: Colors.error,
@@ -337,20 +312,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: Typography.xs,
     color: Colors.gray500,
-  },
-  renewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  renewBtnText: {
-    fontSize: Typography.sm,
-    color: Colors.white,
-    fontWeight: '700',
   },
   empty: {
     alignItems: 'center',

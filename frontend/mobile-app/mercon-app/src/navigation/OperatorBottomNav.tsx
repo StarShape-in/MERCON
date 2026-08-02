@@ -43,7 +43,7 @@ export function OperatorBottomNav({ activeTab: explicitActive, onTabPress, onFab
   };
 
   const renderTab = ({ label, Icon }: { label: OperatorTab; Icon: LucideIcon }) => {
-    const route = label === 'Home' ? '/' : label === 'Trips' ? '/operator/trips' : label === 'Drivers' ? '/operator/drivers' : '/settings';
+    const route = label === 'Home' ? '/' : label === 'Trips' ? '/operator/trips' : label === 'Drivers' ? '/operator/drivers' : '/operator/more';
     const active = explicitActive
       ? explicitActive === label
       : route === '/' ? pathname === '/' : pathname.startsWith(route);

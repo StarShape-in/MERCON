@@ -3,10 +3,10 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
   StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Truck, Weight, Gauge } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, SearchInput } from '../../components';
-import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
+import { StatusBadge, SearchInput, FilterChip } from '../../components';
 import { useOperatorVehicles, type OperatorVehicle } from '../../lib/operator';
 
 const FILTERS: { label: string; status: string | null }[] = [
@@ -24,8 +24,8 @@ const STATUS_LABELS: Record<string, string> = {
   Inactive: 'Inactive',
 };
 
-const VehicleCard = ({ item }: { item: OperatorVehicle }) => (
-  <View style={styles.card}>
+const VehicleCard = ({ item, onPress }: { item: OperatorVehicle; onPress: () => void }) => (
+  <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
     <View style={styles.cardTop}>
       <View style={styles.vehicleIconBox}>
         <Truck size={26} color={Colors.primary} strokeWidth={2} />
@@ -51,11 +51,11 @@ const VehicleCard = ({ item }: { item: OperatorVehicle }) => (
         </View>
       </View>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 const VehicleListScreen = () => {
-  const [activeTab, setActiveTab] = useState('More');
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const { vehicles, loading, error, refetch } = useOperatorVehicles();
@@ -91,7 +91,7 @@ const VehicleListScreen = () => {
           { label: 'Total', value: count(null), color: Colors.gray900 },
           { label: 'Available', value: count('Available'), color: Colors.success },
           { label: 'On Trip', value: count('OnTrip'), color: Colors.primary },
-          { label: 'Service', value: count('Maintenance'), color: '#D97706' },
+          { label: 'Service', value: count('Maintenance'), color: Colors.warning },
         ].map((s) => (
           <View key={s.label} style={styles.statBox}>
             <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
@@ -109,16 +109,12 @@ const VehicleListScreen = () => {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
         {FILTERS.map((f) => (
-          <TouchableOpacity
+          <FilterChip
             key={f.label}
-            style={[styles.filterPill, statusFilter === f.label ? styles.filterPillActive : null]}
-            activeOpacity={0.8}
+            label={f.label}
+            active={statusFilter === f.label}
             onPress={() => setStatusFilter(f.label)}
-          >
-            <Text style={[styles.filterText, statusFilter === f.label ? styles.filterTextActive : null]}>
-              {f.label}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
@@ -127,7 +123,12 @@ const VehicleListScreen = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading && vehicles.length > 0} onRefresh={refetch} />}
-        renderItem={({ item }) => <VehicleCard item={item} />}
+        renderItem={({ item }) => (
+          <VehicleCard
+            item={item}
+            onPress={() => router.push({ pathname: '/operator/vehicle-edit', params: { id: item.id } })}
+          />
+        )}
         ListEmptyComponent={
           loading ? (
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
@@ -194,26 +195,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     gap: Spacing.xs,
   },
-  filterPill: {
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  filterPillActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterText: {
-    fontSize: Typography.sm,
-    color: Colors.gray600,
-    fontWeight: '600',
-  },
-  filterTextActive: {
-    color: Colors.white,
-  },
   list: {
     padding: Spacing.lg,
     gap: Spacing.md,
@@ -239,9 +220,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray100,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  vehicleEmoji: {
-    fontSize: 26,
   },
   vehicleInfo: {
     flex: 1,

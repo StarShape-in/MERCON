@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
+  View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Check, Truck } from 'lucide-react-native';
-import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { Button } from '../../components';
+import { Colors, Spacing, Radius, Typography } from '../../theme/tokens';
+import { Button, Card, Input, StatusBadge } from '../../components';
 import { getApiErrorMessage } from '../../lib/api';
 import {
   operatorService, invalidateOperatorTrips,
@@ -121,7 +121,7 @@ const CreateTripScreen = () => {
 
           {/* Section: Customer */}
           <Text style={styles.sectionTitle}>Customer</Text>
-          <View style={styles.pickerCard}>
+          <Card style={styles.pickerCard}>
             {customers.length === 0 ? (
               <Text style={styles.emptyHint}>No customers found</Text>
             ) : (
@@ -139,28 +139,26 @@ const CreateTripScreen = () => {
                 </TouchableOpacity>
               ))
             )}
-          </View>
+          </Card>
 
           {/* Section: Route */}
           <Text style={styles.sectionTitle}>Route</Text>
-          <View style={styles.formCard}>
+          <Card style={styles.formCard}>
             <View style={styles.formGroup}>
               <Text style={styles.label}>Pickup Coordinates (lat, lng)</Text>
               <View style={styles.rowFields}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                <Input
+                  style={{ flex: 1 }}
                   value={pickupLat}
                   onChangeText={setPickupLat}
                   placeholder="Latitude"
-                  placeholderTextColor={Colors.gray400}
                   keyboardType="numeric"
                 />
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                <Input
+                  style={{ flex: 1 }}
                   value={pickupLng}
                   onChangeText={setPickupLng}
                   placeholder="Longitude"
-                  placeholderTextColor={Colors.gray400}
                   keyboardType="numeric"
                 />
               </View>
@@ -169,73 +167,61 @@ const CreateTripScreen = () => {
             <View style={styles.formGroup}>
               <Text style={styles.label}>Dropoff Coordinates (lat, lng)</Text>
               <View style={styles.rowFields}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                <Input
+                  style={{ flex: 1 }}
                   value={dropoffLat}
                   onChangeText={setDropoffLat}
                   placeholder="Latitude"
-                  placeholderTextColor={Colors.gray400}
                   keyboardType="numeric"
                 />
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                <Input
+                  style={{ flex: 1 }}
                   value={dropoffLng}
                   onChangeText={setDropoffLng}
                   placeholder="Longitude"
-                  placeholderTextColor={Colors.gray400}
                   keyboardType="numeric"
                 />
               </View>
             </View>
-          </View>
+          </Card>
 
           {/* Section: Date & Time */}
           <Text style={styles.sectionTitle}>Departure (Optional)</Text>
-          <View style={styles.formCard}>
+          <Card style={styles.formCard}>
             <View style={styles.rowFields}>
-              <View style={[styles.formGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Date</Text>
-                <TextInput
-                  style={styles.input}
-                  value={date}
-                  onChangeText={setDate}
-                  placeholder="DD/MM/YYYY"
-                  placeholderTextColor={Colors.gray400}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={[styles.formGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Time</Text>
-                <TextInput
-                  style={styles.input}
-                  value={time}
-                  onChangeText={setTime}
-                  placeholder="HH:MM"
-                  placeholderTextColor={Colors.gray400}
-                  keyboardType="numeric"
-                />
-              </View>
+              <Input
+                style={{ flex: 1 }}
+                label="Date"
+                value={date}
+                onChangeText={setDate}
+                placeholder="DD/MM/YYYY"
+                keyboardType="numeric"
+              />
+              <Input
+                style={{ flex: 1 }}
+                label="Time"
+                value={time}
+                onChangeText={setTime}
+                placeholder="HH:MM"
+                keyboardType="numeric"
+              />
             </View>
-          </View>
+          </Card>
 
           {/* Section: Cargo */}
           <Text style={styles.sectionTitle}>Cargo</Text>
-          <View style={styles.formCard}>
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={styles.input}
-                value={cargoDesc}
-                onChangeText={setCargoDesc}
-                placeholder="e.g. Consumer Electronics"
-                placeholderTextColor={Colors.gray400}
-              />
-            </View>
-          </View>
+          <Card style={styles.formCard}>
+            <Input
+              label="Description"
+              value={cargoDesc}
+              onChangeText={setCargoDesc}
+              placeholder="e.g. Consumer Electronics"
+            />
+          </Card>
 
           {/* Section: Driver */}
           <Text style={styles.sectionTitle}>Assign Driver</Text>
-          <View style={styles.pickerCard}>
+          <Card style={styles.pickerCard}>
             {drivers.length === 0 ? (
               <Text style={styles.emptyHint}>No available drivers</Text>
             ) : (
@@ -255,17 +241,15 @@ const CreateTripScreen = () => {
                     <Text style={styles.driverName}>{driver.first_name} {driver.last_name}</Text>
                     <Text style={styles.driverId}>{driver.ref_id ?? driver.license_number}</Text>
                   </View>
-                  <View style={[styles.driverStatusBadge, styles.driverBadgeAvail]}>
-                    <Text style={[styles.driverStatusText, styles.driverStatusAvail]}>Available</Text>
-                  </View>
+                  <StatusBadge status="Available" />
                 </TouchableOpacity>
               ))
             )}
-          </View>
+          </Card>
 
           {/* Section: Vehicle */}
           <Text style={styles.sectionTitle}>Assign Vehicle</Text>
-          <View style={styles.pickerCard}>
+          <Card style={styles.pickerCard}>
             {vehicles.length === 0 ? (
               <Text style={styles.emptyHint}>No available vehicles</Text>
             ) : (
@@ -283,13 +267,11 @@ const CreateTripScreen = () => {
                     <Text style={styles.driverName}>{v.plate_number}</Text>
                     <Text style={styles.driverId}>{v.asset_type}</Text>
                   </View>
-                  <View style={[styles.driverStatusBadge, styles.driverBadgeAvail]}>
-                    <Text style={[styles.driverStatusText, styles.driverStatusAvail]}>Available</Text>
-                  </View>
+                  <StatusBadge status="Available" />
                 </TouchableOpacity>
               ))
             )}
-          </View>
+          </Card>
 
           <Button
             title={submitting ? 'Creating…' : 'Create Trip'}
@@ -356,10 +338,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   pickerCard: {
-    backgroundColor: Colors.white,
     borderRadius: Radius.xl,
-    overflow: 'hidden',
-    ...Shadows.sm,
   },
   emptyHint: {
     padding: Spacing.lg,
@@ -376,7 +355,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray100,
   },
   pickerItemActive: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: Colors.primaryLight,
   },
   pickerItemText: {
     fontSize: Typography.sm,
@@ -388,10 +367,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   formCard: {
-    backgroundColor: Colors.white,
     borderRadius: Radius.xl,
     padding: Spacing.lg,
-    ...Shadows.sm,
   },
   formGroup: {
     gap: Spacing.xs,
@@ -402,13 +379,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  input: {
-    fontSize: Typography.sm,
-    color: Colors.gray900,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   formDivider: {
     height: Spacing.md,
@@ -427,7 +397,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray100,
   },
   driverItemActive: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: Colors.primaryLight,
   },
   driverAvatar: {
     width: 40,
@@ -456,21 +426,6 @@ const styles = StyleSheet.create({
   driverId: {
     fontSize: Typography.xs,
     color: Colors.gray500,
-  },
-  driverStatusBadge: {
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-  },
-  driverBadgeAvail: {
-    backgroundColor: '#DCFCE7',
-  },
-  driverStatusText: {
-    fontSize: Typography.xs,
-    fontWeight: '700',
-  },
-  driverStatusAvail: {
-    color: Colors.success,
   },
   validationHint: {
     fontSize: Typography.xs,

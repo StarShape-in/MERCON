@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-07-31** (added dedicated Vehicle Maintenance & Renewals page `/maintenance` with full CRUD, start/end dates, work done, status, and cost expense tracking; integrated Full Vehicle Financial & Profitability Report P&L + maintenance history ledger on `/vehicles/:id`) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-08-02** (mobile operator: UI-kit consistency pass across all 8 operator screens + fixed a duplicate-bottom-nav bug; added real trip lifecycle actions (pickup arrive/verify, delivery verify, replace driver, cancel) to `TripDetailsScreen`; added Driver/Vehicle edit screens; added invoice "Mark as Paid"; added full Customers screen (list/search/create/edit); added an `Operator` "More" hub screen — fixed a real navigation gap where Vehicles/Invoices/VehicleRenewals were only reachable via deep link, not from the UI) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).
@@ -16,7 +16,7 @@ Last updated: **2026-07-31** (added dedicated Vehicle Maintenance & Renewals pag
 |---|---|---|
 | **Backend API** | ✅ Working, deployed at mercon.tech | ~90% |
 | **Web dashboard** (Admin/Operator) | ✅ Done, all pages on real data | ~95% |
-| **Mobile app** (Driver + Operator) | 🔄 Driver side ~done (nav + full trip flow + all core screens); operator side now navigable + wired (Home/Trips/TripDetails/CreateTrip/Drivers/Vehicles/Invoices/VehicleRenewals all real); only secondary Replacement/Splash screens left static; live GPS pending | ~72% |
+| **Mobile app** (Driver + Operator) | 🔄 Driver side ~done (nav + full trip flow + all core screens); operator side wired with real trip lifecycle actions (dispatch→pickup→delivery→complete, replace driver, cancel), Driver/Vehicle edit, Invoice mark-paid, and a new Customers screen (list/create/edit); a proper "More" hub now makes Vehicles/Invoices/Customers/Renewals reachable in-app (previously only via deep link); only secondary Replacement/Splash screens left static; live GPS pending | ~76% |
 | **Live GPS tracking** (driver → web) | 🔄 Foreground streaming wired (socket emit); background + device verification pending | ~60% |
 | **Testing / builds / handover** | ❌ Not started (no real-phone run yet) | 0% |
 
@@ -141,12 +141,16 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ `OperatorBottomNav` — Trips/Drivers tabs and the FAB now navigate to real routes (previously Drivers→`/documents`, Trips→driver `/trips`, FAB did nothing)
 - ✅ `HomeScreen` (dashboard metrics) — real KPIs via `/reports/summary` + active trips via `/trips`
 - ✅ `TripListScreen` — real `/trips` with status filters, KPI chips, search; cards tap through to `TripDetailsScreen`
-- ✅ `TripDetailsScreen` — real trip via `GET /trips/:id` (timeline built from status + stop timestamps, cargo, driver, vehicle); "Call Driver" opens the dialer; "Track Live" / "Edit Trip" show a "coming soon" alert (no map/edit screen yet)
-- ✅ `CreateTripScreen` — real customers (`GET /customers`) + available drivers/vehicles (`GET /drivers|vehicles?status=Available`); posts `POST /trips` with pickup/dropoff lat-lng (plain numeric inputs, no map picker yet)
-- ✅ `DriverListScreen` — real `/drivers` (status filters, search, tap-to-call)
-- ✅ `VehicleListScreen` — real `/vehicles` (status filters, stats, search)
-- ✅ `VehicleRenewalScreen` — real vehicle documents via `GET /documents?entity_type=Vehicle` joined with `GET /vehicles` for plate numbers; due/critical/overdue buckets derived from `expiry_date` (no fake doc types/costs — uses the real `DocType`/`DocStatus` enums); reachable from the Home KPI "documents expiring soon" alert → `/operator/vehicle-renewals`; "Renew Now" shows a "coming soon" alert (no re-upload flow yet)
-- ✅ `InvoiceListScreen` — real `/invoices` (status filters, stat cards, search)
+- ✅ `TripDetailsScreen` — real trip via `GET /trips/:id` (timeline built from status + stop timestamps, cargo, driver, vehicle); "Call Driver" opens the dialer; **real lifecycle actions** now replace the old "coming soon" stub: contextual next-step button per status (`POST /trips/:id/pickup/arrive` → `PATCH /trips/:id/status` InTransit/AtDelivery/Completed), "Replace Driver" (live available-drivers picker modal → `POST /trips/:id/replace-driver`), "Cancel Trip" (`PATCH .../status` Cancelled); "Track Live" still shows a "coming soon" alert (no map yet)
+- ✅ `CreateTripScreen` — real customers (`GET /customers`) + available drivers/vehicles (`GET /drivers|vehicles?status=Available`); posts `POST /trips` with pickup/dropoff lat-lng (plain numeric inputs, no map picker yet); form fields now use the shared `Input`/`Card` components instead of raw `TextInput`
+- ✅ `DriverListScreen` — real `/drivers` (status filters, search, tap-to-call); tapping a card now opens `DriverEditScreen` (`PATCH /drivers/:id` — name/phone/license/status)
+- ✅ `VehicleListScreen` — real `/vehicles` (status filters, stats, search); tapping a card now opens `VehicleEditScreen` (`PATCH /vehicles/:id` — plate/capacity/asset type/status)
+- ✅ `VehicleRenewalScreen` — real vehicle documents via `GET /documents?entity_type=Vehicle` joined with `GET /vehicles` for plate numbers; due/critical/overdue buckets derived from `expiry_date` (no fake doc types/costs — uses the real `DocType`/`DocStatus` enums); reachable from the Home KPI "documents expiring soon" alert and from the new "More" hub; "Renew Now" still shows a "coming soon" alert (no re-upload flow yet)
+- ✅ `InvoiceListScreen` — real `/invoices` (status filters, stat cards, search); Pending/Overdue invoices now show a "Mark as Paid" action (`PATCH /invoices/:id/status`); fixed a real bug where `Paid`/`Draft`/`Overdue` were missing from the status-color map and silently rendered as gray "Pending"
+- ✅ `CustomerListScreen` + `CustomerEditScreen` (new) — full customer list/search/active-filter via `GET /customers`, create via `POST /customers`, edit (incl. active/inactive toggle) via `PATCH /customers/:id`; reachable from the new "More" hub and its own "+" button
+- ✅ `MoreScreen` (new, `/operator/more`) — fixes a real navigation gap: `OperatorBottomNav`'s "More" tab used to route straight to the **driver's** settings screen, meaning Vehicles/Invoices/Vehicle Renewals (and now Customers) had no in-app entry point at all, only reachable via a raw deep link. The "More" tab now opens this hub (Fleet/Invoices/Customers/Vehicle Renewals + sign out) first.
+- ✅ Fixed a duplicate-bottom-nav bug: `OperatorBottomNav` is already rendered globally as a floating overlay in `_layout.tsx`; an earlier pass had also rendered it inside 5 individual screens, showing two nav bars stacked.
+- ✅ UI-kit consistency pass across all 8 operator screens: swapped hand-rolled filter pills/cards/buttons for the shared `FilterChip`/`Card`/`Button`/`StatusBadge` components, replaced hardcoded hex colors with `theme/tokens.ts` values (several were off-palette drift, e.g. `#D97706`, `#FFF7ED`, `#1A1A1A` for the dark header).
 
 ### Milestone 4 — Testing, builds, handover
 - ⬜ Real-phone test, both roles (Android + iPhone)
@@ -186,16 +190,21 @@ key off `driverId`. `createDriverNotification()` + the trip-assignment trigger u
 | ReplacementDriver/Splash | driver | ⬜ static (secondary) |
 | HomeScreen (dashboard KPIs + active trips) | operator | ✅ |
 | TripListScreen (filters + KPI chips + search, tap→details) | operator | ✅ |
-| TripDetailsScreen (real trip, timeline, call driver) | operator | ✅ |
+| TripDetailsScreen (real trip, timeline, call driver, lifecycle actions, replace driver, cancel) | operator | ✅ |
 | CreateTripScreen (real customers/drivers/vehicles, POST /trips) | operator | ✅ |
-| DriverListScreen (filters + search + call) | operator | ✅ |
-| VehicleListScreen (filters + stats + search) | operator | ✅ |
-| InvoiceListScreen (filters + stats + search) | operator | ✅ |
-| VehicleRenewalScreen (real doc expiry tracker, reachable from Home alert) | operator | ✅ |
+| DriverListScreen (filters + search + call, tap→edit) | operator | ✅ |
+| DriverEditScreen (PATCH /drivers/:id) | operator | ✅ |
+| VehicleListScreen (filters + stats + search, tap→edit) | operator | ✅ |
+| VehicleEditScreen (PATCH /vehicles/:id) | operator | ✅ |
+| InvoiceListScreen (filters + stats + search, mark-as-paid) | operator | ✅ |
+| VehicleRenewalScreen (real doc expiry tracker, reachable from Home alert + More hub) | operator | ✅ |
+| CustomerListScreen (list/search/filter, reachable from More hub) | operator | ✅ |
+| CustomerEditScreen (create + edit, PATCH/POST /customers) | operator | ✅ |
+| MoreScreen (Fleet/Invoices/Customers/Renewals hub + sign out) | operator | ✅ |
 
-**Wired: 21 / 24 screens** (all core driver screens + all operator screens except the secondary
+**Wired: 27 / 30 screens** (all core driver screens + all operator screens except the secondary
 driver Replacement/Splash screens). Operator nav now actually reaches every wired operator screen —
-Admin included.
+Admin included — including the ones previously stranded behind the driver settings "More" route.
 
 **Driver navigation now works** (expo-router): the bottom nav (Home/Trips/Profile) and Profile's
 quick actions + Notifications link actually navigate — so the already-wired Trips, Notifications,

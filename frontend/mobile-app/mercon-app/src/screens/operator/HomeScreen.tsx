@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
   ActivityIndicator, RefreshControl,
@@ -10,7 +10,6 @@ import {
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge } from '../../components';
-import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
 import { useAuth } from '../../lib/auth-context';
 import { useOperatorDashboard, type OperatorTrip } from '../../lib/operator';
 import { statusLabel, type TripStatus } from '../../lib/trips';
@@ -39,7 +38,6 @@ const TripItem = ({ item }: { item: OperatorTrip }) => (
 
 const OperatorHomeScreen = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('Home');
   const { profile } = useAuth();
   const { summary, activeTrips, loading, error, refetch } = useOperatorDashboard();
 
@@ -104,7 +102,7 @@ const OperatorHomeScreen = () => {
                 onPress={() => router.push('/operator/vehicle-renewals')}
               >
                 <View style={styles.renewalAlertLeft}>
-                  <TriangleAlert size={20} color="#D97706" strokeWidth={2} />
+                  <TriangleAlert size={20} color={Colors.warning} strokeWidth={2} />
                   <View>
                     <Text style={styles.renewalAlertTitle}>{docsExpiring} document(s) expiring soon</Text>
                     <Text style={styles.renewalAlertSub}>Renewals due within the next 30 days</Text>
@@ -207,11 +205,11 @@ const styles = StyleSheet.create({
   renewalAlert: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: Colors.warningLight,
     borderRadius: Radius.xl,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: `${Colors.warning}40`,
     gap: Spacing.md,
   },
   renewalAlertLeft: {
@@ -226,11 +224,11 @@ const styles = StyleSheet.create({
   renewalAlertTitle: {
     fontSize: Typography.sm,
     fontWeight: '700',
-    color: '#92400E',
+    color: Colors.warning,
   },
   renewalAlertSub: {
     fontSize: Typography.xs,
-    color: '#92400E',
+    color: Colors.warning,
     marginTop: 2,
   },
   tripCard: {

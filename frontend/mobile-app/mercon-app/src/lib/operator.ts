@@ -83,6 +83,23 @@ export interface CreateTripInput {
 export interface OperatorCustomer {
   id: string;
   name: string;
+  contact_phone?: string;
+  credit_limit?: number;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
+export interface CreateCustomerInput {
+  name: string;
+  contact_phone: string;
+  credit_limit?: number;
+}
+
+export interface UpdateCustomerInput {
+  name?: string;
+  contact_phone?: string;
+  credit_limit?: number;
+  isActive?: boolean;
 }
 
 export interface OperatorDocument {
@@ -138,6 +155,21 @@ export const operatorService = {
     return (data.data ?? []) as OperatorCustomer[];
   },
 
+  async customerById(id: string): Promise<OperatorCustomer> {
+    const { data } = await api.get(`/customers/${id}`);
+    return data.data as OperatorCustomer;
+  },
+
+  async createCustomer(payload: CreateCustomerInput): Promise<OperatorCustomer> {
+    const { data } = await api.post('/customers', payload);
+    return data.data as OperatorCustomer;
+  },
+
+  async updateCustomer(id: string, payload: UpdateCustomerInput): Promise<OperatorCustomer> {
+    const { data } = await api.patch(`/customers/${id}`, payload);
+    return data.data as OperatorCustomer;
+  },
+
   async availableDrivers(): Promise<OperatorDriver[]> {
     const { data } = await api.get('/drivers', { params: { per_page: 100, status: 'Available' } });
     return (data.data ?? []) as OperatorDriver[];
@@ -156,6 +188,48 @@ export const operatorService = {
   async vehicleDocuments(): Promise<OperatorDocument[]> {
     const { data } = await api.get('/documents', { params: { entity_type: 'Vehicle', per_page: 100 } });
     return (data.data ?? []) as OperatorDocument[];
+  },
+
+  async driverById(id: string): Promise<OperatorDriver> {
+    const { data } = await api.get(`/drivers/${id}`);
+    return data.data as OperatorDriver;
+  },
+
+  async vehicleById(id: string): Promise<OperatorVehicle> {
+    const { data } = await api.get(`/vehicles/${id}`);
+    return data.data as OperatorVehicle;
+  },
+
+  async updateDriver(id: string, payload: UpdateDriverInput): Promise<OperatorDriver> {
+    const { data } = await api.patch(`/drivers/${id}`, payload);
+    return data.data as OperatorDriver;
+  },
+
+  async updateVehicle(id: string, payload: UpdateVehicleInput): Promise<OperatorVehicle> {
+    const { data } = await api.patch(`/vehicles/${id}`, payload);
+    return data.data as OperatorVehicle;
+  },
+
+  async updateInvoiceStatus(id: string, status: string): Promise<OperatorInvoice> {
+    const { data } = await api.patch(`/invoices/${id}/status`, { status });
+    return data.data as OperatorInvoice;
+  },
+
+  /** Generic trip status transition — drives most of the trip lifecycle. */
+  async updateTripStatus(id: string, status: string): Promise<OperatorTripDetail> {
+    const { data } = await api.patch(`/trips/${id}/status`, { status });
+    return data.data as OperatorTripDetail;
+  },
+
+  /** Stamps the pickup stop's actual arrival time in addition to the status change. */
+  async pickupArrive(id: string): Promise<OperatorTripDetail> {
+    const { data } = await api.post(`/trips/${id}/pickup/arrive`);
+    return data.data as OperatorTripDetail;
+  },
+
+  async replaceDriver(id: string, newDriverId: string): Promise<OperatorTripDetail> {
+    const { data } = await api.post(`/trips/${id}/replace-driver`, { new_driver_id: newDriverId });
+    return data.data as OperatorTripDetail;
   },
 };
 
@@ -190,6 +264,22 @@ export interface OperatorDriver {
   status: string;
   license_number: string;
   license_expiry: string;
+}
+
+export interface UpdateDriverInput {
+  first_name?: string;
+  last_name?: string;
+  phone_primary?: string;
+  license_number?: string;
+  license_expiry?: string;
+  status?: 'Available' | 'OnTrip' | 'OffDuty' | 'Inactive';
+}
+
+export interface UpdateVehicleInput {
+  plate_number?: string;
+  asset_type?: 'Flatbed' | 'Reefer' | 'Box' | 'Tanker';
+  capacity_kg?: number;
+  status?: 'Available' | 'OnTrip' | 'Maintenance' | 'Inactive';
 }
 
 let cacheOperatorTrips: OperatorTrip[] = [];
@@ -230,6 +320,11 @@ export function useOperatorTrips() {
 let cacheOperatorDrivers: OperatorDriver[] = [];
 let isOpDriversFetched = false;
 
+/** Forces the next `useOperatorDrivers` mount/refetch to hit the API again. */
+export function invalidateOperatorDrivers() {
+  isOpDriversFetched = false;
+}
+
 /** Loads all drivers for the operator driver list. */
 export function useOperatorDrivers() {
   const [drivers, setDrivers] = useState<OperatorDriver[]>(cacheOperatorDrivers);
@@ -259,6 +354,11 @@ export function useOperatorDrivers() {
 
 let cacheOperatorVehicles: OperatorVehicle[] = [];
 let isOpVehiclesFetched = false;
+
+/** Forces the next `useOperatorVehicles` mount/refetch to hit the API again. */
+export function invalidateOperatorVehicles() {
+  isOpVehiclesFetched = false;
+}
 
 /** Loads all vehicles for the operator vehicle list. */
 export function useOperatorVehicles() {
@@ -342,6 +442,11 @@ export function useOperatorVehicleRenewals() {
 let cacheOperatorInvoices: OperatorInvoice[] = [];
 let isOpInvoicesFetched = false;
 
+/** Forces the next `useOperatorInvoices` mount/refetch to hit the API again. */
+export function invalidateOperatorInvoices() {
+  isOpInvoicesFetched = false;
+}
+
 /** Loads all invoices for the operator invoice list. */
 export function useOperatorInvoices() {
   const [invoices, setInvoices] = useState<OperatorInvoice[]>(cacheOperatorInvoices);
@@ -369,6 +474,66 @@ export function useOperatorInvoices() {
   return { invoices, loading, error, refetch };
 }
 
+let cacheOperatorCustomers: OperatorCustomer[] = [];
+let isOpCustomersFetched = false;
+
+/** Forces the next `useOperatorCustomers` mount/refetch to hit the API again. */
+export function invalidateOperatorCustomers() {
+  isOpCustomersFetched = false;
+}
+
+/** Loads all customers for the operator customer list. */
+export function useOperatorCustomers() {
+  const [customers, setCustomers] = useState<OperatorCustomer[]>(cacheOperatorCustomers);
+  const [loading, setLoading] = useState(!isOpCustomersFetched);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async (opts?: { showLoading?: boolean } | any) => {
+    const showLoading = typeof opts === 'boolean' ? opts : typeof opts?.showLoading === 'boolean' ? opts.showLoading : !isOpCustomersFetched;
+    if (showLoading) setLoading(true);
+    setError(null);
+    try {
+      const data = await operatorService.customers();
+      cacheOperatorCustomers = data;
+      isOpCustomersFetched = true;
+      setCustomers(data);
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  return { customers, loading, error, refetch };
+}
+
+/** Loads a single customer's detail for the operator customer edit screen. */
+export function useOperatorCustomerById(id: string | undefined) {
+  const [customer, setCustomer] = useState<OperatorCustomer | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await operatorService.customerById(id);
+      setCustomer(data);
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  return { customer, loading, error, refetch };
+}
+
 /** Loads a single trip's full detail for the operator trip details screen. */
 export function useOperatorTripById(id: string | undefined) {
   const [trip, setTrip] = useState<OperatorTripDetail | null>(null);
@@ -392,6 +557,56 @@ export function useOperatorTripById(id: string | undefined) {
   useEffect(() => { refetch(); }, [refetch]);
 
   return { trip, loading, error, refetch };
+}
+
+/** Loads a single driver's detail for the operator driver edit screen. */
+export function useOperatorDriverById(id: string | undefined) {
+  const [driver, setDriver] = useState<OperatorDriver | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await operatorService.driverById(id);
+      setDriver(data);
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  return { driver, loading, error, refetch };
+}
+
+/** Loads a single vehicle's detail for the operator vehicle edit screen. */
+export function useOperatorVehicleById(id: string | undefined) {
+  const [vehicle, setVehicle] = useState<OperatorVehicle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await operatorService.vehicleById(id);
+      setVehicle(data);
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  return { vehicle, loading, error, refetch };
 }
 
 let cacheOperatorSummary: DashboardSummary | null = null;

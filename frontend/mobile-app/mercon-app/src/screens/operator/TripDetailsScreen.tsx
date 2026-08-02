@@ -1,14 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity, Modal, FlatList,
   StyleSheet, SafeAreaView, StatusBar, Linking, Alert, ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, ArrowRight, Check, Phone, Truck, MapPin } from 'lucide-react-native';
-import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, Avatar } from '../../components';
-import { useOperatorTripById, type OperatorTripDetail } from '../../lib/operator';
+import { ArrowLeft, ArrowRight, Check, Phone, Truck, MapPin, X } from 'lucide-react-native';
+import { Colors, Spacing, Radius, Typography } from '../../theme/tokens';
+import { StatusBadge, Avatar, Card, Button } from '../../components';
+import { getApiErrorMessage } from '../../lib/api';
+import {
+  operatorService, useOperatorTripById, type OperatorTripDetail, type OperatorDriver,
+} from '../../lib/operator';
 import { statusLabel, type TripStatus } from '../../lib/trips';
+
+const NEXT_STEP: Partial<Record<TripStatus, { label: string; action: (id: string) => Promise<unknown>; confirm?: string }>> = {
+  Dispatched: { label: 'Mark Arrived at Pickup', action: (id) => operatorService.pickupArrive(id) },
+  AtPickup: { label: 'Verify Pickup & Depart', action: (id) => operatorService.updateTripStatus(id, 'InTransit') },
+  InTransit: { label: 'Arrived at Delivery', action: (id) => operatorService.updateTripStatus(id, 'AtDelivery') },
+  AtDelivery: {
+    label: 'Confirm Delivery',
+    action: (id) => operatorService.updateTripStatus(id, 'Completed'),
+    confirm: 'This confirms the delivery, completes the trip, and generates the invoice. Continue?',
+  },
+};
+
+const ACTIVE_STATUSES: TripStatus[] = ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
 
 const STATUS_STEPS: { status: TripStatus; label: string }[] = [
   { status: 'Draft', label: 'Trip Created' },
@@ -63,7 +79,85 @@ const driverName = (trip: OperatorTripDetail) =>
 const TripDetailsScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trip, loading, error } = useOperatorTripById(id);
+  const { trip, loading, error, refetch } = useOperatorTripById(id);
+  const [advancing, setAdvancing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [showReplaceDriver, setShowReplaceDriver] = useState(false);
+  const [availableDrivers, setAvailableDrivers] = useState<OperatorDriver[]>([]);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
+  const [replacingId, setReplacingId] = useState<string | null>(null);
+
+  const handleAdvance = () => {
+    if (!trip || !id) return;
+    const next = NEXT_STEP[trip.status];
+    if (!next) return;
+    const run = async () => {
+      setAdvancing(true);
+      try {
+        await next.action(id);
+        await refetch();
+      } catch (e) {
+        Alert.alert('Could not update trip', getApiErrorMessage(e));
+      } finally {
+        setAdvancing(false);
+      }
+    };
+    if (next.confirm) {
+      Alert.alert('Confirm', next.confirm, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Confirm', onPress: run },
+      ]);
+    } else {
+      run();
+    }
+  };
+
+  const handleCancelTrip = () => {
+    if (!id) return;
+    Alert.alert('Cancel Trip', 'This releases the driver and vehicle and cannot be undone. Cancel this trip?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Cancel Trip',
+        style: 'destructive',
+        onPress: async () => {
+          setCancelling(true);
+          try {
+            await operatorService.updateTripStatus(id, 'Cancelled');
+            await refetch();
+          } catch (e) {
+            Alert.alert('Could not cancel trip', getApiErrorMessage(e));
+          } finally {
+            setCancelling(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const openReplaceDriver = async () => {
+    setShowReplaceDriver(true);
+    setLoadingDrivers(true);
+    try {
+      const drivers = await operatorService.availableDrivers();
+      setAvailableDrivers(drivers);
+    } catch (e) {
+      Alert.alert('Could not load drivers', getApiErrorMessage(e));
+    } finally {
+      setLoadingDrivers(false);
+    }
+  };
+
+  const handleReplaceDriver = (newDriverId: string) => {
+    if (!id) return;
+    setReplacingId(newDriverId);
+    operatorService.replaceDriver(id, newDriverId)
+      .then(async () => {
+        setShowReplaceDriver(false);
+        await refetch();
+      })
+      .catch((e) => Alert.alert('Could not replace driver', getApiErrorMessage(e)))
+      .finally(() => setReplacingId(null));
+  };
 
   if (loading && !trip) {
     return (
@@ -90,7 +184,7 @@ const TripDetailsScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A1A1A" />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.darkCard} />
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Dark Header Card */}
         <View style={styles.darkHeader}>
@@ -142,7 +236,7 @@ const TripDetailsScreen = () => {
         {/* Timeline */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Trip Timeline</Text>
-          <View style={styles.timeline}>
+          <Card style={styles.timeline}>
             {timeline.map((step, i) => (
               <View key={step.id} style={styles.timelineItem}>
                 <View style={styles.timelineLeft}>
@@ -166,13 +260,13 @@ const TripDetailsScreen = () => {
                 </View>
               </View>
             ))}
-          </View>
+          </Card>
         </View>
 
         {/* Cargo Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cargo Details</Text>
-          <View style={styles.detailCard}>
+          <Card style={styles.detailCard}>
             {[
               { label: 'Description', value: trip.cargo_type },
               { label: 'Hazmat', value: trip.hazmat_flag ? 'Yes' : 'None' },
@@ -187,13 +281,13 @@ const TripDetailsScreen = () => {
                 <Text style={styles.detailValue}>{row.value}</Text>
               </View>
             ))}
-          </View>
+          </Card>
         </View>
 
         {/* Assignment Info */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Assignment</Text>
-          <View style={styles.assignCard}>
+          <Card style={styles.assignCard}>
             <View style={styles.assignRow}>
               <Avatar
                 initials={trip.driver ? `${trip.driver.first_name[0]}${trip.driver.last_name[0]}` : '?'}
@@ -229,28 +323,87 @@ const TripDetailsScreen = () => {
                 </View>
               </>
             ) : null}
-          </View>
+          </Card>
         </View>
 
         {/* Actions */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            activeOpacity={0.8}
+        {NEXT_STEP[trip.status] && (
+          <View style={styles.actionsSection}>
+            <Button
+              variant="primary"
+              label={advancing ? 'Updating…' : NEXT_STEP[trip.status]!.label}
+              loading={advancing}
+              onPress={handleAdvance}
+            />
+          </View>
+        )}
+
+        {ACTIVE_STATUSES.includes(trip.status) && (
+          <View style={styles.actionsRow}>
+            <Button
+              variant="outline"
+              label="Replace Driver"
+              onPress={openReplaceDriver}
+              style={styles.actionBtn}
+            />
+            <Button
+              variant="danger"
+              label={cancelling ? 'Cancelling…' : 'Cancel Trip'}
+              loading={cancelling}
+              onPress={handleCancelTrip}
+              style={styles.actionBtn}
+            />
+          </View>
+        )}
+
+        <View style={styles.actionsSection}>
+          <Button
+            variant="outline"
+            label="Track Live"
+            iconLeft={<MapPin size={16} color={Colors.primary} strokeWidth={2.2} />}
             onPress={() => Alert.alert('Coming Soon', 'Live tracking will be available in a future update.')}
-          >
-            <MapPin size={16} color={Colors.primary} strokeWidth={2.2} />
-            <Text style={styles.secondaryBtnText}>Track Live</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            activeOpacity={0.8}
-            onPress={() => Alert.alert('Coming Soon', 'Trip editing will be available in a future update.')}
-          >
-            <Text style={styles.primaryBtnText}>Edit Trip</Text>
-          </TouchableOpacity>
+          />
         </View>
       </ScrollView>
+
+      <Modal visible={showReplaceDriver} animationType="slide" transparent onRequestClose={() => setShowReplaceDriver(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Replace Driver</Text>
+              <TouchableOpacity onPress={() => setShowReplaceDriver(false)} style={styles.modalClose}>
+                <X size={20} color={Colors.gray900} strokeWidth={2.2} />
+              </TouchableOpacity>
+            </View>
+            {loadingDrivers ? (
+              <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.xl }} />
+            ) : availableDrivers.length === 0 ? (
+              <Text style={styles.emptyText}>No available drivers right now.</Text>
+            ) : (
+              <FlatList
+                data={availableDrivers}
+                keyExtractor={(d) => d.id}
+                style={{ maxHeight: 360 }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.driverRow}
+                    activeOpacity={0.8}
+                    disabled={replacingId !== null}
+                    onPress={() => handleReplaceDriver(item.id)}
+                  >
+                    <Avatar initials={`${item.first_name[0] ?? ''}${item.last_name[0] ?? ''}`.toUpperCase()} size="md" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.driverRowName}>{item.first_name} {item.last_name}</Text>
+                      <Text style={styles.driverRowId}>{item.ref_id ?? item.license_number}</Text>
+                    </View>
+                    {replacingId === item.id && <ActivityIndicator color={Colors.primary} />}
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -260,7 +413,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['3xl'],
   },
   darkHeader: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: Colors.darkCard,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing['2xl'],
@@ -356,10 +509,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   timeline: {
-    backgroundColor: Colors.white,
     borderRadius: Radius.xl,
     padding: Spacing.lg,
-    ...Shadows.sm,
   },
   timelineItem: {
     flexDirection: 'row',
@@ -422,10 +573,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   detailCard: {
-    backgroundColor: Colors.white,
     borderRadius: Radius.xl,
-    overflow: 'hidden',
-    ...Shadows.sm,
   },
   detailRow: {
     flexDirection: 'row',
@@ -447,10 +595,8 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
   },
   assignCard: {
-    backgroundColor: Colors.white,
     borderRadius: Radius.xl,
     padding: Spacing.lg,
-    ...Shadows.sm,
   },
   assignRow: {
     flexDirection: 'row',
@@ -501,40 +647,67 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
-    padding: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     gap: Spacing.md,
   },
-  secondaryBtn: {
+  actionsSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  actionBtn: {
     flex: 1,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    borderRadius: Radius.xl,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-  },
-  secondaryBtnText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  primaryBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.xl,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    fontSize: Typography.sm,
-    color: Colors.white,
-    fontWeight: '700',
   },
   emptyText: {
     fontSize: Typography.base,
+    color: Colors.gray500,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: Radius['2xl'],
+    borderTopRightRadius: Radius['2xl'],
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: Typography.lg,
+    fontWeight: '700',
+    color: Colors.gray900,
+  },
+  modalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  driverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  driverRowName: {
+    fontSize: Typography.sm,
+    fontWeight: '700',
+    color: Colors.gray900,
+  },
+  driverRowId: {
+    fontSize: Typography.xs,
     color: Colors.gray500,
   },
 });

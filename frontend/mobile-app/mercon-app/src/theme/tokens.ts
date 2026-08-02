@@ -191,6 +191,9 @@ export function getStatusColors(status: string) {
     'Active':        { color: Colors.statusCompleted,  bg: Colors.statusCompletedBg  },
     'Expiring':      { color: Colors.statusDelayed,    bg: Colors.statusDelayedBg    },
     'Expired':       { color: Colors.statusCancelled,  bg: Colors.statusCancelledBg  },
+    'Paid':          { color: Colors.statusCompleted,  bg: Colors.statusCompletedBg  },
+    'Draft':         { color: Colors.statusPending,    bg: Colors.statusPendingBg    },
+    'Overdue':       { color: Colors.statusCancelled,  bg: Colors.statusCancelledBg  },
   };
   return map[status] ?? { color: Colors.statusPending, bg: Colors.statusPendingBg };
 }

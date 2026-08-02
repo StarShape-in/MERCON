@@ -1,15 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
-  StatusBar, FlatList, ActivityIndicator, RefreshControl,
+  View, Text, ScrollView, StyleSheet, SafeAreaView,
+  StatusBar, FlatList, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import {
   FileText, Hourglass, Siren, Wallet, Truck, Calendar, Clock, type LucideIcon,
 } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
-import { StatusBadge, SearchInput } from '../../components';
-import { OperatorBottomNav } from '../../navigation/OperatorBottomNav';
-import { useOperatorInvoices, type OperatorInvoice } from '../../lib/operator';
+import { StatusBadge, SearchInput, FilterChip, Button } from '../../components';
+import { getApiErrorMessage } from '../../lib/api';
+import { operatorService, useOperatorInvoices, type OperatorInvoice } from '../../lib/operator';
 
 const FILTERS = ['All', 'Pending', 'Paid', 'Overdue', 'Draft', 'Cancelled'];
 
@@ -24,41 +24,74 @@ function formatDate(iso?: string | null): string {
   return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const InvoiceCard = ({ item }: { item: OperatorInvoice }) => (
-  <View style={styles.card}>
-    <View style={styles.cardTop}>
-      <View>
-        <Text style={styles.invoiceId}>{item.ref_id ?? item.id.slice(0, 8)}</Text>
-        <Text style={styles.customer}>{item.customer?.name ?? 'Customer'}</Text>
-      </View>
-      <View style={styles.amountCol}>
-        <Text style={styles.amount}>{money(item.currency, item.total_amount)}</Text>
-        <StatusBadge status={item.status} />
-      </View>
-    </View>
-    <View style={styles.cardMeta}>
-      {item.trip?.ref_id ? (
-        <View style={styles.metaItem}>
-          <Truck size={13} color={Colors.gray500} strokeWidth={2} />
-          <Text style={styles.metaText}>{item.trip.ref_id}</Text>
+const InvoiceCard = ({ item, onMarkPaid }: { item: OperatorInvoice; onMarkPaid: (id: string) => void }) => {
+  const [marking, setMarking] = useState(false);
+  const canMarkPaid = item.status === 'Pending' || item.status === 'Overdue';
+
+  const handleMarkPaid = () => {
+    Alert.alert('Mark as Paid', `Mark invoice ${item.ref_id ?? item.id.slice(0, 8)} as paid?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark Paid',
+        onPress: async () => {
+          setMarking(true);
+          try {
+            await operatorService.updateInvoiceStatus(item.id, 'Paid');
+            onMarkPaid(item.id);
+          } catch (e) {
+            Alert.alert('Could not update invoice', getApiErrorMessage(e));
+          } finally {
+            setMarking(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTop}>
+        <View>
+          <Text style={styles.invoiceId}>{item.ref_id ?? item.id.slice(0, 8)}</Text>
+          <Text style={styles.customer}>{item.customer?.name ?? 'Customer'}</Text>
         </View>
-      ) : null}
-      <View style={styles.metaItem}>
-        <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
-        <Text style={styles.metaText}>Issued: {formatDate(item.createdAt)}</Text>
+        <View style={styles.amountCol}>
+          <Text style={styles.amount}>{money(item.currency, item.total_amount)}</Text>
+          <StatusBadge status={item.status} />
+        </View>
       </View>
-      <View style={styles.metaItem}>
-        <Clock size={13} color={item.status === 'Overdue' ? Colors.error : Colors.gray500} strokeWidth={2} />
-        <Text style={[styles.metaText, item.status === 'Overdue' ? styles.overdueText : null]}>
-          Due: {formatDate(item.due_date)}
-        </Text>
+      <View style={styles.cardMeta}>
+        {item.trip?.ref_id ? (
+          <View style={styles.metaItem}>
+            <Truck size={13} color={Colors.gray500} strokeWidth={2} />
+            <Text style={styles.metaText}>{item.trip.ref_id}</Text>
+          </View>
+        ) : null}
+        <View style={styles.metaItem}>
+          <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
+          <Text style={styles.metaText}>Issued: {formatDate(item.createdAt)}</Text>
+        </View>
+        <View style={styles.metaItem}>
+          <Clock size={13} color={item.status === 'Overdue' ? Colors.error : Colors.gray500} strokeWidth={2} />
+          <Text style={[styles.metaText, item.status === 'Overdue' ? styles.overdueText : null]}>
+            Due: {formatDate(item.due_date)}
+          </Text>
+        </View>
       </View>
+      {canMarkPaid && (
+        <Button
+          variant="success"
+          size="sm"
+          label={marking ? 'Marking…' : 'Mark as Paid'}
+          loading={marking}
+          onPress={handleMarkPaid}
+        />
+      )}
     </View>
-  </View>
-);
+  );
+};
 
 const InvoiceListScreen = () => {
-  const [activeTab, setActiveTab] = useState('More');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const { invoices, loading, error, refetch } = useOperatorInvoices();
@@ -68,7 +101,7 @@ const InvoiceListScreen = () => {
 
   const STAT_CARDS: { label: string; value: string; Icon: LucideIcon; color: string }[] = [
     { label: 'Total Invoices', value: String(invoices.length), Icon: FileText, color: Colors.gray900 },
-    { label: 'Pending', value: String(count('Pending')), Icon: Hourglass, color: '#D97706' },
+    { label: 'Pending', value: String(count('Pending')), Icon: Hourglass, color: Colors.warning },
     { label: 'Overdue', value: String(count('Overdue')), Icon: Siren, color: Colors.error },
     { label: 'Total Value', value: `SAR ${(totalValue / 1000).toFixed(0)}K`, Icon: Wallet, color: Colors.success },
   ];
@@ -113,14 +146,12 @@ const InvoiceListScreen = () => {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
         {FILTERS.map((f) => (
-          <TouchableOpacity
+          <FilterChip
             key={f}
-            style={[styles.filterPill, statusFilter === f ? styles.filterPillActive : null]}
-            activeOpacity={0.8}
+            label={f}
+            active={statusFilter === f}
             onPress={() => setStatusFilter(f)}
-          >
-            <Text style={[styles.filterText, statusFilter === f ? styles.filterTextActive : null]}>{f}</Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
@@ -129,7 +160,7 @@ const InvoiceListScreen = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading && invoices.length > 0} onRefresh={refetch} />}
-        renderItem={({ item }) => <InvoiceCard item={item} />}
+        renderItem={({ item }) => <InvoiceCard item={item} onMarkPaid={() => refetch()} />}
         ListEmptyComponent={
           loading ? (
             <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing['3xl'] }} />
@@ -195,26 +226,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     gap: Spacing.xs,
-  },
-  filterPill: {
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  filterPillActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterText: {
-    fontSize: Typography.sm,
-    color: Colors.gray600,
-    fontWeight: '600',
-  },
-  filterTextActive: {
-    color: Colors.white,
   },
   list: {
     padding: Spacing.lg,
