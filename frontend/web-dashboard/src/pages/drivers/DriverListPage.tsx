@@ -32,7 +32,7 @@ import { DriverBadge, CheckBadge, RouteLine, TruckMotion, RiskAlert } from '@/co
 import KpiCard from '@/components/ui/KpiCard';
 import { DriverRosterKpi } from '@/components/ui/CustomKpiWidgets';
 
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, downloadExcel } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -142,6 +142,35 @@ export default function DriverListPage() {
     } finally {
       setIsUpdatingStatus(false);
     }
+  const handleExportExcel = (rowsToExport: Driver[]) => {
+    const headers = [
+      'Driver ID',
+      'Driver Name',
+      'Primary Phone',
+      'Duty Status',
+      'License Number',
+      'License Expiry',
+      'AI Safety Risk Score',
+      'Assigned Vehicle'
+    ];
+
+    const dataRows = rowsToExport.map(row => {
+      const activeTrip = row.trips?.[0];
+      const assignedVehicle = activeTrip?.vehicle?.plate_number || 'None';
+      
+      return [
+        row.ref_id || `DRV-${row.id.slice(0, 5).toUpperCase()}`,
+        `${row.first_name} ${row.last_name}`,
+        row.phone_primary || 'N/A',
+        row.status,
+        row.license_number,
+        new Date(row.license_expiry).toLocaleDateString('en-GB'),
+        row.ai_risk_score,
+        assignedVehicle
+      ];
+    });
+
+    downloadExcel('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.xls`);
   };
 
   const columns = [
@@ -317,11 +346,11 @@ export default function DriverListPage() {
       }
     },
     {
-      label: 'Export CSV',
+      label: 'Export Excel',
       icon: <Download size={13} />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Driver[]) => {
-        downloadCSV(selectedRows, 'drivers_export.csv');
+        handleExportExcel(selectedRows);
       }
     },
     {
@@ -372,10 +401,10 @@ export default function DriverListPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => downloadCSV(filteredDrivers, 'drivers_export.csv')}
+              onClick={() => handleExportExcel(filteredDrivers)}
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export CSV
+              Export Excel
             </Button>
 
             <Button

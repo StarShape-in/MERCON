@@ -25,6 +25,20 @@ export const getVehicles = async (req: Request, res: Response) => {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          trips: {
+            where: {
+              deletedAt: null,
+              status: {
+                in: ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
+              }
+            },
+            include: {
+              driver: true
+            },
+            take: 1
+          }
+        }
       }),
       prisma.vehicle.count({ where: whereClause })
     ]);

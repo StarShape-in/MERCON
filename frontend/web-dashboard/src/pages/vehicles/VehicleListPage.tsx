@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, downloadExcel } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
@@ -82,6 +82,41 @@ export default function VehicleListPage() {
     if (t.includes('flatbed')) return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
     if (t.includes('tanker')) return 'bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800';
     return 'bg-slate-50 text-slate-600 border-slate-200';
+  };
+
+  const handleExportExcel = (rowsToExport: Vehicle[]) => {
+    const headers = [
+      'Vehicle ID',
+      'Plate Number',
+      'Vehicle Type',
+      'Status',
+      'Capacity (KG)',
+      'Current Odometer (KM)',
+      'GPS Device ID',
+      'Trailer Number',
+      'Assigned Driver'
+    ];
+
+    const dataRows = rowsToExport.map(row => {
+      const activeTrip = row.trips?.[0];
+      const assignedDriver = activeTrip?.driver 
+        ? `${activeTrip.driver.first_name} ${activeTrip.driver.last_name}`
+        : 'None';
+      
+      return [
+        row.ref_id || `VEH-${row.id.slice(0, 5).toUpperCase()}`,
+        row.plate_number,
+        row.asset_type,
+        row.status,
+        row.capacity_kg,
+        row.current_odometer,
+        row.gps_device_id || 'N/A',
+        row.trailer_number || 'N/A',
+        assignedDriver
+      ];
+    });
+
+    downloadExcel('MERCON Fleet Inventory', headers, dataRows, `fleet_inventory_${new Date().toISOString().slice(0, 10)}.xls`);
   };
 
   // Table columns
@@ -275,11 +310,11 @@ export default function VehicleListPage() {
       }
     },
     {
-      label: 'Export CSV',
+      label: 'Export Excel',
       icon: <Download size={13} />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Vehicle[]) => {
-        downloadCSV(selectedRows, 'vehicles_export.csv');
+        handleExportExcel(selectedRows);
       }
     },
     {
@@ -355,10 +390,10 @@ export default function VehicleListPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
-              onClick={() => downloadCSV(vehicles, 'vehicles_export.csv')}
+              onClick={() => handleExportExcel(vehicles)}
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export CSV
+              Export Excel
             </Button>
 
             <Button

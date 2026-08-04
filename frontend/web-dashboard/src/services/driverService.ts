@@ -14,7 +14,7 @@ export interface Driver {
   ai_risk_score: number;
   isActive: boolean;
   createdAt: string;
-  trips?: { id: string; ref_id: string; status: string; createdAt: string }[];
+  trips?: any[];
   documents?: Document[];
 }
 

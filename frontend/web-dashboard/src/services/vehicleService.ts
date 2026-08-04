@@ -19,6 +19,7 @@ export interface Vehicle {
   isActive: boolean;
   createdAt: string;
   documents?: import('./documentService').MerconDocument[];
+  trips?: any[];
 }
 
 export interface CreateVehiclePayload {
