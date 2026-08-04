@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-08-02** (mobile operator: UI-kit consistency pass across all 8 operator screens + fixed a duplicate-bottom-nav bug; added real trip lifecycle actions (pickup arrive/verify, delivery verify, replace driver, cancel) to `TripDetailsScreen`; added Driver/Vehicle edit screens; added invoice "Mark as Paid"; added full Customers screen (list/search/create/edit); added an `Operator` "More" hub screen — fixed a real navigation gap where Vehicles/Invoices/VehicleRenewals were only reachable via deep link, not from the UI) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-08-04** (fleet data onboarding: Excel export on the Drivers/Vehicles list pages now includes the driver's assigned vehicle plate and the vehicle's assigned driver — backend `getDrivers`/`getVehicles` now `include` the active trip + its vehicle/driver; styled `.xlsx` bulk-entry templates + `docs/MERCON_Fleet_Import_Guide.md` reworked to match those columns. Note: the templates are for **manual collection today — there is no backend import endpoint yet**. Previous session, 2026-08-02: mobile operator UI-kit consistency pass across all 8 operator screens + fixed a duplicate-bottom-nav bug; added real trip lifecycle actions (pickup arrive/verify, delivery verify, replace driver, cancel) to `TripDetailsScreen`; added Driver/Vehicle edit screens; added invoice "Mark as Paid"; added full Customers screen (list/search/create/edit); added an `Operator` "More" hub screen — fixed a real navigation gap where Vehicles/Invoices/VehicleRenewals were only reachable via deep link, not from the UI) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).
@@ -30,8 +30,11 @@ routes exist, the bottom nav + FAB actually go somewhere, trip cards tap through
 trip-details screen (real timeline/cargo/driver/vehicle, call-driver, "coming soon" for live
 tracking/edit), Create Trip posts to `POST /trips` against real customers/available drivers/vehicles,
 and Vehicle Renewals (reachable from the Home "docs expiring" alert) shows real expiring vehicle
-documents. Remaining: GPS background hardening + device verification, then real-phone testing +
-release builds.
+documents. For **owner onboarding**, styled drivers/vehicles Excel templates + a field-mapping guide
+exist and the web list pages now export the same columns (incl. assigned vehicle/driver) — but
+**there is no import endpoint yet**, so a filled workbook still has to be entered by hand.
+Remaining: bulk-import endpoint + UI, GPS background hardening + device verification, then
+real-phone testing + release builds.
 
 ---
 
@@ -66,6 +69,7 @@ release builds.
 | Site-wide semi-curved corners (replaced 224 `rounded-none` overrides → `rounded-lg`; shadcn primitives use idiomatic radii) | ✅ |
 | Create Trip: driver + vehicle now required (no "leave unassigned"); pickup/dropoff lat/lng number inputs replaced with `LocationPickerMap` (address search via OpenStreetMap Nominatim + click/drag pin on a Leaflet map, no API key) | ✅ (2026-07-28) |
 | Login page redesign: full-bleed logistics background image (`login-bg.png`), no center divider, logo pinned top-right, centered "Welcome back" heading + boxed sign-in card | ✅ (PR #2 → `a09fa8d`) |
+| Fleet Excel **export**: Drivers/Vehicles list pages export `.xls` (styled sheet, replaces the old CSV export) including the driver's **assigned vehicle plate** and the vehicle's **assigned driver**, resolved from the active trip (`Dispatched`/`AtPickup`/`InTransit`/`AtDelivery`) that `getDrivers`/`getVehicles` now `include` | ✅ (2026-08-04, `234d191`) |
 
 ### Mobile app (`frontend/mobile-app/mercon-app`) — Expo, Driver + Operator
 | Piece | State |
@@ -82,6 +86,21 @@ release builds.
 | Home screen: trip section (empty banner or active-trip card) now centers vertically in the remaining page space; full-screen faded truck/route background image (`home-bg.png`) behind header + content | ✅ |
 | Photo upload: camera **or** gallery (`choosePhoto` chooser) on pickup/delivery/home; pickup checklist removed, larger confirm button | ✅ |
 | Driver trip flow now goes straight through, no detour back to Home: pickup cargo photo → real live map (`react-native-maps` + OSM tiles, no API key) with the dropoff pin → GPS geofence auto-detects arrival (200m) and jumps straight to POD → complete. `DestinationReachedScreen` (manual "confirm arrival" screen) removed; `LiveNavigationScreen` replaced (was a fake placeholder) and wired at `/trip/navigate` | ✅ (2026-07-28) |
+
+### Fleet data onboarding (Excel templates + guide)
+| Piece | State |
+|---|---|
+| `scripts/generate_excel_templates.py` — generates styled bulk-entry workbooks (banner, info cards, dropdown validation, sample rows) | ✅ |
+| `MERCON_Drivers_Import_Template.xlsx` / `MERCON_Vehicles_Import_Template.xlsx` in `docs/templates/` + `frontend/public/templates/` (downloadable) | ✅ |
+| Drivers sheet columns aligned to the real Prisma model + an `Assigned Vehicle Plate` column (dropped the speculative Email / Emergency-Contact columns — no schema fields for them) | ✅ (2026-08-04) |
+| Vehicles sheet: ICCES device ID + `Assigned Driver Phone / Name` column | ✅ (2026-08-04) |
+| `docs/MERCON_Fleet_Import_Guide.md` — column specs, validation rules, Prisma field mapping, owner instructions | ✅ |
+| **Backend import endpoint (parse an uploaded workbook → create drivers/vehicles)** | ❌ **does not exist** — see §3 |
+
+> ⚠️ Honest scope: these templates are a **manual data-collection format** the owner sends to the
+> client. Nothing in the app ingests them yet — the filled workbook has to be entered by hand or
+> imported by a future endpoint. The guide's "API Import Schema Mapping" section is a *spec for
+> that future endpoint*, not a description of shipped code.
 
 ### Mobile backend endpoints (`/api/mobile/*`)
 | Endpoint | State |
@@ -152,9 +171,17 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
 - ✅ Fixed a duplicate-bottom-nav bug: `OperatorBottomNav` is already rendered globally as a floating overlay in `_layout.tsx`; an earlier pass had also rendered it inside 5 individual screens, showing two nav bars stacked.
 - ✅ UI-kit consistency pass across all 8 operator screens: swapped hand-rolled filter pills/cards/buttons for the shared `FilterChip`/`Card`/`Button`/`StatusBadge` components, replaced hardcoded hex colors with `theme/tokens.ts` values (several were off-palette drift, e.g. `#D97706`, `#FFF7ED`, `#1A1A1A` for the dark header).
 
+### Milestone 3.5 — Fleet bulk import (owner onboarding)
+- ✅ Styled Excel templates + import guide (drivers & vehicles, incl. assignment columns)
+- ✅ Excel export from the web Drivers/Vehicles list pages (round-trips the same columns)
+- ⬜ `POST /drivers/import` / `POST /vehicles/import` — parse the uploaded workbook (`xlsx`/`exceljs`),
+  validate with Zod, upsert on the unique keys (driver phone/license, vehicle plate), resolve the
+  assignment columns, and report per-row errors. Field mapping already specced in the guide.
+- ⬜ Web UI: "Import from Excel" on the Drivers/Vehicles list pages (upload → preview → confirm)
+
 ### Milestone 4 — Testing, builds, handover
 - ⬜ Real-phone test, both roles (Android + iPhone)
-- ⬜ EAS builds — APK (Android) + TestFlight (iOS)
+- 🔄 EAS builds — APK (Android) + TestFlight (iOS); app linked to an EAS project (`c99aab6`), no build run yet
 - ⬜ Database backup set up + tested once
 - ⬜ Short user guide (operator + driver, with screenshots)
 - ⬜ Full end-to-end acceptance: create trip → driver runs it → invoice appears

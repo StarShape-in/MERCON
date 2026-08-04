@@ -148,7 +148,7 @@ def apply_drivers_sheet(ws):
     ws.views.sheetView[0].showGridLines = True
 
     # 1. Header Banner
-    ws.merge_cells("A1:H2")
+    ws.merge_cells("A1:G2")
     banner = ws["A1"]
     banner.value = "👨‍✈️ DRIVER PERSONNEL DIRECTORY  —  BULK DATA ENTRY"
     banner.font = font_brand
@@ -169,13 +169,13 @@ def apply_drivers_sheet(ws):
 
     ws.merge_cells("C4:E5")
     c2 = ws["C4"]
-    c2.value = "PRIMARY KEY\nUnique Phone & License Number"
+    c2.value = "PRIMARY KEY & VEHICLE ASSIGNMENT\nPhone Number, License & Assigned Vehicle Plate"
     c2.font = font_card_title
     c2.fill = fill_card
     c2.alignment = align_center
     c2.border = border_card
 
-    ws.merge_cells("F4:H5")
+    ws.merge_cells("F4:G5")
     c3 = ws["F4"]
     c3.value = "INITIAL STATUS\nAuto-Defaulted to 'Available'"
     c3.font = font_card_title
@@ -194,8 +194,7 @@ def apply_drivers_sheet(ws):
         ("Primary Phone *", "Unique Mobile Number", True, 26),
         ("License Number *", "Official Driving License", True, 24),
         ("License Expiry *", "YYYY-MM-DD", True, 20),
-        ("Email Address", "Driver Email for Mobile App", False, 28),
-        ("Emergency Contact / Notes", "Secondary Phone or Remarks", False, 32)
+        ("Assigned Vehicle Plate", "License Plate of assigned truck (e.g. 8492-RKA)", False, 28)
     ]
 
     ws.row_dimensions[7].height = 30
@@ -212,9 +211,9 @@ def apply_drivers_sheet(ws):
 
     # 4. Sample Pre-filled Rows (Rows 8 to 10)
     samples = [
-        ["DRV-101", "Ahmed", "Al-Mansoor", "+966 50 123 4567", "DL-98765432", "2028-12-31", "ahmed.mansoor@mercon.com", "Emergency: +966 55 111 2233"],
-        ["DRV-102", "Tariq", "Hassan", "+966 50 987 6543", "DL-12345678", "2027-06-15", "tariq.hassan@mercon.com", "Heavy Truck Certified"],
-        ["DRV-103", "John", "Doe", "+1 555 019 2834", "DL-55443322", "2029-09-20", "john.doe@mercon.com", "Hazmat Endorsement"]
+        ["DRV-101", "Ahmed", "Al-Mansoor", "+966 50 123 4567", "DL-98765432", "2028-12-31", "8492-RKA"],
+        ["DRV-102", "Tariq", "Hassan", "+966 50 987 6543", "DL-12345678", "2027-06-15", "3104-LMN"],
+        ["DRV-103", "John", "Doe", "+1 555 019 2834", "DL-55443322", "2029-09-20", "9912-XYZ"]
     ]
 
     for row_idx, sample_data in enumerate(samples, start=8):
@@ -222,7 +221,7 @@ def apply_drivers_sheet(ws):
         for col_idx, val in enumerate(sample_data, start=1):
             cell = ws.cell(row=row_idx, column=col_idx, value=val)
             cell.font = font_sample
-            cell.alignment = align_center if col_idx in [1, 6] else align_left
+            cell.alignment = align_center if col_idx in [1, 6, 7] else align_left
             cell.border = border_cell
             cell.fill = fill_odd if row_idx % 2 == 1 else fill_even
 
@@ -234,7 +233,7 @@ def apply_drivers_sheet(ws):
             cell.font = font_data
             cell.border = border_cell
             cell.fill = fill_odd if row_idx % 2 == 1 else fill_even
-            if col_idx in [1, 6]:
+            if col_idx in [1, 6, 7]:
                 cell.alignment = align_center
                 if col_idx == 6:
                     cell.number_format = 'YYYY-MM-DD'
@@ -271,7 +270,7 @@ def apply_vehicles_sheet(ws):
 
     ws.merge_cells("C4:F5")
     c2 = ws["C4"]
-    c2.value = "TELEMATICS INTEGRATION\nEnter ICCES Device ID for Auto GPS Live Tracking"
+    c2.value = "TELEMATICS & DRIVER ASSIGNMENT\nEnter ICCES Device ID & Assigned Driver Phone / Name"
     c2.font = font_card_title
     c2.fill = fill_card
     c2.alignment = align_center
@@ -296,8 +295,8 @@ def apply_vehicles_sheet(ws):
         ("Capacity (KG) *", "Payload Capacity in KG", True, 20),
         ("Current Odometer (KM)", "Current Odometer", False, 22),
         ("ICCES Device ID", "ICCES GPS Device Serial ID", False, 25),
+        ("Assigned Driver Phone / Name", "Phone or Name of assigned driver", False, 28),
         ("Trailer Number", "Linked Trailer Number", False, 20),
-        ("Trailer Type", "Flatbed / Reefer / Box / Tanker", False, 22),
         ("Trailer Capacity (KG)", "Trailer Payload Capacity in KG", False, 24)
     ]
 
@@ -315,9 +314,9 @@ def apply_vehicles_sheet(ws):
 
     # 4. Sample Pre-filled Rows (Rows 8 to 10)
     samples = [
-        ["TRK-101", "8492-RKA", "Flatbed", 25000, 45000, "06670881", "TRL-402", "Flatbed", 30000],
-        ["TRK-102", "3104-LMN", "Reefer", 20000, 32000, "351777090213198", "TRL-405", "Reefer", 22000],
-        ["TRK-103", "9912-XYZ", "Tanker", 35000, 88000, "08085338", "TRL-409", "Tanker", 35000]
+        ["TRK-101", "8492-RKA", "Flatbed", 25000, 45000, "06670881", "+966 50 123 4567 (Ahmed)", "TRL-402", 30000],
+        ["TRK-102", "3104-LMN", "Reefer", 20000, 32000, "351777090213198", "+966 50 987 6543 (Tariq)", "TRL-405", 22000],
+        ["TRK-103", "9912-XYZ", "Tanker", 35000, 88000, "08085338", "+1 555 019 2834 (John)", "TRL-409", 35000]
     ]
 
     for row_idx, sample_data in enumerate(samples, start=8):
@@ -353,13 +352,12 @@ def apply_vehicles_sheet(ws):
             else:
                 cell.alignment = align_left
 
-    # Data Validation for Asset Type & Trailer Type
+    # Data Validation for Asset Type
     dv_asset = DataValidation(type="list", formula1='"Flatbed,Reefer,Box,Tanker"', allow_blank=True)
     dv_asset.error = 'Please pick a valid Asset Type from the list'
     dv_asset.errorTitle = 'Invalid Asset Type'
     ws.add_data_validation(dv_asset)
     dv_asset.add("C8:C60")
-    dv_asset.add("H8:H60")
 
 
 def generate_all_professional_templates():
