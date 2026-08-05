@@ -24,13 +24,14 @@ interface InputProps {
   autoCorrect?: boolean;
   multiline?: boolean;
   numberOfLines?: number;
+  maxLength?: number;
   style?: ViewStyle;
 }
 
 export function Input({
   label, value, onChangeText, placeholder, state = 'default',
   errorText, successText, iconLeft, iconRight, secureTextEntry,
-  keyboardType, autoCapitalize, autoCorrect, multiline, numberOfLines, style,
+  keyboardType, autoCapitalize, autoCorrect, multiline, numberOfLines, maxLength, style,
 }: InputProps) {
   const [focused, setFocused] = useState(false);
   const effectiveState = state === 'default' && focused ? 'focused' : state;
@@ -60,6 +61,7 @@ export function Input({
           autoCorrect={autoCorrect}
           multiline={multiline}
           numberOfLines={numberOfLines}
+          maxLength={maxLength}
         />
         {iconRight && <View style={styles.iconRight}>{iconRight}</View>}
       </View>

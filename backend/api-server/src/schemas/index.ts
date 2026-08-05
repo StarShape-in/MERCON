@@ -39,8 +39,21 @@ export const createTripBody = z.object({
     lat: z.coerce.number(),
     lng: z.coerce.number(),
     planned_arrival: z.string().optional(),
+    // Human-readable name for this place — the route label in delay reports.
+    location_name: z.string().trim().max(120).optional(),
     stop_sequence: z.number().int().optional(),
   })).min(2, 'At least a pickup and a dropoff are required'),
+});
+
+/** Operator logging why a stop was reached late. Reason is required — the
+ *  whole point is replacing "no explanation" with one, and `Other` plus a note
+ *  already covers anything the list misses. */
+export const logStopDelayBody = z.object({
+  delay_reason: z.enum([
+    'Traffic', 'VehicleBreakdown', 'CustomerNotReady', 'SlowLoadingUnloading',
+    'Weather', 'Documentation', 'RouteBlocked', 'Other',
+  ]),
+  delay_note: z.string().trim().max(500).optional(),
 });
 
 /* ─── Drivers ────────────────────────────────────────────────────────────── */

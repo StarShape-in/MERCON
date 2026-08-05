@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { TripStatus, DocType } from '@prisma/client';
-import { isValidTransition, completeTripAndInvoice } from '../services/tripLifecycle';
+import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
+import { notifyOperatorsOfDelay } from './notificationController';
 
 export const getCurrentTrip = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
@@ -115,14 +116,31 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       return res.json({ success: true, data: full });
     }
 
-    const updatedTrip = await prisma.trip.update({
-      where: { id },
-      data: {
-        status,
-        actual_start: status === TripStatus.InTransit && !trip.actual_start ? new Date() : undefined,
-      },
-      include: { customer: true, vehicle: true, stops: true }
+    // This is the path the driver's app actually takes — including the GPS
+    // geofence auto-arrival. It previously moved the trip's status without
+    // recording anything on the stop, so a driver arriving through the app
+    // left no arrival time at all and the trip was invisible to the delay
+    // report. Wrapped in a transaction so status and clock cannot diverge.
+    let delay: DelayDetection | null = null;
+    const updatedTrip = await prisma.$transaction(async (tx) => {
+      // Stamped before the trip is re-read, so the stops in the response
+      // already carry the new timestamp — the app renders its timeline
+      // straight off this payload.
+      delay = await stampStopTransition(tx, id, status as TripStatus);
+      return tx.trip.update({
+        where: { id },
+        data: {
+          status,
+          actual_start: status === TripStatus.InTransit && !trip.actual_start ? new Date() : undefined,
+        },
+        include: { customer: true, vehicle: true, stops: true }
+      });
     });
+
+    // This is the path the GPS geofence takes, so it is where most real
+    // delays surface. Fired post-commit, and never allowed to fail the
+    // driver's status update.
+    if (delay) await notifyOperatorsOfDelay(delay);
 
     res.json({ success: true, data: updatedTrip });
   } catch (error) {

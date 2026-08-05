@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import { 
+import {
   getTrips, getTripById, createTrip, updateTripStatus, approveDriverPayment,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify,
-  bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials
+  bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials,
+  logStopDelay
 } from '../controllers/tripController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
-import { createTripBody, listQuery } from '../schemas';
+import { createTripBody, listQuery, logStopDelayBody } from '../schemas';
 
 const router = Router();
 
@@ -28,6 +29,9 @@ router.post('/:id/payment/approve', approveDriverPayment);
 // Phase 1: Dispatch & Assignment
 router.post('/:id/dispatch', dispatchTrip);
 router.post('/:id/replace-driver', replaceDriver);
+
+// Why a stop ran late — operator-filled, drivers never see this.
+router.patch('/:id/stops/:stopId/delay', validate({ body: logStopDelayBody }), logStopDelay);
 
 // Phase 2: Driver Workflow
 router.post('/:id/pickup/arrive', pickupArrive);

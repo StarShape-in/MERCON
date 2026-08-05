@@ -41,8 +41,10 @@ export interface OperatorTripStop {
   stop_type: string;
   location_lat: number;
   location_lng: number;
+  location_name: string | null;
   planned_arrival: string | null;
   actual_arrival: string | null;
+  actual_departure: string | null;
 }
 
 export interface OperatorTripDetail {
@@ -68,6 +70,7 @@ export interface CreateTripStopInput {
   lat: number;
   lng: number;
   planned_arrival?: string;
+  location_name?: string;
 }
 
 export interface CreateTripInput {

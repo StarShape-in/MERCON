@@ -24,6 +24,22 @@ interface LocationPickerMapProps {
   onChange: (lat: number, lng: number) => void;
   /** Center the map here until a pin is placed. */
   defaultCenter?: [number, number];
+  /** What this place is called, shown as the route label in delay reports. */
+  name: string;
+  onNameChange: (name: string) => void;
+}
+
+/**
+ * Nominatim returns a full postal chain ("Khamis Mushait, Aseer Province,
+ * 62454, Saudi Arabia"). A route label wants the place, not the address, so
+ * take the leading segment — and the second as well when the first is just a
+ * building or house number, which alone names nothing.
+ */
+function placeNameFrom(displayName: string): string {
+  const parts = displayName.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length > 1 && /^\d+[A-Za-z]?$/.test(parts[0])) return `${parts[0]} ${parts[1]}`;
+  return parts[0];
 }
 
 function ClickToPlacePin({ onPick }: { onPick: (lat: number, lng: number) => void }) {
@@ -45,7 +61,7 @@ function FlyToPin({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
-export default function LocationPickerMap({ label, lat, lng, onChange, defaultCenter = [24.7136, 46.6753] }: LocationPickerMapProps) {
+export default function LocationPickerMap({ label, lat, lng, onChange, name, onNameChange, defaultCenter = [24.7136, 46.6753] }: LocationPickerMapProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -85,6 +101,10 @@ export default function LocationPickerMap({ label, lat, lng, onChange, defaultCe
 
   const pickResult = (r: NominatimResult) => {
     onChange(parseFloat(r.lat), parseFloat(r.lon));
+    // Fill the name from the address that was just searched, so the common
+    // path costs no extra typing. Overwrites deliberately: a new pin is a new
+    // place, and carrying the old label over would silently mislabel it.
+    onNameChange(placeNameFrom(r.display_name));
     skipNextSearch.current = true;
     setQuery(r.display_name);
     setShowResults(false);
@@ -123,6 +143,15 @@ export default function LocationPickerMap({ label, lat, lng, onChange, defaultCe
           </div>
         )}
       </div>
+
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => onNameChange(e.target.value)}
+        placeholder="Location name — e.g. Khamis Sorting Center"
+        maxLength={120}
+        className="w-full h-9 rounded-md bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white px-3 text-sm outline-none transition-colors"
+      />
 
       <div className="rounded-xl overflow-hidden border border-black/[0.06] h-[220px] relative z-0">
         <MapContainer center={center} zoom={lat != null ? 14 : 6} scrollWheelZoom style={{ height: '100%', width: '100%' }}>

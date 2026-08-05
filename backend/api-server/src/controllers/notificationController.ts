@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
+import { Role } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { prisma, io } from '../index';
+import type { DelayDetection } from '../services/tripLifecycle';
 
 export const getNotifications = async (req: Request, res: Response) => {
   try {
@@ -97,6 +99,55 @@ export const createNotification = async (
     return notification;
   } catch (error) {
     logger.error({ err: error }, 'Failed to create notification');
+  }
+};
+
+/** "2h 35m" — how a dispatcher would say it, not 155 minutes. */
+function formatDelay(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+/**
+ * Tell every active Admin and Operator that a stop was reached late, so the
+ * reason can be logged while the driver is still reachable and remembers it.
+ *
+ * Broadcast rather than assigned: there is no concept of who is on shift, and
+ * inventing one would be more machinery than this needs. Whoever is at a
+ * screen picks it up, and because the flag is driven by `delay_reason` being
+ * null, the first operator to log a reason clears it for everyone — two
+ * people cannot both spend time on the same delay.
+ *
+ * A new Operator account is included automatically from the day it is created;
+ * nothing here needs updating as the team grows.
+ *
+ * Best-effort by design: a notification that fails must never roll back or
+ * obscure the trip update that triggered it. Mirrors the emergency broadcast
+ * in mobileEmergencyController.
+ */
+export const notifyOperatorsOfDelay = async (detection: DelayDetection) => {
+  try {
+    const staff = await prisma.user.findMany({
+      where: { role: { in: [Role.Admin, Role.Operator] }, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    if (staff.length === 0) return;
+
+    const where = detection.locationName ?? (detection.stopType === 'Pickup' ? 'pickup' : 'delivery');
+    const trip = detection.tripRefId ?? 'A trip';
+    const message =
+      `${trip} reached ${where} ${formatDelay(detection.delayMinutes)} late. ` +
+      `Log the reason while the driver still remembers it.`;
+
+    await Promise.all(
+      staff.map((u) =>
+        createNotification(u.id, 'Trip Delayed', message, 'Delay', 'Trip', detection.tripId),
+      ),
+    );
+  } catch (error) {
+    logger.error({ err: error, tripId: detection.tripId }, 'Failed to notify operators of delay');
   }
 };
 
