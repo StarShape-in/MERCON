@@ -1,10 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Alert, ActivityIndicator,
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Alert, ActivityIndicator, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import MapView, { Marker, UrlTile, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
+
+let MapView: any = View;
+let Marker: any = View;
+let Polyline: any = View;
+let PROVIDER_DEFAULT: any = undefined;
+
+if (Platform.OS !== 'web') {
+  try {
+    const Maps = require('react-native-maps');
+    MapView = Maps.default;
+    Marker = Maps.Marker;
+    Polyline = Maps.Polyline;
+    PROVIDER_DEFAULT = Maps.PROVIDER_DEFAULT;
+  } catch (e) {
+    console.warn('react-native-maps load error:', e);
+  }
+}
 import { ArrowLeft, MapPin, Truck, Siren } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useCurrentTrip } from '../../lib/use-current-trip';
@@ -133,7 +149,7 @@ const LiveNavigationScreen = () => {
 
   // Frame both the driver and the active stop whenever they change.
   useEffect(() => {
-    if (position && activeStop && mapRef.current) {
+    if (position && activeStop && mapRef.current && Platform.OS !== 'web' && mapRef.current.fitToCoordinates) {
       mapRef.current.fitToCoordinates(
         [
           { latitude: position.lat, longitude: position.lng },
@@ -177,45 +193,57 @@ const LiveNavigationScreen = () => {
       
       {/* Map implementation above... */}
       <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          provider={PROVIDER_DEFAULT}
-          style={styles.map}
-          initialRegion={{
-            latitude: center.lat,
-            longitude: center.lng,
-            latitudeDelta: 0.2,
-            longitudeDelta: 0.2,
-          }}
-        >
-          {/* Native vector map replaces OSM tiles for a premium Google Maps / Apple Maps look */}
+        {Platform.OS === 'web' ? (
+          <View style={[styles.map, styles.centerBox, { backgroundColor: '#1E293B' }]}>
+            <MapPin size={36} color={Colors.primary} />
+            <Text style={{ color: Colors.white, marginTop: 12, fontWeight: '700', fontSize: Typography.base }}>
+              Live Map View
+            </Text>
+            <Text style={{ color: Colors.gray400, marginTop: 4, fontSize: Typography.xs }}>
+              Open in Expo Go app on iOS/Android for interactive map
+            </Text>
+          </View>
+        ) : (
+          <MapView
+            ref={mapRef}
+            provider={PROVIDER_DEFAULT}
+            style={styles.map}
+            initialRegion={{
+              latitude: center.lat,
+              longitude: center.lng,
+              latitudeDelta: 0.2,
+              longitudeDelta: 0.2,
+            }}
+          >
+            {/* Native vector map replaces OSM tiles for a premium Google Maps / Apple Maps look */}
 
-          {position && (
-            <Marker coordinate={{ latitude: position.lat, longitude: position.lng }} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={styles.driverPin}>
-                <Truck size={16} color={Colors.white} strokeWidth={2.4} />
-              </View>
-            </Marker>
-          )}
+            {position && (
+              <Marker coordinate={{ latitude: position.lat, longitude: position.lng }} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.driverPin}>
+                  <Truck size={16} color={Colors.white} strokeWidth={2.4} />
+                </View>
+              </Marker>
+            )}
 
-          {activeStop && (
-            <Marker coordinate={{ latitude: activeStop.location_lat, longitude: activeStop.location_lng }} anchor={{ x: 0.5, y: 1 }}>
-              <View style={styles.destPin}>
-                <MapPin size={18} color={Colors.white} strokeWidth={2.4} />
-              </View>
-            </Marker>
-          )}
+            {activeStop && (
+              <Marker coordinate={{ latitude: activeStop.location_lat, longitude: activeStop.location_lng }} anchor={{ x: 0.5, y: 1 }}>
+                <View style={styles.destPin}>
+                  <MapPin size={18} color={Colors.white} strokeWidth={2.4} />
+                </View>
+              </Marker>
+            )}
 
-          {routeCoords && (
-            <Polyline
-              coordinates={routeCoords}
-              strokeColor="#4285F4"
-              strokeWidth={6}
-              lineCap="round"
-              lineJoin="round"
-            />
-          )}
-        </MapView>
+            {routeCoords && (
+              <Polyline
+                coordinates={routeCoords}
+                strokeColor="#4285F4"
+                strokeWidth={6}
+                lineCap="round"
+                lineJoin="round"
+              />
+            )}
+          </MapView>
+        )}
 
         <View style={styles.topOverlay}>
           <TouchableOpacity style={styles.backCircle} activeOpacity={0.8} onPress={() => router.back()}>

@@ -8,7 +8,7 @@
  * without one is rejected.
  */
 import { io, type Socket } from 'socket.io-client';
-import * as SecureStore from 'expo-secure-store';
+import { safeSecureStore as SecureStore } from './secure-store';
 import { API_URL, TOKEN_KEY } from './api';
 
 const SOCKET_URL = API_URL.replace(/\/api\/?$/, '');

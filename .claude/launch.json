@@ -13,6 +13,13 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "backend/api-server"],
       "port": 3000
+    },
+    {
+      "name": "mercon-mobile",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "web", "--prefix", "frontend/mobile-app/mercon-app"],
+      "port": 8081,
+      "autoPort": true
     }
   ]
 }

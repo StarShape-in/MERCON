@@ -4,7 +4,7 @@
  * falling back to the production server.
  */
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { safeSecureStore as SecureStore } from './secure-store';
 import { router } from 'expo-router';
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://mercon.tech/api';

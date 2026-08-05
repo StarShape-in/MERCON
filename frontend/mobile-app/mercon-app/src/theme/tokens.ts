@@ -10,6 +10,15 @@ export const Colors = {
   primaryLight:   '#FFF0EB',
   primaryDark:    '#C7380A',
 
+  /**
+   * Drivers-feature accent. Slightly warmer than `primary`; the drivers
+   * components (DriverActionButton/DriverRating/DriverStatusBadge) were
+   * already built against this value — this token exists so it stops being
+   * repeated as a literal. Do not swap it for `primary` without a design call.
+   */
+  accent:         '#F24822',
+  accentLight:    '#FFF0EB',
+
   // Neutrals
   black:          '#111111',
   dark:           '#1A1A1A',
