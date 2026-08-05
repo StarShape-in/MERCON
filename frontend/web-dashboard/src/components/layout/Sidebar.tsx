@@ -1,18 +1,21 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Home, Bell, Truck, Users, Car, Building2, 
-  CreditCard, ReceiptText, FileText, BarChart3, 
-  Settings, User, LogOut, Wrench
+import {
+  Home, Bell, Truck, Users, Car, Building2,
+  CreditCard, ReceiptText, FileText, BarChart3,
+  Settings, User, LogOut, Wrench, X
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
 
 interface SidebarProps {
   active?: string;
+  /** Mobile drawer open state — ignored at lg and above, where the sidebar is always visible */
+  open?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ active }: SidebarProps) {
+export default function Sidebar({ active, open = false, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const user = authStore.getUser();
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
@@ -73,10 +76,37 @@ export default function Sidebar({ active }: SidebarProps) {
   ];
 
   return (
-    <div className="flex flex-col w-[220px] shrink-0 h-full bg-[#18181B] border-r border-white/10">
+    <>
+      {/* Mobile backdrop */}
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-200 lg:hidden ${
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      />
+
+      <aside
+        role="navigation"
+        aria-label="Main navigation"
+        className={`
+          flex flex-col w-[260px] sm:w-[280px] lg:w-[220px] shrink-0 h-[100dvh] lg:h-full
+          bg-[#18181B] border-r border-white/10
+          fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
+          transform transition-transform duration-200 ease-out lg:transform-none
+          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
       {/* Logo */}
-      <div className="flex items-center shrink-0 justify-center bg-[#18181B] border-b border-white/10 h-[88px] overflow-hidden">
+      <div className="relative flex items-center shrink-0 justify-center bg-[#18181B] border-b border-white/10 h-[72px] lg:h-[88px] overflow-hidden">
         <img src="/navbar-logo-final.png" alt="MERCON Logo" className="w-full h-full object-contain scale-[2.5] origin-center" />
+        <button
+          onClick={onClose}
+          aria-label="Close navigation menu"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors lg:hidden"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       {/* Nav groups */}
@@ -90,8 +120,9 @@ export default function Sidebar({ active }: SidebarProps) {
                   key={item.label}
                   to={item.path}
                   end={item.path === '/'}
+                  onClick={onClose}
                   className={({ isActive }) => `
-                    flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-all duration-150 group
+                    flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group
                     ${isActive 
                       ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15' 
                       : 'text-white/60 hover:bg-white/5 hover:text-white'
@@ -136,6 +167,7 @@ export default function Sidebar({ active }: SidebarProps) {
           <LogOut size={14} />
         </button>
       </div>
-    </div>
+      </aside>
+    </>
   );
 }

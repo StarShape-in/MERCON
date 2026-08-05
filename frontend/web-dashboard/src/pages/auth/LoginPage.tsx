@@ -70,10 +70,10 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px] animate-fade-in flex flex-col items-center lg:-translate-y-4">
         <div className="text-center">
           <p className="text-sm font-semibold" style={{ color: C.orange }}>Welcome back</p>
-          <h2 className="mt-4 text-[40px] leading-[1.1] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
+          <h2 className="mt-4 text-[30px] sm:text-[40px] leading-[1.1] font-bold tracking-[-0.02em]">Sign in to your workspace</h2>
         </div>
 
-        <div className="mt-6 w-full rounded-2xl border border-[#ECEEF3] bg-white/95 backdrop-blur-sm p-8 shadow-[0_28px_70px_-24px_rgba(30,31,40,0.32)]">
+        <div className="mt-6 w-full rounded-2xl border border-[#ECEEF3] bg-white/95 backdrop-blur-sm p-6 sm:p-8 shadow-[0_28px_70px_-24px_rgba(30,31,40,0.32)]">
           {error && (
             <div className="mb-5 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-medium"
               style={{ background: '#FEF3F2', color: C.danger, border: '1px solid #FEE4E2' }}>

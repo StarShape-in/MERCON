@@ -217,7 +217,7 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
-      <div className="px-6 pb-6 space-y-5 animate-fade-in max-w-[1000px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1000px] mx-auto">
         
         {/* Top Scope & Action Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">

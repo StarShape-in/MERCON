@@ -119,9 +119,9 @@ export default function MaintenanceDetailsPage() {
   if (isLoading) {
     return (
       <DashboardLayout active="Vehicles" title="Maintenance Details">
-        <div className="px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-5 animate-pulse">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-5 animate-pulse">
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/4"></div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="h-28 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
             <div className="h-28 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
             <div className="h-28 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
@@ -136,7 +136,7 @@ export default function MaintenanceDetailsPage() {
   if (error || !record) {
     return (
       <DashboardLayout active="Vehicles" title="Maintenance Details">
-        <div className="px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center">
             <AlertTriangle size={32} />
           </div>
@@ -200,7 +200,7 @@ export default function MaintenanceDetailsPage() {
   return (
     <TooltipProvider>
       <DashboardLayout active="Vehicles" title={`Maintenance: #${record.id.slice(0, 8)}`}>
-        <div className="px-6 pb-8 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
+        <div className="px-4 sm:px-6 pb-8 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
           {/* ── 1. Scope & Action Header Bar ───────────────────────────────── */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">

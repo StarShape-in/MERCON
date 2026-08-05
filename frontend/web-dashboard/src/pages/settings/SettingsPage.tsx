@@ -149,7 +149,7 @@ export default function SettingsPage() {
       active="Account" 
       title="Settings" 
     >
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1200px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1200px] mx-auto w-full">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-2 border-b border-slate-200 dark:border-slate-800">

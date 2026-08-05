@@ -70,7 +70,7 @@ export default function RevenueReportsPage() {
 
   return (
     <DashboardLayout active="Reports" title="Revenue Analytics">
-      <div className="px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
         <ReportsHeader 
           activeTab="revenue" 
           onRefresh={() => refetch()}

@@ -248,7 +248,7 @@ export default function MaintenanceListPage() {
 
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Maintenance">
-      <div className="px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
         {/* ── 1. Top Header Bar & Actions ─────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">

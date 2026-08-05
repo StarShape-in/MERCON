@@ -94,7 +94,7 @@ export default function DriverDocumentsPage() {
       active="Drivers" 
       title={`Driver Documents: ${driver?.first_name || ''} ${driver?.last_name || ''}`}
     >
-      <div className="px-6 pb-6 max-w-5xl">
+      <div className="px-4 sm:px-6 pb-6 max-w-5xl">
         <button 
           onClick={() => navigate(`/drivers/${id}`)}
           className="flex items-center gap-2 text-sm font-semibold text-[#6E6E80] hover:text-[#111] transition-colors mb-6"

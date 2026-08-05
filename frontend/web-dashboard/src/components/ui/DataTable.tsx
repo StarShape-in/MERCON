@@ -182,13 +182,13 @@ export default function DataTable<T>({
       
       {/* Table Toolbar Header */}
       {showToolbar && (
-        <div className="shrink-0 p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
+        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
           {selectedIndices.size > 0 ? (
-            <div className="flex items-center gap-3 w-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 p-2 rounded-lg transition-all" role="alert">
+            <div className="flex items-center flex-wrap gap-2 sm:gap-3 w-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 p-2 rounded-lg transition-all" role="alert">
               <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 px-2">
                 {selectedIndices.size} row{selectedIndices.size > 1 ? 's' : ''} selected
               </span>
-              <div className="h-4 w-[1px] bg-indigo-200 dark:bg-indigo-800" />
+              <div className="h-4 w-[1px] bg-indigo-200 dark:bg-indigo-800 hidden sm:block" />
               <div className="flex items-center gap-2 flex-1 flex-wrap">
                 {bulkActions.map((action, i) => (
                   <Btn
@@ -215,7 +215,7 @@ export default function DataTable<T>({
           ) : (
             <>
               {/* Left Side: Ledger Title & Search / Filter Controls */}
-              <div className="flex items-center gap-3 flex-1 flex-wrap min-w-[240px]">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
                 {title && (
                   <div className="flex items-center gap-2.5 mr-2">
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -239,7 +239,7 @@ export default function DataTable<T>({
                 )}
 
                 {onSearchChange !== undefined && (
-                  <div className="relative flex-1 max-w-sm min-w-[200px]">
+                  <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm sm:min-w-[200px]">
                     <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <Input
                       type="text"
@@ -265,7 +265,7 @@ export default function DataTable<T>({
               </div>
 
               {/* Right Side: Actions & Export */}
-              <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0">
                 {actionsElement}
                 {onExport && (
                   <Btn
@@ -284,7 +284,7 @@ export default function DataTable<T>({
 
       {/* Main Table Container */}
       <div className="flex-1 overflow-auto min-h-0 w-full">
-        <Table className="w-full" role="table">
+        <Table className="w-full min-w-[720px]" role="table">
           <TableHeader>
             <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
               {enableSelection && (
@@ -411,11 +411,14 @@ export default function DataTable<T>({
       </div>
 
       {/* Spacious Pagination Footer */}
-      <div className="shrink-0 p-4 px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
+      <div className="shrink-0 p-3 sm:p-4 sm:px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
         {/* Left Side: Rows Per Page & Summary Count */}
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">Rows per page:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">
+              <span className="hidden sm:inline">Rows per page:</span>
+              <span className="sm:hidden">Rows:</span>
+            </span>
             <select
               value={activePageSize}
               onChange={(e) => handlePageSizeChange(Number(e.target.value))}

@@ -57,7 +57,7 @@ export default function InvoiceDetailsPage() {
   if (isLoading) {
     return (
       <DashboardLayout active="Invoices" title="Invoice Details">
-        <div className="px-6 pb-6 space-y-4 animate-pulse">
+        <div className="px-4 sm:px-6 pb-6 space-y-4 animate-pulse">
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/4"></div>
           <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
@@ -69,7 +69,7 @@ export default function InvoiceDetailsPage() {
   if (error || !invoice) {
     return (
       <DashboardLayout active="Invoices" title="Invoice Details">
-        <div className="px-6 pb-6 flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+        <div className="px-4 sm:px-6 pb-6 flex flex-col items-center justify-center text-center h-[60vh] gap-3">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center">
             <AlertTriangle size={28} />
           </div>
@@ -93,7 +93,7 @@ export default function InvoiceDetailsPage() {
 
   return (
     <DashboardLayout active="Invoices" title={`Invoice: ${invoice.ref_id || 'INV-941'}`}>
-      <div className="px-6 pb-8 space-y-4 animate-fade-in w-full">
+      <div className="px-4 sm:px-6 pb-8 space-y-4 animate-fade-in w-full">
 
         {/* ── Top Header Toolbar ─────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">

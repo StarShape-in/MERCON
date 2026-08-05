@@ -142,6 +142,8 @@ export default function DriverListPage() {
     } finally {
       setIsUpdatingStatus(false);
     }
+  };
+
   const handleExportExcel = (rowsToExport: Driver[]) => {
     const headers = [
       'Driver ID',
@@ -372,7 +374,7 @@ export default function DriverListPage() {
       active="Drivers" 
       title="Drivers" 
     >
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">

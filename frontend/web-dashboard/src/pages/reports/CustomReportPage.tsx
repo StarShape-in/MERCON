@@ -186,7 +186,7 @@ export default function CustomReportPage() {
 
   return (
     <DashboardLayout active="Reports" title="Custom Generator">
-      <div className="px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
         <ReportsHeader 
           activeTab="custom" 
           onRefresh={() => refetch()}

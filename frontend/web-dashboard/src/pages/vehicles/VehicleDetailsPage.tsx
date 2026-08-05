@@ -103,7 +103,7 @@ export default function VehicleDetailsPage() {
   if (isLoading) {
     return (
       <DashboardLayout active="Vehicles" title="Vehicle Details">
-        <div className="px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-5 animate-pulse">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full space-y-5 animate-pulse">
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/4"></div>
           <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
@@ -115,7 +115,7 @@ export default function VehicleDetailsPage() {
   if (error || !vehicle) {
     return (
       <DashboardLayout active="Vehicles" title="Vehicle Details">
-        <div className="px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
+        <div className="px-4 sm:px-6 pb-6 max-w-[1400px] mx-auto w-full flex flex-col items-center justify-center text-center h-[60vh] gap-3">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center">
             <AlertTriangle size={32} />
           </div>
@@ -142,7 +142,7 @@ export default function VehicleDetailsPage() {
 
   return (
     <DashboardLayout active="Vehicles" title={`Vehicle: ${vehicle.plate_number}`}>
-      <div className="px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
         {/* ── Page Scope & Header Actions ─────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">

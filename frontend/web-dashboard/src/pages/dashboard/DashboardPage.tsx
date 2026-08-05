@@ -103,7 +103,7 @@ export default function DashboardPage() {
       active="Dashboard" 
       title="Dashboard" 
     >
-      <div className="px-6 pb-6 h-full flex flex-col gap-5 animate-fade-in">
+      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col gap-5 animate-fade-in">
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">

@@ -46,7 +46,7 @@ export default function CustomerDetailsPage() {
   if (isLoading) {
     return (
       <DashboardLayout active="Customers" title="Customer Details">
-        <div className="px-6 pb-6 space-y-6 max-w-[1400px] mx-auto animate-pulse">
+        <div className="px-4 sm:px-6 pb-6 space-y-6 max-w-[1400px] mx-auto animate-pulse">
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/3"></div>
           <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
@@ -172,7 +172,7 @@ export default function CustomerDetailsPage() {
       active="Customers" 
       title={`Customer: ${customer.name}`}
     >
-      <div className="px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto">
         
         {/* ── Top Scope & Action Header Bar ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
@@ -326,7 +326,7 @@ export default function CustomerDetailsPage() {
               <div className="bg-cyan-600 h-full rounded-full transition-all" style={{ width: `${creditPct}%` }}></div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-xs font-mono pt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono pt-1">
               <div>
                 <span className="text-slate-400 text-[10px] uppercase font-bold block">Credit Limit</span>
                 <span className="font-extrabold text-slate-900 dark:text-slate-100">SAR {creditLimit.toLocaleString()}</span>

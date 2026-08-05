@@ -160,7 +160,7 @@ export default function UserManagementPage() {
         />
       }
     >
-      <div className="px-6 pb-6">
+      <div className="px-4 sm:px-6 pb-6">
         <DataTable
           title={
             <span className="flex items-center gap-2">

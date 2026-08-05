@@ -44,7 +44,7 @@ export default function RateCardDocsPage() {
         </div>
       }
     >
-      <div className="px-6 pb-6 max-w-3xl mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 max-w-3xl mx-auto w-full">
         {isLoading ? (
           <div className="p-12 text-center text-sm text-[#9898A4]">Loading…</div>
         ) : isError || !card ? (
