@@ -14,7 +14,30 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import FormInput from '@/components/ui/FormInput';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
-import { tripService, TripStatus } from '@/services/tripService';
+import {
+  tripService, TripStatus,
+  DELAY_REASONS, DELAY_REASON_LABELS, type DelayReason, type TripStop,
+} from '@/services/tripService';
+
+/** Matches DELAY_THRESHOLD_MINUTES on the server. Below this, lateness is
+ *  ordinary variance and showing it would bury the delays that matter. */
+const DELAY_THRESHOLD_MINUTES = 30;
+
+/** Minutes a stop was reached late, or null when it isn't late / can't be judged. */
+function arrivalDelayMinutes(stop: TripStop): number | null {
+  if (!stop.planned_arrival || !stop.actual_arrival) return null;
+  const mins = Math.round(
+    (new Date(stop.actual_arrival).getTime() - new Date(stop.planned_arrival).getTime()) / 60000,
+  );
+  return mins >= DELAY_THRESHOLD_MINUTES ? mins : null;
+}
+
+function formatDelay(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
 
 export default function TripDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +49,10 @@ export default function TripDetailsPage() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [nextStatus, setNextStatus] = useState<TripStatus>('Draft');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  // Which stop's reason form is open, and what's typed into it.
+  const [delayFormStopId, setDelayFormStopId] = useState<string | null>(null);
+  const [delayReason, setDelayReason] = useState<DelayReason>('Traffic');
+  const [delayNote, setDelayNote] = useState('');
 
   // Fetch single trip
   const { data: trip, isLoading } = useQuery({
@@ -45,6 +72,28 @@ export default function TripDetailsPage() {
       setPaymentReason('');
     },
   });
+
+  // Record why a stop ran late
+  const logDelayMutation = useMutation({
+    mutationFn: (vars: { stopId: string; delay_reason: DelayReason; delay_note?: string }) =>
+      tripService.logStopDelay(id!, vars.stopId, {
+        delay_reason: vars.delay_reason,
+        delay_note: vars.delay_note,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trip', id] });
+      setDelayFormStopId(null);
+      setDelayNote('');
+    },
+  });
+
+  const openDelayForm = (stop: TripStop) => {
+    // Pre-load whatever is already recorded so editing corrects it rather
+    // than starting from a blank guess.
+    setDelayReason(stop.delay_reason ?? 'Traffic');
+    setDelayNote(stop.delay_note ?? '');
+    setDelayFormStopId(stop.id);
+  };
 
   // Mutate Trip Status
   const updateStatusMutation = useMutation({
@@ -202,7 +251,9 @@ export default function TripDetailsPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-[#6E6E80] mt-0.5">Lat: {stop.location_lat}, Lng: {stop.location_lng}</p>
+                    <p className="text-[11px] text-[#6E6E80] mt-0.5">
+                      {stop.location_name || `Lat: ${stop.location_lat}, Lng: ${stop.location_lng}`}
+                    </p>
                     <div className="flex gap-4 mt-2 text-[10px] text-[#9898A4] font-medium">
                       {stop.planned_arrival && (
                         <span className="flex items-center gap-1"><Calendar size={10} /> Planned: {new Date(stop.planned_arrival).toLocaleString()}</span>
@@ -210,7 +261,95 @@ export default function TripDetailsPage() {
                       {stop.actual_arrival && (
                         <span className="flex items-center gap-1 text-[#16A34A]"><Clock size={10} /> Actual: {new Date(stop.actual_arrival).toLocaleString()}</span>
                       )}
+                      {stop.actual_departure && (
+                        <span className="flex items-center gap-1"><Clock size={10} /> Left: {new Date(stop.actual_departure).toLocaleString()}</span>
+                      )}
                     </div>
+
+                    {(() => {
+                      const late = arrivalDelayMinutes(stop);
+                      if (late === null) return null;
+                      const isFormOpen = delayFormStopId === stop.id;
+
+                      return (
+                        <div className="mt-2.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                          <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <span className="text-[11px] font-bold text-amber-800">
+                              Arrived {formatDelay(late)} late
+                            </span>
+                            {!isFormOpen && (
+                              <button
+                                type="button"
+                                onClick={() => openDelayForm(stop)}
+                                className="text-[10px] font-bold text-amber-900 underline underline-offset-2 hover:text-amber-700"
+                              >
+                                {stop.delay_reason ? 'Change reason' : 'Add reason'}
+                              </button>
+                            )}
+                          </div>
+
+                          {stop.delay_reason && !isFormOpen && (
+                            <p className="text-[11px] text-amber-900 mt-1">
+                              {DELAY_REASON_LABELS[stop.delay_reason]}
+                              {stop.delay_note ? ` — ${stop.delay_note}` : ''}
+                            </p>
+                          )}
+                          {!stop.delay_reason && !isFormOpen && (
+                            <p className="text-[10px] text-amber-700 mt-1">
+                              No reason recorded yet.
+                            </p>
+                          )}
+
+                          {isFormOpen && (
+                            <div className="mt-2 space-y-2">
+                              <select
+                                value={delayReason}
+                                onChange={(e) => setDelayReason(e.target.value as DelayReason)}
+                                className="w-full h-8 rounded border border-amber-300 bg-white px-2 text-[11px] outline-none focus:border-amber-500"
+                              >
+                                {DELAY_REASONS.map((r) => (
+                                  <option key={r} value={r}>{DELAY_REASON_LABELS[r]}</option>
+                                ))}
+                              </select>
+                              <input
+                                type="text"
+                                value={delayNote}
+                                onChange={(e) => setDelayNote(e.target.value)}
+                                maxLength={500}
+                                placeholder="Note (optional)"
+                                className="w-full h-8 rounded border border-amber-300 bg-white px-2 text-[11px] outline-none focus:border-amber-500"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={logDelayMutation.isPending}
+                                  onClick={() => logDelayMutation.mutate({
+                                    stopId: stop.id,
+                                    delay_reason: delayReason,
+                                    delay_note: delayNote.trim() || undefined,
+                                  })}
+                                  className="h-7 px-3 rounded bg-amber-600 text-white text-[10px] font-bold hover:bg-amber-700 disabled:opacity-50"
+                                >
+                                  {logDelayMutation.isPending ? 'Saving…' : 'Save reason'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDelayFormStopId(null)}
+                                  className="h-7 px-3 rounded border border-amber-300 text-amber-900 text-[10px] font-bold hover:bg-amber-100"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                              {logDelayMutation.isError && (
+                                <p className="text-[10px] text-red-600">
+                                  Could not save that reason. Try again.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}

@@ -89,6 +89,21 @@ enum PaymentStatus {
   Rejected
 }
 
+/// Why a stop was reached late. Logged by an operator, never by the driver:
+/// drivers already report the cause in the WhatsApp group (usually with a
+/// photo), and asking them to classify it in the app is training cost for
+/// something the office already knows. Traffic dominates in practice.
+enum DelayReason {
+  Traffic
+  VehicleBreakdown
+  CustomerNotReady
+  SlowLoadingUnloading
+  Weather
+  Documentation
+  RouteBlocked
+  Other
+}
+
 // -----------------------------------------
 // 1. ORGANIZATION (Simplified)
 // -----------------------------------------
@@ -278,6 +293,15 @@ model TripStop {
   // "arrived on time but waited three hours to be unloaded", which the two
   // are indistinguishable without it. Stamped by stampStopTransition().
   actual_departure DateTime? @db.Timestamptz
+
+  // Why this stop was late, filled in by an operator after the fact. Null on
+  // a late stop means nobody has explained it yet — that is what the report's
+  // "needs a reason" flag and the operator alert are driven from, so it must
+  // stay distinguishable from Other.
+  delay_reason    DelayReason?
+  delay_note      String?      @db.Text
+  delay_logged_by String?      @db.Uuid
+  delay_logged_at DateTime?    @db.Timestamptz
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid

@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
-import { createDriverNotification } from './notificationController';
+import { createDriverNotification, notifyOperatorsOfDelay } from './notificationController';
 import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { logger } from '../utils/logger';
-import { isValidTransition, completeTripAndInvoice, stampStopTransition } from '../services/tripLifecycle';
+import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 
 const isUuid = (val: any): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -224,6 +224,8 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid status' } });
     }
 
+    let delay: DelayDetection | null = null;
+
     const trip = await prisma.$transaction(async (tx) => {
       const current = await tx.trip.findUnique({ where: { id: tripId } });
       if (!current) throw new Error('NOT_FOUND');
@@ -240,7 +242,7 @@ export const updateTripStatus = async (req: Request, res: Response) => {
 
       const updated = await tx.trip.update({ where: { id: tripId }, data: updateData });
 
-      await stampStopTransition(tx, tripId, status as TripStatus);
+      delay = await stampStopTransition(tx, tripId, status as TripStatus);
 
       // Leaving the trip permanently via Cancelled must release the
       // driver/vehicle back to Available — otherwise they stay stuck on
@@ -256,6 +258,10 @@ export const updateTripStatus = async (req: Request, res: Response) => {
 
       return updated;
     });
+
+    // Alerted only once the transaction has committed, so operators are never
+    // told about a delay on a trip update that then rolled back.
+    if (delay) await notifyOperatorsOfDelay(delay);
 
     res.json({ success: true, data: trip });
   } catch (error: any) {
@@ -418,14 +424,17 @@ export const pickupArrive = async (req: Request, res: Response) => {
     // Stop clock and trip status move together: a committed arrival time on a
     // trip that never reached AtPickup (or the reverse) is exactly the kind of
     // split the delay report cannot interpret afterwards.
+    let delay: DelayDetection | null = null;
     const updatedTrip = await prisma.$transaction(async (tx) => {
       const updated = await tx.trip.update({
         where: { id: tripId },
         data: { status: 'AtPickup', updated_by: (req as any).user?.id }
       });
-      await stampStopTransition(tx, tripId, TripStatus.AtPickup);
+      delay = await stampStopTransition(tx, tripId, TripStatus.AtPickup);
       return updated;
     });
+
+    if (delay) await notifyOperatorsOfDelay(delay);
 
     res.json({ success: true, data: updatedTrip });
   } catch (error) {
@@ -484,6 +493,49 @@ export const deliveryVerify = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'INVALID_TRANSITION', message: 'That status change is not allowed from the trip\'s current state' } });
     }
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to verify delivery' } });
+  }
+};
+
+/**
+ * Record why a stop was reached late. Operator-only by design: drivers already
+ * report the cause in the WhatsApp group, and the office is better placed to
+ * classify it than a driver working a phone in a cab.
+ *
+ * Re-logging is allowed — a first guess ("Traffic") often turns out to be
+ * something else once the driver is actually reached, and a wrong reason left
+ * frozen in place would quietly skew the report it feeds.
+ */
+export const logStopDelay = async (req: Request, res: Response) => {
+  try {
+    const { id: tripId, stopId } = req.params as { id: string; stopId: string };
+    const { delay_reason, delay_note } = req.body;
+
+    const stop = await prisma.tripStop.findFirst({
+      where: { id: stopId, tripId, deletedAt: null },
+    });
+    if (!stop) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Stop not found on this trip' } });
+    }
+    // Nothing to explain about a stop the driver has not reached yet, and
+    // allowing it would put reasons on trips that are still running fine.
+    if (!stop.actual_arrival) {
+      return res.status(400).json({ success: false, error: { code: 'NOT_ARRIVED', message: 'This stop has no recorded arrival yet' } });
+    }
+
+    const updated = await prisma.tripStop.update({
+      where: { id: stopId },
+      data: {
+        delay_reason,
+        delay_note: String(delay_note ?? '').trim() || null,
+        delay_logged_by: (req as any).user?.id ?? null,
+        delay_logged_at: new Date(),
+      },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to log stop delay reason');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to log delay reason' } });
   }
 };
 

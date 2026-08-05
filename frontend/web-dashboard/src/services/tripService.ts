@@ -40,6 +40,9 @@ export interface TripStop {
   planned_arrival: string | null;
   actual_arrival: string | null;
   actual_departure: string | null;
+  delay_reason: DelayReason | null;
+  delay_note: string | null;
+  delay_logged_at: string | null;
 }
 
 export interface CreateTripPayload {
@@ -50,6 +53,36 @@ export interface CreateTripPayload {
   hazmat_flag?: boolean;
   planned_start?: string;
   stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string; location_name?: string }[];
+}
+
+export const DELAY_REASONS = [
+  'Traffic',
+  'VehicleBreakdown',
+  'CustomerNotReady',
+  'SlowLoadingUnloading',
+  'Weather',
+  'Documentation',
+  'RouteBlocked',
+  'Other',
+] as const;
+
+export type DelayReason = (typeof DELAY_REASONS)[number];
+
+/** Enum values are stored compactly; these are what an operator reads. */
+export const DELAY_REASON_LABELS: Record<DelayReason, string> = {
+  Traffic: 'Traffic',
+  VehicleBreakdown: 'Vehicle breakdown',
+  CustomerNotReady: 'Customer not ready',
+  SlowLoadingUnloading: 'Slow loading / unloading',
+  Weather: 'Weather',
+  Documentation: 'Documentation',
+  RouteBlocked: 'Route blocked',
+  Other: 'Other',
+};
+
+export interface LogStopDelayPayload {
+  delay_reason: DelayReason;
+  delay_note?: string;
 }
 
 export interface TripFilters {
@@ -98,6 +131,13 @@ export const tripService = {
 
   async updateFinancials(id: string, payload: UpdateTripFinancialsPayload): Promise<Trip> {
     const res = await api.patch<ApiResponse<Trip>>(`/trips/${id}/financials`, payload);
+    return res.data.data;
+  },
+
+  /** Record why a stop was reached late. Re-callable — a first guess often
+   *  turns out to be something else once the driver is actually reached. */
+  async logStopDelay(tripId: string, stopId: string, payload: LogStopDelayPayload): Promise<TripStop> {
+    const res = await api.patch<ApiResponse<TripStop>>(`/trips/${tripId}/stops/${stopId}/delay`, payload);
     return res.data.data;
   },
 

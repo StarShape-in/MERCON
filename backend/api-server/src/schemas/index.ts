@@ -45,6 +45,17 @@ export const createTripBody = z.object({
   })).min(2, 'At least a pickup and a dropoff are required'),
 });
 
+/** Operator logging why a stop was reached late. Reason is required — the
+ *  whole point is replacing "no explanation" with one, and `Other` plus a note
+ *  already covers anything the list misses. */
+export const logStopDelayBody = z.object({
+  delay_reason: z.enum([
+    'Traffic', 'VehicleBreakdown', 'CustomerNotReady', 'SlowLoadingUnloading',
+    'Weather', 'Documentation', 'RouteBlocked', 'Other',
+  ]),
+  delay_note: z.string().trim().max(500).optional(),
+});
+
 /* ─── Drivers ────────────────────────────────────────────────────────────── */
 export const createDriverBody = z.object({
   first_name: nonEmpty('First name'),

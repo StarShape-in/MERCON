@@ -42,7 +42,25 @@ const STOP_MARK_BY_STATUS: Partial<
 };
 
 /**
- * Record the real-world moment a status change stands for.
+ * How late an arrival must be before it counts as a delay worth explaining.
+ * Below this it is ordinary variance, and flagging it would only train
+ * operators to ignore the alert.
+ */
+export const DELAY_THRESHOLD_MINUTES = 30;
+
+/** A late arrival nobody has explained yet. */
+export interface DelayDetection {
+  tripId: string;
+  tripRefId: string | null;
+  stopId: string;
+  stopType: StopType;
+  locationName: string | null;
+  delayMinutes: number;
+}
+
+/**
+ * Record the real-world moment a status change stands for, and report back
+ * whether that moment was late.
  *
  * **Every path that changes a trip's status must call this.** A stop that is
  * missed here is missed permanently — the moment has passed and no later job
@@ -53,19 +71,51 @@ const STOP_MARK_BY_STATUS: Partial<
  *
  * Only ever writes into a column that is still null, so a re-sent request or
  * an operator's manual correction is never clobbered by a later transition.
+ * That same guard is what keeps the returned detection firing once instead of
+ * on every retry.
+ *
+ * Returns null when nothing was stamped, when the moment was a departure
+ * (only an arrival can be late), when no arrival was planned to measure
+ * against, or when the delay is under the threshold. A non-null result is the
+ * caller's cue to alert operators — **after its transaction commits**, so no
+ * alert is ever sent for a trip update that then rolls back.
  */
 export async function stampStopTransition(
   tx: Prisma.TransactionClient,
   tripId: string,
   to: TripStatus,
-): Promise<void> {
+): Promise<DelayDetection | null> {
   const mark = STOP_MARK_BY_STATUS[to];
-  if (!mark) return;
+  if (!mark) return null;
 
-  await tx.tripStop.updateMany({
+  const now = new Date();
+  const stamped = await tx.tripStop.updateMany({
     where: { tripId, stop_type: mark.stop_type, [mark.field]: null, deletedAt: null },
-    data: { [mark.field]: new Date() },
+    data: { [mark.field]: now },
   });
+  if (stamped.count === 0) return null; // already stamped — do not re-alert
+  if (mark.field !== 'actual_arrival') return null;
+
+  const stop = await tx.tripStop.findFirst({
+    where: { tripId, stop_type: mark.stop_type, deletedAt: null },
+    orderBy: { stop_sequence: 'asc' },
+  });
+  // No planned arrival means no baseline: the stop is honestly excluded from
+  // delay reporting rather than counted as on time.
+  if (!stop?.planned_arrival) return null;
+
+  const delayMinutes = Math.round((now.getTime() - stop.planned_arrival.getTime()) / 60000);
+  if (delayMinutes < DELAY_THRESHOLD_MINUTES) return null;
+
+  const trip = await tx.trip.findUnique({ where: { id: tripId }, select: { ref_id: true } });
+  return {
+    tripId,
+    tripRefId: trip?.ref_id ?? null,
+    stopId: stop.id,
+    stopType: mark.stop_type,
+    locationName: stop.location_name,
+    delayMinutes,
+  };
 }
 
 /**
