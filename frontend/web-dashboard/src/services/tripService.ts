@@ -38,6 +38,7 @@ export interface TripStop {
   location_lng: number;
   planned_arrival: string | null;
   actual_arrival: string | null;
+  actual_departure: string | null;
 }
 
 export interface CreateTripPayload {

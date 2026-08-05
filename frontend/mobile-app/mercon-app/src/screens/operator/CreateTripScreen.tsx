@@ -29,6 +29,8 @@ const CreateTripScreen = () => {
   const [dropoffLng, setDropoffLng] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [etaDate, setEtaDate] = useState('');
+  const [etaTime, setEtaTime] = useState('');
   const [cargoDesc, setCargoDesc] = useState('');
   const [selectedDriver, setSelectedDriver] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
@@ -66,12 +68,12 @@ const CreateTripScreen = () => {
 
   const isValid = !!customerId && !!cargoDesc && !!selectedDriver && !!selectedVehicle && hasValidCoords;
 
-  function parsePlannedStart(): string | undefined {
-    // date: DD/MM/YYYY, time: HH:MM — both optional, best-effort parse.
-    const dateMatch = date.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  // date: DD/MM/YYYY, time: HH:MM — both optional, best-effort parse.
+  function parseDateTime(dateStr: string, timeStr: string): string | undefined {
+    const dateMatch = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (!dateMatch) return undefined;
     const [, dd, mm, yyyy] = dateMatch;
-    const timeMatch = time.trim().match(/^(\d{1,2}):(\d{2})$/) ?? ['', '0', '0'];
+    const timeMatch = timeStr.trim().match(/^(\d{1,2}):(\d{2})$/) ?? ['', '0', '0'];
     const [, hh, min] = timeMatch;
     const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
     return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
@@ -79,6 +81,18 @@ const CreateTripScreen = () => {
 
   const handleSubmit = async () => {
     if (!isValid || submitting) return;
+
+    const plannedPickup = parseDateTime(date, time);
+    const plannedDropoff = parseDateTime(etaDate, etaTime);
+
+    // Matches CreateTripPage's ordering check on the web: a delivery due
+    // before its own collection produces a permanently "late" trip that no
+    // driver could ever have run on time.
+    if (plannedPickup && plannedDropoff && plannedDropoff <= plannedPickup) {
+      Alert.alert('Check the times', 'Delivery due must be after the departure time.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await operatorService.createTrip({
@@ -86,10 +100,13 @@ const CreateTripScreen = () => {
         driver_id: selectedDriver,
         vehicle_id: selectedVehicle,
         cargo_type: cargoDesc,
-        planned_start: parsePlannedStart(),
+        planned_start: plannedPickup,
+        // Both planned times are what every delay figure is measured against.
+        // Omitting them (as this screen used to) creates a trip that can never
+        // be counted as late, so it silently vanishes from the delay reports.
         stops: [
-          { stop_type: 'Pickup', lat: pickupLatNum, lng: pickupLngNum },
-          { stop_type: 'Dropoff', lat: dropoffLatNum, lng: dropoffLngNum },
+          { stop_type: 'Pickup', lat: pickupLatNum, lng: pickupLngNum, planned_arrival: plannedPickup },
+          { stop_type: 'Dropoff', lat: dropoffLatNum, lng: dropoffLngNum, planned_arrival: plannedDropoff },
         ],
       });
       invalidateOperatorTrips();
@@ -202,6 +219,29 @@ const CreateTripScreen = () => {
                 label="Time"
                 value={time}
                 onChangeText={setTime}
+                placeholder="HH:MM"
+                keyboardType="numeric"
+              />
+            </View>
+          </Card>
+
+          {/* Delivery due — the baseline every delay figure is measured from. */}
+          <Text style={styles.sectionTitle}>Delivery Due (Optional)</Text>
+          <Card style={styles.formCard}>
+            <View style={styles.rowFields}>
+              <Input
+                style={{ flex: 1 }}
+                label="Date"
+                value={etaDate}
+                onChangeText={setEtaDate}
+                placeholder="DD/MM/YYYY"
+                keyboardType="numeric"
+              />
+              <Input
+                style={{ flex: 1 }}
+                label="Time"
+                value={etaTime}
+                onChangeText={setEtaTime}
                 placeholder="HH:MM"
                 keyboardType="numeric"
               />

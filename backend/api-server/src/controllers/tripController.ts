@@ -4,7 +4,7 @@ import { generateRefId } from '../utils/refId';
 import { createDriverNotification } from './notificationController';
 import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { logger } from '../utils/logger';
-import { isValidTransition, completeTripAndInvoice } from '../services/tripLifecycle';
+import { isValidTransition, completeTripAndInvoice, stampStopTransition } from '../services/tripLifecycle';
 
 const isUuid = (val: any): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -237,6 +237,8 @@ export const updateTripStatus = async (req: Request, res: Response) => {
 
       const updated = await tx.trip.update({ where: { id: tripId }, data: updateData });
 
+      await stampStopTransition(tx, tripId, status as TripStatus);
+
       // Leaving the trip permanently via Cancelled must release the
       // driver/vehicle back to Available — otherwise they stay stuck on
       // "OnTrip" with no trip left to free them.
@@ -404,23 +406,22 @@ export const pickupArrive = async (req: Request, res: Response) => {
   try {
     const tripId = req.params.id as string;
 
-    const trip = await prisma.trip.findUnique({ where: { id: tripId }, include: { stops: true } });
+    const trip = await prisma.trip.findUnique({ where: { id: tripId } });
     if (!trip) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
     if (!isValidTransition(trip.status, TripStatus.AtPickup)) {
       return res.status(400).json({ success: false, error: { code: 'INVALID_TRANSITION', message: 'That status change is not allowed from the trip\'s current state' } });
     }
 
-    const pickupStop = trip.stops.find(s => s.stop_type === 'Pickup');
-    if (pickupStop) {
-      await prisma.tripStop.update({
-        where: { id: pickupStop.id },
-        data: { actual_arrival: new Date() }
+    // Stop clock and trip status move together: a committed arrival time on a
+    // trip that never reached AtPickup (or the reverse) is exactly the kind of
+    // split the delay report cannot interpret afterwards.
+    const updatedTrip = await prisma.$transaction(async (tx) => {
+      const updated = await tx.trip.update({
+        where: { id: tripId },
+        data: { status: 'AtPickup', updated_by: (req as any).user?.id }
       });
-    }
-
-    const updatedTrip = await prisma.trip.update({
-      where: { id: tripId },
-      data: { status: 'AtPickup', updated_by: (req as any).user?.id }
+      await stampStopTransition(tx, tripId, TripStatus.AtPickup);
+      return updated;
     });
 
     res.json({ success: true, data: updatedTrip });
@@ -439,13 +440,18 @@ export const pickupVerify = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'INVALID_TRANSITION', message: 'That status change is not allowed from the trip\'s current state' } });
     }
 
-    const updatedTrip = await prisma.trip.update({
-      where: { id: tripId },
-      data: {
-        status: 'InTransit',
-        actual_start: new Date(),
-        updated_by: (req as any).user?.id
-      }
+    const updatedTrip = await prisma.$transaction(async (tx) => {
+      const updated = await tx.trip.update({
+        where: { id: tripId },
+        data: {
+          status: 'InTransit',
+          actual_start: new Date(),
+          updated_by: (req as any).user?.id
+        }
+      });
+      // Leaving pickup closes the loading window that started at AtPickup.
+      await stampStopTransition(tx, tripId, TripStatus.InTransit);
+      return updated;
     });
 
     res.json({ success: true, data: updatedTrip });

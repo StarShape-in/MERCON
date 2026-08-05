@@ -1,4 +1,4 @@
-import { Prisma, TripStatus, DriverStatus, AssetStatus } from '@prisma/client';
+import { Prisma, TripStatus, DriverStatus, AssetStatus, StopType } from '@prisma/client';
 import { generateRefId } from '../utils/refId';
 
 /**
@@ -24,6 +24,51 @@ export function isValidTransition(from: TripStatus, to: TripStatus): boolean {
 }
 
 /**
+ * The moment each transition represents at a stop. Four timestamps across a
+ * trip, and every delay figure the reports produce is derived from them:
+ *
+ *   -> AtPickup     pickup arrived     was the driver late to collect
+ *   -> InTransit    pickup departed    how long loading held them
+ *   -> AtDelivery   dropoff arrived    the number the customer judges us on
+ *   -> Completed    dropoff departed   how long unloading held them
+ */
+const STOP_MARK_BY_STATUS: Partial<
+  Record<TripStatus, { stop_type: StopType; field: 'actual_arrival' | 'actual_departure' }>
+> = {
+  [TripStatus.AtPickup]: { stop_type: StopType.Pickup, field: 'actual_arrival' },
+  [TripStatus.InTransit]: { stop_type: StopType.Pickup, field: 'actual_departure' },
+  [TripStatus.AtDelivery]: { stop_type: StopType.Dropoff, field: 'actual_arrival' },
+  [TripStatus.Completed]: { stop_type: StopType.Dropoff, field: 'actual_departure' },
+};
+
+/**
+ * Record the real-world moment a status change stands for.
+ *
+ * **Every path that changes a trip's status must call this.** A stop that is
+ * missed here is missed permanently — the moment has passed and no later job
+ * can reconstruct when the driver actually arrived. That is exactly how
+ * dropoff arrival came to be backfilled at completion time (making every
+ * delivery look like it arrived the instant it finished), and how the mobile
+ * geofence path recorded nothing at all.
+ *
+ * Only ever writes into a column that is still null, so a re-sent request or
+ * an operator's manual correction is never clobbered by a later transition.
+ */
+export async function stampStopTransition(
+  tx: Prisma.TransactionClient,
+  tripId: string,
+  to: TripStatus,
+): Promise<void> {
+  const mark = STOP_MARK_BY_STATUS[to];
+  if (!mark) return;
+
+  await tx.tripStop.updateMany({
+    where: { tripId, stop_type: mark.stop_type, [mark.field]: null, deletedAt: null },
+    data: { [mark.field]: new Date() },
+  });
+}
+
+/**
  * The one place a trip is marked Completed: releases the driver/vehicle back
  * to Available and generates the invoice (customer's active rate card, or the
  * kingdom-wide default, or a flat fallback) if one doesn't already exist.
@@ -34,13 +79,16 @@ export async function completeTripAndInvoice(
   tripId: string,
   userId: string | null | undefined,
 ) {
-  const trip = await tx.trip.findUnique({ where: { id: tripId }, include: { stops: true } });
+  const trip = await tx.trip.findUnique({ where: { id: tripId } });
   if (!trip) throw new Error('NOT_FOUND');
 
-  const dropoffStop = trip.stops.find((s) => s.stop_type === 'Dropoff');
-  if (dropoffStop && !dropoffStop.actual_arrival) {
-    await tx.tripStop.update({ where: { id: dropoffStop.id }, data: { actual_arrival: new Date() } });
-  }
+  // Marks the dropoff *departure*. Arrival was recorded when the driver
+  // actually got there (the AtDelivery transition) and is deliberately not
+  // backfilled here: stamping it now would date every delivery to the moment
+  // its paperwork was finished, which reads as a huge delay on a trip that
+  // was on time and silently erases the waiting period. A null arrival is a
+  // gap the delay report can exclude honestly; a fabricated one it cannot.
+  await stampStopTransition(tx, tripId, TripStatus.Completed);
 
   const updatedTrip = await tx.trip.update({
     where: { id: tripId },

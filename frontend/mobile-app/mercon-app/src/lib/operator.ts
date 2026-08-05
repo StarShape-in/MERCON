@@ -43,6 +43,7 @@ export interface OperatorTripStop {
   location_lng: number;
   planned_arrival: string | null;
   actual_arrival: string | null;
+  actual_departure: string | null;
 }
 
 export interface OperatorTripDetail {
