@@ -269,6 +269,12 @@ export default function ReportsDashboardPage() {
               >
                 Driver Safety
               </button>
+              <button
+                onClick={() => navigate('/reports/delays')}
+                className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all"
+              >
+                Delay Report
+              </button>
             </div>
 
           </div>
