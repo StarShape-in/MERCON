@@ -1,7 +1,7 @@
 # MERCON — Project Progress (Living Status)
 
 **This is the single source of truth for "where is the project."**
-Last updated: **2026-08-05** (mobile **operator Home + Drivers list screens rebuilt** on a new `features/dashboard` and `features/drivers` architecture — NativeWind + TanStack Query added to the mobile app for the first time (babel/metro/tailwind config, `QueryClientProvider` in root layout); Home is now AppHeader/context chips/search/scanner, two `DashboardMetricCard`s (Active Trips, Delayed Deliveries), an `ActiveVehiclesSection` carousel (driver+route+status per active trip), and a `DocumentExpirySection` (replaces the old Fleet Utilization block) with real expiring-document counts + a scoped All/Vehicles/Drivers/Company list; Drivers list gained two dark KPI tiles, search/status-filter/sort, and backend-paginated infinite scroll. Then: mobile **operator Driver Details screen** — new `features/drivers` screen at `/operator/driver-details?id=` with profile/statistics, assigned vehicle, contact + licence info, documents, current assignment, performance summary and call/message actions, built on a layered api→services→hooks stack with React Query caching, pull-to-refresh and optimistic status updates; the driver list now taps through to it. Earlier the same day: web dashboard **mobile responsiveness pass**: the fixed 220px sidebar became an off-canvas drawer below `lg` driven by a header hamburger, the overflowing 8-item route pill bar is now desktop-only with Quick Create promoted to a header `+`, `DataTable`/`dialog.tsx`/`PageTitle` made phone-friendly, and page containers + stray fixed grids given mobile-first breakpoints. Also fixed a **pre-existing syntax error on `main`** — `handleUpdateStatus` in `DriverListPage.tsx` was missing its closing `};`, which made `tsc -b` fail and would have broken the Docker build/deploy. Previous session, 2026-08-04: fleet data onboarding: Excel export on the Drivers/Vehicles list pages now includes the driver's assigned vehicle plate and the vehicle's assigned driver — backend `getDrivers`/`getVehicles` now `include` the active trip + its vehicle/driver; styled `.xlsx` bulk-entry templates + `docs/MERCON_Fleet_Import_Guide.md` reworked to match those columns. Note: the templates are for **manual collection today — there is no backend import endpoint yet**. Previous session, 2026-08-02: mobile operator UI-kit consistency pass across all 8 operator screens + fixed a duplicate-bottom-nav bug; added real trip lifecycle actions (pickup arrive/verify, delivery verify, replace driver, cancel) to `TripDetailsScreen`; added Driver/Vehicle edit screens; added invoice "Mark as Paid"; added full Customers screen (list/search/create/edit); added an `Operator` "More" hub screen — fixed a real navigation gap where Vehicles/Invoices/VehicleRenewals were only reachable via deep link, not from the UI) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
+Last updated: **2026-08-05** (**Delay Reporting module** built end to end — a `/reports/delays` page with three views behind one filter bar: the delay log (one row per late arrival, click-through to the trip), an on-time % grid switchable by route/driver/company/truck, and an analysis tab with KPIs, an hours-lost trend and four leaderboards, all at any period from day to year with a delta against the preceding window. Backing it: `TripStop.actual_departure`, `location_name`, and `delay_reason`/`delay_note`/`delay_logged_by`/`delay_logged_at` + a `DelayReason` enum; three `/reports/delays*` endpoints; and an operator alert that fires the moment a stop is reached 30+ min late. **Two real data bugs fixed underneath it**: the mobile/geofence status path never stamped `actual_arrival` at all (and dropoff arrival was backfilled at completion, dating every delivery to when its paperwork finished), so the database could not tell "arrived 2h late" from "arrived on time and waited 2h to unload"; and the mobile operator's Create Trip screen sent no planned times, so every trip booked from a phone was invisible to delay reporting. Reason capture is operator-only by design — drivers already report causes in the WhatsApp group. Verified end to end over real HTTP against a live Postgres, plus a browser walkthrough of the report page on a seeded dataset. Earlier the same day: mobile **operator Home + Drivers list screens rebuilt** on a new `features/dashboard` and `features/drivers` architecture — NativeWind + TanStack Query added to the mobile app for the first time (babel/metro/tailwind config, `QueryClientProvider` in root layout); Home is now AppHeader/context chips/search/scanner, two `DashboardMetricCard`s (Active Trips, Delayed Deliveries), an `ActiveVehiclesSection` carousel (driver+route+status per active trip), and a `DocumentExpirySection` (replaces the old Fleet Utilization block) with real expiring-document counts + a scoped All/Vehicles/Drivers/Company list; Drivers list gained two dark KPI tiles, search/status-filter/sort, and backend-paginated infinite scroll. Then: mobile **operator Driver Details screen** — new `features/drivers` screen at `/operator/driver-details?id=` with profile/statistics, assigned vehicle, contact + licence info, documents, current assignment, performance summary and call/message actions, built on a layered api→services→hooks stack with React Query caching, pull-to-refresh and optimistic status updates; the driver list now taps through to it. Earlier the same day: web dashboard **mobile responsiveness pass**: the fixed 220px sidebar became an off-canvas drawer below `lg` driven by a header hamburger, the overflowing 8-item route pill bar is now desktop-only with Quick Create promoted to a header `+`, `DataTable`/`dialog.tsx`/`PageTitle` made phone-friendly, and page containers + stray fixed grids given mobile-first breakpoints. Also fixed a **pre-existing syntax error on `main`** — `handleUpdateStatus` in `DriverListPage.tsx` was missing its closing `};`, which made `tsc -b` fail and would have broken the Docker build/deploy. Previous session, 2026-08-04: fleet data onboarding: Excel export on the Drivers/Vehicles list pages now includes the driver's assigned vehicle plate and the vehicle's assigned driver — backend `getDrivers`/`getVehicles` now `include` the active trip + its vehicle/driver; styled `.xlsx` bulk-entry templates + `docs/MERCON_Fleet_Import_Guide.md` reworked to match those columns. Note: the templates are for **manual collection today — there is no backend import endpoint yet**. Previous session, 2026-08-02: mobile operator UI-kit consistency pass across all 8 operator screens + fixed a duplicate-bottom-nav bug; added real trip lifecycle actions (pickup arrive/verify, delivery verify, replace driver, cancel) to `TripDetailsScreen`; added Driver/Vehicle edit screens; added invoice "Mark as Paid"; added full Customers screen (list/search/create/edit); added an `Operator` "More" hub screen — fixed a real navigation gap where Vehicles/Invoices/VehicleRenewals were only reachable via deep link, not from the UI) · Owner: Hysam (solo dev + AI) · Deadline: ~1 month from July 2026
 
 > ⚠️ **Keep this file honest.** It is written from reading the actual code, not the
 > docs (the `docs/` folder describes the *planned* product and overstates progress).
@@ -18,6 +18,7 @@ Last updated: **2026-08-05** (mobile **operator Home + Drivers list screens rebu
 | **Web dashboard** (Admin/Operator) | ✅ Done, all pages on real data | ~95% |
 | **Mobile app** (Driver + Operator) | 🔄 Driver side ~done (nav + full trip flow + all core screens); operator side wired with real trip lifecycle actions (dispatch→pickup→delivery→complete, replace driver, cancel), Driver/Vehicle edit, Invoice mark-paid, and a new Customers screen (list/create/edit); a proper "More" hub now makes Vehicles/Invoices/Customers/Renewals reachable in-app (previously only via deep link); only secondary Replacement/Splash screens left static; live GPS pending | ~76% |
 | **Live GPS tracking** (driver → web) | 🔄 Foreground streaming wired (socket emit); background + device verification pending | ~60% |
+| **Delay reporting** (log + on-time grid + analysis) | ✅ Built, verified end to end | ~90% |
 | **Testing / builds / handover** | ❌ Not started (no real-phone run yet) | 0% |
 
 **One-line status:** Backend and web are basically finished. Trips can no longer be created without
@@ -55,6 +56,33 @@ real-phone testing + release builds.
 | Structured logging (Pino), collision-safe reference IDs | ✅ (`d816736`, `f32cbca`) |
 | `JWT_SECRET` rotated → GitHub Actions secret, leaked fallback removed | ✅ (2026-07-12) |
 | Driver fixes: validate `PATCH /drivers/:id` (fixes "Failed to update"), free phone number on delete so it can be reused | ✅ (`a217c59`, `029cee7`) |
+
+### Delay reporting (backend + web) — new 2026-08-05
+| Piece | State |
+|---|---|
+| `TripStop.actual_departure` + `stampStopTransition()` owning the stop clock; every status path (web generic, pickupArrive, pickupVerify, mobile/geofence, completion) stamps arrival/departure inside its transaction | ✅ |
+| Fixed: mobile/geofence path never wrote `actual_arrival`; dropoff arrival no longer backfilled at completion (it dated deliveries to when paperwork finished) | ✅ |
+| Fixed: mobile operator Create Trip sent no `planned_arrival`, so phone-booked trips could never count as late | ✅ |
+| `TripStop.location_name` + capture in both create-trip forms (web picker auto-fills from its existing Nominatim search, editable) | ✅ |
+| `DelayReason` enum + `delay_reason`/`delay_note`/`delay_logged_by`/`delay_logged_at`; `PATCH /trips/:id/stops/:stopId/delay` (operator-only, re-loggable) | ✅ |
+| Operator alert broadcast to every active Admin + Operator when an arrival lands 30+ min late; fires post-commit, once per stop | ✅ |
+| `GET /reports/delays`, `/delays/grid`, `/delays/analysis` — shared filters (range, customer, driver, vehicle, reason); grid switchable by route/driver/company/vehicle; analysis at day→year granularity with previous-window deltas | ✅ |
+| `/reports/delays` page: log (click-through to trip), on-time grid, analysis (KPIs, trend, 4 leaderboards), CSV export | ✅ |
+| Reason picker on `TripDetailsPage` for any stop over the threshold | ✅ |
+
+**Verification:** end-to-end over real HTTP against a live Postgres — operator creates a trip,
+driver runs it late through the mobile endpoints, operators get alerted, an operator logs the
+reason, and every report view reflects it; plus invoice generation and driver/vehicle release
+confirmed unbroken, and a driver token confirmed rejected from the operator reports. The report
+page was also walked in a real browser against a seeded dataset (3 companies, 4 routes, 25 trips),
+which caught two render bugs a type-check could not (percentage-height bars collapsing to zero,
+and the ﷼ glyph reordering beside digits).
+
+**Not covered:** no independent GPS cross-check of departure times — the client's reference sheet
+compares three sources, MERCON has one (the driver's app) until ICCES credentials arrive. Waiting
+time is measured and reported but never billed automatically. Alerts reach open dashboards, not
+locked phones (needs push, still deferred). History starts at deploy: older trips have no location
+names, unreliable arrivals and no reasons, and cannot be backfilled.
 
 ### Web dashboard (`frontend/web-dashboard`) — Admin + Operator
 | Piece | State |
@@ -182,6 +210,12 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done
   validate with Zod, upsert on the unique keys (driver phone/license, vehicle plate), resolve the
   assignment columns, and report per-row errors. Field mapping already specced in the guide.
 - ⬜ Web UI: "Import from Excel" on the Drivers/Vehicles list pages (upload → preview → confirm)
+
+### Milestone 3.5 — Delay reporting follow-ups
+- ⬜ Push notifications so a delay alert reaches a phone that is locked / app closed (currently in-dashboard only)
+- ⬜ Geofence/ICCES departure time as an independent second source, to match the client's three-way cross-check (blocked on credentials)
+- ⬜ Optional: auto-flag dwell time past ~5h as chargeable (client rarely bills the first 1–2h, so this stays a manual operator decision for now)
+- ⬜ Optional: reason capture on the operator mobile app (web-only today)
 
 ### Milestone 4 — Testing, builds, handover
 - ⬜ Real-phone test, both roles (Android + iPhone)
