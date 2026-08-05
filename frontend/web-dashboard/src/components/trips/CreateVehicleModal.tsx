@@ -113,7 +113,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onCreated }: Creat
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Plate Number <span className="text-rose-500">*</span>
@@ -146,7 +146,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onCreated }: Creat
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 <Gauge className="w-3.5 h-3.5 text-slate-400" /> Max Capacity (kg) <span className="text-rose-500">*</span>
@@ -176,7 +176,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onCreated }: Creat
             <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
               Optional Trailer Details
             </span>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
                   Trailer Number

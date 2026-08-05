@@ -150,7 +150,7 @@ export default function AddCustomerPage() {
 
   return (
     <DashboardLayout active="Customers" title="Onboard Customer">
-      <div className="px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto">
         
         {/* Top Scope & Action Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">

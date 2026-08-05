@@ -218,7 +218,7 @@ export default function DocumentsCenterPage() {
 
   return (
     <DashboardLayout active="Documents" title="Documents Center">
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
 
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
@@ -748,7 +748,7 @@ export default function DocumentsCenterPage() {
               </div>
 
               {/* Metadata Key-Value Grid */}
-              <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1">
                   <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Entity Owner</span>
                   <p className="font-semibold text-slate-800 dark:text-slate-200">{nameFor(previewDoc)}</p>

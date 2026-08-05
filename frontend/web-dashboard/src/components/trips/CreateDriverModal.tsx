@@ -115,7 +115,7 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 First Name <span className="text-rose-500">*</span>
@@ -152,7 +152,7 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 <FileText className="w-3.5 h-3.5 text-slate-400" /> Driver License No. <span className="text-rose-500">*</span>

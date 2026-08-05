@@ -186,7 +186,7 @@ export default function OperatorProfilePage() {
 
   return (
     <DashboardLayout active="Settings" title="Operator Profile">
-      <div className="px-6 pb-6 space-y-5 animate-fade-in max-w-[1250px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1250px] mx-auto w-full">
 
         {/* ── Minimalist Header ───────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
@@ -807,7 +807,7 @@ export default function OperatorProfilePage() {
                 </CardHeader>
 
                 <CardContent className="p-5 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Username</Label>
                       <Input value={user?.username || 'operator'} disabled className="h-8 font-mono text-xs bg-slate-50 dark:bg-slate-800/40" />

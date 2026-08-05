@@ -83,9 +83,9 @@ export default function ReportsDashboardPage() {
   if (isLoading) {
     return (
       <DashboardLayout active="Reports" title="Reports & Analytics">
-        <div className="px-6 pb-6">
+        <div className="px-4 sm:px-6 pb-6">
           <ReportsHeader activeTab="overview" />
-          <div className="animate-pulse grid grid-cols-4 gap-4 mb-6">
+          <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-slate-100 dark:bg-slate-800 rounded-xl"></div>)}
           </div>
           <div className="animate-pulse h-96 bg-slate-100 dark:bg-slate-800 rounded-xl"></div>
@@ -97,7 +97,7 @@ export default function ReportsDashboardPage() {
   if (error || !summary) {
     return (
       <DashboardLayout active="Reports" title="Reports & Analytics">
-        <div className="px-6 pb-6">
+        <div className="px-4 sm:px-6 pb-6">
           <ReportsHeader activeTab="overview" />
           <div className="p-6 text-center text-slate-500 mt-12">
             <AlertTriangle size={48} className="mx-auto mb-4 text-rose-500 opacity-50" />
@@ -128,7 +128,7 @@ export default function ReportsDashboardPage() {
 
   return (
     <DashboardLayout active="Reports" title="Reports & Analytics">
-      <div className="px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto">
         <ReportsHeader 
           activeTab="overview" 
           onRefresh={handleRefresh}

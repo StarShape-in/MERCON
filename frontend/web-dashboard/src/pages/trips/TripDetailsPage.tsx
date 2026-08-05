@@ -124,7 +124,7 @@ export default function TripDetailsPage() {
         </div>
       }
     >
-      <div className="px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 animate-fade-in">
+      <div className="px-4 sm:px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 animate-fade-in">
         
         {/* Left Column (Main Trip Content) */}
         <div className="lg:col-span-2 space-y-4">

@@ -104,7 +104,7 @@ export default function FleetPerformancePage() {
 
   return (
     <DashboardLayout active="Reports" title="Fleet Performance">
-      <div className="px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
         <ReportsHeader 
           activeTab="fleet" 
           onRefresh={() => refetch()}

@@ -11,8 +11,9 @@ import {
   Truck, 
   Users, 
   FileText, 
-  PieChart, 
-  Receipt 
+  PieChart,
+  Receipt,
+  Menu
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
@@ -29,9 +30,11 @@ import {
 interface HeaderProps {
   title?: string;
   breadcrumb?: string;
+  /** Opens the off-canvas sidebar — only rendered below lg */
+  onMenuClick?: () => void;
 }
 
-export default function Header({ title, breadcrumb }: HeaderProps) {
+export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
@@ -68,14 +71,33 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
   ];
 
   return (
-    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 h-[62px] flex items-center justify-between gap-4 relative z-20">
-      
-      {/* Center-Left: Horizontal Route Navigation Hub */}
-      <div 
-        className="flex items-center gap-3 min-w-0 overflow-x-auto scrollbar-none"
+    <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 lg:px-6 h-[56px] lg:h-[62px] flex items-center justify-between gap-2 sm:gap-4 relative z-20">
+
+      {/* Mobile: hamburger + current page title (route pills live in the drawer) */}
+      <div className="flex items-center gap-2.5 min-w-0 lg:hidden">
+        <button
+          onClick={onMenuClick}
+          aria-label="Open navigation menu"
+          className="p-2 -ml-1 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+        >
+          <Menu size={20} />
+        </button>
+        <div className="min-w-0">
+          <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate leading-tight">
+            {title || 'MERCON'}
+          </p>
+          {breadcrumb && (
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate leading-tight">{breadcrumb}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Center-Left: Horizontal Route Navigation Hub (lg and up) */}
+      <div
+        className="hidden lg:flex items-center gap-3 min-w-0 overflow-x-auto scrollbar-none"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        
+
         {/* HORIZONTAL ROUTE PILL BAR */}
         <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/80 dark:border-slate-700 shrink-0">
           {navRoutes.map((route) => {
@@ -138,8 +160,41 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
       </div>
 
       {/* Right Side Controls */}
-      <div className="flex items-center gap-3 shrink-0">
-        
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+
+        {/* Quick Create — mobile only (the desktop one lives in the pill bar) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="lg:hidden w-8.5 h-8.5 rounded-xl bg-[#E8450F] text-white flex items-center justify-center transition-colors hover:bg-[#C7380A] shadow-2xs"
+              aria-label="Quick create"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+              Quick Create Workflows
+            </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigate('/trips/new')} className="cursor-pointer text-xs font-semibold py-2 px-2 rounded-md">
+              <Truck className="w-3.5 h-3.5 mr-2 text-indigo-600" /> New Dispatch Trip
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/vehicles/new')} className="cursor-pointer text-xs font-semibold py-2 px-2 rounded-md">
+              <Truck className="w-3.5 h-3.5 mr-2 text-blue-600" /> Register Vehicle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/drivers/new')} className="cursor-pointer text-xs font-semibold py-2 px-2 rounded-md">
+              <Users className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Onboard Driver
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+            <DropdownMenuItem onClick={() => navigate('/rate-cards/new')} className="cursor-pointer text-xs font-semibold py-2 px-2 rounded-md">
+              <FileText className="w-3.5 h-3.5 mr-2 text-[#E8450F]" /> Create Rate Card
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/invoices/new')} className="cursor-pointer text-xs font-semibold py-2 px-2 rounded-md">
+              <Receipt className="w-3.5 h-3.5 mr-2 text-purple-600" /> Generate Invoice
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* Notifications trigger */}
         <Link to="/notifications" className="relative group">
           <div className="w-8.5 h-8.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
@@ -159,7 +214,7 @@ export default function Header({ title, breadcrumb }: HeaderProps) {
             <div className="w-5.5 h-5.5 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[9px] font-black select-none">
               {initials}
             </div>
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[80px] truncate">{firstName}</span>
+            <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[80px] truncate">{firstName}</span>
             <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 

@@ -53,7 +53,7 @@ export default function InvoicePaymentPage() {
 
   return (
     <DashboardLayout active="Invoices" title="Record Payment">
-      <div className="px-6 pb-6 max-w-3xl">
+      <div className="px-4 sm:px-6 pb-6 max-w-3xl">
         <button 
           onClick={() => navigate('/invoices')}
           className="flex items-center gap-2 text-sm font-semibold text-[#6E6E80] hover:text-[#111] transition-colors mb-6"

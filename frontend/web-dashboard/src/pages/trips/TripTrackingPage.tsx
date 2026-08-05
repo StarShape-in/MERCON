@@ -166,7 +166,7 @@ export default function TripTrackingPage() {
         </div>
       }
     >
-      <div className="px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 h-[calc(100vh-170px)] animate-fade-in">
+      <div className="px-4 sm:px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-[calc(100vh-170px)] animate-fade-in">
 
         {/* Map panel */}
         <div className="lg:col-span-2 rounded-[24px] border border-black/[0.1] shadow-2xl relative overflow-hidden flex flex-col min-h-[400px] z-0" style={{ background: currentTheme.previewColor }}>

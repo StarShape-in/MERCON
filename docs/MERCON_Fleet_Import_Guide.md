@@ -30,8 +30,7 @@ The following ready-to-use Excel (`.xlsx`) and CSV (`.csv`) files have been gene
 | **Primary Phone \*** | **Required** | Text | Unique Phone String | Primary contact phone number (e.g. `+966 50 123 4567`). Must be unique in system. |
 | **License Number \*** | **Required** | Text | String | Official driver's license number (e.g. `DL-98765432`). |
 | **License Expiry Date \*** | **Required** | Date | `YYYY-MM-DD` | Expiry date of driving license (e.g. `2028-12-31`). |
-| **Email Address** | Optional | Text | Email String | Driver's email for mobile app login / notifications (e.g. `ahmed.mansoor@mercon.com`). |
-| **Notes / Emergency Contact**| Optional | Text | String | Secondary phone number or driver remarks (e.g. `Emergency: +966 55 111 2233`). |
+| **Assigned Vehicle Plate** | Optional | Text | Registration Plate | License plate number of assigned vehicle (e.g. `8492-RKA`). |
 
 *(Note: Imported drivers default automatically to `Available` status in MERCON).*
 
@@ -49,8 +48,8 @@ The following ready-to-use Excel (`.xlsx`) and CSV (`.csv`) files have been gene
 | **Capacity (KG) \*** | **Required** | Numeric | Positive Integer | Maximum weight payload capacity in Kilograms (e.g. `25000`). |
 | **Current Odometer (KM)** | Optional | Numeric | Decimal / Float | Current odometer reading in KM (e.g. `45000.0`). |
 | **ICCES Device ID** | Optional | Text | ICCES Device ID String | Unique ICCES GPS Device ID assigned to this truck (e.g. `06670881` or `351777090213198`). |
+| **Assigned Driver Phone / Name** | Optional | Text | Phone or Name String | Phone number or name of assigned driver (e.g. `+966 50 123 4567` or `Ahmed Al-Mansoor`). |
 | **Trailer Number** | Optional | Text | String | Linked trailer identifier (e.g. `TRL-402`). |
-| **Trailer Type** | Optional | Dropdown | `Flatbed`, `Reefer`, `Box`, `Tanker` | Linked trailer asset classification. |
 | **Trailer Capacity (KG)** | Optional | Numeric | Positive Integer | Linked trailer payload capacity in KG (e.g. `30000`). |
 
 *(Note: Imported vehicles default automatically to `Available` status in MERCON).*
