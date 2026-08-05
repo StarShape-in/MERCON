@@ -265,6 +265,12 @@ model TripStop {
   stop_type        StopType
   location_lat     Float
   location_lng     Float
+  // What people call this place — "Khamis Sorting Center". Coordinates
+  // identify a stop but cannot be read: a delay report grouped by raw lat/lng
+  // has one row per pin dropped rather than one per real destination, so the
+  // same site never accumulates a history. Free text, because these are the
+  // customer's yards and depots, not a list we own.
+  location_name    String?
   planned_arrival  DateTime? @db.Timestamptz
   actual_arrival   DateTime? @db.Timestamptz
   // When the driver left this stop. Paired with actual_arrival this is how

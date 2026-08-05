@@ -27,6 +27,8 @@ const CreateTripScreen = () => {
   const [pickupLng, setPickupLng] = useState('');
   const [dropoffLat, setDropoffLat] = useState('');
   const [dropoffLng, setDropoffLng] = useState('');
+  const [pickupName, setPickupName] = useState('');
+  const [dropoffName, setDropoffName] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [etaDate, setEtaDate] = useState('');
@@ -105,8 +107,16 @@ const CreateTripScreen = () => {
         // Omitting them (as this screen used to) creates a trip that can never
         // be counted as late, so it silently vanishes from the delay reports.
         stops: [
-          { stop_type: 'Pickup', lat: pickupLatNum, lng: pickupLngNum, planned_arrival: plannedPickup },
-          { stop_type: 'Dropoff', lat: dropoffLatNum, lng: dropoffLngNum, planned_arrival: plannedDropoff },
+          {
+            stop_type: 'Pickup', lat: pickupLatNum, lng: pickupLngNum,
+            planned_arrival: plannedPickup,
+            location_name: pickupName.trim() || undefined,
+          },
+          {
+            stop_type: 'Dropoff', lat: dropoffLatNum, lng: dropoffLngNum,
+            planned_arrival: plannedDropoff,
+            location_name: dropoffName.trim() || undefined,
+          },
         ],
       });
       invalidateOperatorTrips();
@@ -179,6 +189,13 @@ const CreateTripScreen = () => {
                   keyboardType="numeric"
                 />
               </View>
+              <Input
+                label="Location name"
+                value={pickupName}
+                onChangeText={setPickupName}
+                placeholder="e.g. Khamis Sorting Center"
+                maxLength={120}
+              />
             </View>
             <View style={styles.formDivider} />
             <View style={styles.formGroup}>
@@ -199,6 +216,13 @@ const CreateTripScreen = () => {
                   keyboardType="numeric"
                 />
               </View>
+              <Input
+                label="Location name"
+                value={dropoffName}
+                onChangeText={setDropoffName}
+                placeholder="e.g. Baish"
+                maxLength={120}
+              />
             </View>
           </Card>
 

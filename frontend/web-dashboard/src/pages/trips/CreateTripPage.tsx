@@ -53,10 +53,12 @@ export default function CreateTripPage() {
   const [pickupLat, setPickupLat] = useState<number | null>(24.7136); // Default Riyadh
   const [pickupLng, setPickupLng] = useState<number | null>(46.6753);
   const [pickupTime, setPickupTime] = useState('');
+  const [pickupName, setPickupName] = useState('');
 
   const [dropoffLat, setDropoffLat] = useState<number | null>(21.5433); // Default Jeddah
   const [dropoffLng, setDropoffLng] = useState<number | null>(39.1728);
   const [dropoffTime, setDropoffTime] = useState('');
+  const [dropoffName, setDropoffName] = useState('');
 
   // Fetch Customers, Drivers, Vehicles for Select inputs
   const { data: customersRes } = useQuery({
@@ -202,18 +204,20 @@ export default function CreateTripPage() {
           lat: pickupLat,
           lng: pickupLng,
           planned_arrival: pickupTime || undefined,
+          location_name: pickupName.trim() || undefined,
         },
         {
           stop_type: 'Dropoff',
           lat: dropoffLat,
           lng: dropoffLng,
           planned_arrival: dropoffTime || undefined,
+          location_name: dropoffName.trim() || undefined,
         },
       ],
     };
 
     createMutation.mutate(payload);
-  }, [customerId, driverId, vehicleId, pickupLat, pickupLng, dropoffLat, dropoffLng, plannedStart, pickupTime, dropoffTime, createMutation]);
+  }, [customerId, driverId, vehicleId, pickupLat, pickupLng, dropoffLat, dropoffLng, plannedStart, pickupTime, dropoffTime, pickupName, dropoffName, createMutation]);
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
@@ -496,6 +500,8 @@ export default function CreateTripPage() {
                     lat={pickupLat}
                     lng={pickupLng}
                     onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
+                    name={pickupName}
+                    onNameChange={setPickupName}
                   />
 
                   <div className="space-y-1.5 pt-2">
@@ -528,6 +534,8 @@ export default function CreateTripPage() {
                     lat={dropoffLat}
                     lng={dropoffLng}
                     onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
+                    name={dropoffName}
+                    onNameChange={setDropoffName}
                   />
 
                   <div className="space-y-1.5 pt-2">

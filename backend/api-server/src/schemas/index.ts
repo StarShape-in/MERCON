@@ -39,6 +39,8 @@ export const createTripBody = z.object({
     lat: z.coerce.number(),
     lng: z.coerce.number(),
     planned_arrival: z.string().optional(),
+    // Human-readable name for this place — the route label in delay reports.
+    location_name: z.string().trim().max(120).optional(),
     stop_sequence: z.number().int().optional(),
   })).min(2, 'At least a pickup and a dropoff are required'),
 });

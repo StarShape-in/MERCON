@@ -36,6 +36,7 @@ export interface TripStop {
   stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
   location_lat: number;
   location_lng: number;
+  location_name: string | null;
   planned_arrival: string | null;
   actual_arrival: string | null;
   actual_departure: string | null;
@@ -48,7 +49,7 @@ export interface CreateTripPayload {
   cargo_type?: string;
   hazmat_flag?: boolean;
   planned_start?: string;
-  stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string }[];
+  stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string; location_name?: string }[];
 }
 
 export interface TripFilters {
