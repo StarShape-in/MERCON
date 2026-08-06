@@ -26,12 +26,21 @@ import { downloadCSV } from '@/utils/exportUtils';
 
 type Tab = 'log' | 'grid' | 'analysis';
 
-const GRANULARITIES: { id: DelayGranularity; label: string; days: number }[] = [
-  { id: 'day', label: 'Today', days: 1 },
-  { id: 'week', label: 'Week', days: 7 },
-  { id: 'month', label: 'Month', days: 30 },
-  { id: 'quarter', label: 'Quarter', days: 90 },
-  { id: 'year', label: 'Year', days: 365 },
+/**
+ * How far back to look, and how finely to slice it — two separate things.
+ *
+ * Bucketing a year *by year* collapses the grid to a single column and hides
+ * the trend that made looking at a year worthwhile. So each range carries the
+ * bucket that keeps a readable number of columns and matches how the client's
+ * own sheet is laid out: a year read monthly, a quarter weekly, shorter
+ * ranges daily.
+ */
+const PERIODS: { id: string; label: string; days: number; bucket: DelayGranularity }[] = [
+  { id: 'today', label: 'Today', days: 1, bucket: 'day' },
+  { id: 'week', label: 'Week', days: 7, bucket: 'day' },
+  { id: 'month', label: 'Month', days: 30, bucket: 'day' },
+  { id: 'quarter', label: 'Quarter', days: 90, bucket: 'week' },
+  { id: 'year', label: 'Year', days: 365, bucket: 'month' },
 ];
 
 const DIMENSIONS: { id: DelayDimension; label: string }[] = [
@@ -84,16 +93,15 @@ function Delta({ value, suffix = '%', invert = true }: { value: number | null; s
 export default function DelayReportPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('log');
-  const [granularity, setGranularity] = useState<DelayGranularity>('month');
+  const [periodId, setPeriodId] = useState('month');
   const [customerId, setCustomerId] = useState('');
   const [dimension, setDimension] = useState<DelayDimension>('route');
   const [needsReasonOnly, setNeedsReasonOnly] = useState(false);
   const [page, setPage] = useState(1);
 
-  const startDate = useMemo(
-    () => isoDaysAgo(GRANULARITIES.find((g) => g.id === granularity)?.days ?? 30),
-    [granularity],
-  );
+  const period = PERIODS.find((p) => p.id === periodId) ?? PERIODS[2];
+  const granularity: DelayGranularity = period.bucket;
+  const startDate = useMemo(() => isoDaysAgo(period.days), [period.days]);
 
   const filters = useMemo(
     () => ({
@@ -173,16 +181,16 @@ export default function DelayReportPage() {
           </div>
 
           <div className="flex rounded-md overflow-hidden border border-slate-200">
-            {GRANULARITIES.map((g) => (
+            {PERIODS.map((p) => (
               <button
-                key={g.id}
+                key={p.id}
                 type="button"
-                onClick={() => { setGranularity(g.id); setPage(1); }}
+                onClick={() => { setPeriodId(p.id); setPage(1); }}
                 className={`px-2.5 h-8 text-xs font-semibold transition-colors ${
-                  granularity === g.id ? 'bg-[#E8450F] text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                  periodId === p.id ? 'bg-[#E8450F] text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                {g.label}
+                {p.label}
               </button>
             ))}
           </div>
