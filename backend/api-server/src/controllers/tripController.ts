@@ -99,7 +99,7 @@ export const getTrips = async (req: Request, res: Response) => {
         where: whereClause,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
         include: { driver: true, vehicle: true, customer: true }
       }),
       prisma.trip.count({ where: whereClause })
