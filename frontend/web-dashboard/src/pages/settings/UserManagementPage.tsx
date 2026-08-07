@@ -7,7 +7,8 @@ import { toast } from 'sonner';
 import { downloadCSV } from '@/utils/exportUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
-import Btn from '@/components/ui/Btn';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { authStore } from '@/store/authStore';
 import { userService, UserDTO } from '@/services/userService';
 import { driverService } from '@/services/driverService';
@@ -206,31 +207,56 @@ export default function UserManagementPage() {
   return (
     <DashboardLayout
       active="Settings"
-      breadcrumb="Settings"
-      title="User Management"
-      pageTitle="Platform Users"
-      pageSub={isAdmin
-        ? 'Manage admins, operators, and drivers across the platform.'
-        : 'View admins and operators across the platform.'}
-      actions={
-        isAdmin ? (
-          <div className="flex gap-2">
-            <Btn
-              variant="outline"
-              label="Add Driver"
-              icon={<Truck size={14} />}
-              onClick={() => navigate('/drivers/new')}
-            />
-            <Btn
-              label="Invite User"
-              icon={<Plus size={14} />}
-              onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
-            />
-          </div>
-        ) : undefined
-      }
+      title="Settings"
     >
-      <div className="px-4 sm:px-6 pb-6">
+      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          <div className="flex items-center gap-3">
+            <Users className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  User Management
+                </h1>
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
+                  Platform Module
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                {isAdmin
+                  ? 'Manage admins, operators, and drivers across the platform.'
+                  : 'View admins and operators across the platform.'}
+              </p>
+            </div>
+          </div>
+
+          {isAdmin && (
+            <div className="flex items-center gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+                onClick={() => navigate('/drivers/new')}
+              >
+                <Truck className="h-3.5 w-3.5 text-slate-600" />
+                Add Driver
+              </Button>
+
+              <Button
+                size="sm"
+                className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+                onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
+              >
+                <Plus className="h-4 w-4" />
+                Invite User
+              </Button>
+            </div>
+          )}
+        </div>
+
         <DataTable
           title={
             <span className="flex items-center gap-2">
