@@ -438,20 +438,19 @@ export default function TripListPage() {
         <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
-            {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
-            <div className="flex items-center gap-3 shrink-0">
-              
-              {/* Search Input */}
-              <div className="relative w-64 shrink-0">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search trip ID, customer, driver..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
-                />
-              </div>
+            {/* Search Input (Left Side) */}
+            <div className="relative w-64 sm:w-72 shrink-0">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search trip ID, customer, driver..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
+              />
+            </div>
 
+            {/* Filter Dropdowns (Right Side, Opposite Search) */}
+            <div className="flex items-center gap-2.5 shrink-0 ml-auto">
               {/* Status Filter Dropdown */}
               <Select
                 value={selectedStatus}
