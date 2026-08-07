@@ -19,7 +19,7 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
   const navigate = useNavigate();
   const user = authStore.getUser();
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
-  
+
   const handleLogout = () => {
     authStore.clearSession();
     navigate('/login');
@@ -70,7 +70,7 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
       items: [
         { icon: Settings, label: 'Settings', path: '/settings' },
         { icon: User, label: 'Profile', path: '/settings/profile' },
-        ...(user?.role === 'Admin' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
+        ...(user?.role === 'Admin' || user?.role === 'Operator' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
       ],
     },
   ];
@@ -123,17 +123,17 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
                   onClick={onClose}
                   className={({ isActive }) => `
                     flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group
-                    ${isActive 
-                      ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15' 
+                    ${isActive
+                      ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15'
                       : 'text-white/60 hover:bg-white/5 hover:text-white'
                     }
                   `}
                 >
                   {({ isActive }) => (
                     <>
-                      <item.icon 
-                        size={16} 
-                        className={`transition-transform duration-150 group-hover:scale-105 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`} 
+                      <item.icon
+                        size={16}
+                        className={`transition-transform duration-150 group-hover:scale-105 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`}
                       />
                       <span className="text-xs font-semibold flex-1">{item.label}</span>
                       {item.badge !== undefined && item.badge > 0 && !isActive && (
@@ -159,7 +159,7 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
           <p className="text-xs font-semibold text-white truncate">{user?.name || 'Mohammed Al-Harbi'}</p>
           <p className="text-[9px] text-white/50 truncate">{user?.email || 'operator@mercon.sa'}</p>
         </div>
-        <button 
+        <button
           onClick={handleLogout}
           className="text-white/50 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
           title="Logout"

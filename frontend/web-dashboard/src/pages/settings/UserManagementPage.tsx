@@ -13,7 +13,7 @@ import UserModal from './components/UserModal';
 export default function UserManagementPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserDTO | null>(null);
 
@@ -76,8 +76,8 @@ export default function UserManagementPage() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name?.toLowerCase().includes(search.toLowerCase()) || 
+  const filteredUsers = users.filter(u =>
+    u.name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -128,13 +128,13 @@ export default function UserManagementPage() {
       header: 'Actions',
       accessor: (row: UserDTO) => (
         <div className="flex gap-1">
-          <button 
+          <button
             onClick={() => handleEdit(row)}
             className="w-7 h-7 rounded-lg bg-[#F5F5F7] hover:bg-[#EBEBEF] flex items-center justify-center transition-colors"
           >
             <Edit2 size={13} className="text-[#6E6E80]" />
           </button>
-          <button 
+          <button
             onClick={() => handleDelete(row)}
             className="w-7 h-7 rounded-lg bg-[#FEF2F2] hover:bg-[#FEE2E2] flex items-center justify-center transition-colors"
           >
@@ -146,16 +146,16 @@ export default function UserManagementPage() {
   ];
 
   return (
-    <DashboardLayout 
-      active="Settings" 
+    <DashboardLayout
+      active="Settings"
       breadcrumb="Settings"
-      title="User Management" 
-      pageTitle="Platform Users" 
+      title="User Management"
+      pageTitle="Platform Users"
       pageSub="Manage operator access, roles, and permissions."
       actions={
-        <Btn 
-          label="Invite User" 
-          icon={<Plus size={14} />} 
+        <Btn
+          label="Invite User"
+          icon={<Plus size={14} />}
           onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
         />
       }
@@ -190,7 +190,7 @@ export default function UserManagementPage() {
         />
       </div>
 
-      <UserModal 
+      <UserModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveUser}

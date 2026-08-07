@@ -7,9 +7,9 @@ import { createUserBody, updateUserBody, idParam } from '../schemas';
 
 const router = Router();
 
-// Only Admin can access these routes
+// Admin and Operator can access these routes
 router.use(authenticateJWT);
-router.use(authorizeRoles('Admin'));
+router.use(authorizeRoles('Admin', 'Operator'));
 
 router.get('/', getUsers);
 router.post('/', validate({ body: createUserBody }), createUser);

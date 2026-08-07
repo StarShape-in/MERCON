@@ -43,10 +43,12 @@ from `@mercon/shared-types`.
 |---|---|---|
 | Web dashboard (`frontend/web-dashboard`) | **Admin, Operator** | Drivers never log in here |
 | Mobile app (`frontend/mobile-app/mercon-app`) | **Operator, Driver** | Drivers log in via license number (`mobileAuthController`) |
-| User Management page (`/settings/users`) | **Admin only** | Gated by `RequireRole` + `authorizeRoles('Admin')`; manages web users only (Admin/Operator) — Driver users are excluded from the list and must not be creatable there |
+| User Management page (`/settings/users`) | **Admin, Operator** | Gated by `RequireRole` + `authorizeRoles('Admin', 'Operator')`; also lists Drivers (read-only) alongside Admin/Operator so it's a full "all platform users" view — but Driver rows cannot be created/edited/deleted here, only viewed. Web-user create/edit (`createUserBody`/`updateUserBody`) still only accepts role `Admin`/`Operator` — Driver-role Users are still not creatable through this page's form |
 
-Driver accounts/access are managed through the Drivers module, not User
-Management.
+Driver accounts/access (creation, edit, documents) are managed through the
+Drivers module (`/drivers`), not through the User Management form. The
+User Management page links out to "Add Driver" (`/drivers/new`) rather than
+creating drivers itself.
 
 ## Database & seed rules
 

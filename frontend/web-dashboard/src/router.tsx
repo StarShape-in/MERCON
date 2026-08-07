@@ -156,7 +156,7 @@ export default function AppRouter() {
           {/* Settings */}
           <Route path="/settings"                 element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/settings/profile"         element={<ProtectedRoute><OperatorProfilePage /></ProtectedRoute>} />
-          <Route path="/settings/users"           element={<ProtectedRoute><RequireRole roles={['Admin']}><UserManagementPage /></RequireRole></ProtectedRoute>} />
+          <Route path="/settings/users"           element={<ProtectedRoute><RequireRole roles={['Admin', 'Operator']}><UserManagementPage /></RequireRole></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
