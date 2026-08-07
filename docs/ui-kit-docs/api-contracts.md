@@ -529,7 +529,7 @@ interface RateCard {
   min_charge_sar: number;        // 500
   fuel_surcharge_percent: number; // 15
   waiting_rate_per_hour: number; // 100
-  cargo_type: string | null;     // "General" | "Hazmat" | "Pharma" | null (all)
+  cargo_type: string | null;     // "General" | "Pharma" | null (all)
   is_active: boolean;
   created_at: string;
 }

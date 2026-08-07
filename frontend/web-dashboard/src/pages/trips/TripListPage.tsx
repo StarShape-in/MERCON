@@ -1,28 +1,24 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Plus, 
-  Download, 
-  Eye, 
-  Edit2, 
-  Trash2, 
-  Navigation, 
-  Search, 
-  AlertTriangle, 
-  MoreVertical, 
-  RefreshCw, 
-  Truck, 
-  User, 
-  MapPin, 
+import {
+  Plus,
+  Download,
+  Edit2,
+  Trash2,
+  Navigation,
+  Search,
+  RefreshCw,
+  Truck,
+  User,
+  MapPin,
   Layers,
   Filter,
   CheckCircle2,
   RotateCw,
   Calendar as CalendarIcon,
   Building2,
-  FileText,
-  ChevronDown
+  FileText
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
@@ -38,15 +34,6 @@ import KpiCard from '@/components/ui/KpiCard';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Select,
   SelectContent,
@@ -115,9 +102,9 @@ export default function TripListPage() {
 
   const activeInTransit = rawTrips.filter(t => t.status === 'InTransit' || t.status === 'AtPickup' || t.status === 'Dispatched');
   const inTransitCount = activeInTransit.length;
-  const onScheduleCount = activeInTransit.filter(t => !t.hazmat_flag).length;
-  const delayedCount = activeInTransit.filter(t => t.hazmat_flag).length;
   const stoppedCount = activeInTransit.filter(t => t.status === 'AtPickup').length;
+  const onScheduleCount = activeInTransit.length - stoppedCount;
+  const delayedCount = 0;
 
   const completedTrips = rawTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced' || t.status === 'AtDelivery');
   const completedCount = completedTrips.length;
@@ -158,12 +145,6 @@ export default function TripListPage() {
             <span className="font-mono text-xs font-bold text-[#E8450F]">
               {row.ref_id || 'Draft'}
             </span>
-            {row.hazmat_flag && (
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-[10px] px-1.5 py-0 h-4 font-semibold flex items-center gap-0.5">
-                <AlertTriangle size={10} className="shrink-0" />
-                HAZMAT
-              </Badge>
-            )}
           </div>
           <span className="text-[11px] text-muted-foreground font-medium">
             {row.cargo_type || 'Standard Cargo'}
@@ -194,9 +175,15 @@ export default function TripListPage() {
             <User size={12} className="text-slate-500" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-semibold text-[#222] truncate">
-              {row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}
-            </span>
+            {row.driver ? (
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                {`${row.driver.first_name} ${row.driver.last_name}`}
+              </span>
+            ) : (
+              <span className="text-xs text-slate-400 dark:text-slate-500 italic">
+                Unassigned
+              </span>
+            )}
           </div>
         </div>
       ),
@@ -206,9 +193,15 @@ export default function TripListPage() {
       accessor: (row: Trip) => (
         <div className="flex items-center gap-1.5">
           <Truck size={13} className="text-slate-400 shrink-0" />
-          <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-            {row.vehicle?.plate_number || 'Unassigned'}
-          </span>
+          {row.vehicle?.plate_number ? (
+            <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+              {row.vehicle.plate_number}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400 dark:text-slate-500 italic">
+              Unassigned
+            </span>
+          )}
         </div>
       ),
     },
@@ -242,64 +235,48 @@ export default function TripListPage() {
     {
       header: 'Actions',
       accessor: (row: Trip) => (
-        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 shadow-2xs gap-1.5 rounded-lg"
-              >
-                <span>Actions</span>
-                <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg rounded-xl border border-slate-200 bg-white">
-              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                Trip Operations
-              </DropdownMenuLabel>
-              
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/trips/${row.id}`)}>
-                <Eye className="mr-2 h-3.5 w-3.5 text-blue-600 shrink-0" />
-                View Full Details
-              </DropdownMenuItem>
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          {row.status === 'InTransit' && (
+            <button
+              onClick={() => navigate(`/trips/${row.id}/track`)}
+              title="Live GPS Track"
+              className="p-1.5 rounded-lg text-[#E8450F] hover:bg-orange-50 transition-colors"
+            >
+              <Navigation className="h-3.5 w-3.5" />
+            </button>
+          )}
 
-              {row.status === 'InTransit' && (
-                <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-orange-50" onClick={() => navigate(`/trips/${row.id}/track`)}>
-                  <Navigation className="mr-2 h-3.5 w-3.5 text-[#E8450F] shrink-0" />
-                  Live GPS Track
-                </DropdownMenuItem>
-              )}
+          <button
+            onClick={() => {
+              setStatusDialogTrip(row);
+              setNewStatus(row.status);
+            }}
+            title="Quick Status Update"
+            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
 
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-emerald-50" onClick={() => {
-                setStatusDialogTrip(row);
-                setNewStatus(row.status);
-              }}>
-                <RefreshCw className="mr-2 h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                Quick Status Update
-              </DropdownMenuItem>
+          <button
+            onClick={() => navigate(`/trips/${row.id}/edit`)}
+            title="Edit Trip Manifest"
+            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+          >
+            <Edit2 className="h-3.5 w-3.5" />
+          </button>
 
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/trips/${row.id}/edit`)}>
-                <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600 shrink-0" />
-                Edit Trip Manifest
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator className="my-1 border-slate-100" />
-
-              <DropdownMenuItem
-                className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg text-rose-600 focus:text-rose-600 focus:bg-rose-50"
-                onClick={async () => {
-                  if (confirm(`Delete trip ${row.ref_id || 'Draft'}?`)) {
-                    await tripService.bulkDelete([row.id]);
-                    queryClient.invalidateQueries({ queryKey: ['trips'] });
-                  }
-                }}
-              >
-                <Trash2 className="mr-2 h-3.5 w-3.5 text-rose-600 shrink-0" />
-                Delete Trip Draft
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button
+            onClick={async () => {
+              if (confirm(`Delete trip ${row.ref_id || 'Draft'}?`)) {
+                await tripService.bulkDelete([row.id]);
+                queryClient.invalidateQueries({ queryKey: ['trips'] });
+              }
+            }}
+            title="Delete Trip Draft"
+            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       ),
     },

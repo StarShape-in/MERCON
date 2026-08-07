@@ -213,7 +213,6 @@ model Trip {
 
   status           TripStatus @default(Draft)
   cargo_type       String
-  hazmat_flag      Boolean    @default(false)
   planned_distance Float?
 
   planned_start DateTime? @db.Timestamptz

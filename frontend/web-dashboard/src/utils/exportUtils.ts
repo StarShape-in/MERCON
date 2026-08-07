@@ -35,7 +35,6 @@ function formatHeaderLabel(key: string): string {
     expiry_date: 'Expiry Date',
     status: 'Status',
     cargo_type: 'Cargo Type',
-    hazmat_flag: 'Hazmat',
     cost: 'Maintenance Cost (SAR)',
     service_date: 'Service Date',
     odometer_reading: 'Odometer Reading (KM)',

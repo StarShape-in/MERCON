@@ -28,10 +28,9 @@ export const loginBody = z.object({
 /* ─── Trips ──────────────────────────────────────────────────────────────── */
 export const createTripBody = z.object({
   customer_id: z.string().uuid('A valid customer is required'),
-  driver_id: z.string().uuid('A driver must be assigned to create a trip'),
-  vehicle_id: z.string().uuid('A vehicle must be assigned to create a trip'),
+  driver_id: z.string().uuid('Invalid driver').optional(),
+  vehicle_id: z.string().uuid('Invalid vehicle').optional(),
   cargo_type: z.string().trim().optional().default('General Goods'),
-  hazmat_flag: z.boolean().optional(),
   planned_start: z.coerce.date().optional(),
   stops: z.array(z.object({
     stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']),

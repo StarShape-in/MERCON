@@ -269,7 +269,6 @@ const TripDetailsScreen = () => {
           <Card style={styles.detailCard}>
             {[
               { label: 'Description', value: trip.cargo_type },
-              { label: 'Hazmat', value: trip.hazmat_flag ? 'Yes' : 'None' },
               { label: 'Customer', value: trip.customer?.name ?? '—' },
               { label: 'Planned Start', value: formatDateTime(trip.planned_start) },
             ].map((row, i, arr) => (

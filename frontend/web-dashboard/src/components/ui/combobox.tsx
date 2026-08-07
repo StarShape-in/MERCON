@@ -29,6 +29,7 @@ interface ComboboxProps {
   emptyText?: string;
   className?: string;
   triggerClassName?: string;
+  disabled?: boolean;
 }
 
 export function Combobox({
@@ -41,12 +42,13 @@ export function Combobox({
   emptyText = 'No results found.',
   className,
   triggerClassName,
+  disabled,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={disabled ? false : open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           id={id}
@@ -54,6 +56,7 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className={cn(
             'h-9 w-full justify-between text-xs font-normal border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700',
             !selected && 'text-muted-foreground',

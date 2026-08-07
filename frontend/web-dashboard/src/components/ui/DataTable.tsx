@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, SlidersHorizontal, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, X, FileSearch } from 'lucide-react';
 import Btn from './Btn';
+import { Button } from './button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 import { Input } from './input';
 import { Badge } from './badge';
@@ -216,7 +217,7 @@ export default function DataTable<T>({
             <>
               {/* Left Side: Ledger Title & Search / Filter Controls */}
               <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                {title && (
+                {title ? (
                   <div className="flex items-center gap-2.5 mr-2">
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                       {title}
@@ -224,7 +225,32 @@ export default function DataTable<T>({
                     <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
                       {totalCount} {totalCount === 1 ? 'record' : 'records'}
                     </Badge>
+                    {enableSelection && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAll}
+                        className="h-7 text-xs font-semibold px-2.5 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>{selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}</span>
+                      </Button>
+                    )}
                   </div>
+                ) : (
+                  enableSelection && (
+                    <div className="flex items-center gap-2.5 mr-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAll}
+                        className="h-7 text-xs font-semibold px-2.5 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>{selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}</span>
+                      </Button>
+                    </div>
+                  )
                 )}
 
 
@@ -278,15 +304,7 @@ export default function DataTable<T>({
           <TableHeader>
             <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
               {enableSelection && (
-                <TableHead className="w-[48px] px-5">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                    checked={selectedIndices.size === displayData.length && displayData.length > 0}
-                    onChange={handleSelectAll}
-                    aria-label="Select all rows"
-                  />
-                </TableHead>
+                <TableHead className="w-[48px] px-5" />
               )}
               {columns.map((c, i) => (
                 <TableHead key={i} className={cn("text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 h-11 px-5", c.headerClassName)}>

@@ -7,7 +7,6 @@ export interface Trip {
   ref_id: string;
   status: TripStatus;
   cargo_type: string;
-  hazmat_flag: boolean;
   planned_start: string | null;
   actual_start: string | null;
   planned_end: string | null;
@@ -50,7 +49,6 @@ export interface CreateTripPayload {
   driver_id?: string;
   vehicle_id?: string;
   cargo_type?: string;
-  hazmat_flag?: boolean;
   planned_start?: string;
   stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string; location_name?: string }[];
 }
@@ -141,6 +139,12 @@ export const tripService = {
    *  turns out to be something else once the driver is actually reached. */
   async logStopDelay(tripId: string, stopId: string, payload: LogStopDelayPayload): Promise<TripStop> {
     const res = await api.patch<ApiResponse<TripStop>>(`/trips/${tripId}/stops/${stopId}/delay`, payload);
+    return res.data.data;
+  },
+
+  /** Assign a driver and/or vehicle to a trip that was created with "assign later". */
+  async dispatch(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/dispatch`, payload);
     return res.data.data;
   },
 

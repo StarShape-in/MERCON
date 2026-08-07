@@ -248,12 +248,6 @@ export default function RateCardDetailsPage() {
                   <span className="font-bold text-slate-800 dark:text-slate-200">24.0 Metric Tons</span>
                 </div>
                 <div>
-                  <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Hazmat Clearance</span>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">
-                    Hazmat Approved ✓
-                  </Badge>
-                </div>
-                <div>
                   <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Transit Time Allowance</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">6 Hours 15 Minutes</span>
                 </div>

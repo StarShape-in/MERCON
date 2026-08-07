@@ -387,10 +387,18 @@ export default function DashboardPage() {
                       <TableCell className="text-xs font-semibold text-[#111]">{t.customer?.name || '—'}</TableCell>
                       <TableCell className="text-xs font-medium text-[#444]">{t.cargo_type}</TableCell>
                       <TableCell className="text-xs font-medium text-[#444]">
-                        {t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'}
+                        {t.driver ? (
+                          `${t.driver.first_name} ${t.driver.last_name}`
+                        ) : (
+                          <span className="italic text-slate-400 font-normal">Unassigned</span>
+                        )}
                       </TableCell>
-                      <TableCell className="font-mono text-xs font-semibold text-[#6E6E80]">
-                        {t.vehicle?.plate_number || 'Unassigned'}
+                      <TableCell className="text-xs font-semibold text-[#6E6E80]">
+                        {t.vehicle?.plate_number ? (
+                          <span className="font-mono">{t.vehicle.plate_number}</span>
+                        ) : (
+                          <span className="italic text-slate-400 font-normal">Unassigned</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={t.status} />

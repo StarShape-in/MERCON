@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
+import { Checkbox } from '@/components/ui/checkbox';
 import Btn from '@/components/ui/Btn';
 
 export default function CreateTripPage() {
@@ -44,6 +45,8 @@ export default function CreateTripPage() {
   const [customerId, setCustomerId] = useState('');
   const [driverId, setDriverId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
+  const [assignDriverLater, setAssignDriverLater] = useState(false);
+  const [assignVehicleLater, setAssignVehicleLater] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
@@ -144,6 +147,8 @@ export default function CreateTripPage() {
     setCustomerId('');
     setDriverId('');
     setVehicleId('');
+    setAssignDriverLater(false);
+    setAssignVehicleLater(false);
     setPickupLat(24.7136);
     setPickupLng(46.6753);
     setPickupTime('');
@@ -161,8 +166,12 @@ export default function CreateTripPage() {
       setError('Please select a customer before proceeding.');
       return;
     }
-    if (step === 2 && (!driverId || !vehicleId)) {
-      setError('Please assign a driver and a vehicle before proceeding.');
+    if (step === 2 && !assignDriverLater && !driverId) {
+      setError('Please assign a driver, or check "Assign driver later".');
+      return;
+    }
+    if (step === 2 && !assignVehicleLater && !vehicleId) {
+      setError('Please assign a vehicle, or check "Assign vehicle later".');
       return;
     }
     setStep((s) => (s < 3 ? (s + 1) as 1 | 2 | 3 : 3));
@@ -183,7 +192,10 @@ export default function CreateTripPage() {
   const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
   const missingSchedule = pickupTime === '' || dropoffTime === '';
   const isFormValid =
-    customerId !== '' && driverId !== '' && vehicleId !== '' && !missingLocation && !missingName && !missingSchedule;
+    customerId !== '' &&
+    (assignDriverLater || driverId !== '') &&
+    (assignVehicleLater || vehicleId !== '') &&
+    !missingLocation && !missingName && !missingSchedule;
 
   const handleSubmit = useCallback(() => {
     setError(null);
@@ -212,10 +224,9 @@ export default function CreateTripPage() {
 
     const payload: CreateTripPayload = {
       customer_id: customerId,
-      driver_id: driverId,
-      vehicle_id: vehicleId,
+      driver_id: assignDriverLater ? undefined : driverId,
+      vehicle_id: assignVehicleLater ? undefined : vehicleId,
       cargo_type: 'General Goods',
-      hazmat_flag: false,
       planned_start: plannedStart || undefined,
       stops: [
         {
@@ -236,7 +247,7 @@ export default function CreateTripPage() {
     };
 
     createMutation.mutate(payload);
-  }, [customerId, driverId, vehicleId, pickupLat, pickupLng, dropoffLat, dropoffLng, plannedStart, pickupTime, dropoffTime, pickupName, dropoffName, createMutation]);
+  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, plannedStart, pickupTime, dropoffTime, pickupName, dropoffName, createMutation]);
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
@@ -288,14 +299,16 @@ export default function CreateTripPage() {
 
             {/* Assignments */}
             <div className={`flex-1 p-3.5 flex items-center gap-3 w-full ${step === 2 ? 'bg-muted/50' : ''}`}>
-              <Truck className={`w-4 h-4 shrink-0 ${(selectedDriver && selectedVehicle) ? 'text-primary' : 'text-muted-foreground/40'}`} />
+              <Truck className={`w-4 h-4 shrink-0 ${((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) ? 'text-primary' : 'text-muted-foreground/40'}`} />
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">2. Assignments</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${(selectedDriver && selectedVehicle) ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                  {(selectedDriver && selectedVehicle) ? `${selectedDriver.first_name} • ${selectedVehicle.plate_number}` : 'Pending...'}
+                <p className={`text-sm font-bold truncate mt-0.5 ${((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) ? 'text-foreground' : 'text-muted-foreground/60'}`}>
+                  {(selectedDriver || selectedVehicle || assignDriverLater || assignVehicleLater)
+                    ? `${selectedDriver ? selectedDriver.first_name : assignDriverLater ? 'Driver later' : 'Pending...'} • ${selectedVehicle ? selectedVehicle.plate_number : assignVehicleLater ? 'Vehicle later' : 'Pending...'}`
+                    : 'Pending...'}
                 </p>
               </div>
-              {(selectedDriver && selectedVehicle) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+              {((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
             </div>
 
             {/* Route */}
@@ -393,12 +406,13 @@ export default function CreateTripPage() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="driver_id" className="text-xs font-semibold">
-                      Assigned driver <span className="text-destructive">*</span>
+                      Assigned driver {!assignDriverLater && <span className="text-destructive">*</span>}
                     </Label>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
+                      disabled={assignDriverLater}
                       onClick={() => setIsAddDriverOpen(true)}
                       className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 font-medium gap-1"
                     >
@@ -416,18 +430,31 @@ export default function CreateTripPage() {
                     placeholder="Choose available driver..."
                     searchPlaceholder="Search drivers..."
                     emptyText="No available drivers found."
+                    disabled={assignDriverLater}
                   />
+                  <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
+                    <Checkbox
+                      checked={assignDriverLater}
+                      onCheckedChange={(checked) => {
+                        setAssignDriverLater(checked === true);
+                        if (checked) setDriverId('');
+                        setError(null);
+                      }}
+                    />
+                    <span className="text-xs text-muted-foreground">Assign driver later</span>
+                  </label>
                 </div>
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="vehicle_id" className="text-xs font-semibold">
-                      Assigned vehicle <span className="text-destructive">*</span>
+                      Assigned vehicle {!assignVehicleLater && <span className="text-destructive">*</span>}
                     </Label>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
+                      disabled={assignVehicleLater}
                       onClick={() => setIsAddVehicleOpen(true)}
                       className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 font-medium gap-1"
                     >
@@ -445,7 +472,19 @@ export default function CreateTripPage() {
                     placeholder="Choose available vehicle..."
                     searchPlaceholder="Search vehicles..."
                     emptyText="No available vehicles found."
+                    disabled={assignVehicleLater}
                   />
+                  <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
+                    <Checkbox
+                      checked={assignVehicleLater}
+                      onCheckedChange={(checked) => {
+                        setAssignVehicleLater(checked === true);
+                        if (checked) setVehicleId('');
+                        setError(null);
+                      }}
+                    />
+                    <span className="text-xs text-muted-foreground">Assign vehicle later</span>
+                  </label>
                 </div>
               </div>
             </CardContent>

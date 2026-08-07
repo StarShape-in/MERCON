@@ -13,11 +13,14 @@ import Btn from '@/components/ui/Btn';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import FormInput from '@/components/ui/FormInput';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
+import { Combobox } from '@/components/ui/combobox';
 import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
 import {
   tripService, TripStatus,
   DELAY_REASONS, DELAY_REASON_LABELS, type DelayReason, type TripStop,
 } from '@/services/tripService';
+import { driverService } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
 
 /** Matches DELAY_THRESHOLD_MINUTES on the server. Below this, lateness is
  *  ordinary variance and showing it would bury the delays that matter. */
@@ -53,12 +56,47 @@ export default function TripDetailsPage() {
   const [delayFormStopId, setDelayFormStopId] = useState<string | null>(null);
   const [delayReason, setDelayReason] = useState<DelayReason>('Traffic');
   const [delayNote, setDelayNote] = useState('');
+  const [pendingDriverId, setPendingDriverId] = useState('');
+  const [pendingVehicleId, setPendingVehicleId] = useState('');
 
   // Fetch single trip
   const { data: trip, isLoading } = useQuery({
     queryKey: ['trip', id],
     queryFn: () => tripService.getById(id!),
     enabled: !!id,
+  });
+
+  // Available drivers/vehicles for late assignment
+  const { data: driversRes } = useQuery({
+    queryKey: ['drivers-select', 'Available'],
+    queryFn: () => driverService.getAll({ per_page: 100, status: 'Available' }),
+    enabled: !!trip && !trip.driver,
+  });
+  const { data: vehiclesRes } = useQuery({
+    queryKey: ['vehicles-select', 'Available'],
+    queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
+    enabled: !!trip && !trip.vehicle,
+  });
+  const driverOptions = (driversRes?.data || []).map((d) => ({
+    value: d.id,
+    label: `${d.first_name} ${d.last_name}`,
+    keywords: `${d.first_name} ${d.last_name}`,
+  }));
+  const vehicleOptions = (vehiclesRes?.data || []).map((v) => ({
+    value: v.id,
+    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
+    keywords: `${v.plate_number} ${v.asset_type}`,
+  }));
+
+  // Assign a driver and/or vehicle to a trip created with "assign later"
+  const assignMutation = useMutation({
+    mutationFn: (payload: { driver_id?: string; vehicle_id?: string }) => tripService.dispatch(id!, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trip', id] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      setPendingDriverId('');
+      setPendingVehicleId('');
+    },
   });
 
   // Mutate Approve Driver Payment
@@ -126,7 +164,11 @@ export default function TripDetailsPage() {
     }
   };
 
-  const nextStatusOption = getNextStatus(trip.status);
+  // A Draft trip can only move to Dispatched once both a driver and a
+  // vehicle are assigned — otherwise assign them first via the cards below.
+  const rawNextStatus = getNextStatus(trip.status);
+  const nextStatusOption =
+    rawNextStatus === 'Dispatched' && (!trip.driver || !trip.vehicle) ? null : rawNextStatus;
 
   return (
     <DashboardLayout 
@@ -377,7 +419,24 @@ export default function TripDetailsPage() {
                 />
               </div>
             ) : (
-              <p className="text-xs font-semibold text-[#9898A4]">No driver assigned yet.</p>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[#9898A4]">No driver assigned yet.</p>
+                <Combobox
+                  value={pendingDriverId}
+                  onChange={setPendingDriverId}
+                  options={driverOptions}
+                  placeholder="Choose available driver..."
+                  searchPlaceholder="Search drivers..."
+                  emptyText="No available drivers found."
+                />
+                <Btn
+                  label={assignMutation.isPending ? 'Assigning...' : 'Assign Driver'}
+                  size="sm"
+                  className="w-full"
+                  disabled={!pendingDriverId || assignMutation.isPending}
+                  onClick={() => assignMutation.mutate({ driver_id: pendingDriverId })}
+                />
+              </div>
             )}
           </div>
 
@@ -390,15 +449,32 @@ export default function TripDetailsPage() {
                   <p className="text-sm font-bold text-[#111]">{trip.vehicle.plate_number}</p>
                   <p className="text-xs text-[#6E6E80] mt-0.5">{trip.vehicle.asset_type} Asset</p>
                 </div>
-                <Btn 
-                  label="View" 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => navigate(`/vehicles/${trip.vehicle?.id}`)} 
+                <Btn
+                  label="View"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/vehicles/${trip.vehicle?.id}`)}
                 />
               </div>
             ) : (
-              <p className="text-xs font-semibold text-[#9898A4]">No vehicle assigned yet.</p>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[#9898A4]">No vehicle assigned yet.</p>
+                <Combobox
+                  value={pendingVehicleId}
+                  onChange={setPendingVehicleId}
+                  options={vehicleOptions}
+                  placeholder="Choose available vehicle..."
+                  searchPlaceholder="Search vehicles..."
+                  emptyText="No available vehicles found."
+                />
+                <Btn
+                  label={assignMutation.isPending ? 'Assigning...' : 'Assign Vehicle'}
+                  size="sm"
+                  className="w-full"
+                  disabled={!pendingVehicleId || assignMutation.isPending}
+                  onClick={() => assignMutation.mutate({ vehicle_id: pendingVehicleId })}
+                />
+              </div>
             )}
           </div>
 

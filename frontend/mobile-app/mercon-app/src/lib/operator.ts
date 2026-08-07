@@ -52,7 +52,6 @@ export interface OperatorTripDetail {
   ref_id: string | null;
   status: TripStatus;
   cargo_type: string;
-  hazmat_flag: boolean;
   planned_distance: number | null;
   planned_start: string | null;
   actual_start: string | null;
@@ -78,7 +77,6 @@ export interface CreateTripInput {
   driver_id: string;
   vehicle_id: string;
   cargo_type: string;
-  hazmat_flag?: boolean;
   planned_start?: string;
   stops: CreateTripStopInput[];
 }
