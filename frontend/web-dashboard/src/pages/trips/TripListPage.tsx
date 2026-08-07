@@ -86,7 +86,6 @@ export default function TripListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<TripStatus | 'All'>('All');
-  const [hazmatFilter, setHazmatFilter] = useState<'All' | 'Hazmat' | 'Standard'>('All');
   const [dateFilter, setDateFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'calendar'>('list');
@@ -111,13 +110,7 @@ export default function TripListPage() {
 
   const rawTrips = tripsRes?.data || [];
   const totalPages = tripsRes?.meta?.total_pages || 1;
-
-  // Local hazmat filtering if applied
-  const trips = rawTrips.filter((t) => {
-    if (hazmatFilter === 'Hazmat') return t.hazmat_flag === true;
-    if (hazmatFilter === 'Standard') return !t.hazmat_flag;
-    return true;
-  });
+  const trips = rawTrips;
 
   // Calculate totals for KPIs from real backend response data
   const totalCount = tripsRes?.meta?.total || rawTrips.length;
@@ -539,34 +532,6 @@ export default function TripListPage() {
                       <span className="flex items-center gap-2 font-medium text-rose-700">
                         <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                         Cancelled
-                      </span>
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* Cargo / Hazmat Filter Dropdown */}
-              <Select
-                value={hazmatFilter}
-                onValueChange={(val) => { if (val) setHazmatFilter(val as any); }}
-              >
-                <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <Layers className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="All Cargo" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      Cargo Classification
-                    </SelectLabel>
-                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Cargo Types</SelectItem>
-                    <SelectItem value="Standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Standard Freight</SelectItem>
-                    <SelectItem value="Hazmat" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-semibold text-rose-600">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                        HAZMAT Only
                       </span>
                     </SelectItem>
                   </SelectGroup>
