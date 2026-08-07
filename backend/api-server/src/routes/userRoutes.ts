@@ -7,13 +7,12 @@ import { createUserBody, updateUserBody, idParam } from '../schemas';
 
 const router = Router();
 
-// Admin and Operator can access these routes
+// Admin and Operator can view; only Admin can create/edit/deactivate
 router.use(authenticateJWT);
-router.use(authorizeRoles('Admin', 'Operator'));
 
-router.get('/', getUsers);
-router.post('/', validate({ body: createUserBody }), createUser);
-router.put('/:id', validate({ params: idParam, body: updateUserBody }), updateUser);
-router.delete('/:id', validate({ params: idParam }), deleteUser);
+router.get('/', authorizeRoles('Admin', 'Operator'), getUsers);
+router.post('/', authorizeRoles('Admin'), validate({ body: createUserBody }), createUser);
+router.put('/:id', authorizeRoles('Admin'), validate({ params: idParam, body: updateUserBody }), updateUser);
+router.delete('/:id', authorizeRoles('Admin'), validate({ params: idParam }), deleteUser);
 
 export default router;
