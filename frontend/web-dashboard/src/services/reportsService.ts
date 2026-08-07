@@ -95,7 +95,104 @@ export interface CustomReportData {
   }[];
 }
 
+/* ─── Delay reporting ─────────────────────────────────────────────────────── */
+
+export type DelayGranularity = 'day' | 'week' | 'month' | 'quarter' | 'year';
+export type DelayDimension = 'route' | 'driver' | 'customer' | 'vehicle';
+
+/** One filter set drives all three views, so choosing a company narrows the
+ *  log, the grid and the analysis together rather than one at a time. */
+export interface DelayFilters {
+  startDate?: string;
+  endDate?: string;
+  customer_id?: string;
+  driver_id?: string;
+  vehicle_id?: string;
+  reason?: string;
+  needs_reason?: 'true';
+  min_delay_hours?: number;
+  page?: number;
+  per_page?: number;
+}
+
+export interface DelayLogRow {
+  stop_id: string;
+  trip_id: string;
+  trip_ref: string | null;
+  date: string;
+  stop_type: string;
+  location: string;
+  route: string;
+  customer: string;
+  driver: string;
+  vehicle: string;
+  planned_arrival: string;
+  actual_arrival: string;
+  delay_hours: number;
+  dwell_hours: number | null;
+  delay_reason: string | null;
+  delay_note: string | null;
+  needs_reason: boolean;
+}
+
+export interface DelayLogResponse {
+  data: DelayLogRow[];
+  meta: { total: number; page: number; limit: number; total_pages: number; truncated: boolean; threshold_minutes: number };
+}
+
+/** `pct: null` means nothing ran in that period — rendered blank, never 0%. */
+export interface DelayGridCell { period: string; pct: number | null; total: number }
+
+export interface DelayGrid {
+  dimension: DelayDimension;
+  granularity: DelayGranularity;
+  periods: { key: string; label: string }[];
+  all_rows: { label: string; cells: DelayGridCell[] };
+  rows: { key: string; label: string; overall_pct: number | null; total: number; cells: DelayGridCell[] }[];
+}
+
+export interface DelayTotals {
+  arrivals: number;
+  delayed: number;
+  on_time_pct: number | null;
+  hours_lost: number;
+  unexplained: number;
+}
+
+export interface DelayAnalysis {
+  granularity: DelayGranularity;
+  range: { start: string; end: string };
+  previous_range: { start: string; end: string };
+  totals: DelayTotals;
+  previous_totals: DelayTotals;
+  change: { hours_lost_pct: number | null; delayed_count: number };
+  routes: { label: string; hours_lost: number; change_pct: number | null }[];
+  drivers: { label: string; late: number; total: number; change: number }[];
+  reasons: { reason: string; count: number; share_pct: number; change_pt: number }[];
+  vehicles: { label: string; breakdowns: number; maintenance_cost: number; change: number }[];
+  trend: { period: string; label: string; hours_lost: number }[];
+}
+
 export const reportsService = {
+  async getDelayLog(filters?: DelayFilters): Promise<DelayLogResponse> {
+    const res = await api.get('/reports/delays', { params: filters });
+    return res.data as unknown as DelayLogResponse;
+  },
+
+  async getDelayGrid(
+    filters?: DelayFilters & { dimension?: DelayDimension; granularity?: DelayGranularity },
+  ): Promise<DelayGrid> {
+    const res = await api.get<ApiResponse<DelayGrid>>('/reports/delays/grid', { params: filters });
+    return res.data.data;
+  },
+
+  async getDelayAnalysis(
+    filters?: DelayFilters & { granularity?: DelayGranularity },
+  ): Promise<DelayAnalysis> {
+    const res = await api.get<ApiResponse<DelayAnalysis>>('/reports/delays/analysis', { params: filters });
+    return res.data.data;
+  },
+
   async getSummary(): Promise<ReportsSummary> {
     const res = await api.get<ApiResponse<ReportsSummary>>('/reports/summary');
     return res.data.data;

@@ -147,9 +147,11 @@ export default function CreateTripPage() {
     setPickupLat(24.7136);
     setPickupLng(46.6753);
     setPickupTime('');
+    setPickupName('');
     setDropoffLat(21.5433);
     setDropoffLng(39.1728);
     setDropoffTime('');
+    setDropoffName('');
     setError(null);
   };
 
@@ -172,7 +174,16 @@ export default function CreateTripPage() {
   };
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
-  const isFormValid = customerId !== '' && driverId !== '' && vehicleId !== '' && !missingLocation;
+  // Names and a delivery deadline are required, not cosmetic. Without a
+  // planned arrival a trip can never be judged late, so it silently vanishes
+  // from delay reporting; without names the report groups by raw coordinates
+  // and the same yard never accumulates a history. Both were optional, and a
+  // trip created without them is quietly unreportable with nothing on screen
+  // to say so.
+  const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
+  const missingSchedule = pickupTime === '' || dropoffTime === '';
+  const isFormValid =
+    customerId !== '' && driverId !== '' && vehicleId !== '' && !missingLocation && !missingName && !missingSchedule;
 
   const handleSubmit = useCallback(() => {
     setError(null);
@@ -183,6 +194,14 @@ export default function CreateTripPage() {
     }
     if (dropoffLat == null || dropoffLng == null) {
       setError('Please select a dropoff location on the map.');
+      return;
+    }
+    if (pickupName.trim() === '' || dropoffName.trim() === '') {
+      setError('Name both locations (e.g. "Khamis Sorting Center") — reports group trips by these names.');
+      return;
+    }
+    if (!pickupTime || !dropoffTime) {
+      setError('Set both planned arrival times — without them this trip can never be measured for delays.');
       return;
     }
 
@@ -506,7 +525,7 @@ export default function CreateTripPage() {
 
                   <div className="space-y-1.5 pt-2">
                     <Label htmlFor="pickup_time" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Planned Pickup Arrival Time (Optional)
+                      Planned Pickup Arrival Time *
                     </Label>
                     <Input
                       id="pickup_time"
@@ -540,7 +559,7 @@ export default function CreateTripPage() {
 
                   <div className="space-y-1.5 pt-2">
                     <Label htmlFor="dropoff_time" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Planned Dropoff Arrival Time (Optional)
+                      Planned Delivery Deadline *
                     </Label>
                     <Input
                       id="dropoff_time"

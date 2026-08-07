@@ -9,13 +9,14 @@ import {
   Download, 
   RotateCw,
   Sparkles,
-  Building2
+  Building2,
+  Clock
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 interface ReportsHeaderProps {
-  activeTab: 'overview' | 'revenue' | 'fleet' | 'drivers' | 'custom';
+  activeTab: 'overview' | 'revenue' | 'fleet' | 'drivers' | 'custom' | 'delays';
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onExport?: () => void;
@@ -35,6 +36,7 @@ export default function ReportsHeader({
     { id: 'revenue', label: 'Revenue Report', icon: TrendingUp, path: '/reports/revenue' },
     { id: 'fleet', label: 'Fleet Performance', icon: Truck, path: '/reports/fleet' },
     { id: 'drivers', label: 'Driver Safety', icon: Users, path: '/reports/drivers' },
+    { id: 'delays', label: 'Delay Report', icon: Clock, path: '/reports/delays' },
     { id: 'custom', label: 'Custom Generator', icon: SlidersHorizontal, path: '/reports/custom' },
   ];
 
