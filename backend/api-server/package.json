@@ -7,7 +7,8 @@
     "start": "node dist/index.js",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
     "build": "tsc",
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts",
+    "seed:demo": "ts-node scripts/seed-demo-local.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
