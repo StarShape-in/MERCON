@@ -45,17 +45,23 @@ npx prisma db push        # creates the tables
 ## 4. Load the demo data
 
 ```bash
-npm run seed:demo         # from backend/api-server
+DEMO_RESET=yes npm run seed:demo    # from backend/api-server
 ```
+
+`DEMO_RESET=yes` is what clears the tables first. Without it the seeder only
+adds — deleting is never inferred, because production's database hostname
+(`postgres-db`) is the same compose service name a laptop uses and says
+nothing about which database is on the other end.
 
 Roughly 3,100 trips across two years — 7 customers, 12 drivers, 10 trucks,
 10 routes. The data is patterned, not random, so the report has real findings:
 one route (Khamis Sorting Center → Edabi) degrades steadily, one stays
 reliable, summer runs worse, and one driver and one truck are clear outliers.
 
-> `seed:demo` refuses to run unless `DATABASE_URL` points at localhost, and it
-> wipes the operational tables before writing. It is not the production seed —
-> that is `prisma/seed.ts`, which only creates the two accounts.
+> `seed:demo` refuses to run unless `DATABASE_URL` points at localhost (or you
+> explicitly opt in — see below). It is not the production seed: that is
+> `prisma/seed.ts`, which only creates the two accounts and is safe on every
+> deploy.
 
 ## 5. Run it
 
@@ -103,7 +109,7 @@ together.
 
 ## Resetting
 
-`npm run seed:demo` again. It clears and regenerates from a fixed random seed,
+`DEMO_RESET=yes npm run seed:demo` again. It clears and regenerates from a fixed random seed,
 so you get the same history every time.
 
 ---
@@ -120,9 +126,10 @@ DEMO_ALLOW_REMOTE=yes-i-understand npm run seed:demo
 
 Against a non-local database the script behaves differently, on purpose:
 
-- **Nothing is deleted.** The wipe only ever runs on localhost. The difference
-  between "reset my dev box" and "drop the customer table" should not come down
-  to remembering which terminal you are in.
+- **Nothing is deleted.** Clearing tables requires `DEMO_RESET=yes` on its own,
+  never inferred from the hostname. The difference between "reset my dev box"
+  and "drop the customer table" should not come down to remembering which
+  terminal you are in.
 - **Every row is tagged** with a marker in `created_by` — invisible in the UI,
   but it makes removal exact.
 

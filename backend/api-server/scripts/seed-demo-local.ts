@@ -29,7 +29,15 @@ import * as bcrypt from 'bcrypt';
 import { DEMO_MARKER } from './demo-marker';
 
 const DB = process.env.DATABASE_URL ?? '';
-const isLocal = /@(localhost|127\.0\.0\.1|postgres-db|host\.docker\.internal)[:/]/.test(DB);
+
+/**
+ * Deliberately does NOT include the compose service name `postgres-db`.
+ * docker-compose uses that identical hostname on a laptop and on the
+ * production VPS, so it says nothing about which database is on the other end
+ * — and treating it as "local" would have let a CI job running inside the
+ * production API container take the destructive path.
+ */
+const isLocal = /@(localhost|127\.0\.0\.1|host\.docker\.internal)[:/]/.test(DB);
 const REMOTE_OK = process.env.DEMO_ALLOW_REMOTE === 'yes-i-understand';
 
 if (!DB) {
@@ -51,11 +59,15 @@ if (!isLocal && !REMOTE_OK) {
 }
 
 /**
- * Wiping is only ever safe on a throwaway local database. Against a remote
- * one the script is purely additive — the difference between "reset my dev
- * box" and "delete the customer table".
+ * Deleting is opt-in on its own, never inferred.
+ *
+ * This used to be derived from the hostname, which was wrong in a way that
+ * mattered: production's DATABASE_URL points at `postgres-db`, the same
+ * compose service name a laptop uses, so "looks local" and "is safe to wipe"
+ * are not the same question. Now the destructive path requires someone to
+ * type DEMO_RESET=yes, which nobody does by accident in CI.
  */
-const WIPE_FIRST = isLocal;
+const WIPE_FIRST = process.env.DEMO_RESET === 'yes';
 
 const prisma = new PrismaClient();
 const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
@@ -108,7 +120,7 @@ const NOTES: Partial<Record<DelayReason, string[]>> = {
 async function main() {
   console.log(`Seeding demo data into ${DB.replace(/:[^:@/]*@/, ':***@')}`);
   if (WIPE_FIRST) {
-    console.log('local database — clearing operational tables first…');
+    console.log('DEMO_RESET=yes — clearing operational tables first…');
     await prisma.notification.deleteMany({});
     await prisma.invoice.deleteMany({});
     await prisma.tripStop.deleteMany({});
@@ -118,7 +130,7 @@ async function main() {
     await prisma.driver.deleteMany({});
     await prisma.vehicle.deleteMany({});
   } else {
-    console.log('remote database — additive only, nothing will be deleted.');
+    console.log('additive only — nothing will be deleted (set DEMO_RESET=yes to wipe first).');
     console.log(`every row tagged created_by=${DEMO_MARKER}; remove later with: npm run demo:purge`);
   }
 
