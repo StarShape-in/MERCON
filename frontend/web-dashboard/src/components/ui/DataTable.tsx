@@ -178,7 +178,7 @@ export default function DataTable<T>({
   const showToolbar = title || onSearchChange !== undefined || filterElement !== undefined || onExport !== undefined || actionsElement !== undefined || enableSelection;
 
   return (
-    <div className={cn("bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full h-full min-h-[460px] animate-fade-in", className)}>
+    <div className={cn("bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in", className)}>
       
       {/* Table Toolbar Header */}
       {showToolbar && (
@@ -387,7 +387,7 @@ export default function DataTable<T>({
                     }}
                   >
                     {enableSelection && (
-                      <TableCell className="px-5 py-4 w-[48px]">
+                      <TableCell className={cn(compact ? "px-4 py-2.5 w-[44px]" : "px-5 py-4 w-[48px]")}>
                         <input
                           type="checkbox"
                           className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
@@ -398,7 +398,7 @@ export default function DataTable<T>({
                       </TableCell>
                     )}
                     {columns.map((col, colIndex) => (
-                      <TableCell key={colIndex} className={cn(compact ? "px-5 py-3 text-xs" : "px-5 py-4 text-sm font-medium text-slate-800 dark:text-slate-200", col.className)}>
+                      <TableCell key={colIndex} className={cn(compact ? "px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200" : "px-5 py-4 text-sm font-medium text-slate-800 dark:text-slate-200", col.className)}>
                         {col.accessor(row, rowIndex)}
                       </TableCell>
                     ))}

@@ -90,6 +90,9 @@ export interface TripFilters {
   driver_id?: string;
   customer_id?: string;
   search?: string;
+  date_filter?: string;
+  start_date?: string;
+  end_date?: string;
   page?: number;
   per_page?: number;
 }

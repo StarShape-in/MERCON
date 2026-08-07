@@ -19,8 +19,6 @@ import {
   Filter,
   CheckCircle2,
   RotateCw,
-  List,
-  LayoutGrid,
   Calendar as CalendarIcon,
   Building2,
   FileText,
@@ -88,7 +86,6 @@ export default function TripListPage() {
   const [selectedStatus, setSelectedStatus] = useState<TripStatus | 'All'>('All');
   const [dateFilter, setDateFilter] = useState('All');
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'calendar'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -99,9 +96,10 @@ export default function TripListPage() {
 
   // Fetch trips using React Query
   const { data: tripsRes, isLoading, isError, error } = useQuery({
-    queryKey: ['trips', selectedStatus, debouncedSearch, currentPage, pageSize],
+    queryKey: ['trips', selectedStatus, dateFilter, debouncedSearch, currentPage, pageSize],
     queryFn: () => tripService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
+      date_filter: dateFilter === 'All' ? undefined : dateFilter,
       search: debouncedSearch || undefined,
       page: currentPage,
       per_page: pageSize,
@@ -335,7 +333,7 @@ export default function TripListPage() {
       active="Trips" 
       title="Trips" 
     >
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
@@ -541,7 +539,12 @@ export default function TripListPage() {
               {/* Date Range Dropdown */}
               <Select
                 value={dateFilter}
-                onValueChange={(val) => { if (val) setDateFilter(val); }}
+                onValueChange={(val) => {
+                  if (val) {
+                    setDateFilter(val);
+                    setCurrentPage(1);
+                  }
+                }}
               >
                 <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
                   <div className="flex items-center gap-2">
@@ -563,36 +566,10 @@ export default function TripListPage() {
               </Select>
 
             </div>
-
-            {/* View Mode Switcher Pill */}
-            <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shrink-0 ml-auto">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  viewMode === 'list' 
-                    ? 'bg-white text-slate-900 shadow-2xs' 
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <List size={13} />
-                <span>List</span>
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  viewMode === 'grid' 
-                    ? 'bg-white text-slate-900 shadow-2xs' 
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <LayoutGrid size={13} />
-                <span>Grid</span>
-              </button>
-            </div>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="w-full flex flex-col">
           <DataTable
             title={
               <span className="flex items-center gap-2">
@@ -603,6 +580,7 @@ export default function TripListPage() {
             data={trips}
             columns={columns}
             enableSelection={true}
+            compact={true}
             isLoading={isLoading}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load trips.'}

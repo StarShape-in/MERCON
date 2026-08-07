@@ -33,7 +33,7 @@ async function notifyDriverAssigned(
 
 export const getTrips = async (req: Request, res: Response) => {
   try {
-    const { status, driver_id, customer_id, search, page = '1', per_page = '20' } = req.query;
+    const { status, driver_id, customer_id, search, date_filter, start_date, end_date, page = '1', per_page = '20' } = req.query;
 
     const pageNumber = parseInt(page as string);
     const limit = parseInt(per_page as string);
@@ -49,6 +49,49 @@ export const getTrips = async (req: Request, res: Response) => {
         { cargo_type: { contains: search as string, mode: 'insensitive' } },
         { customer: { name: { contains: search as string, mode: 'insensitive' } } },
       ];
+    }
+
+    let startDateObj: Date | undefined;
+    let endDateObj: Date | undefined;
+    const now = new Date();
+
+    if (date_filter === 'Today') {
+      startDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else if (date_filter === 'ThisWeek') {
+      const day = now.getDay();
+      const diffToSun = now.getDate() - day;
+      startDateObj = new Date(now.getFullYear(), now.getMonth(), diffToSun, 0, 0, 0, 0);
+      endDateObj = new Date(now.getFullYear(), now.getMonth(), diffToSun + 6, 23, 59, 59, 999);
+    } else if (date_filter === 'ThisMonth') {
+      startDateObj = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else {
+      if (start_date) startDateObj = new Date(start_date as string);
+      if (end_date) endDateObj = new Date(end_date as string);
+    }
+
+    if (startDateObj || endDateObj) {
+      const dateConditions: Prisma.TripWhereInput[] = [];
+      if (startDateObj) {
+        dateConditions.push({
+          OR: [
+            { planned_start: { gte: startDateObj } },
+            { AND: [{ planned_start: null }, { createdAt: { gte: startDateObj } }] }
+          ]
+        });
+      }
+      if (endDateObj) {
+        dateConditions.push({
+          OR: [
+            { planned_start: { lte: endDateObj } },
+            { AND: [{ planned_start: null }, { createdAt: { lte: endDateObj } }] }
+          ]
+        });
+      }
+      if (dateConditions.length > 0) {
+        whereClause.AND = dateConditions;
+      }
     }
 
     const [trips, total] = await Promise.all([
