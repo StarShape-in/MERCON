@@ -1,62 +1,57 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { 
-  User, 
-  Phone, 
-  FileText, 
-  Calendar, 
-  ArrowLeft, 
-  RotateCcw, 
-  Plus, 
-  CheckCircle2, 
-  Circle, 
-  ShieldCheck, 
-  Keyboard, 
-  UserCheck, 
-  BadgeCheck,
-  Building2
+import {
+  User,
+  Phone,
+  FileText,
+  Calendar,
+  ArrowLeft,
+  RotateCcw,
+  Plus,
+  CheckCircle2,
+  Circle,
+  ShieldCheck,
+  Keyboard,
+  AlertCircle,
+  Building2,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { driverService, CreateDriverPayload } from '@/services/driverService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import Btn from '@/components/ui/Btn';
+
+const EMPTY_FORM = {
+  first_name: '',
+  last_name: '',
+  phone_primary: '',
+  license_number: '',
+  license_expiry: '',
+};
 
 export default function AddDriverPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    phone_primary: '',
-    license_number: '',
-    license_expiry: '',
-  });
-
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: keyof typeof EMPTY_FORM, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleReset = () => {
-    setFormData({
-      first_name: '',
-      last_name: '',
-      phone_primary: '',
-      license_number: '',
-      license_expiry: '',
-    });
+    setFormData(EMPTY_FORM);
     setError(null);
   };
 
-  // Create Driver Mutation
   const createMutation = useMutation({
     mutationFn: (payload: CreateDriverPayload) => driverService.create(payload),
     onSuccess: () => {
@@ -70,41 +65,29 @@ export default function AddDriverPage() {
   });
 
   const isExpiryValid = formData.license_expiry ? new Date(formData.license_expiry) > new Date() : false;
+  const isExpired = formData.license_expiry !== '' && !isExpiryValid;
 
-  const isFormValid = 
-    formData.first_name.trim() !== '' && 
-    formData.last_name.trim() !== '' && 
-    formData.phone_primary.trim() !== '' && 
-    formData.license_number.trim() !== '' && 
-    formData.license_expiry !== '' &&
-    isExpiryValid;
+  const checklist = [
+    { label: 'Driver name', value: `${formData.first_name} ${formData.last_name}`.trim(), done: formData.first_name.trim() !== '' && formData.last_name.trim() !== '', icon: User, placeholder: 'First and last name' },
+    { label: 'Contact phone', value: formData.phone_primary.trim() && `+966 ${formData.phone_primary.trim()}`, done: formData.phone_primary.trim() !== '', icon: Phone, placeholder: 'Primary number' },
+    { label: 'License number', value: formData.license_number.trim(), done: formData.license_number.trim() !== '', icon: FileText, placeholder: 'Saudi license ID' },
+    { label: 'License expiry', value: formData.license_expiry, done: isExpiryValid, icon: Calendar, placeholder: 'Future-dated' },
+  ];
 
-  const handleSubmit = useCallback(() => {
+  const completed = checklist.filter((item) => item.done).length;
+  const isFormValid = completed === checklist.length;
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError(null);
 
-    if (!formData.first_name.trim()) {
-      setError('First name is required');
-      return;
-    }
-    if (!formData.last_name.trim()) {
-      setError('Last name is required');
-      return;
-    }
-    if (!formData.phone_primary.trim()) {
-      setError('Primary phone number is required');
-      return;
-    }
-    if (!formData.license_number.trim()) {
-      setError('License number is required');
-      return;
-    }
-    if (!formData.license_expiry) {
-      setError('License expiry date is required');
-      return;
-    }
+    if (!formData.first_name.trim()) return setError('First name is required');
+    if (!formData.last_name.trim()) return setError('Last name is required');
+    if (!formData.phone_primary.trim()) return setError('Primary phone number is required');
+    if (!formData.license_number.trim()) return setError('License number is required');
+    if (!formData.license_expiry) return setError('License expiry date is required');
     if (!isExpiryValid) {
-      setError('License is already expired. Only drivers with a valid, future-dated license can be onboarded.');
-      return;
+      return setError('License is already expired. Only drivers with a valid, future-dated license can be onboarded.');
     }
 
     createMutation.mutate({
@@ -114,69 +97,48 @@ export default function AddDriverPage() {
       license_number: formData.license_number.trim(),
       license_expiry: formData.license_expiry,
     });
-  }, [formData, createMutation]);
-
-  // Keyboard Shortcuts Listener (Ctrl + Enter)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (isFormValid && !createMutation.isPending) {
-          handleSubmit();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSubmit, isFormValid, createMutation.isPending]);
+  };
 
   const fullName = `${formData.first_name} ${formData.last_name}`.trim();
-  const initials = (formData.first_name[0] || 'D') + (formData.last_name[0] || 'R');
-  // isExpiryValid is now defined above isFormValid (moved up)
+  const initials = ((formData.first_name[0] || 'D') + (formData.last_name[0] || 'R')).toUpperCase();
 
   return (
     <DashboardLayout active="Drivers" title="Onboard New Driver">
-      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto">
-        
-        {/* Top Scope & Action Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              <span>MERCON Fleet</span>
-              <span>•</span>
-              <span className="text-slate-900 dark:text-slate-100 font-bold">Human Capital</span>
-            </div>
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200 font-bold dark:bg-indigo-950/40 dark:text-indigo-300">
-              Driver Onboarding
-            </Badge>
-          </div>
+      <form
+        onSubmit={handleSubmit}
+        className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in"
+      >
+        {/* Scope & actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
           <div className="flex items-center gap-2">
-            <Btn 
-              variant="outline" 
-              size="sm" 
+            <span className="flex items-center gap-1.5 rounded-md border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+              <Building2 className="w-3.5 h-3.5" />
+              MERCON Fleet
+              <span className="text-muted-foreground/50">/</span>
+              <span className="text-foreground font-bold">Human Capital</span>
+            </span>
+            <Badge variant="outline" className="font-semibold">Driver Onboarding</Badge>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Btn
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => navigate('/drivers')}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              label="Back to Drivers"
+              className="h-9 text-xs"
+              label="Back"
               icon={<ArrowLeft className="w-3.5 h-3.5" />}
               shortcut={{ key: 'b', alt: true }}
             />
-
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleReset}
-              className="h-9 gap-1.5 text-xs text-slate-500 hover:text-slate-900"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="h-9 text-xs gap-1.5">
               <RotateCcw className="w-3.5 h-3.5" /> Reset
             </Button>
-
-            <Btn 
-              size="sm" 
-              onClick={() => handleSubmit()}
+            <Btn
+              type="submit"
+              size="sm"
               disabled={createMutation.isPending || !isFormValid}
-              className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
+              className="h-9 px-4 text-xs rounded-md"
               label={createMutation.isPending ? 'Onboarding...' : 'Onboard Driver'}
               icon={<Plus className="w-3.5 h-3.5" />}
               shortcut={{ key: 'Enter', metaOrControl: true }}
@@ -184,220 +146,191 @@ export default function AddDriverPage() {
           </div>
         </div>
 
-        {/* Top Horizontal Live Preview / Manifest */}
-        <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-          <div className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
-            
-            {/* Driver Candidate Segment */}
-            <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 shrink-0">
-                <User className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Driver Candidate</span>
-                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100">
-                  {fullName || 'New Driver Candidate'}
-                </p>
-              </div>
-              {(formData.first_name && formData.last_name) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-
-            {/* Contact Phone Segment */}
-            <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 shrink-0">
-                <Phone className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Contact Phone</span>
-                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
-                  {formData.phone_primary || 'Not Set'}
-                </p>
-              </div>
-              {formData.phone_primary && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-
-            {/* Commercial License Segment */}
-            <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400 shrink-0">
-                <FileText className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Commercial License</span>
-                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
-                  {formData.license_number || 'DL-XXXX-XXXX'}
-                </p>
-              </div>
-              {formData.license_number && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-
-            {/* Compliance Expiry Segment */}
-            <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 shrink-0">
-                <Calendar className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">License Expiry</span>
-                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
-                  {formData.license_expiry || 'YYYY-MM-DD'}
-                </p>
-              </div>
-              {(formData.license_expiry && isExpiryValid) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-
-          </div>
-        </Card>
-
-        {/* Main Content Workspace (Single Column Centered) */}
-        <div className="max-w-4xl mx-auto w-full pt-2">
-          <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
-            <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <UserCheck className="w-4.5 h-4.5 text-indigo-600" /> Driver Onboarding Details
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500 mt-0.5">
-                    Enter driver personal contact info and commercial Saudi license credentials.
-                  </CardDescription>
-                </div>
-              </div>
+        {/* Workspace: form + live summary side by side */}
+        <div className="grid gap-4 lg:grid-cols-3 items-start">
+          {/* Form */}
+          <Card className="lg:col-span-2 rounded-xl">
+            <CardHeader className="border-b">
+              <CardTitle className="text-sm font-bold">Driver details</CardTitle>
+              <CardDescription className="text-xs">
+                Personal contact info and commercial Saudi license credentials.
+              </CardDescription>
             </CardHeader>
 
-            <CardContent className="pt-6">
-              
-              <div className="space-y-6">
-                
-                {/* Section 1: Personal Details */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 pb-1.5 border-b border-slate-100 dark:border-slate-800">
-                    <span className="w-1.5 h-3.5 bg-indigo-600 rounded-full" /> 
-                    Personal Profile Details
-                  </h3>
+            <CardContent className="space-y-5">
+              <section className="space-y-3">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <User className="w-3.5 h-3.5" /> Personal profile
+                </h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="first_name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        First Name <span className="text-rose-500">*</span>
-                      </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="first_name" className="text-xs font-semibold">
+                      First name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="first_name"
+                      autoFocus
+                      placeholder="e.g. Ahmed"
+                      value={formData.first_name}
+                      onChange={(e) => handleChange('first_name', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="last_name" className="text-xs font-semibold">
+                      Last name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="last_name"
+                      placeholder="e.g. Al-Mansoor"
+                      value={formData.last_name}
+                      onChange={(e) => handleChange('last_name', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="phone_primary" className="text-xs font-semibold">
+                      Primary phone <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-muted-foreground">
+                        +966
+                      </span>
                       <Input
-                        id="first_name"
-                        placeholder="e.g. Ahmed"
-                        value={formData.first_name}
-                        onChange={(e) => handleChange('first_name', e.target.value)}
-                        className="h-9 text-xs border-slate-200"
+                        id="phone_primary"
+                        inputMode="tel"
+                        placeholder="50XXXXXXX"
+                        value={formData.phone_primary}
+                        onChange={(e) => handleChange('phone_primary', e.target.value)}
+                        className="pl-14 font-mono"
                       />
                     </div>
+                  </div>
+                </div>
+              </section>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="last_name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Last Name <span className="text-rose-500">*</span>
-                      </Label>
-                      <Input
-                        id="last_name"
-                        placeholder="e.g. Al-Mansoor"
-                        value={formData.last_name}
-                        onChange={(e) => handleChange('last_name', e.target.value)}
-                        className="h-9 text-xs border-slate-200"
-                      />
-                    </div>
+              <Separator />
 
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="phone_primary" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Primary Phone Contact <span className="text-rose-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2 text-xs font-bold text-slate-400 font-mono">
-                          +966
+              <section className="space-y-3">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Commercial driving license
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="license_number" className="text-xs font-semibold">
+                      Saudi license ID <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="license_number"
+                      placeholder="e.g. 10XXXXXXXX"
+                      value={formData.license_number}
+                      onChange={(e) => handleChange('license_number', e.target.value)}
+                      className="font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="license_expiry" className="flex items-center justify-between text-xs font-semibold">
+                      <span>Expiry date <span className="text-destructive">*</span></span>
+                      {formData.license_expiry && (
+                        <span
+                          className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${
+                            isExpiryValid
+                              ? 'text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40'
+                              : 'text-destructive border-destructive/25 bg-destructive/10'
+                          }`}
+                        >
+                          {isExpiryValid ? 'Valid' : 'Expired'}
                         </span>
-                        <Input
-                          id="phone_primary"
-                          placeholder="50XXXXXXX"
-                          value={formData.phone_primary}
-                          onChange={(e) => handleChange('phone_primary', e.target.value)}
-                          className="h-9 text-xs pl-14 font-mono border-slate-200"
-                        />
-                      </div>
-                    </div>
+                      )}
+                    </Label>
+                    <Input
+                      id="license_expiry"
+                      type="date"
+                      value={formData.license_expiry}
+                      onChange={(e) => handleChange('license_expiry', e.target.value)}
+                      aria-invalid={isExpired}
+                      className={`font-mono ${isExpired ? 'border-destructive' : ''}`}
+                    />
                   </div>
                 </div>
+              </section>
 
-                {/* Section 2: License Details */}
-                <div className="space-y-4 pt-2">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 pb-1.5 border-b border-slate-100 dark:border-slate-800">
-                    <span className="w-1.5 h-3.5 bg-emerald-500 rounded-full" /> 
-                    Commercial driving license
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="license_number" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Saudi License ID Number <span className="text-rose-500">*</span>
-                      </Label>
-                      <Input
-                        id="license_number"
-                        placeholder="e.g. 10XXXXXXXX"
-                        value={formData.license_number}
-                        onChange={(e) => handleChange('license_number', e.target.value)}
-                        className="h-9 text-xs font-mono border-slate-200"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="license_expiry" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                        <span>Expiration Date <span className="text-rose-500">*</span></span>
-                        {formData.license_expiry && (
-                          <span className={`text-[10px] font-bold ${isExpiryValid ? 'text-emerald-600' : 'text-rose-600 animate-pulse'}`}>
-                            {isExpiryValid ? 'Verified Active' : 'EXPIRED LICENSE'}
-                          </span>
-                        )}
-                      </Label>
-                      <Input
-                        id="license_expiry"
-                        type="date"
-                        value={formData.license_expiry}
-                        onChange={(e) => handleChange('license_expiry', e.target.value)}
-                        className="h-9 text-xs font-mono border-slate-200"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle />
+                  <AlertTitle>Cannot onboard this driver</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
             </CardContent>
 
-            <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between items-center rounded-b-xl">
-              <Btn 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={handleReset}
-                className="h-9 text-xs font-semibold border-slate-200 bg-white"
-                label="Reset Form"
-              />
-
-              <Btn 
-                type="button" 
-                size="sm"
-                onClick={() => handleSubmit()}
-                disabled={createMutation.isPending || !isFormValid}
-                className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5 shadow-xs gap-1.5 rounded-md"
-                label={createMutation.isPending ? 'Onboarding...' : 'Onboard Driver'}
-                icon={<Plus className="w-4 h-4" />}
-                shortcut={{ key: 'Enter', metaOrControl: true }}
-              />
+            <CardFooter className="justify-between rounded-b-xl">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Keyboard className="w-3.5 h-3.5" /> Press Ctrl + Enter to submit
+              </span>
+              <Button type="button" variant="outline" size="sm" onClick={handleReset} className="h-8 text-xs">
+                Reset form
+              </Button>
             </CardFooter>
           </Card>
 
-          {error && (
-            <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2 mt-4">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-              {error}
-            </div>
-          )}
-        </div>
+          {/* Live summary */}
+          <Card className="rounded-xl lg:sticky lg:top-2">
+            <CardHeader className="border-b">
+              <CardTitle className="text-sm font-bold">Onboarding summary</CardTitle>
+              <CardDescription className="text-xs">
+                {completed} of {checklist.length} requirements complete
+              </CardDescription>
+            </CardHeader>
 
-      </div>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">{fullName || 'New driver candidate'}</p>
+                  <p className="truncate text-xs text-muted-foreground font-mono">
+                    {formData.license_number || 'DL-XXXX-XXXX'}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <ul className="space-y-2.5">
+                {checklist.map((item) => (
+                  <li key={item.label} className="flex items-start gap-2.5">
+                    {item.done ? (
+                      <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-emerald-500" />
+                    ) : (
+                      <Circle className="mt-0.5 w-4 h-4 shrink-0 text-muted-foreground/40" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold">{item.label}</p>
+                      <p className={`truncate text-xs ${item.done ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
+                        {item.value || item.placeholder}
+                      </p>
+                    </div>
+                    <item.icon className="mt-0.5 w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+
+            <CardFooter className="rounded-b-xl">
+              <p className="text-xs text-muted-foreground">
+                {isFormValid
+                  ? 'All checks passed — ready to onboard.'
+                  : 'Complete every requirement to enable onboarding.'}
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+      </form>
     </DashboardLayout>
   );
 }
