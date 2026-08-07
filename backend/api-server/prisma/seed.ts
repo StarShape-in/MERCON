@@ -59,7 +59,6 @@ async function main() {
     create: {
       username: 'ilan',
       email: 'ilan@mercon.tech',
-      phone: '+966500000003',
       password_hash: ilan_password_hash,
       name: 'Ilan',
       role: Role.Admin,
