@@ -159,9 +159,6 @@ export default function NotificationsPage() {
                   Notifications Center
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Scope: Real-time dispatch alerts, emergency warnings, and document expiry logs
-              </p>
             </div>
           </div>
 

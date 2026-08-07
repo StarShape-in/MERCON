@@ -397,9 +397,6 @@ export default function DriverListPage() {
                   Drivers
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Scope: Manage driver roster, AI safety risk scores, and license compliance
-              </p>
             </div>
           </div>
 

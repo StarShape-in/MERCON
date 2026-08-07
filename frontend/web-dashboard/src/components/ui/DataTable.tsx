@@ -227,16 +227,6 @@ export default function DataTable<T>({
                   </div>
                 )}
 
-                {enableSelection && (
-                  <Btn
-                    label={selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}
-                    variant="secondary"
-                    size="sm"
-                    icon={<CheckSquare size={13} />}
-                    onClick={handleSelectAll}
-                    className="whitespace-nowrap"
-                  />
-                )}
 
                 {onSearchChange !== undefined && (
                   <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm sm:min-w-[200px]">

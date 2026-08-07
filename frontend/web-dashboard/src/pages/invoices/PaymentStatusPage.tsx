@@ -141,9 +141,6 @@ export default function PaymentStatusPage() {
                   Payment Status
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Scope: Track invoice statuses, overdue payments, and cash flow
-              </p>
             </div>
           </div>
 

@@ -266,9 +266,6 @@ export default function InvoiceListPage() {
                   Invoices
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Scope: Manage customer billing, tax invoices, and settlement tracking
-              </p>
             </div>
           </div>
 

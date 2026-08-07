@@ -281,9 +281,6 @@ export default function CustomerListPage() {
                   Customers
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Scope: Manage corporate client accounts, credit exposure, and rate cards
-              </p>
             </div>
           </div>
  

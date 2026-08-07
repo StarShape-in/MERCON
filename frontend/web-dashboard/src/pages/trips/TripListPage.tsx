@@ -347,9 +347,6 @@ export default function TripListPage() {
                   Trips
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Scope: MERCON Fleet Logistics & Shipping Manifests
-              </p>
             </div>
           </div>
 
