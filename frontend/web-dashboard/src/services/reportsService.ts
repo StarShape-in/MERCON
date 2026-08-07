@@ -97,6 +97,15 @@ export interface CustomReportData {
 
 /* ─── Delay reporting ─────────────────────────────────────────────────────── */
 
+/**
+ * These three read every arrival in the range rather than a page of them, so
+ * they scale with how much history the database holds - unlike the rest of the
+ * app, where the client's 15s default is generous. Nginx allows 120s upstream;
+ * this stays well inside that, so a slow answer still arrives instead of the
+ * browser abandoning a request the server was about to complete.
+ */
+const DELAY_TIMEOUT_MS = 60_000;
+
 export type DelayGranularity = 'day' | 'week' | 'month' | 'quarter' | 'year';
 export type DelayDimension = 'route' | 'driver' | 'customer' | 'vehicle';
 
@@ -175,21 +184,21 @@ export interface DelayAnalysis {
 
 export const reportsService = {
   async getDelayLog(filters?: DelayFilters): Promise<DelayLogResponse> {
-    const res = await api.get('/reports/delays', { params: filters });
+    const res = await api.get('/reports/delays', { params: filters, timeout: DELAY_TIMEOUT_MS });
     return res.data as unknown as DelayLogResponse;
   },
 
   async getDelayGrid(
     filters?: DelayFilters & { dimension?: DelayDimension; granularity?: DelayGranularity },
   ): Promise<DelayGrid> {
-    const res = await api.get<ApiResponse<DelayGrid>>('/reports/delays/grid', { params: filters });
+    const res = await api.get<ApiResponse<DelayGrid>>('/reports/delays/grid', { params: filters, timeout: DELAY_TIMEOUT_MS });
     return res.data.data;
   },
 
   async getDelayAnalysis(
     filters?: DelayFilters & { granularity?: DelayGranularity },
   ): Promise<DelayAnalysis> {
-    const res = await api.get<ApiResponse<DelayAnalysis>>('/reports/delays/analysis', { params: filters });
+    const res = await api.get<ApiResponse<DelayAnalysis>>('/reports/delays/analysis', { params: filters, timeout: DELAY_TIMEOUT_MS });
     return res.data.data;
   },
 

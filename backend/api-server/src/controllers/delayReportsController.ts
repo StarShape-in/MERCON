@@ -146,9 +146,26 @@ async function loadRecords(
         ...(q.vehicle_id ? { vehicleId: String(q.vehicle_id) } : {}),
       },
     },
-    include: {
+    // `select`, not `include`. A trip carries cargo details, pricing, POD
+    // fields and timestamps this report never reads, and `include` fetches
+    // every one of them — for each stop, so twice per trip. On a database with
+    // a couple of years of history that is megabytes of unread columns and the
+    // difference between the grid answering and the browser timing out.
+    select: {
+      id: true,
+      stop_type: true,
+      actual_arrival: true,
+      planned_arrival: true,
+      actual_departure: true,
+      location_name: true,
+      location_lat: true,
+      location_lng: true,
+      delay_reason: true,
+      delay_note: true,
       trip: {
-        include: {
+        select: {
+          id: true,
+          ref_id: true,
           customer: { select: { id: true, name: true } },
           driver: { select: { id: true, first_name: true, last_name: true } },
           vehicle: { select: { id: true, plate_number: true } },
