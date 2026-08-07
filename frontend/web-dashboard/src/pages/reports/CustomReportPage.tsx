@@ -281,9 +281,7 @@ export default function CustomReportPage() {
                 iconVariant="light"
               />
               <div className="bg-white border border-black/[0.08] rounded-lg p-4 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
-                  <FileText size={20} />
-                </div>
+                <FileText size={28} className="text-orange-500 dark:text-orange-400" />
                 <div>
                   <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-wider mb-0.5">Top Status</p>
                   <h3 className="text-xl font-black text-[#111]">

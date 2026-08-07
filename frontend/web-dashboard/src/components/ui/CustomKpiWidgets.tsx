@@ -127,9 +127,7 @@ export function VehicleTelematicsKpi({ activeCount, maintenanceCount, avgFuel }:
   return (
     <div className="flex items-center justify-between gap-3 px-1 py-0.5">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 flex items-center justify-center text-indigo-600">
-          <Truck className="w-4 h-4" />
-        </div>
+        <Truck className="w-5 h-5 text-orange-500 dark:text-orange-400" />
         <div className="flex flex-col">
           <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">{activeCount} Active Freight</span>
           <span className="text-[10px] text-slate-400 font-mono">{maintenanceCount} In Service Bay</span>

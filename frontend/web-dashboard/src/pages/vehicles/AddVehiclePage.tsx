@@ -109,11 +109,11 @@ export default function AddVehiclePage() {
 
   const getAssetIcon = (type: AssetType) => {
     switch (type) {
-      case 'Reefer': return <ThermometerSnowflake className="w-5 h-5 text-primary" />;
-      case 'Tanker': return <Flame className="w-5 h-5 text-primary" />;
-      case 'Box': return <Box className="w-5 h-5 text-primary" />;
+      case 'Reefer': return <ThermometerSnowflake className="w-4 h-4 text-primary" />;
+      case 'Tanker': return <Flame className="w-4 h-4 text-primary" />;
+      case 'Box': return <Box className="w-4 h-4 text-primary" />;
       case 'Flatbed':
-      default: return <Container className="w-5 h-5 text-primary" />;
+      default: return <Container className="w-4 h-4 text-primary" />;
     }
   };
 
@@ -124,63 +124,63 @@ export default function AddVehiclePage() {
         className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in"
       >
         {/* Scope & actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b">
-          <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-2 rounded-md border bg-muted px-3 py-1.5 text-sm font-semibold text-muted-foreground">
-              <Building2 className="w-4 h-4" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 rounded-md border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+              <Building2 className="w-3.5 h-3.5" />
               MERCON Fleet
               <span className="text-muted-foreground/50">/</span>
               <span className="text-foreground font-bold">Operations</span>
             </span>
-            <Badge variant="outline" className="font-semibold text-sm px-2.5 py-1">Vehicle Registration</Badge>
+            <Badge variant="outline" className="font-semibold">Vehicle Registration</Badge>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <Btn
               type="button"
               variant="outline"
-              size="md"
+              size="sm"
               onClick={() => navigate('/vehicles')}
-              className="h-10 text-sm"
+              className="h-9 text-xs"
               label="Back"
-              icon={<ArrowLeft className="w-4 h-4" />}
+              icon={<ArrowLeft className="w-3.5 h-3.5" />}
               shortcut={{ key: 'b', alt: true }}
             />
-            <Button type="button" variant="ghost" size="default" onClick={handleReset} className="h-10 text-sm gap-2">
-              <RotateCcw className="w-4 h-4" /> Reset
+            <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="h-9 text-xs gap-1.5">
+              <RotateCcw className="w-3.5 h-3.5" /> Reset
             </Button>
             <Btn
               type="submit"
-              size="md"
+              size="sm"
               disabled={createMutation.isPending || !isFormValid}
-              className="h-10 px-5 text-sm rounded-md"
+              className="h-9 px-4 text-xs rounded-md"
               label={createMutation.isPending ? 'Registering...' : 'Register Vehicle'}
-              icon={<Plus className="w-4 h-4" />}
+              icon={<Plus className="w-3.5 h-3.5" />}
               shortcut={{ key: 'Enter', metaOrControl: true }}
             />
           </div>
         </div>
 
         {/* Workspace: form + live summary side by side */}
-        <div className="grid gap-5 lg:grid-cols-3 items-start">
+        <div className="grid gap-4 lg:grid-cols-3 items-start">
           {/* Form */}
           <Card className="lg:col-span-2 rounded-xl">
             <CardHeader className="border-b">
-              <CardTitle className="text-lg font-bold">Vehicle details</CardTitle>
-              <CardDescription className="text-sm">
+              <CardTitle className="text-sm font-bold">Vehicle details</CardTitle>
+              <CardDescription className="text-xs">
                 Register a heavy transport truck unit or tractor, including attached trailer and telematics.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              <section className="space-y-4">
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                  <Truck className="w-4 h-4" /> Primary asset identifier
+            <CardContent className="space-y-5">
+              <section className="space-y-3">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <Truck className="w-3.5 h-3.5" /> Primary asset identifier
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="plate_number" className="text-sm font-semibold">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="plate_number" className="text-xs font-semibold">
                       Saudi license plate <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -189,19 +189,19 @@ export default function AddVehiclePage() {
                       placeholder="e.g. ABC 1234"
                       value={formData.plate_number}
                       onChange={(e) => handleChange('plate_number', e.target.value.toUpperCase())}
-                      className="h-11 text-sm font-mono"
+                      className="font-mono"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="asset_type" className="text-sm font-semibold">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="asset_type" className="text-xs font-semibold">
                       Asset classification <span className="text-destructive">*</span>
                     </Label>
                     <Select
                       value={formData.asset_type}
                       onValueChange={(val) => handleChange('asset_type', val as AssetType)}
                     >
-                      <SelectTrigger id="asset_type" className="h-11 w-full text-sm">
+                      <SelectTrigger id="asset_type" className="w-full">
                         <SelectValue placeholder="Select class type..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -217,14 +217,14 @@ export default function AddVehiclePage() {
 
               <Separator />
 
-              <section className="space-y-4">
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                  <Package className="w-4 h-4" /> Payload &amp; telematics
+              <section className="space-y-3">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <Package className="w-3.5 h-3.5" /> Payload &amp; telematics
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="capacity_kg" className="text-sm font-semibold">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="capacity_kg" className="text-xs font-semibold">
                       Tractor gross payload (kg) <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -233,12 +233,12 @@ export default function AddVehiclePage() {
                       placeholder="e.g. 25000"
                       value={formData.capacity_kg}
                       onChange={(e) => handleChange('capacity_kg', e.target.value)}
-                      className="h-11 text-sm font-mono"
+                      className="font-mono"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="gps_device_id" className="text-sm font-semibold">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gps_device_id" className="text-xs font-semibold">
                       GPS telematics hardware ID
                     </Label>
                     <Input
@@ -246,12 +246,12 @@ export default function AddVehiclePage() {
                       placeholder="GPS-XXXXXX-M"
                       value={formData.gps_device_id}
                       onChange={(e) => handleChange('gps_device_id', e.target.value)}
-                      className="h-11 text-sm font-mono"
+                      className="font-mono"
                     />
                   </div>
 
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="icces_device_id" className="text-sm font-semibold">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="icces_device_id" className="text-xs font-semibold">
                       Saudi ICCES security tracking ID <span className="text-muted-foreground font-normal">(optional)</span>
                     </Label>
                     <Input
@@ -259,7 +259,7 @@ export default function AddVehiclePage() {
                       placeholder="ICCES-9988-TRACK"
                       value={formData.icces_device_id}
                       onChange={(e) => handleChange('icces_device_id', e.target.value)}
-                      className="h-11 text-sm font-mono"
+                      className="font-mono"
                     />
                   </div>
                 </div>
@@ -267,26 +267,26 @@ export default function AddVehiclePage() {
 
               <Separator />
 
-              <section className="space-y-4">
+              <section className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                    <Layers className="w-4 h-4" /> Attached trailer
+                  <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    <Layers className="w-3.5 h-3.5" /> Attached trailer
                   </h3>
                   <Button
                     type="button"
                     variant={hasTrailer ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setHasTrailer(!hasTrailer)}
-                    className="h-8 text-xs"
+                    className="h-7 text-xs"
                   >
                     {hasTrailer ? '✓ Trailer attached' : '+ Attach trailer'}
                   </Button>
                 </div>
 
                 {hasTrailer ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl border bg-muted/30 animate-fade-in">
-                    <div className="space-y-2">
-                      <Label htmlFor="trailer_number" className="text-sm font-semibold">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border bg-muted/30 animate-fade-in">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="trailer_number" className="text-xs font-semibold">
                         Trailer plate / registration ID <span className="text-destructive">*</span>
                       </Label>
                       <Input
@@ -294,19 +294,19 @@ export default function AddVehiclePage() {
                         placeholder="TR-8812-B"
                         value={formData.trailer_number}
                         onChange={(e) => handleChange('trailer_number', e.target.value.toUpperCase())}
-                        className="h-11 text-sm font-mono"
+                        className="font-mono"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="trailer_type" className="text-sm font-semibold">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="trailer_type" className="text-xs font-semibold">
                         Trailer body classification <span className="text-destructive">*</span>
                       </Label>
                       <Select
                         value={formData.trailer_type}
                         onValueChange={(val) => handleChange('trailer_type', val as AssetType)}
                       >
-                        <SelectTrigger id="trailer_type" className="h-11 w-full text-sm">
+                        <SelectTrigger id="trailer_type" className="w-full">
                           <SelectValue placeholder="Select trailer type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -318,8 +318,8 @@ export default function AddVehiclePage() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="trailer_capacity_kg" className="text-sm font-semibold">
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="trailer_capacity_kg" className="text-xs font-semibold">
                         Trailer capacity (kg)
                       </Label>
                       <Input
@@ -328,12 +328,12 @@ export default function AddVehiclePage() {
                         placeholder="15000"
                         value={formData.trailer_capacity_kg}
                         onChange={(e) => handleChange('trailer_capacity_kg', e.target.value)}
-                        className="h-11 text-sm font-mono"
+                        className="font-mono"
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 text-center rounded-xl border border-dashed text-muted-foreground text-sm">
+                  <div className="p-3 text-center rounded-xl border border-dashed text-muted-foreground text-xs">
                     No trailer unit attached. Toggle above to configure attached trailer specifications.
                   </div>
                 )}
@@ -349,10 +349,10 @@ export default function AddVehiclePage() {
             </CardContent>
 
             <CardFooter className="justify-between rounded-b-xl">
-              <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Keyboard className="w-4 h-4" /> Press Ctrl + Enter to submit
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Keyboard className="w-3.5 h-3.5" /> Press Ctrl + Enter to submit
               </span>
-              <Button type="button" variant="outline" size="default" onClick={handleReset} className="h-9 text-sm">
+              <Button type="button" variant="outline" size="sm" onClick={handleReset} className="h-8 text-xs">
                 Reset form
               </Button>
             </CardFooter>
@@ -361,22 +361,22 @@ export default function AddVehiclePage() {
           {/* Live summary */}
           <Card className="rounded-xl lg:sticky lg:top-2">
             <CardHeader className="border-b">
-              <CardTitle className="text-lg font-bold">Registration summary</CardTitle>
-              <CardDescription className="text-sm">
+              <CardTitle className="text-sm font-bold">Registration summary</CardTitle>
+              <CardDescription className="text-xs">
                 {checklist.filter((i) => i.done).length} of {checklist.length} requirements complete
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-5">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10">
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   {getAssetIcon(formData.asset_type)}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-base font-bold font-mono">
+                  <p className="truncate text-sm font-bold font-mono">
                     {formData.plate_number || 'ABC 1234'}
                   </p>
-                  <p className="truncate text-sm text-muted-foreground">
+                  <p className="truncate text-xs text-muted-foreground">
                     {formData.asset_type} · {totalCapacity.toLocaleString()} kg{hasTrailer ? ' (with trailer)' : ''}
                   </p>
                 </div>
@@ -384,28 +384,28 @@ export default function AddVehiclePage() {
 
               <Separator />
 
-              <ul className="space-y-3.5">
+              <ul className="space-y-2.5">
                 {checklist.map((item) => (
-                  <li key={item.label} className="flex items-start gap-3">
+                  <li key={item.label} className="flex items-start gap-2.5">
                     {item.done ? (
-                      <CheckCircle2 className="mt-0.5 w-5 h-5 shrink-0 text-emerald-500" />
+                      <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-emerald-500" />
                     ) : (
-                      <Circle className="mt-0.5 w-5 h-5 shrink-0 text-muted-foreground/40" />
+                      <Circle className="mt-0.5 w-4 h-4 shrink-0 text-muted-foreground/40" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">{item.label}</p>
-                      <p className={`truncate text-sm ${item.done ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
+                      <p className="text-xs font-semibold">{item.label}</p>
+                      <p className={`truncate text-xs ${item.done ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
                         {item.value || item.placeholder}
                       </p>
                     </div>
-                    <item.icon className="mt-0.5 w-4 h-4 shrink-0 text-muted-foreground/40" />
+                    <item.icon className="mt-0.5 w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
                   </li>
                 ))}
               </ul>
             </CardContent>
 
             <CardFooter className="rounded-b-xl">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {isFormValid
                   ? 'All checks passed — ready to register.'
                   : 'Complete every requirement to enable registration.'}

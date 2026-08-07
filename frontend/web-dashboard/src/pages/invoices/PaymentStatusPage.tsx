@@ -133,9 +133,7 @@ export default function PaymentStatusPage() {
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
-              <DollarSign className="w-5 h-5 text-indigo-600" />
-            </div>
+            <DollarSign className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">

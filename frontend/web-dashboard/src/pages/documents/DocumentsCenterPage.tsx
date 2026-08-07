@@ -223,9 +223,7 @@ export default function DocumentsCenterPage() {
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 shrink-0 shadow-2xs">
-              <FolderOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
+            <FolderOpen className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -728,9 +726,7 @@ export default function DocumentsCenterPage() {
             <div className="p-6 space-y-5">
               {/* Document File Viewer Placeholder Card */}
               <div className="w-full h-48 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 p-4 text-center">
-                <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center">
-                  <FileText className="w-6 h-6" />
-                </div>
+                <FileText className="w-8 h-8 text-orange-500 dark:text-orange-400" />
                 <div>
                   <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
                     {docTypeLabel(previewDoc.doc_type)} File

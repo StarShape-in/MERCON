@@ -365,9 +365,7 @@ export default function VehicleDetailsPage() {
               <CardContent className="p-5">
                 <div className="p-4 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
-                      <Truck className="w-5 h-5" />
-                    </div>
+                    <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
                     <div>
                       <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
                         {vehicle.trailer_number ? `Attached Trailer: ${vehicle.trailer_number}` : 'No Trailer Attached'}

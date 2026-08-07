@@ -377,9 +377,7 @@ export default function DriverDetailsPage() {
                 {/* File 2: Medical Clearance Certificate */}
                 <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
+                    <ShieldCheck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
                     <div>
                       <div className="text-xs font-bold text-slate-900 dark:text-slate-100">MOT Driver Medical Fitness Certificate</div>
                       <div className="text-[10px] text-slate-400">Issuer: Saudi MOMRAH Approved Clinic • Valid for 12 months</div>
@@ -516,9 +514,7 @@ export default function DriverDetailsPage() {
                 </CardHeader>
                 <CardContent className="p-5 space-y-3 text-xs">
                   <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                      <Truck className="w-5 h-5" />
-                    </div>
+                    <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
                     <div>
                       <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Volvo FH16 (600 HP)</h4>
                       <p className="text-[11px] text-slate-400 font-mono">Plate: 8821-KSA • Heavy Freight Tractor</p>

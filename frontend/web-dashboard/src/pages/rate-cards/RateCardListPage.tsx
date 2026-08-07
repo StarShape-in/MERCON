@@ -258,9 +258,7 @@ export default function RateCardListPage() {
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
-              <FileText className="w-5 h-5 text-indigo-600" />
-            </div>
+            <FileText className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
@@ -552,9 +550,7 @@ export default function RateCardListPage() {
         <Dialog open={showTariffModal} onOpenChange={setShowTariffModal}>
           <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
             <DialogHeader>
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center mb-2">
-                <RevenueChart className="w-5 h-5 text-indigo-600" />
-              </div>
+              <RevenueChart className="w-7 h-7 text-orange-500 dark:text-orange-400 mb-2" />
               <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
                 Tariff Market Benchmark Summary
               </DialogTitle>

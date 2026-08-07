@@ -353,9 +353,7 @@ export default function MaintenanceDetailsPage() {
                     <p className="text-xs">Distance traveled by vehicle since this service log.</p>
                   </TooltipContent>
                 </Tooltip>
-                <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400">
-                  <Gauge className="w-4 h-4" />
-                </div>
+                <Gauge className="w-5 h-5 text-orange-500 dark:text-orange-400" />
               </div>
               <div className="text-2xl font-mono font-black text-slate-900 dark:text-slate-100 mt-2">
                 {(record.odometer_reading || 0).toLocaleString()} <span className="text-xs font-normal text-slate-400">km</span>
