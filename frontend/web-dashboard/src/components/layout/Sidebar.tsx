@@ -68,7 +68,7 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
     {
       label: 'ACCOUNT',
       items: [
-        { icon: Settings, label: 'Settings', path: '/settings' },
+        { icon: Settings, label: 'Settings', path: '/settings', end: true },
         { icon: User, label: 'Profile', path: '/settings/profile' },
         ...(user?.role === 'Admin' || user?.role === 'Operator' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
       ],
@@ -115,11 +115,11 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
           <div key={g.label}>
             <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest px-3 mb-2">{g.label}</p>
             <div className="space-y-0.5">
-              {g.items.map((item) => (
+              {g.items.map((item: any) => (
                 <NavLink
                   key={item.label}
                   to={item.path}
-                  end={item.path === '/'}
+                  end={item.end ?? item.path === '/'}
                   onClick={onClose}
                   className={({ isActive }) => `
                     flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group
