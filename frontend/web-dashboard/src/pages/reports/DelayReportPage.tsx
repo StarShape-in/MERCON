@@ -96,6 +96,21 @@ function fmtRange(startIso: string, endIso: string): string {
   return `${fmt(start, !sameYear)} – ${fmt(end, true)}`;
 }
 
+/**
+ * "6 Aug 2026" — the page's only date format.
+ *
+ * `toLocaleDateString()` with no options yields 8/6/2026 or 06/08/2026
+ * depending on the reader, and Chrome takes a date input's format from the OS
+ * region while taking this one from the JS locale, so the two could disagree
+ * *on the same screen*. Spelling the month removes the question.
+ */
+const fmtDate = (iso: string | Date) =>
+  new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** Same, with the clock time — for the CSV, where the hour matters. */
+const fmtDateTime = (iso: string | Date) =>
+  `${fmtDate(iso)}, ${new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+
 const daysBetween = (startIso: string, endIso: string) =>
   Math.max(1, Math.round((Date.parse(endIso) - Date.parse(startIso)) / 86_400_000));
 
@@ -366,14 +381,14 @@ export default function DelayReportPage() {
     if (!rows.length) return;
     downloadCSV(
       rows.map((r: DelayLogRow) => ({
-        Date: new Date(r.date).toLocaleString(),
+        Date: fmtDateTime(r.date),
         Trip: r.trip_ref ?? '',
         Route: r.route,
         Company: r.customer,
         Driver: r.driver,
         Truck: r.vehicle,
-        'Planned arrival': new Date(r.planned_arrival).toLocaleString(),
-        'Actual arrival': new Date(r.actual_arrival).toLocaleString(),
+        'Planned arrival': fmtDateTime(r.planned_arrival),
+        'Actual arrival': fmtDateTime(r.actual_arrival),
         'Delay (h)': r.delay_hours,
         'Waiting (h)': r.dwell_hours ?? '',
         Reason: reasonLabel(r.delay_reason),
@@ -518,7 +533,7 @@ export default function DelayReportPage() {
                           className="border-b border-black/[0.04] last:border-0 hover:bg-brand-light/60 cursor-pointer transition-colors"
                         >
                           <td className="px-3 py-2.5 text-subtle tabular-nums whitespace-nowrap">
-                            {new Date(r.date).toLocaleDateString()}
+                            {fmtDate(r.date)}
                           </td>
                           <td className="px-3 py-2.5 font-medium text-ink whitespace-nowrap">{r.route}</td>
                           <td className="px-3 py-2.5 text-faint tabular-nums whitespace-nowrap">{r.trip_ref ?? '—'}</td>
@@ -693,7 +708,7 @@ export default function DelayReportPage() {
                 </div>
 
                 <p className="text-[11px] text-faint">
-                  Change is against {new Date(analysis.data.previous_range.start).toLocaleDateString()} – {new Date(analysis.data.previous_range.end).toLocaleDateString()}
+                  Change is against {fmtDate(analysis.data.previous_range.start)} – {fmtDate(analysis.data.previous_range.end)}
                 </p>
               </>
             )}
