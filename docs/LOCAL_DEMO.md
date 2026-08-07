@@ -147,3 +147,36 @@ record, purging, and confirming the untagged record survived.
 otherwise land in the client's first real reports, and MERCON has been here
 before: `PROGRESS.md` still lists fake rows from an earlier deploy as needing
 manual cleanup.
+
+### Doing it from GitHub Actions
+
+The commands above assume a shell with `DATABASE_URL` pointing at the hosted
+database, which in practice only the self-hosted runner has. So the same two
+operations are wrapped in a workflow: **Actions → Demo Data (hosted) → Run
+workflow**.
+
+- **action** — `seed` or `purge`.
+- **confirm** — you must type `SEED` or `PURGE`, matching the action. Anything
+  else fails before the database is touched, including picking `seed` and
+  typing `PURGE`.
+
+It is `workflow_dispatch` only — it never runs on push, and it is unrelated to
+`ci-cd.yml`, which deploys and runs the accounts-only `prisma/seed.ts`.
+
+The job runs both scripts with `docker exec` inside the already-deployed
+`mercon-api` container, which is where `DATABASE_URL` resolves. It passes
+`DEMO_ALLOW_REMOTE=yes-i-understand` and **never** passes `DEMO_RESET`, so the
+seeder's destructive path is unreachable from CI — nothing untagged is ever
+deleted.
+
+Row counts are printed before and after and rendered as a table in the run
+summary, showing demo-tagged rows against total rows per table. The gap between
+the two columns is real data, which the workflow never touches.
+
+The job targets a GitHub Environment named `demo-data`. **Create it under
+Settings → Environments and add a required reviewer** — until you do, the
+workflow runs as soon as it is dispatched, and the typed confirmation is the
+only thing standing in front of the production database.
+
+Requires the `POSTGRES_USER` secret (already set for `ci-cd.yml`) to read the
+row counts.
