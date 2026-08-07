@@ -229,5 +229,54 @@ export function downloadExcel(title: string, headers: string[], rows: any[][], f
   document.body.removeChild(link);
 }
 
+/** Opens a print-formatted HTML table in a new tab so the user can "Save as PDF"
+ *  from the browser's print dialog — same no-dependency approach already used
+ *  for the per-invoice Print/PDF action, applied here to a whole table. */
+export function downloadPDF<T extends Record<string, any>>(data: T[], title: string = 'MERCON Export') {
+  if (!data || !data.length) {
+    return;
+  }
+
+  const rawKeys = Object.keys(data[0]).filter(k => !EXCLUDE_KEYS.has(k));
+  const headers = rawKeys.map(formatHeaderLabel);
+
+  let html = `<!doctype html><html><head><meta charset="utf-8" /><title>${title}</title>`;
+  html += `<style>
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 24px; color: #1E293B; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    p.subtitle { font-size: 11px; color: #64748B; margin: 0 0 16px; }
+    table { border-collapse: collapse; width: 100%; }
+    th { background-color: #E8450F; color: #FFFFFF; font-weight: bold; text-align: left; border: 0.5pt solid #CBD5E1; padding: 6px 10px; font-size: 10px; }
+    td { border: 0.5pt solid #E2E8F0; padding: 6px 10px; font-size: 10px; color: #334155; }
+    tr:nth-child(even) td { background-color: #F8FAFC; }
+    @media print { body { margin: 0.5cm; } }
+  </style></head><body>`;
+  html += `<h1>${title}</h1>`;
+  html += `<p class="subtitle">Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} · MERCON Logistics Platform · ${data.length} record${data.length === 1 ? '' : 's'}</p>`;
+
+  html += `<table><thead><tr>`;
+  headers.forEach(h => { html += `<th>${h}</th>`; });
+  html += `</tr></thead><tbody>`;
+
+  for (const row of data) {
+    html += `<tr>`;
+    rawKeys.forEach(key => {
+      const val = extractValue(row[key]);
+      html += `<td>${val.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+    });
+    html += `</tr>`;
+  }
+
+  html += `</tbody></table></body></html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.onload = () => win.print();
+}
+
 export const exportToCSV = downloadCSV;
 

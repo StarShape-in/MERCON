@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
-import { downloadCSV } from '@/utils/exportUtils';
+import { downloadCSV, downloadPDF } from '@/utils/exportUtils';
 import { tripService, Trip, TripStatus } from '@/services/tripService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
@@ -292,6 +292,14 @@ export default function TripListPage() {
       }
     },
     {
+      label: 'Export Selected PDF',
+      icon: <FileText size={13} />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: Trip[]) => {
+        downloadPDF(selectedRows, 'Trips Export');
+      }
+    },
+    {
       label: 'Delete Selected',
       icon: <Trash2 size={13} />,
       variant: 'danger' as const,
@@ -337,6 +345,16 @@ export default function TripListPage() {
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
               Export CSV
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => downloadPDF(trips, 'Trips Export')}
+            >
+              <FileText className="h-3.5 w-3.5 text-slate-600" />
+              Export PDF
             </Button>
 
             <Button
