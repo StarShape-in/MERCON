@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Check, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography } from '../../theme/tokens';
 import { Button, Card, Input, StatusBadge } from '../../components';
@@ -15,6 +15,9 @@ import {
 
 const CreateTripScreen = () => {
   const router = useRouter();
+  // Optional: set when arriving from a customer's "Create Trip" action, so the
+  // customer arrives pre-selected instead of having to be found in the list.
+  const { customerId: presetCustomerId } = useLocalSearchParams<{ customerId?: string }>();
 
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [optionsError, setOptionsError] = useState<string | null>(null);
@@ -22,7 +25,7 @@ const CreateTripScreen = () => {
   const [drivers, setDrivers] = useState<OperatorDriver[]>([]);
   const [vehicles, setVehicles] = useState<OperatorVehicle[]>([]);
 
-  const [customerId, setCustomerId] = useState('');
+  const [customerId, setCustomerId] = useState(presetCustomerId ?? '');
   const [pickupLat, setPickupLat] = useState('');
   const [pickupLng, setPickupLng] = useState('');
   const [dropoffLat, setDropoffLat] = useState('');
