@@ -280,9 +280,6 @@ export default function CustomerListPage() {
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                   Customers
                 </h1>
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
-                  Commercial Module
-                </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 Scope: Manage corporate client accounts, credit exposure, and rate cards

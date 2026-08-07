@@ -263,9 +263,6 @@ export default function MaintenanceListPage() {
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                   Vehicle Maintenance & Renewals
                 </h1>
-                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold">
-                  Fleet Module
-                </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 Log service history, renewal expenses, work done details, and workshop maintenance schedules.

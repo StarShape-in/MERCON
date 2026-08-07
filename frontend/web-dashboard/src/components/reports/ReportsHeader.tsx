@@ -45,7 +45,7 @@ export default function ReportsHeader({
       {/* Top Scope & Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
             <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>MERCON Fleet Analytics</span>
             <span>•</span>
@@ -63,7 +63,7 @@ export default function ReportsHeader({
               size="sm" 
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-100/50 shadow-2xs"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
@@ -81,7 +81,7 @@ export default function ReportsHeader({
       </div>
 
       {/* Unified Navigation Switcher Bar */}
-      <div className="bg-slate-50 dark:bg-slate-800 p-1.5 rounded-xl flex items-center gap-1 overflow-x-auto border border-slate-200/80 dark:border-slate-700/80">
+      <div className="bg-white dark:bg-slate-800 p-1.5 rounded-xl flex items-center gap-1 overflow-x-auto border border-slate-200/80 dark:border-slate-700/80">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

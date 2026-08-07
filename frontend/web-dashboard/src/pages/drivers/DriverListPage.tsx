@@ -396,9 +396,6 @@ export default function DriverListPage() {
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                   Drivers
                 </h1>
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200/80 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5">
-                  Fleet Module
-                </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium">
                 Scope: Manage driver roster, AI safety risk scores, and license compliance

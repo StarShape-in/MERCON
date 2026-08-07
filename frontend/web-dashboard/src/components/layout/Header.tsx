@@ -99,7 +99,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
       >
 
         {/* HORIZONTAL ROUTE PILL BAR */}
-        <div className="bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/80 dark:border-slate-700 shrink-0">
+        <div className="bg-white dark:bg-slate-800/80 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/80 dark:border-slate-700 shrink-0">
           {navRoutes.map((route) => {
             const isActive = location.pathname === route.path || (route.path !== '/dashboard' && location.pathname.startsWith(route.path));
             const Icon = route.icon;
@@ -197,7 +197,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
 
         {/* Notifications trigger */}
         <Link to="/notifications" className="relative group">
-          <div className="w-8.5 h-8.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
+          <div className="w-8.5 h-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
             <Bell size={15} className="text-slate-600 dark:text-slate-300" />
           </div>
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
@@ -209,7 +209,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
         <div className="relative" ref={dropdownRef}>
           <button 
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
           >
             <div className="w-5.5 h-5.5 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[9px] font-black select-none">
               {initials}
@@ -228,7 +228,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
               <Link 
                 to="/settings/profile" 
                 onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800 transition-colors"
               >
                 <User size={14} className="text-slate-400" />
                 My Profile
@@ -237,7 +237,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
               <Link 
                 to="/settings" 
                 onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800 transition-colors"
               >
                 <Settings size={14} className="text-slate-400" />
                 Settings
