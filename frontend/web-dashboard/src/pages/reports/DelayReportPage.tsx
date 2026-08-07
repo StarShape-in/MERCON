@@ -79,13 +79,20 @@ function isoDaysAgo(days: number): string {
 
 const isoToday = () => new Date().toISOString().slice(0, 10);
 
-/** "8 Jul – 7 Aug", or with years when the range crosses one. */
+/**
+ * "8 Jul – 7 Aug 2026", with years on both ends when the range crosses one.
+ *
+ * Always spells the month, because this exists to be unambiguous: a date input
+ * renders in the browser's locale, where 08-07-2026 is 8 July in most of the
+ * world and 7 August in the US. "8 Jul" cannot be read two ways.
+ */
 function fmtRange(startIso: string, endIso: string): string {
   const [start, end] = [new Date(startIso), new Date(endIso)];
   const sameYear = start.getFullYear() === end.getFullYear();
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
   const fmt = (d: Date, withYear: boolean) =>
     d.toLocaleDateString(undefined, withYear ? { ...opts, year: 'numeric' } : opts);
+  if (startIso === endIso) return fmt(start, true);
   return `${fmt(start, !sameYear)} – ${fmt(end, true)}`;
 }
 
@@ -247,28 +254,48 @@ function PeriodPicker({ periodId, startDate, endDate, onPreset, onCustom }: {
         <div className="mt-1.5 border-t border-black/[0.06] pt-2 px-1">
           <Micro>Custom range</Micro>
           <div className="mt-1.5 flex items-center gap-1.5">
-            <input
-              type="date"
-              value={draftStart}
-              max={draftEnd || undefined}
-              onChange={(e) => setDraftStart(e.target.value)}
-              className="h-7 min-w-0 flex-1 rounded-md border border-black/[0.08] px-1.5 text-[11px] text-ink outline-none focus:border-brand"
-            />
-            <span className="text-faint text-[11px]">to</span>
-            <input
-              type="date"
-              value={draftEnd}
-              min={draftStart || undefined}
-              max={isoToday()}
-              onChange={(e) => setDraftEnd(e.target.value)}
-              className="h-7 min-w-0 flex-1 rounded-md border border-black/[0.08] px-1.5 text-[11px] text-ink outline-none focus:border-brand"
-            />
+            <label className="flex-1 min-w-0">
+              <span className="block text-[10px] text-faint font-semibold mb-0.5">From</span>
+              <input
+                type="date"
+                value={draftStart}
+                max={draftEnd || undefined}
+                onChange={(e) => setDraftStart(e.target.value)}
+                className="h-7 w-full min-w-0 rounded-md border border-black/[0.08] px-1.5 text-[11px] text-ink outline-none focus:border-brand"
+              />
+            </label>
+            <label className="flex-1 min-w-0">
+              <span className="block text-[10px] text-faint font-semibold mb-0.5">To</span>
+              <input
+                type="date"
+                value={draftEnd}
+                min={draftStart || undefined}
+                max={isoToday()}
+                onChange={(e) => setDraftEnd(e.target.value)}
+                className="h-7 w-full min-w-0 rounded-md border border-black/[0.08] px-1.5 text-[11px] text-ink outline-none focus:border-brand"
+              />
+            </label>
           </div>
+
+          {/*
+            Date inputs render in the browser's locale, so "08-07-2026" is
+            8 July to one reader and 7 August to another. Echoing the draft
+            back with the month spelled out is the only way the picker can
+            state which one it actually took.
+          */}
+          <p className="mt-1.5 text-[10px] text-subtle tabular-nums">
+            {invalid
+              ? draftStart && draftEnd
+                ? 'The end date is before the start date.'
+                : 'Pick both dates.'
+              : fmtRange(draftStart, draftEnd)}
+          </p>
+
           <button
             type="button"
             disabled={invalid}
             onClick={() => { onCustom(draftStart, draftEnd); setOpen(false); }}
-            className="mt-2 w-full h-7 rounded-md bg-ink text-white text-[11px] font-semibold transition-opacity disabled:opacity-35 disabled:cursor-not-allowed"
+            className="mt-1.5 w-full h-7 rounded-md bg-ink text-white text-[11px] font-semibold transition-opacity disabled:opacity-35 disabled:cursor-not-allowed"
           >
             Apply
           </button>
@@ -437,6 +464,18 @@ export default function DelayReportPage() {
             )}
           </div>
         </Card>
+
+        {/*
+          The applied range, spelled out, immediately above the results it
+          produced. A locale-formatted pill can be misread (08-07 is two
+          different days depending on where you are); "8 Jul 2026" cannot.
+        */}
+        <p className="text-xs text-subtle">
+          Arrivals between <span className="font-semibold text-ink">{fmtRange(startDate, endDate)}</span>
+          {tab === 'log' && log.data?.meta && (
+            <> · <span className="font-semibold text-ink tabular-nums">{log.data.meta.total}</span> late</>
+          )}
+        </p>
 
         {/* ── Log ───────────────────────────────────────────────────────── */}
         {tab === 'log' && (
