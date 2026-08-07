@@ -99,7 +99,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
       >
 
         {/* HORIZONTAL ROUTE PILL BAR */}
-        <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/80 dark:border-slate-700 shrink-0">
+        <div className="bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/80 dark:border-slate-700 shrink-0">
           {navRoutes.map((route) => {
             const isActive = location.pathname === route.path || (route.path !== '/dashboard' && location.pathname.startsWith(route.path));
             const Icon = route.icon;
@@ -145,7 +145,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
               <DropdownMenuItem onClick={() => navigate('/drivers/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
                 <Users className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Onboard Driver
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+              <DropdownMenuSeparator className="my-1 bg-slate-200/50 dark:bg-slate-800" />
               <DropdownMenuItem onClick={() => navigate('/rate-cards/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
                 <FileText className="w-3.5 h-3.5 mr-2 text-[#E8450F]" /> Create Rate Card
               </DropdownMenuItem>
@@ -185,7 +185,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
             <DropdownMenuItem onClick={() => navigate('/drivers/new')} className="cursor-pointer text-xs font-semibold py-2 px-2 rounded-md">
               <Users className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Onboard Driver
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+            <DropdownMenuSeparator className="my-1 bg-slate-200/50 dark:bg-slate-800" />
             <DropdownMenuItem onClick={() => navigate('/rate-cards/new')} className="cursor-pointer text-xs font-semibold py-2 px-2 rounded-md">
               <FileText className="w-3.5 h-3.5 mr-2 text-[#E8450F]" /> Create Rate Card
             </DropdownMenuItem>
@@ -197,7 +197,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
 
         {/* Notifications trigger */}
         <Link to="/notifications" className="relative group">
-          <div className="w-8.5 h-8.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
+          <div className="w-8.5 h-8.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
             <Bell size={15} className="text-slate-600 dark:text-slate-300" />
           </div>
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
@@ -209,7 +209,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
         <div className="relative" ref={dropdownRef}>
           <button 
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
           >
             <div className="w-5.5 h-5.5 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[9px] font-black select-none">
               {initials}
@@ -220,7 +220,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 animate-fade-in origin-top-right z-50">
-              <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="px-4 py-2 border-b border-slate-200/60 dark:border-slate-800">
                 <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{user?.name || 'Mohammed Al-Harbi'}</p>
                 <p className="text-[10px] text-slate-500 truncate">{user?.role || 'Operator'}</p>
               </div>
@@ -243,7 +243,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
                 Settings
               </Link>
 
-              <div className="border-t border-slate-100 dark:border-slate-800 mt-1.5 pt-1.5">
+              <div className="border-t border-slate-200/60 dark:border-slate-800 mt-1.5 pt-1.5">
                 <button 
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"

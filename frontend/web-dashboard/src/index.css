@@ -132,7 +132,7 @@ body {
   100% { transform: scale(1.8); opacity: 0; }
 }
 
-.animate-fade-in  { animation: fadeIn  0.22s ease both; }
+.animate-fade-in  { animation: none; }
 .animate-slide-in { animation: slideIn 0.20s ease both; }
 
 /* ─── Shared card style ───────────────────────────────────────────────────── */
@@ -372,7 +372,7 @@ body {
 }
 
 .animate-entrance-fade {
-  animation: entrance-fade var(--anim-duration) var(--anim-easing) both;
+  animation: none;
 }
 
 .animate-entrance-sidebar {

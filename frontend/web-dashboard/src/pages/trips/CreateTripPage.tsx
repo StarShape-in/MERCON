@@ -1,20 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  RotateCcw, 
-  Plus, 
-  CheckCircle2, 
-  Navigation, 
+import {
+  ArrowLeft,
+  RotateCcw,
+  Plus,
+  CheckCircle2,
+  Navigation,
   Clock,
-  ArrowRight,
   ChevronRight,
   ChevronLeft,
   User,
   Truck,
-  MapPin,
-  Building2
+  Building2,
+  AlertCircle,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -26,6 +25,7 @@ import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +65,7 @@ export default function CreateTripPage() {
     queryKey: ['customers-select'],
     queryFn: () => customerService.getAll({ per_page: 100 }),
   });
-  
+
   const { data: driversRes } = useQuery({
     queryKey: ['drivers-select'],
     queryFn: () => driverService.getAll({ per_page: 100, status: 'Available' }),
@@ -240,369 +240,348 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
-      <div className="px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1000px] mx-auto">
-        
-        {/* Top Scope & Action Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              <span>MERCON Fleet</span>
-              <span>•</span>
-              <span className="text-slate-900 dark:text-slate-100 font-bold">Dispatch & Operations</span>
-            </div>
-            <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200 font-bold dark:bg-indigo-950/40 dark:text-indigo-300">
-              Trip Dispatch Wizard
-            </Badge>
+      <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in">
+
+        {/* Scope & actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 rounded-md border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+              <Building2 className="w-3.5 h-3.5" />
+              MERCON Fleet
+              <span className="text-muted-foreground/50">/</span>
+              <span className="text-foreground font-bold">Dispatch &amp; Operations</span>
+            </span>
+            <Badge variant="outline" className="font-semibold">Trip Dispatch Wizard</Badge>
           </div>
 
           <div className="flex items-center gap-2">
-            <Btn 
-              variant="outline" 
-              size="sm" 
+            <Btn
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => navigate('/trips')}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              label="Back to Trips"
+              className="h-9 text-xs"
+              label="Back"
               icon={<ArrowLeft className="w-3.5 h-3.5" />}
               shortcut={{ key: 'b', alt: true }}
             />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleReset}
-              className="h-9 gap-1.5 text-xs text-slate-500 hover:text-slate-900"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="h-9 text-xs gap-1.5">
               <RotateCcw className="w-3.5 h-3.5" /> Reset
             </Button>
           </div>
         </div>
 
-        {/* Top Horizontal Live Manifest */}
-        <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-          <div className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
-            
-            {/* Customer Box */}
-            <div className={`flex-1 p-4 flex items-center gap-3 w-full ${step === 1 ? 'bg-slate-50 dark:bg-slate-800/40' : ''}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedCustomer ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
-                <User className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">1. Customer</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${selectedCustomer ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}`}>
+        {/* Step manifest */}
+        <Card className="rounded-xl overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x">
+            {/* Customer */}
+            <div className={`flex-1 p-3.5 flex items-center gap-3 w-full ${step === 1 ? 'bg-muted/50' : ''}`}>
+              <User className={`w-4 h-4 shrink-0 ${selectedCustomer ? 'text-primary' : 'text-muted-foreground/40'}`} />
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">1. Customer</span>
+                <p className={`text-sm font-bold truncate mt-0.5 ${selectedCustomer ? 'text-foreground' : 'text-muted-foreground/60'}`}>
                   {selectedCustomer ? selectedCustomer.name : 'Pending...'}
                 </p>
               </div>
-              {selectedCustomer && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+              {selectedCustomer && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
             </div>
 
-            {/* Assignments Box */}
-            <div className={`flex-1 p-4 flex items-center gap-3 w-full ${step === 2 ? 'bg-slate-50 dark:bg-slate-800/40' : ''}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${(selectedDriver && selectedVehicle) ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
-                <Truck className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">2. Assignments</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${(selectedDriver && selectedVehicle) ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}`}>
+            {/* Assignments */}
+            <div className={`flex-1 p-3.5 flex items-center gap-3 w-full ${step === 2 ? 'bg-muted/50' : ''}`}>
+              <Truck className={`w-4 h-4 shrink-0 ${(selectedDriver && selectedVehicle) ? 'text-primary' : 'text-muted-foreground/40'}`} />
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">2. Assignments</span>
+                <p className={`text-sm font-bold truncate mt-0.5 ${(selectedDriver && selectedVehicle) ? 'text-foreground' : 'text-muted-foreground/60'}`}>
                   {(selectedDriver && selectedVehicle) ? `${selectedDriver.first_name} • ${selectedVehicle.plate_number}` : 'Pending...'}
                 </p>
               </div>
-              {(selectedDriver && selectedVehicle) && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+              {(selectedDriver && selectedVehicle) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
             </div>
 
-            {/* Route Box */}
-            <div className={`flex-1 p-4 flex items-center gap-3 w-full ${step === 3 ? 'bg-slate-50 dark:bg-slate-800/40' : ''}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${!missingLocation ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
-                <Navigation className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">3. Route</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${!missingLocation ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}`}>
+            {/* Route */}
+            <div className={`flex-1 p-3.5 flex items-center gap-3 w-full ${step === 3 ? 'bg-muted/50' : ''}`}>
+              <Navigation className={`w-4 h-4 shrink-0 ${!missingLocation ? 'text-primary' : 'text-muted-foreground/40'}`} />
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">3. Route</span>
+                <p className={`text-sm font-bold truncate mt-0.5 ${!missingLocation ? 'text-foreground' : 'text-muted-foreground/60'}`}>
                   {!missingLocation ? 'Geofences Set' : 'Pending...'}
                 </p>
               </div>
-              {!missingLocation && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+              {!missingLocation && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
             </div>
-
           </div>
         </Card>
 
-        {/* Wizard Error Banner */}
         {error && (
-          <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-            {error}
-          </div>
+          <Alert variant="destructive">
+            <AlertCircle />
+            <AlertTitle>Cannot proceed</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
-        {/* Wizard Form Area */}
-        <div className="mt-4">
-          
-          {/* STEP 1: Customer */}
-          {step === 1 && (
-            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-2">
-              <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                  Step 1: Customer Information
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
-                  Select the customer organization and specify the planned start time.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="customer_id" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Select Customer <span className="text-rose-500">*</span>
-                  </Label>
-                  <Select 
-                    value={customerId} 
-                    onValueChange={(val) => {
-                      setCustomerId(val);
+        {/* Wizard steps */}
+        {step === 1 && (
+          <Card className="rounded-xl">
+            <CardHeader className="border-b">
+              <CardTitle className="text-sm font-bold">Step 1: Customer information</CardTitle>
+              <CardDescription className="text-xs">
+                Select the customer organization and specify the planned start time.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="customer_id" className="text-xs font-semibold">
+                  Select customer <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={customerId}
+                  onValueChange={(val) => {
+                    setCustomerId(val);
+                    setError(null);
+                  }}
+                >
+                  <SelectTrigger id="customer_id" className="w-full">
+                    <SelectValue placeholder="Choose customer organization..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} ({c.contact_phone || 'No Phone'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="planned_start" className="text-xs font-semibold flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" /> Planned start time
+                </Label>
+                <Input
+                  id="planned_start"
+                  type="datetime-local"
+                  value={plannedStart}
+                  onChange={(e) => setPlannedStart(e.target.value)}
+                  className="font-mono max-w-sm"
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="justify-end rounded-b-xl">
+              <Btn
+                label="Next Step"
+                icon={<ChevronRight className="w-3.5 h-3.5" />}
+                onClick={nextStep}
+                size="sm"
+                className="h-9 px-5 text-xs"
+                shortcut={{ key: 'Enter', metaOrControl: true }}
+              />
+            </CardFooter>
+          </Card>
+        )}
+
+        {step === 2 && (
+          <Card className="rounded-xl">
+            <CardHeader className="border-b">
+              <CardTitle className="text-sm font-bold">Step 2: Driver &amp; vehicle assignment</CardTitle>
+              <CardDescription className="text-xs">
+                Pair an available driver with a vehicle for this trip.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="driver_id" className="text-xs font-semibold">
+                      Assigned driver <span className="text-destructive">*</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsAddDriverOpen(true)}
+                      className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 font-medium gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add driver
+                    </Button>
+                  </div>
+                  <Combobox
+                    id="driver_id"
+                    value={driverId}
+                    onChange={(val) => {
+                      setDriverId(val);
                       setError(null);
                     }}
-                  >
-                    <SelectTrigger id="customer_id" className="h-10 text-sm border-slate-200 bg-white">
-                      <SelectValue placeholder="Choose customer organization..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} ({c.contact_phone || 'No Phone'})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    options={driverOptions}
+                    placeholder="Choose available driver..."
+                    searchPlaceholder="Search drivers..."
+                    emptyText="No available drivers found."
+                  />
                 </div>
-                
-                <div className="space-y-2 pt-2">
-                  <Label htmlFor="planned_start" className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-slate-400" /> Planned Start Time
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="vehicle_id" className="text-xs font-semibold">
+                      Assigned vehicle <span className="text-destructive">*</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsAddVehicleOpen(true)}
+                      className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10 font-medium gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add vehicle
+                    </Button>
+                  </div>
+                  <Combobox
+                    id="vehicle_id"
+                    value={vehicleId}
+                    onChange={(val) => {
+                      setVehicleId(val);
+                      setError(null);
+                    }}
+                    options={vehicleOptions}
+                    placeholder="Choose available vehicle..."
+                    searchPlaceholder="Search vehicles..."
+                    emptyText="No available vehicles found."
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="justify-between rounded-b-xl">
+              <Btn
+                variant="outline"
+                onClick={prevStep}
+                size="sm"
+                className="h-9 px-5 text-xs"
+                label="Back"
+                icon={<ChevronLeft className="w-3.5 h-3.5" />}
+                shortcut={{ key: 'Escape' }}
+              />
+              <Btn
+                onClick={nextStep}
+                size="sm"
+                className="h-9 px-5 text-xs"
+                label="Next Step"
+                icon={<ChevronRight className="w-3.5 h-3.5" />}
+                shortcut={{ key: 'Enter', metaOrControl: true }}
+              />
+            </CardFooter>
+          </Card>
+        )}
+
+        {step === 3 && (
+          <Card className="rounded-xl">
+            <CardHeader className="border-b">
+              <CardTitle className="text-sm font-bold">Step 3: Route stops &amp; geofencing</CardTitle>
+              <CardDescription className="text-xs">
+                Pinpoint the exact pickup and dropoff locations. Locations are auto-saved per customer.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+
+              {/* Pickup Stop */}
+              <div className="space-y-3 p-3.5 rounded-xl border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Pickup stop (sequence 1)
+                  </span>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {pickupLat && pickupLng ? `${pickupLat.toFixed(4)}, ${pickupLng.toFixed(4)}` : 'Not set'}
+                  </span>
+                </div>
+
+                <LocationPickerMap
+                  label="Pickup Location (Click map to pin)"
+                  lat={pickupLat}
+                  lng={pickupLng}
+                  onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
+                  name={pickupName}
+                  onNameChange={setPickupName}
+                />
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="pickup_time" className="text-xs font-semibold">
+                    Planned pickup arrival time <span className="text-destructive">*</span>
                   </Label>
                   <Input
-                    id="planned_start"
+                    id="pickup_time"
                     type="datetime-local"
-                    value={plannedStart}
-                    onChange={(e) => setPlannedStart(e.target.value)}
-                    className="h-10 text-sm font-mono border-slate-200 max-w-sm"
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="font-mono max-w-sm"
                   />
                 </div>
-              </CardContent>
-              <CardFooter className="border-t border-slate-100 dark:border-slate-800 p-4 flex justify-end bg-slate-50 dark:bg-slate-900/50">
-                <Btn 
-                  label="Next Step"
-                  icon={<ChevronRight className="w-4 h-4" />}
-                  onClick={nextStep}
-                  className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 px-6"
-                  shortcut={{ key: 'Enter', metaOrControl: true }}
-                />
-              </CardFooter>
-            </Card>
-          )}
+              </div>
 
-          {/* STEP 2: Assignments */}
-          {step === 2 && (
-            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-2">
-              <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                  Step 2: Driver & Vehicle Assignment
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
-                  Pair an available driver with a vehicle for this trip.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="driver_id" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        Assigned Driver <span className="text-rose-500">*</span>
-                      </Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsAddDriverOpen(true)}
-                        className="h-6 px-2 text-[11px] text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 font-medium gap-1"
-                      >
-                        <Plus className="w-3 h-3" /> Add Driver
-                      </Button>
-                    </div>
-                    <Combobox
-                      id="driver_id"
-                      value={driverId}
-                      onChange={(val) => {
-                        setDriverId(val);
-                        setError(null);
-                      }}
-                      options={driverOptions}
-                      placeholder="Choose available driver..."
-                      searchPlaceholder="Search drivers..."
-                      emptyText="No available drivers found."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="vehicle_id" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        Assigned Vehicle <span className="text-rose-500">*</span>
-                      </Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsAddVehicleOpen(true)}
-                        className="h-6 px-2 text-[11px] text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 font-medium gap-1"
-                      >
-                        <Plus className="w-3 h-3" /> Add Vehicle
-                      </Button>
-                    </div>
-                    <Combobox
-                      id="vehicle_id"
-                      value={vehicleId}
-                      onChange={(val) => {
-                        setVehicleId(val);
-                        setError(null);
-                      }}
-                      options={vehicleOptions}
-                      placeholder="Choose available vehicle..."
-                      searchPlaceholder="Search vehicles..."
-                      emptyText="No available vehicles found."
-                    />
-                  </div>
+              {/* Dropoff Stop */}
+              <div className="space-y-3 p-3.5 rounded-xl border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-destructive" /> Dropoff stop (sequence 2)
+                  </span>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {dropoffLat && dropoffLng ? `${dropoffLat.toFixed(4)}, ${dropoffLng.toFixed(4)}` : 'Not set'}
+                  </span>
                 </div>
-              </CardContent>
-              <CardFooter className="border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between bg-slate-50 dark:bg-slate-900/50">
-                <Btn 
-                  variant="outline" 
-                  onClick={prevStep} 
-                  className="h-10 gap-1.5 px-6"
-                  label="Back"
-                  icon={<ChevronLeft className="w-4 h-4" />}
-                  shortcut={{ key: 'Escape' }}
-                />
-                <Btn 
-                  onClick={nextStep} 
-                  className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 px-6"
-                  label="Next Step"
-                  icon={<ChevronRight className="w-4 h-4" />}
-                  shortcut={{ key: 'Enter', metaOrControl: true }}
-                />
-              </CardFooter>
-            </Card>
-          )}
 
-          {/* STEP 3: Route */}
-          {step === 3 && (
-            <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-2">
-              <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                  Step 3: Route Stops & Geofencing
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
-                  Pinpoint the exact pickup and dropoff locations. Locations are auto-saved per customer.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-6">
-                
-                {/* Pickup Stop */}
-                <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Pickup Stop (Sequence 1)
-                    </span>
-                    <span className="text-xs font-mono text-slate-500">
-                      {pickupLat && pickupLng ? `${pickupLat.toFixed(4)}, ${pickupLng.toFixed(4)}` : 'Not Set'}
-                    </span>
-                  </div>
+                <LocationPickerMap
+                  label="Dropoff Location (Click map to pin)"
+                  lat={dropoffLat}
+                  lng={dropoffLng}
+                  onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
+                  name={dropoffName}
+                  onNameChange={setDropoffName}
+                />
 
-                  <LocationPickerMap
-                    label="Pickup Location (Click map to pin)"
-                    lat={pickupLat}
-                    lng={pickupLng}
-                    onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
-                    name={pickupName}
-                    onNameChange={setPickupName}
+                <div className="space-y-1.5">
+                  <Label htmlFor="dropoff_time" className="text-xs font-semibold">
+                    Planned delivery deadline <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="dropoff_time"
+                    type="datetime-local"
+                    value={dropoffTime}
+                    onChange={(e) => setDropoffTime(e.target.value)}
+                    className="font-mono max-w-sm"
                   />
-
-                  <div className="space-y-1.5 pt-2">
-                    <Label htmlFor="pickup_time" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Planned Pickup Arrival Time *
-                    </Label>
-                    <Input
-                      id="pickup_time"
-                      type="datetime-local"
-                      value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
-                      className="h-9 text-xs font-mono border-slate-200 max-w-sm"
-                    />
-                  </div>
                 </div>
+              </div>
+            </CardContent>
+            <CardFooter className="justify-between rounded-b-xl">
+              <Btn
+                variant="outline"
+                onClick={prevStep}
+                size="sm"
+                className="h-9 px-5 text-xs"
+                label="Back"
+                icon={<ChevronLeft className="w-3.5 h-3.5" />}
+                shortcut={{ key: 'Escape' }}
+              />
+              <Btn
+                onClick={handleSubmit}
+                disabled={createMutation.isPending || !isFormValid}
+                size="sm"
+                className="h-9 px-6 text-xs"
+                label={createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
+                shortcut={{ key: 'Enter', metaOrControl: true }}
+              />
+            </CardFooter>
+          </Card>
+        )}
 
-                {/* Dropoff Stop */}
-                <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Dropoff Stop (Sequence 2)
-                    </span>
-                    <span className="text-xs font-mono text-slate-500">
-                      {dropoffLat && dropoffLng ? `${dropoffLat.toFixed(4)}, ${dropoffLng.toFixed(4)}` : 'Not Set'}
-                    </span>
-                  </div>
-
-                  <LocationPickerMap
-                    label="Dropoff Location (Click map to pin)"
-                    lat={dropoffLat}
-                    lng={dropoffLng}
-                    onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
-                    name={dropoffName}
-                    onNameChange={setDropoffName}
-                  />
-
-                  <div className="space-y-1.5 pt-2">
-                    <Label htmlFor="dropoff_time" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Planned Delivery Deadline *
-                    </Label>
-                    <Input
-                      id="dropoff_time"
-                      type="datetime-local"
-                      value={dropoffTime}
-                      onChange={(e) => setDropoffTime(e.target.value)}
-                      className="h-9 text-xs font-mono border-slate-200 max-w-sm"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between bg-slate-50 dark:bg-slate-900/50">
-                <Btn 
-                  variant="outline" 
-                  onClick={prevStep} 
-                  className="h-10 gap-1.5 px-6"
-                  label="Back"
-                  icon={<ChevronLeft className="w-4 h-4" />}
-                  shortcut={{ key: 'Escape' }}
-                />
-                <Btn 
-                  onClick={handleSubmit} 
-                  disabled={createMutation.isPending || !isFormValid}
-                  className="h-10 bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold gap-1.5 px-8 shadow-xs"
-                  label={createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
-                  shortcut={{ key: 'Enter', metaOrControl: true }}
-                />
-              </CardFooter>
-            </Card>
-          )}
-
-        </div>
       </div>
 
-      <CreateDriverModal 
-        isOpen={isAddDriverOpen} 
-        onClose={() => setIsAddDriverOpen(false)} 
-        onCreated={(newDriver) => { setDriverId(newDriver.id); setError(null); }} 
+      <CreateDriverModal
+        isOpen={isAddDriverOpen}
+        onClose={() => setIsAddDriverOpen(false)}
+        onCreated={(newDriver) => { setDriverId(newDriver.id); setError(null); }}
       />
-      <CreateVehicleModal 
-        isOpen={isAddVehicleOpen} 
-        onClose={() => setIsAddVehicleOpen(false)} 
-        onCreated={(newVehicle) => { setVehicleId(newVehicle.id); setError(null); }} 
+      <CreateVehicleModal
+        isOpen={isAddVehicleOpen}
+        onClose={() => setIsAddVehicleOpen(false)}
+        onCreated={(newVehicle) => { setVehicleId(newVehicle.id); setError(null); }}
       />
     </DashboardLayout>
   );
