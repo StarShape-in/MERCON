@@ -4,8 +4,8 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 /**
- * Seeds only the two canonical accounts documented in the repo root CLAUDE.md
- * ("Default users... admin (role Admin) and operator (role Operator)").
+ * Seeds the canonical accounts: admin (role Admin), operator (role Operator),
+ * and ilan (role Admin, added at owner's request).
  * This must stay idempotent (upserts, never blind creates) and must never
  * overwrite passwords of existing users — it runs on every container start.
  *
@@ -21,6 +21,7 @@ async function main() {
   // intentionally omit `password_hash`.
   const defaultPassword = process.env.SEED_ADMIN_PASSWORD ?? 'password123';
   const password_hash = await bcrypt.hash(defaultPassword, 10);
+  const ilan_password_hash = await bcrypt.hash('ilan1234', 10);
 
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
@@ -51,6 +52,21 @@ async function main() {
     },
   });
   console.log(`  ✓ Operator user: ${operator.username}`);
+
+  const ilan = await prisma.user.upsert({
+    where: { username: 'ilan' },
+    update: {},
+    create: {
+      username: 'ilan',
+      email: 'ilan@mercon.tech',
+      phone: '+966500000003',
+      password_hash: ilan_password_hash,
+      name: 'Ilan',
+      role: Role.Admin,
+      isActive: true,
+    },
+  });
+  console.log(`  ✓ Admin user: ${ilan.username}`);
 
   console.log('✅ Default accounts seeded successfully!');
 }
