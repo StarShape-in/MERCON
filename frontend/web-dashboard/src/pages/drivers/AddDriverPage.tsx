@@ -109,63 +109,63 @@ export default function AddDriverPage() {
         className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in"
       >
         {/* Scope & actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-md border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-              <Building2 className="w-3.5 h-3.5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b">
+          <div className="flex items-center gap-2.5">
+            <span className="flex items-center gap-2 rounded-md border bg-muted px-3 py-1.5 text-sm font-semibold text-muted-foreground">
+              <Building2 className="w-4 h-4" />
               MERCON Fleet
               <span className="text-muted-foreground/50">/</span>
               <span className="text-foreground font-bold">Human Capital</span>
             </span>
-            <Badge variant="outline" className="font-semibold">Driver Onboarding</Badge>
+            <Badge variant="outline" className="font-semibold text-sm px-2.5 py-1">Driver Onboarding</Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Btn
               type="button"
               variant="outline"
-              size="sm"
+              size="md"
               onClick={() => navigate('/drivers')}
-              className="h-9 text-xs"
+              className="h-10 text-sm"
               label="Back"
-              icon={<ArrowLeft className="w-3.5 h-3.5" />}
+              icon={<ArrowLeft className="w-4 h-4" />}
               shortcut={{ key: 'b', alt: true }}
             />
-            <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="h-9 text-xs gap-1.5">
-              <RotateCcw className="w-3.5 h-3.5" /> Reset
+            <Button type="button" variant="ghost" size="default" onClick={handleReset} className="h-10 text-sm gap-2">
+              <RotateCcw className="w-4 h-4" /> Reset
             </Button>
             <Btn
               type="submit"
-              size="sm"
+              size="md"
               disabled={createMutation.isPending || !isFormValid}
-              className="h-9 px-4 text-xs rounded-md"
+              className="h-10 px-5 text-sm rounded-md"
               label={createMutation.isPending ? 'Onboarding...' : 'Onboard Driver'}
-              icon={<Plus className="w-3.5 h-3.5" />}
+              icon={<Plus className="w-4 h-4" />}
               shortcut={{ key: 'Enter', metaOrControl: true }}
             />
           </div>
         </div>
 
         {/* Workspace: form + live summary side by side */}
-        <div className="grid gap-4 lg:grid-cols-3 items-start">
+        <div className="grid gap-5 lg:grid-cols-3 items-start">
           {/* Form */}
           <Card className="lg:col-span-2 rounded-xl">
             <CardHeader className="border-b">
-              <CardTitle className="text-sm font-bold">Driver details</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="text-lg font-bold">Driver details</CardTitle>
+              <CardDescription className="text-sm">
                 Personal contact info and commercial Saudi license credentials.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-5">
-              <section className="space-y-3">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <User className="w-3.5 h-3.5" /> Personal profile
+            <CardContent className="space-y-6">
+              <section className="space-y-4">
+                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                  <User className="w-4 h-4" /> Personal profile
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="first_name" className="text-xs font-semibold">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_name" className="text-sm font-semibold">
                       First name <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -174,11 +174,12 @@ export default function AddDriverPage() {
                       placeholder="e.g. Ahmed"
                       value={formData.first_name}
                       onChange={(e) => handleChange('first_name', e.target.value)}
+                      className="h-11 text-sm"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="last_name" className="text-xs font-semibold">
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name" className="text-sm font-semibold">
                       Last name <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -186,15 +187,16 @@ export default function AddDriverPage() {
                       placeholder="e.g. Al-Mansoor"
                       value={formData.last_name}
                       onChange={(e) => handleChange('last_name', e.target.value)}
+                      className="h-11 text-sm"
                     />
                   </div>
 
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="phone_primary" className="text-xs font-semibold">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="phone_primary" className="text-sm font-semibold">
                       Primary phone <span className="text-destructive">*</span>
                     </Label>
                     <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs font-bold text-muted-foreground">
+                      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-sm font-bold text-muted-foreground">
                         +966
                       </span>
                       <Input
@@ -203,7 +205,7 @@ export default function AddDriverPage() {
                         placeholder="50XXXXXXX"
                         value={formData.phone_primary}
                         onChange={(e) => handleChange('phone_primary', e.target.value)}
-                        className="pl-14 font-mono"
+                        className="h-11 text-sm pl-16 font-mono"
                       />
                     </div>
                   </div>
@@ -212,14 +214,14 @@ export default function AddDriverPage() {
 
               <Separator />
 
-              <section className="space-y-3">
-                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Commercial driving license
+              <section className="space-y-4">
+                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                  <ShieldCheck className="w-4 h-4" /> Commercial driving license
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="license_number" className="text-xs font-semibold">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="license_number" className="text-sm font-semibold">
                       Saudi license ID <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -227,16 +229,16 @@ export default function AddDriverPage() {
                       placeholder="e.g. 10XXXXXXXX"
                       value={formData.license_number}
                       onChange={(e) => handleChange('license_number', e.target.value)}
-                      className="font-mono"
+                      className="h-11 text-sm font-mono"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="license_expiry" className="flex items-center justify-between text-xs font-semibold">
+                  <div className="space-y-2">
+                    <Label htmlFor="license_expiry" className="flex items-center justify-between text-sm font-semibold">
                       <span>Expiry date <span className="text-destructive">*</span></span>
                       {formData.license_expiry && (
                         <span
-                          className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${
+                          className={`rounded-full border px-2 py-0.5 text-xs font-bold ${
                             isExpiryValid
                               ? 'text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40'
                               : 'text-destructive border-destructive/25 bg-destructive/10'
@@ -252,7 +254,7 @@ export default function AddDriverPage() {
                       value={formData.license_expiry}
                       onChange={(e) => handleChange('license_expiry', e.target.value)}
                       aria-invalid={isExpired}
-                      className={`font-mono ${isExpired ? 'border-destructive' : ''}`}
+                      className={`h-11 text-sm font-mono ${isExpired ? 'border-destructive' : ''}`}
                     />
                   </div>
                 </div>
@@ -268,10 +270,10 @@ export default function AddDriverPage() {
             </CardContent>
 
             <CardFooter className="justify-between rounded-b-xl">
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Keyboard className="w-3.5 h-3.5" /> Press Ctrl + Enter to submit
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Keyboard className="w-4 h-4" /> Press Ctrl + Enter to submit
               </span>
-              <Button type="button" variant="outline" size="sm" onClick={handleReset} className="h-8 text-xs">
+              <Button type="button" variant="outline" size="default" onClick={handleReset} className="h-9 text-sm">
                 Reset form
               </Button>
             </CardFooter>
@@ -280,20 +282,20 @@ export default function AddDriverPage() {
           {/* Live summary */}
           <Card className="rounded-xl lg:sticky lg:top-2">
             <CardHeader className="border-b">
-              <CardTitle className="text-sm font-bold">Onboarding summary</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="text-lg font-bold">Onboarding summary</CardTitle>
+              <CardDescription className="text-sm">
                 {completed} of {checklist.length} requirements complete
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+            <CardContent className="space-y-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
                   {initials}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{fullName || 'New driver candidate'}</p>
-                  <p className="truncate text-xs text-muted-foreground font-mono">
+                  <p className="truncate text-base font-bold">{fullName || 'New driver candidate'}</p>
+                  <p className="truncate text-sm text-muted-foreground font-mono">
                     {formData.license_number || 'DL-XXXX-XXXX'}
                   </p>
                 </div>
@@ -301,28 +303,28 @@ export default function AddDriverPage() {
 
               <Separator />
 
-              <ul className="space-y-2.5">
+              <ul className="space-y-3.5">
                 {checklist.map((item) => (
-                  <li key={item.label} className="flex items-start gap-2.5">
+                  <li key={item.label} className="flex items-start gap-3">
                     {item.done ? (
-                      <CheckCircle2 className="mt-0.5 w-4 h-4 shrink-0 text-emerald-500" />
+                      <CheckCircle2 className="mt-0.5 w-5 h-5 shrink-0 text-emerald-500" />
                     ) : (
-                      <Circle className="mt-0.5 w-4 h-4 shrink-0 text-muted-foreground/40" />
+                      <Circle className="mt-0.5 w-5 h-5 shrink-0 text-muted-foreground/40" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold">{item.label}</p>
-                      <p className={`truncate text-xs ${item.done ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <p className={`truncate text-sm ${item.done ? 'text-muted-foreground' : 'text-muted-foreground/60'}`}>
                         {item.value || item.placeholder}
                       </p>
                     </div>
-                    <item.icon className="mt-0.5 w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
+                    <item.icon className="mt-0.5 w-4 h-4 shrink-0 text-muted-foreground/40" />
                   </li>
                 ))}
               </ul>
             </CardContent>
 
             <CardFooter className="rounded-b-xl">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {isFormValid
                   ? 'All checks passed — ready to onboard.'
                   : 'Complete every requirement to enable onboarding.'}
