@@ -18,9 +18,11 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Download } from 'lucide-react';
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, CalendarDays, ChevronDown, Download } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { Combobox } from '@/components/ui/combobox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   reportsService,
   type DelayDimension,
@@ -32,6 +34,9 @@ import { DELAY_REASON_LABELS, type DelayReason } from '@/services/tripService';
 import { downloadCSV } from '@/utils/exportUtils';
 
 type Tab = 'log' | 'grid' | 'analysis';
+
+/** Stands in for "no company filter" — cmdk cannot carry an empty item value. */
+const ALL_COMPANIES = '__all__';
 
 /**
  * How far back to look, and how finely to slice it — two separate things.
@@ -50,6 +55,15 @@ const PERIODS: { id: string; label: string; days: number; bucket: DelayGranulari
   { id: 'year', label: 'Year', days: 365, bucket: 'month' },
 ];
 
+/**
+ * A custom range has no preset bucket, so pick one by span using the same
+ * reasoning as the presets above: enough columns to show a trend, few enough
+ * to read. The thresholds match where the presets themselves switch over.
+ */
+function bucketForSpan(days: number): DelayGranularity {
+  return days > 120 ? 'month' : days > 45 ? 'week' : 'day';
+}
+
 const DIMENSIONS: { id: DelayDimension; label: string }[] = [
   { id: 'route', label: 'Route' },
   { id: 'driver', label: 'Driver' },
@@ -62,6 +76,21 @@ function isoDaysAgo(days: number): string {
   d.setDate(d.getDate() - days);
   return d.toISOString().slice(0, 10);
 }
+
+const isoToday = () => new Date().toISOString().slice(0, 10);
+
+/** "8 Jul – 7 Aug", or with years when the range crosses one. */
+function fmtRange(startIso: string, endIso: string): string {
+  const [start, end] = [new Date(startIso), new Date(endIso)];
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+  const fmt = (d: Date, withYear: boolean) =>
+    d.toLocaleDateString(undefined, withYear ? { ...opts, year: 'numeric' } : opts);
+  return `${fmt(start, !sameYear)} – ${fmt(end, true)}`;
+}
+
+const daysBetween = (startIso: string, endIso: string) =>
+  Math.max(1, Math.round((Date.parse(endIso) - Date.parse(startIso)) / 86_400_000));
 
 function reasonLabel(reason: string | null): string {
   if (!reason || reason === 'Unrecorded') return 'Not recorded';
@@ -116,6 +145,31 @@ function SegBtn({ active, onClick, children, tone = 'ink' }: {
   );
 }
 
+/**
+ * Which view you are looking at is navigation, not a filter — so it reads as
+ * tabs above the bar rather than as another segmented control inside it.
+ * Previously both were the same `Seg` component differing only in colour,
+ * which made ten buttons in a row look like one undifferentiated strip.
+ */
+function TabLink({ active, onClick, children }: {
+  active: boolean; onClick: () => void; children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={`relative pb-2.5 text-sm font-semibold whitespace-nowrap transition-colors ${
+        active
+          ? 'text-ink after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-brand after:rounded-full'
+          : 'text-subtle hover:text-ink'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 const Seg = ({ children }: { children: React.ReactNode }) => (
   <div className="flex rounded-lg overflow-hidden border border-black/[0.08] divide-x divide-black/[0.06]">{children}</div>
 );
@@ -128,26 +182,135 @@ const Micro = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[10px] uppercase tracking-[0.08em] text-faint font-bold">{children}</p>
 );
 
+/**
+ * The period control, as one pill that states the range it resolved to.
+ *
+ * Five buttons reading Today/Week/Month/Quarter/Year never said *which* days
+ * they meant — "Month" is only 30 days back if you already know that. Showing
+ * the resolved dates costs a click to change and buys somewhere to put a
+ * custom range, which the report had no way to express at all.
+ */
+function PeriodPicker({ periodId, startDate, endDate, onPreset, onCustom }: {
+  periodId: string;
+  startDate: string;
+  endDate: string;
+  onPreset: (id: string) => void;
+  onCustom: (start: string, end: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draftStart, setDraftStart] = useState(startDate);
+  const [draftEnd, setDraftEnd] = useState(endDate);
+
+  const isCustom = periodId === 'custom';
+  const label = isCustom ? 'Custom range' : PERIODS.find((p) => p.id === periodId)?.label ?? 'Month';
+  const invalid = !draftStart || !draftEnd || draftStart > draftEnd;
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        // Re-seed the draft from the applied range each time it opens, so a
+        // half-typed range that was never applied does not linger.
+        if (next) { setDraftStart(startDate); setDraftEnd(endDate); }
+        setOpen(next);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="h-8 inline-flex items-center gap-2 rounded-lg border border-black/[0.08] bg-white px-2.5 text-xs transition-colors hover:bg-black/[0.02] focus:outline-none focus:border-brand"
+        >
+          <CalendarDays size={14} className="text-subtle shrink-0" />
+          <span className="font-semibold text-ink whitespace-nowrap">{label}</span>
+          <span className="text-subtle tabular-nums whitespace-nowrap">{fmtRange(startDate, endDate)}</span>
+          <ChevronDown size={13} className="text-faint shrink-0" />
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent align="start" className="w-64 p-1.5">
+        {PERIODS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => { onPreset(p.id); setOpen(false); }}
+            className={`w-full flex items-center justify-between rounded-md px-2.5 py-1.5 text-xs transition-colors ${
+              periodId === p.id ? 'bg-brand-light text-brand font-semibold' : 'text-ink hover:bg-black/[0.03]'
+            }`}
+          >
+            <span>{p.label}</span>
+            <span className="text-[11px] text-faint tabular-nums">
+              {p.days === 1 ? 'today' : `${p.days} days`}
+            </span>
+          </button>
+        ))}
+
+        <div className="mt-1.5 border-t border-black/[0.06] pt-2 px-1">
+          <Micro>Custom range</Micro>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <input
+              type="date"
+              value={draftStart}
+              max={draftEnd || undefined}
+              onChange={(e) => setDraftStart(e.target.value)}
+              className="h-7 min-w-0 flex-1 rounded-md border border-black/[0.08] px-1.5 text-[11px] text-ink outline-none focus:border-brand"
+            />
+            <span className="text-faint text-[11px]">to</span>
+            <input
+              type="date"
+              value={draftEnd}
+              min={draftStart || undefined}
+              max={isoToday()}
+              onChange={(e) => setDraftEnd(e.target.value)}
+              className="h-7 min-w-0 flex-1 rounded-md border border-black/[0.08] px-1.5 text-[11px] text-ink outline-none focus:border-brand"
+            />
+          </div>
+          <button
+            type="button"
+            disabled={invalid}
+            onClick={() => { onCustom(draftStart, draftEnd); setOpen(false); }}
+            className="mt-2 w-full h-7 rounded-md bg-ink text-white text-[11px] font-semibold transition-opacity disabled:opacity-35 disabled:cursor-not-allowed"
+          >
+            Apply
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function DelayReportPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('log');
   const [periodId, setPeriodId] = useState('month');
+  const [custom, setCustom] = useState<{ start: string; end: string } | null>(null);
   const [customerId, setCustomerId] = useState('');
   const [dimension, setDimension] = useState<DelayDimension>('route');
   const [needsReasonOnly, setNeedsReasonOnly] = useState(false);
   const [page, setPage] = useState(1);
 
-  const period = PERIODS.find((p) => p.id === periodId) ?? PERIODS[2];
-  const granularity: DelayGranularity = period.bucket;
-  const startDate = useMemo(() => isoDaysAgo(period.days), [period.days]);
+  // A preset resolves to a range; a custom range is already one. Both end up as
+  // the same {startDate, endDate, granularity}, so nothing downstream has to
+  // know which of the two the user picked.
+  const { startDate, endDate, granularity } = useMemo(() => {
+    if (periodId === 'custom' && custom) {
+      return {
+        startDate: custom.start,
+        endDate: custom.end,
+        granularity: bucketForSpan(daysBetween(custom.start, custom.end)),
+      };
+    }
+    const p = PERIODS.find((x) => x.id === periodId) ?? PERIODS[2];
+    return { startDate: isoDaysAgo(p.days), endDate: isoToday(), granularity: p.bucket };
+  }, [periodId, custom]);
 
   const filters = useMemo(
     () => ({
       startDate,
+      endDate,
       ...(customerId ? { customer_id: customerId } : {}),
       ...(needsReasonOnly ? { needs_reason: 'true' as const } : {}),
     }),
-    [startDate, customerId, needsReasonOnly],
+    [startDate, endDate, customerId, needsReasonOnly],
   );
 
   const { data: customers } = useQuery({
@@ -189,41 +352,53 @@ export default function DelayReportPage() {
         Reason: reasonLabel(r.delay_reason),
         Note: r.delay_note ?? '',
       })),
-      `mercon_delays_${startDate}.csv`,
+      `mercon_delays_${startDate}_to_${endDate}.csv`,
     );
   };
 
-  const customerList = customers?.data ?? [];
   const busy = log.isLoading || grid.isLoading || analysis.isLoading;
+
+  // "All companies" needs a value cmdk can carry; an empty string is not one,
+  // so it travels as a sentinel and is mapped back to "" (meaning unfiltered)
+  // at the boundary rather than leaking into the query.
+  const companyOptions = useMemo(
+    () => [
+      { value: ALL_COMPANIES, label: 'All companies' },
+      ...(customers?.data ?? []).map((c: any) => ({ value: c.id as string, label: c.name as string })),
+    ],
+    [customers],
+  );
 
   return (
     <DashboardLayout active="Reports" title="Delay Report" pageTitle="Delay Report">
       <div className="px-6 pb-10 space-y-4">
 
-        {/* ── Filter bar: shared by all three views ─────────────────────── */}
+        {/* ── Which view: navigation, so it sits above the filters ──────── */}
+        <div className="flex items-center gap-5 border-b border-black/[0.08]">
+          <TabLink active={tab === 'log'} onClick={() => setTab('log')}>Log</TabLink>
+          <TabLink active={tab === 'grid'} onClick={() => setTab('grid')}>On-time grid</TabLink>
+          <TabLink active={tab === 'analysis'} onClick={() => setTab('analysis')}>Analysis</TabLink>
+        </div>
+
+        {/* ── Filter bar: scope, shared by all three views ──────────────── */}
         <Card className="p-3 flex flex-wrap items-center gap-2">
-          <Seg>
-            <SegBtn active={tab === 'log'} onClick={() => setTab('log')}>Log</SegBtn>
-            <SegBtn active={tab === 'grid'} onClick={() => setTab('grid')}>On-time grid</SegBtn>
-            <SegBtn active={tab === 'analysis'} onClick={() => setTab('analysis')}>Analysis</SegBtn>
-          </Seg>
+          <PeriodPicker
+            periodId={periodId}
+            startDate={startDate}
+            endDate={endDate}
+            onPreset={(id) => { setPeriodId(id); setCustom(null); setPage(1); }}
+            onCustom={(start, end) => { setCustom({ start, end }); setPeriodId('custom'); setPage(1); }}
+          />
 
-          <Seg>
-            {PERIODS.map((p) => (
-              <SegBtn key={p.id} tone="brand" active={periodId === p.id} onClick={() => { setPeriodId(p.id); setPage(1); }}>
-                {p.label}
-              </SegBtn>
-            ))}
-          </Seg>
-
-          <select
-            value={customerId}
-            onChange={(e) => { setCustomerId(e.target.value); setPage(1); }}
-            className="h-8 rounded-lg border border-black/[0.08] bg-white px-2.5 text-xs font-medium text-ink outline-none focus:border-brand"
-          >
-            <option value="">All companies</option>
-            {customerList.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <Combobox
+            options={companyOptions}
+            value={customerId || ALL_COMPANIES}
+            onChange={(v) => { setCustomerId(v === ALL_COMPANIES ? '' : v); setPage(1); }}
+            placeholder="All companies"
+            searchPlaceholder="Search companies…"
+            emptyText="No company matches."
+            triggerClassName="h-8 w-[190px] text-xs font-semibold text-ink border-black/[0.08] rounded-lg px-2.5"
+          />
 
           {tab === 'log' && (
             <label className="flex items-center gap-1.5 text-xs font-medium text-subtle cursor-pointer select-none">
