@@ -47,6 +47,15 @@ jobs:
           # Build and start services in detached mode
           docker compose up -d --build
 
+          # Give mercon-api a moment to run its startup chain (prisma db push
+          # && seed && node dist/index.js), then print its logs so a crash in
+          # that chain is visible in the Actions run instead of just a 502.
+          sleep 8
+          echo "--- mercon-api logs (last 100 lines) ---"
+          docker compose logs --no-color --tail=100 mercon-api || true
+          echo "--- mercon-api container status ---"
+          docker compose ps mercon-api || true
+
       - name: Deploy Nginx Config & Reload
         run: |
           echo "Deploying nginx reverse proxy config..."
