@@ -9,11 +9,13 @@
  * needing manual cleanup — hence the guard below rather than a comment asking
  * people to be careful.
  *
- * It refuses to run unless DATABASE_URL points at localhost, and it wipes the
- * operational tables before writing, so it is only ever safe on a throwaway
- * database.
+ * On localhost it wipes the operational tables first, so it is a clean reset.
+ * Against any other database it refuses unless explicitly opted in, never
+ * deletes anything, and tags every row so `demo:purge` can remove exactly what
+ * it added — for seeding a hosted database that is still empty pre-launch.
  *
  *   npm run seed:demo -w @mercon/api-server
+ *   DEMO_ALLOW_REMOTE=yes-i-understand npm run seed:demo   # hosted, additive
  *
  * Data is patterned rather than random, so the report has real findings:
  *   - Khamis -> Edabi degrades steadily across the two years
@@ -24,17 +26,36 @@
 import { PrismaClient, TripStatus, StopType, DelayReason, Role, AssetType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+import { DEMO_MARKER } from './demo-marker';
+
 const DB = process.env.DATABASE_URL ?? '';
 const isLocal = /@(localhost|127\.0\.0\.1|postgres-db|host\.docker\.internal)[:/]/.test(DB);
-if (!DB || !isLocal) {
+const REMOTE_OK = process.env.DEMO_ALLOW_REMOTE === 'yes-i-understand';
+
+if (!DB) {
+  console.error('\nRefusing to run: DATABASE_URL is unset.\n');
+  process.exit(1);
+}
+if (!isLocal && !REMOTE_OK) {
   console.error(
-    '\nRefusing to run.\n\n' +
-    'seed-demo-local writes fake customers, drivers, trucks and trips, and wipes\n' +
-    'the operational tables first. DATABASE_URL must point at localhost.\n\n' +
-    `  DATABASE_URL = ${DB ? DB.replace(/:[^:@/]*@/, ':***@') : '(unset)'}\n`,
+    '\nRefusing to run against a non-local database.\n\n' +
+    `  DATABASE_URL = ${DB.replace(/:[^:@/]*@/, ':***@')}\n\n` +
+    'This writes fake customers, drivers, trucks and trips. On a database that\n' +
+    'anyone relies on, that is contamination that has to be cleaned out later.\n\n' +
+    'If the target really is a pre-launch database with nothing real in it:\n\n' +
+    '  DEMO_ALLOW_REMOTE=yes-i-understand npm run seed:demo\n\n' +
+    'In that mode nothing is deleted, every row is tagged, and `npm run demo:purge`\n' +
+    'removes exactly what was added. Run the purge before real operations begin.\n',
   );
   process.exit(1);
 }
+
+/**
+ * Wiping is only ever safe on a throwaway local database. Against a remote
+ * one the script is purely additive — the difference between "reset my dev
+ * box" and "delete the customer table".
+ */
+const WIPE_FIRST = isLocal;
 
 const prisma = new PrismaClient();
 const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
@@ -86,15 +107,20 @@ const NOTES: Partial<Record<DelayReason, string[]>> = {
 
 async function main() {
   console.log(`Seeding demo data into ${DB.replace(/:[^:@/]*@/, ':***@')}`);
-  console.log('clearing operational tables…');
-  await prisma.notification.deleteMany({});
-  await prisma.invoice.deleteMany({});
-  await prisma.tripStop.deleteMany({});
-  await prisma.trip.deleteMany({});
-  await prisma.maintenanceRecord.deleteMany({});
-  await prisma.customer.deleteMany({});
-  await prisma.driver.deleteMany({});
-  await prisma.vehicle.deleteMany({});
+  if (WIPE_FIRST) {
+    console.log('local database — clearing operational tables first…');
+    await prisma.notification.deleteMany({});
+    await prisma.invoice.deleteMany({});
+    await prisma.tripStop.deleteMany({});
+    await prisma.trip.deleteMany({});
+    await prisma.maintenanceRecord.deleteMany({});
+    await prisma.customer.deleteMany({});
+    await prisma.driver.deleteMany({});
+    await prisma.vehicle.deleteMany({});
+  } else {
+    console.log('remote database — additive only, nothing will be deleted.');
+    console.log(`every row tagged created_by=${DEMO_MARKER}; remove later with: npm run demo:purge`);
+  }
 
   const pw = await bcrypt.hash('demo1234', 10);
   for (const [u, role, name] of [
@@ -112,7 +138,7 @@ async function main() {
   const customers = [];
   for (let i = 0; i < customerNames.length; i++) {
     customers.push(await prisma.customer.create({
-      data: { name: customerNames[i], contact_phone: `+96650000${String(i).padStart(4, '0')}` },
+      data: { name: customerNames[i], contact_phone: `+96650000${String(i).padStart(4, '0')}`, created_by: DEMO_MARKER },
     }));
   }
 
@@ -128,6 +154,7 @@ async function main() {
         first_name: NAMES[i][0], last_name: NAMES[i][1],
         phone_primary: `+96651000${String(i).padStart(4, '0')}`,
         license_number: `LIC-${2000 + i}`, license_expiry: new Date(Date.now() + 400 * DAY),
+        created_by: DEMO_MARKER,
       },
     }));
   }
@@ -138,7 +165,7 @@ async function main() {
   const vehicles = [];
   for (let i = 0; i < plates.length; i++) {
     vehicles.push(await prisma.vehicle.create({
-      data: { plate_number: plates[i], asset_type: types[i % 4], capacity_kg: 18000 + i * 800, current_odometer: 90000 + i * 22000 },
+      data: { plate_number: plates[i], asset_type: types[i % 4], capacity_kg: 18000 + i * 800, current_odometer: 90000 + i * 22000, created_by: DEMO_MARKER },
     }));
   }
   const vehicleRisk = [1.0, 0.9, 2.5, 0.8, 1.0, 1.1, 0.9, 1.0, 0.95, 1.05];
@@ -187,6 +214,7 @@ async function main() {
         planned_start: depart, actual_start: depart, planned_end: plannedArrival,
         actual_end: new Date(actual.getTime() + dwell * MIN),
         billing_amount: Math.round(between(1800, 6500)),
+        created_by: DEMO_MARKER,
         stops: { create: [
           { stop_sequence: 1, stop_type: StopType.Pickup, location_lat: 18.3 + rnd() * 0.01, location_lng: 42.7 + rnd() * 0.01,
             location_name: route.from, planned_arrival: depart, actual_arrival: depart,
@@ -205,7 +233,7 @@ async function main() {
           cost: Math.round(between(900, 9000)),
           workshop_name: pick(['Dammam Truck Works', 'Khamis Auto Center', 'Riyadh Fleet Services']),
           maintenance_type: 'Repair', work_done: 'Roadside repair',
-          odometer_reading: Math.round(between(100000, 320000)),
+          odometer_reading: Math.round(between(100000, 320000)), created_by: DEMO_MARKER,
         });
       }
     }

@@ -8,7 +8,8 @@
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
     "build": "tsc",
     "seed": "ts-node prisma/seed.ts",
-    "seed:demo": "ts-node scripts/seed-demo-local.ts"
+    "seed:demo": "ts-node scripts/seed-demo-local.ts",
+    "demo:purge": "ts-node scripts/demo-purge.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

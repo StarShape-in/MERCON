@@ -105,3 +105,38 @@ together.
 
 `npm run seed:demo` again. It clears and regenerates from a fixed random seed,
 so you get the same history every time.
+
+---
+
+## Seeding a hosted database (pre-launch only)
+
+Sometimes the demo needs to be on the real URL rather than a laptop. That is
+only reasonable while the database is still empty — before anyone's real
+customers, trips or invoices are in it.
+
+```bash
+DEMO_ALLOW_REMOTE=yes-i-understand npm run seed:demo
+```
+
+Against a non-local database the script behaves differently, on purpose:
+
+- **Nothing is deleted.** The wipe only ever runs on localhost. The difference
+  between "reset my dev box" and "drop the customer table" should not come down
+  to remembering which terminal you are in.
+- **Every row is tagged** with a marker in `created_by` — invisible in the UI,
+  but it makes removal exact.
+
+### Removing it again
+
+```bash
+npm run demo:purge
+```
+
+Deletes only tagged rows. Anything a real operator created carries a real user
+id (or null) and is left alone — verified by seeding, adding an untagged
+record, purging, and confirming the untagged record survived.
+
+**Run the purge before real operations begin.** Demo trips left in place will
+otherwise land in the client's first real reports, and MERCON has been here
+before: `PROGRESS.md` still lists fake rows from an earlier deploy as needing
+manual cleanup.
