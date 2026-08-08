@@ -499,18 +499,16 @@ export default function TripListPage() {
     },
     {
       label: 'Export Selected CSV',
-      icon: <FileSpreadsheet size={13} />,
-      variant: 'primary' as const,
-      className: 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold border-0 shadow-xs',
+      icon: <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" />,
+      variant: 'secondary' as const,
       onClick: (selectedRows: Trip[]) => {
         downloadCSV(selectedRows, 'trips_export.csv');
       }
     },
     {
       label: 'Export Selected PDF',
-      icon: <FileText size={13} />,
-      variant: 'primary' as const,
-      className: 'bg-rose-600 hover:bg-rose-700 text-white font-bold border-0 shadow-xs',
+      icon: <FileText size={13} className="text-rose-600 dark:text-rose-400" />,
+      variant: 'secondary' as const,
       onClick: (selectedRows: Trip[]) => {
         downloadPDF(selectedRows, 'Trips Export');
       }
@@ -555,23 +553,25 @@ export default function TripListPage() {
           {/* Page-Level Action Buttons */}
           <div className="flex items-center gap-2.5">
             <Button
+              variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors rounded-lg border-0 px-3.5"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-lg transition-colors"
               onClick={() => setImportDialogOpen(true)}
             >
-              <Upload className="h-3.5 w-3.5" />
+              <Upload className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
               Import
             </Button>
 
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
+                  variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors rounded-lg border-0 px-3.5"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs rounded-lg transition-colors"
                 >
-                  <Download className="h-3.5 w-3.5" />
+                  <Download className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
                   Export
-                  <ChevronDown className="h-3 w-3 opacity-80" />
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
@@ -710,11 +710,15 @@ export default function TripListPage() {
             title="TOTAL TRIPS"
             value={totalCount}
             variant="brand"
-            trend="up"
-            trendValue="All Operations"
-            description="Active logged site operations"
+            description="All fleet operations"
             icon={TruckMotion}
-            chartData={[10, 14, 18, 15, 22, 28, totalCount || 35]}
+            semiCircleGauge={{
+              segments: [
+                { label: "Completed", count: completedCount, color: "#16A34A" },
+                { label: "In Transit", count: inTransitCount, color: "#2563EB" },
+                { label: "Queue", count: dispatchQueueCount, color: "#D97706" },
+              ]
+            }}
             isActive={selectedStatus === 'All'}
             onClick={() => {
               setSelectedStatus('All');
@@ -725,13 +729,11 @@ export default function TripListPage() {
             title="IN TRANSIT"
             value={inTransitCount}
             variant="blue"
-            trend="neutral"
-            trendValue="En-Route"
-            description="Active trucks on the road"
+            description="Trucks on the road now"
             icon={RouteLine}
             livePulseTrack={{
-              statusText: `${inTransitCount} Active En-Route`,
-              subText: "Live GPS Track",
+              statusText: "Live tracking",
+              subText: "GPS",
             }}
             isActive={selectedStatus === 'InTransit'}
             onClick={() => {
@@ -743,14 +745,12 @@ export default function TripListPage() {
             title="DELIVERED & COMPLETED"
             value={completedCount}
             variant="emerald"
-            trend="up"
-            trendValue={`${completedPercentage}% Settled`}
             description="POD verified & delivered"
             icon={CheckBadge}
             completionGauge={{
               percentage: completedPercentage || 100,
-              label: `${completedPercentage}% Delivered`,
-              subtext: `${completedCount} Verified Receipts`
+              label: "Delivered",
+              subtext: "Completion rate"
             }}
             isActive={selectedStatus === 'Completed'}
             onClick={() => {
@@ -762,8 +762,6 @@ export default function TripListPage() {
             title="SCHEDULED TRIPS"
             value={draftTrips.length}
             variant="amber"
-            trend="neutral"
-            trendValue="Scheduled"
             description="Upcoming & planned trips"
             icon={ClockIcon}
             pipelineStages={[
