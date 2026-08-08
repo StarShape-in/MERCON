@@ -470,16 +470,15 @@ export default function TripDetailsPage() {
                   </div>
                 </div>
 
-                {/* Audit Trail Metadata dark sidebar theme chips embedded inside header component */}
+                {/* Audit Trail Metadata - simple with dotted borders */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#12121A] text-white border border-slate-800 shadow-2xs">
-                    <UserCheck className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
-                    <span className="text-[11px] font-semibold text-slate-300">Created by:</span>
-                    <UserChip userId={trip.created_by} users={users} size="sm" className="text-white decoration-slate-500" />
-                    <span className="text-[10px] text-slate-600">•</span>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dotted border-black/20 dark:border-slate-700 text-xs bg-black/[0.01] dark:bg-slate-900/40">
+                    <span className="text-[11px] font-medium text-[#9898A4]">Created:</span>
+                    <UserChip userId={trip.created_by} users={users} size="sm" className="font-semibold text-[#111] dark:text-slate-200 decoration-slate-400" />
+                    <span className="text-[10px] text-[#9898A4]">•</span>
                     <Tooltip>
                       <TooltipTrigger>
-                        <span className="text-[11px] font-bold text-white cursor-default">
+                        <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
                           {new Date(trip.createdAt).toLocaleDateString()}
                         </span>
                       </TooltipTrigger>
@@ -487,14 +486,13 @@ export default function TripDetailsPage() {
                     </Tooltip>
                   </div>
 
-                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#12121A] text-white border border-slate-800 shadow-2xs">
-                    <History className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
-                    <span className="text-[11px] font-semibold text-slate-300">Last updated by:</span>
-                    <UserChip userId={trip.updated_by} users={users} size="sm" className="text-white decoration-slate-500" />
-                    <span className="text-[10px] text-slate-600">•</span>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dotted border-black/20 dark:border-slate-700 text-xs bg-black/[0.01] dark:bg-slate-900/40">
+                    <span className="text-[11px] font-medium text-[#9898A4]">Updated:</span>
+                    <UserChip userId={trip.updated_by} users={users} size="sm" className="font-semibold text-[#111] dark:text-slate-200 decoration-slate-400" />
+                    <span className="text-[10px] text-[#9898A4]">•</span>
                     <Tooltip>
                       <TooltipTrigger>
-                        <span className="text-[11px] font-bold text-white cursor-default">
+                        <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
                           {new Date(trip.updatedAt).toLocaleDateString()}
                         </span>
                       </TooltipTrigger>
