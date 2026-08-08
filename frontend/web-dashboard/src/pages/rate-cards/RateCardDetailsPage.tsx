@@ -1,35 +1,57 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  ArrowLeft, Edit2, Trash2, MapPin, Building2, Calendar, DollarSign, 
-  FileText, ShieldCheck, CheckCircle2, Clock, AlertTriangle, Truck, 
-  FileCheck, Shield, Sparkles, Scale, RefreshCw, XCircle
+import {
+  ArrowLeft, ArrowRight, Edit2, Trash2, MapPin, Building2, Globe2,
+  FileText, AlertTriangle, FileCheck, RefreshCw, Users, Plus,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { rateCardService } from '@/services/rateCardService';
+import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import AssignRateCardDialog from '@/components/rate-cards/AssignRateCardDialog';
+import { rateCardService, RateCard } from '@/services/rateCardService';
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import DataTable from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
 
+/**
+ * One priced lane, and — the part that actually answers a dispatcher's
+ * question — who else prices the same lane, and at what.
+ *
+ * Everything shown here comes from the record. This page used to also list a
+ * corridor distance, transit time, tonnage cap and detention/overweight fees;
+ * none of those exist in the schema, so they were the same invented numbers on
+ * every rate card and read as real contract terms.
+ */
 export default function RateCardDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState<RateCard | null>(null);
 
   const { data: card, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['rate-card', id],
     queryFn: () => rateCardService.getById(id!),
     enabled: !!id,
+  });
+
+  // Every other rate on the same lane — the standard one plus any customer
+  // overrides. This is what makes "is this customer paying more than usual?"
+  // answerable without leaving the page.
+  const { data: laneCardsRes } = useQuery({
+    queryKey: ['rate-cards', 'lane', card?.originLocationId, card?.destinationLocationId],
+    queryFn: () =>
+      rateCardService.getAll({
+        origin_location_id: card!.originLocationId!,
+        destination_location_id: card!.destinationLocationId!,
+      }),
+    enabled: !!card?.originLocationId && !!card?.destinationLocationId,
   });
 
   const deleteMutation = useMutation({
@@ -42,7 +64,7 @@ export default function RateCardDetailsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout active="Rate Cards" title="Rate Card Details">
+      <DashboardLayout active="RateCards" title="Rate Card Details">
         <div className="px-4 sm:px-6 pb-6 space-y-4 animate-pulse w-full">
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/4"></div>
           <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
@@ -54,17 +76,17 @@ export default function RateCardDetailsPage() {
 
   if (error || !card) {
     return (
-      <DashboardLayout active="Rate Cards" title="Rate Card Details">
+      <DashboardLayout active="RateCards" title="Rate Card Details">
         <div className="px-4 sm:px-6 pb-6 flex flex-col items-center justify-center text-center h-[60vh] gap-3">
           <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center">
             <AlertTriangle size={28} />
           </div>
-          <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Tariff Record Not Found</h2>
+          <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Rate not found</h2>
           <p className="text-xs text-slate-500 max-w-md">
-            The requested freight tariff contract does not exist or has been removed.
+            This rate card does not exist or has been deleted.
           </p>
           <Button onClick={() => navigate('/rate-cards')} size="sm" className="mt-2 text-xs font-bold bg-[#E8450F] text-white">
-            Return to Rate Cards Directory
+            Back to Rate Cards
           </Button>
         </div>
       </DashboardLayout>
@@ -73,36 +95,50 @@ export default function RateCardDetailsPage() {
 
   const currency = card.currency || 'SAR';
   const isActive = card.is_active ?? true;
+  const isStandard = !card.customerId;
+  const laneLinked = !!card.originLocationId && !!card.destinationLocationId;
+
+  const laneCards = laneCardsRes?.data || [];
+  const standardOnLane = laneCards.find((c) => !c.customerId) || null;
+  const customerCardsOnLane = laneCards.filter((c) => !!c.customerId);
+  const otherCustomerCards = customerCardsOnLane.filter((c) => c.id !== card.id);
+
+  // How this card compares to the lane's standard price — only meaningful for a
+  // customer override, and only when a standard exists to compare against.
+  const delta =
+    !isStandard && standardOnLane
+      ? Number(card.base_price) - Number(standardOnLane.base_price)
+      : null;
 
   return (
-    <DashboardLayout active="Rate Cards" title={`Tariff: ${card.name}`}>
-      <div className="px-4 sm:px-6 pb-8 space-y-4 animate-fade-in w-full">
+    <DashboardLayout active="RateCards" title={card.name}>
+      <div className="px-4 sm:px-6 pb-8 space-y-4 animate-fade-in w-full max-w-[1400px] mx-auto">
 
         {/* ── Top Header Toolbar ─────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/rate-cards')}
-              className="h-8 w-8 p-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
+              className="h-8 w-8 p-0 shrink-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
               title="Back to Rate Cards"
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
                 {card.name}
               </h1>
-              <Badge 
-                variant="outline" 
-                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 ${
+              <Badge
+                variant="outline"
+                className={`shrink-0 text-[10px] font-extrabold uppercase px-2 py-0.5 ${
                   isActive
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
                     : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
                 }`}
               >
-                {isActive ? '● Active Tariff' : '● Suspended'}
+                {isActive ? '● Active' : '● Inactive'}
               </Badge>
             </div>
           </div>
@@ -125,15 +161,26 @@ export default function RateCardDetailsPage() {
               onClick={() => navigate(`/rate-cards/${card.id}/documents`)}
               className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
             >
-              <FileCheck className="w-3.5 h-3.5 text-indigo-500" /> Contract Docs
+              <FileCheck className="w-3.5 h-3.5 text-indigo-500" /> Documents
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!laneLinked}
+              onClick={() => setAssignTarget(card)}
+              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
+              title={laneLinked ? 'Copy this price to other customers' : 'Link a lane first'}
+            >
+              <Users className="w-3.5 h-3.5 text-emerald-600" /> Apply to customers
             </Button>
 
             <Button
               size="sm"
-              onClick={() => navigate(`/rate-cards/${card.id}/edit`)}
+              onClick={() => setIsEditOpen(true)}
               className="h-8 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs px-3.5"
             >
-              <Edit2 className="w-3.5 h-3.5" /> Edit Tariff
+              <Edit2 className="w-3.5 h-3.5" /> Edit
             </Button>
 
             <Button
@@ -147,43 +194,56 @@ export default function RateCardDetailsPage() {
           </div>
         </div>
 
-        {/* ── High-Density 4-Column Executive Freight KPI Strip ───────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          
-          {/* KPI 1: Contracted Flat Base Rate */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Contract Base Rate</span>
-              <Badge variant="outline" className="text-[9px] font-mono font-bold text-slate-500">FLAT</Badge>
+        {!laneLinked && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+            <div className="text-xs">
+              <p className="font-bold text-amber-900 dark:text-amber-200">Not linked to a lane</p>
+              <p className="text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                Origin and destination are still free text, so trips never pick this rate up.
+                Edit it and choose both places to fix that.
+              </p>
             </div>
+          </div>
+        )}
+
+        {/* ── Facts strip ────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs p-4">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Price per trip</span>
             <div className="text-xl font-mono font-black text-[#E8450F] mt-1">
               {currency} {card.base_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
+            {delta !== null && (
+              <span className={cn(
+                'text-[10px] font-mono font-bold block mt-0.5',
+                delta > 0 ? 'text-amber-600' : delta < 0 ? 'text-emerald-600' : 'text-slate-400'
+              )}>
+                {delta === 0
+                  ? 'Same as the standard rate'
+                  : `${delta > 0 ? '+' : '−'}${currency} ${Math.abs(delta).toLocaleString()} vs standard`}
+              </span>
+            )}
+          </Card>
+
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs p-4">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Lane</span>
+            <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 mt-1 min-w-0">
+              <span className="truncate">{card.route_origin}</span>
+              <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
+              <span className="truncate">{card.route_destination}</span>
+            </div>
             <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-              Per Completed Trip Dispatch
+              {laneLinked ? 'Linked to both locations' : 'Free text — not linked'}
             </span>
           </Card>
 
-          {/* KPI 2: Route Origin & Destination */}
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs p-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Corridor Route</span>
-              <span className="text-[10px] font-mono text-slate-400 font-semibold">~480 km</span>
-            </div>
-            <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate mt-1">
-              {card.route_origin} ➔ {card.route_destination}
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-              Est. Transit: 6h 15m
-            </span>
-          </Card>
-
-          {/* KPI 3: Billed Customer Account */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Customer Account</span>
+              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Applies to</span>
               {card.customer?.id && (
-                <span 
+                <span
                   onClick={() => navigate(`/customers/${card.customer?.id}`)}
                   className="text-[10px] font-bold text-cyan-600 hover:underline cursor-pointer"
                 >
@@ -191,178 +251,124 @@ export default function RateCardDetailsPage() {
                 </span>
               )}
             </div>
-            <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate mt-1">
-              {card.customer?.name || 'General Fleet Account'}
+            <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate mt-1 flex items-center gap-1.5">
+              {isStandard ? (
+                <><Globe2 className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" /> All customers</>
+              ) : (
+                <><Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-600" /> {card.customer?.name || 'Customer'}</>
+              )}
             </div>
             <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-              ID: CUST-{card.customerId?.slice(0, 6).toUpperCase() || '8801'}
+              {isStandard ? 'Standard rate for this lane' : 'Overrides the standard rate'}
             </span>
           </Card>
 
-          {/* KPI 4: Contract Status & Updated Date */}
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Contract Validity</span>
-              <Badge variant="outline" className="text-[9px] font-bold text-emerald-600 bg-emerald-50 border-emerald-200">VERIFIED</Badge>
-            </div>
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Last changed</span>
             <div className="text-sm font-mono font-extrabold text-slate-800 dark:text-slate-200 mt-1">
-              Revised: {new Date(card.updatedAt || card.createdAt).toLocaleDateString()}
+              {new Date(card.updatedAt || card.createdAt).toLocaleDateString()}
             </div>
             <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-              Created: {new Date(card.createdAt).toLocaleDateString()}
+              Created {new Date(card.createdAt).toLocaleDateString()}
             </span>
           </Card>
 
         </div>
 
-        {/* ── High-Density 2-Column Route & Commercial Terms Cards ──────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* ── Everyone else pricing this lane ────────────────────────────── */}
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-3 px-4 flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-[#E8450F]" />
+              Other rates on {card.route_origin} → {card.route_destination}
+            </CardTitle>
+            {laneLinked && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAssignTarget(card)}
+                className="h-7 px-2 text-[11px] font-semibold text-[#E8450F] hover:bg-[#E8450F]/10 gap-1"
+              >
+                <Plus className="w-3 h-3" /> Add for a customer
+              </Button>
+            )}
+          </CardHeader>
 
-          {/* Highway Route Corridor & Asset Specs Card */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
-            <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-2.5 px-4">
-              <CardTitle className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[#E8450F]" /> Highway Route Corridor & Equipment Specifications
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="p-4 space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] text-slate-400 font-bold uppercase block">Origin Pickup Hub</span>
-                  <span className="font-extrabold text-slate-900 dark:text-slate-100">{card.route_origin}</span>
-                </div>
-                <span className="text-slate-400 font-mono font-bold text-sm">➔</span>
-                <div className="text-right">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase block">Destination Terminal</span>
-                  <span className="font-extrabold text-slate-900 dark:text-slate-100">{card.route_destination}</span>
-                </div>
+          <CardContent className="p-4">
+            {!laneLinked ? (
+              <p className="py-6 text-center text-xs text-slate-500">
+                Link this rate to a lane to see how it compares.
+              </p>
+            ) : laneCards.length <= 1 ? (
+              <p className="py-6 text-center text-xs text-slate-500">
+                This is the only rate on this lane.
+                {isStandard && ' Every customer uses it.'}
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {[standardOnLane, ...otherCustomerCards]
+                  .filter((c): c is RateCard => !!c)
+                  .map((other) => {
+                    const isThisCard = other.id === card.id;
+                    return (
+                      <div
+                        key={other.id}
+                        onClick={() => !isThisCard && navigate(`/rate-cards/${other.id}`)}
+                        className={cn(
+                          'flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs transition-colors',
+                          isThisCard
+                            ? 'border-[#E8450F]/40 bg-[#E8450F]/5'
+                            : 'border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer'
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200 min-w-0">
+                          {other.customerId ? (
+                            <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-600" />
+                          ) : (
+                            <Globe2 className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
+                          )}
+                          <span className="truncate">
+                            {other.customerId ? other.customer?.name || 'Customer' : 'Standard — all customers'}
+                          </span>
+                          {isThisCard && (
+                            <Badge variant="outline" className="shrink-0 text-[9px] font-bold uppercase">
+                              This one
+                            </Badge>
+                          )}
+                          {!other.is_active && (
+                            <Badge variant="outline" className="shrink-0 text-[9px] font-bold uppercase text-slate-500">
+                              Inactive
+                            </Badge>
+                          )}
+                        </span>
+                        <span className="shrink-0 font-mono font-extrabold text-slate-900 dark:text-slate-100">
+                          {other.currency || 'SAR'} {Number(other.base_price).toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
               </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                <div>
-                  <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Permitted Fleet Assets</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">Heavy Flatbed / Reefer / Lowbed</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Max Load Tonnage</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">24.0 Metric Tons</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Transit Time Allowance</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">6 Hours 15 Minutes</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Commercial Terms & Detention Schedule Card */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
-            <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-2.5 px-4">
-              <CardTitle className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-indigo-500" /> Commercial Contract Terms & Detention Fees
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="p-4 space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                <div>
-                  <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Bound Customer</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{card.customer?.name || 'General Tariff'}</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Free Detention Allowance</span>
-                  <span className="font-bold text-emerald-600">2 Hours Free Loading</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Overweight Fee</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">SAR 150 / ton over 24t</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-sans font-bold uppercase block">Night/Weekend Premium</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">+10% Base Rate</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-        </div>
-
-        {/* ── High-Density Itemized Tariff Schedule Table ─────────────────── */}
-        <DataTable
-          title={
-            <span className="flex items-center gap-2">
-              <Scale className="w-4 h-4 text-[#E8450F]" />
-              <span>Itemized Tariff Surcharge & Rate Schedule</span>
-            </span>
-          }
-          columns={[
-            {
-              header: 'Service Line Item',
-              accessor: (item: any) => (
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                    {item.name}
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-mono">{item.description}</span>
-                </div>
-              ),
-            },
-            {
-              header: 'Condition / Trigger',
-              accessor: (item: any) => (
-                <span className="font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs">
-                  {item.condition}
-                </span>
-              ),
-            },
-            {
-              header: `Standard Rate (${currency})`,
-              headerClassName: 'text-right',
-              className: 'text-right',
-              accessor: (item: any) => (
-                <span className={cn("font-mono font-extrabold text-xs", item.isPrimary ? "text-[#E8450F]" : "text-slate-800 dark:text-slate-200")}>
-                  {item.rate}
-                </span>
-              ),
-            },
-          ]}
-          data={[
-            {
-              name: 'Base Route Freight Transport Rate',
-              description: `Standard Corridor: ${card.route_origin} ➔ ${card.route_destination}`,
-              condition: 'Per Completed Trip',
-              rate: card.base_price.toLocaleString(undefined, { minimumFractionDigits: 2 }),
-              isPrimary: true,
-            },
-            {
-              name: 'Demurrage / Detention Hourly Rate',
-              description: 'Applies after 2 hours free loading/unloading time',
-              condition: 'Per Hour Delay',
-              rate: '100.00',
-              isPrimary: false,
-            },
-            {
-              name: 'Overweight Tonnage Fee',
-              description: 'Applies when cargo payload exceeds 24.0 Metric Tons',
-              condition: 'Per Extra Ton',
-              rate: '150.00',
-              isPrimary: false,
-            },
-          ]}
-          compact={true}
-          enableSelection={false}
-        />
+            )}
+          </CardContent>
+        </Card>
 
       </div>
 
-      {/* ── Confirm Delete Modal ────────────────────────────────────────── */}
+      <RateCardFormDialog
+        isOpen={isEditOpen}
+        rateCard={card}
+        onClose={() => setIsEditOpen(false)}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['rate-card', id] })}
+      />
+
+      <AssignRateCardDialog rateCard={assignTarget} onClose={() => setAssignTarget(null)} />
+
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Delete Rate Card Tariff"
-        message={`Are you sure you want to permanently delete the tariff "${card.name}"? This action cannot be undone.`}
-        confirmLabel="Yes, Delete Tariff"
+        title="Delete rate"
+        message={`Delete "${card.name}"? Trips already priced from it keep their amount, but new trips on this lane won't use it.`}
+        confirmLabel="Yes, delete"
         isDestructive={true}
         isLoading={deleteMutation.isPending}
         onConfirm={() => deleteMutation.mutate()}

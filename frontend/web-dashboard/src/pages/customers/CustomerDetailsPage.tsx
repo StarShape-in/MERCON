@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye, 
   DollarSign, Plus, RefreshCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar, 
-  ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail
+  ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
+  Globe2
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -12,7 +13,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import KpiCard from '@/components/ui/KpiCard';
 import { customerService } from '@/services/customerService';
 import { invoiceService } from '@/services/invoiceService';
-import { rateCardService } from '@/services/rateCardService';
+import { rateCardService, RateCard } from '@/services/rateCardService';
+import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +25,12 @@ import { exportExcelTable } from '@/utils/exportUtils';
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const [isAddRateOpen, setIsAddRateOpen] = useState(false);
+  const [editRateTarget, setEditRateTarget] = useState<RateCard | null>(null);
+  // A standard lane the user wants to give this customer their own price for.
+  // Opens the same form pre-filled with that lane, locked to this customer.
+  const [overrideLane, setOverrideLane] = useState<RateCard | null>(null);
 
   // Fetch Customer details
   const { data: customer, isLoading, error, refetch, isFetching } = useQuery({
@@ -38,10 +46,11 @@ export default function CustomerDetailsPage() {
     enabled: !!id,
   });
 
-  // Fetch Rate Cards (Tariffs) for this customer
+  // This customer's effective price list: their own rates plus the standard
+  // lanes they fall back to when they have no rate of their own.
   const { data: rateCardsResponse } = useQuery({
-    queryKey: ['rate-cards'],
-    queryFn: () => rateCardService.getAll(),
+    queryKey: ['rate-cards', 'customer', id],
+    queryFn: () => rateCardService.getAll({ customerId: id!, include_standard: true }),
     enabled: !!id,
   });
 
@@ -81,10 +90,17 @@ export default function CustomerDetailsPage() {
   const customerInvoices = allInvoices.filter((inv: any) => inv.customer?.id === id || inv.customer_id === id);
 
   // Filter rate cards for this customer
-  const allRateCards = Array.isArray(rateCardsResponse)
-    ? rateCardsResponse
-    : (rateCardsResponse as any)?.data || [];
-  const customerRateCards = allRateCards.filter((rc: any) => rc.customerId === id || rc.customer?.id === id);
+  const allRateCards = rateCardsResponse?.data || [];
+  const customerRateCards = allRateCards.filter((rc) => rc.customerId === id);
+
+  // A standard lane only applies to this customer if they haven't overridden
+  // it — otherwise both would be listed and it would be unclear which one bills.
+  const overriddenLanes = new Set(
+    customerRateCards.map((rc) => `${rc.originLocationId}|${rc.destinationLocationId}`)
+  );
+  const inheritedRateCards = allRateCards.filter(
+    (rc) => !rc.customerId && !overriddenLanes.has(`${rc.originLocationId}|${rc.destinationLocationId}`)
+  );
 
   // Calculations for Financial Exposure
   const totalBilledInvoices = customerInvoices.reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0);
@@ -502,44 +518,116 @@ export default function CustomerDetailsPage() {
 
           </div>
 
-          {/* Right Column (Tariff Cards & Account Summary) */}
+          {/* Right Column (Rate Cards & Account Summary) */}
           <div className="space-y-6">
 
-            {/* Card 1: Contracted Freight Tariff Cards */}
+            {/* What this customer is charged, lane by lane */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-indigo-600" /> Contracted Freight Tariffs
-                </CardTitle>
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-600" /> Rates
+                  </CardTitle>
+                  <CardDescription className="text-[11px] mt-0.5">
+                    Their own prices, plus the standard ones they fall back to.
+                  </CardDescription>
+                </div>
                 <Button
                   size="sm"
-                  variant="ghost"
-                  onClick={() => navigate(`/rate-cards`)}
-                  className="h-7 text-xs font-bold text-indigo-600"
+                  onClick={() => setIsAddRateOpen(true)}
+                  className="h-7 gap-1 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shrink-0"
                 >
-                  All Tariffs →
+                  <Plus className="w-3 h-3" /> Add
                 </Button>
               </CardHeader>
 
-              <CardContent className="p-4 space-y-3 text-xs">
-                {customerRateCards.length === 0 ? (
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-center text-slate-500">
-                    Standard Fleet Rates Apply
+              <CardContent className="p-4 space-y-4 text-xs">
+
+                {/* Own rates — these override the standard price */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <Building2 className="w-3 h-3" /> Own rates ({customerRateCards.length})
                   </div>
-                ) : (
-                  customerRateCards.map((rc: any) => (
-                    <div key={rc.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1.5">
-                      <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100">
-                        <span>{rc.origin_city} ➔ {rc.destination_city}</span>
-                        <span className="font-mono text-indigo-600">SAR {Number(rc.base_price || 0).toLocaleString()}</span>
+
+                  {customerRateCards.length === 0 ? (
+                    <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
+                      No negotiated prices — this customer pays the standard rates below.
+                    </p>
+                  ) : (
+                    customerRateCards.map((rc) => (
+                      <button
+                        key={rc.id}
+                        type="button"
+                        onClick={() => setEditRateTarget(rc)}
+                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-[#E8450F]/40 transition-colors space-y-1"
+                      >
+                        <div className="flex justify-between gap-2 font-bold text-slate-900 dark:text-slate-100">
+                          <span className="flex items-center gap-1 min-w-0">
+                            <span className="truncate">{rc.route_origin}</span>
+                            <ArrowRight className="w-3 h-3 shrink-0 text-[#E8450F]" />
+                            <span className="truncate">{rc.route_destination}</span>
+                          </span>
+                          <span className="font-mono text-indigo-600 shrink-0">
+                            {rc.currency || 'SAR'} {Number(rc.base_price || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        {!rc.is_active && (
+                          <Badge variant="outline" className="text-[9px] font-bold uppercase text-slate-500">
+                            Inactive
+                          </Badge>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {/* Standard lanes they inherit */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <Globe2 className="w-3 h-3" /> Standard rates used ({inheritedRateCards.length})
+                  </div>
+
+                  {inheritedRateCards.length === 0 ? (
+                    <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
+                      No standard lanes priced yet.
+                    </p>
+                  ) : (
+                    inheritedRateCards.map((rc) => (
+                      <div
+                        key={rc.id}
+                        className="flex items-center justify-between gap-2 p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-700"
+                      >
+                        <span className="flex items-center gap-1 min-w-0 font-semibold text-slate-700 dark:text-slate-300">
+                          <span className="truncate">{rc.route_origin}</span>
+                          <ArrowRight className="w-3 h-3 shrink-0 text-slate-400" />
+                          <span className="truncate">{rc.route_destination}</span>
+                        </span>
+                        <span className="flex items-center gap-2 shrink-0">
+                          <span className="font-mono font-bold text-slate-600 dark:text-slate-400">
+                            {rc.currency || 'SAR'} {Number(rc.base_price || 0).toLocaleString()}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setOverrideLane(rc)}
+                            className="text-[10px] font-bold text-[#E8450F] hover:underline"
+                            title="Give this customer their own price for this lane"
+                          >
+                            Override
+                          </button>
+                        </span>
                       </div>
-                      <div className="flex justify-between text-[11px] text-slate-500">
-                        <span>Equipment: {rc.asset_type || 'Flatbed'}</span>
-                        <Badge variant="outline" className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border-emerald-200">Contracted</Badge>
-                      </div>
-                    </div>
-                  ))
-                )}
+                    ))
+                  )}
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => navigate('/rate-cards')}
+                  className="w-full h-7 text-xs font-bold text-indigo-600"
+                >
+                  All rates →
+                </Button>
               </CardContent>
             </Card>
 
@@ -548,6 +636,31 @@ export default function CustomerDetailsPage() {
         </div>
 
       </div>
+
+      <RateCardFormDialog
+        isOpen={isAddRateOpen}
+        onClose={() => setIsAddRateOpen(false)}
+        lockedCustomerId={id}
+        lockedCustomerName={customer?.name}
+      />
+
+      <RateCardFormDialog
+        isOpen={!!editRateTarget}
+        rateCard={editRateTarget}
+        onClose={() => setEditRateTarget(null)}
+        lockedCustomerId={id}
+        lockedCustomerName={customer?.name}
+      />
+
+      <RateCardFormDialog
+        isOpen={!!overrideLane}
+        onClose={() => setOverrideLane(null)}
+        lockedCustomerId={id}
+        lockedCustomerName={customer?.name}
+        defaultOriginLocationId={overrideLane?.originLocationId || undefined}
+        defaultDestinationLocationId={overrideLane?.destinationLocationId || undefined}
+        defaultPrice={overrideLane ? String(overrideLane.base_price) : undefined}
+      />
     </DashboardLayout>
   );
 }

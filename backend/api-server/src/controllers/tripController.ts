@@ -5,6 +5,7 @@ import { createDriverNotification, notifyOperatorsOfDelay } from './notification
 import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus } from '@prisma/client';
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
+import { findRateForLane } from '../services/rateLookup';
 
 const isUuid = (val: any): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -125,7 +126,14 @@ export const getTripById = async (req: Request, res: Response) => {
   try {
     const trip = await prisma.trip.findUnique({
       where: { id: req.params.id as string, deletedAt: null },
-      include: { driver: true, vehicle: true, customer: true, invoices: true, stops: { orderBy: { stop_sequence: 'asc' } } }
+      include: {
+        driver: true,
+        vehicle: true,
+        customer: true,
+        invoices: true,
+        rateCard: true,
+        stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
+      }
     });
 
     if (!trip) {
@@ -141,7 +149,7 @@ export const getTripById = async (req: Request, res: Response) => {
 
 export const createTrip = async (req: Request, res: Response) => {
   try {
-    const { customer_id, driver_id, vehicle_id, planned_start, billing_amount, trip_charges, stops } = req.body;
+    const { customer_id, driver_id, vehicle_id, planned_start, billing_amount, trip_charges, stops, rate_card_id } = req.body;
 
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
     const parsedPlannedStart = (planned_start && !isNaN(Date.parse(planned_start)))
@@ -201,18 +209,39 @@ export const createTrip = async (req: Request, res: Response) => {
             }
           }
 
+          // The lane this trip runs, taken from the stops. This is what the rate
+          // is priced against — not the stop's free-text name, which is the
+          // specific yard ("Khamis Sorting Center") rather than the lane
+          // endpoint ("Riyadh").
+          const stopList: any[] = Array.isArray(stops) ? stops : [];
+          const originLocationId =
+            stopList.find((s) => s.stop_type === 'Pickup')?.location_id ?? stopList[0]?.location_id ?? null;
+          const destinationLocationId =
+            [...stopList].reverse().find((s) => s.stop_type === 'Dropoff')?.location_id ??
+            stopList[stopList.length - 1]?.location_id ??
+            null;
+
+          // Prefer the card the dispatcher was actually shown; only fall back to
+          // matching here so API callers that don't send one still get the right
+          // rate instead of "any active card for this customer".
+          let appliedRateCard = rate_card_id
+            ? await tx.rateCard.findFirst({ where: { id: rate_card_id, deletedAt: null } })
+            : null;
+
+          if (!appliedRateCard) {
+            const { rateCard } = await findRateForLane(tx, {
+              customerId: customer_id,
+              originLocationId,
+              destinationLocationId,
+            });
+            appliedRateCard = rateCard;
+          }
+
           let defaultBilling: number | null = null;
           if (billing_amount !== undefined && billing_amount !== null && !isNaN(Number(billing_amount))) {
             defaultBilling = Number(billing_amount);
-          } else {
-            const rateCard = await tx.rateCard.findFirst({
-              where: { customerId: customer_id, is_active: true }
-            }) || await tx.rateCard.findFirst({
-              where: { customerId: null, is_active: true }
-            });
-            if (rateCard) {
-              defaultBilling = rateCard.base_price;
-            }
+          } else if (appliedRateCard) {
+            defaultBilling = appliedRateCard.base_price;
           }
 
           const finalTripCharges = (trip_charges !== undefined && trip_charges !== null && !isNaN(Number(trip_charges)))
@@ -228,6 +257,7 @@ export const createTrip = async (req: Request, res: Response) => {
               planned_start: parsedPlannedStart,
               status: (driver_id && vehicle_id) ? TripStatus.Dispatched : TripStatus.Draft,
               ...(createdBy ? { created_by: createdBy } : {}),
+              ...(appliedRateCard ? { rateCardId: appliedRateCard.id } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
               trip_charges: finalTripCharges,
               stops: {
@@ -239,6 +269,7 @@ export const createTrip = async (req: Request, res: Response) => {
                   // Empty string collapses to null so "unnamed" is one value in
                   // reports, not two that group separately.
                   location_name: String(stop.location_name ?? '').trim() || null,
+                  locationId: stop.location_id || null,
                   planned_arrival: (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival)))
                     ? new Date(stop.planned_arrival)
                     : null

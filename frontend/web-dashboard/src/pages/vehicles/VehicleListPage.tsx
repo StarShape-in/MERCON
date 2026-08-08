@@ -204,7 +204,7 @@ export default function VehicleListPage() {
       accessor: (row: Vehicle) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs font-extrabold text-[#E8450F] block">
-            {row.ref_id || 'TRK-9021'}
+            {row.ref_id || `VEH-${row.id.slice(0, 6).toUpperCase()}`}
           </span>
           <span className="text-[10px] text-slate-400 font-mono">ID: {row.id.slice(0, 6)}</span>
           {row.status === 'Maintenance' && (
@@ -230,9 +230,11 @@ export default function VehicleListPage() {
                 KSA
               </Badge>
             </div>
-            <span className="text-[10px] text-slate-500 font-medium">
-              Rigid Box Truck
-            </span>
+            {row.asset_type && (
+              <span className="text-[10px] text-slate-500 font-medium">
+                {row.asset_type}
+              </span>
+            )}
           </div>
         </div>
       ),
@@ -241,7 +243,7 @@ export default function VehicleListPage() {
       header: 'Asset Type',
       accessor: (row: Vehicle) => (
         <Badge variant="outline" className={cn("text-[10px] font-bold px-2 py-0.5", getTypeStyle(row.asset_type))}>
-          {row.asset_type || 'Box Truck'}
+          {row.asset_type || 'Standard'}
         </Badge>
       ),
     },
@@ -827,7 +829,7 @@ export default function VehicleListPage() {
                       {v.plate_number}
                     </h4>
                     <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                      {v.ref_id || 'TRK-9021'} • {v.asset_type || 'Box Truck'}
+                      {v.ref_id || `VEH-${v.id.slice(0, 6).toUpperCase()}`}{v.asset_type ? ` • ${v.asset_type}` : ''}
                     </p>
                   </div>
 
@@ -838,17 +840,15 @@ export default function VehicleListPage() {
                         {v.assignedDriver ? `${v.assignedDriver.first_name} ${v.assignedDriver.last_name}` : (v.trips?.[0]?.driver ? `${v.trips[0].driver.first_name} ${v.trips[0].driver.last_name}` : 'Unassigned')}
                       </span>
                     </div>
-                    <div className="flex justify-between text-slate-500">
-                      <span>Vehicle Model:</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">Isuzu FTR Box</span>
-                    </div>
-                    <div className="flex justify-between text-slate-500">
-                      <span>Payload Capacity:</span>
-                      <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{((v.capacity_kg || 24000) / 1000).toFixed(1)} t</span>
-                    </div>
+                    {v.capacity_kg ? (
+                      <div className="flex justify-between text-slate-500">
+                        <span>Payload Capacity:</span>
+                        <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{(v.capacity_kg / 1000).toFixed(1)} t</span>
+                      </div>
+                    ) : null}
                     <div className="flex justify-between text-slate-500">
                       <span>Odometer:</span>
-                      <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{(v.current_odometer || 184500).toLocaleString()} km</span>
+                      <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{(v.current_odometer ?? 0).toLocaleString()} km</span>
                     </div>
                   </div>
                 </CardContent>

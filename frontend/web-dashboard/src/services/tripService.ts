@@ -54,7 +54,18 @@ export interface CreateTripPayload {
   planned_start?: string;
   billing_amount?: number;
   trip_charges?: number;
-  stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string; location_name?: string }[];
+  /** The rate card the price came from, recorded so invoicing bills what was quoted. */
+  rate_card_id?: string;
+  stops: {
+    stop_type: string;
+    lat: number;
+    lng: number;
+    planned_arrival?: string;
+    /** The exact yard/dock — what the driver navigates to. */
+    location_name?: string;
+    /** The lane endpoint this stop sits in ("Riyadh") — what the rate is priced against. */
+    location_id?: string;
+  }[];
 }
 
 export const DELAY_REASONS = [

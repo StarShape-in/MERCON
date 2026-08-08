@@ -164,7 +164,7 @@ export default function VehicleDetailsPage() {
                 <StatusBadge status={vehicle.status} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{vehicle.ref_id || 'TRK-9021'}</span> • {vehicle.asset_type || 'Box Truck'} Asset
+                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>{vehicle.asset_type ? ` • ${vehicle.asset_type}` : ''}
               </p>
             </div>
           </div>
@@ -213,11 +213,9 @@ export default function VehicleDetailsPage() {
               <div className="w-48 h-24 rounded-xl border-2 border-slate-900 dark:border-slate-100 bg-slate-50 dark:bg-slate-950 p-2 shadow-md flex flex-col justify-between shrink-0 select-none">
                 <div className="flex items-center justify-between border-b border-slate-900/40 dark:border-slate-100/40 pb-1 font-bold">
                   <span className="font-mono text-base text-slate-900 dark:text-slate-100 tracking-wider">{plateNum} {plateLetters}</span>
-                  <span className="text-sm font-sans text-slate-900 dark:text-slate-100">٧ ٨ ٢ ١ أ س ل</span>
                 </div>
                 <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest pt-1">
                   <span>KSA</span>
-                  <span className="text-[10px] font-sans">المملكة العربية السعودية</span>
                 </div>
               </div>
 
@@ -226,22 +224,30 @@ export default function VehicleDetailsPage() {
                   <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
                     {vehicle.plate_number}
                   </h2>
-                  <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold">
-                    {vehicle.asset_type || 'Box Truck'}
-                  </Badge>
+                  {vehicle.asset_type && (
+                    <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold">
+                      {vehicle.asset_type}
+                    </Badge>
+                  )}
                   <StatusBadge status={vehicle.status} />
                 </div>
 
                 <p className="text-xs text-slate-500 font-medium">
-                  Ref: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{vehicle.ref_id || 'TRK-9021'}</span> • Primary Base: <span className="font-semibold text-slate-700 dark:text-slate-300">Riyadh Central Hub</span>
+                  Ref: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>
                 </p>
 
                 <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
-                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                    <Radio className="w-3.5 h-3.5" /> GPS: {vehicle.gps_device_id || 'GPS-4891-KSA'}
-                  </span>
-                  <span>•</span>
-                  <span>ICCES: {vehicle.icces_device_id || 'ICCES-9912'}</span>
+                  {vehicle.gps_device_id && (
+                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                      <Radio className="w-3.5 h-3.5" /> GPS: {vehicle.gps_device_id}
+                    </span>
+                  )}
+                  {vehicle.icces_device_id && (
+                    <>
+                      {vehicle.gps_device_id && <span>•</span>}
+                      <span>ICCES: {vehicle.icces_device_id}</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -260,23 +266,22 @@ export default function VehicleDetailsPage() {
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Odometer Reading</div>
                 <div className="text-sm font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">
-                  {(vehicle.current_odometer || 184500).toLocaleString()} km
+                  {(vehicle.current_odometer ?? 0).toLocaleString()} km
                 </div>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Istimara Status</div>
-                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Valid (142d)</span>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Asset Status</div>
+                <div className="text-xs font-mono font-extrabold mt-1 flex items-center justify-center gap-1">
+                  <StatusBadge status={vehicle.status} />
                 </div>
               </div>
 
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telematics Unit</div>
                 <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>ONLINE</span>
+                  <span className={`w-2 h-2 rounded-full ${vehicle.icces_device_id || vehicle.gps_device_id ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                  <span>{vehicle.icces_device_id || vehicle.gps_device_id ? 'ONLINE' : 'UNTRACKED'}</span>
                 </div>
               </div>
 

@@ -1,5 +1,6 @@
 import { Prisma, TripStatus, DriverStatus, AssetStatus, StopType } from '@prisma/client';
 import { generateRefId } from '../utils/refId';
+import { findRateForLane } from './rateLookup';
 
 /**
  * Legal next statuses for a trip, keyed by current status. Enforced by every
@@ -154,12 +155,32 @@ export async function completeTripAndInvoice(
 
   const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
   if (!existingInvoice) {
-    let rateCard = await tx.rateCard.findFirst({ where: { customerId: trip.customerId, is_active: true } });
+    // The card recorded at dispatch is authoritative — this used to re-guess
+    // the rate with a different rule than the wizard used, so the invoice could
+    // quote a price the dispatcher was never shown. Only fall back to matching
+    // the lane for trips created before rateCardId existed.
+    let rateCard = trip.rateCardId
+      ? await tx.rateCard.findUnique({ where: { id: trip.rateCardId } })
+      : null;
+
     if (!rateCard) {
-      rateCard = await tx.rateCard.findFirst({ where: { customerId: null, is_active: true } });
+      const stops = await tx.tripStop.findMany({
+        where: { tripId: trip.id },
+        orderBy: { stop_sequence: 'asc' },
+      });
+      const matched = await findRateForLane(tx, {
+        customerId: trip.customerId,
+        originLocationId: stops.find((s) => s.stop_type === StopType.Pickup)?.locationId ?? null,
+        destinationLocationId:
+          [...stops].reverse().find((s) => s.stop_type === StopType.Dropoff)?.locationId ?? null,
+      });
+      rateCard = matched.rateCard;
     }
 
-    const baseBilling = trip.billing_amount ?? (rateCard ? rateCard.base_price : 1000.0);
+    // No flat fallback: an invented 1000.0 looks like a real agreed price and
+    // is impossible to tell from one. A trip nobody priced invoices at 0, which
+    // is visibly wrong and gets corrected.
+    const baseBilling = trip.billing_amount ?? rateCard?.base_price ?? 0;
     const totalAmount = baseBilling + (trip.waiting_labor_charges ?? 0) + (trip.additional_stop_charges ?? 0);
     const invoiceRefId = await generateRefId('INV', () => tx.invoice.findMany({ select: { ref_id: true } }));
 

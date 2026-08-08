@@ -13,20 +13,26 @@ import {
   ArrowRight, 
   Building2, 
   MapPin, 
-  CreditCard,
   LayoutGrid,
   List,
-  MoreVertical,
-  XCircle
+  Globe2,
+  Users,
+  AlertTriangle,
+  FileSpreadsheet,
+  ChevronDown,
+  Layers
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { RouteCorridorKpi } from '@/components/ui/CustomKpiWidgets';
 import { RevenueChart, CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
 import { rateCardService, RateCard } from '@/services/rateCardService';
-import { downloadCSV } from '@/utils/exportUtils';
+import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import AssignRateCardDialog from '@/components/rate-cards/AssignRateCardDialog';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,17 +55,50 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
+const RATE_CARD_EXPORT_HEADERS = [
+  'Rate Card ID', 'Contract Name', 'Applies To', 'Route Origin', 'Route Destination',
+  'Base Tariff Rate (SAR)', 'Status', 'Linked Lane'
+];
+
+const rateCardsToExportRows = (cards: RateCard[]) => cards.map(rc => [
+  `#${rc.id.slice(0, 8).toUpperCase()}`,
+  rc.name,
+  rc.customerId ? (rc.customer?.name || 'Customer') : 'All Customers (Standard)',
+  rc.route_origin,
+  rc.route_destination,
+  Number(rc.base_price || 0),
+  rc.is_active ? 'Active' : 'Inactive',
+  (rc.originLocationId && rc.destinationLocationId) ? 'Linked' : 'Not Linked'
+]);
+
 export default function RateCardListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'standard' | 'customer'>('all');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
+  const [pageSize, setPageSize] = useState(10);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showTariffModal, setShowTariffModal] = useState(false);
+  const [assignTarget, setAssignTarget] = useState<RateCard | null>(null);
+  const [editTarget, setEditTarget] = useState<RateCard | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const { data: response, isLoading, isError, error } = useQuery({
     queryKey: ['rate-cards'],
@@ -79,17 +118,22 @@ export default function RateCardListPage() {
     return rateCards.filter((rc) => {
       const matchesSearch = 
         rc.name.toLowerCase().includes(search.toLowerCase()) || 
+        rc.id.toLowerCase().includes(search.toLowerCase()) ||
         (rc.customer?.name || '').toLowerCase().includes(search.toLowerCase()) ||
         rc.route_origin.toLowerCase().includes(search.toLowerCase()) ||
         rc.route_destination.toLowerCase().includes(search.toLowerCase());
 
-      const matchesStatus = 
+      const matchesStatus =
         statusFilter === 'all' ? true :
         statusFilter === 'active' ? rc.is_active : !rc.is_active;
 
-      return matchesSearch && matchesStatus;
+      const matchesScope =
+        scopeFilter === 'all' ? true :
+        scopeFilter === 'standard' ? !rc.customerId : !!rc.customerId;
+
+      return matchesSearch && matchesStatus && matchesScope;
     });
-  }, [rateCards, search, statusFilter]);
+  }, [rateCards, search, statusFilter, scopeFilter]);
 
   // Calculated KPIs
   const kpis = useMemo(() => {
@@ -100,77 +144,125 @@ export default function RateCardListPage() {
     const totalPrice = rateCards.reduce((acc, rc) => acc + (Number(rc.base_price) || 0), 0);
     const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
 
-    // Unique customers count
+    const laneKeys = new Set(rateCards.map(rc => `${rc.originLocationId}|${rc.destinationLocationId}`));
+    const standardCount = rateCards.filter(rc => !rc.customerId).length;
+    const customerCount = total - standardCount;
     const uniqueCustomers = new Set(rateCards.map(rc => rc.customerId).filter(Boolean)).size;
 
-    // Top route lane
+    const unlinkedCount = rateCards.filter(rc => !rc.originLocationId || !rc.destinationLocationId).length;
+
     const routeCounts: Record<string, number> = {};
     rateCards.forEach(rc => {
       const routeKey = `${rc.route_origin} → ${rc.route_destination}`;
       routeCounts[routeKey] = (routeCounts[routeKey] || 0) + 1;
     });
-    let topRoute = 'Riyadh → Jeddah';
-    let maxRouteCount = 0;
+    let topRoute: string | null = null;
+    let topRouteCount = 0;
     Object.entries(routeCounts).forEach(([route, count]) => {
-      if (count > maxRouteCount) {
-        maxRouteCount = count;
+      if (count > topRouteCount) {
+        topRouteCount = count;
         topRoute = route;
       }
     });
+    const [topRouteOrigin, topRouteDestination] = (topRoute || '').split(' → ');
 
-    const pricesArray = rateCards.map(rc => Number(rc.base_price) || 1200);
-
-    return { total, activeCount, activePct, avgPrice, uniqueCustomers, topRoute, pricesArray };
+    return {
+      total,
+      activeCount,
+      activePct,
+      avgPrice,
+      uniqueCustomers,
+      laneCount: laneKeys.size,
+      standardCount,
+      customerCount,
+      unlinkedCount,
+      topRoute,
+      topRouteCount,
+      topRouteOrigin: topRouteOrigin || null,
+      topRouteDestination: topRouteDestination || null,
+    };
   }, [rateCards]);
 
-  const handleExportAll = () => {
-    downloadCSV(filteredData, `rate_cards_${new Date().toISOString().slice(0, 10)}.csv`);
-  };
+  const handleExport = (format: 'excel' | 'pdf', filterType: 'all' | 'active' | 'standard') => {
+    let dataToExport = filteredData;
+    if (filterType === 'active') {
+      dataToExport = rateCards.filter(rc => rc.is_active);
+    } else if (filterType === 'standard') {
+      dataToExport = rateCards.filter(rc => !rc.customerId);
+    }
 
-  const handleDeleteRateCard = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this rate card?')) return;
-    try {
-      await rateCardService.delete(id);
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-    } catch (e) {
-      alert('Failed to delete rate card.');
+    if (!dataToExport.length) {
+      alert('No rate cards available for export with selected filter.');
+      return;
+    }
+
+    const rows = rateCardsToExportRows(dataToExport);
+    const title = `Rate Cards Export (${filterType.toUpperCase()})`;
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    if (format === 'excel') {
+      exportExcelTable(title, RATE_CARD_EXPORT_HEADERS, rows, `rate_cards_${filterType}_${dateStr}.xlsx`);
+    } else {
+      exportPDFTable(title, RATE_CARD_EXPORT_HEADERS, rows, `rate_cards_${filterType}_${dateStr}.pdf`);
     }
   };
 
   const columns = [
     {
-      header: 'Rate Card ID',
+      header: 'Rate Card Ref ID',
       accessor: (row: RateCard) => (
-        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
-          #{row.id.slice(0, 8).toUpperCase()}
-        </span>
+        <div className="flex flex-col gap-0.5 min-w-[160px]">
+          <span className="font-mono text-xs font-bold text-[#E8450F]">
+            #{row.id.slice(0, 8).toUpperCase()}
+          </span>
+          <span className="text-[11px] text-slate-500 font-medium truncate max-w-[220px]" title={row.name}>
+            {row.name}
+          </span>
+        </div>
       ),
     },
     {
-      header: 'Tariff Agreement',
+      header: 'Applies to',
       accessor: (row: RateCard) => (
-        <div>
-          <div className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">{row.name}</div>
-          <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-            <Building2 className="w-3 h-3 text-slate-400" /> {row.customer?.name || 'Standard Commercial Tariff'}
-          </div>
+        <div className="flex flex-col min-w-[160px]">
+          {row.customerId ? (
+            <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
+              <span>{row.customer?.name || 'Customer'}</span>
+            </div>
+          ) : (
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <Globe2 className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
+              <span>All customers (Standard)</span>
+            </div>
+          )}
         </div>
       ),
     },
     {
       header: 'Route Lane',
       accessor: (row: RateCard) => (
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 min-w-[200px]">
+          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span>{row.route_origin}</span>
           <ArrowRight className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
           <span>{row.route_destination}</span>
+          {(!row.originLocationId || !row.destinationLocationId) && (
+            <Badge
+              variant="outline"
+              className="ml-1 text-[9px] font-bold uppercase bg-amber-50 text-amber-700 border-amber-200"
+              title="This lane is still free text, so trips never pick this rate up. Edit it and choose both places."
+            >
+              Not linked
+            </Badge>
+          )}
         </div>
       ),
     },
     {
       header: 'Base Tariff Rate',
       accessor: (row: RateCard) => (
-        <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100">
+        <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/60 dark:border-slate-700 w-fit min-w-[120px]">
           {row.currency || 'SAR'} {Number(row.base_price).toLocaleString()}
         </div>
       ),
@@ -180,80 +272,115 @@ export default function RateCardListPage() {
       accessor: (row: RateCard) => (
         <Badge 
           variant="outline" 
-          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${
+          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 flex items-center gap-1.5 w-fit ${
             row.is_active 
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' 
               : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
           }`}
         >
+          <span className={`w-1.5 h-1.5 rounded-full ${row.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
           {row.is_active ? 'Active' : 'Inactive'}
         </Badge>
       ),
     },
     {
       header: 'Actions',
+      headerClassName: 'text-right',
       accessor: (row: RateCard) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-1.5">
-            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Rate Card Actions
-            </DropdownMenuLabel>
-            <DropdownMenuItem 
-              onClick={() => navigate(`/rate-cards/${row.id}/edit`)}
-              className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-            >
-              <Edit2 className="w-3.5 h-3.5 mr-2 text-indigo-600" /> Edit Tariff Agreement
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
-            <DropdownMenuItem 
-              onClick={() => handleDeleteRateCard(row.id)}
-              className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
-            >
-              <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-600" /> Delete Tariff
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center justify-end gap-1 min-w-[130px]" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => setAssignTarget(row)}
+            disabled={!row.originLocationId || !row.destinationLocationId}
+            title={
+              !row.originLocationId || !row.destinationLocationId
+                ? 'Cannot assign unlinked lane to customers'
+                : 'Apply rate card to customers'
+            }
+            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+          >
+            <Users className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            onClick={() => setEditTarget(row)}
+            title="Quick Edit Price"
+            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+          >
+            <Edit2 className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            onClick={() => navigate(`/rate-cards/${row.id}/edit`)}
+            title="Open Full Rate Card Editor"
+            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+          >
+            <FileText className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            onClick={() => {
+              setConfirmModal({
+                isOpen: true,
+                title: 'Delete Rate Card',
+                message: `Are you sure you want to delete rate card #${row.id.slice(0, 8).toUpperCase()} (${row.name})? This action cannot be undone.`,
+                onConfirm: async () => {
+                  await rateCardService.delete(row.id);
+                  queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+                }
+              });
+            }}
+            title="Delete Tariff Rate"
+            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       ),
     },
   ];
 
   const bulkActions = [
     {
-      label: 'Export Selected',
-      icon: <Download className="w-3.5 h-3.5" />,
+      label: 'Export Selected Excel',
+      icon: <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />,
       variant: 'secondary' as const,
       onClick: (selectedRows: RateCard[]) => {
-        downloadCSV(selectedRows, 'selected_rate_cards.csv');
+        exportExcelTable('Rate Cards Export', RATE_CARD_EXPORT_HEADERS, rateCardsToExportRows(selectedRows), 'selected_rate_cards.xlsx');
+      }
+    },
+    {
+      label: 'Export Selected PDF',
+      icon: <FileText className="w-3.5 h-3.5 text-rose-600" />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: RateCard[]) => {
+        exportPDFTable('Rate Cards Export', RATE_CARD_EXPORT_HEADERS, rateCardsToExportRows(selectedRows), 'selected_rate_cards.pdf');
       }
     },
     {
       label: 'Delete Selected',
       icon: <Trash2 className="w-3.5 h-3.5" />,
       variant: 'danger' as const,
-      onClick: async (selectedRows: RateCard[]) => {
-        if (!confirm(`Are you sure you want to delete ${selectedRows.length} rate cards?`)) return;
-        try {
-          await rateCardService.bulkDelete(selectedRows.map(r => r.id));
-          queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-        } catch (e) { 
-          alert('Failed to delete selected rate cards'); 
-        }
+      onClick: (selectedRows: RateCard[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Delete Selected Rate Cards',
+          message: `Are you sure you want to delete ${selectedRows.length} selected rate cards? This action cannot be undone.`,
+          onConfirm: async () => {
+            try {
+              await rateCardService.bulkDelete(selectedRows.map(r => r.id));
+              queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+            } catch (e) { 
+              alert('Failed to delete selected rate cards'); 
+            }
+          }
+        });
       }
     }
   ];
 
   return (
     <DashboardLayout active="RateCards" title="Rate Cards">
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
@@ -266,28 +393,91 @@ export default function RateCardListPage() {
                   Rate Cards
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Commercial route tariffs, base rates, and contracted billing agreements
-              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
+            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500" /> Export
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
+                  <button
+                    onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                    Excel
+                  </button>
+                  <button
+                    onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <FileText className="h-3.5 w-3.5 text-rose-600" />
+                    PDF
+                  </button>
+                </div>
+
+                <DropdownMenuItem
+                  onClick={() => handleExport(exportFormat, 'all')}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  All Rate Cards
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1 border-slate-100" />
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  By Filter
+                </DropdownMenuLabel>
+                
+                <DropdownMenuItem
+                  onClick={() => handleExport(exportFormat, 'active')}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  Active Rates Only
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => handleExport(exportFormat, 'standard')}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'excel'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  Standard Rates Only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportAll}
+              onClick={() => navigate('/rate-cards/new')}
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
             >
-              <Download className="w-3.5 h-3.5" /> Export CSV
+              <FileText className="w-3.5 h-3.5" /> Full form
             </Button>
 
-            <Button 
-              size="sm" 
-              onClick={() => navigate('/rate-cards/new')}
+            <Button
+              size="sm"
+              onClick={() => setIsAddOpen(true)}
               className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
             >
-              <Plus className="w-4 h-4" /> Create Rate Card
+              <Plus className="w-4 h-4" /> Add Rate
             </Button>
 
             <Button
@@ -306,78 +496,137 @@ export default function RateCardListPage() {
         {/* 4-Card Instrument Panel KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           
-          {/* Card 1: Active Rate Cards — Donut Ring Gauge */}
+          {/* Card 1: Active Rate Cards */}
           <KpiCard
-            title="ACTIVE TARIFF CARDS"
+            title="ACTIVE RATES"
             value={kpis.activeCount}
             variant="emerald"
-            trend="up"
+            trend="neutral"
             trendValue={`${kpis.activePct}% Active`}
-            description="Active contracted tariffs"
+            description="Rates applied to new trips"
             icon={CheckBadge}
+            isActive={statusFilter === 'active'}
             completionGauge={{
-              percentage: kpis.activePct || 85,
-              label: `${kpis.activePct}% Active Tariffs`,
+              percentage: kpis.activePct,
+              label: `${kpis.activePct}% Active`,
               subtext: `${kpis.activeCount} Active • ${kpis.total - kpis.activeCount} Inactive`
             }}
-            onClick={() => setSelectedStatus('Active')}
+            onClick={() => setStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
           />
 
-          {/* Card 2: Avg Base Tariff Rate — Financial Sparkline */}
+          {/* Card 2: Avg Base Tariff Rate */}
           <KpiCard
-            title="AVERAGE BASE TARIFF"
+            title="AVERAGE PRICE"
             value={`SAR ${kpis.avgPrice.toLocaleString()}`}
             variant="brand"
-            trend="up"
-            trendValue="+4.2%"
-            description="Tariff benchmark index"
+            trend="neutral"
+            trendValue={`${kpis.total} rate${kpis.total === 1 ? '' : 's'}`}
+            description="Mean price across all rates"
             icon={RevenueChart}
             onClick={() => setShowTariffModal(true)}
           />
 
-          {/* Card 3: Top Route Lane — Route Segment Bar */}
+          {/* Card 3: Most-priced lane */}
           <KpiCard
-            title="PRIMARY ROUTE LANE"
-            value={kpis.topRoute}
+            title="MOST-PRICED LANE"
+            value={kpis.topRoute || 'No lanes yet'}
             variant="blue"
             trend="neutral"
-            trendValue="High Volume"
-            description="Riyadh transport corridor"
+            trendValue={kpis.topRoute ? `${kpis.topRouteCount} rate${kpis.topRouteCount === 1 ? '' : 's'}` : 'Add a rate'}
+            description={`${kpis.laneCount} distinct lane${kpis.laneCount === 1 ? '' : 's'} priced`}
             icon={RouteLine}
-            onClick={() => setSearch('Riyadh')}
+            isActive={!!search && kpis.topRouteOrigin !== null && search === kpis.topRouteOrigin}
+            onClick={() => kpis.topRouteOrigin && setSearch(prev => prev === kpis.topRouteOrigin ? '' : kpis.topRouteOrigin!)}
           >
-            <RouteCorridorKpi origin="Riyadh" destination="Jeddah" tripCount={42} />
+            {kpis.topRouteOrigin && kpis.topRouteDestination && (
+              <RouteCorridorKpi
+                origin={kpis.topRouteOrigin}
+                destination={kpis.topRouteDestination}
+                tripCount={kpis.topRouteCount}
+              />
+            )}
           </KpiCard>
 
-          {/* Card 4: Contracted Organizations — Donut Gauge */}
+          {/* Card 4: Standard vs customer-specific split */}
           <KpiCard
-            title="CONTRACTED CLIENTS"
-            value={kpis.uniqueCustomers}
+            title="STANDARD RATES"
+            value={kpis.standardCount}
             variant="amber"
             trend="neutral"
-            trendValue="Corporate SLA"
-            description="Active corporate accounts"
+            trendValue={`${kpis.customerCount} customer-specific`}
+            description={`Used by all customers • ${kpis.uniqueCustomers} with own rates`}
             icon={CustomerBuilding}
+            isActive={scopeFilter === 'standard'}
             completionGauge={{
-              percentage: 90,
-              label: '100% Contract Coverage',
-              subtext: `${kpis.uniqueCustomers} Corporate Clients`
+              percentage: kpis.total > 0 ? Math.round((kpis.standardCount / kpis.total) * 100) : 0,
+              label: 'Share that are standard',
+              subtext: `${kpis.standardCount} standard • ${kpis.customerCount} customer`
             }}
+            onClick={() => setScopeFilter(prev => prev === 'standard' ? 'all' : 'standard')}
           />
         </div>
 
-        {/* Toolbar & Control Bar Section (Strictly Horizontal) */}
+        {/* Active Filter Indicator Banner */}
+        {(statusFilter !== 'all' || scopeFilter !== 'all') && (
+          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+              <span>
+                Filtered by:{' '}
+                {statusFilter !== 'all' && (
+                  <span className="mr-2">
+                    Status: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
+                  </span>
+                )}
+                {scopeFilter !== 'all' && (
+                  <span>
+                    Scope: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{scopeFilter === 'standard' ? 'Standard (All Customers)' : 'Customer-Specific'}</strong>
+                  </span>
+                )}
+                {' '}({filteredData.length} agreement{filteredData.length === 1 ? '' : 's'} matching)
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setStatusFilter('all');
+                setScopeFilter('all');
+              }}
+              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Show All Rates</span>
+              <span className="text-[10px]">✕</span>
+            </button>
+          </div>
+        )}
+
+        {/* Unlinked Lanes Warning Banner */}
+        {kpis.unlinkedCount > 0 && (
+          <div className="shrink-0 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+            <div className="text-xs">
+              <p className="font-bold text-amber-900 dark:text-amber-200">
+                {kpis.unlinkedCount} rate{kpis.unlinkedCount === 1 ? '' : 's'} not linked to a lane
+              </p>
+              <p className="text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                These still have free-text origin/destination, so trips never pick them up. Open each one
+                and choose both places to fix it.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Toolbar & Control Bar Section */}
         <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
-            {/* Left: Search Input + Status Dropdown */}
+            {/* Left: Search Input + Status & Scope Dropdowns */}
             <div className="flex items-center gap-3 shrink-0">
               
               {/* Search Bar */}
-              <div className="relative w-64">
+              <div className="relative w-64 sm:w-72 shrink-0">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                 <Input
-                  placeholder="Search contract, customer, route..."
+                  placeholder="Search ID, customer, route..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
@@ -386,7 +635,7 @@ export default function RateCardListPage() {
 
               {/* Status Filter Dropdown */}
               <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
-                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus-visible:ring-[#E8450F]/20">
+                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-2">
                     <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="Tariff Status" />
@@ -397,18 +646,62 @@ export default function RateCardListPage() {
                     <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                       Status Filter
                     </SelectLabel>
-                    <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Statuses</SelectItem>
-                    <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700">Active Only</SelectItem>
-                    <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-500">Inactive Only</SelectItem>
+                    <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-slate-700">
+                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                        All Statuses
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-emerald-700">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Active Only
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-slate-500">
+                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                        Inactive Only
+                      </span>
+                    </SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              {/* Scope Filter */}
+              <Select value={scopeFilter} onValueChange={(val: any) => setScopeFilter(val)}>
+                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Globe2 className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+                    <SelectValue placeholder="Applies to" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                      Applies To
+                    </SelectLabel>
+                    <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Rates</SelectItem>
+                    <SelectItem value="standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-[#E8450F]">
+                        <Globe2 className="w-3 h-3 text-[#E8450F]" />
+                        Standard (all customers)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="customer" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                      <span className="flex items-center gap-2 font-medium text-indigo-700">
+                        <Building2 className="w-3 h-3 text-indigo-600" />
+                        Customer-specific
+                      </span>
+                    </SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
 
             </div>
 
-            {/* Right: Record Ledger Counter & View Switcher */}
+            {/* Right: Record Counter & View Switcher */}
             <div className="flex items-center gap-3 shrink-0 ml-auto">
-              
               <div className="text-xs font-semibold text-slate-500">
                 <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredData.length}</span> tariff agreements
               </div>
@@ -438,7 +731,6 @@ export default function RateCardListPage() {
                   <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
               </div>
-
             </div>
 
           </div>
@@ -446,12 +738,12 @@ export default function RateCardListPage() {
 
         {/* Content Workspace: Ledger Table vs Grid Cards */}
         {viewMode === 'ledger' ? (
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="w-full flex flex-col">
             <DataTable
               title={
                 <span className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-orange-500" />
-                  <span>Tariff & Rate Card Ledger</span>
+                  <Layers className="w-4 h-4 text-indigo-500" />
+                  <span>Rate Card Ledger</span>
                 </span>
               }
               columns={columns}
@@ -463,7 +755,8 @@ export default function RateCardListPage() {
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
               searchPlaceholder="Search contract name, customer..."
-              onSearchChange={setSearch}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => setPageSize(size)}
               onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}
             />
           </div>
@@ -476,7 +769,7 @@ export default function RateCardListPage() {
             ) : isError ? (
               <div className="col-span-full py-16 flex flex-col items-center justify-center">
                 <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-500 mb-2">
-                  <XCircle size={28} />
+                  <AlertTriangle size={28} />
                 </div>
                 <p className="text-sm font-bold text-slate-900">Data Unavailable</p>
                 <p className="text-xs text-slate-500 mt-1">{(error as Error)?.message || 'Failed to load rate cards.'}</p>
@@ -521,7 +814,11 @@ export default function RateCardListPage() {
                     {rc.name}
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500 flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-slate-400" /> {rc.customer?.name || 'Standard Commercial Contract'}
+                    {rc.customerId ? (
+                      <><Building2 className="w-3 h-3 text-slate-400" /> {rc.customer?.name || 'Customer'}</>
+                    ) : (
+                      <><Globe2 className="w-3 h-3 text-[#E8450F]" /> All customers</>
+                    )}
                   </CardDescription>
                 </CardHeader>
 
@@ -544,16 +841,24 @@ export default function RateCardListPage() {
           </div>
         )}
 
+        <RateCardFormDialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+        <RateCardFormDialog
+          isOpen={!!editTarget}
+          rateCard={editTarget}
+          onClose={() => setEditTarget(null)}
+        />
+        <AssignRateCardDialog rateCard={assignTarget} onClose={() => setAssignTarget(null)} />
+
         {/* Tariff Market Benchmark Modal */}
         <Dialog open={showTariffModal} onOpenChange={setShowTariffModal}>
           <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
             <DialogHeader>
               <RevenueChart className="w-7 h-7 text-orange-500 dark:text-orange-400 mb-2" />
               <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                Tariff Market Benchmark Summary
+                Pricing Summary
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Quarterly base price averages across Saudi freight transport corridors.
+                Averaged across the {kpis.total} rate{kpis.total === 1 ? '' : 's'} currently configured.
               </DialogDescription>
             </DialogHeader>
 
@@ -587,6 +892,18 @@ export default function RateCardListPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={async () => {
+            await confirmModal.onConfirm();
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          isDestructive={true}
+        />
 
       </div>
     </DashboardLayout>
