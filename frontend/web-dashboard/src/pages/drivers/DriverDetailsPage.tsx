@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  ArrowLeft, Edit2, FileText, Phone, MapPin, Calendar, Activity, Star, AlertTriangle, 
+  ArrowLeft, Edit2, FileText, Phone, MapPin, Calendar, Activity, AlertTriangle,
   Eye, Trash2, Truck, ShieldCheck, CheckCircle2, Clock, User, IdCard, Mail, Building2, 
   ExternalLink, ShieldAlert, Gauge, Fuel, Check, Plus, AlertCircle, FileCheck
 } from 'lucide-react';
@@ -197,8 +197,8 @@ export default function DriverDetailsPage() {
               </div>
             </div>
 
-            {/* 4 Telematics Gauges */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 shrink-0">
+            {/* Telematics Gauges */}
+            <div className="grid grid-cols-2 gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 shrink-0">
               {/* Gauge 1: License Expiry */}
               <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">License Status</div>
@@ -214,16 +214,7 @@ export default function DriverDetailsPage() {
                 </div>
               </div>
 
-              {/* Gauge 2: Safety Rating */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Safety Rating</div>
-                <div className="text-xs font-mono font-extrabold text-amber-500 mt-0.5 flex items-center justify-center gap-1">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                  <span>4.8 / 5.0</span>
-                </div>
-              </div>
-
-              {/* Gauge 3: Completed Trips */}
+              {/* Gauge 2: Completed Trips */}
               <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Completed Trips</div>
                 <div className="text-xs font-mono font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
