@@ -15,6 +15,7 @@ import { rateCardService } from '@/services/rateCardService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import DataTable from '@/components/ui/DataTable';
 
 import { downloadExcel } from '@/utils/exportUtils';
 
@@ -353,82 +354,74 @@ export default function CustomerDetailsPage() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Section 1: Active & Recent Dispatch Trips Ledger */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-[#E8450F]" /> Customer Freight Dispatch History
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">
-                    Active freight shipments and completed route dispatches assigned to this account.
-                  </CardDescription>
-                </div>
-                <Badge variant="outline" className="text-[10px] font-mono font-bold text-slate-500">
-                  {customerTrips.length} Total Dispatches
-                </Badge>
-              </CardHeader>
-
-              {customerTrips.length === 0 ? (
-                <div className="p-10 text-center text-slate-400 flex flex-col items-center gap-2">
-                  <Truck size={32} className="opacity-30 text-slate-400" />
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">No freight trips logged for this customer account yet.</p>
-                </div>
-              ) : (
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Trip ID</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Dispatch Date</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Cargo Type</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Status</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {customerTrips.slice(0, 5).map((trip) => (
-                      <tr key={trip.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="px-5 py-3">
-                          <span className="font-mono text-xs font-extrabold text-[#E8450F]">{trip.ref_id}</span>
-                        </td>
-                        <td className="px-5 py-3 text-slate-600 dark:text-slate-300 font-mono">
-                          {new Date(trip.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">
-                          {(trip as any).cargo_type || 'General Goods'}
-                        </td>
-                        <td className="px-5 py-3">
-                          <StatusBadge status={trip.status as any} />
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/trips/${trip.id}`)}
-                            className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
-                            title="View Trip Details"
-                          >
-                            <Eye size={13} />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Card>
+            <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-[#E8450F]" />
+                  <span>Customer Freight Dispatch History</span>
+                </span>
+              }
+              columns={[
+                {
+                  header: 'Trip ID',
+                  accessor: (trip: any) => (
+                    <span className="font-mono text-xs font-extrabold text-[#E8450F]">{trip.ref_id}</span>
+                  ),
+                },
+                {
+                  header: 'Dispatch Date',
+                  accessor: (trip: any) => (
+                    <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
+                      {new Date(trip.createdAt).toLocaleDateString()}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Cargo Type',
+                  accessor: (trip: any) => (
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {trip.cargo_type || 'General Goods'}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Status',
+                  accessor: (trip: any) => <StatusBadge status={trip.status} />,
+                },
+                {
+                  header: 'Action',
+                  headerClassName: 'text-right',
+                  className: 'text-right',
+                  accessor: (trip: any) => (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/trips/${trip.id}`)}
+                      className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
+                      title="View Trip Details"
+                    >
+                      <Eye size={13} />
+                    </Button>
+                  ),
+                },
+              ]}
+              data={customerTrips}
+              compact={true}
+              enableSelection={false}
+              emptyTitle="No Dispatches Found"
+              emptyMessage="No freight trips logged for this customer account yet."
+              onRowClick={(trip: any) => navigate(`/trips/${trip.id}`)}
+            />
 
             {/* Section 2: Commercial Invoices & Billing Table */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-amber-500" /> Commercial Invoices & Billing Status
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">
-                    Billed invoices, payment status, and outstanding balances.
-                  </CardDescription>
-                </div>
-
+            <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-amber-500" />
+                  <span>Commercial Invoices & Billing Status</span>
+                </span>
+              }
+              actionsElement={
                 <Button
                   size="sm"
                   variant="outline"
@@ -437,67 +430,71 @@ export default function CustomerDetailsPage() {
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" /> New Invoice
                 </Button>
-              </CardHeader>
-
-              {customerInvoices.length === 0 ? (
-                <div className="p-10 text-center text-slate-400 flex flex-col items-center gap-2">
-                  <Receipt size={32} className="opacity-30 text-slate-400" />
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">No billing invoices issued for this customer account yet.</p>
-                </div>
-              ) : (
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Invoice #</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Date</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Total Amount</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Payment Status</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {customerInvoices.map((inv: any) => (
-                      <tr key={inv.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="px-5 py-3">
-                          <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">{inv.ref_id || 'INV-2026-001'}</span>
-                        </td>
-                        <td className="px-5 py-3 text-slate-600 dark:text-slate-300 font-mono">
-                          {new Date(inv.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-5 py-3 font-mono font-extrabold text-slate-900 dark:text-slate-100">
-                          SAR {Number(inv.total_amount || 0).toLocaleString()}
-                        </td>
-                        <td className="px-5 py-3">
-                          <Badge 
-                            variant="outline" 
-                            className={`text-[9px] font-bold ${
-                              inv.status === 'Paid' 
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                                : inv.status === 'Overdue' 
-                                ? 'bg-rose-50 text-rose-700 border-rose-200' 
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}
-                          >
-                            {inv.status || 'Pending'}
-                          </Badge>
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/invoices/${inv.id}`)}
-                            className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
-                            title="View Invoice"
-                          >
-                            <Eye size={13} />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Card>
+              }
+              columns={[
+                {
+                  header: 'Invoice #',
+                  accessor: (inv: any) => (
+                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">{inv.ref_id || 'INV-2026-001'}</span>
+                  ),
+                },
+                {
+                  header: 'Date',
+                  accessor: (inv: any) => (
+                    <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
+                      {new Date(inv.createdAt).toLocaleDateString()}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Total Amount',
+                  accessor: (inv: any) => (
+                    <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100 text-xs">
+                      SAR {Number(inv.total_amount || 0).toLocaleString()}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Payment Status',
+                  accessor: (inv: any) => (
+                    <Badge 
+                      variant="outline" 
+                      className={`text-[9px] font-bold ${
+                        inv.status === 'Paid' 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                          : inv.status === 'Overdue' 
+                          ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}
+                    >
+                      {inv.status || 'Pending'}
+                    </Badge>
+                  ),
+                },
+                {
+                  header: 'Action',
+                  headerClassName: 'text-right',
+                  className: 'text-right',
+                  accessor: (inv: any) => (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/invoices/${inv.id}`)}
+                      className="h-7 w-7 p-0 text-slate-500 hover:text-indigo-600"
+                      title="View Invoice"
+                    >
+                      <Eye size={13} />
+                    </Button>
+                  ),
+                },
+              ]}
+              data={customerInvoices}
+              compact={true}
+              enableSelection={false}
+              emptyTitle="No Invoices Found"
+              emptyMessage="No billing invoices issued for this customer account yet."
+              onRowClick={(inv: any) => navigate(`/invoices/${inv.id}`)}
+            />
 
           </div>
 

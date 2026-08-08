@@ -658,6 +658,7 @@ export default function DriverListPage() {
               data={filteredDrivers}
               columns={columns}
               enableSelection={true}
+              compact={true}
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load drivers.'}

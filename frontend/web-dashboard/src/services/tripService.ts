@@ -15,21 +15,16 @@ export interface Trip {
   extra_driver_payment: number | null;
   payment_reason: string | null;
   payment_status: string | null;
-  payment_approved_by: string | null;
-  payment_date: string | null;
   waiting_labor_charges?: number;
   additional_stop_charges?: number;
   trip_charges?: number;
   billing_amount?: number;
   carrier_name?: string;
   is_post_trip_settled?: boolean;
-  created_by: string | null;
-  updated_by: string | null;
   createdAt: string;
-  updatedAt: string;
   customer?: { id: string; name: string; contact_phone: string };
   driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; ai_risk_score?: number } | null;
-  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg?: number; icces_device_id?: string | null; last_lat?: number | null; last_lng?: number | null } | null;
+  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string } | null;
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
 }
@@ -46,7 +41,6 @@ export interface TripStop {
   actual_departure: string | null;
   delay_reason: DelayReason | null;
   delay_note: string | null;
-  delay_logged_by: string | null;
   delay_logged_at: string | null;
 }
 
@@ -152,12 +146,6 @@ export const tripService = {
   /** Assign a driver and/or vehicle to a trip that was created with "assign later". */
   async dispatch(id: string, payload: { driver_id?: string; vehicle_id?: string }): Promise<Trip> {
     const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/dispatch`, payload);
-    return res.data.data;
-  },
-
-  /** Swap the assigned driver mid-trip; the old driver is freed back to Available. */
-  async replaceDriver(id: string, newDriverId: string): Promise<Trip> {
-    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/replace-driver`, { new_driver_id: newDriverId });
     return res.data.data;
   },
 

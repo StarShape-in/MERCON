@@ -32,6 +32,7 @@ import {
 import { customerService } from '@/services/customerService';
 import { DELAY_REASON_LABELS, type DelayReason } from '@/services/tripService';
 import { downloadCSV } from '@/utils/exportUtils';
+import DataTable, { Column } from '@/components/ui/DataTable';
 
 type Tab = 'log' | 'grid' | 'analysis';
 
@@ -512,73 +513,81 @@ export default function DelayReportPage() {
               </div>
             )}
             {log.data && log.data.data.length > 0 && (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-black/[0.02] border-b border-black/[0.06]">
-                        {['Date', 'Route', 'Trip', 'Company', 'Driver', 'Truck'].map((h) => (
-                          <th key={h} className="text-left font-bold text-faint uppercase tracking-wide text-[10px] px-3 py-2.5">{h}</th>
-                        ))}
-                        <th className="text-right font-bold text-faint uppercase tracking-wide text-[10px] px-3 py-2.5">Delay</th>
-                        <th className="text-right font-bold text-faint uppercase tracking-wide text-[10px] px-3 py-2.5">Waiting</th>
-                        <th className="text-left font-bold text-faint uppercase tracking-wide text-[10px] px-3 py-2.5">Reason</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {log.data.data.map((r) => (
-                        <tr
-                          key={r.stop_id}
-                          onClick={() => navigate(`/trips/${r.trip_id}`)}
-                          className="border-b border-black/[0.04] last:border-0 hover:bg-brand-light/60 cursor-pointer transition-colors"
-                        >
-                          <td className="px-3 py-2.5 text-subtle tabular-nums whitespace-nowrap">
-                            {fmtDate(r.date)}
-                          </td>
-                          <td className="px-3 py-2.5 font-medium text-ink whitespace-nowrap">{r.route}</td>
-                          <td className="px-3 py-2.5 text-faint tabular-nums whitespace-nowrap">{r.trip_ref ?? '—'}</td>
-                          <td className="px-3 py-2.5 text-ink-soft whitespace-nowrap">{r.customer}</td>
-                          <td className="px-3 py-2.5 text-ink-soft whitespace-nowrap">{r.driver}</td>
-                          <td className="px-3 py-2.5 text-ink-soft tabular-nums whitespace-nowrap">{r.vehicle}</td>
-                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${delayTone(r.delay_hours)}`}>
-                              +{fmtDelay(r.delay_hours)}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-right text-faint tabular-nums whitespace-nowrap">
-                            {r.dwell_hours === null ? '—' : fmtDelay(r.dwell_hours)}
-                          </td>
-                          <td className="px-3 py-2.5 whitespace-nowrap">
-                            {r.needs_reason ? (
-                              <span className="inline-flex items-center gap-1 text-brand font-bold">
-                                <AlertTriangle size={11} /> Add reason
-                              </span>
-                            ) : (
-                              <span className="text-ink-soft">
-                                {reasonLabel(r.delay_reason)}
-                                {r.delay_note && <span className="text-faint"> · {r.delay_note}</span>}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex items-center justify-between px-3 py-2.5 border-t border-black/[0.06] text-xs text-subtle">
-                  <span>
-                    <strong className="text-ink tabular-nums">{log.data.meta.total}</strong> delayed arrival{log.data.meta.total === 1 ? '' : 's'}
-                    {log.data.meta.truncated && ' · showing the most recent, narrow the range for a full count'}
-                  </span>
+              <DataTable
+                title={
                   <span className="flex items-center gap-2">
-                    <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}
-                      className="h-7 px-2.5 rounded-md border border-black/[0.08] font-semibold disabled:opacity-40 hover:bg-black/[0.03]">Prev</button>
-                    <span className="tabular-nums">Page {log.data.meta.page} of {Math.max(log.data.meta.total_pages, 1)}</span>
-                    <button type="button" disabled={page >= log.data.meta.total_pages} onClick={() => setPage((p) => p + 1)}
-                      className="h-7 px-2.5 rounded-md border border-black/[0.08] font-semibold disabled:opacity-40 hover:bg-black/[0.03]">Next</button>
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    <span>Delay Log Ledger</span>
                   </span>
-                </div>
-              </>
+                }
+                columns={[
+                  {
+                    header: 'Date',
+                    accessor: (r: DelayLogRow) => <span className="tabular-nums font-mono">{fmtDate(r.date)}</span>,
+                  },
+                  {
+                    header: 'Route',
+                    accessor: (r: DelayLogRow) => <span className="font-medium">{r.route}</span>,
+                  },
+                  {
+                    header: 'Trip',
+                    accessor: (r: DelayLogRow) => <span className="tabular-nums font-mono">{r.trip_ref ?? '—'}</span>,
+                  },
+                  {
+                    header: 'Company',
+                    accessor: (r: DelayLogRow) => r.customer,
+                  },
+                  {
+                    header: 'Driver',
+                    accessor: (r: DelayLogRow) => r.driver,
+                  },
+                  {
+                    header: 'Truck',
+                    accessor: (r: DelayLogRow) => <span className="tabular-nums font-mono">{r.vehicle}</span>,
+                  },
+                  {
+                    header: 'Delay',
+                    headerClassName: 'text-right',
+                    className: 'text-right',
+                    accessor: (r: DelayLogRow) => (
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${delayTone(r.delay_hours)}`}>
+                        +{fmtDelay(r.delay_hours)}
+                      </span>
+                    ),
+                  },
+                  {
+                    header: 'Waiting',
+                    headerClassName: 'text-right',
+                    className: 'text-right',
+                    accessor: (r: DelayLogRow) => (
+                      <span className="tabular-nums">{r.dwell_hours === null ? '—' : fmtDelay(r.dwell_hours)}</span>
+                    ),
+                  },
+                  {
+                    header: 'Reason',
+                    accessor: (r: DelayLogRow) => r.needs_reason ? (
+                      <span className="inline-flex items-center gap-1 text-[#E8450F] font-bold">
+                        <AlertTriangle size={11} /> Add reason
+                      </span>
+                    ) : (
+                      <span>
+                        {reasonLabel(r.delay_reason)}
+                        {r.delay_note && <span className="text-slate-400"> · {r.delay_note}</span>}
+                      </span>
+                    ),
+                  },
+                ]}
+                data={log.data.data}
+                compact={true}
+                enableSelection={false}
+                isLoading={log.isLoading}
+                currentPage={page}
+                totalPages={log.data.meta.total_pages}
+                pageSize={25}
+                totalRecords={log.data.meta.total}
+                onPageChange={setPage}
+                onRowClick={(r) => navigate(`/trips/${r.trip_id}`)}
+              />
             )}
           </Card>
         )}

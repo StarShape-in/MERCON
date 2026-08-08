@@ -602,6 +602,7 @@ export default function DocumentsCenterPage() {
               }
             ]}
             data={filteredDocs}
+            compact={true}
             bulkActions={[
               {
                 label: 'Export CSV',
