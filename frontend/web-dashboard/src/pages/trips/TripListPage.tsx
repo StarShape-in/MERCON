@@ -500,8 +500,8 @@ export default function TripListPage() {
     {
       label: 'Export Selected CSV',
       icon: <FileSpreadsheet size={13} />,
-      variant: 'outline' as const,
-      className: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400',
+      variant: 'primary' as const,
+      className: 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold border-0 shadow-xs',
       onClick: (selectedRows: Trip[]) => {
         downloadCSV(selectedRows, 'trips_export.csv');
       }
@@ -509,8 +509,8 @@ export default function TripListPage() {
     {
       label: 'Export Selected PDF',
       icon: <FileText size={13} />,
-      variant: 'outline' as const,
-      className: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-400',
+      variant: 'primary' as const,
+      className: 'bg-rose-600 hover:bg-rose-700 text-white font-bold border-0 shadow-xs',
       onClick: (selectedRows: Trip[]) => {
         downloadPDF(selectedRows, 'Trips Export');
       }
@@ -555,9 +555,8 @@ export default function TripListPage() {
           {/* Page-Level Action Buttons */}
           <div className="flex items-center gap-2.5">
             <Button
-              variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-400 shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors rounded-lg border-0 px-3.5"
               onClick={() => setImportDialogOpen(true)}
             >
               <Upload className="h-3.5 w-3.5" />
@@ -567,13 +566,12 @@ export default function TripListPage() {
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:text-violet-800 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-400 shadow-2xs"
+                  className="h-9 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors rounded-lg border-0 px-3.5"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Export
-                  <ChevronDown className="h-3 w-3 opacity-60" />
+                  <ChevronDown className="h-3 w-3 opacity-80" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
