@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
-import { downloadCSV, exportPDF, parseCSVFile } from '@/utils/exportUtils';
+import { downloadCSVTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
 import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
@@ -87,6 +87,34 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
   if (group === 'NotCompleted') return status !== 'Completed' && status !== 'AtDelivery' && status !== 'Invoiced';
   return true;
 };
+
+const TRIP_EXPORT_HEADERS = [
+  'Job / Ref ID', 'Status', 'Customer', 'Driver', 'Vehicle',
+  'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
+  'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
+];
+
+const formatExportDate = (value: string | null) => (value ? new Date(value).toISOString().slice(0, 10) : '');
+
+/** A raw `Trip` carries ~25 fields (nested driver/vehicle/customer objects,
+ *  stops/invoices arrays, internal audit fields) — dumping it straight into
+ *  a CSV/PDF export produces an unreadably wide, cluttered table. This picks
+ *  just the columns an operator actually wants to see in an export. */
+const tripsToExportRows = (trips: Trip[]) => trips.map(t => [
+  t.ref_id,
+  t.status,
+  t.customer?.name || 'Unassigned',
+  t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned',
+  t.vehicle?.plate_number || 'Unassigned',
+  formatExportDate(t.planned_start),
+  formatExportDate(t.actual_start),
+  formatExportDate(t.planned_end),
+  formatExportDate(t.actual_end),
+  Number(t.trip_charges || 0),
+  Number(t.billing_amount || 0),
+  t.carrier_name || 'MERCON LOGISTICS',
+]);
+
 
 const IMPORT_FIELD_ALIASES: Record<keyof BulkImportTripRow, string[]> = {
   customer_name: ['customer_name', 'customer', 'client', 'client_name'],
@@ -259,10 +287,11 @@ export default function TripListPage() {
       const datePart = new Date().toISOString().slice(0, 10);
       const baseName = `trips_export_${groupLabel}_${datePart}`;
 
+      const exportRows = tripsToExportRows(matched);
       if (format === 'csv') {
-        downloadCSV(matched, `${baseName}.csv`);
+        downloadCSVTable(TRIP_EXPORT_HEADERS, exportRows, `${baseName}.csv`);
       } else {
-        exportPDF(matched, `Trips Export — ${EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label}`, `${baseName}.pdf`);
+        exportPDFTable(`Trips Export — ${EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label}`, TRIP_EXPORT_HEADERS, exportRows, `${baseName}.pdf`);
       }
       setExportDialogOpen(false);
     } catch (e) {
@@ -498,7 +527,7 @@ export default function TripListPage() {
       icon: <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Trip[]) => {
-        downloadCSV(selectedRows, 'trips_export.csv');
+        downloadCSVTable(TRIP_EXPORT_HEADERS, tripsToExportRows(selectedRows), 'trips_export.csv');
       }
     },
     {
@@ -506,7 +535,7 @@ export default function TripListPage() {
       icon: <FileText size={13} className="text-rose-600 dark:text-rose-400" />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Trip[]) => {
-        exportPDF(selectedRows, 'Trips Export', 'trips_export.pdf');
+        exportPDFTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRows(selectedRows), 'trips_export.pdf');
       }
     },
     {

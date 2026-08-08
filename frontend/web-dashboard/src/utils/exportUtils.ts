@@ -153,6 +153,35 @@ export function downloadCSV<T extends Record<string, any>>(data: T[], filename: 
   }
 }
 
+/**
+ * CSV export with an explicit header/row set — the table-shaped sibling of
+ * `downloadCSV`, for callers that already curated their own columns (e.g. to
+ * avoid dumping every raw field of a wide entity into the file) rather than
+ * deriving them from an object's own keys.
+ */
+export function downloadCSVTable(headers: string[], rows: any[][], filename: string = 'mercon_export.csv') {
+  const csvRows: string[] = [headers.join(',')];
+  for (const row of rows) {
+    const values = row.map(cell => {
+      let val = cell === null || cell === undefined ? '' : String(cell);
+      val = val.replace(/"/g, '""');
+      if (/[",\n]/.test(val)) val = `"${val}"`;
+      return val;
+    });
+    csvRows.push(values.join(','));
+  }
+  const csvString = csvRows.join('\n');
+  const blob = new Blob(['﻿' + csvString], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 // ─── Cell classification (shared by the real .xlsx and .pdf engines) ───────
 type CellKind = 'text' | 'number' | 'currency' | 'date' | 'status-good' | 'status-bad' | 'center';
 

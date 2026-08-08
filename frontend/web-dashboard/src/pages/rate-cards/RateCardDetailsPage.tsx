@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import DataTable from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
 
 export default function RateCardDetailsPage() {
@@ -287,66 +288,71 @@ export default function RateCardDetailsPage() {
 
         </div>
 
-        {/* ── High-Density Itemized Tariff Schedule Table (shadcn Table) ──── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-          <CardHeader className="border-b border-slate-100 dark:border-slate-800 py-2.5 px-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-              <Scale className="w-3.5 h-3.5 text-[#E8450F]" /> Itemized Tariff Surcharge & Rate Schedule
-            </CardTitle>
-            <Badge variant="outline" className="text-[9px] font-mono font-bold text-slate-500">
-              Contract Schedule A
-            </Badge>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50/70 dark:bg-slate-900/70">
-                  <TableHead className="font-bold text-[10px] uppercase text-slate-400 tracking-wider py-2.5">Service Line Item</TableHead>
-                  <TableHead className="font-bold text-[10px] uppercase text-slate-400 tracking-wider py-2.5">Condition / Trigger</TableHead>
-                  <TableHead className="font-bold text-[10px] uppercase text-slate-400 tracking-wider py-2.5 text-right">Standard Rate ({currency})</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                <TableRow className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                  <TableCell className="py-3">
-                    <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                      Base Route Freight Transport Rate
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-mono">Standard Corridor: {card.route_origin} ➔ {card.route_destination}</span>
-                  </TableCell>
-                  <TableCell className="py-3 font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs">Per Completed Trip</TableCell>
-                  <TableCell className="py-3 font-mono font-extrabold text-[#E8450F] text-right text-xs">
-                    {card.base_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </TableCell>
-                </TableRow>
-
-                <TableRow className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                  <TableCell className="py-3">
-                    <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                      Demurrage / Detention Hourly Rate
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-mono">Applies after 2 hours free loading/unloading time</span>
-                  </TableCell>
-                  <TableCell className="py-3 font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs">Per Hour Delay</TableCell>
-                  <TableCell className="py-3 font-mono font-extrabold text-slate-800 dark:text-slate-200 text-right text-xs">100.00</TableCell>
-                </TableRow>
-
-                <TableRow className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                  <TableCell className="py-3">
-                    <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
-                      Overweight Tonnage Fee
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-mono">Applies when cargo payload exceeds 24.0 Metric Tons</span>
-                  </TableCell>
-                  <TableCell className="py-3 font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs">Per Extra Ton</TableCell>
-                  <TableCell className="py-3 font-mono font-extrabold text-slate-800 dark:text-slate-200 text-right text-xs">150.00</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        {/* ── High-Density Itemized Tariff Schedule Table ─────────────────── */}
+        <DataTable
+          title={
+            <span className="flex items-center gap-2">
+              <Scale className="w-4 h-4 text-[#E8450F]" />
+              <span>Itemized Tariff Surcharge & Rate Schedule</span>
+            </span>
+          }
+          columns={[
+            {
+              header: 'Service Line Item',
+              accessor: (item: any) => (
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                    {item.name}
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">{item.description}</span>
+                </div>
+              ),
+            },
+            {
+              header: 'Condition / Trigger',
+              accessor: (item: any) => (
+                <span className="font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs">
+                  {item.condition}
+                </span>
+              ),
+            },
+            {
+              header: `Standard Rate (${currency})`,
+              headerClassName: 'text-right',
+              className: 'text-right',
+              accessor: (item: any) => (
+                <span className={cn("font-mono font-extrabold text-xs", item.isPrimary ? "text-[#E8450F]" : "text-slate-800 dark:text-slate-200")}>
+                  {item.rate}
+                </span>
+              ),
+            },
+          ]}
+          data={[
+            {
+              name: 'Base Route Freight Transport Rate',
+              description: `Standard Corridor: ${card.route_origin} ➔ ${card.route_destination}`,
+              condition: 'Per Completed Trip',
+              rate: card.base_price.toLocaleString(undefined, { minimumFractionDigits: 2 }),
+              isPrimary: true,
+            },
+            {
+              name: 'Demurrage / Detention Hourly Rate',
+              description: 'Applies after 2 hours free loading/unloading time',
+              condition: 'Per Hour Delay',
+              rate: '100.00',
+              isPrimary: false,
+            },
+            {
+              name: 'Overweight Tonnage Fee',
+              description: 'Applies when cargo payload exceeds 24.0 Metric Tons',
+              condition: 'Per Extra Ton',
+              rate: '150.00',
+              isPrimary: false,
+            },
+          ]}
+          compact={true}
+          enableSelection={false}
+        />
 
       </div>
 
