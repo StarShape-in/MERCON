@@ -76,7 +76,7 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
       <!-- 3D Google Maps style container truck image -->
       <div style="position: relative; z-index: 2; transform: translateY(-2px); width: 44px; height: 44px;">
         <img 
-          src="/truck_3d_orange.png" 
+          src="/truck_3d_orange_transparent.png" 
           alt="3D Truck Marker" 
           style="width: 100%; height: 100%; object-fit: contain; filter: ${imgFilter};" 
         />
