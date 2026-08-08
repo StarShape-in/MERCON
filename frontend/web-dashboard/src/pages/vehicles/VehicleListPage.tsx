@@ -79,39 +79,42 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
       
       <!-- 3D Isometric container truck -->
       <div style="position: relative; z-index: 2; transform: translateY(-4px);">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="38" height="38" style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.25));">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 32" width="44" height="32" style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.25));">
           <!-- 3D Shadow Ellipse -->
-          <ellipse cx="22" cy="31" rx="16" ry="5" fill="rgba(0,0,0,0.22)" />
+          <ellipse cx="23.6" cy="21" rx="15" ry="5.5" fill="rgba(0,0,0,0.22)" />
+
+          <!-- Chassis Side Bar -->
+          <polygon points="12.4,25.0 34.8,12.4 34.8,10.8 12.4,23.4" fill="#334155" />
 
           <!-- Rear Wheels -->
-          <ellipse cx="22" cy="24" rx="3.5" ry="2" fill="#0F172A" />
-          <ellipse cx="22" cy="24" rx="1.5" ry="0.8" fill="#94A3B8" />
+          <ellipse cx="28.4" cy="16.4" rx="3.2" ry="1.8" fill="#0F172A" />
+          <ellipse cx="28.4" cy="16.4" rx="1.3" ry="0.7" fill="#94A3B8" />
 
           <!-- Front Wheels -->
-          <ellipse cx="10" cy="30" rx="3.5" ry="2" fill="#0F172A" />
-          <ellipse cx="10" cy="30" rx="1.5" ry="0.8" fill="#94A3B8" />
+          <ellipse cx="14.8" cy="24.05" rx="3.2" ry="1.8" fill="#0F172A" />
+          <ellipse cx="14.8" cy="24.05" rx="1.3" ry="0.7" fill="#94A3B8" />
 
           <!-- Cargo Box (Orange/Status Colored 3D Container) -->
           <!-- Left Side Face of Box (Shadow) -->
-          <polygon points="12,25 28,17 28,7 12,15" fill="${colorBoxShadow}" />
+          <polygon points="34.8,10.8 18.8,19.8 18.8,10.2 34.8,1.2" fill="${colorBoxShadow}" />
           <!-- Front Face of Box (Medium shadow/fill) -->
-          <polygon points="12,25 22,30 22,20 12,15" fill="${colorBoxMedium}" />
+          <polygon points="18.8,19.8 26.8,24.1 26.8,14.7 18.8,10.2" fill="${colorBoxMedium}" />
           <!-- Top Face of Box (Highlight) -->
-          <polygon points="12,15 28,7 38,12 22,20" fill="${colorBoxHighlight}" />
+          <polygon points="34.8,1.2 18.8,10.2 26.8,14.7 42.8,5.7" fill="${colorBoxHighlight}" />
 
           <!-- Cab (Silver/Grey) -->
           <!-- Left Side Face of Cab (Shadow) -->
-          <polygon points="6,28 12,25 12,20 6,23" fill="#64748B" />
+          <polygon points="18.8,19.8 12.4,23.4 12.4,17.0 18.8,13.4" fill="#64748B" />
           <!-- Front Face of Cab (Medium/Light fill) -->
-          <polygon points="6,28 16,33 16,28 6,23" fill="#CBD5E1" />
+          <polygon points="12.4,23.4 20.4,27.9 20.4,21.5 12.4,17.0" fill="#CBD5E1" />
           <!-- Top Face of Cab (Highlight) -->
-          <polygon points="6,23 16,28 22,25 12,20" fill="#F1F5F9" />
+          <polygon points="18.8,13.4 12.4,17.0 20.4,21.5 26.8,17.9" fill="#F1F5F9" />
 
           <!-- Windows -->
           <!-- Front Windshield -->
-          <polygon points="7,24 15,28 15,30 7,26" fill="#1E293B" />
+          <polygon points="13.2,20.65 19.6,24.25 19.6,21.45 13.2,17.85" fill="#1E293B" />
           <!-- Side Window -->
-          <polygon points="7,23.5 11,21.5 11,23.5 7,25" fill="#334155" />
+          <polygon points="17.2,17.1 13.2,19.35 13.2,16.95 17.2,14.7" fill="#334155" />
         </svg>
       </div>
 
