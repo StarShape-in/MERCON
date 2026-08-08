@@ -543,32 +543,6 @@ export default function CustomerDetailsPage() {
               </CardContent>
             </Card>
 
-            {/* Card 2: Account Health & Performance Summary */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" /> Account Health Scorecard
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-3.5 text-xs">
-                <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-500 font-medium">Credit Risk Rating</span>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-extrabold text-[10px]">A+ EXCELLENT</Badge>
-                </div>
-
-                <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-500 font-medium">Completed Trips YTD</span>
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{completedTripsCount} Trips</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-medium">On-Time Payment Score</span>
-                  <span className="font-mono font-bold text-emerald-600">98.4%</span>
-                </div>
-              </CardContent>
-            </Card>
-
           </div>
 
         </div>
