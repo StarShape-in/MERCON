@@ -64,18 +64,16 @@ function CarouselToolbar({ total }: { total: number }) {
             aria-label={`Go to trip ${i + 1}`}
             onClick={() => scrollTo(i)}
             className={cn(
-              'h-1.5 rounded-full transition-all duration-300 ease-out',
-              i === selectedIndex
-                ? 'w-5 bg-[#E8450F]'
-                : 'w-1.5 bg-foreground/15 hover:bg-foreground/30'
+              'h-1.5 w-1.5 rounded-full transition-colors',
+              i === selectedIndex ? 'bg-[#E8450F]' : 'bg-foreground/15 hover:bg-foreground/30'
             )}
           />
         ))}
       </div>
 
       <div className="relative flex items-center gap-1.5">
-        <CarouselPrevious className="static translate-y-0 size-7 rounded-full transition-transform hover:scale-105 active:scale-95 disabled:opacity-30" />
-        <CarouselNext className="static translate-y-0 size-7 rounded-full transition-transform hover:scale-105 active:scale-95 disabled:opacity-30" />
+        <CarouselPrevious className="static size-7 translate-y-0 rounded-full disabled:opacity-30" />
+        <CarouselNext className="static size-7 translate-y-0 rounded-full disabled:opacity-30" />
       </div>
     </div>
   );
@@ -94,10 +92,7 @@ export default function TripCardSwiper() {
         <Card className="overflow-hidden rounded-[24px] bg-white shadow-md ring-1 ring-black/[0.06]">
           <CardHeader className="border-b border-black/[0.04] pb-3.5">
             <CardTitle className="flex items-center gap-2 text-sm font-extrabold tracking-tight text-[#111]">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#E8450F] opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-[#E8450F]" />
-              </span>
+              <span className="inline-flex size-2 rounded-full bg-[#E8450F]" />
               Active Freight Trips Carousel
               <Badge
                 variant="outline"
@@ -134,16 +129,12 @@ export default function TripCardSwiper() {
                       }
                     }}
                     className={cn(
-                      'group relative cursor-pointer select-none space-y-2.5 rounded-2xl bg-[#FAFAFA] p-3.5',
-                      'ring-1 ring-black/[0.07] transition-all duration-300 ease-out',
-                      'hover:-translate-y-1.5 hover:bg-white hover:shadow-xl hover:shadow-[#E8450F]/10 hover:ring-[#E8450F]/40',
-                      'focus-visible:-translate-y-1.5 focus-visible:bg-white focus-visible:shadow-xl focus-visible:ring-2 focus-visible:ring-[#E8450F] focus-visible:outline-none',
-                      'active:translate-y-0 active:scale-[0.99] active:duration-100'
+                      'group relative cursor-pointer select-none space-y-2.5 rounded-2xl border border-black/[0.08] bg-white p-3.5',
+                      'transition-colors duration-150',
+                      'hover:border-[#E8450F]/50 hover:shadow-sm',
+                      'focus-visible:border-[#E8450F]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/40'
                     )}
                   >
-                    {/* Accent rail that grows in on hover */}
-                    <span className="pointer-events-none absolute inset-y-4 left-0 w-[3px] origin-center scale-y-0 rounded-full bg-[#E8450F] transition-transform duration-300 ease-out group-hover:scale-y-100" />
-
                     {/* Header: Ref ID, plate & status */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -152,17 +143,14 @@ export default function TripCardSwiper() {
                         </span>
                         <p className="flex items-center gap-1 text-xs font-black leading-tight text-[#111] transition-colors group-hover:text-[#E8450F]">
                           <span className="truncate">{truck.plateNumber}</span>
-                          <ArrowRight
-                            size={12}
-                            className="shrink-0 -translate-x-1 text-[#E8450F] opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100"
-                          />
+                          <ArrowRight size={12} className="shrink-0 text-[#E8450F]" />
                         </p>
                       </div>
                       <StatusBadge status={truck.status} />
                     </div>
 
-                    {/* Route micro-map with hover overlay */}
-                    <div className="relative overflow-hidden rounded-xl">
+                    {/* Route micro-map */}
+                    <div className="overflow-hidden rounded-xl border border-black/[0.06]">
                       <TripMicroMap
                         currentLat={truck.currentCoords.lat}
                         currentLng={truck.currentCoords.lng}
@@ -171,28 +159,28 @@ export default function TripCardSwiper() {
                         dropoffCoords={truck.dropoffCoords}
                         routeKey={ROUTE_KEYS[truck.refId] ?? 'riyadh-jeddah'}
                       />
+                    </div>
 
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/65 to-transparent px-2 pb-1.5 pt-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-white">
-                          <Navigation size={9} className="shrink-0" />
-                          {truck.distanceRemainingKm} km left
-                        </span>
-                        <span className="flex items-center gap-1 font-mono text-[9px] font-bold text-white">
-                          <Clock size={9} className="shrink-0" />
-                          ETA {formatEta(truck.etaMinutes)}
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between px-0.5 font-mono text-[9px] font-semibold text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Navigation size={9} className="shrink-0" />
+                        {truck.distanceRemainingKm} km left
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={9} className="shrink-0" />
+                        ETA {formatEta(truck.etaMinutes)}
+                      </span>
                     </div>
 
                     {/* Origin → Destination corridor */}
-                    <div className="rounded-xl bg-white p-2 ring-1 ring-black/[0.05] transition-shadow duration-300 group-hover:ring-black/[0.1]">
+                    <div className="rounded-xl border border-black/[0.06] bg-white p-2">
                       <p className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-muted-foreground">
                         <RouteIcon size={9} /> Route Corridor
                       </p>
                       <div className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-[#111]">
                         <MapPin size={10} className="shrink-0 text-[#E8450F]" />
                         <span className="truncate">{truck.originName.split(' ')[0]}</span>
-                        <Separator className="flex-1 bg-gradient-to-r from-[#E8450F]/40 to-black/10" />
+                        <Separator className="flex-1" />
                         <span className="truncate text-right">{truck.destinationName.split(' ')[0]}</span>
                         <Flag size={10} className="shrink-0 text-[#E8450F]" />
                       </div>
@@ -205,7 +193,7 @@ export default function TripCardSwiper() {
                           render={
                             <div
                               onClick={(e) => e.stopPropagation()}
-                              className="cursor-default rounded-lg bg-white p-2 text-left ring-1 ring-black/[0.04] transition-all duration-200 hover:ring-[#E8450F]/30"
+                              className="cursor-default rounded-lg border border-black/[0.06] bg-white p-2 text-left transition-colors hover:border-black/[0.14]"
                             />
                           }
                         >
@@ -257,7 +245,7 @@ export default function TripCardSwiper() {
                           render={
                             <div
                               onClick={(e) => e.stopPropagation()}
-                              className="cursor-default rounded-lg bg-white p-2 text-left ring-1 ring-black/[0.04] transition-all duration-200 hover:ring-[#E8450F]/30"
+                              className="cursor-default rounded-lg border border-black/[0.06] bg-white p-2 text-left transition-colors hover:border-black/[0.14]"
                             />
                           }
                         >
@@ -281,7 +269,7 @@ export default function TripCardSwiper() {
                     <div className="space-y-1.5 pt-0.5">
                       <div className="flex items-center justify-between text-[10px] font-bold">
                         <span className="flex items-center gap-1 text-[#E8450F]">
-                          <Gauge size={11} className="transition-transform duration-300 group-hover:rotate-12" />
+                          <Gauge size={11} />
                           {truck.speedKmH} km/h
                         </span>
                         <span className="font-mono tabular-nums text-muted-foreground">
@@ -291,9 +279,8 @@ export default function TripCardSwiper() {
                       <Progress
                         value={truck.progressPercentage}
                         className={cn(
-                          '[&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-track]]:bg-black/5',
-                          '[&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-[#FF7A3D] [&_[data-slot=progress-indicator]]:to-[#E8450F]',
-                          '[&_[data-slot=progress-indicator]]:duration-500'
+                          '[&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-track]]:bg-black/[0.06]',
+                          '[&_[data-slot=progress-indicator]]:bg-[#E8450F] [&_[data-slot=progress-indicator]]:duration-500'
                         )}
                       />
                       <div className="flex justify-between font-mono text-[9px] text-muted-foreground">
@@ -305,11 +292,11 @@ export default function TripCardSwiper() {
                     {/* CTA */}
                     <Button
                       size="sm"
-                      className="h-7 w-full gap-1 rounded-lg bg-[#1C1C2E] text-[10px] font-bold text-white transition-all duration-300 group-hover:bg-[#E8450F] group-hover:shadow-md group-hover:shadow-[#E8450F]/25"
+                      className="h-7 w-full gap-1 rounded-lg bg-[#1C1C2E] text-[10px] font-bold text-white transition-colors group-hover:bg-[#E8450F]"
                       tabIndex={-1}
                     >
                       View Full Details
-                      <ExternalLink size={10} className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      <ExternalLink size={10} />
                     </Button>
                   </div>
                 </CarouselItem>
