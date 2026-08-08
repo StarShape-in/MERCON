@@ -800,92 +800,57 @@ export default function TripDetailsPage() {
 
           {/* ───────────────────────── Right: sidebar ───────────────────────── */}
           <div className="space-y-4">
-            {/* ── Trip Progress Instrument Card ───────────────────────────────── */}
-            <Card className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0 shadow-2xs overflow-hidden relative">
-              {/* Top brand accent bar */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#E8450F] via-orange-400 to-amber-500" />
-
-              {/* Header: Title + Status */}
-              <div className="flex items-center justify-between pt-0.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-[#181824] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                    <Gauge size={13} className="text-[#E8450F]" />
-                  </div>
-                  <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Trip Progress</p>
-                </div>
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-2xs"
-                  style={{ color: tone.color, backgroundColor: tone.bg }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
-                  {statusLabel(trip.status)}
-                </span>
+            {/* ── Trip Progress Card ───────────────────────────────── */}
+            <Card className="rounded-xl border border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-[#111] dark:text-slate-100">Trip Progress</p>
+                <StatusBadge status={trip.status} />
               </div>
 
-              {/* Hero progress counter */}
-              <div className="flex items-baseline justify-between mt-3">
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
-                  <span className="text-xs font-bold text-slate-400">completed</span>
-                </div>
-                {stageIndex >= 0 && trip.status !== 'Cancelled' && (
-                  <span className="text-[11px] font-bold text-[#E8450F] bg-orange-50 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-900/50 px-2 py-0.5 rounded-md">
-                    Stage {stageIndex + 1} of {STAGE_ORDER.length}
-                  </span>
-                )}
+              <div className="mt-3">
+                <p className="text-3xl font-extrabold text-[#111] dark:text-slate-100 tracking-tight">
+                  {trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}
+                </p>
+                <Progress
+                  value={trip.status === 'Cancelled' ? 0 : stageProgress}
+                  className="h-1.5 mt-2.5 [&_[data-slot=progress-track]]:bg-black/[0.04] dark:[&_[data-slot=progress-track]]:bg-slate-800 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
+                />
               </div>
-
-              <Progress
-                value={trip.status === 'Cancelled' ? 0 : stageProgress}
-                className="h-2 mt-2.5 [&_[data-slot=progress-track]]:bg-slate-100 dark:[&_[data-slot=progress-track]]:bg-slate-800 [&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-[#E8450F] [&_[data-slot=progress-indicator]]:to-amber-500 rounded-full"
-              />
 
               {/* Pickup & Drop-off route waypoints */}
-              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+              <div className="mt-4 pt-4 border-t border-black/[0.06] dark:border-slate-800/80 space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-emerald-600 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                    <MapPin size={13} className="text-emerald-600 dark:text-emerald-400" />
+                  <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <MapPin size={12} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Pickup Origin</p>
-                      {pickup?.actual_arrival && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Departed</span>
-                      )}
-                    </div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Pickup Location</p>
+                    <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
                       {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
                     </p>
                     {pickup && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-[#6E6E80] mt-0.5">
                         {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="pl-[13px] -my-1 py-0.5 flex items-center gap-2">
-                  <div className="w-0.5 h-4 bg-gradient-to-b from-emerald-300 to-orange-300 dark:from-emerald-700 dark:to-orange-700" />
+                <div className="pl-[11px] -my-1 py-0.5 flex items-center gap-2">
+                  <div className="w-px h-3.5 bg-black/[0.1] dark:bg-slate-700" />
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-[#E8450F] border border-orange-200 dark:border-orange-900/60 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                    <MapPin size={13} className="text-[#E8450F]" />
+                  <span className="w-6 h-6 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <MapPin size={12} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#E8450F]">Destination</p>
-                      {dropoff?.actual_arrival ? (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Delivered</span>
-                      ) : (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-orange-50 text-[#E8450F] border border-orange-200">En Route</span>
-                      )}
-                    </div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Drop-off Location</p>
+                    <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
                       {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
                     </p>
                     {dropoff && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-[#6E6E80] mt-0.5">
                         {dropoff.actual_arrival
                           ? fullDateTime(dropoff.actual_arrival)
                           : dropoff.planned_arrival
@@ -897,42 +862,39 @@ export default function TripDetailsPage() {
                 </div>
               </div>
 
-              {/* Telemetry 2x2 Instrument Grid */}
-              <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+              <Separator className="my-4" />
+
+              {/* Stats rows */}
+              <div className="space-y-2.5">
                 {sidebarStats.map((s) => (
-                  <div
-                    key={s.label}
-                    className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center gap-2.5 transition-all hover:bg-slate-100/60"
-                  >
-                    <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs', s.tone)}>
-                      <s.icon size={13} />
+                  <div key={s.label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs text-[#6E6E80]">
+                      <s.icon size={13} className="text-[#9898A4]" />
+                      <span>{s.label}</span>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{s.label}</p>
-                      <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate mt-0.5">{s.value}</p>
-                    </div>
+                    <span className="text-xs font-semibold text-[#111] dark:text-slate-100">{s.value}</span>
                   </div>
                 ))}
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className="grid grid-cols-2 gap-2 mt-5">
                 {trip.driver?.phone_primary ? (
                   <a href={`tel:${trip.driver.phone_primary}`} className="w-full">
-                    <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-semibold gap-1.5 cursor-pointer shadow-2xs">
-                      <Phone size={13} className="text-emerald-600" />
+                    <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 text-[#111] dark:text-slate-200 hover:bg-black/[0.03] text-xs font-semibold gap-1.5 cursor-pointer">
+                      <Phone size={13} />
                       Call Driver
                     </Button>
                   </a>
                 ) : (
-                  <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-400 text-xs font-semibold gap-1.5 cursor-not-allowed" disabled>
+                  <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-black/[0.06] dark:border-slate-800 bg-black/[0.02] dark:bg-slate-900 text-slate-400 text-xs font-semibold gap-1.5 cursor-not-allowed" disabled>
                     <Phone size={13} />
                     Call Driver
                   </Button>
                 )}
                 <Button
                   size="sm"
-                  className="w-full h-8.5 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-bold gap-1.5 shadow-2xs cursor-pointer active:scale-[0.98] transition-all"
+                  className="w-full h-8.5 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer active:scale-[0.98] transition-all"
                   onClick={() => navigate(`/trips/${trip.id}/track`)}
                 >
                   <Navigation size={13} />
