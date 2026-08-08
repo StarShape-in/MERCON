@@ -71,6 +71,17 @@ function MapFlyTo({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+/** Fits the map to real pickup/dropoff points — used when there's no
+ *  simulated-fleet truck to fly the camera to (i.e. a real trip whose
+ *  route isn't one of the canned demo routes). */
+function FitBounds({ aLat, aLng, bLat, bLng }: { aLat: number; aLng: number; bLat: number; bLng: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.fitBounds(L.latLngBounds([[aLat, aLng], [bLat, bLng]]), { padding: [56, 56], maxZoom: 10 });
+  }, [aLat, aLng, bLat, bLng, map]);
+  return null;
+}
+
 interface TripLiveMapCardProps {
   tripId: string;
   refId: string;
@@ -78,6 +89,8 @@ interface TripLiveMapCardProps {
   pickupLng?: number;
   dropoffLat?: number;
   dropoffLng?: number;
+  pickupLabel?: string;
+  dropoffLabel?: string;
   /** Show the title/theme-selector/"Full Radar" header row. Default true. */
   showHeader?: boolean;
   /** Show the bottom telemetry overlay (speed/progress/ETA bar). Default true. */
@@ -87,13 +100,18 @@ interface TripLiveMapCardProps {
   mapHeightClassName?: string;
 }
 
+const DEMO_PICKUP: GeoPoint = { lat: 24.6432, lng: 46.7214 };
+const DEMO_DROPOFF: GeoPoint = { lat: 21.5433, lng: 39.1728 };
+
 export default function TripLiveMapCard({
   tripId,
   refId,
-  pickupLat = 24.6432,
-  pickupLng = 46.7214,
-  dropoffLat = 21.5433,
-  dropoffLng = 39.1728,
+  pickupLat,
+  pickupLng,
+  dropoffLat,
+  dropoffLng,
+  pickupLabel,
+  dropoffLabel,
   showHeader = true,
   showTelemetryBar = true,
   className,
@@ -104,25 +122,32 @@ export default function TripLiveMapCard({
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
 
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
-  const simulatedTruck = fleet.find((f) => f.tripId === tripId || f.refId === refId) || fleet[0];
 
-  const pickupPoint: GeoPoint = { lat: pickupLat, lng: pickupLng };
-  const dropoffPoint: GeoPoint = { lat: dropoffLat, lng: dropoffLng };
+  // A trip only has a "live truck" to show if it matches one of the canned
+  // demo fleet entries — falling back to fleet[0] regardless of the trip's
+  // real coordinates used to draw a Riyadh↔Jeddah truck on top of an
+  // unrelated real route. Real trips outside the demo set just show pickup/
+  // dropoff pins on their real route, no fabricated live position.
+  const hasRealCoords = pickupLat != null && pickupLng != null && dropoffLat != null && dropoffLng != null;
+  const matchedTruck = fleet.find((f) => f.tripId === tripId || f.refId === refId);
+  const simulatedTruck = matchedTruck || (hasRealCoords ? undefined : fleet[0]);
 
-  const route = PREDEFINED_ROUTES['riyadh-jeddah'];
-  const polylineWaypoints = route
-    ? route.waypoints.map((w) => [w.lat, w.lng] as [number, number])
-    : [
-        [pickupPoint.lat, pickupPoint.lng] as [number, number],
-        [dropoffPoint.lat, dropoffPoint.lng] as [number, number],
-      ];
+  const pickupPoint: GeoPoint = hasRealCoords ? { lat: pickupLat!, lng: pickupLng! } : DEMO_PICKUP;
+  const dropoffPoint: GeoPoint = hasRealCoords ? { lat: dropoffLat!, lng: dropoffLng! } : DEMO_DROPOFF;
 
-  const currentLat = simulatedTruck ? simulatedTruck.currentCoords.lat : pickupLat;
-  const currentLng = simulatedTruck ? simulatedTruck.currentCoords.lng : pickupLng;
-  const speed = simulatedTruck ? simulatedTruck.speedKmH : 88;
-  const heading = simulatedTruck ? simulatedTruck.heading : 240;
-  const progress = simulatedTruck ? simulatedTruck.progressPercentage : 42;
-  const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 320;
+  const demoRoute = PREDEFINED_ROUTES['riyadh-jeddah'];
+  const polylineWaypoints: [number, number][] = hasRealCoords
+    ? [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]]
+    : demoRoute
+      ? demoRoute.waypoints.map((w) => [w.lat, w.lng])
+      : [[pickupPoint.lat, pickupPoint.lng], [dropoffPoint.lat, dropoffPoint.lng]];
+
+  const currentLat = simulatedTruck ? simulatedTruck.currentCoords.lat : pickupPoint.lat;
+  const currentLng = simulatedTruck ? simulatedTruck.currentCoords.lng : pickupPoint.lng;
+  const speed = simulatedTruck ? simulatedTruck.speedKmH : 0;
+  const heading = simulatedTruck ? simulatedTruck.heading : 0;
+  const progress = simulatedTruck ? simulatedTruck.progressPercentage : 0;
+  const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 0;
 
   return (
     <Card className={cn('border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden p-0 gap-0', className)}>
@@ -180,7 +205,11 @@ export default function TripLiveMapCard({
               url={currentTheme.url}
             />
 
-            <MapFlyTo lat={currentLat} lng={currentLng} />
+            {simulatedTruck ? (
+              <MapFlyTo lat={currentLat} lng={currentLng} />
+            ) : (
+              <FitBounds aLat={pickupPoint.lat} aLng={pickupPoint.lng} bLat={dropoffPoint.lat} bLng={dropoffPoint.lng} />
+            )}
 
             <Polyline
               positions={polylineWaypoints}
@@ -190,8 +219,8 @@ export default function TripLiveMapCard({
             <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
               <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                 <div className="text-xs font-sans p-1">
-                  <p className="font-bold text-[#10B981]">Pickup Terminal</p>
-                  <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
+                  <p className="font-bold text-[#10B981]">Pickup</p>
+                  <p className="text-[10px] text-gray-500">{pickupLabel || `${pickupPoint.lat.toFixed(4)}, ${pickupPoint.lng.toFixed(4)}`}</p>
                 </div>
               </Popup>
             </Marker>
@@ -199,23 +228,22 @@ export default function TripLiveMapCard({
             <Marker position={[dropoffPoint.lat, dropoffPoint.lng]} icon={dropoffMarkerIcon}>
               <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
                 <div className="text-xs font-sans p-1">
-                  <p className="font-bold text-[#F43F5E]">Dropoff Terminal</p>
-                  <p className="text-[10px] text-gray-500">Jeddah Islamic Port</p>
+                  <p className="font-bold text-[#F43F5E]">Drop-off</p>
+                  <p className="text-[10px] text-gray-500">{dropoffLabel || `${dropoffPoint.lat.toFixed(4)}, ${dropoffPoint.lng.toFixed(4)}`}</p>
                 </div>
               </Popup>
             </Marker>
 
-            <Marker
-              position={[currentLat, currentLng]}
-              icon={createLiveTruckIcon(heading)}
-            >
-              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
-                <div className="text-xs font-sans p-1">
-                  <p className="font-bold text-[#FF5500]">{simulatedTruck.plateNumber}</p>
-                  <p className="text-[10px] text-gray-500">Speed: {speed} km/h</p>
-                </div>
-              </Popup>
-            </Marker>
+            {simulatedTruck && (
+              <Marker position={[currentLat, currentLng]} icon={createLiveTruckIcon(heading)}>
+                <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                  <div className="text-xs font-sans p-1">
+                    <p className="font-bold text-[#FF5500]">{simulatedTruck.plateNumber}</p>
+                    <p className="text-[10px] text-gray-500">Speed: {speed} km/h</p>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
           </MapContainer>
 
           {/* Bottom Telemetry Bar */}

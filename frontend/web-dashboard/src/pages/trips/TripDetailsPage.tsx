@@ -582,6 +582,8 @@ export default function TripDetailsPage() {
               pickupLng={pickup?.location_lng}
               dropoffLat={dropoff?.location_lat}
               dropoffLng={dropoff?.location_lng}
+              pickupLabel={pickup?.location_name || undefined}
+              dropoffLabel={dropoff?.location_name || undefined}
               showHeader={false}
               showTelemetryBar={false}
               className="rounded-2xl"
