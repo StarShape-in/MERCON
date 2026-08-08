@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { userService } from '@/services/userService';
 import type { User } from '@mercon/shared-types';
+import { cn } from '@/lib/utils';
 
 /** GET /users is open to both Admin and Operator — the same audience as this
  *  page — so trip audit fields (which only store a raw user id, no relation)
@@ -28,11 +29,12 @@ interface UserChipProps {
   users: Map<string, User>;
   /** Small = inline text-only, no avatar (audit rows). Default renders avatar + name. */
   size?: 'sm' | 'default';
+  className?: string;
 }
 
-export default function UserChip({ userId, users, size = 'default' }: UserChipProps) {
+export default function UserChip({ userId, users, size = 'default', className = '' }: UserChipProps) {
   if (!userId) {
-    return <span className="text-[11px] font-semibold text-[#9898A4]">System</span>;
+    return <span className={cn("text-[11px] font-semibold text-[#9898A4]", className)}>System</span>;
   }
 
   const user = users.get(userId);
@@ -42,7 +44,7 @@ export default function UserChip({ userId, users, size = 'default' }: UserChipPr
     return (
       <Tooltip>
         <TooltipTrigger>
-          <span className="text-[11px] font-bold text-[#111] underline decoration-dotted decoration-[#9898A4] underline-offset-2 cursor-default">
+          <span className={cn("text-[11px] font-bold text-[#111] dark:text-slate-200 underline decoration-dotted decoration-[#9898A4] underline-offset-2 cursor-default", className)}>
             {label}
           </span>
         </TooltipTrigger>

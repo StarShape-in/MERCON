@@ -93,6 +93,7 @@ export default function TripDetailsPage() {
   const queryClient = useQueryClient();
   const users = useUserLookup();
 
+  const [docTab, setDocTab] = useState<'documents' | 'invoice'>('documents');
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [nextStatus, setNextStatus] = useState<TripStatus>('Draft');
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -327,8 +328,8 @@ export default function TripDetailsPage() {
         {/* Breadcrumb + action bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-black/[0.08] dark:border-slate-800/80">
           <div className="flex items-center gap-2 text-sm min-w-0">
-            <Link to="/trips" className="text-slate-500 font-semibold hover:text-[#111] dark:hover:text-white transition-colors">Trips</Link>
-            <ChevronRight size={15} className="text-slate-400 shrink-0" />
+            <Link to="/trips" className="text-[#6E6E80] font-semibold hover:text-[#111] dark:hover:text-white transition-colors">Trips</Link>
+            <ChevronRight size={15} className="text-[#9898A4] shrink-0" />
             <span className="text-[#111] dark:text-slate-100 font-bold truncate">Trip Details</span>
           </div>
 
@@ -337,9 +338,9 @@ export default function TripDetailsPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate(`/trips/${trip.id}/edit`)}
-              className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-black/[0.03] dark:hover:bg-slate-800 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
+              className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-[#111] dark:text-slate-200 border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-black/[0.03] dark:hover:bg-slate-800 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
             >
-              <SquarePen className="w-3.5 h-3.5 text-slate-500" />
+              <SquarePen className="w-3.5 h-3.5 text-[#6E6E80]" />
               Edit Trip
             </Button>
             <Button
@@ -452,7 +453,7 @@ export default function TripDetailsPage() {
           <div className="space-y-4 min-w-0">
 
             {/* Trip ID / status / audit info / customer-driver-vehicle-eta */}
-            <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-6 gap-0">
+            <Card className="rounded-xl border border-black/[0.12] bg-white p-6 gap-0">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-11 h-11 rounded-xl bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
@@ -469,16 +470,16 @@ export default function TripDetailsPage() {
                   </div>
                 </div>
 
-                {/* Audit Trail Metadata colorful pills embedded inside header component */}
+                {/* Audit Trail Metadata dark sidebar theme chips embedded inside header component */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 shadow-2xs">
-                    <UserCheck className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                    <span className="text-[11px] font-semibold text-indigo-900/70 dark:text-indigo-300">Created by:</span>
-                    <UserChip userId={trip.created_by} users={users} size="sm" />
-                    <span className="text-[10px] text-indigo-300 dark:text-indigo-700">•</span>
+                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#12121A] text-white border border-slate-800 shadow-2xs">
+                    <UserCheck className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
+                    <span className="text-[11px] font-semibold text-slate-300">Created by:</span>
+                    <UserChip userId={trip.created_by} users={users} size="sm" className="text-white decoration-slate-500" />
+                    <span className="text-[10px] text-slate-600">•</span>
                     <Tooltip>
                       <TooltipTrigger>
-                        <span className="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 cursor-default">
+                        <span className="text-[11px] font-bold text-white cursor-default">
                           {new Date(trip.createdAt).toLocaleDateString()}
                         </span>
                       </TooltipTrigger>
@@ -486,14 +487,14 @@ export default function TripDetailsPage() {
                     </Tooltip>
                   </div>
 
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-50/90 dark:bg-violet-950/40 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
-                    <History className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
-                    <span className="text-[11px] font-semibold text-violet-900/70 dark:text-violet-300">Last updated by:</span>
-                    <UserChip userId={trip.updated_by} users={users} size="sm" />
-                    <span className="text-[10px] text-violet-300 dark:text-violet-700">•</span>
+                  <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#12121A] text-white border border-slate-800 shadow-2xs">
+                    <History className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
+                    <span className="text-[11px] font-semibold text-slate-300">Last updated by:</span>
+                    <UserChip userId={trip.updated_by} users={users} size="sm" className="text-white decoration-slate-500" />
+                    <span className="text-[10px] text-slate-600">•</span>
                     <Tooltip>
                       <TooltipTrigger>
-                        <span className="text-[11px] font-bold text-violet-700 dark:text-violet-300 cursor-default">
+                        <span className="text-[11px] font-bold text-white cursor-default">
                           {new Date(trip.updatedAt).toLocaleDateString()}
                         </span>
                       </TooltipTrigger>
@@ -617,157 +618,189 @@ export default function TripDetailsPage() {
             />
 
 
-            {/* Documents & Billing Section */}
+            {/* Documents & Invoice Tabs Section */}
             <div className="space-y-4">
-              <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between border-b border-black/[0.08] dark:border-slate-800/80 pb-4">
-                  <div>
-                    <CardTitle className="text-base font-bold text-[#111] dark:text-slate-100 flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
-                        <FileStack size={16} />
-                      </div>
-                      Trip Documents
-                      {documents.length > 0 && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-[#E8450F] border border-orange-200">
-                          {documents.length}
-                        </span>
-                      )}
+              <div className="flex items-center justify-between border-b border-black/[0.08] dark:border-slate-800/80 px-1 pb-0">
+                <div className="flex items-center gap-6">
+                  <button
+                    type="button"
+                    onClick={() => setDocTab('documents')}
+                    className={cn(
+                      'flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors cursor-pointer',
+                      docTab === 'documents' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
+                    )}
+                  >
+                    <FileStack size={15} />
+                    Documents
+                    {documents.length > 0 && (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-[#E8450F] border border-orange-200">
+                        {documents.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDocTab('invoice')}
+                    className={cn(
+                      'flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors cursor-pointer',
+                      docTab === 'invoice' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
+                    )}
+                  >
+                    <ReceiptText size={15} />
+                    Invoice
+                    {invoice && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+                        {invoice.ref_id}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {docTab === 'documents' && (
+                  <Btn
+                    label="Upload Document"
+                    variant="primary"
+                    size="sm"
+                    icon={<UploadCloud size={14} />}
+                    onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
+                    className="bg-[#E8450F] hover:bg-[#C7380A] text-white rounded-xl shadow-2xs font-semibold text-xs mb-2 cursor-pointer"
+                  />
+                )}
+              </div>
+
+              {docTab === 'documents' && (
+                <Card className="rounded-xl border border-black/[0.12] bg-white overflow-hidden">
+                  <CardHeader className="pb-3 border-b border-black/[0.06] dark:border-slate-800/80">
+                    <CardTitle className="text-sm font-bold text-[#111] dark:text-slate-100 flex items-center justify-between gap-2">
+                      <span>Attached Files & Manifests</span>
                     </CardTitle>
-                    <CardDescription className="text-xs text-slate-500 mt-1">
-                      Proof of delivery (POD), waybills, and manifest documents for this trip.
+                    <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
+                      Most PODs and delivery receipts are uploaded directly by drivers via the MERCON Driver Mobile App. You can also manually upload documents here.
                     </CardDescription>
-                  </div>
-                  <CardAction>
-                    <Btn
-                      label="Upload Document"
-                      variant="primary"
-                      size="sm"
-                      icon={<UploadCloud size={14} />}
-                      onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                      className="bg-[#E8450F] hover:bg-[#C7380A] text-white rounded-xl shadow-2xs font-semibold text-xs cursor-pointer"
-                    />
-                  </CardAction>
-                </CardHeader>
-                <CardContent className="p-5">
-                  {isLoadingDocs ? (
-                    <div className="space-y-3">
-                      <Skeleton className="h-16 w-full rounded-xl" />
-                      <Skeleton className="h-16 w-full rounded-xl" />
-                    </div>
-                  ) : documents.length === 0 ? (
-                    <div className="text-center py-10 px-4 border-2 border-dashed border-black/[0.08] dark:border-slate-800/80 rounded-2xl bg-black/[0.02] dark:bg-slate-900/20">
-                      <div className="w-12 h-12 rounded-2xl bg-black/[0.05] dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-3">
-                        <FileText size={24} />
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    {isLoadingDocs ? (
+                      <div className="space-y-3">
+                        <Skeleton className="h-16 w-full rounded-xl" />
+                        <Skeleton className="h-16 w-full rounded-xl" />
                       </div>
-                      <p className="text-sm font-bold text-[#111] dark:text-slate-200">No documents attached yet</p>
-                      <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                        Upload POD, rate agreements, or shipping manifests to complete this trip's records.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                        className="h-8.5 px-4 rounded-xl text-xs font-semibold border-black/[0.12] text-slate-700 hover:bg-black/[0.03] gap-1.5 cursor-pointer"
-                      >
-                        <UploadCloud size={14} className="text-[#E8450F]" />
-                        Upload Document Now
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {documents.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-black/[0.18] dark:hover:border-slate-700 transition-all group shadow-2xs"
+                    ) : documents.length === 0 ? (
+                      <div className="text-center py-10 px-4 border-2 border-dashed border-black/[0.08] dark:border-slate-800/80 rounded-2xl bg-black/[0.02] dark:bg-slate-900/20">
+                        <div className="w-12 h-12 rounded-2xl bg-black/[0.05] dark:bg-slate-800 text-[#9898A4] flex items-center justify-center mx-auto mb-3">
+                          <FileText size={24} />
+                        </div>
+                        <p className="text-sm font-bold text-[#111] dark:text-slate-200">No documents uploaded yet</p>
+                        <p className="text-xs text-[#6E6E80] max-w-md mx-auto mt-1 mb-4">
+                          Most PODs and delivery receipts will be uploaded automatically by drivers via the MERCON Mobile App upon arrival.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
+                          className="h-8.5 px-4 rounded-xl text-xs font-semibold border-black/[0.12] text-[#111] hover:bg-black/[0.03] gap-1.5 cursor-pointer"
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
-                              <FileText size={18} />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-[#111] dark:text-slate-100 truncate">
-                                {docTypeLabel(doc.doc_type)}
-                              </p>
-                              <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
-                                <span>{new Date(doc.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          <UploadCloud size={14} className="text-[#E8450F]" />
+                          Upload Document Manually
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {documents.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-black/[0.18] dark:hover:border-slate-700 transition-all group shadow-2xs"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
+                                <FileText size={18} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-[#111] dark:text-slate-100 truncate">
+                                  {docTypeLabel(doc.doc_type)}
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#6E6E80]">
+                                  <span>{new Date(doc.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <StatusBadge status={doc.status} />
-                            <a
-                              href={doc.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-8 h-8 rounded-lg bg-black/[0.03] dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#E8450F] hover:text-white dark:hover:bg-[#E8450F] flex items-center justify-center transition-colors border border-black/[0.12]/60 dark:border-slate-700"
-                              aria-label="View document"
-                              title="Open Document"
-                            >
-                              <ExternalLink size={14} />
-                            </a>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <StatusBadge status={doc.status} />
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-8 h-8 rounded-lg bg-black/[0.03] dark:bg-slate-800 text-[#6E6E80] dark:text-slate-300 hover:bg-[#E8450F] hover:text-white dark:hover:bg-[#E8450F] flex items-center justify-center transition-colors border border-black/[0.08] dark:border-slate-700"
+                                aria-label="View document"
+                                title="Open Document"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Invoice Section */}
-              <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
-                <CardHeader className="pb-3 border-b border-black/[0.08] dark:border-slate-800/80">
-                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                      <ReceiptText size={14} />
-                    </div>
-                    Billing & Invoice
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5">
-                  {invoice ? (
-                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-black/[0.03] dark:bg-slate-900/40 border border-black/[0.08] dark:border-slate-800">
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-slate-500">Invoice Reference</p>
-                        <p className="text-base font-bold font-mono text-[#111] dark:text-slate-100">{invoice.ref_id}</p>
-                        <div className="flex items-center gap-2 pt-1">
-                          <StatusBadge status={invoice.status} />
-                          <span className="text-xs text-slate-400">•</span>
-                          <span className="text-xs font-bold text-[#111] dark:text-slate-100">
-                            SAR {invoice.total_amount.toLocaleString()}
-                          </span>
-                        </div>
+                        ))}
                       </div>
-                      <Btn
-                        label="View Invoice"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/invoices/${invoice.id}`)}
-                        className="rounded-xl border-black/[0.12] text-xs font-semibold"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-black/[0.02] dark:bg-slate-900/20 border border-dashed border-black/[0.12] dark:border-slate-800">
-                      <p className="text-xs font-medium text-slate-500">No invoice generated for this trip yet.</p>
-                      {trip.status === 'Completed' && (
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {docTab === 'invoice' && (
+                <Card className="rounded-xl border border-black/[0.12] bg-white overflow-hidden">
+                  <CardHeader className="pb-3 border-b border-black/[0.06] dark:border-slate-800/80">
+                    <CardTitle className="text-sm font-bold text-[#111] dark:text-slate-100 flex items-center gap-2">
+                      <ReceiptText size={16} className="text-blue-600" />
+                      Trip Invoice Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    {invoice ? (
+                      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-black/[0.03] dark:bg-slate-900/40 border border-black/[0.08] dark:border-slate-800">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-[#6E6E80]">Invoice Reference</p>
+                          <p className="text-base font-bold font-mono text-[#111] dark:text-slate-100">{invoice.ref_id}</p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <StatusBadge status={invoice.status} />
+                            <span className="text-xs text-[#9898A4]">•</span>
+                            <span className="text-xs font-bold text-[#111] dark:text-slate-100">
+                              SAR {invoice.total_amount.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
                         <Btn
-                          label="Generate Invoice"
-                          variant="secondary"
+                          label="View Invoice"
+                          variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/invoices/new?trip_id=${trip.id}`)}
-                          className="rounded-xl text-xs font-semibold"
+                          onClick={() => navigate(`/invoices/${invoice.id}`)}
+                          className="rounded-xl border-black/[0.12] text-xs font-semibold cursor-pointer"
                         />
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-black/[0.02] dark:bg-slate-900/20 border border-dashed border-black/[0.12] dark:border-slate-800">
+                        <div>
+                          <p className="text-sm font-bold text-[#111] dark:text-slate-200">No invoice generated yet</p>
+                          <p className="text-xs font-medium text-[#6E6E80] mt-0.5">Invoices can be created once the trip is completed.</p>
+                        </div>
+                        {trip.status === 'Completed' && (
+                          <Btn
+                            label="Generate Invoice"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => navigate(`/invoices/new?trip_id=${trip.id}`)}
+                            className="rounded-xl text-xs font-semibold cursor-pointer"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
 
           {/* ───────────────────────── Right: sidebar ───────────────────────── */}
           <div className="space-y-4">
-            <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-5 gap-0">
+            <Card className="rounded-xl border border-black/[0.12] bg-white p-5 gap-0">
               <p className="text-sm font-semibold text-[#111]">Trip Progress</p>
               <p className="text-4xl font-bold text-[#E8450F] mt-2">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
               <Progress
@@ -854,7 +887,7 @@ export default function TripDetailsPage() {
               </div>
             </Card>
 
-            <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
+            <Card className="rounded-xl border border-black/[0.12] bg-white">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold text-[#111]">Activity</CardTitle>
