@@ -185,6 +185,13 @@ export default function TripDetailsPage() {
             icon={<ArrowLeft size={13} />} 
             onClick={() => navigate('/trips')} 
           />
+          <Btn 
+            label="Edit Manifest" 
+            variant="secondary" 
+            size="sm" 
+            icon={<Edit2 size={13} />} 
+            onClick={() => navigate(`/trips/${trip.id}/edit`)} 
+          />
           {trip.status === 'InTransit' && (
             <Btn 
               label="Track Live" 

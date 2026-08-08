@@ -256,6 +256,16 @@ export default function VehicleListPage() {
   // Bulk Actions
   const bulkActions = [
     {
+      label: 'Edit Selected Vehicle',
+      icon: <Edit2 size={13} />,
+      variant: 'primary' as const,
+      onClick: (selectedRows: Vehicle[]) => {
+        if (selectedRows.length > 0) {
+          navigate(`/vehicles/${selectedRows[0].id}/edit`);
+        }
+      }
+    },
+    {
       label: 'Mark Available',
       icon: <CheckCircle size={13} />,
       onClick: async (selectedRows: Vehicle[]) => {

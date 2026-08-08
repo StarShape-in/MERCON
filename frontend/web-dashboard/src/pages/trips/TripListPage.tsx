@@ -259,7 +259,7 @@ export default function TripListPage() {
 
           <button
             onClick={() => navigate(`/trips/${row.id}/edit`)}
-            title="Edit Trip Manifest"
+            title="Edit Trip Manifest (Update status, driver, or vehicle)"
             className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
           >
             <Edit2 className="h-3.5 w-3.5" />
@@ -283,6 +283,19 @@ export default function TripListPage() {
   ];
 
   const bulkActions = [
+    {
+      label: 'Edit Selected Manifest',
+      icon: <Edit2 size={13} />,
+      variant: 'primary' as const,
+      onClick: (selectedRows: Trip[]) => {
+        if (selectedRows.length === 1) {
+          navigate(`/trips/${selectedRows[0].id}/edit`);
+        } else if (selectedRows.length > 1) {
+          setStatusDialogTrip(selectedRows[0]);
+          setNewStatus(selectedRows[0].status);
+        }
+      }
+    },
     {
       label: 'Export Selected CSV',
       icon: <Download size={13} />,

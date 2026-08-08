@@ -316,6 +316,16 @@ export default function DriverListPage() {
 
   const bulkActions = [
     {
+      label: 'Edit Selected Driver',
+      icon: <Edit2 size={13} />,
+      variant: 'primary' as const,
+      onClick: (selectedRows: Driver[]) => {
+        if (selectedRows.length > 0) {
+          navigate(`/drivers/${selectedRows[0].id}/edit`);
+        }
+      }
+    },
+    {
       label: 'Mark Available',
       icon: <CheckCircle size={13} />,
       onClick: async (selectedRows: Driver[]) => {
