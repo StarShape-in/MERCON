@@ -138,7 +138,6 @@ export interface DriverAssignment {
   tripId: string;
   refId: string | null;
   status: import('@/lib/trips').TripStatus;
-  cargoType: string;
   customerName: string | null;
   plannedStart: string | null;
   plannedEnd: string | null;

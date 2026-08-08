@@ -6,7 +6,6 @@ export interface Trip {
   id: string;
   ref_id: string;
   status: TripStatus;
-  cargo_type: string;
   planned_start: string | null;
   actual_start: string | null;
   planned_end: string | null;
@@ -21,10 +20,13 @@ export interface Trip {
   billing_amount?: number;
   carrier_name?: string;
   is_post_trip_settled?: boolean;
+  created_by?: string | null;
+  updated_by?: string | null;
   createdAt: string;
+  updatedAt: string;
   customer?: { id: string; name: string; contact_phone: string };
   driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; ai_risk_score?: number } | null;
-  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string } | null;
+  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null } | null;
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
 }
@@ -41,6 +43,7 @@ export interface TripStop {
   actual_departure: string | null;
   delay_reason: DelayReason | null;
   delay_note: string | null;
+  delay_logged_by: string | null;
   delay_logged_at: string | null;
 }
 
@@ -48,7 +51,6 @@ export interface CreateTripPayload {
   customer_id: string;
   driver_id?: string;
   vehicle_id?: string;
-  cargo_type?: string;
   planned_start?: string;
   stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string; location_name?: string }[];
 }
@@ -154,6 +156,12 @@ export const tripService = {
     return res.data.data;
   },
 
+  /** Swap the assigned driver mid-trip. */
+  async replaceDriver(id: string, driverId: string): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/replace-driver`, { driver_id: driverId });
+    return res.data.data;
+  },
+
   async bulkDelete(ids: string[]): Promise<void> {
     await api.post('/trips/bulk-delete', { ids });
   },
@@ -172,7 +180,6 @@ export interface BulkImportTripRow {
   customer_name: string;
   driver_name?: string;
   vehicle_plate?: string;
-  cargo_type?: string;
   planned_start?: string;
 }
 

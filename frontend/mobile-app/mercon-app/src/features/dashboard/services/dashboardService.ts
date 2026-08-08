@@ -76,7 +76,7 @@ export function buildActiveVehicleCards(trips: Trip[]): ActiveVehicleCard[] {
         driverName: `${t.driver!.first_name} ${t.driver!.last_name}`,
         driverInitials: initialsOf(t.driver!.first_name, t.driver!.last_name),
         driverOnline: t.driver!.status === 'OnTrip',
-        originLabel: t.cargo_type,
+        originLabel: t.ref_id ?? `#${t.id.slice(0, 8)}`,
         destinationLabel: t.customer?.name ?? 'Customer',
         truckId: t.vehicle!.ref_id ?? t.vehicle!.plate_number,
         assetType: t.vehicle!.asset_type,

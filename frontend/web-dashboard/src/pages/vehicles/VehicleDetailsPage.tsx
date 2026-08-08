@@ -506,7 +506,7 @@ export default function VehicleDetailsPage() {
                                 <div key={t.id} className="flex items-center justify-between text-[11px] bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
                                   <div>
                                     <div className="font-bold text-slate-800 dark:text-slate-200">{t.customer_name}</div>
-                                    <div className="text-[10px] text-slate-400 font-mono">{t.ref_id || 'TRIP'} • {t.cargo_type}</div>
+                                    <div className="text-[10px] text-slate-400 font-mono">{t.ref_id || 'TRIP'}</div>
                                   </div>
                                   <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
                                     +SAR {t.income.toLocaleString()}

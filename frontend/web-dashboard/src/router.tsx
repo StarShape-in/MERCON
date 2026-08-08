@@ -14,6 +14,7 @@ const NotificationsPage       = lazy(() => import('@/pages/notifications/Notific
 
 // Trips
 const TripListPage            = lazy(() => import('@/pages/trips/TripListPage'));
+const TripDetailsPage         = lazy(() => import('@/pages/trips/TripDetailsPage'));
 const CreateTripPage          = lazy(() => import('@/pages/trips/CreateTripPage'));
 const EditTripPage            = lazy(() => import('@/pages/trips/EditTripPage'));
 const TripTrackingPage        = lazy(() => import('@/pages/trips/TripTrackingPage'));
@@ -98,6 +99,7 @@ export default function AppRouter() {
           {/* Trips */}
           <Route path="/trips"                    element={<ProtectedRoute><TripListPage /></ProtectedRoute>} />
           <Route path="/trips/new"                element={<ProtectedRoute><CreateTripPage /></ProtectedRoute>} />
+          <Route path="/trips/:id"                element={<ProtectedRoute><TripDetailsPage /></ProtectedRoute>} />
           <Route path="/trips/:id/edit"           element={<ProtectedRoute><EditTripPage /></ProtectedRoute>} />
           <Route path="/trips/:id/track"          element={<ProtectedRoute><TripTrackingPage /></ProtectedRoute>} />
           <Route path="/trips/:id/completion"     element={<ProtectedRoute><TripCompletionPage /></ProtectedRoute>} />

@@ -40,7 +40,6 @@ const TripCompletedScreen = () => {
     ? [
         { label: 'Trip ID', value: `#${trip.ref_id ?? trip.id.slice(0, 8)}` },
         { label: 'Customer', value: trip.customer?.name ?? '—' },
-        { label: 'Cargo', value: trip.cargo_type },
         { label: 'Distance', value: trip.planned_distance ? `${trip.planned_distance} km` : '—' },
         { label: 'Duration', value: formatDuration(trip.actual_start, trip.actual_end) },
         { label: 'Completed', value: formatDate(trip.actual_end) },

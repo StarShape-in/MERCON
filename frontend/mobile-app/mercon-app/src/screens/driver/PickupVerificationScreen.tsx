@@ -84,11 +84,6 @@ const PickupVerificationScreen = () => {
             <Text style={styles.summaryLabel}>Customer</Text>
             <Text style={styles.summaryValue}>{trip?.customer?.name ?? '—'}</Text>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Cargo</Text>
-            <Text style={styles.summaryValue}>{trip?.cargo_type ?? '—'}</Text>
-          </View>
         </View>
 
         {/* Instructions */}

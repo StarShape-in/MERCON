@@ -20,7 +20,6 @@ import Btn from '@/components/ui/Btn';
 import TripCardSwiper from '@/components/trips/TripCardSwiper';
 import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import DataTable from '@/components/ui/DataTable';
@@ -347,12 +346,6 @@ export default function DashboardPage() {
                 header: 'Customer',
                 accessor: (t: Trip) => (
                   <span className="text-xs font-semibold text-[#111] dark:text-slate-200">{t.customer?.name || '—'}</span>
-                ),
-              },
-              {
-                header: 'Cargo Type',
-                accessor: (t: Trip) => (
-                  <span className="text-xs font-medium text-[#444] dark:text-slate-300">{t.cargo_type}</span>
                 ),
               },
               {

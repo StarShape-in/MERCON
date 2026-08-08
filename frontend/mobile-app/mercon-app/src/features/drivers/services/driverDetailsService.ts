@@ -147,7 +147,6 @@ export function toDriverAssignment(
     tripId: trip.id,
     refId: trip.ref_id,
     status: trip.status,
-    cargoType: trip.cargo_type,
     customerName: trip.customer?.name ?? null,
     plannedStart: trip.planned_start,
     plannedEnd: trip.planned_end,

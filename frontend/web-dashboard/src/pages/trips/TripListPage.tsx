@@ -92,7 +92,6 @@ const IMPORT_FIELD_ALIASES: Record<keyof BulkImportTripRow, string[]> = {
   customer_name: ['customer_name', 'customer', 'client', 'client_name'],
   driver_name: ['driver_name', 'driver'],
   vehicle_plate: ['vehicle_plate', 'vehicle', 'plate_number', 'plate'],
-  cargo_type: ['cargo_type', 'cargo'],
   planned_start: ['planned_start', 'planned_start_date', 'start_date', 'planned_date'],
 };
 
@@ -104,8 +103,8 @@ function pickImportField(row: Record<string, string>, field: keyof BulkImportTri
 }
 
 function downloadImportTemplate() {
-  const headers = ['Customer Name', 'Driver Name', 'Vehicle Plate', 'Cargo Type', 'Planned Start'];
-  const example = ['Acme Trading Co.', 'John Doe', 'ABC-1234', 'General Goods', '2026-08-15'];
+  const headers = ['Customer Name', 'Driver Name', 'Vehicle Plate', 'Planned Start'];
+  const example = ['Acme Trading Co.', 'John Doe', 'ABC-1234', '2026-08-15'];
   const csv = '﻿' + [headers.join(','), example.join(',')].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -296,7 +295,6 @@ export default function TripListPage() {
           customer_name: pickImportField(row, 'customer_name'),
           driver_name: pickImportField(row, 'driver_name') || undefined,
           vehicle_plate: pickImportField(row, 'vehicle_plate') || undefined,
-          cargo_type: pickImportField(row, 'cargo_type') || undefined,
           planned_start: pickImportField(row, 'planned_start') || undefined,
         }))
         .filter(row => row.customer_name);
@@ -346,9 +344,6 @@ export default function TripListPage() {
               {row.ref_id || 'Draft'}
             </span>
           </div>
-          <span className="text-[11px] text-muted-foreground font-medium">
-            {row.cargo_type || 'Standard Cargo'}
-          </span>
         </div>
       ),
     },
@@ -1143,7 +1138,6 @@ export default function TripListPage() {
                       Columns: <span className="font-mono font-semibold">Customer Name</span> (required),{' '}
                       <span className="font-mono font-semibold">Driver Name</span>,{' '}
                       <span className="font-mono font-semibold">Vehicle Plate</span>,{' '}
-                      <span className="font-mono font-semibold">Cargo Type</span>,{' '}
                       <span className="font-mono font-semibold">Planned Start</span>
                     </div>
                   </div>

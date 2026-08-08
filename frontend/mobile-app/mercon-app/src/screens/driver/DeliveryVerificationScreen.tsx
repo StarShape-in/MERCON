@@ -160,10 +160,6 @@ const DeliveryVerificationScreen = () => {
               <Text style={styles.timestampValue}>{trip?.customer?.name ?? '—'}</Text>
             </View>
             <View style={styles.timestampRow}>
-              <Text style={styles.timestampLabel}>Cargo</Text>
-              <Text style={styles.timestampValue}>{trip?.cargo_type ?? '—'}</Text>
-            </View>
-            <View style={styles.timestampRow}>
               <Text style={styles.timestampLabel}>POD Photos</Text>
               <Text style={styles.timestampValue}>{photos.length}</Text>
             </View>

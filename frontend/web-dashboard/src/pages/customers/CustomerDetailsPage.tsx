@@ -377,14 +377,6 @@ export default function CustomerDetailsPage() {
                   ),
                 },
                 {
-                  header: 'Cargo Type',
-                  accessor: (trip: any) => (
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {trip.cargo_type || 'General Goods'}
-                    </span>
-                  ),
-                },
-                {
                   header: 'Status',
                   accessor: (trip: any) => <StatusBadge status={trip.status} />,
                 },
