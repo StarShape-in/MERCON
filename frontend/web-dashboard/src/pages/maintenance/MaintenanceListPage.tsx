@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import KpiCard from '@/components/ui/KpiCard';
+import { MaintenanceWrench, CheckBadge, MoneyBills, CalendarAlert } from '@/components/ui/kpi-icons';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -248,138 +250,109 @@ export default function MaintenanceListPage() {
 
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Maintenance">
-      <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
 
-        {/* ── 1. Top Header Bar & Actions ─────────────────────────────────── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+        {/* ── Page Content Header Row ─────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <div className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 select-none">
-              <Building2 className="w-3.5 h-3.5 text-indigo-500" />
-              <span>MERCON Logistics</span>
-              <ChevronsUpDown className="w-3 h-3 text-slate-400" />
-            </div>
-            <div>
+            <Wrench className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+
+            <div className="flex flex-col">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Vehicle Maintenance & Renewals
+                  Vehicle Maintenance
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Log service history, renewal expenses, work done details, and workshop maintenance schedules.
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5">
             <Button
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <Download className="h-3.5 w-3.5 text-slate-600" />
               Export CSV
             </Button>
 
             <Button
               size="sm"
               onClick={handleOpenCreateModal}
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white shadow-sm shadow-[#E8450F]/20"
+              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="h-4 w-4" />
               Schedule Maintenance
             </Button>
 
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => refetch()}
-              className="h-9 w-9 p-0 text-slate-500 hover:text-slate-700"
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
               title="Refresh Data"
             >
-              <RotateCw className="w-4 h-4" />
+              <RotateCw className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           
-          {/* Card 1: Total Expense Cost */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 relative overflow-hidden">
-            <div className="flex items-center justify-between pb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Total Maintenance Expense
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center">
-                <DollarSign size={16} />
-              </div>
-            </div>
-            <div className="text-2xl font-mono font-black text-slate-900 dark:text-slate-100">
-              SAR {kpis.total_cost.toLocaleString()}
-            </div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-1 flex items-center gap-1">
-              <span className="text-rose-500 font-bold flex items-center gap-0.5">
-                <ArrowUp className="w-3 h-3 text-rose-500" />
-                Operational Cost
-              </span>
-              <span>• {records.length} records</span>
-            </div>
-          </Card>
+          <KpiCard
+            title="TOTAL MAINTENANCE EXPENSE"
+            value={`SAR ${kpis.total_cost.toLocaleString()}`}
+            variant="brand"
+            description={`${records.length} service records`}
+            icon={MoneyBills}
+            progressSegments={[
+              { label: `Active (${kpis.active_count})`, value: kpis.active_count > 0 ? 50 : 0, color: 'bg-[#E8450F]' },
+              { label: `Completed (${kpis.completed_count})`, value: kpis.completed_count > 0 ? 50 : 100, color: 'bg-emerald-500' },
+            ]}
+          />
 
-          {/* Card 2: Active Maintenance */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 relative overflow-hidden">
-            <div className="flex items-center justify-between pb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                In-Progress Service
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
-                <Wrench size={16} />
-              </div>
-            </div>
-            <div className="text-2xl font-mono font-black text-amber-600 dark:text-amber-400">
-              {kpis.active_count} Vehicles
-            </div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-1">
-              Currently in workshop repair
-            </div>
-          </Card>
+          <KpiCard
+            title="IN-PROGRESS SERVICE"
+            value={`${kpis.active_count} Vehicles`}
+            variant="amber"
+            trend={kpis.active_count > 0 ? 'down' : 'neutral'}
+            trendValue={kpis.active_count > 0 ? 'In Shop' : 'All Clear'}
+            description="Currently in workshop repair"
+            icon={MaintenanceWrench}
+            completionGauge={{
+              percentage: records.length > 0 ? Math.round((kpis.active_count / records.length) * 100) : 0,
+              label: `${kpis.active_count} In Repair`,
+              subtext: 'Workshop Occupancy'
+            }}
+          />
 
-          {/* Card 3: Renewals & Scheduled */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 relative overflow-hidden">
-            <div className="flex items-center justify-between pb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Renewals & Scheduled
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center">
-                <Calendar size={16} />
-              </div>
-            </div>
-            <div className="text-2xl font-mono font-black text-purple-600 dark:text-purple-400">
-              {kpis.scheduled_count} Scheduled
-            </div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-1">
-              Renewal cost: SAR {kpis.renewal_cost.toLocaleString()}
-            </div>
-          </Card>
+          <KpiCard
+            title="RENEWALS & SCHEDULED"
+            value={`${kpis.scheduled_count} Scheduled`}
+            variant="purple"
+            trend="neutral"
+            trendValue="Upcoming"
+            description={`Renewal SAR ${kpis.renewal_cost.toLocaleString()}`}
+            icon={CalendarAlert}
+            chartData={[2, 3, 5, 4, kpis.scheduled_count || 6]}
+          />
 
-          {/* Card 4: Completed Services */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 relative overflow-hidden">
-            <div className="flex items-center justify-between pb-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Completed Repairs
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 size={16} />
-              </div>
-            </div>
-            <div className="text-2xl font-mono font-black text-emerald-600 dark:text-emerald-400">
-              {kpis.completed_count} Records
-            </div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-1">
-              Fully serviced & verified
-            </div>
-          </Card>
+          <KpiCard
+            title="COMPLETED REPAIRS"
+            value={`${kpis.completed_count} Records`}
+            variant="emerald"
+            trend="up"
+            trendValue="Verified"
+            description="Fully serviced & verified"
+            icon={CheckBadge}
+            completionGauge={{
+              percentage: records.length > 0 ? Math.round((kpis.completed_count / records.length) * 100) : 100,
+              label: `${kpis.completed_count} Resolved`,
+              subtext: 'Serviced Clear'
+            }}
+          />
 
         </div>
 

@@ -258,7 +258,7 @@ export default function CustomerListPage() {
       active="Customers" 
       title="Customers" 
     >
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
@@ -350,13 +350,13 @@ export default function CustomerListPage() {
             trendValue="Credit Portfolio"
             description="Credit facility summary"
             icon={MoneyBills}
+            completionGauge={{
+              percentage: 65,
+              label: '65% Utilized',
+              subtext: `Portfolio Limit SAR ${(totalCreditLimit / 1000).toFixed(0)}K`
+            }}
             onClick={() => setShowCreditModal(true)}
-          >
-            <CreditExposureKpi 
-              usedAmount={Math.round(totalCreditLimit * 0.65)} 
-              limitAmount={totalCreditLimit || 500000} 
-            />
-          </KpiCard>
+          />
  
           {/* Card 4: Contract Renewals Due — Urgency Progress Bar */}
           <KpiCard

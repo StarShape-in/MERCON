@@ -387,7 +387,7 @@ export default function DriverListPage() {
       active="Drivers" 
       title="Drivers" 
     >
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
@@ -441,22 +441,21 @@ export default function DriverListPage() {
             title="TOTAL REGISTERED DRIVERS"
             value={totalCount}
             variant="brand"
-            trend="up"
-            trendValue="+5 Active"
             description="Total driver profiles"
             icon={DriverBadge}
+            semiCircleGauge={{
+              segments: [
+                { label: "Available", count: availableCount, color: "#16A34A" },
+                { label: "On Trip", count: onTripCount, color: "#2563EB" },
+                { label: "Off Duty", count: Math.max(0, totalCount - availableCount - onTripCount), color: "#D97706" },
+              ]
+            }}
             onClick={(e) => {
               setSelectedStatus('All');
               setCurrentPage(1);
               openKpiModal(e, 'total');
             }}
-          >
-            <DriverRosterKpi 
-              count={totalCount} 
-              onlineCount={availableCount} 
-              safetyScore={4.9} 
-            />
-          </KpiCard>
+          />
 
           <KpiCard
             title="AVAILABLE NOW"

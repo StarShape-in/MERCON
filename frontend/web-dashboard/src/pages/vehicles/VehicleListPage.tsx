@@ -343,10 +343,10 @@ export default function VehicleListPage() {
 
   return (
     <DashboardLayout active="Vehicles" title="Vehicles">
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* ── Page Content Header ─────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
             <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
 
@@ -356,9 +356,6 @@ export default function VehicleListPage() {
                   Vehicles
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Asset Control — trucks, trailers, maintenance status, and Istimara permits
-              </p>
             </div>
           </div>
 
