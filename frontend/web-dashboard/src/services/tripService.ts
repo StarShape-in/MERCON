@@ -86,6 +86,7 @@ export interface LogStopDelayPayload {
 export interface TripFilters {
   status?: TripStatus;
   driver_id?: string;
+  vehicle_id?: string;
   customer_id?: string;
   search?: string;
   date_filter?: string;

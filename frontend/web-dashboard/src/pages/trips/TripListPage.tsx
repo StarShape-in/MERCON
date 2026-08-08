@@ -24,6 +24,8 @@ import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/k
 
 import { downloadCSV, downloadPDF } from '@/utils/exportUtils';
 import { tripService, Trip, TripStatus } from '@/services/tripService';
+import { driverService } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -53,6 +55,23 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
+type ExportStatusGroup = 'All' | 'Completed' | 'InTransit' | 'NotCompleted';
+
+const EXPORT_STATUS_GROUPS: { label: string; value: ExportStatusGroup }[] = [
+  { label: 'All Trips', value: 'All' },
+  { label: 'Completed / Delivered Only', value: 'Completed' },
+  { label: 'In Transit Right Now', value: 'InTransit' },
+  { label: 'Not Completed', value: 'NotCompleted' },
+];
+
+const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) => {
+  if (group === 'All') return true;
+  if (group === 'Completed') return status === 'Completed' || status === 'AtDelivery' || status === 'Invoiced';
+  if (group === 'InTransit') return status === 'InTransit';
+  if (group === 'NotCompleted') return status !== 'Completed' && status !== 'AtDelivery' && status !== 'Invoiced';
+  return true;
+};
+
 const STATUS_TABS: { label: string; value: TripStatus | 'All' }[] = [
   { label: 'All Operations', value: 'All' },
   { label: 'Drafts', value: 'Draft' },
@@ -81,6 +100,28 @@ export default function TripListPage() {
   const [newStatus, setNewStatus] = useState<TripStatus>('Dispatched');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
+  // Export Dialog state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportDriverId, setExportDriverId] = useState('All');
+  const [exportVehicleId, setExportVehicleId] = useState('All');
+  const [exportStatusGroup, setExportStatusGroup] = useState<ExportStatusGroup>('All');
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const { data: exportDriversRes } = useQuery({
+    queryKey: ['drivers-for-export'],
+    queryFn: () => driverService.getAll({ per_page: 500 }),
+    enabled: exportDialogOpen,
+  });
+  const { data: exportVehiclesRes } = useQuery({
+    queryKey: ['vehicles-for-export'],
+    queryFn: () => vehicleService.getAll({ per_page: 500 }),
+    enabled: exportDialogOpen,
+  });
+  const exportDrivers = exportDriversRes?.data || [];
+  const exportVehicles = exportVehiclesRes?.data || [];
+
   // Fetch trips using React Query
   const { data: tripsRes, isLoading, isError, error } = useQuery({
     queryKey: ['trips', selectedStatus, dateFilter, debouncedSearch, currentPage, pageSize],
@@ -93,28 +134,39 @@ export default function TripListPage() {
     }),
   });
 
+  // Fetch overall trips for KPI calculation (unfiltered by status)
+  const { data: allTripsRes } = useQuery({
+    queryKey: ['trips-kpis', dateFilter, debouncedSearch],
+    queryFn: () => tripService.getAll({
+      date_filter: dateFilter === 'All' ? undefined : dateFilter,
+      search: debouncedSearch || undefined,
+      per_page: 500,
+    }),
+  });
+
   const rawTrips = tripsRes?.data || [];
   const totalPages = tripsRes?.meta?.total_pages || 1;
   const trips = rawTrips;
 
   // Calculate totals for KPIs from real backend response data
-  const totalCount = tripsRes?.meta?.total || rawTrips.length;
+  const kpiTrips = allTripsRes?.data || rawTrips;
+  const totalCount = allTripsRes?.meta?.total || kpiTrips.length;
 
-  const activeInTransit = rawTrips.filter(t => t.status === 'InTransit' || t.status === 'AtPickup' || t.status === 'Dispatched');
+  const activeInTransit = kpiTrips.filter(t => t.status === 'InTransit' || t.status === 'AtPickup' || t.status === 'Dispatched');
   const inTransitCount = activeInTransit.length;
   const stoppedCount = activeInTransit.filter(t => t.status === 'AtPickup').length;
   const onScheduleCount = activeInTransit.length - stoppedCount;
   const delayedCount = 0;
 
-  const completedTrips = rawTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced' || t.status === 'AtDelivery');
+  const completedTrips = kpiTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced' || t.status === 'AtDelivery');
   const completedCount = completedTrips.length;
   const completedPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const draftTrips = rawTrips.filter(t => t.status === 'Draft');
+  const draftTrips = kpiTrips.filter(t => t.status === 'Draft');
   const draftCount = draftTrips.length;
-  const stageDraftCount = rawTrips.filter(t => t.status === 'Draft' && !t.driver).length;
-  const stageAssignedCount = rawTrips.filter(t => t.driver && (t.status === 'Draft' || t.status === 'Dispatched')).length;
-  const stageReadyCount = rawTrips.filter(t => t.status === 'Dispatched' || t.status === 'AtPickup').length;
+  const stageDraftCount = kpiTrips.filter(t => t.status === 'Draft' && !t.driver).length;
+  const stageAssignedCount = kpiTrips.filter(t => t.driver && (t.status === 'Draft' || t.status === 'Dispatched')).length;
+  const stageReadyCount = kpiTrips.filter(t => t.status === 'Dispatched' || t.status === 'AtPickup').length;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -133,6 +185,40 @@ export default function TripListPage() {
       alert('Failed to update trip status');
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    try {
+      setIsExporting(true);
+      const res = await tripService.getAll({
+        driver_id: exportDriverId === 'All' ? undefined : exportDriverId,
+        vehicle_id: exportVehicleId === 'All' ? undefined : exportVehicleId,
+        start_date: exportStartDate || undefined,
+        end_date: exportEndDate || undefined,
+        per_page: 2000,
+      });
+      const matched = (res.data || []).filter(t => matchesExportStatusGroup(t.status, exportStatusGroup));
+
+      if (!matched.length) {
+        alert('No trips match the selected export filters.');
+        return;
+      }
+
+      const groupLabel = EXPORT_STATUS_GROUPS.find(g => g.value === exportStatusGroup)?.label.replace(/[\s/]+/g, '_') || 'Trips';
+      const datePart = new Date().toISOString().slice(0, 10);
+      const baseName = `trips_export_${groupLabel}_${datePart}`;
+
+      if (format === 'csv') {
+        downloadCSV(matched, `${baseName}.csv`);
+      } else {
+        downloadPDF(matched, `Trips Export — ${EXPORT_STATUS_GROUPS.find(g => g.value === exportStatusGroup)?.label}`);
+      }
+      setExportDialogOpen(false);
+    } catch (e) {
+      alert('Failed to generate export.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -354,20 +440,10 @@ export default function TripListPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => downloadCSV(trips, 'all_trips_export.csv')}
+              onClick={() => setExportDialogOpen(true)}
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export CSV
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => downloadPDF(trips, 'Trips Export')}
-            >
-              <FileText className="h-3.5 w-3.5 text-slate-600" />
-              Export PDF
+              Export
             </Button>
 
             <Button
@@ -376,7 +452,7 @@ export default function TripListPage() {
               onClick={() => navigate('/trips/new')}
             >
               <Plus className="h-4 w-4" />
-              New Trip Draft
+              New Trip
             </Button>
 
             <Button
@@ -402,6 +478,11 @@ export default function TripListPage() {
             description="Active logged site operations"
             icon={TruckMotion}
             chartData={[10, 14, 18, 15, 22, 28, totalCount || 35]}
+            isActive={selectedStatus === 'All'}
+            onClick={() => {
+              setSelectedStatus('All');
+              setCurrentPage(1);
+            }}
           />
           <KpiCard
             title="IN TRANSIT"
@@ -411,12 +492,25 @@ export default function TripListPage() {
             trendValue="En-Route"
             description="Live on-road active trips"
             icon={RouteLine}
+            isActive={selectedStatus === 'InTransit' || selectedStatus === 'AtPickup'}
             routeHealthBreakdown={{
               onSchedule: onScheduleCount,
               delayed: delayedCount,
               stopped: stoppedCount,
               total: inTransitCount,
             } as any}
+            onClick={() => {
+              setSelectedStatus(selectedStatus === 'InTransit' ? 'All' : 'InTransit');
+              setCurrentPage(1);
+            }}
+            onHealthClick={(healthType) => {
+              if (healthType === 'stopped') {
+                setSelectedStatus('AtPickup');
+              } else {
+                setSelectedStatus('InTransit');
+              }
+              setCurrentPage(1);
+            }}
           />
           <KpiCard
             title="DELIVERED & COMPLETED"
@@ -426,10 +520,15 @@ export default function TripListPage() {
             trendValue={`${completedPercentage}% On-Time`}
             description="POD verified & delivered"
             icon={CheckBadge}
+            isActive={selectedStatus === 'Completed' || selectedStatus === 'AtDelivery'}
             completionGauge={{
               percentage: completedPercentage || 100,
               label: `${completedPercentage}% POD Verified`,
               subtext: `${completedCount} Delivered Receipts`
+            }}
+            onClick={() => {
+              setSelectedStatus(selectedStatus === 'Completed' ? 'All' : 'Completed');
+              setCurrentPage(1);
             }}
           />
           <KpiCard
@@ -440,11 +539,26 @@ export default function TripListPage() {
             trendValue="Pending Stage"
             description="Stage workflow queue"
             icon={ClockIcon}
+            isActive={selectedStatus === 'Draft' || selectedStatus === 'Dispatched'}
             pipelineStages={[
               { name: "Draft", count: stageDraftCount, color: "bg-amber-500" },
               { name: "Assigned", count: stageAssignedCount, color: "bg-blue-500" },
               { name: "Ready", count: stageReadyCount, color: "bg-emerald-500" },
             ]}
+            onClick={() => {
+              setSelectedStatus(selectedStatus === 'Draft' ? 'All' : 'Draft');
+              setCurrentPage(1);
+            }}
+            onStageClick={(stageName) => {
+              if (stageName === 'Assigned') {
+                setSelectedStatus('Dispatched');
+              } else if (stageName === 'Ready') {
+                setSelectedStatus('AtPickup');
+              } else {
+                setSelectedStatus('Draft');
+              }
+              setCurrentPage(1);
+            }}
           />
         </div>
         {/* Filter & Control Bar */}
@@ -674,6 +788,127 @@ export default function TripListPage() {
                 disabled={isUpdatingStatus}
               >
                 {isUpdatingStatus ? 'Saving...' : 'Update Status'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Custom Export Dialog */}
+        <Dialog open={exportDialogOpen} onOpenChange={(open) => !open && setExportDialogOpen(false)}>
+          <DialogContent className="sm:max-w-[460px]">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <Download className="h-4 w-4 text-[#E8450F]" />
+                Export Trips
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Filter the trips you want, then export as CSV or PDF.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-2 space-y-3.5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Status</label>
+                <Select value={exportStatusGroup} onValueChange={(val) => val && setExportStatusGroup(val as ExportStatusGroup)}>
+                  <SelectTrigger className="w-full h-9 text-xs font-semibold border-slate-200 rounded-lg">
+                    <SelectValue placeholder="All Trips" />
+                  </SelectTrigger>
+                  <SelectContent className="w-full p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                    {EXPORT_STATUS_GROUPS.map(g => (
+                      <SelectItem key={g.value} value={g.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        {g.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Driver</label>
+                  <Select value={exportDriverId} onValueChange={(val) => val && setExportDriverId(val)}>
+                    <SelectTrigger className="w-full h-9 text-xs font-semibold border-slate-200 rounded-lg">
+                      <SelectValue placeholder="All Drivers" />
+                    </SelectTrigger>
+                    <SelectContent className="w-full p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl max-h-64">
+                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Drivers</SelectItem>
+                      {exportDrivers.map(d => (
+                        <SelectItem key={d.id} value={d.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          {d.first_name} {d.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle</label>
+                  <Select value={exportVehicleId} onValueChange={(val) => val && setExportVehicleId(val)}>
+                    <SelectTrigger className="w-full h-9 text-xs font-semibold border-slate-200 rounded-lg">
+                      <SelectValue placeholder="All Vehicles" />
+                    </SelectTrigger>
+                    <SelectContent className="w-full p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl max-h-64">
+                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Vehicles</SelectItem>
+                      {exportVehicles.map(v => (
+                        <SelectItem key={v.id} value={v.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          {v.plate_number}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">From Date</label>
+                  <Input
+                    type="date"
+                    value={exportStartDate}
+                    onChange={(e) => setExportStartDate(e.target.value)}
+                    className="h-9 text-xs border-slate-200 rounded-lg"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">To Date</label>
+                  <Input
+                    type="date"
+                    value={exportEndDate}
+                    onChange={(e) => setExportEndDate(e.target.value)}
+                    className="h-9 text-xs border-slate-200 rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs w-full sm:w-auto"
+                onClick={() => setExportDialogOpen(false)}
+                disabled={isExporting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs font-semibold gap-1.5 w-full sm:w-auto"
+                onClick={() => handleExport('pdf')}
+                disabled={isExporting}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                {isExporting ? 'Exporting...' : 'Export PDF'}
+              </Button>
+              <Button
+                size="sm"
+                className="text-xs font-bold bg-brand hover:bg-brand/90 text-white gap-1.5 w-full sm:w-auto"
+                onClick={() => handleExport('csv')}
+                disabled={isExporting}
+              >
+                <Download className="h-3.5 w-3.5" />
+                {isExporting ? 'Exporting...' : 'Export CSV'}
               </Button>
             </DialogFooter>
           </DialogContent>

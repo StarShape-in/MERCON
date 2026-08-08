@@ -52,6 +52,9 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 't
   routeHealthBreakdown?: RouteHealthBreakdown
   completionGauge?: CompletionGauge
   pipelineStages?: PipelineStage[]
+  isActive?: boolean
+  onStageClick?: (stageName: string) => void
+  onHealthClick?: (healthType: string) => void
 
   // Backward compatibility props
   delta?: string | number | null
@@ -151,6 +154,9 @@ export function KpiCard({
   routeHealthBreakdown,
   completionGauge,
   pipelineStages,
+  isActive,
+  onStageClick,
+  onHealthClick,
   className,
   delta,
   up,
@@ -187,6 +193,16 @@ export function KpiCard({
 
   const selectedStyle = variantStyles[activeVariant] || variantStyles.brand
 
+  const activeRingStyles: Record<KpiCardVariant, string> = {
+    brand: 'ring-2 ring-[#E8450F] border-[#E8450F] bg-orange-50/20 dark:bg-orange-950/10 shadow-xs',
+    blue: 'ring-2 ring-blue-500 border-blue-500 bg-blue-50/20 dark:bg-blue-950/10 shadow-xs',
+    emerald: 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/10 shadow-xs',
+    amber: 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/20 dark:bg-amber-950/10 shadow-xs',
+    purple: 'ring-2 ring-purple-500 border-purple-500 bg-purple-50/20 dark:bg-purple-950/10 shadow-xs',
+    rose: 'ring-2 ring-rose-500 border-rose-500 bg-rose-50/20 dark:bg-rose-950/10 shadow-xs',
+    slate: 'ring-2 ring-slate-400 border-slate-400 bg-slate-50/20 dark:bg-slate-900/20 shadow-xs',
+  }
+
   const rawData = (chartData && chartData.length > 0) ? chartData : defaultChartData
   const normalizedChartData = React.useMemo(() => {
     return rawData.map((item, i) => {
@@ -213,8 +229,9 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        'group relative rounded-none border-border/70 shadow-none p-5 gap-0 bg-white dark:bg-card',
-        props.onClick && 'cursor-pointer',
+        'group relative rounded-none border-border/70 shadow-none p-5 gap-0 bg-white dark:bg-card transition-all',
+        props.onClick && 'cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-2xs',
+        isActive && activeRingStyles[activeVariant],
         className
       )}
       {...props}
@@ -291,18 +308,51 @@ export function KpiCard({
               </div>
               {/* Legend Badges */}
               <div className="flex items-center justify-between text-[10px] font-mono font-medium text-muted-foreground">
-                <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-bold">
+                <span 
+                  onClick={(e) => {
+                    if (onHealthClick) {
+                      e.stopPropagation();
+                      onHealthClick('onSchedule');
+                    }
+                  }}
+                  className={cn(
+                    "flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-bold transition-opacity",
+                    onHealthClick && "cursor-pointer hover:opacity-80 hover:underline"
+                  )}
+                >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                   {routeHealthBreakdown.onSchedule} On-Time
                 </span>
                 {routeHealthBreakdown.delayed > 0 && (
-                  <span className="flex items-center gap-1 text-amber-700 dark:text-amber-400 font-bold">
+                  <span 
+                    onClick={(e) => {
+                      if (onHealthClick) {
+                        e.stopPropagation();
+                        onHealthClick('delayed');
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-1 text-amber-700 dark:text-amber-400 font-bold transition-opacity",
+                      onHealthClick && "cursor-pointer hover:opacity-80 hover:underline"
+                    )}
+                  >
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                     {routeHealthBreakdown.delayed} Delayed
                   </span>
                 )}
                 {routeHealthBreakdown.stopped > 0 && (
-                  <span className="flex items-center gap-1 text-rose-700 dark:text-rose-400 font-bold">
+                  <span 
+                    onClick={(e) => {
+                      if (onHealthClick) {
+                        e.stopPropagation();
+                        onHealthClick('stopped');
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-1 text-rose-700 dark:text-rose-400 font-bold transition-opacity",
+                      onHealthClick && "cursor-pointer hover:opacity-80 hover:underline"
+                    )}
+                  >
                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                     {routeHealthBreakdown.stopped} Stopped
                   </span>
@@ -370,7 +420,19 @@ export function KpiCard({
             <div className="px-5 pb-5 pt-0.5 flex flex-col gap-1.5">
               <div className="grid grid-cols-3 gap-1.5">
                 {pipelineStages.map((stage, idx) => (
-                  <div key={idx} className="flex flex-col p-1 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800">
+                  <div 
+                    key={idx} 
+                    onClick={(e) => {
+                      if (onStageClick) {
+                        e.stopPropagation();
+                        onStageClick(stage.name);
+                      }
+                    }}
+                    className={cn(
+                      "flex flex-col p-1 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 transition-all",
+                      onStageClick && "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300"
+                    )}
+                  >
                     <div className="flex items-center gap-1">
                       <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", stage.color)} />
                       <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight truncate">{stage.name}</span>
