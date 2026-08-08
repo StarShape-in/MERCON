@@ -35,6 +35,10 @@ import { docTypeLabel } from '@/lib/documents';
  *  ordinary variance and showing it would bury the delays that matter. */
 const DELAY_THRESHOLD_MINUTES = 30;
 
+/** Trip lifecycle stages in order, for the header progress bar. Cancelled isn't
+ *  a stage on this line — it's a separate dead-end handled on its own. */
+const STAGE_ORDER: TripStatus[] = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Completed', 'Invoiced'];
+
 /** Minutes a stop was reached late, or null when it isn't late / can't be judged. */
 function arrivalDelayMinutes(stop: TripStop): number | null {
   if (!stop.planned_arrival || !stop.actual_arrival) return null;
@@ -213,6 +217,13 @@ export default function TripDetailsPage() {
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff');
   const invoice = trip.invoices?.[0];
 
+  // Overall trip progress, for the header bar — Cancelled is its own dead-end state, not a stage.
+  const stageIndex = STAGE_ORDER.indexOf(trip.status);
+  const stageProgress = stageIndex >= 0 ? Math.round((stageIndex / (STAGE_ORDER.length - 1)) * 100) : 0;
+  const pickupDone = !!pickup?.actual_arrival;
+  const dropoffDone = !!dropoff?.actual_arrival;
+  const nextStopId = (trip.stops || []).find((s) => !s.actual_arrival)?.id;
+
   return (
     <DashboardLayout
       active="Trips"
@@ -276,25 +287,48 @@ export default function TripDetailsPage() {
 
           {/* Route Overview */}
           <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-bold text-[#111] flex items-center gap-2">
-                  <Route size={14} className="text-[#E8450F]" /> {trip.ref_id || 'Draft'}
-                </CardTitle>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                    <Route size={15} />
+                  </div>
+                  <CardTitle className="text-lg font-extrabold text-[#111] tracking-tight">{trip.ref_id || 'Draft'}</CardTitle>
+                </div>
                 <StatusBadge status={trip.status} />
               </div>
+
+              {trip.status !== 'Cancelled' && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#9898A4]">Trip Progress</span>
+                    <span className="text-[10px] font-extrabold text-[#E8450F]">{stageProgress}%</span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-black/[0.06] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[#E8450F] transition-[width] duration-300"
+                      style={{ width: `${stageProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <div className="flex items-start gap-4">
-                <div className="flex flex-col items-center gap-1.5 pt-1">
-                  <div className="w-3 h-3 rounded-full bg-[#E8450F]" />
-                  <div className="w-px h-14 bg-black/10" />
-                  <div className="w-3 h-3 rounded-full bg-[#16A34A]" />
+                <div className="flex flex-col items-center gap-0 pt-1.5 w-3">
+                  <div className={`w-3 h-3 rounded-full shrink-0 ${pickupDone ? 'bg-[#E8450F]' : 'bg-white border-2 border-[#E8450F]'}`} />
+                  <div className="relative w-px flex-1 min-h-[3.25rem] bg-black/10">
+                    <div
+                      className="absolute top-0 left-0 w-full bg-[#16A34A] transition-[height] duration-300"
+                      style={{ height: dropoffDone ? '100%' : pickupDone ? '50%' : '0%' }}
+                    />
+                  </div>
+                  <div className={`w-3 h-3 rounded-full shrink-0 ${dropoffDone ? 'bg-[#16A34A]' : 'bg-white border-2 border-black/15'}`} />
                 </div>
-                <div className="flex-1 space-y-5">
+                <div className="flex-1 space-y-4">
                   <div>
                     <p className="text-[10px] text-[#9898A4] font-bold uppercase tracking-wider">Pickup</p>
-                    <p className="text-sm font-bold text-[#111]">
+                    <p className="text-base font-extrabold text-[#111] mt-0.5">
                       {pickup
                         ? pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`
                         : 'No pickup stop on manifest'}
@@ -302,7 +336,7 @@ export default function TripDetailsPage() {
                   </div>
                   <div>
                     <p className="text-[10px] text-[#9898A4] font-bold uppercase tracking-wider">Destination</p>
-                    <p className="text-sm font-bold text-[#111]">
+                    <p className="text-base font-extrabold text-[#111] mt-0.5">
                       {dropoff
                         ? dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`
                         : 'No dropoff stop on manifest'}
@@ -310,13 +344,13 @@ export default function TripDetailsPage() {
                   </div>
                 </div>
 
-                <div className="px-4 py-2.5 rounded-lg border border-black/[0.06] text-center min-w-[90px]">
-                  <p className="text-xs font-bold text-[#111]">{trip.planned_distance != null ? `${trip.planned_distance} km` : '—'}</p>
-                  <p className="text-[8px] text-[#9898A4] font-semibold uppercase">Distance</p>
+                <div className="px-4 py-2.5 rounded-lg border border-black/[0.06] border-l-2 border-l-[#E8450F] text-center min-w-[90px]">
+                  <p className="text-base font-extrabold text-[#111]">{trip.planned_distance != null ? `${trip.planned_distance} km` : '—'}</p>
+                  <p className="text-[8px] text-[#9898A4] font-semibold uppercase tracking-wider mt-0.5">Distance</p>
                 </div>
               </div>
 
-              <Separator className="my-4" />
+              <Separator className="my-3.5" />
 
               {/* Real trip timestamps — no fabricated ETA */}
               <div className="grid grid-cols-3 gap-3 text-center">
@@ -362,7 +396,12 @@ export default function TripDetailsPage() {
           {/* Stops List */}
           <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-[#111]">Trip Stops Log</CardTitle>
+              <CardTitle className="text-sm font-bold text-[#111] flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                  <MapPin size={12} />
+                </div>
+                Trip Stops Log
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {(trip.stops || []).length === 0 ? (
@@ -376,12 +415,16 @@ export default function TripDetailsPage() {
                     const dwell = dwellMinutes(stop);
                     return (
                     <div key={stop.id} className="relative pl-6">
-                      <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white flex items-center justify-center ${
-                        stop.actual_arrival ? 'bg-[#16A34A]' : 'bg-[#D1D1D6]'
+                      <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
+                        stop.actual_arrival
+                          ? 'bg-[#16A34A] border-white'
+                          : stop.id === nextStopId
+                            ? 'bg-[#E8450F] border-white'
+                            : 'bg-white border-black/15'
                       }`} />
                       <div>
                         <div className="flex items-center justify-between flex-wrap gap-1">
-                          <p className="text-xs font-bold text-[#111]">{stop.stop_type} Stop ({stop.stop_sequence})</p>
+                          <p className="text-[13px] font-extrabold text-[#111]">{stop.stop_type} Stop ({stop.stop_sequence})</p>
                           {stop.actual_arrival && (
                             <span className="text-[9px] font-bold text-[#16A34A] bg-[#F0FDF4] px-1.5 py-0.5 rounded">
                               Checked-in
@@ -510,7 +553,10 @@ export default function TripDetailsPage() {
           <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-bold text-[#111] flex items-center gap-2">
-                <FileStack size={14} className="text-[#E8450F]" /> Documents
+                <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                  <FileStack size={12} />
+                </div>
+                Documents
               </CardTitle>
               <CardDescription className="text-[11px] mt-0.5">POD, waybills, and other files attached to this trip.</CardDescription>
               <CardAction>
@@ -573,15 +619,18 @@ export default function TripDetailsPage() {
           {/* Customer Card */}
           <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <Building2 size={13} /> Customer
+              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                  <Building2 size={12} />
+                </div>
+                Customer
               </CardTitle>
             </CardHeader>
             <CardContent>
               {trip.customer ? (
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-[#111]">{trip.customer.name}</p>
+                    <p className="text-base font-extrabold text-[#111]">{trip.customer.name}</p>
                     <p className="text-xs text-[#6E6E80] mt-0.5">{trip.customer.contact_phone}</p>
                   </div>
                   <Btn
@@ -600,8 +649,11 @@ export default function TripDetailsPage() {
           {/* Driver Card */}
           <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <UserIcon size={13} /> Assigned Driver
+              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                  <UserIcon size={12} />
+                </div>
+                Assigned Driver
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -609,7 +661,7 @@ export default function TripDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-bold text-[#111]">{trip.driver.first_name} {trip.driver.last_name}</p>
+                      <p className="text-base font-extrabold text-[#111]">{trip.driver.first_name} {trip.driver.last_name}</p>
                       <p className="text-xs text-[#6E6E80] mt-0.5">{trip.driver.phone_primary}</p>
                     </div>
                     <Btn
@@ -688,15 +740,18 @@ export default function TripDetailsPage() {
           {/* Vehicle Card */}
           <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <Truck size={13} /> Assigned Vehicle
+              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                  <Truck size={12} />
+                </div>
+                Assigned Vehicle
               </CardTitle>
             </CardHeader>
             <CardContent>
               {trip.vehicle ? (
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-[#111]">{trip.vehicle.plate_number}</p>
+                    <p className="text-base font-extrabold text-[#111]">{trip.vehicle.plate_number}</p>
                     <p className="text-xs text-[#6E6E80] mt-0.5">
                       {trip.vehicle.asset_type} Asset{trip.vehicle.capacity_kg != null ? ` • ${trip.vehicle.capacity_kg.toLocaleString()} kg` : ''}
                     </p>
@@ -738,15 +793,18 @@ export default function TripDetailsPage() {
           {(trip.status === 'Completed' || trip.status === 'Invoiced') && (
             <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                  <ReceiptText size={13} /> Invoice
+                <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                    <ReceiptText size={12} />
+                  </div>
+                  Invoice
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {invoice ? (
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-bold text-[#111]">{invoice.ref_id}</p>
+                      <p className="text-base font-extrabold text-[#111]">{invoice.ref_id}</p>
                       <p className="text-xs text-[#6E6E80] mt-0.5">SAR {invoice.total_amount.toLocaleString()}</p>
                       <StatusBadge status={invoice.status} />
                     </div>
@@ -767,8 +825,11 @@ export default function TripDetailsPage() {
           {/* Audit Trail — who created / last touched this trip */}
           <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <PackageCheck size={13} /> Audit Trail
+              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                  <PackageCheck size={12} />
+                </div>
+                Audit Trail
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
