@@ -387,7 +387,7 @@ export default function DriverListPage() {
       active="Drivers" 
       title="Drivers" 
     >
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
@@ -644,7 +644,7 @@ export default function DriverListPage() {
 
         {/* Dynamic Table or Grid Render */}
         {viewMode === 'list' ? (
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="w-full flex flex-col">
             <DataTable
               title={
                 <span className="flex items-center gap-2">
