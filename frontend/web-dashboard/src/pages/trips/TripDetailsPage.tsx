@@ -800,11 +800,21 @@ export default function TripDetailsPage() {
 
           {/* ───────────────────────── Right: sidebar ───────────────────────── */}
           <div className="space-y-4">
-            <Card className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Trip Progress</p>
+            {/* ── Trip Progress Instrument Card ───────────────────────────────── */}
+            <Card className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0 shadow-2xs overflow-hidden relative">
+              {/* Top brand accent bar */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#E8450F] via-orange-400 to-amber-500" />
+
+              {/* Header: Title + Status */}
+              <div className="flex items-center justify-between pt-0.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-[#181824] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Gauge size={13} className="text-[#E8450F]" />
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Trip Progress</p>
+                </div>
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-2xs"
                   style={{ color: tone.color, backgroundColor: tone.bg }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
@@ -812,24 +822,37 @@ export default function TripDetailsPage() {
                 </span>
               </div>
 
-              <div className="flex items-baseline gap-2 mt-2">
-                <p className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
-                <span className="text-xs font-semibold text-slate-400">completed</span>
+              {/* Hero progress counter */}
+              <div className="flex items-baseline justify-between mt-3">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
+                  <span className="text-xs font-bold text-slate-400">completed</span>
+                </div>
+                {stageIndex >= 0 && trip.status !== 'Cancelled' && (
+                  <span className="text-[11px] font-bold text-[#E8450F] bg-orange-50 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-900/50 px-2 py-0.5 rounded-md">
+                    Stage {stageIndex + 1} of {STAGE_ORDER.length}
+                  </span>
+                )}
               </div>
 
               <Progress
                 value={trip.status === 'Cancelled' ? 0 : stageProgress}
-                className="h-2 mt-3 [&_[data-slot=progress-track]]:bg-orange-50 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
+                className="h-2 mt-2.5 [&_[data-slot=progress-track]]:bg-slate-100 dark:[&_[data-slot=progress-track]]:bg-slate-800 [&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-[#E8450F] [&_[data-slot=progress-indicator]]:to-amber-500 rounded-full"
               />
 
-              {/* Pickup & Drop-off location details */}
+              {/* Pickup & Drop-off route waypoints */}
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-emerald-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <span className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-emerald-600 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                     <MapPin size={13} className="text-emerald-600 dark:text-emerald-400" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pickup Location</p>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Pickup Origin</p>
+                      {pickup?.actual_arrival && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Departed</span>
+                      )}
+                    </div>
                     <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
                       {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
                     </p>
@@ -842,15 +865,22 @@ export default function TripDetailsPage() {
                 </div>
 
                 <div className="pl-[13px] -my-1 py-0.5 flex items-center gap-2">
-                  <div className="w-0.5 h-3.5 bg-slate-200 dark:bg-slate-700" />
+                  <div className="w-0.5 h-4 bg-gradient-to-b from-emerald-300 to-orange-300 dark:from-emerald-700 dark:to-orange-700" />
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-[#E8450F] border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <span className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-[#E8450F] border border-orange-200 dark:border-orange-900/60 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                     <MapPin size={13} className="text-[#E8450F]" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Drop-off Location</p>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#E8450F]">Destination</p>
+                      {dropoff?.actual_arrival ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Delivered</span>
+                      ) : (
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-orange-50 text-[#E8450F] border border-orange-200">En Route</span>
+                      )}
+                    </div>
                     <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
                       {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
                     </p>
@@ -867,23 +897,26 @@ export default function TripDetailsPage() {
                 </div>
               </div>
 
-              <Separator className="my-4" />
-
-              <div className="space-y-3">
+              {/* Telemetry 2x2 Instrument Grid */}
+              <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                 {sidebarStats.map((s) => (
-                  <div key={s.label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center">
-                        <s.icon size={13} />
-                      </div>
-                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{s.label}</span>
+                  <div
+                    key={s.label}
+                    className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center gap-2.5 transition-all hover:bg-slate-100/60"
+                  >
+                    <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs', s.tone)}>
+                      <s.icon size={13} />
                     </div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{s.value}</span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{s.label}</p>
+                      <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate mt-0.5">{s.value}</p>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-5">
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 mt-4">
                 {trip.driver?.phone_primary ? (
                   <a href={`tel:${trip.driver.phone_primary}`} className="w-full">
                     <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-semibold gap-1.5 cursor-pointer shadow-2xs">
@@ -899,7 +932,7 @@ export default function TripDetailsPage() {
                 )}
                 <Button
                   size="sm"
-                  className="w-full h-8.5 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-bold gap-1.5 shadow-2xs cursor-pointer"
+                  className="w-full h-8.5 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-bold gap-1.5 shadow-2xs cursor-pointer active:scale-[0.98] transition-all"
                   onClick={() => navigate(`/trips/${trip.id}/track`)}
                 >
                   <Navigation size={13} />
