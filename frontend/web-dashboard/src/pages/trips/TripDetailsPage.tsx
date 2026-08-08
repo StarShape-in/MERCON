@@ -340,23 +340,23 @@ export default function TripDetailsPage() {
         {/* Breadcrumb + action bar */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 text-sm min-w-0">
-            <Link to="/trips" className="text-slate-500 font-medium hover:text-slate-900 transition-colors">Trips</Link>
-            <ChevronRight size={14} className="text-slate-300 shrink-0" />
-            <span className="text-slate-900 font-semibold truncate">Trip Details</span>
+            <Link to="/trips" className="text-[#6E6E80] font-medium hover:text-[#111] transition-colors">Trips</Link>
+            <ChevronRight size={14} className="text-[#9898A4] shrink-0" />
+            <span className="text-[#111] font-semibold truncate">Trip Details</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <Btn
               label="Edit Trip"
               variant="outline"
-              className="h-10 rounded-xl border-slate-200"
+              className="h-10 rounded-xl border-black/[0.06]"
               onClick={() => navigate(`/trips/${trip.id}/edit`)}
             />
             <Btn
               label="Print"
               variant="outline"
               icon={<Printer size={14} />}
-              className="h-10 rounded-xl border-slate-200"
+              className="h-10 rounded-xl border-black/[0.06]"
               onClick={() => window.print()}
             />
             <DropdownMenu>
@@ -369,15 +369,15 @@ export default function TripDetailsPage() {
               <DropdownMenuContent align="end" className="w-60">
                 {trip.status === 'InTransit' && (
                   <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/track`)}>
-                    <Navigation size={14} className="mr-2 text-slate-500" /> Track Live
+                    <Navigation size={14} className="mr-2 text-[#6E6E80]" /> Track Live
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}>
-                  <UploadCloud size={14} className="mr-2 text-slate-500" /> Upload Document
+                  <UploadCloud size={14} className="mr-2 text-[#6E6E80]" /> Upload Document
                 </DropdownMenuItem>
                 {nextStatusOption && (
                   <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
-                    <CheckCircle2 size={14} className="mr-2 text-slate-500" /> Mark {nextStatusOption}
+                    <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
                   </DropdownMenuItem>
                 )}
                 {canCancel && (
@@ -459,17 +459,17 @@ export default function TripDetailsPage() {
           <div className="space-y-4 min-w-0">
 
             {/* Trip ID / status / customer-driver-vehicle-eta */}
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 gap-0">
+            <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-6 gap-0">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-11 h-11 rounded-xl bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
                     <Truck size={20} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Trip ID</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Trip ID</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xl font-bold font-mono tracking-tight text-slate-900 truncate">{trip.ref_id || trip.id}</p>
-                      <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-slate-400 hover:text-[#E8450F] transition-colors shrink-0">
+                      <p className="text-xl font-bold font-mono tracking-tight text-[#111] truncate">{trip.ref_id || trip.id}</p>
+                      <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-[#E8450F] transition-colors shrink-0">
                         {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                       </button>
                     </div>
@@ -477,7 +477,7 @@ export default function TripDetailsPage() {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400 mb-1.5">Status</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] mb-1.5">Status</p>
                   <span
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
                     style={{ color: tone.color, backgroundColor: tone.bg }}
@@ -496,8 +496,8 @@ export default function TripDetailsPage() {
                     <Building2 size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-slate-400">Customer</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">{trip.customer?.name || '—'}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Customer</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.customer?.name || '—'}</p>
                   </div>
                 </div>
 
@@ -507,16 +507,16 @@ export default function TripDetailsPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-[11px] font-medium text-slate-400">Driver</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Driver</p>
                       {trip.driver && !isClosed && (
                         <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
                           <PopoverTrigger asChild>
-                            <button type="button" aria-label="Replace driver" className="text-slate-400 hover:text-[#E8450F] transition-colors shrink-0">
+                            <button type="button" aria-label="Replace driver" className="text-[#9898A4] hover:text-[#E8450F] transition-colors shrink-0">
                               <RefreshCcw size={10} />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent align="start" className="w-72 p-3 space-y-2">
-                            <p className="text-xs font-semibold text-slate-900">Replace driver</p>
+                            <p className="text-xs font-semibold text-[#111]">Replace driver</p>
                             <Combobox
                               value={replaceDriverId}
                               onChange={setReplaceDriverId}
@@ -539,10 +539,10 @@ export default function TripDetailsPage() {
                         </Popover>
                       )}
                     </div>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
                       {trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned'}
                     </p>
-                    {trip.driver?.phone_primary && <p className="text-xs text-slate-500 truncate">{trip.driver.phone_primary}</p>}
+                    {trip.driver?.phone_primary && <p className="text-xs text-[#6E6E80] truncate">{trip.driver.phone_primary}</p>}
                   </div>
                 </div>
 
@@ -551,23 +551,23 @@ export default function TripDetailsPage() {
                     <Truck size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-slate-400">Vehicle</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">{trip.vehicle?.plate_number || 'Unassigned'}</p>
-                    {trip.vehicle?.asset_type && <p className="text-xs text-slate-500 truncate">{trip.vehicle.asset_type}</p>}
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Vehicle</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.vehicle?.plate_number || 'Unassigned'}</p>
+                    {trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>}
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-black/[0.05] text-[#6E6E80] flex items-center justify-center shrink-0">
                     <Calendar size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-slate-400">ETA</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">ETA</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
                       {trip.planned_end ? new Date(trip.planned_end).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                     </p>
                     {trip.planned_end && (
-                      <p className="text-xs text-slate-500 truncate">{new Date(trip.planned_end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="text-xs text-[#6E6E80] truncate">{new Date(trip.planned_end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
                     )}
                   </div>
                 </div>
@@ -586,44 +586,44 @@ export default function TripDetailsPage() {
               dropoffLabel={dropoff?.location_name || undefined}
               showHeader={false}
               showTelemetryBar={false}
-              className="rounded-2xl"
+              className="rounded-2xl shadow-sm"
               mapHeightClassName="h-[320px]"
             />
 
             {/* Route row */}
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+            <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-5">
               <div className="flex items-center gap-4">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <span className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
                     <MapPin size={14} />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Pickup Location</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Pickup Location</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
                       {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
                     </p>
                     {pickup && (
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-[#6E6E80] mt-0.5">
                         {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="hidden sm:flex items-center gap-2 text-slate-300 shrink-0 px-2">
-                  <span className="w-16 border-t border-dashed border-slate-300" />
-                  <Truck size={14} className="text-slate-400" />
-                  <span className="w-16 border-t border-dashed border-slate-300" />
+                <div className="hidden sm:flex items-center gap-2 text-[#9898A4] shrink-0 px-2">
+                  <span className="w-16 border-t border-dashed border-black/[0.12]" />
+                  <Truck size={14} className="text-[#9898A4]" />
+                  <span className="w-16 border-t border-dashed border-black/[0.12]" />
                 </div>
 
                 <div className="flex items-start gap-3 min-w-0 flex-1 justify-end text-right">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Drop-off Location</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Drop-off Location</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
                       {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
                     </p>
                     {dropoff && (
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-[#6E6E80] mt-0.5">
                         {dropoff.actual_arrival
                           ? fullDateTime(dropoff.actual_arrival)
                           : dropoff.planned_arrival
@@ -640,7 +640,7 @@ export default function TripDetailsPage() {
             </Card>
 
             {/* Segmented content switcher */}
-            <div className="flex items-center gap-6 border-b border-slate-200 px-1">
+            <div className="flex items-center gap-6 border-b border-black/[0.06] px-1">
               {CONTENT_TABS.map((t) => (
                 <button
                   key={t.key}
@@ -648,16 +648,16 @@ export default function TripDetailsPage() {
                   onClick={() => setActiveTab(t.key)}
                   className={cn(
                     'flex items-center gap-1.5 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors',
-                    activeTab === t.key ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-slate-500 hover:text-slate-700',
+                    activeTab === t.key ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
                   )}
                 >
                   <t.icon size={14} />
                   {t.label}
                   {t.key === 'stops' && trip.stops && trip.stops.length > 0 && (
-                    <span className="text-[10px] text-slate-400">({trip.stops.length})</span>
+                    <span className="text-[10px] text-[#9898A4]">({trip.stops.length})</span>
                   )}
                   {t.key === 'documents' && documents.length > 0 && (
-                    <span className="text-[10px] text-slate-400">({documents.length})</span>
+                    <span className="text-[10px] text-[#9898A4]">({documents.length})</span>
                   )}
                 </button>
               ))}
@@ -665,11 +665,11 @@ export default function TripDetailsPage() {
 
             {/* Stops tab */}
             {activeTab === 'stops' && (
-              <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-0 gap-0 overflow-hidden">
+              <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-0 gap-0 overflow-hidden">
                 {(trip.stops || []).length === 0 ? (
                   <div className="text-center py-10">
-                    <MapPin size={24} className="text-slate-300 mx-auto mb-2" />
-                    <p className="text-xs font-medium text-slate-500">No stops on this manifest yet.</p>
+                    <MapPin size={24} className="text-[#9898A4] mx-auto mb-2" />
+                    <p className="text-xs font-medium text-[#6E6E80]">No stops on this manifest yet.</p>
                   </div>
                 ) : (
                   <Table>
@@ -702,31 +702,31 @@ export default function TripDetailsPage() {
                                 </span>
                               </TableCell>
                               <TableCell>
-                                <p className="font-semibold text-slate-900">{stop.location_name || `${stop.location_lat.toFixed(4)}, ${stop.location_lng.toFixed(4)}`}</p>
-                                <p className="text-xs text-slate-400 font-normal">{stop.stop_type}</p>
+                                <p className="font-semibold text-[#111]">{stop.location_name || `${stop.location_lat.toFixed(4)}, ${stop.location_lng.toFixed(4)}`}</p>
+                                <p className="text-xs text-[#9898A4] font-normal">{stop.stop_type}</p>
                               </TableCell>
-                              <TableCell className="text-slate-600">{stop.planned_arrival ? fullDateTime(stop.planned_arrival) : '—'}</TableCell>
-                              <TableCell className="text-slate-600">{stop.actual_arrival ? fullDateTime(stop.actual_arrival) : '—'}</TableCell>
+                              <TableCell className="text-[#6E6E80]">{stop.planned_arrival ? fullDateTime(stop.planned_arrival) : '—'}</TableCell>
+                              <TableCell className="text-[#6E6E80]">{stop.actual_arrival ? fullDateTime(stop.actual_arrival) : '—'}</TableCell>
                               <TableCell>
                                 <Badge variant="outline" className={cn(
                                   'text-[10px] font-semibold border-transparent',
                                   stopStatus === 'Completed' && 'bg-emerald-50 text-emerald-700',
                                   stopStatus === 'Pending' && 'bg-orange-50 text-[#E8450F]',
-                                  stopStatus === 'Upcoming' && 'bg-slate-100 text-slate-500',
+                                  stopStatus === 'Upcoming' && 'bg-black/[0.05] text-[#6E6E80]',
                                 )}>
                                   {stopStatus}
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <ChevronDown size={14} className={cn('text-slate-400 transition-transform', isExpanded && 'rotate-180')} />
+                                <ChevronDown size={14} className={cn('text-[#9898A4] transition-transform', isExpanded && 'rotate-180')} />
                               </TableCell>
                             </TableRow>
                             {isExpanded && (
                               <TableRow key={`${stop.id}-detail`} className="hover:bg-transparent">
-                                <TableCell colSpan={6} className="bg-slate-50/70 py-4">
-                                  <div className="flex gap-4 text-[11px] text-slate-500 font-medium flex-wrap">
+                                <TableCell colSpan={6} className="bg-black/[0.02] py-4">
+                                  <div className="flex gap-4 text-[11px] text-[#6E6E80] font-medium flex-wrap">
                                     {stop.actual_departure && <span>Left: {fullDateTime(stop.actual_departure)}</span>}
-                                    {dwell !== null && <span className="font-semibold text-slate-900">Dwell: {formatDelay(dwell)}</span>}
+                                    {dwell !== null && <span className="font-semibold text-[#111]">Dwell: {formatDelay(dwell)}</span>}
                                   </div>
 
                                   {late !== null && (
@@ -823,9 +823,9 @@ export default function TripDetailsPage() {
 
             {/* Documents tab */}
             {activeTab === 'documents' && (
-              <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-slate-900">Documents</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-[#111]">Documents</CardTitle>
                   <CardDescription className="text-[11px] mt-0.5">POD, waybills, and other files attached to this trip.</CardDescription>
                   <CardAction>
                     <Btn
@@ -845,20 +845,20 @@ export default function TripDetailsPage() {
                     </div>
                   ) : documents.length === 0 ? (
                     <div className="text-center py-6">
-                      <FileText size={22} className="text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs font-medium text-slate-500">No documents uploaded for this trip yet.</p>
+                      <FileText size={22} className="text-[#9898A4] mx-auto mb-2" />
+                      <p className="text-xs font-medium text-[#6E6E80]">No documents uploaded for this trip yet.</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-slate-100">
+                        <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-black/[0.05]">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="w-8 h-8 rounded-lg bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
                               <FileText size={14} />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-semibold text-slate-900 truncate">{docTypeLabel(doc.doc_type)}</p>
-                              <p className="text-[10px] text-slate-500">{new Date(doc.createdAt).toLocaleDateString()}</p>
+                              <p className="text-xs font-semibold text-[#111] truncate">{docTypeLabel(doc.doc_type)}</p>
+                              <p className="text-[10px] text-[#6E6E80]">{new Date(doc.createdAt).toLocaleDateString()}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -867,7 +867,7 @@ export default function TripDetailsPage() {
                               href={doc.file_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-slate-400 hover:text-[#E8450F] p-1"
+                              className="text-[#9898A4] hover:text-[#E8450F] p-1"
                               aria-label="View document"
                             >
                               <ExternalLink size={13} />
@@ -884,10 +884,10 @@ export default function TripDetailsPage() {
             {/* Audit tab */}
             {activeTab === 'audit' && (
               <div className="space-y-4">
-                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-500 flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-black/[0.05] text-[#6E6E80] flex items-center justify-center shrink-0">
                         <ListChecks size={12} />
                       </div>
                       Audit Trail
@@ -895,14 +895,14 @@ export default function TripDetailsPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500 font-medium">Created by</span>
+                      <span className="text-[11px] text-[#6E6E80] font-medium">Created by</span>
                       <UserChip userId={trip.created_by} users={users} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500 font-medium">Created</span>
+                      <span className="text-[11px] text-[#6E6E80] font-medium">Created</span>
                       <Tooltip>
                         <TooltipTrigger>
-                          <span className="text-[11px] font-semibold text-slate-900 cursor-default">
+                          <span className="text-[11px] font-semibold text-[#111] cursor-default">
                             {new Date(trip.createdAt).toLocaleDateString()}
                           </span>
                         </TooltipTrigger>
@@ -911,14 +911,14 @@ export default function TripDetailsPage() {
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500 font-medium">Last updated by</span>
+                      <span className="text-[11px] text-[#6E6E80] font-medium">Last updated by</span>
                       <UserChip userId={trip.updated_by} users={users} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500 font-medium">Updated</span>
+                      <span className="text-[11px] text-[#6E6E80] font-medium">Updated</span>
                       <Tooltip>
                         <TooltipTrigger>
-                          <span className="text-[11px] font-semibold text-slate-900 cursor-default">
+                          <span className="text-[11px] font-semibold text-[#111] cursor-default">
                             {new Date(trip.updatedAt).toLocaleDateString()}
                           </span>
                         </TooltipTrigger>
@@ -928,9 +928,9 @@ export default function TripDetailsPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-500 flex items-center gap-2">
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] flex items-center gap-2">
                       <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
                         <ReceiptText size={12} />
                       </div>
@@ -941,14 +941,14 @@ export default function TripDetailsPage() {
                     {invoice ? (
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-base font-semibold text-slate-900">{invoice.ref_id}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">SAR {invoice.total_amount.toLocaleString()}</p>
+                          <p className="text-base font-semibold text-[#111]">{invoice.ref_id}</p>
+                          <p className="text-xs text-[#6E6E80] mt-0.5">SAR {invoice.total_amount.toLocaleString()}</p>
                           <div className="mt-1.5"><StatusBadge status={invoice.status} /></div>
                         </div>
                         <Btn label="View" variant="ghost" size="sm" onClick={() => navigate(`/invoices/${invoice.id}`)} />
                       </div>
                     ) : (
-                      <p className="text-xs font-medium text-slate-500">No invoice generated yet.</p>
+                      <p className="text-xs font-medium text-[#6E6E80]">No invoice generated yet.</p>
                     )}
                   </CardContent>
                 </Card>
@@ -958,21 +958,21 @@ export default function TripDetailsPage() {
 
           {/* ───────────────────────── Right: sidebar ───────────────────────── */}
           <div className="space-y-4">
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 gap-0">
-              <p className="text-sm font-semibold text-slate-900">Trip Progress</p>
+            <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-5 gap-0">
+              <p className="text-sm font-semibold text-[#111]">Trip Progress</p>
               <p className="text-4xl font-bold text-[#E8450F] mt-2">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
               <Progress
                 value={trip.status === 'Cancelled' ? 0 : stageProgress}
                 className="h-1.5 mt-3 [&_[data-slot=progress-track]]:bg-orange-100 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
               />
 
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 mt-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#111] mt-4">
                 <MapPin size={13} className="text-emerald-500 shrink-0" />
                 <span className="truncate">{pickup?.location_name || 'Pickup'}</span>
-                <ArrowRight size={12} className="text-slate-300 shrink-0" />
+                <ArrowRight size={12} className="text-[#9898A4] shrink-0" />
                 <span className="truncate">{dropoff?.location_name || 'Drop-off'}</span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-[#6E6E80] mt-1">
                 ETA: {trip.planned_end ? fullDateTime(trip.planned_end) : '—'}
               </p>
 
@@ -985,9 +985,9 @@ export default function TripDetailsPage() {
                       <div className={cn('w-7 h-7 rounded-full flex items-center justify-center', s.tone)}>
                         <s.icon size={13} />
                       </div>
-                      <span className="text-xs text-slate-500">{s.label}</span>
+                      <span className="text-xs text-[#6E6E80]">{s.label}</span>
                     </div>
-                    <span className="text-sm font-semibold text-slate-900">{s.value}</span>
+                    <span className="text-sm font-semibold text-[#111]">{s.value}</span>
                   </div>
                 ))}
               </div>
@@ -995,10 +995,10 @@ export default function TripDetailsPage() {
               <div className="grid grid-cols-2 gap-2 mt-5">
                 {trip.driver?.phone_primary ? (
                   <a href={`tel:${trip.driver.phone_primary}`} className="w-full">
-                    <Btn label="Call Driver" variant="outline" size="sm" icon={<Phone size={13} />} className="w-full rounded-xl border-slate-200" />
+                    <Btn label="Call Driver" variant="outline" size="sm" icon={<Phone size={13} />} className="w-full rounded-xl border-black/[0.06]" />
                   </a>
                 ) : (
-                  <Btn label="Call Driver" variant="outline" size="sm" icon={<Phone size={13} />} className="w-full rounded-xl border-slate-200" disabled />
+                  <Btn label="Call Driver" variant="outline" size="sm" icon={<Phone size={13} />} className="w-full rounded-xl border-black/[0.06]" disabled />
                 )}
                 <Btn
                   label="View Map"
@@ -1010,10 +1010,10 @@ export default function TripDetailsPage() {
               </div>
             </Card>
 
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-900">Activity</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-[#111]">Activity</CardTitle>
                   {trip.status === 'InTransit' && (
                     <Badge variant="outline" className="text-[10px] font-semibold border-emerald-200 bg-emerald-50 text-emerald-600 gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
@@ -1026,13 +1026,13 @@ export default function TripDetailsPage() {
                   <div key={step.key} className="flex items-start gap-2.5">
                     <StepCircle status={timelineStatus[i]} useTruckForDone={step.key === 'departed'} />
                     <div className="min-w-0 -mt-0.5">
-                      <p className={cn('text-xs font-semibold', timelineStatus[i] === 'pending' ? 'text-slate-400' : 'text-slate-900')}>
+                      <p className={cn('text-xs font-semibold', timelineStatus[i] === 'pending' ? 'text-[#9898A4]' : 'text-[#111]')}>
                         {step.label}
                       </p>
                       {step.time ? (
-                        <p className="text-[11px] text-slate-500 mt-0.5">{fullDateTime(step.time)}</p>
+                        <p className="text-[11px] text-[#6E6E80] mt-0.5">{fullDateTime(step.time)}</p>
                       ) : step.sub ? (
-                        <p className={cn('text-[11px] mt-0.5', timelineStatus[i] === 'active' ? 'text-[#E8450F] font-semibold' : 'text-slate-400')}>{step.sub}</p>
+                        <p className={cn('text-[11px] mt-0.5', timelineStatus[i] === 'active' ? 'text-[#E8450F] font-semibold' : 'text-[#9898A4]')}>{step.sub}</p>
                       ) : null}
                     </div>
                   </div>
@@ -1108,5 +1108,5 @@ function StepCircle({ status, useTruckForDone }: { status: StepStatus; useTruckF
       </span>
     );
   }
-  return <span className="w-6 h-6 rounded-full border-2 border-slate-200 bg-white shrink-0" />;
+  return <span className="w-6 h-6 rounded-full border-2 border-black/[0.06] bg-white shrink-0" />;
 }
