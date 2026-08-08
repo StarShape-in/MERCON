@@ -6,7 +6,7 @@ import {
   Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
   Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
-  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight,
+  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen, MessageCircle, UserCheck, History,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -32,7 +32,7 @@ import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
 import UserChip, { useUserLookup } from '@/components/trips/UserChip';
 import {
   tripService, TripStatus,
-  DELAY_REASONS, DELAY_REASON_LABELS, type DelayReason, type TripStop,
+  type TripStop,
 } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
@@ -48,33 +48,11 @@ const DELAY_THRESHOLD_MINUTES = 30;
  *  stage on this line — it's a separate dead-end handled on its own. */
 const STAGE_ORDER: TripStatus[] = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Completed', 'Invoiced'];
 
-const CONTENT_TABS = [
-  { key: 'stops', label: 'Stops', icon: RouteIcon },
-  { key: 'documents', label: 'Documents', icon: FileStack },
-  { key: 'audit', label: 'Audit Trail', icon: PackageCheck },
-] as const;
-type ContentTabKey = (typeof CONTENT_TABS)[number]['key'];
-
-/** Minutes a stop was reached late, or null when it isn't late / can't be judged. */
-function arrivalDelayMinutes(stop: TripStop): number | null {
-  if (!stop.planned_arrival || !stop.actual_arrival) return null;
-  const mins = Math.round(
-    (new Date(stop.actual_arrival).getTime() - new Date(stop.planned_arrival).getTime()) / 60000,
-  );
-  return mins >= DELAY_THRESHOLD_MINUTES ? mins : null;
-}
-
 function formatDelay(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return `${m}m`;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
-
-/** Dwell time at a stop: how long the driver was held there. */
-function dwellMinutes(stop: TripStop): number | null {
-  if (!stop.actual_arrival || !stop.actual_departure) return null;
-  return Math.round((new Date(stop.actual_departure).getTime() - new Date(stop.actual_arrival).getTime()) / 60000);
 }
 
 function fullDateTime(iso: string): string {
@@ -115,17 +93,12 @@ export default function TripDetailsPage() {
   const queryClient = useQueryClient();
   const users = useUserLookup();
 
-  const [activeTab, setActiveTab] = useState<ContentTabKey>('stops');
-  const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
+  const [docTab, setDocTab] = useState<'documents' | 'invoice'>('documents');
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [nextStatus, setNextStatus] = useState<TripStatus>('Draft');
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadDocType, setUploadDocType] = useState<DocType | undefined>(undefined);
-  // Which stop's reason form is open, and what's typed into it.
-  const [delayFormStopId, setDelayFormStopId] = useState<string | null>(null);
-  const [delayReason, setDelayReason] = useState<DelayReason>('Traffic');
-  const [delayNote, setDelayNote] = useState('');
   const [pendingDriverId, setPendingDriverId] = useState('');
   const [pendingVehicleId, setPendingVehicleId] = useState('');
   const [isReplaceDriverOpen, setIsReplaceDriverOpen] = useState(false);
@@ -191,27 +164,7 @@ export default function TripDetailsPage() {
     },
   });
 
-  // Record why a stop ran late
-  const logDelayMutation = useMutation({
-    mutationFn: (vars: { stopId: string; delay_reason: DelayReason; delay_note?: string }) =>
-      tripService.logStopDelay(id!, vars.stopId, {
-        delay_reason: vars.delay_reason,
-        delay_note: vars.delay_note,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trip', id] });
-      setDelayFormStopId(null);
-      setDelayNote('');
-    },
-  });
 
-  const openDelayForm = (stop: TripStop) => {
-    // Pre-load whatever is already recorded so editing corrects it rather
-    // than starting from a blank guess.
-    setDelayReason(stop.delay_reason ?? 'Traffic');
-    setDelayNote(stop.delay_note ?? '');
-    setDelayFormStopId(stop.id);
-  };
 
   // Mutate Trip Status
   const updateStatusMutation = useMutation({
@@ -235,10 +188,45 @@ export default function TripDetailsPage() {
     }
   };
 
+  const handleShareWhatsApp = () => {
+    if (!trip) return;
+    const pickupLoc = pickup?.location_name || 'Pickup location';
+    const dropoffLoc = dropoff?.location_name || 'Drop-off location';
+    const driverName = trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned';
+    const vehicleInfo = trip.vehicle ? trip.vehicle.plate_number : 'Unassigned';
+    const etaText = trip.planned_end
+      ? new Date(trip.planned_end).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '—';
+
+    const text = [
+      `🚚 *MERCON Logistics - Trip Status Update*`,
+      ``,
+      `*Trip ID:* ${trip.ref_id || trip.id}`,
+      `*Customer:* ${trip.customer?.name || 'Customer'}`,
+      `*Status:* ${statusLabel(trip.status)}`,
+      ``,
+      `📍 *Pickup:* ${pickupLoc}`,
+      `🎯 *Drop-off:* ${dropoffLoc}`,
+      `⏱️ *ETA:* ${etaText}`,
+      ``,
+      `👤 *Driver:* ${driverName}`,
+      `🚛 *Vehicle:* ${vehicleInfo}`,
+      ``,
+      `Thank you for shipping with MERCON Logistics!`,
+    ].join('\n');
+
+    const cleanPhone = trip.customer?.contact_phone?.replace(/[^0-9]/g, '');
+    const waUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
   if (isLoading || !trip) {
     return (
       <DashboardLayout active="Trips" title="Trip Details">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-4">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 -mt-3 sm:-mt-4 pb-6 space-y-4">
           <Skeleton className="h-6 w-48 rounded-lg" />
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
             <div className="space-y-4">
@@ -335,49 +323,55 @@ export default function TripDetailsPage() {
 
   return (
     <DashboardLayout active="Trips" title="Trip Details">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-4 animate-fade-in">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 -mt-3 sm:-mt-4 pb-6 space-y-4 animate-fade-in">
 
         {/* Breadcrumb + action bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 text-sm min-w-0">
-            <Link to="/trips" className="text-slate-500 font-medium hover:text-slate-900 transition-colors">Trips</Link>
-            <ChevronRight size={14} className="text-slate-300 shrink-0" />
-            <span className="text-slate-900 font-semibold truncate">Trip Details</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-black/[0.08] dark:border-slate-800/80">
+          <div className="flex items-center gap-2 text-sm min-w-0">
+            <Link to="/trips" className="text-[#6E6E80] font-semibold hover:text-[#111] dark:hover:text-white transition-colors">Trips</Link>
+            <ChevronRight size={15} className="text-[#9898A4] shrink-0" />
+            <span className="text-[#111] dark:text-slate-100 font-bold truncate">Trip Details</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Btn
-              label="Edit Trip"
+            <Button
               variant="outline"
-              className="h-10 rounded-xl border-slate-200"
+              size="sm"
               onClick={() => navigate(`/trips/${trip.id}/edit`)}
-            />
-            <Btn
-              label="Print"
+              className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-[#111] dark:text-slate-200 border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-black/[0.03] dark:hover:bg-slate-800 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
+            >
+              <SquarePen className="w-3.5 h-3.5 text-[#6E6E80]" />
+              Edit Trip
+            </Button>
+            <Button
               variant="outline"
-              icon={<Printer size={14} />}
-              className="h-10 rounded-xl border-slate-200"
-              onClick={() => window.print()}
-            />
+              size="sm"
+              onClick={handleShareWhatsApp}
+              className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-950/60 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
+              title="Share status update via WhatsApp"
+            >
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              Share to WhatsApp
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="h-10 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white font-semibold gap-1.5 px-4">
+                <Button className="h-8.5 px-3.5 rounded-lg bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-bold gap-1.5 shadow-2xs transition-all active:scale-[0.98] cursor-pointer">
                   More Actions
-                  <ChevronDown size={14} />
+                  <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
                 {trip.status === 'InTransit' && (
                   <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/track`)}>
-                    <Navigation size={14} className="mr-2 text-slate-500" /> Track Live
+                    <Navigation size={14} className="mr-2 text-[#6E6E80]" /> Track Live
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}>
-                  <UploadCloud size={14} className="mr-2 text-slate-500" /> Upload Document
+                  <UploadCloud size={14} className="mr-2 text-[#6E6E80]" /> Upload Document
                 </DropdownMenuItem>
                 {nextStatusOption && (
                   <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
-                    <CheckCircle2 size={14} className="mr-2 text-slate-500" /> Mark {nextStatusOption}
+                    <CheckCircle2 size={14} className="mr-2 text-[#6E6E80]" /> Mark {nextStatusOption}
                   </DropdownMenuItem>
                 )}
                 {canCancel && (
@@ -458,26 +452,57 @@ export default function TripDetailsPage() {
           {/* ───────────────────────── Left: content ───────────────────────── */}
           <div className="space-y-4 min-w-0">
 
-            {/* Trip ID / status / customer-driver-vehicle-eta */}
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 gap-0">
+            {/* Trip ID / status / audit info / customer-driver-vehicle-eta */}
+            <Card className="rounded-xl border border-black/[0.12] bg-white p-6 gap-0">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-11 h-11 rounded-xl bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
                     <Truck size={20} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Trip ID</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Trip ID</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xl font-bold font-mono tracking-tight text-slate-900 truncate">{trip.ref_id || trip.id}</p>
-                      <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-slate-400 hover:text-[#E8450F] transition-colors shrink-0">
+                      <p className="text-xl font-bold font-mono tracking-tight text-[#111] truncate">{trip.ref_id || trip.id}</p>
+                      <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-[#E8450F] transition-colors shrink-0">
                         {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                       </button>
                     </div>
                   </div>
                 </div>
 
+                {/* Audit Trail Metadata - simple with dotted borders */}
+                <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dotted border-black/20 dark:border-slate-700 text-xs bg-black/[0.01] dark:bg-slate-900/40">
+                    <span className="text-[11px] font-medium text-[#9898A4]">Created:</span>
+                    <UserChip userId={trip.created_by} users={users} size="sm" className="font-semibold text-[#111] dark:text-slate-200 decoration-slate-400" />
+                    <span className="text-[10px] text-[#9898A4]">•</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
+                          {new Date(trip.createdAt).toLocaleDateString()}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dotted border-black/20 dark:border-slate-700 text-xs bg-black/[0.01] dark:bg-slate-900/40">
+                    <span className="text-[11px] font-medium text-[#9898A4]">Updated:</span>
+                    <UserChip userId={trip.updated_by} users={users} size="sm" className="font-semibold text-[#111] dark:text-slate-200 decoration-slate-400" />
+                    <span className="text-[10px] text-[#9898A4]">•</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
+                          {new Date(trip.updatedAt).toLocaleDateString()}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+
                 <div className="text-right shrink-0">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400 mb-1.5">Status</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] mb-1.5">Status</p>
                   <span
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
                     style={{ color: tone.color, backgroundColor: tone.bg }}
@@ -496,8 +521,8 @@ export default function TripDetailsPage() {
                     <Building2 size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-slate-400">Customer</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">{trip.customer?.name || '—'}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Customer</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.customer?.name || '—'}</p>
                   </div>
                 </div>
 
@@ -507,16 +532,16 @@ export default function TripDetailsPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-[11px] font-medium text-slate-400">Driver</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Driver</p>
                       {trip.driver && !isClosed && (
                         <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
                           <PopoverTrigger asChild>
-                            <button type="button" aria-label="Replace driver" className="text-slate-400 hover:text-[#E8450F] transition-colors shrink-0">
+                            <button type="button" aria-label="Replace driver" className="text-[#9898A4] hover:text-[#E8450F] transition-colors shrink-0">
                               <RefreshCcw size={10} />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent align="start" className="w-72 p-3 space-y-2">
-                            <p className="text-xs font-semibold text-slate-900">Replace driver</p>
+                            <p className="text-xs font-semibold text-[#111]">Replace driver</p>
                             <Combobox
                               value={replaceDriverId}
                               onChange={setReplaceDriverId}
@@ -539,10 +564,10 @@ export default function TripDetailsPage() {
                         </Popover>
                       )}
                     </div>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
                       {trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned'}
                     </p>
-                    {trip.driver?.phone_primary && <p className="text-xs text-slate-500 truncate">{trip.driver.phone_primary}</p>}
+                    {trip.driver?.phone_primary && <p className="text-xs text-[#6E6E80] truncate">{trip.driver.phone_primary}</p>}
                   </div>
                 </div>
 
@@ -551,23 +576,23 @@ export default function TripDetailsPage() {
                     <Truck size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-slate-400">Vehicle</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">{trip.vehicle?.plate_number || 'Unassigned'}</p>
-                    {trip.vehicle?.asset_type && <p className="text-xs text-slate-500 truncate">{trip.vehicle.asset_type}</p>}
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Vehicle</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.vehicle?.plate_number || 'Unassigned'}</p>
+                    {trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>}
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-black/[0.05] text-[#6E6E80] flex items-center justify-center shrink-0">
                     <Calendar size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-slate-400">ETA</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">ETA</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
                       {trip.planned_end ? new Date(trip.planned_end).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                     </p>
                     {trip.planned_end && (
-                      <p className="text-xs text-slate-500 truncate">{new Date(trip.planned_end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="text-xs text-[#6E6E80] truncate">{new Date(trip.planned_end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
                     )}
                   </div>
                 </div>
@@ -582,46 +607,248 @@ export default function TripDetailsPage() {
               pickupLng={pickup?.location_lng}
               dropoffLat={dropoff?.location_lat}
               dropoffLng={dropoff?.location_lng}
+              pickupLabel={pickup?.location_name || undefined}
+              dropoffLabel={dropoff?.location_name || undefined}
               showHeader={false}
               showTelemetryBar={false}
-              className="rounded-2xl"
+              className="rounded-xl shadow-none border border-black/[0.12]"
               mapHeightClassName="h-[320px]"
             />
 
-            {/* Route row */}
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
-              <div className="flex items-center gap-4">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <span className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                    <MapPin size={14} />
+
+            {/* Documents & Invoice Tabs Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-black/[0.08] dark:border-slate-800/80 px-1 pb-0">
+                <div className="flex items-center gap-6">
+                  <button
+                    type="button"
+                    onClick={() => setDocTab('documents')}
+                    className={cn(
+                      'flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors cursor-pointer',
+                      docTab === 'documents' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
+                    )}
+                  >
+                    <FileStack size={15} />
+                    Documents
+                    {documents.length > 0 && (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-[#E8450F] border border-orange-200">
+                        {documents.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDocTab('invoice')}
+                    className={cn(
+                      'flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors cursor-pointer',
+                      docTab === 'invoice' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
+                    )}
+                  >
+                    <ReceiptText size={15} />
+                    Invoice
+                    {invoice && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+                        {invoice.ref_id}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {docTab === 'documents' && (
+                  <Btn
+                    label="Upload Document"
+                    variant="primary"
+                    size="sm"
+                    icon={<UploadCloud size={14} />}
+                    onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
+                    className="bg-[#E8450F] hover:bg-[#C7380A] text-white rounded-xl shadow-2xs font-semibold text-xs mb-2 cursor-pointer"
+                  />
+                )}
+              </div>
+
+              {docTab === 'documents' && (
+                <Card className="rounded-xl border border-black/[0.12] bg-white overflow-hidden">
+                  <CardHeader className="pb-3 border-b border-black/[0.06] dark:border-slate-800/80">
+                    <CardTitle className="text-sm font-bold text-[#111] dark:text-slate-100 flex items-center justify-between gap-2">
+                      <span>Attached Files & Manifests</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
+                      Most PODs and delivery receipts are uploaded directly by drivers via the MERCON Driver Mobile App. You can also manually upload documents here.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    {isLoadingDocs ? (
+                      <div className="space-y-3">
+                        <Skeleton className="h-16 w-full rounded-xl" />
+                        <Skeleton className="h-16 w-full rounded-xl" />
+                      </div>
+                    ) : documents.length === 0 ? (
+                      <div className="text-center py-10 px-4 border-2 border-dashed border-black/[0.08] dark:border-slate-800/80 rounded-2xl bg-black/[0.02] dark:bg-slate-900/20">
+                        <div className="w-12 h-12 rounded-2xl bg-black/[0.05] dark:bg-slate-800 text-[#9898A4] flex items-center justify-center mx-auto mb-3">
+                          <FileText size={24} />
+                        </div>
+                        <p className="text-sm font-bold text-[#111] dark:text-slate-200">No documents uploaded yet</p>
+                        <p className="text-xs text-[#6E6E80] max-w-md mx-auto mt-1 mb-4">
+                          Most PODs and delivery receipts will be uploaded automatically by drivers via the MERCON Mobile App upon arrival.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
+                          className="h-8.5 px-4 rounded-xl text-xs font-semibold border-black/[0.12] text-[#111] hover:bg-black/[0.03] gap-1.5 cursor-pointer"
+                        >
+                          <UploadCloud size={14} className="text-[#E8450F]" />
+                          Upload Document Manually
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {documents.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-black/[0.18] dark:hover:border-slate-700 transition-all group shadow-2xs"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
+                                <FileText size={18} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-[#111] dark:text-slate-100 truncate">
+                                  {docTypeLabel(doc.doc_type)}
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#6E6E80]">
+                                  <span>{new Date(doc.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <StatusBadge status={doc.status} />
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-8 h-8 rounded-lg bg-black/[0.03] dark:bg-slate-800 text-[#6E6E80] dark:text-slate-300 hover:bg-[#E8450F] hover:text-white dark:hover:bg-[#E8450F] flex items-center justify-center transition-colors border border-black/[0.08] dark:border-slate-700"
+                                aria-label="View document"
+                                title="Open Document"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {docTab === 'invoice' && (
+                <Card className="rounded-xl border border-black/[0.12] bg-white overflow-hidden">
+                  <CardHeader className="pb-3 border-b border-black/[0.06] dark:border-slate-800/80">
+                    <CardTitle className="text-sm font-bold text-[#111] dark:text-slate-100 flex items-center gap-2">
+                      <ReceiptText size={16} className="text-blue-600" />
+                      Trip Invoice Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    {invoice ? (
+                      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-black/[0.03] dark:bg-slate-900/40 border border-black/[0.08] dark:border-slate-800">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-[#6E6E80]">Invoice Reference</p>
+                          <p className="text-base font-bold font-mono text-[#111] dark:text-slate-100">{invoice.ref_id}</p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <StatusBadge status={invoice.status} />
+                            <span className="text-xs text-[#9898A4]">•</span>
+                            <span className="text-xs font-bold text-[#111] dark:text-slate-100">
+                              SAR {invoice.total_amount.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        <Btn
+                          label="View Invoice"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/invoices/${invoice.id}`)}
+                          className="rounded-xl border-black/[0.12] text-xs font-semibold cursor-pointer"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-black/[0.02] dark:bg-slate-900/20 border border-dashed border-black/[0.12] dark:border-slate-800">
+                        <div>
+                          <p className="text-sm font-bold text-[#111] dark:text-slate-200">No invoice generated yet</p>
+                          <p className="text-xs font-medium text-[#6E6E80] mt-0.5">Invoices can be created once the trip is completed.</p>
+                        </div>
+                        {trip.status === 'Completed' && (
+                          <Btn
+                            label="Generate Invoice"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => navigate(`/invoices/new?trip_id=${trip.id}`)}
+                            className="rounded-xl text-xs font-semibold cursor-pointer"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+
+          {/* ───────────────────────── Right: sidebar ───────────────────────── */}
+          <div className="space-y-4">
+            {/* ── Trip Progress Card ───────────────────────────────── */}
+            <Card className="rounded-xl border border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-[#111] dark:text-slate-100">Trip Progress</p>
+                <StatusBadge status={trip.status} />
+              </div>
+
+              <div className="mt-3">
+                <p className="text-3xl font-extrabold text-[#111] dark:text-slate-100 tracking-tight">
+                  {trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}
+                </p>
+                <Progress
+                  value={trip.status === 'Cancelled' ? 0 : stageProgress}
+                  className="h-1.5 mt-2.5 [&_[data-slot=progress-track]]:bg-black/[0.04] dark:[&_[data-slot=progress-track]]:bg-slate-800 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
+                />
+              </div>
+
+              {/* Pickup & Drop-off route waypoints */}
+              <div className="mt-4 pt-4 border-t border-black/[0.06] dark:border-slate-800/80 space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <MapPin size={12} />
                   </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Pickup Location</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Pickup Location</p>
+                    <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
                       {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
                     </p>
                     {pickup && (
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-[11px] text-[#6E6E80] mt-0.5">
                         {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="hidden sm:flex items-center gap-2 text-slate-300 shrink-0 px-2">
-                  <span className="w-16 border-t border-dashed border-slate-300" />
-                  <Truck size={14} className="text-slate-400" />
-                  <span className="w-16 border-t border-dashed border-slate-300" />
+                <div className="pl-[11px] -my-1 py-0.5 flex items-center gap-2">
+                  <div className="w-px h-3.5 bg-black/[0.1] dark:bg-slate-700" />
                 </div>
 
-                <div className="flex items-start gap-3 min-w-0 flex-1 justify-end text-right">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Drop-off Location</p>
-                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                <div className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <MapPin size={12} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Drop-off Location</p>
+                    <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
                       {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
                     </p>
                     {dropoff && (
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-[11px] text-[#6E6E80] mt-0.5">
                         {dropoff.actual_arrival
                           ? fullDateTime(dropoff.actual_arrival)
                           : dropoff.planned_arrival
@@ -630,388 +857,54 @@ export default function TripDetailsPage() {
                       </p>
                     )}
                   </div>
-                  <span className="w-8 h-8 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0">
-                    <MapPin size={14} />
-                  </span>
                 </div>
               </div>
-            </Card>
-
-            {/* Segmented content switcher */}
-            <div className="flex items-center gap-6 border-b border-slate-200 px-1">
-              {CONTENT_TABS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setActiveTab(t.key)}
-                  className={cn(
-                    'flex items-center gap-1.5 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors',
-                    activeTab === t.key ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-slate-500 hover:text-slate-700',
-                  )}
-                >
-                  <t.icon size={14} />
-                  {t.label}
-                  {t.key === 'stops' && trip.stops && trip.stops.length > 0 && (
-                    <span className="text-[10px] text-slate-400">({trip.stops.length})</span>
-                  )}
-                  {t.key === 'documents' && documents.length > 0 && (
-                    <span className="text-[10px] text-slate-400">({documents.length})</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Stops tab */}
-            {activeTab === 'stops' && (
-              <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-0 gap-0 overflow-hidden">
-                {(trip.stops || []).length === 0 ? (
-                  <div className="text-center py-10">
-                    <MapPin size={24} className="text-slate-300 mx-auto mb-2" />
-                    <p className="text-xs font-medium text-slate-500">No stops on this manifest yet.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-14">Stop</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Scheduled Time</TableHead>
-                        <TableHead>Actual Time</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-10" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(trip.stops || []).map((stop) => {
-                        const isExpanded = expandedStopId === stop.id;
-                        const dwell = dwellMinutes(stop);
-                        const late = arrivalDelayMinutes(stop);
-                        const stopDone = !!stop.actual_arrival;
-                        const stopStatus = stopDone ? 'Completed' : stop.id === nextStopId ? 'Pending' : 'Upcoming';
-                        return (
-                          <>
-                            <TableRow key={stop.id} className="cursor-pointer" onClick={() => setExpandedStopId(isExpanded ? null : stop.id)}>
-                              <TableCell>
-                                <span className={cn(
-                                  'w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center',
-                                  stop.stop_type === 'Pickup' ? 'bg-emerald-500' : stop.stop_type === 'Dropoff' ? 'bg-[#E8450F]' : 'bg-slate-400',
-                                )}>
-                                  {stop.stop_sequence}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <p className="font-semibold text-slate-900">{stop.location_name || `${stop.location_lat.toFixed(4)}, ${stop.location_lng.toFixed(4)}`}</p>
-                                <p className="text-xs text-slate-400 font-normal">{stop.stop_type}</p>
-                              </TableCell>
-                              <TableCell className="text-slate-600">{stop.planned_arrival ? fullDateTime(stop.planned_arrival) : '—'}</TableCell>
-                              <TableCell className="text-slate-600">{stop.actual_arrival ? fullDateTime(stop.actual_arrival) : '—'}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={cn(
-                                  'text-[10px] font-semibold border-transparent',
-                                  stopStatus === 'Completed' && 'bg-emerald-50 text-emerald-700',
-                                  stopStatus === 'Pending' && 'bg-orange-50 text-[#E8450F]',
-                                  stopStatus === 'Upcoming' && 'bg-slate-100 text-slate-500',
-                                )}>
-                                  {stopStatus}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <ChevronDown size={14} className={cn('text-slate-400 transition-transform', isExpanded && 'rotate-180')} />
-                              </TableCell>
-                            </TableRow>
-                            {isExpanded && (
-                              <TableRow key={`${stop.id}-detail`} className="hover:bg-transparent">
-                                <TableCell colSpan={6} className="bg-slate-50/70 py-4">
-                                  <div className="flex gap-4 text-[11px] text-slate-500 font-medium flex-wrap">
-                                    {stop.actual_departure && <span>Left: {fullDateTime(stop.actual_departure)}</span>}
-                                    {dwell !== null && <span className="font-semibold text-slate-900">Dwell: {formatDelay(dwell)}</span>}
-                                  </div>
-
-                                  {late !== null && (
-                                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 max-w-xl">
-                                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                                        <span className="text-[11px] font-semibold text-amber-800">Arrived {formatDelay(late)} late</span>
-                                        {delayFormStopId !== stop.id && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); openDelayForm(stop); }}
-                                            className="text-[10px] font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
-                                          >
-                                            {stop.delay_reason ? 'Change reason' : 'Add reason'}
-                                          </button>
-                                        )}
-                                      </div>
-
-                                      {stop.delay_reason && delayFormStopId !== stop.id && (
-                                        <div className="flex items-center justify-between gap-2 mt-1 flex-wrap">
-                                          <p className="text-[11px] text-amber-900">
-                                            {DELAY_REASON_LABELS[stop.delay_reason]}
-                                            {stop.delay_note ? ` — ${stop.delay_note}` : ''}
-                                          </p>
-                                          {stop.delay_logged_by && (
-                                            <span className="text-[10px] text-amber-700">
-                                              by <UserChip userId={stop.delay_logged_by} users={users} size="sm" />
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
-                                      {!stop.delay_reason && delayFormStopId !== stop.id && (
-                                        <p className="text-[10px] text-amber-700 mt-1">No reason recorded yet.</p>
-                                      )}
-
-                                      {delayFormStopId === stop.id && (
-                                        <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
-                                          <Select value={delayReason} onValueChange={(v) => setDelayReason(v as DelayReason)}>
-                                            <SelectTrigger className="w-full h-8 bg-white border-amber-300 text-[11px]">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {DELAY_REASONS.map((r) => (
-                                                <SelectItem key={r} value={r} className="text-xs">{DELAY_REASON_LABELS[r]}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          <input
-                                            type="text"
-                                            value={delayNote}
-                                            onChange={(e) => setDelayNote(e.target.value)}
-                                            maxLength={500}
-                                            placeholder="Note (optional)"
-                                            className="w-full h-8 rounded border border-amber-300 bg-white px-2 text-[11px] outline-none focus:border-amber-500"
-                                          />
-                                          <div className="flex gap-2">
-                                            <button
-                                              type="button"
-                                              disabled={logDelayMutation.isPending}
-                                              onClick={() => logDelayMutation.mutate({
-                                                stopId: stop.id,
-                                                delay_reason: delayReason,
-                                                delay_note: delayNote.trim() || undefined,
-                                              })}
-                                              className="h-7 px-3 rounded bg-amber-600 text-white text-[10px] font-bold hover:bg-amber-700 disabled:opacity-50"
-                                            >
-                                              {logDelayMutation.isPending ? 'Saving…' : 'Save reason'}
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => setDelayFormStopId(null)}
-                                              className="h-7 px-3 rounded border border-amber-300 text-amber-900 text-[10px] font-bold hover:bg-amber-100"
-                                            >
-                                              Cancel
-                                            </button>
-                                          </div>
-                                          {logDelayMutation.isError && (
-                                            <p className="text-[10px] text-red-600">Could not save that reason. Try again.</p>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </Card>
-            )}
-
-            {/* Documents tab */}
-            {activeTab === 'documents' && (
-              <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-slate-900">Documents</CardTitle>
-                  <CardDescription className="text-[11px] mt-0.5">POD, waybills, and other files attached to this trip.</CardDescription>
-                  <CardAction>
-                    <Btn
-                      label="Upload"
-                      variant="secondary"
-                      size="sm"
-                      icon={<UploadCloud size={13} />}
-                      onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                    />
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingDocs ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-10 w-full rounded-lg" />
-                      <Skeleton className="h-10 w-full rounded-lg" />
-                    </div>
-                  ) : documents.length === 0 ? (
-                    <div className="text-center py-6">
-                      <FileText size={22} className="text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs font-medium text-slate-500">No documents uploaded for this trip yet.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-slate-100">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
-                              <FileText size={14} />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-slate-900 truncate">{docTypeLabel(doc.doc_type)}</p>
-                              <p className="text-[10px] text-slate-500">{new Date(doc.createdAt).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <StatusBadge status={doc.status} />
-                            <a
-                              href={doc.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-slate-400 hover:text-[#E8450F] p-1"
-                              aria-label="View document"
-                            >
-                              <ExternalLink size={13} />
-                            </a>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Audit tab */}
-            {activeTab === 'audit' && (
-              <div className="space-y-4">
-                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-500 flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
-                        <ListChecks size={12} />
-                      </div>
-                      Audit Trail
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500 font-medium">Created by</span>
-                      <UserChip userId={trip.created_by} users={users} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500 font-medium">Created</span>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span className="text-[11px] font-semibold text-slate-900 cursor-default">
-                            {new Date(trip.createdAt).toLocaleDateString()}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500 font-medium">Last updated by</span>
-                      <UserChip userId={trip.updated_by} users={users} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500 font-medium">Updated</span>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span className="text-[11px] font-semibold text-slate-900 cursor-default">
-                            {new Date(trip.updatedAt).toLocaleDateString()}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-500 flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
-                        <ReceiptText size={12} />
-                      </div>
-                      Invoice
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {invoice ? (
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-base font-semibold text-slate-900">{invoice.ref_id}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">SAR {invoice.total_amount.toLocaleString()}</p>
-                          <div className="mt-1.5"><StatusBadge status={invoice.status} /></div>
-                        </div>
-                        <Btn label="View" variant="ghost" size="sm" onClick={() => navigate(`/invoices/${invoice.id}`)} />
-                      </div>
-                    ) : (
-                      <p className="text-xs font-medium text-slate-500">No invoice generated yet.</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-
-          {/* ───────────────────────── Right: sidebar ───────────────────────── */}
-          <div className="space-y-4">
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 gap-0">
-              <p className="text-sm font-semibold text-slate-900">Trip Progress</p>
-              <p className="text-4xl font-bold text-[#E8450F] mt-2">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
-              <Progress
-                value={trip.status === 'Cancelled' ? 0 : stageProgress}
-                className="h-1.5 mt-3 [&_[data-slot=progress-track]]:bg-orange-100 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
-              />
-
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 mt-4">
-                <MapPin size={13} className="text-emerald-500 shrink-0" />
-                <span className="truncate">{pickup?.location_name || 'Pickup'}</span>
-                <ArrowRight size={12} className="text-slate-300 shrink-0" />
-                <span className="truncate">{dropoff?.location_name || 'Drop-off'}</span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                ETA: {trip.planned_end ? fullDateTime(trip.planned_end) : '—'}
-              </p>
 
               <Separator className="my-4" />
 
-              <div className="space-y-3">
+              {/* Stats rows */}
+              <div className="space-y-2.5">
                 {sidebarStats.map((s) => (
                   <div key={s.label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className={cn('w-7 h-7 rounded-full flex items-center justify-center', s.tone)}>
-                        <s.icon size={13} />
-                      </div>
-                      <span className="text-xs text-slate-500">{s.label}</span>
+                    <div className="flex items-center gap-2 text-xs text-[#6E6E80]">
+                      <s.icon size={13} className="text-[#9898A4]" />
+                      <span>{s.label}</span>
                     </div>
-                    <span className="text-sm font-semibold text-slate-900">{s.value}</span>
+                    <span className="text-xs font-semibold text-[#111] dark:text-slate-100">{s.value}</span>
                   </div>
                 ))}
               </div>
 
+              {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-2 mt-5">
                 {trip.driver?.phone_primary ? (
                   <a href={`tel:${trip.driver.phone_primary}`} className="w-full">
-                    <Btn label="Call Driver" variant="outline" size="sm" icon={<Phone size={13} />} className="w-full rounded-xl border-slate-200" />
+                    <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 text-[#111] dark:text-slate-200 hover:bg-black/[0.03] text-xs font-semibold gap-1.5 cursor-pointer">
+                      <Phone size={13} />
+                      Call Driver
+                    </Button>
                   </a>
                 ) : (
-                  <Btn label="Call Driver" variant="outline" size="sm" icon={<Phone size={13} />} className="w-full rounded-xl border-slate-200" disabled />
+                  <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-black/[0.06] dark:border-slate-800 bg-black/[0.02] dark:bg-slate-900 text-slate-400 text-xs font-semibold gap-1.5 cursor-not-allowed" disabled>
+                    <Phone size={13} />
+                    Call Driver
+                  </Button>
                 )}
-                <Btn
-                  label="View Map"
+                <Button
                   size="sm"
-                  icon={<Navigation size={13} />}
-                  className="w-full rounded-xl bg-[#E8450F] hover:bg-[#C7380A]"
+                  className="w-full h-8.5 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer active:scale-[0.98] transition-all"
                   onClick={() => navigate(`/trips/${trip.id}/track`)}
-                />
+                >
+                  <Navigation size={13} />
+                  View Map
+                </Button>
               </div>
             </Card>
 
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <Card className="rounded-xl border border-black/[0.12] bg-white">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-900">Activity</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-[#111]">Activity</CardTitle>
                   {trip.status === 'InTransit' && (
                     <Badge variant="outline" className="text-[10px] font-semibold border-emerald-200 bg-emerald-50 text-emerald-600 gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
@@ -1024,13 +917,13 @@ export default function TripDetailsPage() {
                   <div key={step.key} className="flex items-start gap-2.5">
                     <StepCircle status={timelineStatus[i]} useTruckForDone={step.key === 'departed'} />
                     <div className="min-w-0 -mt-0.5">
-                      <p className={cn('text-xs font-semibold', timelineStatus[i] === 'pending' ? 'text-slate-400' : 'text-slate-900')}>
+                      <p className={cn('text-xs font-semibold', timelineStatus[i] === 'pending' ? 'text-[#9898A4]' : 'text-[#111]')}>
                         {step.label}
                       </p>
                       {step.time ? (
-                        <p className="text-[11px] text-slate-500 mt-0.5">{fullDateTime(step.time)}</p>
+                        <p className="text-[11px] text-[#6E6E80] mt-0.5">{fullDateTime(step.time)}</p>
                       ) : step.sub ? (
-                        <p className={cn('text-[11px] mt-0.5', timelineStatus[i] === 'active' ? 'text-[#E8450F] font-semibold' : 'text-slate-400')}>{step.sub}</p>
+                        <p className={cn('text-[11px] mt-0.5', timelineStatus[i] === 'active' ? 'text-[#E8450F] font-semibold' : 'text-[#9898A4]')}>{step.sub}</p>
                       ) : null}
                     </div>
                   </div>
@@ -1106,5 +999,5 @@ function StepCircle({ status, useTruckForDone }: { status: StepStatus; useTruckF
       </span>
     );
   }
-  return <span className="w-6 h-6 rounded-full border-2 border-slate-200 bg-white shrink-0" />;
+  return <span className="w-6 h-6 rounded-full border-2 border-black/[0.06] bg-white shrink-0" />;
 }
