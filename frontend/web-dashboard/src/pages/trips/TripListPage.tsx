@@ -731,7 +731,10 @@ export default function TripListPage() {
             trendValue="En-Route"
             description="Active trucks on the road"
             icon={RouteLine}
-            chartData={[3, 5, 4, 8, 6, 9, inTransitCount || 10]}
+            livePulseTrack={{
+              statusText: `${inTransitCount} Active En-Route`,
+              subText: "Live GPS Track",
+            }}
             isActive={selectedStatus === 'InTransit'}
             onClick={() => {
               setSelectedStatus('InTransit');
@@ -746,7 +749,11 @@ export default function TripListPage() {
             trendValue={`${completedPercentage}% Settled`}
             description="POD verified & delivered"
             icon={CheckBadge}
-            chartData={[12, 18, 22, 30, 35, 40, completedCount || 42]}
+            completionGauge={{
+              percentage: completedPercentage || 100,
+              label: `${completedPercentage}% Delivered`,
+              subtext: `${completedCount} Verified Receipts`
+            }}
             isActive={selectedStatus === 'Completed'}
             onClick={() => {
               setSelectedStatus('Completed');
@@ -761,7 +768,10 @@ export default function TripListPage() {
             trendValue="Pending Stage"
             description="Stage workflow queue"
             icon={ClockIcon}
-            chartData={[5, 8, 6, 12, 10, 7, draftTrips.length || 8]}
+            pipelineStages={[
+              { name: "Draft", count: draftTrips.length, color: "bg-amber-500" },
+              { name: "Dispatched", count: kpiTrips.filter(t => t.status === 'Dispatched').length, color: "bg-blue-500" },
+            ]}
             isActive={selectedStatus === 'Draft'}
             onClick={() => {
               setSelectedStatus('Draft');
