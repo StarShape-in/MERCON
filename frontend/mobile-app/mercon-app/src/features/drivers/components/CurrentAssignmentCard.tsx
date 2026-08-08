@@ -60,7 +60,7 @@ export function CurrentAssignmentCard({ assignment, onTrackTrip }: CurrentAssign
               {assignment.refId ?? 'Active Trip'}
             </Text>
             <Text numberOfLines={1} className="mt-0.5 text-[12px] text-gray-400">
-              {assignment.customerName ?? 'Customer unavailable'} · {assignment.cargoType}
+              {assignment.customerName ?? 'Customer unavailable'}
             </Text>
           </View>
 

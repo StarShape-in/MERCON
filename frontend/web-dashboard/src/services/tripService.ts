@@ -6,7 +6,6 @@ export interface Trip {
   id: string;
   ref_id: string;
   status: TripStatus;
-  cargo_type: string;
   planned_start: string | null;
   actual_start: string | null;
   planned_end: string | null;
@@ -15,21 +14,19 @@ export interface Trip {
   extra_driver_payment: number | null;
   payment_reason: string | null;
   payment_status: string | null;
-  payment_approved_by: string | null;
-  payment_date: string | null;
   waiting_labor_charges?: number;
   additional_stop_charges?: number;
   trip_charges?: number;
   billing_amount?: number;
   carrier_name?: string;
   is_post_trip_settled?: boolean;
-  created_by: string | null;
-  updated_by: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
   createdAt: string;
   updatedAt: string;
   customer?: { id: string; name: string; contact_phone: string };
   driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; ai_risk_score?: number } | null;
-  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg?: number; icces_device_id?: string | null; last_lat?: number | null; last_lng?: number | null } | null;
+  vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null } | null;
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
 }
@@ -54,7 +51,6 @@ export interface CreateTripPayload {
   customer_id: string;
   driver_id?: string;
   vehicle_id?: string;
-  cargo_type?: string;
   planned_start?: string;
   stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string; location_name?: string }[];
 }
@@ -155,14 +151,14 @@ export const tripService = {
     return res.data.data;
   },
 
-  /** Swap the assigned driver mid-trip; the old driver is freed back to Available. */
-  async replaceDriver(id: string, newDriverId: string): Promise<Trip> {
-    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/replace-driver`, { new_driver_id: newDriverId });
+  async approvePayment(id: string, amount: number, reason: string): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/payment/approve`, { amount, reason });
     return res.data.data;
   },
 
-  async approvePayment(id: string, amount: number, reason: string): Promise<Trip> {
-    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/payment/approve`, { amount, reason });
+  /** Swap the assigned driver mid-trip. */
+  async replaceDriver(id: string, driverId: string): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${id}/replace-driver`, { driver_id: driverId });
     return res.data.data;
   },
 
@@ -184,7 +180,6 @@ export interface BulkImportTripRow {
   customer_name: string;
   driver_name?: string;
   vehicle_plate?: string;
-  cargo_type?: string;
   planned_start?: string;
 }
 

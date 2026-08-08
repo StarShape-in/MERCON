@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  ArrowLeft, Edit2, FileText, Phone, MapPin, Calendar, Activity, Star, AlertTriangle, 
+  ArrowLeft, Edit2, FileText, Phone, MapPin, Calendar, Activity, AlertTriangle,
   Eye, Trash2, Truck, ShieldCheck, CheckCircle2, Clock, User, IdCard, Mail, Building2, 
   ExternalLink, ShieldAlert, Gauge, Fuel, Check, Plus, AlertCircle, FileCheck
 } from 'lucide-react';
@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import DataTable from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
 
 export default function DriverDetailsPage() {
@@ -119,7 +120,7 @@ export default function DriverDetailsPage() {
                 <StatusBadge status={driver.status} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{driver.ref_id || 'N/A'}</span> • Commercial Heavy Fleet Operator
+                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{driver.ref_id || 'N/A'}</span>
               </p>
             </div>
           </div>
@@ -196,8 +197,8 @@ export default function DriverDetailsPage() {
               </div>
             </div>
 
-            {/* 4 Telematics Gauges */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 shrink-0">
+            {/* Telematics Gauges */}
+            <div className="grid grid-cols-2 gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 shrink-0">
               {/* Gauge 1: License Expiry */}
               <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">License Status</div>
@@ -213,16 +214,7 @@ export default function DriverDetailsPage() {
                 </div>
               </div>
 
-              {/* Gauge 2: Safety Rating */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Safety Rating</div>
-                <div className="text-xs font-mono font-extrabold text-amber-500 mt-0.5 flex items-center justify-center gap-1">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                  <span>4.8 / 5.0</span>
-                </div>
-              </div>
-
-              {/* Gauge 3: Completed Trips */}
+              {/* Gauge 2: Completed Trips */}
               <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[110px]">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Completed Trips</div>
                 <div className="text-xs font-mono font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
@@ -265,8 +257,8 @@ export default function DriverDetailsPage() {
               value="telematics" 
               className="text-xs font-semibold gap-1.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs rounded-lg"
             >
-              <Gauge className="w-3.5 h-3.5 text-slate-500" />
-              <span>Safety & Telematics</span>
+              <Truck className="w-3.5 h-3.5 text-slate-500" />
+              <span>Assigned Fleet Vehicle</span>
             </TabsTrigger>
           </TabsList>
 
@@ -412,122 +404,84 @@ export default function DriverDetailsPage() {
 
           {/* ── TAB 3: Trip History ────────────────────────────────────────── */}
           <TabsContent value="trips" className="m-0">
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#E8450F]" /> Driver Trip Dispatch History
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">
-                    Log of active and completed freight dispatches assigned to this driver.
-                  </CardDescription>
-                </div>
-                <Badge variant="outline" className="text-[10px] font-mono font-bold text-slate-500">
-                  {totalTripsCount} Total Trips
-                </Badge>
-              </CardHeader>
-
-              {(!driver.trips || driver.trips.length === 0) ? (
-                <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-2">
-                  <MapPin size={32} className="opacity-30 text-slate-400" />
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">No trips recorded for this driver yet.</p>
-                </div>
-              ) : (
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Trip ID</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Dispatch Date</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Status</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {driver.trips.map((trip) => (
-                      <tr key={trip.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="px-5 py-3">
-                          <span className="font-mono text-xs font-extrabold text-[#E8450F]">{trip.ref_id}</span>
-                        </td>
-                        <td className="px-5 py-3 text-xs text-slate-600 dark:text-slate-300 font-mono">
-                          {new Date(trip.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-5 py-3">
-                          <StatusBadge status={trip.status as any} />
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/trips/${trip.id}`)}
-                            className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600"
-                            title="View Trip Details"
-                          >
-                            <Eye size={14} />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Card>
+            <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#E8450F]" />
+                  <span>Driver Trip Dispatch History</span>
+                </span>
+              }
+              columns={[
+                {
+                  header: 'Trip ID',
+                  accessor: (trip: any) => (
+                    <span className="font-mono text-xs font-extrabold text-[#E8450F]">{trip.ref_id}</span>
+                  ),
+                },
+                {
+                  header: 'Dispatch Date',
+                  accessor: (trip: any) => (
+                    <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
+                      {new Date(trip.createdAt).toLocaleDateString()}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Status',
+                  accessor: (trip: any) => <StatusBadge status={trip.status} />,
+                },
+                {
+                  header: 'Action',
+                  headerClassName: 'text-right',
+                  className: 'text-right',
+                  accessor: (trip: any) => (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/trips/${trip.id}`)}
+                      className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600"
+                      title="View Trip Details"
+                    >
+                      <Eye size={14} />
+                    </Button>
+                  ),
+                },
+              ]}
+              data={driver.trips || []}
+              compact={true}
+              enableSelection={false}
+              emptyTitle="No Trips Recorded"
+              emptyMessage="No trips recorded for this driver yet."
+              onRowClick={(trip: any) => navigate(`/trips/${trip.id}`)}
+            />
           </TabsContent>
 
-          {/* ── TAB 4: Safety & Telematics ──────────────────────────────────── */}
+          {/* ── TAB 4: Assigned Fleet Vehicle ─────────────────────────────────── */}
           <TabsContent value="telematics" className="m-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Gauge className="w-4 h-4 text-indigo-500" /> Driver Safety Telematics Scorecard
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5 space-y-3.5 text-xs">
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-500 font-medium">Speeding Incidents (Last 30d)</span>
-                    <span className="font-mono font-bold text-emerald-600">0 Violations</span>
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-emerald-600" /> Assigned Fleet Vehicle
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 space-y-3 text-xs">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                  <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                      Volvo FH16 (600 HP)
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      Plate: 8821-KSA • Heavy Freight Tractor
+                    </p>
                   </div>
+                </div>
 
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-500 font-medium">Harsh Braking Index</span>
-                    <span className="font-mono font-bold text-emerald-600">98% Clean Score</span>
-                  </div>
-
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-500 font-medium">Weekly Driving Hours Cap</span>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">34h / 48h Limit</span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-medium">Fleet Fuel Efficiency</span>
-                    <span className="font-mono font-bold text-indigo-600">31.2 L / 100 km</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-emerald-600" /> Assigned Fleet Vehicle
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5 space-y-3 text-xs">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                    <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-                    <div>
-                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Volvo FH16 (600 HP)</h4>
-                      <p className="text-[11px] text-slate-400 font-mono">Plate: 8821-KSA • Heavy Freight Tractor</p>
-                    </div>
-                  </div>
-
-                  <p className="text-slate-500 text-[11px]">
-                    Assigned to primary long-haul routes between Riyadh, Jeddah, and Dammam distribution hubs.
-                  </p>
-                </CardContent>
-              </Card>
-
-            </div>
+                <p className="text-slate-500 text-[11px]">
+                  Assigned to primary long-haul routes between Riyadh, Jeddah, and Dammam distribution hubs.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 

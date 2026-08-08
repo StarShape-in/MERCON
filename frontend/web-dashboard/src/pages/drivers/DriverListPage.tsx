@@ -33,7 +33,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import KpiModal from '@/components/ui/KpiModal';
 import { DriverRosterKpi } from '@/components/ui/CustomKpiWidgets';
 
-import { downloadCSV, downloadExcel } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -167,7 +167,7 @@ export default function DriverListPage() {
     }
   };
 
-  const handleExportExcel = (rowsToExport: Driver[]) => {
+  const handleExportExcel = async (rowsToExport: Driver[]) => {
     const headers = [
       'Driver ID',
       'Driver Name',
@@ -195,7 +195,7 @@ export default function DriverListPage() {
       ];
     });
 
-    downloadExcel('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.xls`);
+    await exportExcelTable('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const columns = [
@@ -490,6 +490,7 @@ export default function DriverListPage() {
                 { label: "Off Duty", count: Math.max(0, totalCount - availableCount - onTripCount), color: "#D97706" },
               ]
             }}
+            isActive={activeKpiModal === 'total'}
             onClick={(e) => {
               setSelectedStatus('All');
               setCurrentPage(1);
@@ -510,6 +511,7 @@ export default function DriverListPage() {
               label: `${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`,
               subtext: `${availableCount} Ready • ${onTripCount} Dispatched`
             }}
+            isActive={activeKpiModal === 'available'}
             onClick={(e) => {
               setSelectedStatus('Available');
               setCurrentPage(1);
@@ -526,6 +528,7 @@ export default function DriverListPage() {
             description="Active en-route drivers"
             icon={TruckMotion}
             chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
+            isActive={activeKpiModal === 'onTrip'}
             onClick={(e) => {
               setSelectedStatus('OnTrip');
               setCurrentPage(1);
@@ -545,6 +548,7 @@ export default function DriverListPage() {
               { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-amber-500' },
               { label: `Valid (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-emerald-500' },
             ]}
+            isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
@@ -694,6 +698,7 @@ export default function DriverListPage() {
               data={filteredDrivers}
               columns={columns}
               enableSelection={true}
+              compact={true}
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load drivers.'}

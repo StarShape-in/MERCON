@@ -31,6 +31,14 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER:?POSTGRES_USER must be provided}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be provided}@postgres-db:5432/mercon_db?schema=public"
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be provided (set it as a GitHub Actions secret / env var)}"
       SEED_ADMIN_PASSWORD: "${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD must be provided (set it as a GitHub Actions secret / env var)}"
+      # ICCES GPS tracking. Optional — unset simply disables polling, so these
+      # use ${VAR:-} rather than the :? form the required secrets above use.
+      # Without these lines the credentials could not reach the container at
+      # all, which is why the tracker integration never once ran against the
+      # real service despite being written a month earlier.
+      ICCES_USER: "${ICCES_USER:-}"
+      ICCES_PASS: "${ICCES_PASS:-}"
+      ICCES_ACCT: "${ICCES_ACCT:-}"
       PORT: 3000
     volumes:
       - ./backend/api-server/uploads:/app/backend/api-server/uploads # Local VPS storage for files

@@ -205,6 +205,24 @@ model Vehicle {
   // Third-Party Tracking
   icces_device_id String? @unique
 
+  // Latest known telemetry, overwritten by the ICCES poller. Only the current
+  // position is kept — there is no history table, so this answers "where is it
+  // now?" and cannot answer "where was it yesterday?".
+  //
+  // All nullable, and deliberately so: a vehicle with no tracker, or one whose
+  // tracker has never reported, must be distinguishable from one genuinely
+  // sitting still at 0 km/h. Defaulting these to 0 would invent telemetry.
+  //
+  // `last_seen_at` is the one that matters most operationally: it is when the
+  // DEVICE reported, not when MERCON polled. Without it a tracker that died
+  // four hours ago looks exactly like a truck parked four hours ago — the
+  // fleet already contains such a device (DEVICE_NOT_WORKING, last report
+  // 4h22m stale) so this is not hypothetical.
+  last_speed_kph  Float?
+  last_heading    Float?
+  last_status     String?
+  last_seen_at    DateTime? @db.Timestamptz
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid
@@ -232,7 +250,6 @@ model Trip {
   vehicle    Vehicle? @relation(fields: [vehicleId], references: [id])
 
   status           TripStatus @default(Draft)
-  cargo_type       String
   planned_distance Float?
 
   planned_start DateTime? @db.Timestamptz

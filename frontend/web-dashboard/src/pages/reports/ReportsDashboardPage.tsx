@@ -15,6 +15,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { RevenueChart, TruckMotion, FleetTruck, DriverBadge, CalendarAlert } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import { reportsService } from '@/services/reportsService';
+import { exportExcelTable } from '@/utils/exportUtils';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,33 +51,29 @@ export default function ReportsDashboardPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!summary) return;
 
+    const headers = ['Section', 'Metric / Category', 'Value'];
     const rows = [
-      ['SECTION', 'METRIC / CATEGORY', 'VALUE'],
       ['KPI Summary', 'Total Freight Trips', summary.kpis?.total_trips?.value || 0],
       ['KPI Summary', 'Active Drivers', summary.kpis?.active_drivers?.value || 0],
       ['KPI Summary', 'Fleet Available (Standby)', summary.kpis?.fleet_available?.value || 0],
       ['KPI Summary', 'Fleet On Road', summary.kpis?.fleet_on_trip?.value || 0],
       ['KPI Summary', 'Revenue This Month (SAR)', summary.kpis?.revenue_this_month?.value || 0],
       ['KPI Summary', 'Documents Expiring Soon (30d)', summary.kpis?.docs_expiring_soon?.value || 0],
-      ['', '', ''],
       ['Trip Status Distribution', 'Status', 'Count'],
       ...Object.entries(summary.trip_status_distribution || {}).map(([status, count]) => ['Trip Status Distribution', status, count]),
-      ['', '', ''],
       ['Monthly Revenue', 'Month', 'Revenue (SAR)'],
       ...(summary.monthly_revenue_chart || []).map((m: any) => ['Monthly Revenue', m.month, m.revenue]),
     ];
 
-    const csvContent = rows.map((r) => r.join(',')).join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `executive_reports_summary_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await exportExcelTable(
+      'MERCON Executive Reports Summary',
+      headers,
+      rows,
+      `executive_reports_summary_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
   };
 
 

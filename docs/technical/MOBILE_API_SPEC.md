@@ -49,7 +49,6 @@ Fetches the driver's currently assigned active trip (status `Dispatched`, `AtPic
     "id": "uuid",
     "ref_id": "TRP-2023-001",
     "status": "InTransit",
-    "cargo_type": "Electronics",
     "customer": { ... },
     "vehicle": { ... },
     "stops": [

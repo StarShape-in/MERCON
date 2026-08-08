@@ -182,9 +182,6 @@ export default function EditTripPage() {
             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
               Operations Module
             </span>
-            <span className="text-xs text-[#6E6E80] font-medium">
-              Cargo: <strong className="text-[#111] font-semibold">{trip.cargo_type || 'General Freight'}</strong>
-            </span>
           </div>
           <button
             type="button"

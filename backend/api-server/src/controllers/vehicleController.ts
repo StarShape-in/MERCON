@@ -239,7 +239,6 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
         ref_id: t.ref_id,
         status: t.status,
         customer_name: t.customer?.name || 'N/A',
-        cargo_type: t.cargo_type,
         date: t.actual_end || t.actual_start || t.createdAt,
         income,
       };

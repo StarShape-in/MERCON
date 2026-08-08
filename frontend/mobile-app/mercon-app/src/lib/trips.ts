@@ -23,7 +23,6 @@ export interface MobileTrip {
   id: string;
   ref_id: string | null;
   status: TripStatus;
-  cargo_type: string;
   planned_distance: number | null;
   planned_start?: string | null;
   actual_start?: string | null;

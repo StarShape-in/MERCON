@@ -90,7 +90,7 @@ export default function DataTable<T>({
   bulkActions = [],
   emptyTitle = 'No Records Found',
   emptyMessage = 'There are no entries matching your current filters or search query.',
-  compact = false,
+  compact = true,
   className,
 }: DataTableProps<T>) {
   // Internal state for client-side pagination when onPageChange is not passed
@@ -123,11 +123,11 @@ export default function DataTable<T>({
     const validPage = Math.max(1, Math.min(newPage, computedTotalPages));
     if (isServerPaginated) {
       onPageChange?.(validPage);
+      setSelectedIndices(new Set());
+      onSelectionChange?.([]);
     } else {
       setInternalPage(validPage);
     }
-    setSelectedIndices(new Set());
-    onSelectionChange?.([]);
   };
 
   const handlePageSizeChange = (newSize: number) => {
@@ -145,11 +145,11 @@ export default function DataTable<T>({
   };
 
   const handleSelectAll = () => {
-    if (selectedIndices.size === displayData.length && displayData.length > 0) {
+    if (selectedIndices.size === data.length && data.length > 0) {
       setSelectedIndices(new Set());
       onSelectionChange?.([]);
     } else {
-      const newSet = new Set(displayData.map((_, i) => i));
+      const newSet = new Set(data.map((_, i) => i));
       setSelectedIndices(newSet);
       onSelectionChange?.(Array.from(newSet));
     }
@@ -201,7 +201,7 @@ export default function DataTable<T>({
                     size="sm"
                     className={action.className}
                     onClick={() => {
-                      const selectedRows = Array.from(selectedIndices).map(idx => displayData[idx]);
+                      const selectedRows = Array.from(selectedIndices).map(idx => data[idx]).filter(Boolean);
                       action.onClick(selectedRows);
                     }}
                   />
@@ -266,7 +266,7 @@ export default function DataTable<T>({
                     className="h-8 text-xs font-semibold px-3 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 transition-colors"
                   >
                     <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>{selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}</span>
+                    <span>{selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}</span>
                   </Button>
                 )}
                 {actionsElement}
@@ -291,10 +291,24 @@ export default function DataTable<T>({
           <TableHeader>
             <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
               {enableSelection && (
-                <TableHead className="w-[48px] px-5" />
+                <TableHead className={cn(compact ? "w-[44px] px-4" : "w-[48px] px-5")}>
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    checked={data.length > 0 && selectedIndices.size === data.length}
+                    ref={(input) => {
+                      if (input) {
+                        input.indeterminate = selectedIndices.size > 0 && selectedIndices.size < data.length;
+                      }
+                    }}
+                    onChange={handleSelectAll}
+                    aria-label="Select all rows"
+                    title={selectedIndices.size === data.length ? "Deselect All" : "Select All"}
+                  />
+                </TableHead>
               )}
               {columns.map((c, i) => (
-                <TableHead key={i} className={cn("text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 h-11 px-5", c.headerClassName)}>
+                <TableHead key={i} className={cn("text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 h-11", compact ? "px-4" : "px-5", c.headerClassName)}>
                   {c.header}
                 </TableHead>
               ))}
@@ -346,7 +360,8 @@ export default function DataTable<T>({
             ) : (
               // Data Rows
               displayData.map((row, rowIndex) => {
-                const isSelected = selectedIndices.has(rowIndex);
+                const actualIndex = isServerPaginated ? rowIndex : (activePage - 1) * activePageSize + rowIndex;
+                const isSelected = selectedIndices.has(actualIndex);
                 return (
                   <TableRow
                     key={rowIndex}
@@ -387,7 +402,7 @@ export default function DataTable<T>({
                           type="checkbox"
                           className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                           checked={isSelected}
-                          onChange={() => handleSelectRow(rowIndex)}
+                          onChange={() => handleSelectRow(actualIndex)}
                           aria-label={`Select row ${rowIndex + 1}`}
                         />
                       </TableCell>

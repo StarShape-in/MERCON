@@ -24,6 +24,11 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          # ICCES GPS tracking — optional. Absent secrets leave these empty,
+          # which disables polling; the deploy is not blocked on them.
+          ICCES_USER: ${{ secrets.ICCES_USER }}
+          ICCES_PASS: ${{ secrets.ICCES_PASS }}
+          ICCES_ACCT: ${{ secrets.ICCES_ACCT }}
         run: |
           echo "Rebuilding backend and frontend services..."
           # docker-compose.yml lives at the repo root (workspace-aware builds)

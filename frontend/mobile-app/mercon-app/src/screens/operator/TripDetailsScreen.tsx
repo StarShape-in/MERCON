@@ -225,10 +225,6 @@ const TripDetailsScreen = () => {
                 <Text style={styles.headerStatLabel}>Planned End</Text>
                 <Text style={styles.headerStatValue}>{formatDateTime(trip.planned_end)}</Text>
               </View>
-              <View style={styles.headerStat}>
-                <Text style={styles.headerStatLabel}>Cargo</Text>
-                <Text style={styles.headerStatValue} numberOfLines={1}>{trip.cargo_type}</Text>
-              </View>
             </View>
           </View>
         </View>
@@ -263,12 +259,11 @@ const TripDetailsScreen = () => {
           </Card>
         </View>
 
-        {/* Cargo Details */}
+        {/* Trip Details */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cargo Details</Text>
+          <Text style={styles.sectionTitle}>Trip Details</Text>
           <Card style={styles.detailCard}>
             {[
-              { label: 'Description', value: trip.cargo_type },
               { label: 'Customer', value: trip.customer?.name ?? '—' },
               { label: 'Planned Start', value: formatDateTime(trip.planned_start) },
             ].map((row, i, arr) => (

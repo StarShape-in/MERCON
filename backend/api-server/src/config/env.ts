@@ -20,7 +20,21 @@ export const env = {
   JWT_SECRET: required('JWT_SECRET'),
   PORT: Number(process.env.PORT) || 3000,
   BASE_URL: process.env.BASE_URL, // optional — derived from PORT when absent
-  ICCES_USER: process.env.ICCES_USER || 'demo',
-  ICCES_PASS: process.env.ICCES_PASS || 'demo123',
-  ICCES_ACCT: process.env.ICCES_ACCT || 'demo_account',
+  // ICCES GPS tracking. Optional: the platform runs perfectly well without a
+  // tracker integration, so a missing credential disables polling rather than
+  // stopping the server.
+  //
+  // These previously defaulted to 'demo'/'demo123'/'demo_account'. That looked
+  // harmless and was not: the API started cleanly, the poller ran every thirty
+  // seconds against the vendor with credentials that could never work, and
+  // every failure was swallowed into the log. Unset must mean unset, so that
+  // "tracking is off" is visible instead of looking like "tracking is broken".
+  ICCES_USER: process.env.ICCES_USER,
+  ICCES_PASS: process.env.ICCES_PASS,
+  ICCES_ACCT: process.env.ICCES_ACCT,
 };
+
+/** True only when all three ICCES credentials are present. */
+export function iccesConfigured(): boolean {
+  return Boolean(env.ICCES_USER && env.ICCES_PASS && env.ICCES_ACCT);
+}

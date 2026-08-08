@@ -168,10 +168,6 @@ const HomeScreen = () => {
                   <Text style={styles.metaLabel}>Customer</Text>
                   <Text style={styles.metaValue} numberOfLines={1}>{trip.customer?.name ?? '—'}</Text>
                 </View>
-                <View style={styles.metaItem}>
-                  <Text style={styles.metaLabel}>Cargo</Text>
-                  <Text style={styles.metaValue} numberOfLines={1}>{trip.cargo_type}</Text>
-                </View>
                 <View style={[styles.metaItem, styles.metaItemLast]}>
                   <Text style={styles.metaLabel}>Distance</Text>
                   <Text style={styles.metaValue} numberOfLines={1}>{trip.planned_distance ? `${trip.planned_distance} km` : '—'}</Text>

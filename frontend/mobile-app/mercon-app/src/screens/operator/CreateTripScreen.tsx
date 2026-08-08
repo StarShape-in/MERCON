@@ -36,7 +36,6 @@ const CreateTripScreen = () => {
   const [time, setTime] = useState('');
   const [etaDate, setEtaDate] = useState('');
   const [etaTime, setEtaTime] = useState('');
-  const [cargoDesc, setCargoDesc] = useState('');
   const [selectedDriver, setSelectedDriver] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
 
@@ -71,7 +70,8 @@ const CreateTripScreen = () => {
     !Number.isNaN(pickupLatNum) && !Number.isNaN(pickupLngNum) &&
     !Number.isNaN(dropoffLatNum) && !Number.isNaN(dropoffLngNum);
 
-  const isValid = !!customerId && !!cargoDesc && !!selectedDriver && !!selectedVehicle && hasValidCoords;
+  const isValid = !!customerId && !!selectedDriver && !!selectedVehicle && hasValidCoords &&
+    !!pickupName.trim() && !!dropoffName.trim();
 
   // date: DD/MM/YYYY, time: HH:MM — both optional, best-effort parse.
   function parseDateTime(dateStr: string, timeStr: string): string | undefined {
@@ -104,7 +104,6 @@ const CreateTripScreen = () => {
         customer_id: customerId,
         driver_id: selectedDriver,
         vehicle_id: selectedVehicle,
-        cargo_type: cargoDesc,
         planned_start: plannedPickup,
         // Both planned times are what every delay figure is measured against.
         // Omitting them (as this screen used to) creates a trip that can never
@@ -193,7 +192,7 @@ const CreateTripScreen = () => {
                 />
               </View>
               <Input
-                label="Location name"
+                label="Location name *"
                 value={pickupName}
                 onChangeText={setPickupName}
                 placeholder="e.g. Khamis Sorting Center"
@@ -220,7 +219,7 @@ const CreateTripScreen = () => {
                 />
               </View>
               <Input
-                label="Location name"
+                label="Location name *"
                 value={dropoffName}
                 onChangeText={setDropoffName}
                 placeholder="e.g. Baish"
@@ -273,17 +272,6 @@ const CreateTripScreen = () => {
                 keyboardType="numeric"
               />
             </View>
-          </Card>
-
-          {/* Section: Cargo */}
-          <Text style={styles.sectionTitle}>Cargo</Text>
-          <Card style={styles.formCard}>
-            <Input
-              label="Description"
-              value={cargoDesc}
-              onChangeText={setCargoDesc}
-              placeholder="e.g. Consumer Electronics"
-            />
           </Card>
 
           {/* Section: Driver */}

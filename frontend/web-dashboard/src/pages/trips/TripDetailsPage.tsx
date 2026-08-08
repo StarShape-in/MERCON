@@ -1,27 +1,33 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  ArrowLeft, Edit2, Navigation, CheckCircle2, XCircle, RefreshCcw,
-  MapPin, Calendar, Clock, ReceiptText, FileStack, PackageCheck,
-  CreditCard, DollarSign, Building2, User as UserIcon, Truck, FileText,
-  UploadCloud, ExternalLink, Timer,
+  ChevronRight, ChevronDown, Copy, Check, Printer, Phone, RefreshCcw,
+  Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
+  Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
+  Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
+  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
+import { Button } from '@/components/ui/button';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import FormInput from '@/components/ui/FormInput';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
-import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
 import { Combobox } from '@/components/ui/combobox';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
 import UserChip, { useUserLookup } from '@/components/trips/UserChip';
 import {
@@ -32,10 +38,22 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { documentService, type DocType } from '@/services/documentService';
 import { docTypeLabel } from '@/lib/documents';
+import { cn } from '@/lib/utils';
 
 /** Matches DELAY_THRESHOLD_MINUTES on the server. Below this, lateness is
  *  ordinary variance and showing it would bury the delays that matter. */
 const DELAY_THRESHOLD_MINUTES = 30;
+
+/** Trip lifecycle stages in order, for the progress %. Cancelled isn't a
+ *  stage on this line — it's a separate dead-end handled on its own. */
+const STAGE_ORDER: TripStatus[] = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Completed', 'Invoiced'];
+
+const CONTENT_TABS = [
+  { key: 'stops', label: 'Stops', icon: RouteIcon },
+  { key: 'documents', label: 'Documents', icon: FileStack },
+  { key: 'audit', label: 'Audit Trail', icon: PackageCheck },
+] as const;
+type ContentTabKey = (typeof CONTENT_TABS)[number]['key'];
 
 /** Minutes a stop was reached late, or null when it isn't late / can't be judged. */
 function arrivalDelayMinutes(stop: TripStop): number | null {
@@ -59,7 +77,37 @@ function dwellMinutes(stop: TripStop): number | null {
   return Math.round((new Date(stop.actual_departure).getTime() - new Date(stop.actual_arrival).getTime()) / 60000);
 }
 
-const STATUS_RAIL: TripStatus[] = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Completed'];
+function fullDateTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+/** Same semantic mapping StatusBadge uses (success/warning/info/error/purple
+ *  design tokens), just rendered as a larger pill for the hero row. */
+function statusTone(status: string): { color: string; bg: string } {
+  const normalized = status.toLowerCase().replace(/\s+/g, '');
+  switch (normalized) {
+    case 'completed':
+    case 'invoiced':
+      return { color: 'var(--color-success)', bg: 'var(--color-success-bg)' };
+    case 'intransit':
+    case 'dispatched':
+    case 'atpickup':
+    case 'atdelivery':
+      return { color: 'var(--color-warning)', bg: 'var(--color-warning-bg)' };
+    case 'draft':
+      return { color: 'var(--color-info)', bg: 'var(--color-info-bg)' };
+    case 'cancelled':
+      return { color: 'var(--color-purple)', bg: 'var(--color-purple-bg)' };
+    default:
+      return { color: 'var(--color-subtle)', bg: 'var(--color-border-soft)' };
+  }
+}
+
+function statusLabel(status: string): string {
+  return status.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase();
+}
+
+type StepStatus = 'done' | 'active' | 'pending';
 
 export default function TripDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -67,15 +115,13 @@ export default function TripDetailsPage() {
   const queryClient = useQueryClient();
   const users = useUserLookup();
 
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentReason, setPaymentReason] = useState('');
+  const [activeTab, setActiveTab] = useState<ContentTabKey>('stops');
+  const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [nextStatus, setNextStatus] = useState<TripStatus>('Draft');
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadDocType, setUploadDocType] = useState<DocType | undefined>(undefined);
-  const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
   // Which stop's reason form is open, and what's typed into it.
   const [delayFormStopId, setDelayFormStopId] = useState<string | null>(null);
   const [delayReason, setDelayReason] = useState<DelayReason>('Traffic');
@@ -84,6 +130,7 @@ export default function TripDetailsPage() {
   const [pendingVehicleId, setPendingVehicleId] = useState('');
   const [isReplaceDriverOpen, setIsReplaceDriverOpen] = useState(false);
   const [replaceDriverId, setReplaceDriverId] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Fetch single trip
   const { data: trip, isLoading } = useQuery({
@@ -144,18 +191,6 @@ export default function TripDetailsPage() {
     },
   });
 
-  // Mutate Approve Driver Payment
-  const approvePaymentMutation = useMutation({
-    mutationFn: (data: { amount: number; reason: string }) =>
-      tripService.approvePayment(id!, data.amount, data.reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trip', id] });
-      setIsPaymentModalOpen(false);
-      setPaymentAmount('');
-      setPaymentReason('');
-    },
-  });
-
   // Record why a stop ran late
   const logDelayMutation = useMutation({
     mutationFn: (vars: { stopId: string; delay_reason: DelayReason; delay_note?: string }) =>
@@ -189,19 +224,32 @@ export default function TripDetailsPage() {
     },
   });
 
+  const handleCopyId = async () => {
+    if (!trip) return;
+    try {
+      await navigator.clipboard.writeText(trip.ref_id || trip.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard access denied — silently ignore, the id is visible on screen anyway.
+    }
+  };
+
   if (isLoading || !trip) {
     return (
       <DashboardLayout active="Trips" title="Trip Details">
-        <div className="px-4 sm:px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-48 w-full rounded-2xl" />
-            <Skeleton className="h-64 w-full rounded-2xl" />
-            <Skeleton className="h-40 w-full rounded-2xl" />
-          </div>
-          <div className="space-y-4">
-            <Skeleton className="h-28 w-full rounded-2xl" />
-            <Skeleton className="h-28 w-full rounded-2xl" />
-            <Skeleton className="h-28 w-full rounded-2xl" />
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-4">
+          <Skeleton className="h-6 w-48 rounded-lg" />
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
+            <div className="space-y-4">
+              <Skeleton className="h-40 w-full rounded-2xl" />
+              <Skeleton className="h-80 w-full rounded-2xl" />
+              <Skeleton className="h-60 w-full rounded-2xl" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-64 w-full rounded-2xl" />
+              <Skeleton className="h-48 w-full rounded-2xl" />
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -222,7 +270,7 @@ export default function TripDetailsPage() {
   };
 
   // A Draft trip can only move to Dispatched once both a driver and a
-  // vehicle are assigned — otherwise assign them first via the cards below.
+  // vehicle are assigned — otherwise assign them first via the banner below.
   const rawNextStatus = getNextStatus(trip.status);
   const nextStatusOption =
     rawNextStatus === 'Dispatched' && (!trip.driver || !trip.vehicle) ? null : rawNextStatus;
@@ -232,527 +280,138 @@ export default function TripDetailsPage() {
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup');
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff');
   const invoice = trip.invoices?.[0];
-  const railIndex = STATUS_RAIL.indexOf(trip.status);
+  const needsAssignment = trip.status === 'Draft' && (!trip.driver || !trip.vehicle);
+
+  // Overall trip progress — Cancelled is its own dead-end state, not a stage.
+  const stageIndex = STAGE_ORDER.indexOf(trip.status);
+  const stageProgress = stageIndex >= 0 ? Math.round((stageIndex / (STAGE_ORDER.length - 1)) * 100) : 0;
+  const dropoffDone = !!dropoff?.actual_arrival;
+  const nextStopId = (trip.stops || []).find((s) => !s.actual_arrival)?.id;
+
+  // Mini stats — every value is computed from real trip fields, never invented.
+  const estDurationMinutes = trip.planned_start && trip.planned_end
+    ? Math.round((new Date(trip.planned_end).getTime() - new Date(trip.planned_start).getTime()) / 60000)
+    : null;
+  const elapsedMinutes = trip.actual_start
+    ? Math.round((new Date(trip.actual_end || new Date()).getTime() - new Date(trip.actual_start).getTime()) / 60000)
+    : null;
+  const avgSpeedKmh = trip.planned_distance && elapsedMinutes && elapsedMinutes > 0
+    ? Math.round((trip.planned_distance / (elapsedMinutes / 60)) * 10) / 10
+    : null;
+
+  const sidebarStats: { icon: typeof RouteIcon; tone: string; label: string; value: string }[] = [
+    { icon: RouteIcon, tone: 'bg-rose-50 text-rose-500', label: 'Distance', value: trip.planned_distance != null ? `${trip.planned_distance} km` : '—' },
+    { icon: Timer, tone: 'bg-emerald-50 text-emerald-600', label: 'Elapsed', value: elapsedMinutes != null ? formatDelay(elapsedMinutes) : (estDurationMinutes != null ? formatDelay(estDurationMinutes) : '—') },
+    { icon: MapPin, tone: 'bg-[#E8450F]/10 text-[#E8450F]', label: 'Stops', value: String(trip.stops?.length ?? 0) },
+    { icon: Gauge, tone: 'bg-blue-50 text-blue-600', label: 'Avg. Speed', value: avgSpeedKmh != null ? `${avgSpeedKmh} km/h` : '—' },
+  ];
+
+  // Activity checkpoints — 4 fixed lifecycle stages, derived from real stop/status data.
+  const timelineSteps: { key: string; label: string; time: string | null; sub?: string; done: boolean }[] = [
+    { key: 'created', label: 'Trip created', time: trip.createdAt, done: true },
+    {
+      key: 'departed',
+      label: 'Departed from pickup',
+      time: pickup?.actual_departure || pickup?.actual_arrival || null,
+      done: !!(pickup?.actual_departure || pickup?.actual_arrival),
+    },
+    { key: 'transit', label: 'In transit', time: null, sub: 'On the way to destination', done: dropoffDone },
+    {
+      key: 'arrived',
+      label: dropoffDone ? 'Reached destination' : 'Expected arrival',
+      time: dropoff?.actual_arrival || dropoff?.planned_arrival || null,
+      done: dropoffDone,
+    },
+  ];
+  let activeAssigned = false;
+  const timelineStatus: StepStatus[] = timelineSteps.map((s) => {
+    if (s.done) return 'done';
+    if (trip.status === 'Cancelled') return 'pending';
+    if (!activeAssigned) { activeAssigned = true; return 'active'; }
+    return 'pending';
+  });
+
+  const tone = statusTone(trip.status);
 
   return (
-    <DashboardLayout
-      active="Trips"
-      title="Trip Details"
-      breadcrumb="Trips"
-      pageTitle={trip.ref_id || 'Trip Details'}
-      actions={
-        <div className="flex gap-2 flex-wrap justify-end">
-          <Btn
-            label="Back"
-            variant="secondary"
-            size="sm"
-            icon={<ArrowLeft size={13} />}
-            onClick={() => navigate('/trips')}
-          />
-          {!isClosed && (
-            <Btn
-              label="Edit Manifest"
-              variant="secondary"
-              size="sm"
-              icon={<Edit2 size={13} />}
-              onClick={() => navigate(`/trips/${trip.id}/edit`)}
-            />
-          )}
-          {trip.status === 'InTransit' && (
-            <Btn
-              label="Track Live"
-              variant="secondary"
-              size="sm"
-              icon={<Navigation size={13} />}
-              onClick={() => navigate(`/trips/${trip.id}/track`)}
-            />
-          )}
-          {trip.status === 'Completed' && (
-            <Btn
-              label="Upload POD"
-              variant="secondary"
-              size="sm"
-              icon={<ReceiptText size={13} />}
-              onClick={() => { setUploadDocType('POD'); setIsUploadModalOpen(true); }}
-            />
-          )}
-          {canCancel && (
-            <Btn
-              label="Cancel Trip"
-              variant="danger"
-              size="sm"
-              icon={<XCircle size={13} />}
-              onClick={() => setIsCancelModalOpen(true)}
-            />
-          )}
-          {nextStatusOption && (
-            <Btn
-              label={`Mark ${nextStatusOption}`}
-              size="sm"
-              icon={<CheckCircle2 size={13} />}
-              onClick={() => {
-                setNextStatus(nextStatusOption);
-                setIsStatusModalOpen(true);
-              }}
-            />
-          )}
-        </div>
-      }
-    >
-      <div className="px-4 sm:px-6 pb-6 grid grid-cols-1 lg:grid-cols-3 gap-5 animate-fade-in">
+    <DashboardLayout active="Trips" title="Trip Details">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-4 animate-fade-in">
 
-        {/* Left Column (Main Trip Content) */}
-        <div className="lg:col-span-2 space-y-4">
-
-          {/* Trip Summary Card */}
-          <div className="bg-[#1C1C2E] rounded-lg p-5 border border-white/5 shadow-lg relative overflow-hidden">
-            <div className="flex items-center justify-between mb-5 relative z-10">
-              <div>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Route Overview</p>
-                <p className="text-xl font-bold text-white mt-0.5">{trip.ref_id || 'Draft'}</p>
-              </div>
-              <StatusBadge status={trip.status} />
-            </div>
-
-            {/* Path visualization */}
-            <div className="flex items-start gap-4 mt-6 relative z-10">
-              <div className="flex flex-col items-center gap-1.5 pt-1">
-                <div className="w-3 h-3 rounded-full bg-[#E8450F]" />
-                <div className="w-px h-14 bg-white/20" />
-                <div className="w-3 h-3 rounded-full bg-[#16A34A]" />
-              </div>
-              <div className="flex-1 space-y-5">
-                <div>
-                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Pickup</p>
-                  <p className="text-sm font-bold text-white">
-                    {pickup
-                      ? pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`
-                      : 'No pickup stop on manifest'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Destination</p>
-                  <p className="text-sm font-bold text-white">
-                    {dropoff
-                      ? dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`
-                      : 'No dropoff stop on manifest'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-center max-w-[180px]">
-                <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">
-                  <p className="text-xs font-bold text-white">{trip.planned_distance != null ? `${trip.planned_distance} km` : '—'}</p>
-                  <p className="text-[8px] text-white/40 font-semibold uppercase">Distance</p>
-                </div>
-                <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10">
-                  <p className="text-xs font-bold text-white">{trip.carrier_name || '—'}</p>
-                  <p className="text-[8px] text-white/40 font-semibold uppercase">Carrier</p>
-                </div>
-                <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 col-span-2">
-                  <p className="text-xs font-bold text-white">{trip.cargo_type}</p>
-                  <p className="text-[8px] text-white/40 font-semibold uppercase">Cargo</p>
-                </div>
-              </div>
-            </div>
-
-            <Separator className="my-4 bg-white/10" />
-
-            {/* Real trip timestamps — no fabricated ETA */}
-            <div className="grid grid-cols-3 gap-3 relative z-10 text-center">
-              <div>
-                <p className="text-[8px] text-white/40 font-bold uppercase tracking-wider">Planned Start</p>
-                <p className="text-[11px] font-bold text-white mt-1">
-                  {trip.planned_start ? new Date(trip.planned_start).toLocaleString() : '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[8px] text-white/40 font-bold uppercase tracking-wider">Actual Start</p>
-                <p className="text-[11px] font-bold text-white mt-1">
-                  {trip.actual_start ? new Date(trip.actual_start).toLocaleString() : '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[8px] text-white/40 font-bold uppercase tracking-wider">Actual End</p>
-                <p className="text-[11px] font-bold text-white mt-1">
-                  {trip.actual_end ? new Date(trip.actual_end).toLocaleString() : '—'}
-                </p>
-              </div>
-            </div>
+        {/* Breadcrumb + action bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 text-sm min-w-0">
+            <Link to="/trips" className="text-slate-500 font-medium hover:text-slate-900 transition-colors">Trips</Link>
+            <ChevronRight size={14} className="text-slate-300 shrink-0" />
+            <span className="text-slate-900 font-semibold truncate">Trip Details</span>
           </div>
 
-          {/* Status Timeline */}
-          {trip.status !== 'Cancelled' ? (
-            <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-              <CardContent className="px-5 py-4">
-                <div className="flex items-center">
-                  {STATUS_RAIL.map((step, i) => {
-                    const reached = railIndex >= i || (trip.status === 'Invoiced');
-                    const isCurrent = trip.status === step;
-                    return (
-                      <div key={step} className="flex items-center flex-1 last:flex-none">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <div
-                            className={`w-5 h-5 rounded-full flex items-center justify-center border-2 shrink-0 ${
-                              reached
-                                ? isCurrent
-                                  ? 'bg-[#E8450F] border-[#E8450F]'
-                                  : 'bg-[#16A34A] border-[#16A34A]'
-                                : 'bg-white border-gray-200'
-                            }`}
-                          >
-                            {reached && !isCurrent && <CheckCircle2 size={12} className="text-white" />}
-                          </div>
-                          <span className={`text-[9px] font-bold uppercase tracking-wide ${reached ? 'text-[#111]' : 'text-[#9898A4]'}`}>
-                            {step}
-                          </span>
-                        </div>
-                        {i < STATUS_RAIL.length - 1 && (
-                          <div className={`h-0.5 flex-1 mx-1 ${railIndex > i ? 'bg-[#16A34A]' : 'bg-gray-100'}`} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
-              <XCircle size={18} className="text-red-600 shrink-0" />
-              <p className="text-xs font-bold text-red-700">This trip was cancelled. Its driver and vehicle were released back to Available.</p>
-            </div>
-          )}
-
-          {/* Live Map Tracking Preview Card */}
-          <TripLiveMapCard
-            tripId={trip.id}
-            refId={trip.ref_id || trip.id}
-            status={trip.status}
-            vehiclePlate={trip.vehicle?.plate_number}
-            hasTracker={!!trip.vehicle?.icces_device_id}
-            lastLat={trip.vehicle?.last_lat}
-            lastLng={trip.vehicle?.last_lng}
-            pickupLat={pickup?.location_lat}
-            pickupLng={pickup?.location_lng}
-            pickupName={pickup?.location_name}
-            dropoffLat={dropoff?.location_lat}
-            dropoffLng={dropoff?.location_lng}
-            dropoffName={dropoff?.location_name}
-          />
-
-          {/* Stops List */}
-          <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-[#111]">Trip Stops Log</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(trip.stops || []).length === 0 ? (
-                <div className="text-center py-8">
-                  <MapPin size={24} className="text-[#9898A4] mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-[#6E6E80]">No stops on this manifest yet.</p>
-                  <Btn
-                    label="Add stops in Edit Manifest"
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => navigate(`/trips/${trip.id}/edit`)}
-                  />
-                </div>
-              ) : (
-                <div className="relative border-l border-gray-100 ml-3 space-y-6">
-                  {(trip.stops || []).map((stop) => {
-                    const dwell = dwellMinutes(stop);
-                    return (
-                    <div key={stop.id} className="relative pl-6">
-                      <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white flex items-center justify-center ${
-                        stop.actual_arrival ? 'bg-[#16A34A]' : 'bg-gray-300'
-                      }`} />
-                      <div>
-                        <div className="flex items-center justify-between flex-wrap gap-1">
-                          <p className="text-xs font-bold text-[#111]">{stop.stop_type} Stop ({stop.stop_sequence})</p>
-                          {stop.actual_arrival && (
-                            <span className="text-[9px] font-bold text-[#16A34A] bg-[#F0FDF4] px-1.5 py-0.5 rounded">
-                              Checked-in
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-[#6E6E80] mt-0.5">
-                          {stop.location_name || `Lat: ${stop.location_lat}, Lng: ${stop.location_lng}`}
-                        </p>
-                        <div className="flex gap-4 mt-2 text-[10px] text-[#9898A4] font-medium flex-wrap">
-                          {stop.planned_arrival && (
-                            <span className="flex items-center gap-1"><Calendar size={10} /> Planned: {new Date(stop.planned_arrival).toLocaleString()}</span>
-                          )}
-                          {stop.actual_arrival && (
-                            <span className="flex items-center gap-1 text-[#16A34A]"><Clock size={10} /> Actual: {new Date(stop.actual_arrival).toLocaleString()}</span>
-                          )}
-                          {stop.actual_departure && (
-                            <span className="flex items-center gap-1"><Clock size={10} /> Left: {new Date(stop.actual_departure).toLocaleString()}</span>
-                          )}
-                          {dwell !== null && (
-                            <span className="flex items-center gap-1 font-bold text-[#111]"><Timer size={10} /> Dwell: {formatDelay(dwell)}</span>
-                          )}
-                        </div>
-
-                        {(() => {
-                          const late = arrivalDelayMinutes(stop);
-                          if (late === null) return null;
-                          const isFormOpen = delayFormStopId === stop.id;
-
-                          return (
-                            <div className="mt-2.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-                              <div className="flex items-center justify-between gap-3 flex-wrap">
-                                <span className="text-[11px] font-bold text-amber-800">
-                                  Arrived {formatDelay(late)} late
-                                </span>
-                                {!isFormOpen && (
-                                  <button
-                                    type="button"
-                                    onClick={() => openDelayForm(stop)}
-                                    className="text-[10px] font-bold text-amber-900 underline underline-offset-2 hover:text-amber-700"
-                                  >
-                                    {stop.delay_reason ? 'Change reason' : 'Add reason'}
-                                  </button>
-                                )}
-                              </div>
-
-                              {stop.delay_reason && !isFormOpen && (
-                                <div className="flex items-center justify-between gap-2 mt-1 flex-wrap">
-                                  <p className="text-[11px] text-amber-900">
-                                    {DELAY_REASON_LABELS[stop.delay_reason]}
-                                    {stop.delay_note ? ` — ${stop.delay_note}` : ''}
-                                  </p>
-                                  {stop.delay_logged_by && (
-                                    <span className="text-[10px] text-amber-700">
-                                      by <UserChip userId={stop.delay_logged_by} users={users} size="sm" />
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              {!stop.delay_reason && !isFormOpen && (
-                                <p className="text-[10px] text-amber-700 mt-1">
-                                  No reason recorded yet.
-                                </p>
-                              )}
-
-                              {isFormOpen && (
-                                <div className="mt-2 space-y-2">
-                                  <Select value={delayReason} onValueChange={(v) => setDelayReason(v as DelayReason)}>
-                                    <SelectTrigger className="w-full h-8 bg-white border-amber-300 text-[11px]">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {DELAY_REASONS.map((r) => (
-                                        <SelectItem key={r} value={r} className="text-xs">{DELAY_REASON_LABELS[r]}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <input
-                                    type="text"
-                                    value={delayNote}
-                                    onChange={(e) => setDelayNote(e.target.value)}
-                                    maxLength={500}
-                                    placeholder="Note (optional)"
-                                    className="w-full h-8 rounded border border-amber-300 bg-white px-2 text-[11px] outline-none focus:border-amber-500"
-                                  />
-                                  <div className="flex gap-2">
-                                    <button
-                                      type="button"
-                                      disabled={logDelayMutation.isPending}
-                                      onClick={() => logDelayMutation.mutate({
-                                        stopId: stop.id,
-                                        delay_reason: delayReason,
-                                        delay_note: delayNote.trim() || undefined,
-                                      })}
-                                      className="h-7 px-3 rounded bg-amber-600 text-white text-[10px] font-bold hover:bg-amber-700 disabled:opacity-50"
-                                    >
-                                      {logDelayMutation.isPending ? 'Saving…' : 'Save reason'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDelayFormStopId(null)}
-                                      className="h-7 px-3 rounded border border-amber-300 text-amber-900 text-[10px] font-bold hover:bg-amber-100"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                  {logDelayMutation.isError && (
-                                    <p className="text-[10px] text-red-600">
-                                      Could not save that reason. Try again.
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  );})}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Documents */}
-          <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-[#111] flex items-center gap-2">
-                <FileStack size={14} className="text-[#E8450F]" /> Documents
-              </CardTitle>
-              <CardDescription className="text-[11px] mt-0.5">POD, waybills, and other files attached to this trip.</CardDescription>
-              <CardAction>
-                <Btn
-                  label="Upload"
-                  variant="secondary"
-                  size="sm"
-                  icon={<UploadCloud size={13} />}
-                  onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                />
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              {isLoadingDocs ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                </div>
-              ) : documents.length === 0 ? (
-                <div className="text-center py-6">
-                  <FileText size={22} className="text-[#9898A4] mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-[#6E6E80]">No documents uploaded for this trip yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-black/[0.05] bg-gray-50/60">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-[#E8450F] flex items-center justify-center shrink-0">
-                          <FileText size={14} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#111] truncate">{docTypeLabel(doc.doc_type)}</p>
-                          <p className="text-[10px] text-[#9898A4]">{new Date(doc.createdAt).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <StatusBadge status={doc.status} />
-                        <a
-                          href={doc.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[#9898A4] hover:text-[#E8450F] p-1"
-                          aria-label="View document"
-                        >
-                          <ExternalLink size={13} />
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Btn
+              label="Edit Trip"
+              variant="outline"
+              className="h-10 rounded-xl border-slate-200"
+              onClick={() => navigate(`/trips/${trip.id}/edit`)}
+            />
+            <Btn
+              label="Print"
+              variant="outline"
+              icon={<Printer size={14} />}
+              className="h-10 rounded-xl border-slate-200"
+              onClick={() => window.print()}
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-10 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white font-semibold gap-1.5 px-4">
+                  More Actions
+                  <ChevronDown size={14} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                {trip.status === 'InTransit' && (
+                  <DropdownMenuItem onClick={() => navigate(`/trips/${trip.id}/track`)}>
+                    <Navigation size={14} className="mr-2 text-slate-500" /> Track Live
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}>
+                  <UploadCloud size={14} className="mr-2 text-slate-500" /> Upload Document
+                </DropdownMenuItem>
+                {nextStatusOption && (
+                  <DropdownMenuItem onClick={() => { setNextStatus(nextStatusOption); setIsStatusModalOpen(true); }}>
+                    <CheckCircle2 size={14} className="mr-2 text-slate-500" /> Mark {nextStatusOption}
+                  </DropdownMenuItem>
+                )}
+                {canCancel && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setIsCancelModalOpen(true)} className="text-red-600 focus:text-red-600 hover:bg-red-50">
+                      <XCircle size={14} className="mr-2" /> Cancel Trip
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
-        {/* Right Column (Entities & Payment Actions) */}
-        <div className="space-y-4">
+        {trip.status === 'Cancelled' && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-3.5 flex items-center gap-3">
+            <XCircle size={16} className="text-red-600 shrink-0" />
+            <p className="text-xs font-semibold text-red-700">This trip was cancelled. Its driver and vehicle were released back to Available.</p>
+          </div>
+        )}
 
-          {/* Customer Card */}
-          <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <Building2 size={13} /> Customer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {trip.customer ? (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-[#111]">{trip.customer.name}</p>
-                    <p className="text-xs text-[#6E6E80] mt-0.5">{trip.customer.contact_phone}</p>
-                  </div>
-                  <Btn
-                    label="View"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate(`/customers/${trip.customer?.id}`)}
-                  />
-                </div>
-              ) : (
-                <p className="text-xs font-semibold text-[#9898A4]">No customer on record.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Driver Card */}
-          <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <UserIcon size={13} /> Assigned Driver
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {trip.driver ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-[#111]">{trip.driver.first_name} {trip.driver.last_name}</p>
-                      <p className="text-xs text-[#6E6E80] mt-0.5">{trip.driver.phone_primary}</p>
-                    </div>
-                    <Btn
-                      label="View"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/drivers/${trip.driver?.id}`)}
-                    />
-                  </div>
-
-                  {!isClosed && (
-                    isReplaceDriverOpen ? (
-                      <div className="space-y-2 pt-2 border-t border-black/[0.04]">
-                        <Combobox
-                          value={replaceDriverId}
-                          onChange={setReplaceDriverId}
-                          options={driverOptions}
-                          placeholder="Choose replacement driver..."
-                          searchPlaceholder="Search drivers..."
-                          emptyText="No available drivers found."
-                        />
-                        <div className="flex gap-2">
-                          <Btn
-                            label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
-                            size="sm"
-                            className="flex-1"
-                            disabled={!replaceDriverId || replaceDriverMutation.isPending}
-                            onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
-                          />
-                          <Btn
-                            label="Cancel"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => { setIsReplaceDriverOpen(false); setReplaceDriverId(''); }}
-                          />
-                        </div>
-                        {replaceDriverMutation.isError && (
-                          <p className="text-[10px] text-red-600 font-semibold">Could not replace driver — they may no longer be available.</p>
-                        )}
-                      </div>
-                    ) : (
-                      <Btn
-                        label="Replace Driver"
-                        variant="outline"
-                        size="sm"
-                        icon={<RefreshCcw size={12} />}
-                        className="w-full"
-                        onClick={() => setIsReplaceDriverOpen(true)}
-                      />
-                    )
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-[#9898A4]">No driver assigned yet.</p>
+        {/* Action needed — Draft trip missing driver and/or vehicle */}
+        {needsAssignment && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+              <p className="text-xs font-semibold text-amber-800">
+                Blocked from dispatch — assign {!trip.driver && !trip.vehicle ? 'a driver and vehicle' : !trip.driver ? 'a driver' : 'a vehicle'} to continue.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {!trip.driver && (
+                <div className="flex gap-2">
                   <Combobox
                     value={pendingDriverId}
                     onChange={setPendingDriverId}
@@ -760,48 +419,18 @@ export default function TripDetailsPage() {
                     placeholder="Choose available driver..."
                     searchPlaceholder="Search drivers..."
                     emptyText="No available drivers found."
+                    className="flex-1"
                   />
                   <Btn
-                    label={assignMutation.isPending ? 'Assigning...' : 'Assign Driver'}
+                    label={assignMutation.isPending ? 'Assigning...' : 'Assign'}
                     size="sm"
-                    className="w-full"
                     disabled={!pendingDriverId || assignMutation.isPending}
                     onClick={() => assignMutation.mutate({ driver_id: pendingDriverId })}
                   />
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Vehicle Card */}
-          <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <Truck size={13} /> Assigned Vehicle
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {trip.vehicle ? (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-[#111]">{trip.vehicle.plate_number}</p>
-                    <p className="text-xs text-[#6E6E80] mt-0.5">
-                      {trip.vehicle.asset_type} Asset{trip.vehicle.capacity_kg != null ? ` • ${trip.vehicle.capacity_kg.toLocaleString()} kg` : ''}
-                    </p>
-                    <Badge variant="outline" className={`mt-1.5 text-[9px] font-bold ${trip.vehicle.icces_device_id ? 'border-green-200 bg-green-50 text-green-700' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
-                      {trip.vehicle.icces_device_id ? 'GPS tracker connected' : 'No GPS tracker'}
-                    </Badge>
-                  </div>
-                  <Btn
-                    label="View"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate(`/vehicles/${trip.vehicle?.id}`)}
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-[#9898A4]">No vehicle assigned yet.</p>
+              {!trip.vehicle && (
+                <div className="flex gap-2">
                   <Combobox
                     value={pendingVehicleId}
                     onChange={setPendingVehicleId}
@@ -809,221 +438,608 @@ export default function TripDetailsPage() {
                     placeholder="Choose available vehicle..."
                     searchPlaceholder="Search vehicles..."
                     emptyText="No available vehicles found."
+                    className="flex-1"
                   />
                   <Btn
-                    label={assignMutation.isPending ? 'Assigning...' : 'Assign Vehicle'}
+                    label={assignMutation.isPending ? 'Assigning...' : 'Assign'}
                     size="sm"
-                    className="w-full"
                     disabled={!pendingVehicleId || assignMutation.isPending}
                     onClick={() => assignMutation.mutate({ vehicle_id: pendingVehicleId })}
                   />
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+        )}
 
-          {/* Financials — post-trip settlement, only relevant once the trip has run */}
-          {(trip.status === 'Completed' || trip.status === 'Invoiced') && (
-            <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                  <DollarSign size={13} /> Financials
-                </CardTitle>
-                <CardAction>
-                  <Btn
-                    label={trip.is_post_trip_settled ? 'Edit' : 'Settle'}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsSettlementModalOpen(true)}
-                  />
-                </CardAction>
-              </CardHeader>
-              <CardContent className="space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-[#6E6E80]">Base billing</span>
-                  <span className="font-bold text-[#111]">{trip.billing_amount != null ? `SAR ${trip.billing_amount.toLocaleString()}` : '—'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#6E6E80]">Waiting / labor</span>
-                  <span className="font-bold text-[#111]">SAR {(trip.waiting_labor_charges ?? 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#6E6E80]">Additional stops</span>
-                  <span className="font-bold text-[#111]">SAR {(trip.additional_stop_charges ?? 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#6E6E80]">Trip charges</span>
-                  <span className="font-bold text-[#111]">SAR {(trip.trip_charges ?? 0).toLocaleString()}</span>
-                </div>
-                <Separator className="my-1.5" />
-                <div className="flex justify-between items-center">
-                  <span className="text-[#6E6E80]">Settlement</span>
-                  <Badge variant="outline" className={`text-[9px] font-bold ${trip.is_post_trip_settled ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-                    {trip.is_post_trip_settled ? 'Settled' : 'Pending settlement'}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        {/* Main 2-column layout: content + persistent sidebar */}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
 
-          {/* Invoice */}
-          {(trip.status === 'Completed' || trip.status === 'Invoiced') && (
-            <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                  <ReceiptText size={13} /> Invoice
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {invoice ? (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-[#111]">{invoice.ref_id}</p>
-                      <p className="text-xs text-[#6E6E80] mt-0.5">SAR {invoice.total_amount.toLocaleString()}</p>
-                      <StatusBadge status={invoice.status} />
+          {/* ───────────────────────── Left: content ───────────────────────── */}
+          <div className="space-y-4 min-w-0">
+
+            {/* Trip ID / status / customer-driver-vehicle-eta */}
+            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 gap-0">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-xl bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                    <Truck size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Trip ID</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-xl font-bold font-mono tracking-tight text-slate-900 truncate">{trip.ref_id || trip.id}</p>
+                      <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-slate-400 hover:text-[#E8450F] transition-colors shrink-0">
+                        {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      </button>
                     </div>
-                    <Btn
-                      label="View"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/invoices/${invoice.id}`)}
-                    />
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400 mb-1.5">Status</p>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+                    style={{ color: tone.color, backgroundColor: tone.bg }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
+                    {statusLabel(trip.status)}
+                  </span>
+                </div>
+              </div>
+
+              <Separator className="my-5" />
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <Building2 size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-slate-400">Customer</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">{trip.customer?.name || '—'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                    <UserIcon size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[11px] font-medium text-slate-400">Driver</p>
+                      {trip.driver && !isClosed && (
+                        <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
+                          <PopoverTrigger asChild>
+                            <button type="button" aria-label="Replace driver" className="text-slate-400 hover:text-[#E8450F] transition-colors shrink-0">
+                              <RefreshCcw size={10} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="w-72 p-3 space-y-2">
+                            <p className="text-xs font-semibold text-slate-900">Replace driver</p>
+                            <Combobox
+                              value={replaceDriverId}
+                              onChange={setReplaceDriverId}
+                              options={driverOptions}
+                              placeholder="Choose replacement driver..."
+                              searchPlaceholder="Search drivers..."
+                              emptyText="No available drivers found."
+                            />
+                            <Btn
+                              label={replaceDriverMutation.isPending ? 'Replacing...' : 'Confirm Swap'}
+                              size="sm"
+                              className="w-full"
+                              disabled={!replaceDriverId || replaceDriverMutation.isPending}
+                              onClick={() => replaceDriverMutation.mutate(replaceDriverId)}
+                            />
+                            {replaceDriverMutation.isError && (
+                              <p className="text-[10px] text-red-600 font-semibold">Could not replace driver — they may no longer be available.</p>
+                            )}
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                      {trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned'}
+                    </p>
+                    {trip.driver?.phone_primary && <p className="text-xs text-slate-500 truncate">{trip.driver.phone_primary}</p>}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Truck size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-slate-400">Vehicle</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">{trip.vehicle?.plate_number || 'Unassigned'}</p>
+                    {trip.vehicle?.asset_type && <p className="text-xs text-slate-500 truncate">{trip.vehicle.asset_type}</p>}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                    <Calendar size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium text-slate-400">ETA</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                      {trip.planned_end ? new Date(trip.planned_end).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                    </p>
+                    {trip.planned_end && (
+                      <p className="text-xs text-slate-500 truncate">{new Date(trip.planned_end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Live map — the visual hero */}
+            <TripLiveMapCard
+              tripId={trip.id}
+              refId={trip.ref_id || trip.id}
+              pickupLat={pickup?.location_lat}
+              pickupLng={pickup?.location_lng}
+              dropoffLat={dropoff?.location_lat}
+              dropoffLng={dropoff?.location_lng}
+              showHeader={false}
+              showTelemetryBar={false}
+              className="rounded-2xl"
+              mapHeightClassName="h-[320px]"
+            />
+
+            {/* Route row */}
+            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+              <div className="flex items-center gap-4">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <span className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                    <MapPin size={14} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Pickup Location</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                      {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
+                    </p>
+                    {pickup && (
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="hidden sm:flex items-center gap-2 text-slate-300 shrink-0 px-2">
+                  <span className="w-16 border-t border-dashed border-slate-300" />
+                  <Truck size={14} className="text-slate-400" />
+                  <span className="w-16 border-t border-dashed border-slate-300" />
+                </div>
+
+                <div className="flex items-start gap-3 min-w-0 flex-1 justify-end text-right">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Drop-off Location</p>
+                    <p className="text-sm font-semibold text-slate-900 truncate mt-0.5">
+                      {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
+                    </p>
+                    {dropoff && (
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {dropoff.actual_arrival
+                          ? fullDateTime(dropoff.actual_arrival)
+                          : dropoff.planned_arrival
+                            ? `${fullDateTime(dropoff.planned_arrival)} (Expected)`
+                            : '—'}
+                      </p>
+                    )}
+                  </div>
+                  <span className="w-8 h-8 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0">
+                    <MapPin size={14} />
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Segmented content switcher */}
+            <div className="flex items-center gap-6 border-b border-slate-200 px-1">
+              {CONTENT_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setActiveTab(t.key)}
+                  className={cn(
+                    'flex items-center gap-1.5 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors',
+                    activeTab === t.key ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-slate-500 hover:text-slate-700',
+                  )}
+                >
+                  <t.icon size={14} />
+                  {t.label}
+                  {t.key === 'stops' && trip.stops && trip.stops.length > 0 && (
+                    <span className="text-[10px] text-slate-400">({trip.stops.length})</span>
+                  )}
+                  {t.key === 'documents' && documents.length > 0 && (
+                    <span className="text-[10px] text-slate-400">({documents.length})</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Stops tab */}
+            {activeTab === 'stops' && (
+              <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-0 gap-0 overflow-hidden">
+                {(trip.stops || []).length === 0 ? (
+                  <div className="text-center py-10">
+                    <MapPin size={24} className="text-slate-300 mx-auto mb-2" />
+                    <p className="text-xs font-medium text-slate-500">No stops on this manifest yet.</p>
                   </div>
                 ) : (
-                  <p className="text-xs font-semibold text-[#9898A4]">No invoice generated yet.</p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-14">Stop</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Scheduled Time</TableHead>
+                        <TableHead>Actual Time</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-10" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(trip.stops || []).map((stop) => {
+                        const isExpanded = expandedStopId === stop.id;
+                        const dwell = dwellMinutes(stop);
+                        const late = arrivalDelayMinutes(stop);
+                        const stopDone = !!stop.actual_arrival;
+                        const stopStatus = stopDone ? 'Completed' : stop.id === nextStopId ? 'Pending' : 'Upcoming';
+                        return (
+                          <>
+                            <TableRow key={stop.id} className="cursor-pointer" onClick={() => setExpandedStopId(isExpanded ? null : stop.id)}>
+                              <TableCell>
+                                <span className={cn(
+                                  'w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center',
+                                  stop.stop_type === 'Pickup' ? 'bg-emerald-500' : stop.stop_type === 'Dropoff' ? 'bg-[#E8450F]' : 'bg-slate-400',
+                                )}>
+                                  {stop.stop_sequence}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <p className="font-semibold text-slate-900">{stop.location_name || `${stop.location_lat.toFixed(4)}, ${stop.location_lng.toFixed(4)}`}</p>
+                                <p className="text-xs text-slate-400 font-normal">{stop.stop_type}</p>
+                              </TableCell>
+                              <TableCell className="text-slate-600">{stop.planned_arrival ? fullDateTime(stop.planned_arrival) : '—'}</TableCell>
+                              <TableCell className="text-slate-600">{stop.actual_arrival ? fullDateTime(stop.actual_arrival) : '—'}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={cn(
+                                  'text-[10px] font-semibold border-transparent',
+                                  stopStatus === 'Completed' && 'bg-emerald-50 text-emerald-700',
+                                  stopStatus === 'Pending' && 'bg-orange-50 text-[#E8450F]',
+                                  stopStatus === 'Upcoming' && 'bg-slate-100 text-slate-500',
+                                )}>
+                                  {stopStatus}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <ChevronDown size={14} className={cn('text-slate-400 transition-transform', isExpanded && 'rotate-180')} />
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded && (
+                              <TableRow key={`${stop.id}-detail`} className="hover:bg-transparent">
+                                <TableCell colSpan={6} className="bg-slate-50/70 py-4">
+                                  <div className="flex gap-4 text-[11px] text-slate-500 font-medium flex-wrap">
+                                    {stop.actual_departure && <span>Left: {fullDateTime(stop.actual_departure)}</span>}
+                                    {dwell !== null && <span className="font-semibold text-slate-900">Dwell: {formatDelay(dwell)}</span>}
+                                  </div>
+
+                                  {late !== null && (
+                                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 max-w-xl">
+                                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                                        <span className="text-[11px] font-semibold text-amber-800">Arrived {formatDelay(late)} late</span>
+                                        {delayFormStopId !== stop.id && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); openDelayForm(stop); }}
+                                            className="text-[10px] font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
+                                          >
+                                            {stop.delay_reason ? 'Change reason' : 'Add reason'}
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {stop.delay_reason && delayFormStopId !== stop.id && (
+                                        <div className="flex items-center justify-between gap-2 mt-1 flex-wrap">
+                                          <p className="text-[11px] text-amber-900">
+                                            {DELAY_REASON_LABELS[stop.delay_reason]}
+                                            {stop.delay_note ? ` — ${stop.delay_note}` : ''}
+                                          </p>
+                                          {stop.delay_logged_by && (
+                                            <span className="text-[10px] text-amber-700">
+                                              by <UserChip userId={stop.delay_logged_by} users={users} size="sm" />
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                      {!stop.delay_reason && delayFormStopId !== stop.id && (
+                                        <p className="text-[10px] text-amber-700 mt-1">No reason recorded yet.</p>
+                                      )}
+
+                                      {delayFormStopId === stop.id && (
+                                        <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
+                                          <Select value={delayReason} onValueChange={(v) => setDelayReason(v as DelayReason)}>
+                                            <SelectTrigger className="w-full h-8 bg-white border-amber-300 text-[11px]">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {DELAY_REASONS.map((r) => (
+                                                <SelectItem key={r} value={r} className="text-xs">{DELAY_REASON_LABELS[r]}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <input
+                                            type="text"
+                                            value={delayNote}
+                                            onChange={(e) => setDelayNote(e.target.value)}
+                                            maxLength={500}
+                                            placeholder="Note (optional)"
+                                            className="w-full h-8 rounded border border-amber-300 bg-white px-2 text-[11px] outline-none focus:border-amber-500"
+                                          />
+                                          <div className="flex gap-2">
+                                            <button
+                                              type="button"
+                                              disabled={logDelayMutation.isPending}
+                                              onClick={() => logDelayMutation.mutate({
+                                                stopId: stop.id,
+                                                delay_reason: delayReason,
+                                                delay_note: delayNote.trim() || undefined,
+                                              })}
+                                              className="h-7 px-3 rounded bg-amber-600 text-white text-[10px] font-bold hover:bg-amber-700 disabled:opacity-50"
+                                            >
+                                              {logDelayMutation.isPending ? 'Saving…' : 'Save reason'}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => setDelayFormStopId(null)}
+                                              className="h-7 px-3 rounded border border-amber-300 text-amber-900 text-[10px] font-bold hover:bg-amber-100"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                          {logDelayMutation.isError && (
+                                            <p className="text-[10px] text-red-600">Could not save that reason. Try again.</p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 )}
+              </Card>
+            )}
+
+            {/* Documents tab */}
+            {activeTab === 'documents' && (
+              <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold text-slate-900">Documents</CardTitle>
+                  <CardDescription className="text-[11px] mt-0.5">POD, waybills, and other files attached to this trip.</CardDescription>
+                  <CardAction>
+                    <Btn
+                      label="Upload"
+                      variant="secondary"
+                      size="sm"
+                      icon={<UploadCloud size={13} />}
+                      onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
+                    />
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingDocs ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-10 w-full rounded-lg" />
+                      <Skeleton className="h-10 w-full rounded-lg" />
+                    </div>
+                  ) : documents.length === 0 ? (
+                    <div className="text-center py-6">
+                      <FileText size={22} className="text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs font-medium text-slate-500">No documents uploaded for this trip yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {documents.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-slate-100">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                              <FileText size={14} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-900 truncate">{docTypeLabel(doc.doc_type)}</p>
+                              <p className="text-[10px] text-slate-500">{new Date(doc.createdAt).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <StatusBadge status={doc.status} />
+                            <a
+                              href={doc.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-slate-400 hover:text-[#E8450F] p-1"
+                              aria-label="View document"
+                            >
+                              <ExternalLink size={13} />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Audit tab */}
+            {activeTab === 'audit' && (
+              <div className="space-y-4">
+                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-500 flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                        <ListChecks size={12} />
+                      </div>
+                      Audit Trail
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500 font-medium">Created by</span>
+                      <UserChip userId={trip.created_by} users={users} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500 font-medium">Created</span>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span className="text-[11px] font-semibold text-slate-900 cursor-default">
+                            {new Date(trip.createdAt).toLocaleDateString()}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500 font-medium">Last updated by</span>
+                      <UserChip userId={trip.updated_by} users={users} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500 font-medium">Updated</span>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span className="text-[11px] font-semibold text-slate-900 cursor-default">
+                            {new Date(trip.updatedAt).toLocaleDateString()}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-medium uppercase tracking-wide text-slate-500 flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                        <ReceiptText size={12} />
+                      </div>
+                      Invoice
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {invoice ? (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-base font-semibold text-slate-900">{invoice.ref_id}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">SAR {invoice.total_amount.toLocaleString()}</p>
+                          <div className="mt-1.5"><StatusBadge status={invoice.status} /></div>
+                        </div>
+                        <Btn label="View" variant="ghost" size="sm" onClick={() => navigate(`/invoices/${invoice.id}`)} />
+                      </div>
+                    ) : (
+                      <p className="text-xs font-medium text-slate-500">No invoice generated yet.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+
+          {/* ───────────────────────── Right: sidebar ───────────────────────── */}
+          <div className="space-y-4">
+            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 gap-0">
+              <p className="text-sm font-semibold text-slate-900">Trip Progress</p>
+              <p className="text-4xl font-bold text-[#E8450F] mt-2">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
+              <Progress
+                value={trip.status === 'Cancelled' ? 0 : stageProgress}
+                className="h-1.5 mt-3 [&_[data-slot=progress-track]]:bg-orange-100 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
+              />
+
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 mt-4">
+                <MapPin size={13} className="text-emerald-500 shrink-0" />
+                <span className="truncate">{pickup?.location_name || 'Pickup'}</span>
+                <ArrowRight size={12} className="text-slate-300 shrink-0" />
+                <span className="truncate">{dropoff?.location_name || 'Drop-off'}</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                ETA: {trip.planned_end ? fullDateTime(trip.planned_end) : '—'}
+              </p>
+
+              <Separator className="my-4" />
+
+              <div className="space-y-3">
+                {sidebarStats.map((s) => (
+                  <div key={s.label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className={cn('w-7 h-7 rounded-full flex items-center justify-center', s.tone)}>
+                        <s.icon size={13} />
+                      </div>
+                      <span className="text-xs text-slate-500">{s.label}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-900">{s.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-5">
+                {trip.driver?.phone_primary ? (
+                  <a href={`tel:${trip.driver.phone_primary}`} className="w-full">
+                    <Btn label="Call Driver" variant="outline" size="sm" icon={<Phone size={13} />} className="w-full rounded-xl border-slate-200" />
+                  </a>
+                ) : (
+                  <Btn label="Call Driver" variant="outline" size="sm" icon={<Phone size={13} />} className="w-full rounded-xl border-slate-200" disabled />
+                )}
+                <Btn
+                  label="View Map"
+                  size="sm"
+                  icon={<Navigation size={13} />}
+                  className="w-full rounded-xl bg-[#E8450F] hover:bg-[#C7380A]"
+                  onClick={() => navigate(`/trips/${trip.id}/track`)}
+                />
+              </div>
+            </Card>
+
+            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold text-slate-900">Activity</CardTitle>
+                  {trip.status === 'InTransit' && (
+                    <Badge variant="outline" className="text-[10px] font-semibold border-emerald-200 bg-emerald-50 text-emerald-600 gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {timelineSteps.map((step, i) => (
+                  <div key={step.key} className="flex items-start gap-2.5">
+                    <StepCircle status={timelineStatus[i]} useTruckForDone={step.key === 'departed'} />
+                    <div className="min-w-0 -mt-0.5">
+                      <p className={cn('text-xs font-semibold', timelineStatus[i] === 'pending' ? 'text-slate-400' : 'text-slate-900')}>
+                        {step.label}
+                      </p>
+                      {step.time ? (
+                        <p className="text-[11px] text-slate-500 mt-0.5">{fullDateTime(step.time)}</p>
+                      ) : step.sub ? (
+                        <p className={cn('text-[11px] mt-0.5', timelineStatus[i] === 'active' ? 'text-[#E8450F] font-semibold' : 'text-slate-400')}>{step.sub}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
-          )}
-
-          {/* Cash Payment Flow */}
-          <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <CreditCard size={13} /> Extra Driver Payment
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {trip.payment_status === 'Approved' || trip.payment_status === 'Paid' ? (
-                <div className="bg-[#F0FDF4] text-[#16A34A] border border-[#16A34A]/10 p-3 rounded-lg">
-                  <div className="flex items-center justify-between font-bold text-xs">
-                    <span>SAR {trip.extra_driver_payment} {trip.payment_status}</span>
-                    <CheckCircle2 size={14} />
-                  </div>
-                  <p className="text-[10px] text-[#16A34A]/80 mt-1">Reason: {trip.payment_reason}</p>
-                  <div className="flex items-center justify-between mt-1.5">
-                    {trip.payment_date && (
-                      <p className="text-[10px] text-[#16A34A]/70">{new Date(trip.payment_date).toLocaleDateString()}</p>
-                    )}
-                    {trip.payment_approved_by && (
-                      <span className="text-[10px] text-[#16A34A]/80">by <UserChip userId={trip.payment_approved_by} users={users} size="sm" /></span>
-                    )}
-                  </div>
-                </div>
-              ) : trip.payment_status === 'Rejected' ? (
-                <div className="bg-red-50 text-red-600 border border-red-200 p-3 rounded-lg">
-                  <div className="flex items-center justify-between font-bold text-xs">
-                    <span>SAR {trip.extra_driver_payment} Rejected</span>
-                    <XCircle size={14} />
-                  </div>
-                  <p className="text-[10px] text-red-600/80 mt-1">Reason: {trip.payment_reason}</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-xs text-[#6E6E80] mb-4">Request and approve cash payouts or bonuses for this trip's driver.</p>
-                  <Btn
-                    label="Approve Cash Payout"
-                    variant="secondary"
-                    icon={<CreditCard size={13} />}
-                    onClick={() => setIsPaymentModalOpen(true)}
-                    className="w-full"
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Audit Trail — who created / last touched this trip */}
-          <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold text-[#9898A4] uppercase tracking-wider flex items-center gap-1.5">
-                <PackageCheck size={13} /> Audit Trail
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#9898A4] font-bold uppercase">Created by</span>
-                <UserChip userId={trip.created_by} users={users} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#9898A4] font-bold uppercase">Created</span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <span className="text-[11px] font-bold text-[#111] cursor-default">
-                      {new Date(trip.createdAt).toLocaleDateString()}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
-                </Tooltip>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#9898A4] font-bold uppercase">Last updated by</span>
-                <UserChip userId={trip.updated_by} users={users} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#9898A4] font-bold uppercase">Updated</span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <span className="text-[11px] font-bold text-[#111] cursor-default">
-                      {new Date(trip.updatedAt).toLocaleDateString()}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
-                </Tooltip>
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         </div>
-
       </div>
-
-      {/* Cash Payout Modal */}
-      <ConfirmModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        title="Approve Driver Cash Payment"
-        message="Enter the amount and business reason below to confirm this cashier payout."
-        confirmLabel="Approve Payout"
-        isDestructive={false}
-        isLoading={approvePaymentMutation.isPending}
-        onConfirm={() => {
-          if (!paymentAmount || !paymentReason) return;
-          approvePaymentMutation.mutate({
-            amount: parseFloat(paymentAmount),
-            reason: paymentReason,
-          });
-        }}
-      >
-        <div className="space-y-4 my-4">
-          <FormInput
-            label="Amount (SAR)"
-            type="number"
-            required
-            placeholder="e.g. 150"
-            value={paymentAmount}
-            onChange={(e) => setPaymentAmount(e.target.value)}
-          />
-          <FormInput
-            label="Reason"
-            type="text"
-            required
-            placeholder="e.g. Off-loading delay bonus"
-            value={paymentReason}
-            onChange={(e) => setPaymentReason(e.target.value)}
-          />
-        </div>
-      </ConfirmModal>
 
       {/* Status Confirmation Modal */}
       <ConfirmModal
@@ -1064,17 +1080,31 @@ export default function TripDetailsPage() {
           }}
         />
       )}
-
-      {/* Post-Trip Financial Settlement Modal */}
-      <PostTripSettlementModal
-        isOpen={isSettlementModalOpen}
-        onClose={() => setIsSettlementModalOpen(false)}
-        trip={trip}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['trip', id] });
-          queryClient.invalidateQueries({ queryKey: ['trips'] });
-        }}
-      />
     </DashboardLayout>
   );
+}
+
+function StepCircle({ status, useTruckForDone }: { status: StepStatus; useTruckForDone?: boolean }) {
+  if (status === 'done' && useTruckForDone) {
+    return (
+      <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+        <Truck size={12} />
+      </span>
+    );
+  }
+  if (status === 'done') {
+    return (
+      <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+        <Check size={13} strokeWidth={3} />
+      </span>
+    );
+  }
+  if (status === 'active') {
+    return (
+      <span className="w-6 h-6 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0">
+        <span className="w-2 h-2 rounded-full bg-white" />
+      </span>
+    );
+  }
+  return <span className="w-6 h-6 rounded-full border-2 border-slate-200 bg-white shrink-0" />;
 }

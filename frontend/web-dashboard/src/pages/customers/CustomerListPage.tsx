@@ -529,6 +529,7 @@ export default function CustomerListPage() {
               data={filteredCustomers}
               bulkActions={bulkActions}
               enableSelection={true}
+              compact={true}
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load customers.'}

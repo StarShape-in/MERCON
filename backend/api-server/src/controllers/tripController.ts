@@ -47,7 +47,6 @@ export const getTrips = async (req: Request, res: Response) => {
     if (search) {
       whereClause.OR = [
         { ref_id: { contains: search as string, mode: 'insensitive' } },
-        { cargo_type: { contains: search as string, mode: 'insensitive' } },
         { customer: { name: { contains: search as string, mode: 'insensitive' } } },
       ];
     }
@@ -142,7 +141,7 @@ export const getTripById = async (req: Request, res: Response) => {
 
 export const createTrip = async (req: Request, res: Response) => {
   try {
-    const { customer_id, driver_id, vehicle_id, cargo_type, planned_start, stops } = req.body;
+    const { customer_id, driver_id, vehicle_id, planned_start, stops } = req.body;
 
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
     const parsedPlannedStart = (planned_start && !isNaN(Date.parse(planned_start)))
@@ -208,7 +207,6 @@ export const createTrip = async (req: Request, res: Response) => {
               customerId: customer_id,
               ...(driver_id ? { driverId: driver_id } : {}),
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
-              cargo_type: cargo_type || 'General Goods',
               planned_start: parsedPlannedStart,
               status: (driver_id && vehicle_id) ? TripStatus.Dispatched : TripStatus.Draft,
               ...(createdBy ? { created_by: createdBy } : {}),
@@ -274,7 +272,6 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         customer_name: string;
         driver_name?: string;
         vehicle_plate?: string;
-        cargo_type?: string;
         planned_start?: string;
       }>;
     };
@@ -342,7 +339,6 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               customerId: customer.id,
               ...(driverId ? { driverId } : {}),
               ...(vehicleId ? { vehicleId } : {}),
-              cargo_type: row.cargo_type?.trim() || 'General Goods',
               planned_start: parsedPlannedStart,
               status: (driverId && vehicleId) ? TripStatus.Dispatched : TripStatus.Draft,
               ...(createdBy ? { created_by: createdBy } : {}),

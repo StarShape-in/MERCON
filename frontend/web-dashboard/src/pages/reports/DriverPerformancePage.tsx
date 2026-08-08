@@ -230,6 +230,7 @@ export default function DriverPerformancePage() {
           ]}
           data={topDrivers}
           enableSelection={true}
+          compact={true}
           isLoading={isLoading}
         />
 

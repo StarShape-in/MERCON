@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import DataTable from '@/components/ui/DataTable';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -545,55 +546,44 @@ export default function MaintenanceDetailsPage() {
 
             {/* ── TAB 2: ITEMIZED CHECKLIST ─────────────────────────────────── */}
             <TabsContent value="parts" className="space-y-4">
-              <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <FileCheck2 className="w-4 h-4 text-indigo-500" /> Itemized Service Checklist & Replaced Components
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500">
-                      Detailed component replacement, inspection items, and legal renewal checks performed.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="font-mono text-[10px] font-bold">
-                    {checklistItems.length} Checklist Items
-                  </Badge>
-                </CardHeader>
-
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-400 font-bold uppercase text-[10px]">
-                          <th className="px-5 py-3.5">Checklist Item / Task</th>
-                          <th className="px-5 py-3.5">Category</th>
-                          <th className="px-5 py-3.5">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                        {checklistItems.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                            <td className="px-5 py-3.5 text-slate-900 dark:text-slate-100 font-bold flex items-center gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                              {item.name}
-                            </td>
-                            <td className="px-5 py-3.5">
-                              <Badge variant="outline" className="text-[10px] font-semibold">
-                                {item.category}
-                              </Badge>
-                            </td>
-                            <td className="px-5 py-3.5">
-                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                                {item.status.toUpperCase()}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+              <DataTable
+                title={
+                  <span className="flex items-center gap-2">
+                    <FileCheck2 className="w-4 h-4 text-indigo-500" />
+                    <span>Itemized Service Checklist & Replaced Components</span>
+                  </span>
+                }
+                columns={[
+                  {
+                    header: 'Checklist Item / Task',
+                    accessor: (item: any) => (
+                      <span className="text-slate-900 dark:text-slate-100 font-bold flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        {item.name}
+                      </span>
+                    ),
+                  },
+                  {
+                    header: 'Category',
+                    accessor: (item: any) => (
+                      <Badge variant="outline" className="text-[10px] font-semibold">
+                        {item.category}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    header: 'Status',
+                    accessor: (item: any) => (
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                        {item.status.toUpperCase()}
+                      </Badge>
+                    ),
+                  },
+                ]}
+                data={checklistItems}
+                compact={true}
+                enableSelection={false}
+              />
             </TabsContent>
 
             {/* ── TAB 3: FINANCIAL INVOICE VAULT ─────────────────────────────── */}

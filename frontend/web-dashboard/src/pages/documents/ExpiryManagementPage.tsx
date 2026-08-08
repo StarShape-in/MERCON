@@ -272,6 +272,7 @@ export default function ExpiryManagementPage() {
             }
             columns={columns}
             data={filteredItems}
+            compact={true}
             bulkActions={[
               {
                 label: 'Export CSV',

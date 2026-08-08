@@ -45,7 +45,7 @@ import rateCardRoutes from './routes/rateCardRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import userRoutes from './routes/userRoutes';
-import { initCronJobs } from './services/cronJobs';
+import { initFleetTracking } from './services/icces/fleetPoller';
 
 import helmet from 'helmet';
 
@@ -173,7 +173,7 @@ app.use((err: Error, req: Request, res: Response, next: express.NextFunction) =>
 });
 
 // Initialize Background Workers
-initCronJobs();
+initFleetTracking();
 
 httpServer.listen(port, () => {
   logger.info(`🚀 MERCON API Server (with WebSockets) is running on port ${port}`);

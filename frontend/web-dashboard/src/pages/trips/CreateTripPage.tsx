@@ -226,7 +226,6 @@ export default function CreateTripPage() {
       customer_id: customerId,
       driver_id: assignDriverLater ? undefined : driverId,
       vehicle_id: assignVehicleLater ? undefined : vehicleId,
-      cargo_type: 'General Goods',
       planned_start: plannedStart || undefined,
       stops: [
         {

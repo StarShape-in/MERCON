@@ -59,7 +59,6 @@ export interface Trip {
   id: string;
   ref_id: string | null;
   status: TripStatus;
-  cargo_type: string;
   planned_start: string | null;
   planned_end: string | null;
   actual_start: string | null;
