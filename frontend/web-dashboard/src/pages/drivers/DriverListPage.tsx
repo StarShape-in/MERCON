@@ -276,7 +276,7 @@ export default function DriverListPage() {
         return (
           <div className="flex flex-col gap-0.5">
             <span className="font-mono text-xs font-semibold text-slate-700">
-              {row.license_number || 'KSA-98234-DL'}
+              {row.license_number || 'N/A'}
             </span>
             <div className="flex items-center gap-1">
               {isExpired ? (
