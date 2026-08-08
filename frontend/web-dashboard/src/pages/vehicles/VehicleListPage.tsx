@@ -42,11 +42,14 @@ import { cn } from '@/lib/utils';
 
 // Custom icon builder for the vehicles on the map
 function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: boolean) {
-  let color = '#FF5500'; // Orange for other/inactive
-  let glowColor = 'rgba(255, 85, 0, 0.5)';
+  let color = '#94A3B8'; // Slate for inactive/other
+  let glowColor = 'rgba(148, 163, 184, 0.4)';
   
   if (status === 'Available') {
-    color = '#10B981'; // Green for Available (Dispatch Ready)
+    color = '#E8450F'; // MERCON Brand Orange for Available
+    glowColor = 'rgba(232, 69, 15, 0.65)';
+  } else if (status === 'OnTrip') {
+    color = '#10B981'; // Green for On Trip
     glowColor = 'rgba(16, 185, 129, 0.6)';
   } else if (status === 'Maintenance') {
     color = '#F59E0B'; // Amber for Maintenance
@@ -57,13 +60,18 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
   const textPlate = isDarkTheme ? '#FFFFFF' : '#1E293B';
 
   const svgHtml = `
-    <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-      <!-- Pulsing Aura for active/available vehicles -->
-      ${status === 'Available' ? `<div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35;"></div>` : ''}
+    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+      <!-- Pulsing Aura for active/available/on-trip vehicles -->
+      ${(status === 'Available' || status === 'OnTrip') ? `<div class="animate-ping" style="position: absolute; width: 42px; height: 42px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35;"></div>` : ''}
       
-      <!-- Center Vehicle Circle Pointer -->
-      <div style="width: 28px; height: 28px; border-radius: 50%; background: ${bgPod}; color: ${color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px ${glowColor}, inset 0 0 6px ${color}; border: 2px solid ${color}; z-index: 2;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      <!-- Center Vehicle Circle Pointer containing Truck SVG -->
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: ${bgPod}; color: ${color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px ${glowColor}, inset 0 0 7px ${color}; border: 2px solid ${color}; z-index: 2;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
+          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+          <circle cx="5.5" cy="18.5" r="2.5" fill="${color}" />
+          <circle cx="18.5" cy="18.5" r="2.5" fill="${color}" />
+        </svg>
       </div>
 
       <!-- Plate number tag -->
@@ -76,8 +84,8 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
   return L.divIcon({
     html: svgHtml,
     className: '',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
   });
 }
 
