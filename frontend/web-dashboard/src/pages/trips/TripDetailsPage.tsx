@@ -800,40 +800,41 @@ export default function TripDetailsPage() {
 
           {/* ───────────────────────── Right: sidebar ───────────────────────── */}
           <div className="space-y-4">
-            <Card className="rounded-xl border border-slate-800 bg-[#12121A] text-white p-5 gap-0 shadow-sm overflow-hidden relative">
-              {/* Subtle orange ambient glow */}
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#E8450F]/10 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="flex items-center justify-between relative z-10">
+            <Card className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0 shadow-2xs">
+              <div className="flex items-center justify-between">
                 <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Trip Progress</p>
-                <Badge variant="outline" className="text-[10px] font-mono font-bold bg-[#E8450F]/15 text-[#E8450F] border-[#E8450F]/30 px-2 py-0.5">
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
+                  style={{ color: tone.color, backgroundColor: tone.bg }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
                   {statusLabel(trip.status)}
-                </Badge>
+                </span>
               </div>
 
-              <div className="flex items-baseline gap-2 mt-2 relative z-10">
-                <p className="text-4xl font-black text-white tracking-tight">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
+              <div className="flex items-baseline gap-2 mt-2">
+                <p className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">{trip.status === 'Cancelled' ? '—' : `${stageProgress}%`}</p>
                 <span className="text-xs font-semibold text-slate-400">completed</span>
               </div>
 
               <Progress
                 value={trip.status === 'Cancelled' ? 0 : stageProgress}
-                className="h-2 mt-3.5 bg-slate-800 [&_[data-slot=progress-track]]:bg-slate-800 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
+                className="h-2 mt-3 [&_[data-slot=progress-track]]:bg-orange-50 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
               />
 
               {/* Pickup & Drop-off location details */}
-              <div className="mt-5 pt-4 border-t border-slate-800 space-y-3 relative z-10">
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                    <MapPin size={13} />
+                  <span className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-emerald-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <MapPin size={13} className="text-emerald-600 dark:text-emerald-400" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pickup Location</p>
-                    <p className="text-xs font-bold text-white truncate mt-0.5">
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
                       {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
                     </p>
                     {pickup && (
-                      <p className="text-[11px] text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                         {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
                       </p>
                     )}
@@ -841,20 +842,20 @@ export default function TripDetailsPage() {
                 </div>
 
                 <div className="pl-[13px] -my-1 py-0.5 flex items-center gap-2">
-                  <div className="w-0.5 h-3.5 bg-slate-700" />
+                  <div className="w-0.5 h-3.5 bg-slate-200 dark:bg-slate-700" />
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="w-7 h-7 rounded-full bg-[#E8450F]/20 text-[#E8450F] border border-[#E8450F]/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                    <MapPin size={13} />
+                  <span className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-[#E8450F] border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <MapPin size={13} className="text-[#E8450F]" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Drop-off Location</p>
-                    <p className="text-xs font-bold text-white truncate mt-0.5">
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
                       {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
                     </p>
                     {dropoff && (
-                      <p className="text-[11px] text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                         {dropoff.actual_arrival
                           ? fullDateTime(dropoff.actual_arrival)
                           : dropoff.planned_arrival
@@ -866,32 +867,32 @@ export default function TripDetailsPage() {
                 </div>
               </div>
 
-              <Separator className="my-4 bg-slate-800" />
+              <Separator className="my-4" />
 
-              <div className="space-y-3 relative z-10">
+              <div className="space-y-3">
                 {sidebarStats.map((s) => (
                   <div key={s.label} className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-slate-800/80 border border-slate-700/60 text-[#E8450F] flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center">
                         <s.icon size={13} />
                       </div>
-                      <span className="text-xs font-medium text-slate-400">{s.label}</span>
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{s.label}</span>
                     </div>
-                    <span className="text-xs font-bold text-white">{s.value}</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{s.value}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-5 relative z-10">
+              <div className="grid grid-cols-2 gap-2 mt-5">
                 {trip.driver?.phone_primary ? (
                   <a href={`tel:${trip.driver.phone_primary}`} className="w-full">
-                    <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-slate-700 bg-slate-800/80 text-white hover:bg-slate-700 text-xs font-semibold gap-1.5 cursor-pointer">
-                      <Phone size={13} className="text-[#E8450F]" />
+                    <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-semibold gap-1.5 cursor-pointer shadow-2xs">
+                      <Phone size={13} className="text-emerald-600" />
                       Call Driver
                     </Button>
                   </a>
                 ) : (
-                  <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-slate-800 bg-slate-900/50 text-slate-500 text-xs font-semibold gap-1.5 cursor-not-allowed" disabled>
+                  <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-400 text-xs font-semibold gap-1.5 cursor-not-allowed" disabled>
                     <Phone size={13} />
                     Call Driver
                   </Button>
