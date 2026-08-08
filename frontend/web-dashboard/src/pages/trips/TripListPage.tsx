@@ -434,6 +434,7 @@ export default function TripListPage() {
     },
     {
       header: 'Actions',
+      headerClassName: 'text-right',
       accessor: (row: Trip) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           {row.status === 'InTransit' && (

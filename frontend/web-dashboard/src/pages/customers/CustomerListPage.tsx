@@ -186,55 +186,45 @@ export default function CustomerListPage() {
     },
     {
       header: 'Actions',
+      headerClassName: 'text-right',
       accessor: (row: Customer) => (
-        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 shadow-2xs gap-1.5 rounded-lg"
-              >
-                <span>Actions</span>
-                <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg rounded-xl border border-slate-200 bg-white">
-              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                Commercial Operations
-              </DropdownMenuLabel>
-              
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/customers/${row.id}`)}>
-                <Eye className="mr-2 h-3.5 w-3.5 text-blue-600 shrink-0" />
-                View Customer Details
-              </DropdownMenuItem>
- 
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-purple-50" onClick={() => navigate(`/customers/${row.id}/contracts`)}>
-                <FileText className="mr-2 h-3.5 w-3.5 text-purple-600 shrink-0" />
-                Rate Cards & Contracts
-              </DropdownMenuItem>
- 
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/customers/${row.id}/edit`)}>
-                <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600 shrink-0" />
-                Edit Profile Details
-              </DropdownMenuItem>
- 
-              <DropdownMenuSeparator className="my-1 border-slate-100" />
- 
-              <DropdownMenuItem
-                className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg text-rose-600 focus:text-rose-600 focus:bg-rose-50"
-                onClick={async () => {
-                  if (confirm(`Delete customer ${row.name}?`)) {
-                    await customerService.delete(row.id);
-                    queryClient.invalidateQueries({ queryKey: ['customers'] });
-                  }
-                }}
-              >
-                <Trash2 className="mr-2 h-3.5 w-3.5 text-rose-600 shrink-0" />
-                Delete Customer Account
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => navigate(`/customers/${row.id}`)}
+            title="View Customer Details"
+            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            onClick={() => navigate(`/customers/${row.id}/contracts`)}
+            title="Rate Cards & Contracts"
+            className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors"
+          >
+            <FileText className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            onClick={() => navigate(`/customers/${row.id}/edit`)}
+            title="Edit Profile Details"
+            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+          >
+            <Edit2 className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            onClick={async () => {
+              if (confirm(`Delete customer ${row.name}?`)) {
+                await customerService.delete(row.id);
+                queryClient.invalidateQueries({ queryKey: ['customers'] });
+              }
+            }}
+            title="Delete Customer Account"
+            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       ),
     },

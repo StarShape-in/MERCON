@@ -252,6 +252,7 @@ export default function DriverListPage() {
     },
     {
       header: 'Actions',
+      headerClassName: 'text-right',
       accessor: (row: Driver) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <button

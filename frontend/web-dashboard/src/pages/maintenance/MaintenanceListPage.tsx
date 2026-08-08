@@ -577,25 +577,31 @@ export default function MaintenanceListPage() {
 
                         {/* Actions */}
                         <td className="px-5 py-4 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs font-semibold gap-1">
-                                Actions <ChevronDown className="w-3 h-3 text-slate-400" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40 text-xs font-medium">
-                              <DropdownMenuItem onClick={() => navigate(`/maintenance/${r.id}`)}>
-                                <Eye className="w-3.5 h-3.5 mr-2 text-indigo-500" /> View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenEditModal(r)}>
-                                <Edit2 className="w-3.5 h-3.5 mr-2 text-slate-500" /> Edit Log
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => setRecordToDelete(r)} className="text-rose-600 focus:text-rose-600">
-                                <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-500" /> Delete Record
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => navigate(`/maintenance/${r.id}`)}
+                              title="View Details"
+                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenEditModal(r)}
+                              title="Edit Log"
+                              className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+
+                            <button
+                              onClick={() => setRecordToDelete(r)}
+                              title="Delete Record"
+                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </td>
 
                       </tr>
