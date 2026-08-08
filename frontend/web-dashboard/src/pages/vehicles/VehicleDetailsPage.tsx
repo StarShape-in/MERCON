@@ -133,7 +133,6 @@ export default function VehicleDetailsPage() {
   }
 
   const capacityTons = ((vehicle.capacity_kg || 24000) / 1000).toFixed(1);
-  const trailerCapacityTons = vehicle.trailer_capacity_kg ? ((vehicle.trailer_capacity_kg || 0) / 1000).toFixed(1) : '28.0';
 
   // Parse plate numbers into English and Arabic representation
   const rawPlate = vehicle.plate_number || '7821-LSA';
@@ -165,7 +164,7 @@ export default function VehicleDetailsPage() {
                 <StatusBadge status={vehicle.status} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{vehicle.ref_id || 'TRK-9021'}</span> • {vehicle.asset_type || 'Heavy Tractor'} Asset
+                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{vehicle.ref_id || 'TRK-9021'}</span> • {vehicle.asset_type || 'Box Truck'} Asset
               </p>
             </div>
           </div>
@@ -228,7 +227,7 @@ export default function VehicleDetailsPage() {
                     {vehicle.plate_number}
                   </h2>
                   <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold">
-                    {vehicle.asset_type || 'Heavy Tractor'}
+                    {vehicle.asset_type || 'Box Truck'}
                   </Badge>
                   <StatusBadge status={vehicle.status} />
                 </div>
@@ -291,41 +290,6 @@ export default function VehicleDetailsPage() {
 
           {/* Left Column (Asset Specifications & Trailer Coupling) */}
           <div className="lg:col-span-2 space-y-6">
-
-            {/* Section 2: Trailer Coupling Schematic */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Link2 className="w-4 h-4 text-[#E8450F]" /> Trailer Coupling Configuration & Payload Rating
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="p-5">
-                <div className="p-4 rounded-xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-                    <div>
-                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
-                        {vehicle.trailer_number ? `Attached Trailer: ${vehicle.trailer_number}` : 'No Trailer Attached'}
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium">
-                        {vehicle.trailer_type ? `Type: ${vehicle.trailer_type} • Reefer Unit` : 'Single Tractor Configuration'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-xs font-mono">
-                    <div className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-900/60">
-                      <span className="text-slate-400 text-[10px] block">Trailer Capacity</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{trailerCapacityTons} Tons</span>
-                    </div>
-                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                      COUPLED & LOCKED
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Section 3: Vehicle Financial & Profitability Report (P&L) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">

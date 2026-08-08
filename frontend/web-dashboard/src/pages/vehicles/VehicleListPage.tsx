@@ -231,7 +231,7 @@ export default function VehicleListPage() {
               </Badge>
             </div>
             <span className="text-[10px] text-slate-500 font-medium">
-              {row.trailer_type ? `Trailer: ${row.trailer_type}` : 'Commercial Heavy Truck'}
+              Rigid Box Truck
             </span>
           </div>
         </div>
@@ -241,7 +241,7 @@ export default function VehicleListPage() {
       header: 'Asset Type',
       accessor: (row: Vehicle) => (
         <Badge variant="outline" className={cn("text-[10px] font-bold px-2 py-0.5", getTypeStyle(row.asset_type))}>
-          {row.asset_type || 'Heavy Tractor'}
+          {row.asset_type || 'Box Truck'}
         </Badge>
       ),
     },
@@ -312,14 +312,6 @@ export default function VehicleListPage() {
     {
       header: 'Status',
       accessor: (row: Vehicle) => <StatusBadge status={row.status} />,
-    },
-    {
-      header: 'Trailer Number',
-      accessor: (row: Vehicle) => (
-        <span className="text-xs text-slate-600 dark:text-slate-400 font-mono font-medium">
-          {row.trailer_number ? row.trailer_number : <span className="text-slate-300 dark:text-slate-600">—</span>}
-        </span>
-      ),
     },
     {
       header: 'Actions',
@@ -786,7 +778,7 @@ export default function VehicleListPage() {
                       {v.plate_number}
                     </h4>
                     <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                      {v.ref_id || 'TRK-9021'} • {v.asset_type || 'Heavy Tractor'}
+                      {v.ref_id || 'TRK-9021'} • {v.asset_type || 'Box Truck'}
                     </p>
                   </div>
 
@@ -798,8 +790,8 @@ export default function VehicleListPage() {
                       </span>
                     </div>
                     <div className="flex justify-between text-slate-500">
-                      <span>Trailer Spec:</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">{v.trailer_type || 'Commercial Heavy'}</span>
+                      <span>Vehicle Model:</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">Isuzu FTR Box</span>
                     </div>
                     <div className="flex justify-between text-slate-500">
                       <span>Payload Capacity:</span>

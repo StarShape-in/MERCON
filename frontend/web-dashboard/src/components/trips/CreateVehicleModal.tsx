@@ -172,43 +172,7 @@ export default function CreateVehicleModal({ isOpen, onClose, onCreated }: Creat
             </div>
           </div>
 
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800 space-y-2">
-            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-              Optional Trailer Details
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
-                  Trailer Number
-                </Label>
-                <Input
-                  placeholder="e.g. TR-551"
-                  value={formData.trailer_number || ''}
-                  onChange={(e) => handleChange('trailer_number', e.target.value)}
-                  className="h-8 text-xs border-slate-200 dark:border-slate-800 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
-                  Trailer Type
-                </Label>
-                <Select
-                  value={formData.trailer_type || 'Flatbed'}
-                  onValueChange={(val) => handleChange('trailer_type', val as AssetType)}
-                >
-                  <SelectTrigger className="h-8 text-xs border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                    <SelectValue placeholder="Trailer type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Flatbed">Flatbed</SelectItem>
-                    <SelectItem value="Reefer">Reefer</SelectItem>
-                    <SelectItem value="Box">Box</SelectItem>
-                    <SelectItem value="Tanker">Tanker</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+
 
           <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
             <Button

@@ -265,79 +265,7 @@ export default function AddVehiclePage() {
                 </div>
               </section>
 
-              <Separator />
 
-              <section className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    <Layers className="w-3.5 h-3.5" /> Attached trailer
-                  </h3>
-                  <Button
-                    type="button"
-                    variant={hasTrailer ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setHasTrailer(!hasTrailer)}
-                    className="h-7 text-xs"
-                  >
-                    {hasTrailer ? '✓ Trailer attached' : '+ Attach trailer'}
-                  </Button>
-                </div>
-
-                {hasTrailer ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border bg-muted/30 animate-fade-in">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="trailer_number" className="text-xs font-semibold">
-                        Trailer plate / registration ID <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="trailer_number"
-                        placeholder="TR-8812-B"
-                        value={formData.trailer_number}
-                        onChange={(e) => handleChange('trailer_number', e.target.value.toUpperCase())}
-                        className="font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="trailer_type" className="text-xs font-semibold">
-                        Trailer body classification <span className="text-destructive">*</span>
-                      </Label>
-                      <Select
-                        value={formData.trailer_type}
-                        onValueChange={(val) => handleChange('trailer_type', val as AssetType)}
-                      >
-                        <SelectTrigger id="trailer_type" className="w-full">
-                          <SelectValue placeholder="Select trailer type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Flatbed">Flatbed Trailer</SelectItem>
-                          <SelectItem value="Reefer">Reefer Trailer</SelectItem>
-                          <SelectItem value="Box">Box Trailer</SelectItem>
-                          <SelectItem value="Tanker">Tanker Trailer</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="trailer_capacity_kg" className="text-xs font-semibold">
-                        Trailer capacity (kg)
-                      </Label>
-                      <Input
-                        id="trailer_capacity_kg"
-                        type="number"
-                        placeholder="15000"
-                        value={formData.trailer_capacity_kg}
-                        onChange={(e) => handleChange('trailer_capacity_kg', e.target.value)}
-                        className="font-mono"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 text-center rounded-xl border border-dashed text-muted-foreground text-xs">
-                    No trailer unit attached. Toggle above to configure attached trailer specifications.
-                  </div>
-                )}
-              </section>
 
               {error && (
                 <Alert variant="destructive">
