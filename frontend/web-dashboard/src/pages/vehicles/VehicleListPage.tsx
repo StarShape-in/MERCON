@@ -4,9 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, Wrench, 
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
-  Gauge, Calendar, CheckCircle2, Clock, MoreVertical
+  Gauge, Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
+
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { MAP_THEMES } from '@/components/maps/mapThemes';
+import MapThemeSelector from '@/components/maps/MapThemeSelector';
 
 import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
@@ -34,6 +40,47 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
+// Custom icon builder for the vehicles on the map
+function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: boolean) {
+  let color = '#FF5500'; // Orange for other/inactive
+  let glowColor = 'rgba(255, 85, 0, 0.5)';
+  
+  if (status === 'Available') {
+    color = '#10B981'; // Green for Available (Dispatch Ready)
+    glowColor = 'rgba(16, 185, 129, 0.6)';
+  } else if (status === 'Maintenance') {
+    color = '#F59E0B'; // Amber for Maintenance
+    glowColor = 'rgba(245, 158, 11, 0.5)';
+  }
+
+  const bgPod = isDarkTheme ? '#0F1017' : '#FFFFFF';
+  const textPlate = isDarkTheme ? '#FFFFFF' : '#1E293B';
+
+  const svgHtml = `
+    <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+      <!-- Pulsing Aura for active/available vehicles -->
+      ${status === 'Available' ? `<div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35;"></div>` : ''}
+      
+      <!-- Center Vehicle Circle Pointer -->
+      <div style="width: 28px; height: 28px; border-radius: 50%; background: ${bgPod}; color: ${color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px ${glowColor}, inset 0 0 6px ${color}; border: 2px solid ${color}; z-index: 2;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      </div>
+
+      <!-- Plate number tag -->
+      <div style="position: absolute; bottom: -8px; background: ${bgPod}; color: ${textPlate}; font-family: monospace; font-size: 8px; font-weight: 800; padding: 0.5px 4px; border-radius: 3px; white-space: nowrap; border: 1px solid ${color}; box-shadow: 0 1px 4px rgba(0,0,0,0.3); z-index: 3;">
+        ${plateNumber}
+      </div>
+    </div>
+  `;
+
+  return L.divIcon({
+    html: svgHtml,
+    className: '',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+  });
+}
+
 export default function VehicleListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -43,8 +90,9 @@ export default function VehicleListPage() {
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | 'All'>('All');
   const [selectedType, setSelectedType] = useState<string>('All');
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [mapThemeId, setMapThemeId] = useState<string>('voyager');
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -408,6 +456,12 @@ export default function VehicleListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {viewMode === 'map' && (
+              <MapThemeSelector
+                currentThemeId={mapThemeId}
+                onThemeChange={(newTheme) => setMapThemeId(newTheme)}
+              />
+            )}
             {/* View Mode Switcher */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
               <button
@@ -433,6 +487,18 @@ export default function VehicleListPage() {
                 title="Grid View"
               >
                 <LayoutGrid size={14} />
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'map'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Telemetry Radar Map"
+              >
+                <Map size={14} />
               </button>
             </div>
 
@@ -505,7 +571,7 @@ export default function VehicleListPage() {
               label: `${availableCount} Units Available`,
               subtext: 'Immediate Dispatch Clear'
             }}
-            onClick={() => { setSelectedStatus('Available'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('Available'); setViewMode('map'); setCurrentPage(1); }}
           />
 
           {/* Card 3: Maintenance Bay */}
@@ -542,8 +608,8 @@ export default function VehicleListPage() {
           />
         </div>
 
-        {/* ── View Content (List vs Grid) ─────────────────────────────────── */}
-        {viewMode === 'list' ? (
+        {/* ── View Content (List vs Grid vs Map) ───────────────────────────── */}
+        {viewMode === 'list' && (
           <div className="w-full flex flex-col">
             <DataTable
               title={
@@ -614,8 +680,9 @@ export default function VehicleListPage() {
               }
             />
           </div>
-        ) : (
-          
+        )}
+        
+        {viewMode === 'grid' && (
           /* GRID VIEW MODE */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 shrink-0">
             {isLoading ? (
@@ -704,6 +771,107 @@ export default function VehicleListPage() {
                 </div>
               </Card>
             ))}
+          </div>
+        )}
+
+        {viewMode === 'map' && (
+          /* MAP VIEW MODE */
+          <div className="h-[550px] rounded-[24px] overflow-hidden border border-slate-200 dark:border-slate-800 relative shadow-md" style={{ background: MAP_THEMES[mapThemeId]?.previewColor || '#F4F5F7' }}>
+            <MapContainer
+              center={[24.5000, 44.5000]}
+              zoom={6}
+              scrollWheelZoom={true}
+              style={{ height: '100%', width: '100%', zIndex: 0 }}
+            >
+              <TileLayer
+                key={mapThemeId}
+                attribution={MAP_THEMES[mapThemeId]?.attribution || MAP_THEMES.voyager.attribution}
+                url={MAP_THEMES[mapThemeId]?.url || MAP_THEMES.voyager.url}
+              />
+
+              {vehicles.map((v) => {
+                // Determine stable but randomized mock coordinates for demo purposes if not present
+                const lat = v.last_lat || (24.5000 + (Math.sin(v.id.charCodeAt(0) + v.id.charCodeAt(1)) * 3.5));
+                const lng = v.last_lng || (44.5000 + (Math.cos(v.id.charCodeAt(2) + v.id.charCodeAt(3)) * 4.5));
+
+                return (
+                  <Marker
+                    key={v.id}
+                    position={[lat, lng]}
+                    icon={createVehicleMapIcon(v.plate_number, v.status, MAP_THEMES[mapThemeId]?.isDark || false)}
+                  >
+                    <Popup maxWidth={320}>
+                      <div className="p-2 space-y-3 font-sans">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-2">
+                          <div>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{v.ref_id || 'VEH-UNIT'}</span>
+                            <p className="text-base font-black leading-tight mt-0.5">{v.plate_number}</p>
+                          </div>
+                          <Badge className={cn(
+                            "font-bold text-[10px] uppercase border px-2 py-0.5",
+                            v.status === 'Available' && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                            v.status === 'Maintenance' && "bg-amber-50 text-amber-700 border-amber-200",
+                            v.status === 'Inactive' && "bg-slate-100 text-slate-700 border-slate-200"
+                          )}>
+                            {v.status}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-slate-50 dark:bg-white/5 p-2 rounded-lg border border-slate-100 dark:border-white/5">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase">Asset Type</p>
+                            <p className="font-bold truncate">{v.asset_type}</p>
+                          </div>
+                          <div className="bg-slate-50 dark:bg-white/5 p-2 rounded-lg border border-slate-100 dark:border-white/5">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase">Odometer</p>
+                            <p className="font-bold text-slate-700 dark:text-slate-200">
+                              {(v.current_odometer || 0).toLocaleString()} km
+                            </p>
+                          </div>
+                        </div>
+
+                        {v.trailer_number && (
+                          <div className="text-xs bg-slate-50 dark:bg-white/5 p-2.5 rounded-lg border border-slate-100 dark:border-white/5">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Trailer Info</p>
+                            <p className="font-semibold mt-0.5">No: {v.trailer_number} ({v.trailer_type || 'Flatbed'})</p>
+                          </div>
+                        )}
+
+                        <div className="pt-1 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/vehicles/${v.id}`)}
+                            className="flex-1 h-8 text-xs font-bold gap-1"
+                          >
+                            <Eye size={12} />
+                            <span>Details</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => navigate(`/vehicles/${v.id}/edit`)}
+                            className="flex-1 h-8 bg-[#E8450F] hover:bg-[#D94800] text-white text-xs font-bold gap-1 border-0"
+                          >
+                            <Edit2 size={12} />
+                            <span>Edit Vehicle</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+
+            {/* Floating Info Overlay HUD */}
+            <div className={`absolute top-3 left-3 z-[400] px-3 py-1.5 rounded-xl shadow-md border text-xs flex items-center gap-2 font-mono font-bold ${
+              MAP_THEMES[mapThemeId]?.isDark 
+                ? 'bg-[#090A0F]/85 backdrop-blur-xl border-white/10 text-white' 
+                : 'bg-white/90 backdrop-blur-xl border-black/[0.08] text-[#111]'
+            }`}>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{vehicles.length} VEHICLES RENDERED IN CURRENT FILTER</span>
+            </div>
           </div>
         )}
 

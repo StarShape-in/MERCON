@@ -16,6 +16,12 @@ export interface Vehicle {
   trailer_type: AssetType | null;
   trailer_capacity_kg: number | null;
   icces_device_id: string | null;
+  last_lat?: number | null;
+  last_lng?: number | null;
+  last_speed_kph?: number | null;
+  last_heading?: number | null;
+  last_status?: string | null;
+  last_seen_at?: string | null;
   isActive: boolean;
   createdAt: string;
   documents?: import('./documentService').MerconDocument[];
