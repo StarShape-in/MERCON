@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Area, AreaChart, ResponsiveContainer } from 'recharts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { ChartContainer } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +30,17 @@ export interface PipelineStage {
   color: string
 }
 
+export interface SemiCircleGaugeSegment {
+  label: string
+  count: number
+  color: string
+  dotColor?: string
+}
+
+export interface SemiCircleGauge {
+  segments: SemiCircleGaugeSegment[]
+}
+
 export interface RouteHealthBreakdown {
   onSchedule: number
   delayed: number
@@ -52,6 +63,7 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 't
   routeHealthBreakdown?: RouteHealthBreakdown
   completionGauge?: CompletionGauge
   pipelineStages?: PipelineStage[]
+  semiCircleGauge?: SemiCircleGauge
   isActive?: boolean
   onStageClick?: (stageName: string) => void
   onHealthClick?: (healthType: string) => void
@@ -65,62 +77,52 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 't
 }
 
 const variantStyles: Record<KpiCardVariant, {
-  cardBg: string
-  accentLine: string
+  hex: string
   iconContainer: string
-  textColor: string
-  chartColor: string
+  activeRing: string
 }> = {
   brand: {
-    cardBg: '',
-    accentLine: 'bg-[#E8450F]',
-    iconContainer: 'bg-[#E8450F]/10 border-[#E8450F]/25 text-[#E8450F]',
-    textColor: 'text-[#E8450F]',
-    chartColor: '#E8450F',
+    hex: '#E8450F',
+    iconContainer: 'bg-[#E8450F]/10 text-[#E8450F]',
+    activeRing: 'ring-2 ring-[#E8450F]/60 border-[#E8450F]/40',
   },
   blue: {
-    cardBg: '',
-    accentLine: 'bg-blue-500',
-    iconContainer: 'bg-blue-500/10 border-blue-500/25 text-blue-600 dark:text-blue-400',
-    textColor: 'text-blue-600 dark:text-blue-400',
-    chartColor: '#2563EB',
+    hex: '#2563EB',
+    iconContainer: 'bg-blue-600/10 text-blue-600 dark:text-blue-400',
+    activeRing: 'ring-2 ring-blue-500/60 border-blue-500/40',
   },
   emerald: {
-    cardBg: '',
-    accentLine: 'bg-emerald-500',
-    iconContainer: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400',
-    textColor: 'text-emerald-600 dark:text-emerald-400',
-    chartColor: '#16A34A',
+    hex: '#16A34A',
+    iconContainer: 'bg-emerald-600/10 text-emerald-600 dark:text-emerald-400',
+    activeRing: 'ring-2 ring-emerald-500/60 border-emerald-500/40',
   },
   amber: {
-    cardBg: '',
-    accentLine: 'bg-amber-500',
-    iconContainer: 'bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400',
-    textColor: 'text-amber-600 dark:text-amber-400',
-    chartColor: '#D97706',
+    hex: '#D97706',
+    iconContainer: 'bg-amber-600/10 text-amber-600 dark:text-amber-400',
+    activeRing: 'ring-2 ring-amber-500/60 border-amber-500/40',
   },
   purple: {
-    cardBg: '',
-    accentLine: 'bg-purple-500',
-    iconContainer: 'bg-purple-500/10 border-purple-500/25 text-purple-600 dark:text-purple-400',
-    textColor: 'text-purple-600 dark:text-purple-400',
-    chartColor: '#7C3AED',
+    hex: '#7C3AED',
+    iconContainer: 'bg-purple-600/10 text-purple-600 dark:text-purple-400',
+    activeRing: 'ring-2 ring-purple-500/60 border-purple-500/40',
   },
   rose: {
-    cardBg: '',
-    accentLine: 'bg-rose-500',
-    iconContainer: 'bg-rose-500/10 border-rose-500/25 text-rose-600 dark:text-rose-400',
-    textColor: 'text-rose-600 dark:text-rose-400',
-    chartColor: '#DC2626',
+    hex: '#DC2626',
+    iconContainer: 'bg-rose-600/10 text-rose-600 dark:text-rose-400',
+    activeRing: 'ring-2 ring-rose-500/60 border-rose-500/40',
   },
   slate: {
-    cardBg: '',
-    accentLine: 'bg-border/60',
-    iconContainer: 'bg-muted/40 border-border/50 text-muted-foreground',
-    textColor: 'text-muted-foreground',
-    chartColor: '#94A3B8',
+    hex: '#64748B',
+    iconContainer: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+    activeRing: 'ring-2 ring-slate-400/60 border-slate-400/40',
   },
 }
+
+const trendChipStyles = {
+  up: 'bg-emerald-600/10 text-emerald-700 dark:text-emerald-400',
+  down: 'bg-rose-600/10 text-rose-700 dark:text-rose-400',
+  neutral: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+} as const
 
 const trendGlyph = {
   up: '↑',
@@ -128,15 +130,72 @@ const trendGlyph = {
   neutral: '→',
 } as const
 
-const defaultChartData = [
-  { index: 0, value: 24 },
-  { index: 1, value: 32 },
-  { index: 2, value: 28 },
-  { index: 3, value: 45 },
-  { index: 4, value: 39 },
-  { index: 5, value: 52 },
-  { index: 6, value: 60 },
-]
+/** Accepts either a hex color ('#10B981') or a Tailwind bg class ('bg-emerald-500'). */
+function swatch(color: string): { className?: string; style?: React.CSSProperties } {
+  return color.startsWith('#')
+    ? { style: { backgroundColor: color } }
+    : { className: color }
+}
+
+interface BarSegment {
+  label?: string
+  value: number
+  color: string
+  count?: number
+  onClick?: () => void
+}
+
+/** A slim segmented distribution bar with a small dot legend underneath. */
+function SegmentBar({ segments }: { segments: BarSegment[] }) {
+  const visible = segments.filter(s => s.value > 0)
+  const total = visible.reduce((acc, s) => acc + s.value, 0)
+  const labeled = segments.filter(s => s.label)
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex h-1.5 w-full gap-[3px] overflow-hidden">
+        {total > 0 ? (
+          visible.map((seg, idx) => {
+            const s = swatch(seg.color)
+            return (
+              <div
+                key={idx}
+                className={cn('h-full rounded-full transition-all duration-300', s.className)}
+                style={{ width: `${(seg.value / total) * 100}%`, minWidth: 6, ...s.style }}
+                title={seg.label}
+              />
+            )
+          })
+        ) : (
+          <div className="h-full w-full rounded-full bg-black/[0.05] dark:bg-white/[0.08]" />
+        )}
+      </div>
+      {labeled.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold leading-none text-[#6E6E80] dark:text-slate-400">
+          {labeled.map((seg, idx) => {
+            const s = swatch(seg.color)
+            return (
+              <span
+                key={idx}
+                onClick={seg.onClick && ((e) => { e.stopPropagation(); seg.onClick!() })}
+                className={cn(
+                  'flex items-center gap-1.5',
+                  seg.onClick && 'cursor-pointer transition-opacity hover:opacity-70'
+                )}
+              >
+                <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.className)} style={s.style} />
+                {seg.label}
+                {seg.count !== undefined && (
+                  <span className="font-bold text-[#111111] dark:text-slate-100">{seg.count}</span>
+                )}
+              </span>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function KpiCard({
   title,
@@ -154,6 +213,7 @@ export function KpiCard({
   routeHealthBreakdown,
   completionGauge,
   pipelineStages,
+  semiCircleGauge,
   isActive,
   onStageClick,
   onHealthClick,
@@ -179,7 +239,6 @@ export function KpiCard({
     }
   }
 
-  // Derive color variant
   let activeVariant: KpiCardVariant = variant || 'brand'
   if (!variant) {
     if (color === '#E8450F') activeVariant = 'brand'
@@ -193,32 +252,12 @@ export function KpiCard({
 
   const selectedStyle = variantStyles[activeVariant] || variantStyles.brand
 
-  const activeRingStyles: Record<KpiCardVariant, string> = {
-    brand: 'ring-2 ring-[#E8450F] border-[#E8450F] bg-orange-50/20 dark:bg-orange-950/10 shadow-xs',
-    blue: 'ring-2 ring-blue-500 border-blue-500 bg-blue-50/20 dark:bg-blue-950/10 shadow-xs',
-    emerald: 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/10 shadow-xs',
-    amber: 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/20 dark:bg-amber-950/10 shadow-xs',
-    purple: 'ring-2 ring-purple-500 border-purple-500 bg-purple-50/20 dark:bg-purple-950/10 shadow-xs',
-    rose: 'ring-2 ring-rose-500 border-rose-500 bg-rose-50/20 dark:bg-rose-950/10 shadow-xs',
-    slate: 'ring-2 ring-slate-400 border-slate-400 bg-slate-50/20 dark:bg-slate-900/20 shadow-xs',
-  }
-
-  const rawData = (chartData && chartData.length > 0) ? chartData : defaultChartData
-  const normalizedChartData = React.useMemo(() => {
-    return rawData.map((item, i) => {
-      if (typeof item === 'number') {
-        return { index: i, value: item }
-      }
-      return { index: i, ...item }
-    })
-  }, [rawData])
-
   let renderedIcon: React.ReactNode = null
   if (icon) {
     if (React.isValidElement(icon)) {
-      renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: 'size-3.5' })
+      renderedIcon = React.cloneElement(icon as React.ReactElement<any>, { className: 'size-[18px]' })
     } else if (typeof icon === 'function' || typeof icon === 'object') {
-      renderedIcon = React.createElement(icon as React.ElementType, { className: 'size-3.5' })
+      renderedIcon = React.createElement(icon as React.ElementType, { className: 'size-[18px]' })
     } else {
       renderedIcon = icon
     }
@@ -226,271 +265,151 @@ export function KpiCard({
 
   const gradientId = React.useId()
 
+  const normalizedChartData = React.useMemo(() => {
+    if (!chartData || chartData.length === 0) return null
+    return chartData.map((item, i) =>
+      typeof item === 'number' ? { index: i, value: item } : { index: i, ...item }
+    )
+  }, [chartData])
+
+  // Collapse every distribution-style prop into the same quiet segmented bar
+  let barSegments: BarSegment[] | null = null
+  if (semiCircleGauge && semiCircleGauge.segments.length > 0) {
+    barSegments = semiCircleGauge.segments.map(s => ({
+      label: s.label,
+      value: s.count,
+      count: s.count,
+      color: s.color,
+    }))
+  } else if (routeHealthBreakdown) {
+    barSegments = [
+      { label: 'On-Time', value: routeHealthBreakdown.onSchedule, count: routeHealthBreakdown.onSchedule, color: '#16A34A', onClick: onHealthClick && (() => onHealthClick('onSchedule')) },
+      { label: 'Delayed', value: routeHealthBreakdown.delayed, count: routeHealthBreakdown.delayed, color: '#D97706', onClick: onHealthClick && (() => onHealthClick('delayed')) },
+      { label: 'Stopped', value: routeHealthBreakdown.stopped, count: routeHealthBreakdown.stopped, color: '#DC2626', onClick: onHealthClick && (() => onHealthClick('stopped')) },
+    ].filter(s => s.value > 0 || s.label === 'On-Time')
+  } else if (progressSegments && progressSegments.length > 0) {
+    barSegments = progressSegments.map(s => ({ label: s.label, value: s.value, color: s.color }))
+  }
+
+  const hasFooter = Boolean(barSegments || completionGauge || livePulseTrack || (pipelineStages && pipelineStages.length > 0) || normalizedChartData)
+
   return (
     <Card
       className={cn(
-        'group relative rounded-none border-border/70 shadow-none p-5 gap-0 bg-white dark:bg-card transition-all',
-        props.onClick && 'cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-2xs',
-        isActive && activeRingStyles[activeVariant],
+        'group relative gap-0 rounded-2xl border border-black/[0.06] bg-white p-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
+        props.onClick && 'cursor-pointer hover:border-black/[0.14] dark:hover:border-white/[0.16]',
+        isActive && selectedStyle.activeRing,
         className
       )}
       {...props}
     >
-      {/* Top accent rule */}
-      <div
-        className={cn(
-          'absolute inset-x-0 top-0 h-px opacity-40',
-          selectedStyle.accentLine
-        )}
-      />
-
-      {/* Corner ticks — instrument-panel reference */}
-      <span className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-border/20" />
-      <span className="pointer-events-none absolute bottom-0 right-0 h-2 w-2 border-b border-r border-border/20" />
-
-      <CardHeader className="flex flex-row items-center justify-between gap-4 p-0 pb-3">
-        <CardTitle className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+      {/* Header: label + tinted icon */}
+      <div className="flex items-start justify-between gap-3">
+        <span className="pt-1 text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
           {displayTitle}
-        </CardTitle>
+        </span>
         {renderedIcon && (
-          <div className={cn(
-            "flex h-6 w-6 shrink-0 items-center justify-center border",
-            selectedStyle.iconContainer
-          )}>
+          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', selectedStyle.iconContainer)}>
             {renderedIcon}
-          </div>
+          </span>
         )}
-      </CardHeader>
+      </div>
 
-      <div className="h-px bg-border/40" />
+      {/* Value */}
+      <div className="mt-1 text-[28px] font-bold leading-none tracking-tight text-[#111111] dark:text-slate-100">
+        {value}
+      </div>
 
-      <CardContent className="flex flex-col gap-1.5 p-0 pt-3">
-        <div className="font-mono text-2xl font-bold leading-none tracking-tight text-foreground tabular-nums">
-          {value}
+      {/* Context line: trend chip + description */}
+      {(displayDescription || (computedTrend && computedTrendValue)) && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          {computedTrend && computedTrendValue && (
+            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none', trendChipStyles[computedTrend])}>
+              <span aria-hidden="true">{trendGlyph[computedTrend]}</span>
+              {computedTrendValue}
+            </span>
+          )}
+          {displayDescription && (
+            <span className="text-xs leading-none text-[#6E6E80] dark:text-slate-400">{displayDescription}</span>
+          )}
         </div>
+      )}
 
-        {(displayDescription || computedTrendValue) && (
-          <div className="flex items-baseline gap-1.5 text-[11px] font-medium leading-none">
-            {computedTrend && computedTrendValue && (
-              <span className={cn('inline-flex items-center gap-0.5 font-mono font-semibold tabular-nums', selectedStyle.textColor)}>
-                <span aria-hidden="true">{trendGlyph[computedTrend]}</span>
-                {computedTrendValue}
-              </span>
-            )}
-            {displayDescription && (
-              <span className="text-slate-500">{displayDescription}</span>
-            )}
-          </div>
-        )}
-
-        {/* Specialized Visual Indicator Component Area */}
-        <div className="mt-3 -mx-5 -mb-5 overflow-hidden">
-          {/* Mode 1: Active Route Health Breakdown (For IN TRANSIT active trips) */}
-          {routeHealthBreakdown ? (
-            <div className="px-5 pb-5 pt-1 flex flex-col gap-1.5">
-              {/* 3-Color Route Health Bar */}
-              <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5 border border-black/[0.04]">
-                <div 
-                  className="bg-emerald-500 h-full rounded-full transition-all duration-300" 
-                  style={{ width: `${(routeHealthBreakdown.onSchedule / (routeHealthBreakdown.onSchedule + routeHealthBreakdown.delayed + routeHealthBreakdown.stopped || 1)) * 100}%` }} 
-                  title="On-Schedule"
-                />
-                <div 
-                  className="bg-amber-500 h-full rounded-full transition-all duration-300" 
-                  style={{ width: `${(routeHealthBreakdown.delayed / (routeHealthBreakdown.onSchedule + routeHealthBreakdown.delayed + routeHealthBreakdown.stopped || 1)) * 100}%` }} 
-                  title="Delayed"
-                />
-                <div 
-                  className="bg-rose-500 h-full rounded-full transition-all duration-300" 
-                  style={{ width: `${(routeHealthBreakdown.stopped / (routeHealthBreakdown.onSchedule + routeHealthBreakdown.delayed + routeHealthBreakdown.stopped || 1)) * 100}%` }} 
-                  title="Stopped"
-                />
-              </div>
-              {/* Legend Badges */}
-              <div className="flex items-center justify-between text-[10px] font-mono font-medium text-muted-foreground">
-                <span 
-                  onClick={(e) => {
-                    if (onHealthClick) {
-                      e.stopPropagation();
-                      onHealthClick('onSchedule');
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-bold transition-opacity",
-                    onHealthClick && "cursor-pointer hover:opacity-80 hover:underline"
-                  )}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                  {routeHealthBreakdown.onSchedule} On-Time
+      {/* Quiet visual footer — one style per data shape, never decorative */}
+      {hasFooter && (
+        <div className="mt-4">
+          {barSegments ? (
+            <SegmentBar segments={barSegments} />
+          ) : completionGauge ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between text-[10px] font-semibold leading-none text-[#6E6E80] dark:text-slate-400">
+                <span>{completionGauge.subtext || completionGauge.label}</span>
+                <span className="text-[11px] font-bold text-[#111111] dark:text-slate-100">
+                  {Math.round(completionGauge.percentage)}%
                 </span>
-                {routeHealthBreakdown.delayed > 0 && (
-                  <span 
-                    onClick={(e) => {
-                      if (onHealthClick) {
-                        e.stopPropagation();
-                        onHealthClick('delayed');
-                      }
-                    }}
-                    className={cn(
-                      "flex items-center gap-1 text-amber-700 dark:text-amber-400 font-bold transition-opacity",
-                      onHealthClick && "cursor-pointer hover:opacity-80 hover:underline"
-                    )}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                    {routeHealthBreakdown.delayed} Delayed
-                  </span>
-                )}
-                {routeHealthBreakdown.stopped > 0 && (
-                  <span 
-                    onClick={(e) => {
-                      if (onHealthClick) {
-                        e.stopPropagation();
-                        onHealthClick('stopped');
-                      }
-                    }}
-                    className={cn(
-                      "flex items-center gap-1 text-rose-700 dark:text-rose-400 font-bold transition-opacity",
-                      onHealthClick && "cursor-pointer hover:opacity-80 hover:underline"
-                    )}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                    {routeHealthBreakdown.stopped} Stopped
-                  </span>
-                )}
+              </div>
+              <div
+                className="h-1.5 w-full overflow-hidden rounded-full"
+                style={{ backgroundColor: `${selectedStyle.hex}1F` }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, completionGauge.percentage))}%`, backgroundColor: selectedStyle.hex }}
+                />
               </div>
             </div>
           ) : livePulseTrack ? (
-            /* Mode 2: Live Pulse Track */
-            <div className="px-5 pb-5 pt-1 flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
-                  </span>
-                  <span>{livePulseTrack.statusText}</span>
-                </div>
-                {livePulseTrack.subText && (
-                  <span className="text-[10px] text-muted-foreground font-normal">{livePulseTrack.subText}</span>
-                )}
-              </div>
-              <div className="w-full bg-blue-100 dark:bg-blue-950/60 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-blue-600 h-full rounded-full w-[74%] animate-pulse" />
-              </div>
-            </div>
-          ) : completionGauge ? (
-            /* Mode 2: Completion Ring Gauge (Donut Gauge for DELIVERED & COMPLETED) */
-            <div className="px-5 pb-5 pt-0.5 flex items-center justify-between gap-3">
-              <div className="flex flex-col">
-                <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
-                  {completionGauge.label}
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-xs font-semibold leading-none text-[#111111] dark:text-slate-100">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ backgroundColor: selectedStyle.hex }} />
+                  <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: selectedStyle.hex }} />
                 </span>
-                {completionGauge.subtext && (
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    {completionGauge.subtext}
-                  </span>
-                )}
-              </div>
-              <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    className="text-slate-100 dark:text-slate-800"
-                    strokeWidth="3.5"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-emerald-500"
-                    strokeDasharray={`${completionGauge.percentage}, 100`}
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <span className="absolute text-[9px] font-bold font-mono text-emerald-700 dark:text-emerald-400">
-                  {completionGauge.percentage}%
-                </span>
-              </div>
-            </div>
-          ) : pipelineStages && pipelineStages.length > 0 ? (
-            /* Mode 3: Pipeline Stages Stepper (Stage Cards for DISPATCH QUEUE) */
-            <div className="px-5 pb-5 pt-0.5 flex flex-col gap-1.5">
-              <div className="grid grid-cols-3 gap-1.5">
-                {pipelineStages.map((stage, idx) => (
-                  <div 
-                    key={idx} 
-                    onClick={(e) => {
-                      if (onStageClick) {
-                        e.stopPropagation();
-                        onStageClick(stage.name);
-                      }
-                    }}
-                    className={cn(
-                      "flex flex-col p-1 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 transition-all",
-                      onStageClick && "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300"
-                    )}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", stage.color)} />
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight truncate">{stage.name}</span>
-                    </div>
-                    <span className="text-xs font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">{stage.count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : progressSegments && progressSegments.length > 0 ? (
-            /* Mode 4: Segmented Urgency Progress Bar */
-            <div className="px-5 pb-5 pt-1 flex flex-col gap-2">
-              <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5 border border-black/[0.04]">
-                {progressSegments.map((seg, idx) => (
-                  <div
-                    key={idx}
-                    className={cn("h-full transition-all duration-300 rounded-full", seg.color)}
-                    style={{ width: `${seg.value}%` }}
-                    title={seg.label ? `${seg.label}: ${seg.value}%` : undefined}
-                  />
-                ))}
-              </div>
-              {progressSegments.some(s => s.label) && (
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono font-medium truncate">
-                  {progressSegments.map((seg, idx) => seg.label ? (
-                    <span key={idx} className="flex items-center gap-1.5 truncate">
-                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", seg.color)} />
-                      <span className="truncate">{seg.label}</span>
-                    </span>
-                  ) : null)}
-                </div>
+                {livePulseTrack.statusText}
+              </span>
+              {livePulseTrack.subText && (
+                <span className="text-[10px] leading-none text-[#9898A4]">{livePulseTrack.subText}</span>
               )}
             </div>
-          ) : (
-            /* Mode 5: Sparkline Area Chart */
-            <div className="h-10">
+          ) : pipelineStages && pipelineStages.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {pipelineStages.map((stage, idx) => {
+                const s = swatch(stage.color)
+                return (
+                  <span
+                    key={idx}
+                    onClick={onStageClick && ((e) => { e.stopPropagation(); onStageClick(stage.name) })}
+                    className={cn(
+                      'flex items-center gap-1.5 text-[10px] font-semibold leading-none text-[#6E6E80] dark:text-slate-400',
+                      onStageClick && 'cursor-pointer transition-opacity hover:opacity-70'
+                    )}
+                  >
+                    <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.className)} style={s.style} />
+                    {stage.name}
+                    <span className="text-xs font-bold text-[#111111] dark:text-slate-100">{stage.count}</span>
+                  </span>
+                )
+              })}
+            </div>
+          ) : normalizedChartData ? (
+            <div className="h-9 -mx-1">
               <ChartContainer
-                config={{
-                  value: {
-                    label: 'Value',
-                    color: selectedStyle.chartColor,
-                  },
-                }}
+                config={{ value: { label: 'Value', color: selectedStyle.hex } }}
                 className="aspect-auto h-full w-full"
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={normalizedChartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
                     <defs>
                       <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={selectedStyle.chartColor} stopOpacity={0.25} />
-                        <stop offset="100%" stopColor={selectedStyle.chartColor} stopOpacity={0.0} />
+                        <stop offset="0%" stopColor={selectedStyle.hex} stopOpacity={0.15} />
+                        <stop offset="100%" stopColor={selectedStyle.hex} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <Area
                       type="monotone"
                       dataKey="value"
-                      stroke={selectedStyle.chartColor}
-                      strokeWidth={1.5}
+                      stroke={selectedStyle.hex}
+                      strokeWidth={2}
                       fill={`url(#${gradientId})`}
                       isAnimationActive={false}
                     />
@@ -498,9 +417,9 @@ export function KpiCard({
                 </ResponsiveContainer>
               </ChartContainer>
             </div>
-          )}
+          ) : null}
         </div>
-      </CardContent>
+      )}
     </Card>
   )
 }
