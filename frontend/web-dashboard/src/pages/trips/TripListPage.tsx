@@ -20,7 +20,9 @@ import {
   RotateCw,
   Calendar as CalendarIcon,
   Building2,
-  FileText
+  FileText,
+  FileSpreadsheet,
+  ChevronDown
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
@@ -56,6 +58,18 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
+} from '@/components/ui/dropdown-menu';
 
 type ExportStatusGroup = 'All' | 'Completed' | 'InTransit' | 'NotCompleted';
 
@@ -131,10 +145,11 @@ export default function TripListPage() {
   const [newStatus, setNewStatus] = useState<TripStatus>('Dispatched');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  // Export Dialog state
+  // Export menu state — the dropdown is the primary UI; the small dialog below
+  // only handles date-range picking, which doesn't fit a dropdown item.
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('csv');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [exportDriverId, setExportDriverId] = useState('All');
-  const [exportVehicleId, setExportVehicleId] = useState('All');
   const [exportStatusGroup, setExportStatusGroup] = useState<ExportStatusGroup>('All');
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
@@ -143,12 +158,12 @@ export default function TripListPage() {
   const { data: exportDriversRes } = useQuery({
     queryKey: ['drivers-for-export'],
     queryFn: () => driverService.getAll({ per_page: 500 }),
-    enabled: exportDialogOpen,
+    enabled: exportMenuOpen,
   });
   const { data: exportVehiclesRes } = useQuery({
     queryKey: ['vehicles-for-export'],
     queryFn: () => vehicleService.getAll({ per_page: 500 }),
-    enabled: exportDialogOpen,
+    enabled: exportMenuOpen,
   });
   const exportDrivers = exportDriversRes?.data || [];
   const exportVehicles = exportVehiclesRes?.data || [];
@@ -191,21 +206,23 @@ export default function TripListPage() {
   const kpiTrips = allTripsRes?.data || rawTrips;
   const totalCount = allTripsRes?.meta?.total || kpiTrips.length;
 
-  const activeInTransit = kpiTrips.filter(t => t.status === 'InTransit' || t.status === 'AtPickup' || t.status === 'Dispatched');
-  const inTransitCount = activeInTransit.length;
-  const stoppedCount = activeInTransit.filter(t => t.status === 'AtPickup').length;
-  const onScheduleCount = activeInTransit.length - stoppedCount;
-  const delayedCount = 0;
+  // Exact In Transit counts
+  const inTransitTrips = kpiTrips.filter(t => t.status === 'InTransit');
+  const atPickupTrips = kpiTrips.filter(t => t.status === 'AtPickup');
+  const atDeliveryTrips = kpiTrips.filter(t => t.status === 'AtDelivery');
+  const inTransitCount = inTransitTrips.length;
 
-  const completedTrips = kpiTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced' || t.status === 'AtDelivery');
+  // Exact Completed counts
+  const completedTrips = kpiTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced');
   const completedCount = completedTrips.length;
   const completedPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  // Dispatch Queue counts
   const draftTrips = kpiTrips.filter(t => t.status === 'Draft');
-  const draftCount = draftTrips.length;
-  const stageDraftCount = kpiTrips.filter(t => t.status === 'Draft' && !t.driver).length;
-  const stageAssignedCount = kpiTrips.filter(t => t.driver && (t.status === 'Draft' || t.status === 'Dispatched')).length;
-  const stageReadyCount = kpiTrips.filter(t => t.status === 'Dispatched' || t.status === 'AtPickup').length;
+  const dispatchedTrips = kpiTrips.filter(t => t.status === 'Dispatched');
+  const dispatchQueueCount = draftTrips.length + dispatchedTrips.length;
+  const stageDraftCount = draftTrips.length;
+  const stageDispatchedCount = dispatchedTrips.length;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -227,31 +244,34 @@ export default function TripListPage() {
     }
   };
 
-  const handleExport = async (format: 'csv' | 'pdf') => {
+  const runExport = async (
+    format: 'csv' | 'pdf',
+    opts: { statusGroup: ExportStatusGroup; driverId?: string; vehicleId?: string; startDate?: string; endDate?: string }
+  ) => {
     try {
       setIsExporting(true);
       const res = await tripService.getAll({
-        driver_id: exportDriverId === 'All' ? undefined : exportDriverId,
-        vehicle_id: exportVehicleId === 'All' ? undefined : exportVehicleId,
-        start_date: exportStartDate || undefined,
-        end_date: exportEndDate || undefined,
+        driver_id: opts.driverId,
+        vehicle_id: opts.vehicleId,
+        start_date: opts.startDate || undefined,
+        end_date: opts.endDate || undefined,
         per_page: 2000,
       });
-      const matched = (res.data || []).filter(t => matchesExportStatusGroup(t.status, exportStatusGroup));
+      const matched = (res.data || []).filter(t => matchesExportStatusGroup(t.status, opts.statusGroup));
 
       if (!matched.length) {
         alert('No trips match the selected export filters.');
         return;
       }
 
-      const groupLabel = EXPORT_STATUS_GROUPS.find(g => g.value === exportStatusGroup)?.label.replace(/[\s/]+/g, '_') || 'Trips';
+      const groupLabel = EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label.replace(/[\s/]+/g, '_') || 'Trips';
       const datePart = new Date().toISOString().slice(0, 10);
       const baseName = `trips_export_${groupLabel}_${datePart}`;
 
       if (format === 'csv') {
         downloadCSV(matched, `${baseName}.csv`);
       } else {
-        downloadPDF(matched, `Trips Export — ${EXPORT_STATUS_GROUPS.find(g => g.value === exportStatusGroup)?.label}`);
+        downloadPDF(matched, `Trips Export — ${EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label}`);
       }
       setExportDialogOpen(false);
     } catch (e) {
@@ -260,6 +280,12 @@ export default function TripListPage() {
       setIsExporting(false);
     }
   };
+
+  const handleDateRangeExport = () => runExport(exportFormat, {
+    statusGroup: exportStatusGroup,
+    startDate: exportStartDate,
+    endDate: exportEndDate,
+  });
 
   const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -480,7 +506,7 @@ export default function TripListPage() {
     },
     {
       label: 'Export Selected CSV',
-      icon: <Download size={13} />,
+      icon: <FileSpreadsheet size={13} />,
       variant: 'outline' as const,
       className: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400',
       onClick: (selectedRows: Trip[]) => {
@@ -544,15 +570,126 @@ export default function TripListPage() {
               Import
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => setExportDialogOpen(true)}
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export
-            </Button>
+            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600" />
+                  Export
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                {/* Format toggle — applies to every option below */}
+                <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
+                  <button
+                    onClick={(e) => { e.preventDefault(); setExportFormat('csv'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'csv' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                    CSV
+                  </button>
+                  <button
+                    onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <FileText className="h-3.5 w-3.5 text-rose-600" />
+                    PDF
+                  </button>
+                </div>
+
+                <DropdownMenuItem
+                  onClick={() => runExport(exportFormat, { statusGroup: 'All' })}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  {exportFormat === 'csv'
+                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                  All Trips
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1 border-slate-100" />
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  By Status
+                </DropdownMenuLabel>
+                {EXPORT_STATUS_GROUPS.filter(g => g.value !== 'All').map(g => (
+                  <DropdownMenuItem
+                    key={g.value}
+                    onClick={() => runExport(exportFormat, { statusGroup: g.value })}
+                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                  >
+                    {exportFormat === 'csv'
+                      ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                      : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
+                    {g.label}
+                  </DropdownMenuItem>
+                ))}
+
+                <DropdownMenuSeparator className="my-1 border-slate-100" />
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  By Driver / Vehicle / Date
+                </DropdownMenuLabel>
+
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <User className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                    A Specific Driver
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                      {exportDrivers.length === 0 ? (
+                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No drivers found</div>
+                      ) : (
+                        exportDrivers.map(d => (
+                          <DropdownMenuItem
+                            key={d.id}
+                            onClick={() => runExport(exportFormat, { statusGroup: 'All', driverId: d.id })}
+                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                          >
+                            {d.first_name} {d.last_name}
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <Truck className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                    A Specific Vehicle
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent className="w-56 max-h-72 overflow-y-auto p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                      {exportVehicles.length === 0 ? (
+                        <div className="px-2.5 py-2 text-[11px] text-slate-400">No vehicles found</div>
+                      ) : (
+                        exportVehicles.map(v => (
+                          <DropdownMenuItem
+                            key={v.id}
+                            onClick={() => runExport(exportFormat, { statusGroup: 'All', vehicleId: v.id })}
+                            className="cursor-pointer text-xs font-mono font-semibold py-1.5 px-2 rounded-md"
+                          >
+                            {v.plate_number}
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+
+                <DropdownMenuItem
+                  onClick={() => { setExportMenuOpen(false); setExportDialogOpen(true); }}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  A Date Range...
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               size="sm"
@@ -582,7 +719,7 @@ export default function TripListPage() {
             value={totalCount}
             variant="brand"
             trend="up"
-            trendValue="+12%"
+            trendValue="All Operations"
             description="Active logged site operations"
             icon={TruckMotion}
             chartData={[10, 14, 18, 15, 22, 28, totalCount || 35]}
@@ -600,20 +737,22 @@ export default function TripListPage() {
             trendValue="En-Route"
             description="Live on-road active trips"
             icon={RouteLine}
-            isActive={selectedStatus === 'InTransit' || selectedStatus === 'AtPickup'}
+            isActive={selectedStatus === 'InTransit' || selectedStatus === 'AtPickup' || selectedStatus === 'AtDelivery'}
             routeHealthBreakdown={{
-              onSchedule: onScheduleCount,
-              delayed: delayedCount,
-              stopped: stoppedCount,
-              total: inTransitCount,
+              onSchedule: inTransitCount,
+              delayed: atDeliveryTrips.length,
+              stopped: atPickupTrips.length,
+              total: inTransitCount + atPickupTrips.length + atDeliveryTrips.length,
             } as any}
             onClick={() => {
-              setSelectedStatus(selectedStatus === 'InTransit' ? 'All' : 'InTransit');
+              setSelectedStatus('InTransit');
               setCurrentPage(1);
             }}
             onHealthClick={(healthType) => {
               if (healthType === 'stopped') {
                 setSelectedStatus('AtPickup');
+              } else if (healthType === 'delayed') {
+                setSelectedStatus('AtDelivery');
               } else {
                 setSelectedStatus('InTransit');
               }
@@ -625,23 +764,23 @@ export default function TripListPage() {
             value={completedCount}
             variant="emerald"
             trend="up"
-            trendValue={`${completedPercentage}% On-Time`}
+            trendValue={`${completedPercentage}% Settled`}
             description="POD verified & delivered"
             icon={CheckBadge}
-            isActive={selectedStatus === 'Completed' || selectedStatus === 'AtDelivery'}
+            isActive={selectedStatus === 'Completed'}
             completionGauge={{
               percentage: completedPercentage || 100,
-              label: `${completedPercentage}% POD Verified`,
+              label: `${completedPercentage}% Completed`,
               subtext: `${completedCount} Delivered Receipts`
             }}
             onClick={() => {
-              setSelectedStatus(selectedStatus === 'Completed' ? 'All' : 'Completed');
+              setSelectedStatus('Completed');
               setCurrentPage(1);
             }}
           />
           <KpiCard
             title="DISPATCH QUEUE"
-            value={draftCount}
+            value={dispatchQueueCount}
             variant="amber"
             trend="neutral"
             trendValue="Pending Stage"
@@ -650,18 +789,15 @@ export default function TripListPage() {
             isActive={selectedStatus === 'Draft' || selectedStatus === 'Dispatched'}
             pipelineStages={[
               { name: "Draft", count: stageDraftCount, color: "bg-amber-500" },
-              { name: "Assigned", count: stageAssignedCount, color: "bg-blue-500" },
-              { name: "Ready", count: stageReadyCount, color: "bg-emerald-500" },
+              { name: "Dispatched", count: stageDispatchedCount, color: "bg-blue-500" },
             ]}
             onClick={() => {
-              setSelectedStatus(selectedStatus === 'Draft' ? 'All' : 'Draft');
+              setSelectedStatus('Draft');
               setCurrentPage(1);
             }}
             onStageClick={(stageName) => {
-              if (stageName === 'Assigned') {
+              if (stageName === 'Dispatched') {
                 setSelectedStatus('Dispatched');
-              } else if (stageName === 'Ready') {
-                setSelectedStatus('AtPickup');
               } else {
                 setSelectedStatus('Draft');
               }
@@ -669,6 +805,28 @@ export default function TripListPage() {
             }}
           />
         </div>
+
+        {/* Active Filter Indicator Banner */}
+        {selectedStatus !== 'All' && (
+          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+              <span>
+                Filtered by status: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{STATUS_TABS.find(t => t.value === selectedStatus)?.label || selectedStatus}</strong> ({trips.length} trip{trips.length === 1 ? '' : 's'} matching)
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedStatus('All');
+                setCurrentPage(1);
+              }}
+              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Show All Operations</span>
+              <span className="text-[10px]">✕</span>
+            </button>
+          </div>
+        )}
         {/* Filter & Control Bar */}
         <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
@@ -901,16 +1059,16 @@ export default function TripListPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Custom Export Dialog */}
+        {/* Date Range Export Dialog — the one filter that doesn't fit a dropdown item */}
         <Dialog open={exportDialogOpen} onOpenChange={(open) => !open && setExportDialogOpen(false)}>
-          <DialogContent className="sm:max-w-[460px]">
+          <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold flex items-center gap-2">
-                <Download className="h-4 w-4 text-[#E8450F]" />
-                Export Trips
+                <CalendarIcon className="h-4 w-4 text-[#E8450F]" />
+                Export by Date Range
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Filter the trips you want, then export as CSV or PDF.
+                Pick a status and a date window, then export as {exportFormat.toUpperCase()}.
               </DialogDescription>
             </DialogHeader>
 
@@ -933,42 +1091,6 @@ export default function TripListPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Driver</label>
-                  <Select value={exportDriverId} onValueChange={(val) => val && setExportDriverId(val)}>
-                    <SelectTrigger className="w-full h-9 text-xs font-semibold border-slate-200 rounded-lg">
-                      <SelectValue placeholder="All Drivers" />
-                    </SelectTrigger>
-                    <SelectContent className="w-full p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl max-h-64">
-                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Drivers</SelectItem>
-                      {exportDrivers.map(d => (
-                        <SelectItem key={d.id} value={d.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          {d.first_name} {d.last_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle</label>
-                  <Select value={exportVehicleId} onValueChange={(val) => val && setExportVehicleId(val)}>
-                    <SelectTrigger className="w-full h-9 text-xs font-semibold border-slate-200 rounded-lg">
-                      <SelectValue placeholder="All Vehicles" />
-                    </SelectTrigger>
-                    <SelectContent className="w-full p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl max-h-64">
-                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Vehicles</SelectItem>
-                      {exportVehicles.map(v => (
-                        <SelectItem key={v.id} value={v.id} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          {v.plate_number}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">From Date</label>
                   <Input
                     type="date"
@@ -987,36 +1109,43 @@ export default function TripListPage() {
                   />
                 </div>
               </div>
+
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 w-fit">
+                <button
+                  onClick={() => setExportFormat('csv')}
+                  className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'csv' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  CSV
+                </button>
+                <button
+                  onClick={() => setExportFormat('pdf')}
+                  className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'pdf' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <FileText className="h-3.5 w-3.5 text-rose-600" />
+                  PDF
+                </button>
+              </div>
             </div>
 
-            <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-2">
+            <DialogFooter>
               <Button
                 variant="outline"
                 size="sm"
-                className="text-xs w-full sm:w-auto"
+                className="text-xs"
                 onClick={() => setExportDialogOpen(false)}
                 disabled={isExporting}
               >
                 Cancel
               </Button>
               <Button
-                variant="outline"
                 size="sm"
-                className="text-xs font-semibold gap-1.5 w-full sm:w-auto border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-400"
-                onClick={() => handleExport('pdf')}
+                className={`text-xs font-bold gap-1.5 ${exportFormat === 'csv' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
+                onClick={handleDateRangeExport}
                 disabled={isExporting}
               >
-                <FileText className="h-3.5 w-3.5" />
-                {isExporting ? 'Exporting...' : 'Export PDF'}
-              </Button>
-              <Button
-                size="sm"
-                className="text-xs font-bold gap-1.5 w-full sm:w-auto border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
-                onClick={() => handleExport('csv')}
-                disabled={isExporting}
-              >
-                <Download className="h-3.5 w-3.5" />
-                {isExporting ? 'Exporting...' : 'Export CSV'}
+                {exportFormat === 'csv' ? <FileSpreadsheet className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                {isExporting ? 'Exporting...' : `Export ${exportFormat.toUpperCase()}`}
               </Button>
             </DialogFooter>
           </DialogContent>
