@@ -40,42 +40,83 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-// Custom icon builder for the vehicles on the map
+// Custom icon builder for the vehicles on the map (renders 3D isometric container trucks)
 function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: boolean) {
-  let color = '#94A3B8'; // Slate for inactive/other
-  let glowColor = 'rgba(148, 163, 184, 0.4)';
+  // Setup 3D Container color styles based on Status
+  let colorBoxShadow = '#475569';    // Dark shadow grey
+  let colorBoxMedium = '#64748B';    // Slate
+  let colorBoxHighlight = '#94A3B8'; // Light slate
+  let colorBorder = '#64748B';
+  let glowColor = 'rgba(100, 116, 139, 0.4)';
   
   if (status === 'Available') {
-    color = '#E8450F'; // MERCON Brand Orange for Available
-    glowColor = 'rgba(232, 69, 15, 0.65)';
+    colorBoxShadow = '#C23A0A';      // Shadow orange
+    colorBoxMedium = '#E8450F';      // Brand orange
+    colorBoxHighlight = '#FF7A45';   // Highlight orange
+    colorBorder = '#E8450F';
+    glowColor = 'rgba(232, 69, 15, 0.7)';
   } else if (status === 'OnTrip') {
-    color = '#10B981'; // Green for On Trip
-    glowColor = 'rgba(16, 185, 129, 0.6)';
+    colorBoxShadow = '#047857';      // Shadow green
+    colorBoxMedium = '#10B981';      // Emerald
+    colorBoxHighlight = '#34D399';   // Highlight green
+    colorBorder = '#10B981';
+    glowColor = 'rgba(16, 185, 129, 0.7)';
   } else if (status === 'Maintenance') {
-    color = '#F59E0B'; // Amber for Maintenance
-    glowColor = 'rgba(245, 158, 11, 0.5)';
+    colorBoxShadow = '#B45309';      // Shadow amber
+    colorBoxMedium = '#F59E0B';      // Amber
+    colorBoxHighlight = '#FBBF24';   // Highlight amber
+    colorBorder = '#F59E0B';
+    glowColor = 'rgba(245, 158, 11, 0.6)';
   }
 
   const bgPod = isDarkTheme ? '#0F1017' : '#FFFFFF';
   const textPlate = isDarkTheme ? '#FFFFFF' : '#1E293B';
 
   const svgHtml = `
-    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-      <!-- Pulsing Aura for active/available/on-trip vehicles -->
-      ${(status === 'Available' || status === 'OnTrip') ? `<div class="animate-ping" style="position: absolute; width: 42px; height: 42px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35;"></div>` : ''}
+    <div style="position: relative; width: 50px; height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <!-- Pulsing Aura (flashing radar ring below the 3D vehicle) -->
+      ${(status === 'Available' || status === 'OnTrip') ? `<div class="animate-ping" style="position: absolute; width: 34px; height: 34px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35; z-index: 1;"></div>` : ''}
       
-      <!-- Center Vehicle Circle Pointer containing Truck SVG -->
-      <div style="width: 32px; height: 32px; border-radius: 50%; background: ${bgPod}; color: ${color}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px ${glowColor}, inset 0 0 7px ${color}; border: 2px solid ${color}; z-index: 2;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
-          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-          <circle cx="5.5" cy="18.5" r="2.5" fill="${color}" />
-          <circle cx="18.5" cy="18.5" r="2.5" fill="${color}" />
+      <!-- 3D Isometric container truck -->
+      <div style="position: relative; z-index: 2; transform: translateY(-4px);">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="38" height="38" style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.25));">
+          <!-- 3D Shadow Ellipse -->
+          <ellipse cx="22" cy="31" rx="16" ry="5" fill="rgba(0,0,0,0.22)" />
+
+          <!-- Rear Wheels -->
+          <ellipse cx="22" cy="24" rx="3.5" ry="2" fill="#0F172A" />
+          <ellipse cx="22" cy="24" rx="1.5" ry="0.8" fill="#94A3B8" />
+
+          <!-- Front Wheels -->
+          <ellipse cx="10" cy="30" rx="3.5" ry="2" fill="#0F172A" />
+          <ellipse cx="10" cy="30" rx="1.5" ry="0.8" fill="#94A3B8" />
+
+          <!-- Cargo Box (Orange/Status Colored 3D Container) -->
+          <!-- Left Side Face of Box (Shadow) -->
+          <polygon points="12,25 28,17 28,7 12,15" fill="${colorBoxShadow}" />
+          <!-- Front Face of Box (Medium shadow/fill) -->
+          <polygon points="12,25 22,30 22,20 12,15" fill="${colorBoxMedium}" />
+          <!-- Top Face of Box (Highlight) -->
+          <polygon points="12,15 28,7 38,12 22,20" fill="${colorBoxHighlight}" />
+
+          <!-- Cab (Silver/Grey) -->
+          <!-- Left Side Face of Cab (Shadow) -->
+          <polygon points="6,28 12,25 12,20 6,23" fill="#64748B" />
+          <!-- Front Face of Cab (Medium/Light fill) -->
+          <polygon points="6,28 16,33 16,28 6,23" fill="#CBD5E1" />
+          <!-- Top Face of Cab (Highlight) -->
+          <polygon points="6,23 16,28 22,25 12,20" fill="#F1F5F9" />
+
+          <!-- Windows -->
+          <!-- Front Windshield -->
+          <polygon points="7,24 15,28 15,30 7,26" fill="#1E293B" />
+          <!-- Side Window -->
+          <polygon points="7,23.5 11,21.5 11,23.5 7,25" fill="#334155" />
         </svg>
       </div>
 
       <!-- Plate number tag -->
-      <div style="position: absolute; bottom: -8px; background: ${bgPod}; color: ${textPlate}; font-family: monospace; font-size: 8px; font-weight: 800; padding: 0.5px 4px; border-radius: 3px; white-space: nowrap; border: 1px solid ${color}; box-shadow: 0 1px 4px rgba(0,0,0,0.3); z-index: 3;">
+      <div style="position: absolute; bottom: 0px; background: ${bgPod}; color: ${textPlate}; font-family: monospace; font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 4px; white-space: nowrap; border: 1.5px solid ${colorBorder}; box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 3;">
         ${plateNumber}
       </div>
     </div>
@@ -84,8 +125,8 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
   return L.divIcon({
     html: svgHtml,
     className: '',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
+    iconSize: [50, 50],
+    iconAnchor: [25, 25],
   });
 }
 
