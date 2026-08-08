@@ -599,9 +599,81 @@ export default function VehicleListPage() {
             trendValue={`${activePct}% Active`}
             description="Total assets in database"
             icon={FleetTruck}
-            chartData={[36, 38, 40, 41, 42, 43, totalCount]}
             isActive={selectedStatus === 'All'}
             onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
+            customFooter={
+              <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#FFF8F6] dark:bg-[#E8450F]/10 border-t border-[#E8450F]/10">
+                <style>{`
+                  @keyframes routeDashBrand {
+                    to {
+                      stroke-dashoffset: -12;
+                    }
+                  }
+                `}</style>
+                {/* Grid lines for map look */}
+                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                  <pattern id="card-map-grid-brand" width="12" height="12" patternUnits="userSpaceOnUse">
+                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#card-map-grid-brand)" />
+                </svg>
+                
+                {/* Intersecting Fleet Route Network */}
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  {/* Base Road 1 (Green Trip Route) */}
+                  <path d="M -10 16 C 80 8, 160 24, 290 16" fill="none" stroke="#E5E7EB" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M -10 16 C 80 8, 160 24, 290 16" fill="none" stroke="#10B981" strokeWidth="2.5" strokeDasharray="5,5" strokeLinecap="round" style={{ animation: 'routeDashBrand 5s linear infinite' }} />
+
+                  {/* Base Road 2 (Orange Trip Route) */}
+                  <path d="M -10 32 C 80 40, 160 20, 290 32" fill="none" stroke="#D1D5DB" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M -10 32 C 80 40, 160 20, 290 32" fill="none" stroke="#E8450F" strokeWidth="2.5" strokeDasharray="5,5" strokeLinecap="round" style={{ animation: 'routeDashBrand 4s linear infinite' }} />
+
+                  {/* Minor connecting road */}
+                  <path d="M 120 -5 C 130 20, 110 30, 125 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" opacity="0.4" />
+                </svg>
+
+                {/* Truck 1: Pulsing Active Orange Truck (Available) */}
+                <div 
+                  className="absolute"
+                  style={{
+                    left: '28%',
+                    top: '32px',
+                    transform: 'translate(-50%, -50%) scale(0.55)',
+                    zIndex: 10
+                  }}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute h-8 w-8 rounded-full bg-orange-500/25 animate-ping" />
+                    <img 
+                      src="/truck_3d_orange_transparent.png" 
+                      alt="Active Truck 1" 
+                      className="h-9 w-9 object-contain"
+                    />
+                  </div>
+                </div>
+
+                {/* Truck 2: Pulsing Active Green Truck (On Trip) */}
+                <div 
+                  className="absolute"
+                  style={{
+                    left: '72%',
+                    top: '16px',
+                    transform: 'translate(-50%, -50%) scale(0.55)',
+                    zIndex: 10
+                  }}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute h-8 w-8 rounded-full bg-emerald-500/25 animate-ping" />
+                    <img 
+                      src="/truck_3d_orange_transparent.png" 
+                      alt="Active Truck 2" 
+                      className="h-9 w-9 object-contain"
+                      style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            }
           />
 
           {/* Card 2: Dispatch Ready */}
