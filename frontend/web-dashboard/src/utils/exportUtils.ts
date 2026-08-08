@@ -435,7 +435,7 @@ export function exportPDFTable(
     headStyles: { fillColor: BRAND_HEX, textColor: '#FFFFFF', fontStyle: 'bold', halign: 'center' },
     footStyles: { fillColor: [241, 245, 249], textColor: '#0F172A', fontStyle: 'bold', lineWidth: { top: 1 } },
     alternateRowStyles: { fillColor: ZEBRA_RGB },
-    didParseCell: (data) => {
+    didParseCell: (data: any) => {
       if (data.section !== 'body' && data.section !== 'foot') return;
       const headerLower = (headers[data.column.index] || '').toLowerCase();
       const raw = data.cell.raw;
