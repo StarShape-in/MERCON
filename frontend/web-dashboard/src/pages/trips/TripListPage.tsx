@@ -759,12 +759,12 @@ export default function TripListPage() {
             }}
           />
           <KpiCard
-            title="DISPATCH QUEUE"
+            title="SCHEDULED TRIPS"
             value={draftTrips.length}
             variant="amber"
             trend="neutral"
-            trendValue="Pending Stage"
-            description="Stage workflow queue"
+            trendValue="Scheduled"
+            description="Upcoming & planned trips"
             icon={ClockIcon}
             pipelineStages={[
               { name: "Draft", count: draftTrips.length, color: "bg-amber-500" },
