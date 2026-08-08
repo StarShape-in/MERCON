@@ -70,7 +70,8 @@ const CreateTripScreen = () => {
     !Number.isNaN(pickupLatNum) && !Number.isNaN(pickupLngNum) &&
     !Number.isNaN(dropoffLatNum) && !Number.isNaN(dropoffLngNum);
 
-  const isValid = !!customerId && !!selectedDriver && !!selectedVehicle && hasValidCoords;
+  const isValid = !!customerId && !!selectedDriver && !!selectedVehicle && hasValidCoords &&
+    !!pickupName.trim() && !!dropoffName.trim();
 
   // date: DD/MM/YYYY, time: HH:MM — both optional, best-effort parse.
   function parseDateTime(dateStr: string, timeStr: string): string | undefined {
@@ -191,7 +192,7 @@ const CreateTripScreen = () => {
                 />
               </View>
               <Input
-                label="Location name"
+                label="Location name *"
                 value={pickupName}
                 onChangeText={setPickupName}
                 placeholder="e.g. Khamis Sorting Center"
@@ -218,7 +219,7 @@ const CreateTripScreen = () => {
                 />
               </View>
               <Input
-                label="Location name"
+                label="Location name *"
                 value={dropoffName}
                 onChangeText={setDropoffName}
                 placeholder="e.g. Baish"

@@ -310,15 +310,9 @@ export default function TripDetailsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-center max-w-[180px]">
-                  <div className="px-3 py-2 rounded-lg bg-gray-50 border border-black/[0.05]">
-                    <p className="text-xs font-bold text-[#111]">{trip.planned_distance != null ? `${trip.planned_distance} km` : '—'}</p>
-                    <p className="text-[8px] text-[#9898A4] font-semibold uppercase">Distance</p>
-                  </div>
-                  <div className="px-3 py-2 rounded-lg bg-gray-50 border border-black/[0.05]">
-                    <p className="text-xs font-bold text-[#111]">{trip.carrier_name || '—'}</p>
-                    <p className="text-[8px] text-[#9898A4] font-semibold uppercase">Carrier</p>
-                  </div>
+                <div className="px-4 py-2.5 rounded-lg border border-black/[0.06] text-center min-w-[90px]">
+                  <p className="text-xs font-bold text-[#111]">{trip.planned_distance != null ? `${trip.planned_distance} km` : '—'}</p>
+                  <p className="text-[8px] text-[#9898A4] font-semibold uppercase">Distance</p>
                 </div>
               </div>
 
@@ -377,13 +371,13 @@ export default function TripDetailsPage() {
                   <p className="text-xs font-semibold text-[#6E6E80]">No stops on this manifest yet.</p>
                 </div>
               ) : (
-                <div className="relative border-l border-gray-100 ml-3 space-y-6">
+                <div className="relative border-l border-black/[0.08] ml-3 space-y-6">
                   {(trip.stops || []).map((stop) => {
                     const dwell = dwellMinutes(stop);
                     return (
                     <div key={stop.id} className="relative pl-6">
                       <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white flex items-center justify-center ${
-                        stop.actual_arrival ? 'bg-[#16A34A]' : 'bg-gray-300'
+                        stop.actual_arrival ? 'bg-[#16A34A]' : 'bg-[#D1D1D6]'
                       }`} />
                       <div>
                         <div className="flex items-center justify-between flex-wrap gap-1">
@@ -543,7 +537,7 @@ export default function TripDetailsPage() {
               ) : (
                 <div className="space-y-2">
                   {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-black/[0.05] bg-gray-50/60">
+                    <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-black/[0.06]">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-[#E8450F] flex items-center justify-center shrink-0">
                           <FileText size={14} />
