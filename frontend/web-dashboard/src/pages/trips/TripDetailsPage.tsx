@@ -6,7 +6,7 @@ import {
   Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
   Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
-  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight,
+  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -51,7 +51,6 @@ const STAGE_ORDER: TripStatus[] = ['Draft', 'Dispatched', 'AtPickup', 'InTransit
 const CONTENT_TABS = [
   { key: 'stops', label: 'Stops', icon: RouteIcon },
   { key: 'documents', label: 'Documents', icon: FileStack },
-  { key: 'audit', label: 'Audit Trail', icon: PackageCheck },
 ] as const;
 type ContentTabKey = (typeof CONTENT_TABS)[number]['key'];
 
@@ -238,7 +237,7 @@ export default function TripDetailsPage() {
   if (isLoading || !trip) {
     return (
       <DashboardLayout active="Trips" title="Trip Details">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-4">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 pt-1 pb-6 space-y-4">
           <Skeleton className="h-6 w-48 rounded-lg" />
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
             <div className="space-y-4">
@@ -335,35 +334,40 @@ export default function TripDetailsPage() {
 
   return (
     <DashboardLayout active="Trips" title="Trip Details">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-4 animate-fade-in">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 pt-1 pb-6 space-y-4 animate-fade-in">
 
         {/* Breadcrumb + action bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 text-sm min-w-0">
-            <Link to="/trips" className="text-[#6E6E80] font-medium hover:text-[#111] transition-colors">Trips</Link>
-            <ChevronRight size={14} className="text-[#9898A4] shrink-0" />
-            <span className="text-[#111] font-semibold truncate">Trip Details</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-slate-100 dark:border-slate-800/80">
+          <div className="flex items-center gap-1.5 text-xs min-w-0">
+            <Link to="/trips" className="text-slate-500 font-semibold hover:text-slate-900 dark:hover:text-white transition-colors">Trips</Link>
+            <ChevronRight size={13} className="text-slate-400 shrink-0" />
+            <span className="text-slate-900 dark:text-slate-100 font-bold truncate">Trip Details</span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Btn
-              label="Edit Trip"
+            <Button
               variant="outline"
-              className="h-10 rounded-xl border-black/[0.06]"
+              size="sm"
               onClick={() => navigate(`/trips/${trip.id}/edit`)}
-            />
-            <Btn
-              label="Print"
+              className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
+            >
+              <SquarePen className="w-3.5 h-3.5 text-slate-500" />
+              Edit Trip
+            </Button>
+            <Button
               variant="outline"
-              icon={<Printer size={14} />}
-              className="h-10 rounded-xl border-black/[0.06]"
+              size="sm"
               onClick={() => window.print()}
-            />
+              className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5 text-slate-500" />
+              Print
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="h-10 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white font-semibold gap-1.5 px-4">
+                <Button className="h-8.5 px-3.5 rounded-lg bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-bold gap-1.5 shadow-2xs transition-all active:scale-[0.98] cursor-pointer">
                   More Actions
-                  <ChevronDown size={14} />
+                  <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
@@ -458,7 +462,7 @@ export default function TripDetailsPage() {
           {/* ───────────────────────── Left: content ───────────────────────── */}
           <div className="space-y-4 min-w-0">
 
-            {/* Trip ID / status / customer-driver-vehicle-eta */}
+            {/* Trip ID / status / audit info / customer-driver-vehicle-eta */}
             <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-6 gap-0">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
@@ -473,6 +477,37 @@ export default function TripDetailsPage() {
                         {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Audit Trail Metadata pill embedded inside header component */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-2 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-medium text-slate-400">Created by:</span>
+                    <UserChip userId={trip.created_by} users={users} size="sm" />
+                    <span className="text-[10px] text-slate-300">•</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+                          {new Date(trip.createdAt).toLocaleDateString()}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="hidden sm:block text-slate-300">|</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-medium text-slate-400">Last updated by:</span>
+                    <UserChip userId={trip.updated_by} users={users} size="sm" />
+                    <span className="text-[10px] text-slate-300">•</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+                          {new Date(trip.updatedAt).toLocaleDateString()}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
 
@@ -823,108 +858,61 @@ export default function TripDetailsPage() {
 
             {/* Documents tab */}
             {activeTab === 'documents' && (
-              <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-[#111]">Documents</CardTitle>
-                  <CardDescription className="text-[11px] mt-0.5">POD, waybills, and other files attached to this trip.</CardDescription>
-                  <CardAction>
-                    <Btn
-                      label="Upload"
-                      variant="secondary"
-                      size="sm"
-                      icon={<UploadCloud size={13} />}
-                      onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                    />
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingDocs ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-10 w-full rounded-lg" />
-                      <Skeleton className="h-10 w-full rounded-lg" />
-                    </div>
-                  ) : documents.length === 0 ? (
-                    <div className="text-center py-6">
-                      <FileText size={22} className="text-[#9898A4] mx-auto mb-2" />
-                      <p className="text-xs font-medium text-[#6E6E80]">No documents uploaded for this trip yet.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-black/[0.05]">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
-                              <FileText size={14} />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-[#111] truncate">{docTypeLabel(doc.doc_type)}</p>
-                              <p className="text-[10px] text-[#6E6E80]">{new Date(doc.createdAt).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <StatusBadge status={doc.status} />
-                            <a
-                              href={doc.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#9898A4] hover:text-[#E8450F] p-1"
-                              aria-label="View document"
-                            >
-                              <ExternalLink size={13} />
-                            </a>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Audit tab */}
-            {activeTab === 'audit' && (
               <div className="space-y-4">
                 <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-black/[0.05] text-[#6E6E80] flex items-center justify-center shrink-0">
-                        <ListChecks size={12} />
-                      </div>
-                      Audit Trail
-                    </CardTitle>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-semibold text-[#111]">Documents</CardTitle>
+                    <CardDescription className="text-[11px] mt-0.5">POD, waybills, and other files attached to this trip.</CardDescription>
+                    <CardAction>
+                      <Btn
+                        label="Upload"
+                        variant="secondary"
+                        size="sm"
+                        icon={<UploadCloud size={13} />}
+                        onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
+                      />
+                    </CardAction>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-[#6E6E80] font-medium">Created by</span>
-                      <UserChip userId={trip.created_by} users={users} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-[#6E6E80] font-medium">Created</span>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span className="text-[11px] font-semibold text-[#111] cursor-default">
-                            {new Date(trip.createdAt).toLocaleDateString()}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-[#6E6E80] font-medium">Last updated by</span>
-                      <UserChip userId={trip.updated_by} users={users} />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-[#6E6E80] font-medium">Updated</span>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span className="text-[11px] font-semibold text-[#111] cursor-default">
-                            {new Date(trip.updatedAt).toLocaleDateString()}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
-                      </Tooltip>
-                    </div>
+                  <CardContent>
+                    {isLoadingDocs ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-10 w-full rounded-lg" />
+                        <Skeleton className="h-10 w-full rounded-lg" />
+                      </div>
+                    ) : documents.length === 0 ? (
+                      <div className="text-center py-6">
+                        <FileText size={22} className="text-[#9898A4] mx-auto mb-2" />
+                        <p className="text-xs font-medium text-[#6E6E80]">No documents uploaded for this trip yet.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {documents.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-black/[0.05]">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                                <FileText size={14} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-[#111] truncate">{docTypeLabel(doc.doc_type)}</p>
+                                <p className="text-[10px] text-[#6E6E80]">{new Date(doc.createdAt).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <StatusBadge status={doc.status} />
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#9898A4] hover:text-[#E8450F] p-1"
+                                aria-label="View document"
+                              >
+                                <ExternalLink size={13} />
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
