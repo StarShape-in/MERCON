@@ -263,6 +263,7 @@ export default function UserManagementPage() {
           }
           columns={columns}
           data={filteredRows}
+          compact={true}
           bulkActions={[
             {
               label: 'Export CSV',

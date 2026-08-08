@@ -90,7 +90,7 @@ export default function DataTable<T>({
   bulkActions = [],
   emptyTitle = 'No Records Found',
   emptyMessage = 'There are no entries matching your current filters or search query.',
-  compact = false,
+  compact = true,
   className,
 }: DataTableProps<T>) {
   // Internal state for client-side pagination when onPageChange is not passed
@@ -291,10 +291,10 @@ export default function DataTable<T>({
           <TableHeader>
             <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
               {enableSelection && (
-                <TableHead className="w-[48px] px-5" />
+                <TableHead className={cn(compact ? "w-[44px] px-4" : "w-[48px] px-5")} />
               )}
               {columns.map((c, i) => (
-                <TableHead key={i} className={cn("text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 h-11 px-5", c.headerClassName)}>
+                <TableHead key={i} className={cn("text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 h-11", compact ? "px-4" : "px-5", c.headerClassName)}>
                   {c.header}
                 </TableHead>
               ))}

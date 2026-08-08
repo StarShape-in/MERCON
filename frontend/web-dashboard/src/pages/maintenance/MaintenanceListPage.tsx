@@ -33,6 +33,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { exportToCSV } from '@/utils/exportUtils';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
+import DataTable, { Column } from '@/components/ui/DataTable';
 
 export default function MaintenanceListPage() {
   const navigate = useNavigate();
@@ -466,30 +467,19 @@ export default function MaintenanceListPage() {
                 </Button>
               </div>
             ) : viewMode === 'list' ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                      <th className="px-5 py-3.5">Vehicle / Ref</th>
-                      <th className="px-5 py-3.5">Type</th>
-                      <th className="px-5 py-3.5">Start Date</th>
-                      <th className="px-5 py-3.5">End Date</th>
-                      <th className="px-5 py-3.5">Expense (SAR)</th>
-                      <th className="px-5 py-3.5">Workshop / Contact</th>
-                      <th className="px-5 py-3.5">Work Done / Details</th>
-                      <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {records.map((r) => (
-                      <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        
-                        {/* Vehicle info */}
-                        <td 
-                          className="px-5 py-4 cursor-pointer hover:underline"
-                          onClick={() => navigate(`/maintenance/${r.id}`)}
-                        >
+              <div className="w-full flex flex-col">
+                <DataTable
+                  title={
+                    <span className="flex items-center gap-2">
+                      <Wrench className="w-4 h-4 text-amber-500" />
+                      <span>Maintenance Service Ledger</span>
+                    </span>
+                  }
+                  columns={[
+                    {
+                      header: 'Vehicle / Ref',
+                      accessor: (r: MaintenanceRecord) => (
+                        <div>
                           <div className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                             <Truck className="w-3.5 h-3.5 text-indigo-500" />
                             {r.vehicle?.plate_number || 'TRK-UNKNOWN'}
@@ -497,29 +487,41 @@ export default function MaintenanceListPage() {
                           <div className="text-[10px] font-mono text-slate-400 mt-0.5">
                             {r.vehicle?.ref_id || 'Ref N/A'} • {r.odometer_reading ? `${r.odometer_reading.toLocaleString()} km` : '0 km'}
                           </div>
-                        </td>
-
-                        {/* Type */}
-                        <td className="px-5 py-4">
-                          {getTypeBadge(r.maintenance_type)}
-                        </td>
-
-                        {/* Dates */}
-                        <td className="px-5 py-4 font-mono font-medium text-slate-700 dark:text-slate-300">
+                        </div>
+                      ),
+                    },
+                    {
+                      header: 'Type',
+                      accessor: (r: MaintenanceRecord) => getTypeBadge(r.maintenance_type),
+                    },
+                    {
+                      header: 'Start Date',
+                      accessor: (r: MaintenanceRecord) => (
+                        <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
                           {r.start_date ? new Date(r.start_date).toLocaleDateString() : r.service_date ? new Date(r.service_date).toLocaleDateString() : 'N/A'}
-                        </td>
-
-                        <td className="px-5 py-4 font-mono font-medium text-slate-700 dark:text-slate-300">
+                        </span>
+                      ),
+                    },
+                    {
+                      header: 'End Date',
+                      accessor: (r: MaintenanceRecord) => (
+                        <span className="font-mono font-medium text-slate-700 dark:text-slate-300">
                           {r.end_date ? new Date(r.end_date).toLocaleDateString() : '—'}
-                        </td>
-
-                        {/* Cost */}
-                        <td className="px-5 py-4 font-mono font-extrabold text-rose-600 dark:text-rose-400 text-sm">
+                        </span>
+                      ),
+                    },
+                    {
+                      header: 'Expense (SAR)',
+                      accessor: (r: MaintenanceRecord) => (
+                        <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 text-xs">
                           SAR {(r.cost || 0).toLocaleString()}
-                        </td>
-
-                        {/* Workshop */}
-                        <td className="px-5 py-4">
+                        </span>
+                      ),
+                    },
+                    {
+                      header: 'Workshop / Contact',
+                      accessor: (r: MaintenanceRecord) => (
+                        <div>
                           <div className="font-semibold text-slate-800 dark:text-slate-200">
                             {r.workshop_name}
                           </div>
@@ -529,10 +531,13 @@ export default function MaintenanceListPage() {
                               {r.workshop_contact}
                             </div>
                           )}
-                        </td>
-
-                        {/* Work Done */}
-                        <td className="px-5 py-4 max-w-[220px]">
+                        </div>
+                      ),
+                    },
+                    {
+                      header: 'Work Done / Details',
+                      accessor: (r: MaintenanceRecord) => (
+                        <div className="max-w-[220px]">
                           <p className="text-slate-700 dark:text-slate-300 truncate font-medium" title={r.work_done || r.remarks || ''}>
                             {r.work_done || r.remarks || 'Standard Service Maintenance'}
                           </p>
@@ -541,46 +546,60 @@ export default function MaintenanceListPage() {
                               Inv: {r.invoice_number}
                             </span>
                           )}
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-4">
-                          {getStatusBadge(r.status)}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={() => navigate(`/maintenance/${r.id}`)}
-                              title="View Details"
-                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </button>
-
-                            <button
-                              onClick={() => handleOpenEditModal(r)}
-                              title="Edit Log"
-                              className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
-
-                            <button
-                              onClick={() => setRecordToDelete(r)}
-                              title="Delete Record"
-                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
-
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      ),
+                    },
+                    {
+                      header: 'Status',
+                      accessor: (r: MaintenanceRecord) => getStatusBadge(r.status),
+                    },
+                    {
+                      header: 'Actions',
+                      headerClassName: 'text-right',
+                      className: 'text-right',
+                      accessor: (r: MaintenanceRecord) => (
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => navigate(`/maintenance/${r.id}`)}
+                            title="View Details"
+                            className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditModal(r)}
+                            title="Edit Log"
+                            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setRecordToDelete(r)}
+                            title="Delete Record"
+                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ),
+                    },
+                  ]}
+                  data={records}
+                  enableSelection={true}
+                  compact={true}
+                  isLoading={isLoading}
+                  isError={isError}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pageSize={pageSize}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size);
+                    setCurrentPage(1);
+                  }}
+                  totalRecords={totalCount}
+                  onPageChange={setCurrentPage}
+                  onRowClick={(row) => navigate(`/maintenance/${row.id}`)}
+                />
               </div>
             ) : (
               /* Grid View */

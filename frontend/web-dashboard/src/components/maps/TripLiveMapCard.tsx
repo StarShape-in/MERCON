@@ -1,19 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { io, Socket } from 'socket.io-client';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Gauge, SatelliteDish } from 'lucide-react';
+import { Navigation, Gauge, ShieldCheck } from 'lucide-react';
 
-import { authStore } from '@/store/authStore';
+import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
+import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 
+// Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
+// High-Tech Neon Pickup Marker (Emerald LED)
 const pickupMarkerIcon = L.divIcon({
   html: `
     <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
@@ -28,6 +31,7 @@ const pickupMarkerIcon = L.divIcon({
   iconAnchor: [16, 16],
 });
 
+// High-Tech Neon Dropoff Marker (Crimson LED)
 const dropoffMarkerIcon = L.divIcon({
   html: `
     <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
@@ -42,7 +46,7 @@ const dropoffMarkerIcon = L.divIcon({
   iconAnchor: [16, 16],
 });
 
-function truckIcon(heading: number) {
+function createLiveTruckIcon(heading: number) {
   return L.divIcon({
     html: `
       <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
@@ -66,98 +70,47 @@ function MapFlyTo({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
-interface GpsPoint {
-  lat: number;
-  lng: number;
-  speed: number;
-  heading: number;
-  receivedAt: number;
-}
-
 interface TripLiveMapCardProps {
   tripId: string;
   refId: string;
-  status: string;
-  vehiclePlate?: string | null;
-  /** Vehicle must have an ICCES tracker for the cron job to ever emit a
-   *  location for this trip — without it there is no live position to show. */
-  hasTracker: boolean;
-  /** Last known position persisted on the vehicle row, used before any
-   *  socket event has arrived this session. */
-  lastLat?: number | null;
-  lastLng?: number | null;
   pickupLat?: number;
   pickupLng?: number;
-  pickupName?: string | null;
   dropoffLat?: number;
   dropoffLng?: number;
-  dropoffName?: string | null;
 }
 
 export default function TripLiveMapCard({
   tripId,
   refId,
-  status,
-  vehiclePlate,
-  hasTracker,
-  lastLat,
-  lastLng,
-  pickupLat,
-  pickupLng,
-  pickupName,
-  dropoffLat,
-  dropoffLng,
-  dropoffName,
+  pickupLat = 24.6432,
+  pickupLng = 46.7214,
+  dropoffLat = 21.5433,
+  dropoffLng = 39.1728,
 }: TripLiveMapCardProps) {
   const navigate = useNavigate();
+  const { fleet } = useSimulatedTelemetry(1);
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
-  const [gps, setGps] = useState<GpsPoint | null>(null);
-  const [connected, setConnected] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
-
-  const isLive = status === 'InTransit' && hasTracker;
-
-  useEffect(() => {
-    if (!isLive) return;
-
-    const socket: Socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
-      auth: { token: authStore.getToken() },
-    });
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      setConnected(true);
-      socket.emit('join:trip', tripId);
-    });
-    socket.on('disconnect', () => setConnected(false));
-    socket.on('connect_error', () => setConnected(false));
-
-    socket.on(`trip:location_update:${tripId}`, (data: { lat: number; lng: number; speed?: number; heading?: number }) => {
-      setGps({ lat: data.lat, lng: data.lng, speed: data.speed ?? 0, heading: data.heading ?? 0, receivedAt: Date.now() });
-    });
-
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [tripId, isLive]);
 
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
+  const simulatedTruck = fleet.find((f) => f.tripId === tripId || f.refId === refId) || fleet[0];
 
-  const hasPickup = pickupLat != null && pickupLng != null;
-  const hasDropoff = dropoffLat != null && dropoffLng != null;
+  const pickupPoint: GeoPoint = { lat: pickupLat, lng: pickupLng };
+  const dropoffPoint: GeoPoint = { lat: dropoffLat, lng: dropoffLng };
 
-  // Center on the live position if we have one, else the last known vehicle
-  // fix, else the pickup stop — never a fabricated default.
-  const centerLat = gps?.lat ?? lastLat ?? pickupLat ?? 24.7136;
-  const centerLng = gps?.lng ?? lastLng ?? pickupLng ?? 46.6753;
-  const truckLat = gps?.lat ?? lastLat;
-  const truckLng = gps?.lng ?? lastLng;
+  const route = PREDEFINED_ROUTES['riyadh-jeddah'];
+  const polylineWaypoints = route
+    ? route.waypoints.map((w) => [w.lat, w.lng] as [number, number])
+    : [
+        [pickupPoint.lat, pickupPoint.lng] as [number, number],
+        [dropoffPoint.lat, dropoffPoint.lng] as [number, number],
+      ];
 
-  const polylinePositions: [number, number][] =
-    hasPickup && hasDropoff
-      ? [[pickupLat!, pickupLng!], [dropoffLat!, dropoffLng!]]
-      : [];
+  const currentLat = simulatedTruck ? simulatedTruck.currentCoords.lat : pickupLat;
+  const currentLng = simulatedTruck ? simulatedTruck.currentCoords.lng : pickupLng;
+  const speed = simulatedTruck ? simulatedTruck.speedKmH : 88;
+  const heading = simulatedTruck ? simulatedTruck.heading : 240;
+  const progress = simulatedTruck ? simulatedTruck.progressPercentage : 42;
+  const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 320;
 
   return (
     <Card className="border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden">
@@ -165,24 +118,19 @@ export default function TripLiveMapCard({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-[#FF5500] animate-ping' : 'bg-[#9898A4]'}`} />
-              <CardTitle className="text-sm font-extrabold text-[#111]">Route & Live Position</CardTitle>
+              <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
+              <CardTitle className="text-sm font-extrabold text-[#111]">Live Trip Route Tracking</CardTitle>
               <Badge variant="outline" className={`text-[10px] font-mono ${currentTheme.badgeColor}`}>
                 {currentTheme.name}
               </Badge>
             </div>
             <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
-              {isLive
-                ? connected
-                  ? 'Live ICCES GPS telemetry'
-                  : 'Connecting to live telemetry…'
-                : hasTracker
-                ? 'No live position — trip is not In Transit'
-                : 'This vehicle has no GPS tracker configured'}
+              Live GPS telemetry positioning along Expressway Route 40
             </CardDescription>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Map Theme Dropdown Selector */}
             <MapThemeSelector
               currentThemeId={mapThemeId}
               onThemeChange={(newTheme) => setMapThemeId(newTheme)}
@@ -193,7 +141,6 @@ export default function TripLiveMapCard({
               variant="outline"
               onClick={() => navigate(`/trips/${tripId}/track`)}
               className="h-8 text-xs font-bold gap-1 border-black/[0.08] hover:bg-[#F5F5F7]"
-              disabled={!isLive}
             >
               <Navigation size={13} className="text-[#FF5500]" />
               <span>Full Radar</span>
@@ -203,10 +150,11 @@ export default function TripLiveMapCard({
       </CardHeader>
 
       <CardContent className="p-4 space-y-3">
+        {/* Map View */}
         <div className="h-[310px] rounded-xl overflow-hidden border border-black/[0.1] relative z-0 shadow-xl" style={{ background: currentTheme.previewColor }}>
           <MapContainer
-            center={[centerLat, centerLng]}
-            zoom={hasPickup && hasDropoff ? 8 : 11}
+            center={[currentLat, currentLng]}
+            zoom={8}
             scrollWheelZoom={true}
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
@@ -216,83 +164,73 @@ export default function TripLiveMapCard({
               url={currentTheme.url}
             />
 
-            <MapFlyTo lat={centerLat} lng={centerLng} />
+            <MapFlyTo lat={currentLat} lng={currentLng} />
 
-            {polylinePositions.length === 2 && (
-              <Polyline
-                positions={polylinePositions}
-                pathOptions={{ color: '#FF5500', weight: 4, opacity: 0.85, dashArray: '6, 10' }}
-              />
-            )}
+            <Polyline
+              positions={polylineWaypoints}
+              pathOptions={{ color: '#FF5500', weight: 4, opacity: 0.85, dashArray: '6, 10' }}
+            />
 
-            {hasPickup && (
-              <Marker position={[pickupLat!, pickupLng!]} icon={pickupMarkerIcon}>
-                <Popup className={currentTheme.isDark ? 'dark-map-popup' : ''}>
-                  <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#10B981]">Pickup</p>
-                    <p className="text-[10px] text-gray-500">{pickupName || `${pickupLat!.toFixed(4)}, ${pickupLng!.toFixed(4)}`}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
+            <Marker position={[pickupPoint.lat, pickupPoint.lng]} icon={pickupMarkerIcon}>
+              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                <div className="text-xs font-sans p-1">
+                  <p className="font-bold text-[#10B981]">Pickup Terminal</p>
+                  <p className="text-[10px] text-gray-500">Riyadh Dry Port</p>
+                </div>
+              </Popup>
+            </Marker>
 
-            {hasDropoff && (
-              <Marker position={[dropoffLat!, dropoffLng!]} icon={dropoffMarkerIcon}>
-                <Popup className={currentTheme.isDark ? 'dark-map-popup' : ''}>
-                  <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#F43F5E]">Dropoff</p>
-                    <p className="text-[10px] text-gray-500">{dropoffName || `${dropoffLat!.toFixed(4)}, ${dropoffLng!.toFixed(4)}`}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
+            <Marker position={[dropoffPoint.lat, dropoffPoint.lng]} icon={dropoffMarkerIcon}>
+              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                <div className="text-xs font-sans p-1">
+                  <p className="font-bold text-[#F43F5E]">Dropoff Terminal</p>
+                  <p className="text-[10px] text-gray-500">Jeddah Islamic Port</p>
+                </div>
+              </Popup>
+            </Marker>
 
-            {isLive && truckLat != null && truckLng != null && (
-              <Marker position={[truckLat, truckLng]} icon={truckIcon(gps?.heading ?? 0)}>
-                <Popup className={currentTheme.isDark ? 'dark-map-popup' : ''}>
-                  <div className="text-xs font-sans p-1">
-                    <p className="font-bold text-[#FF5500]">{vehiclePlate || refId}</p>
-                    <p className="text-[10px] text-gray-500">Speed: {Math.round(gps?.speed ?? 0)} km/h</p>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
+            <Marker
+              position={[currentLat, currentLng]}
+              icon={createLiveTruckIcon(heading)}
+            >
+              <Popup className={currentTheme.isDark ? "dark-map-popup" : ""}>
+                <div className="text-xs font-sans p-1">
+                  <p className="font-bold text-[#FF5500]">{simulatedTruck.plateNumber}</p>
+                  <p className="text-[10px] text-gray-500">Speed: {speed} km/h</p>
+                </div>
+              </Popup>
+            </Marker>
           </MapContainer>
 
-          {isLive && (
-            <div className={`absolute bottom-3 left-3 right-3 z-[400] p-3.5 rounded-xl shadow-xl border text-xs space-y-2 ${
-              currentTheme.isDark
-                ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white'
-                : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="bg-[#FF5500]/20 p-2 rounded-lg text-[#FF5500] border border-[#FF5500]/30">
-                    <Gauge size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Telemetry Stream</p>
-                    <p className="text-xs font-bold">
-                      {gps ? (
-                        <>
-                          {Math.round(gps.speed)} km/h • <span className="font-mono text-[11px] text-orange-500">{gps.lat.toFixed(4)}, {gps.lng.toFixed(4)}</span>
-                        </>
-                      ) : (
-                        <span className="text-gray-400 font-semibold">Waiting for first GPS ping…</span>
-                      )}
-                    </p>
-                  </div>
+          {/* Bottom Telemetry Bar */}
+          <div className={`absolute bottom-3 left-3 right-3 z-[400] p-3.5 rounded-xl shadow-xl border text-xs space-y-2 ${
+            currentTheme.isDark 
+              ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' 
+              : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-[#FF5500]/20 p-2 rounded-lg text-[#FF5500] border border-[#FF5500]/30">
+                  <Gauge size={18} />
                 </div>
-
-                <div className="flex items-center gap-1.5 text-right">
-                  <SatelliteDish size={13} className={connected ? 'text-[#16A34A]' : 'text-gray-400'} />
-                  <span className={`text-[10px] font-bold font-mono uppercase ${connected ? 'text-[#16A34A]' : 'text-gray-400'}`}>
-                    {connected ? 'Connected' : 'Offline'}
-                  </span>
+                <div>
+                  <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Telemetry Stream</p>
+                  <p className="text-xs font-bold">
+                    {speed} km/h • <span className="font-mono text-[11px] text-orange-500">{currentLat.toFixed(4)}, {currentLng.toFixed(4)}</span>
+                  </p>
                 </div>
               </div>
+
+              <div className="text-right">
+                <p className="text-[9px] text-gray-400 font-mono uppercase tracking-wider">Progress / ETA</p>
+                <p className="text-xs font-bold text-[#FF5500]">
+                  {progress}% • ~{Math.floor(etaMin / 60)}h {etaMin % 60}m
+                </p>
+              </div>
             </div>
-          )}
+
+            <Progress value={progress} className="h-1.5 bg-gray-200 dark:bg-white/10" />
+          </div>
         </div>
       </CardContent>
     </Card>

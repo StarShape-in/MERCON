@@ -508,6 +508,7 @@ export default function VehicleListPage() {
               data={vehicles}
               bulkActions={bulkActions}
               enableSelection={true}
+              compact={true}
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load fleet vehicles.'}

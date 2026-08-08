@@ -237,6 +237,7 @@ export default function PaymentStatusPage() {
             }
             columns={columns}
             data={filteredInvoices}
+            compact={true}
             bulkActions={[
               {
                 label: 'Mark Paid',

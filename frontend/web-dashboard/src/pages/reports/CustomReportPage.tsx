@@ -307,6 +307,7 @@ export default function CustomReportPage() {
                 columns={columns}
                 data={reportData.trips}
                 enableSelection={true}
+                compact={true}
                 isLoading={false}
               />
             </div>
