@@ -43,14 +43,14 @@ import { cn } from '@/lib/utils';
 // Custom icon builder for the vehicles on the map (renders 3D isometric container trucks)
 function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: boolean) {
   // Setup 3D Container color styles based on Status
-  let colorBoxShadow = '#475569';    // Dark shadow grey
-  let colorBoxMedium = '#64748B';    // Slate
-  let colorBoxHighlight = '#94A3B8'; // Light slate
-  let colorBorder = '#64748B';
-  let glowColor = 'rgba(100, 116, 139, 0.4)';
+  let colorBoxShadow = '#334155';    // Dark shadow slate
+  let colorBoxMedium = '#475569';    // Slate
+  let colorBoxHighlight = '#64748B'; // Light slate
+  let colorBorder = '#475569';
+  let glowColor = 'rgba(71, 85, 105, 0.4)';
   
   if (status === 'Available') {
-    colorBoxShadow = '#C23A0A';      // Shadow orange
+    colorBoxShadow = '#B83206';      // Solid deep shadow orange
     colorBoxMedium = '#E8450F';      // Brand orange
     colorBoxHighlight = '#FF7A45';   // Highlight orange
     colorBorder = '#E8450F';
@@ -84,7 +84,7 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
           <ellipse cx="23.6" cy="21" rx="15" ry="5.5" fill="rgba(0,0,0,0.22)" />
 
           <!-- Chassis Side Bar -->
-          <polygon points="12.4,25.0 34.8,12.4 34.8,10.8 12.4,23.4" fill="#334155" />
+          <polygon points="12.4,25.0 34.8,12.4 34.8,10.8 12.4,23.4" fill="#1E293B" />
 
           <!-- Rear Wheels -->
           <ellipse cx="28.4" cy="16.4" rx="3.2" ry="1.8" fill="#0F172A" />
@@ -94,27 +94,27 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
           <ellipse cx="14.8" cy="24.05" rx="3.2" ry="1.8" fill="#0F172A" />
           <ellipse cx="14.8" cy="24.05" rx="1.3" ry="0.7" fill="#94A3B8" />
 
-          <!-- Cargo Box (Orange/Status Colored 3D Container) -->
-          <!-- Left Side Face of Box (Shadow) -->
-          <polygon points="34.8,10.8 18.8,19.8 18.8,10.2 34.8,1.2" fill="${colorBoxShadow}" />
-          <!-- Front Face of Box (Medium shadow/fill) -->
-          <polygon points="18.8,19.8 26.8,24.1 26.8,14.7 18.8,10.2" fill="${colorBoxMedium}" />
-          <!-- Top Face of Box (Highlight) -->
-          <polygon points="34.8,1.2 18.8,10.2 26.8,14.7 42.8,5.7" fill="${colorBoxHighlight}" />
-
-          <!-- Cab (Silver/Grey) -->
+          <!-- Cab (Silver/Grey) - Rendered first so Cargo Box sits on top of/behind it -->
           <!-- Left Side Face of Cab (Shadow) -->
           <polygon points="18.8,19.8 12.4,23.4 12.4,17.0 18.8,13.4" fill="#64748B" />
           <!-- Front Face of Cab (Medium/Light fill) -->
           <polygon points="12.4,23.4 20.4,27.9 20.4,21.5 12.4,17.0" fill="#CBD5E1" />
           <!-- Top Face of Cab (Highlight) -->
-          <polygon points="18.8,13.4 12.4,17.0 20.4,21.5 26.8,17.9" fill="#F1F5F9" />
+          <polygon points="18.8,13.4 12.4,17.0 20.4,21.5 26.8,17.9" fill="#E2E8F0" />
 
           <!-- Windows -->
           <!-- Front Windshield -->
           <polygon points="13.2,20.65 19.6,24.25 19.6,21.45 13.2,17.85" fill="#1E293B" />
           <!-- Side Window -->
           <polygon points="17.2,17.1 13.2,19.35 13.2,16.95 17.2,14.7" fill="#334155" />
+
+          <!-- Cargo Box (Orange/Status Colored 3D Container) - Rendered last so it sits on top of cab roof -->
+          <!-- Left Side Face of Box (Shadow) -->
+          <polygon points="34.8,10.8 18.8,19.8 18.8,10.2 34.8,1.2" fill="${colorBoxShadow}" />
+          <!-- Front Face of Box (Medium shadow/fill) -->
+          <polygon points="18.8,19.8 26.8,24.1 26.8,14.7 18.8,10.2" fill="${colorBoxMedium}" />
+          <!-- Top Face of Box (Highlight) -->
+          <polygon points="34.8,1.2 18.8,10.2 26.8,14.7 42.8,5.7" fill="${colorBoxHighlight}" />
         </svg>
       </div>
 
