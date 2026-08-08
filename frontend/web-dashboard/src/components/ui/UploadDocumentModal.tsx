@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentService, DocType } from '@/services/documentService';
 import Btn from './Btn';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
+import { DatePicker } from './date-picker';
 
 interface UploadDocumentModalProps {
   isOpen: boolean;
@@ -151,22 +152,21 @@ export default function UploadDocumentModal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-900 mb-1.5">Issue Date (Optional)</label>
-                  <input 
-                    type="date" 
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-900 dark:text-gray-100">Issue Date (Optional)</label>
+                  <DatePicker
                     value={issueDate}
-                    onChange={(e) => setIssueDate(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                    onChange={(_, dateStr) => setIssueDate(dateStr)}
+                    placeholder="Select issue date..."
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-900 mb-1.5">Expiry Date (Optional)</label>
-                  <input 
-                    type="date" 
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-gray-900 dark:text-gray-100">Expiry Date (Optional)</label>
+                  <DatePicker
                     value={expiryDate}
-                    onChange={(e) => setExpiryDate(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                    onChange={(_, dateStr) => setExpiryDate(dateStr)}
+                    placeholder="Select expiry date..."
+                    minDate={issueDate ? new Date(issueDate) : undefined}
                   />
                 </div>
               </div>

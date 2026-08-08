@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
   Phone,
   FileText,
   Calendar,
+  Truck,
   ArrowLeft,
   RotateCcw,
   Plus,
@@ -19,6 +20,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { driverService, CreateDriverPayload } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +28,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Combobox } from '@/components/ui/combobox';
 import Btn from '@/components/ui/Btn';
 
 const EMPTY_FORM = {
@@ -34,6 +38,7 @@ const EMPTY_FORM = {
   phone_primary: '',
   license_number: '',
   license_expiry: '',
+  assigned_vehicle_id: '',
 };
 
 export default function AddDriverPage() {
@@ -42,6 +47,16 @@ export default function AddDriverPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+
+  const { data: vehiclesRes } = useQuery({
+    queryKey: ['vehicles-select'],
+    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+  });
+  const vehicleOptions = (vehiclesRes?.data || []).map((v) => ({
+    value: v.id,
+    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
+    keywords: `${v.plate_number} ${v.asset_type}`,
+  }));
 
   const handleChange = (field: keyof typeof EMPTY_FORM, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -96,6 +111,7 @@ export default function AddDriverPage() {
       phone_primary: formData.phone_primary.trim(),
       license_number: formData.license_number.trim(),
       license_expiry: formData.license_expiry,
+      assigned_vehicle_id: formData.assigned_vehicle_id || undefined,
     });
   };
 
@@ -246,15 +262,41 @@ export default function AddDriverPage() {
                         </span>
                       )}
                     </Label>
-                    <Input
+                    <DatePicker
                       id="license_expiry"
-                      type="date"
                       value={formData.license_expiry}
-                      onChange={(e) => handleChange('license_expiry', e.target.value)}
-                      aria-invalid={isExpired}
-                      className={`font-mono ${isExpired ? 'border-destructive' : ''}`}
+                      onChange={(_, dateStr) => handleChange('license_expiry', dateStr)}
+                      placeholder="Select expiry date..."
+                      error={isExpired}
+                      minDate={new Date()}
                     />
                   </div>
+                </div>
+              </section>
+
+              <Separator />
+
+              <section className="space-y-3">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  <Truck className="w-3.5 h-3.5" /> Assigned vehicle
+                </h3>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="assigned_vehicle_id" className="text-xs font-semibold">
+                    Default vehicle
+                  </Label>
+                  <Combobox
+                    id="assigned_vehicle_id"
+                    value={formData.assigned_vehicle_id}
+                    onChange={(val) => handleChange('assigned_vehicle_id', val)}
+                    options={vehicleOptions}
+                    placeholder="No default vehicle (optional)..."
+                    searchPlaceholder="Search vehicles..."
+                    emptyText="No vehicles found."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Pre-fills automatically when this driver is picked on a new trip. Can still be changed per trip.
+                  </p>
                 </div>
               </section>
 

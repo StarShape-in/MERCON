@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { User, Phone, FileText, Calendar, ArrowLeft } from 'lucide-react';
+import { User, Phone, FileText, Calendar, Truck, ArrowLeft } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import FormSection from '@/components/ui/FormSection';
 import FormInput from '@/components/ui/FormInput';
+import { Label } from '@/components/ui/label';
+import { Combobox } from '@/components/ui/combobox';
 import Btn from '@/components/ui/Btn';
 import { driverService, DriverStatus } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
 
 export default function EditDriverPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +24,16 @@ export default function EditDriverPage() {
     enabled: !!id,
   });
 
+  const { data: vehiclesRes } = useQuery({
+    queryKey: ['vehicles-select'],
+    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+  });
+  const vehicleOptions = (vehiclesRes?.data || []).map((v) => ({
+    value: v.id,
+    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
+    keywords: `${v.plate_number} ${v.asset_type}`,
+  }));
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -28,6 +41,7 @@ export default function EditDriverPage() {
     license_number: '',
     license_expiry: '',
     status: 'Available' as DriverStatus,
+    assigned_vehicle_id: '',
   });
 
   useEffect(() => {
@@ -39,6 +53,7 @@ export default function EditDriverPage() {
         license_number: driver.license_number,
         license_expiry: new Date(driver.license_expiry).toISOString().split('T')[0],
         status: driver.status,
+        assigned_vehicle_id: driver.assignedVehicleId || '',
       });
     }
   }, [driver]);
@@ -60,7 +75,7 @@ export default function EditDriverPage() {
 
     try {
       if (!id) throw new Error('Driver ID missing');
-      await driverService.update(id, formData);
+      await driverService.update(id, { ...formData, assigned_vehicle_id: formData.assigned_vehicle_id || null });
       navigate(`/drivers/${id}`);
     } catch (err: any) {
       const details = err.response?.data?.error?.details as { path: string; message: string }[] | undefined;
@@ -161,6 +176,28 @@ export default function EditDriverPage() {
                 onChange={handleChange}
                 required
               />
+            </div>
+          </FormSection>
+
+          <FormSection
+            title="Vehicle Assignment"
+            description="Default vehicle pre-filled when this driver is picked on a new trip."
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="assigned_vehicle_id" className="text-xs font-semibold flex items-center gap-1.5">
+                  <Truck size={16} /> Assigned Vehicle
+                </Label>
+                <Combobox
+                  id="assigned_vehicle_id"
+                  value={formData.assigned_vehicle_id}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, assigned_vehicle_id: val }))}
+                  options={vehicleOptions}
+                  placeholder="No default vehicle..."
+                  searchPlaceholder="Search vehicles..."
+                  emptyText="No vehicles found."
+                />
+              </div>
             </div>
           </FormSection>
 
