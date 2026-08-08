@@ -84,37 +84,37 @@ const variantStyles: Record<KpiCardVariant, {
   brand: {
     hex: '#E8450F',
     iconContainer: 'bg-[#E8450F]/10 text-[#E8450F]',
-    activeRing: 'ring-2 ring-[#E8450F]/60 border-[#E8450F]/40',
+    activeRing: 'shadow-[0_0_15px_rgba(232,69,15,0.18)] border-[#E8450F] scale-[1.01] transition-all',
   },
   blue: {
     hex: '#2563EB',
     iconContainer: 'bg-blue-600/10 text-blue-600 dark:text-blue-400',
-    activeRing: 'ring-2 ring-blue-500/60 border-blue-500/40',
+    activeRing: 'shadow-[0_0_15px_rgba(37,99,235,0.18)] border-blue-500 scale-[1.01] transition-all',
   },
   emerald: {
     hex: '#16A34A',
     iconContainer: 'bg-emerald-600/10 text-emerald-600 dark:text-emerald-400',
-    activeRing: 'ring-2 ring-emerald-500/60 border-emerald-500/40',
+    activeRing: 'shadow-[0_0_15px_rgba(22,163,74,0.18)] border-emerald-500 scale-[1.01] transition-all',
   },
   amber: {
     hex: '#D97706',
     iconContainer: 'bg-amber-600/10 text-amber-600 dark:text-amber-400',
-    activeRing: 'ring-2 ring-amber-500/60 border-amber-500/40',
+    activeRing: 'shadow-[0_0_15px_rgba(217,119,6,0.18)] border-amber-500 scale-[1.01] transition-all',
   },
   purple: {
     hex: '#7C3AED',
     iconContainer: 'bg-purple-600/10 text-purple-600 dark:text-purple-400',
-    activeRing: 'ring-2 ring-purple-500/60 border-purple-500/40',
+    activeRing: 'shadow-[0_0_15px_rgba(124,58,237,0.18)] border-purple-500 scale-[1.01] transition-all',
   },
   rose: {
     hex: '#DC2626',
     iconContainer: 'bg-rose-600/10 text-rose-600 dark:text-rose-400',
-    activeRing: 'ring-2 ring-rose-500/60 border-rose-500/40',
+    activeRing: 'shadow-[0_0_15px_rgba(220,38,38,0.18)] border-rose-500 scale-[1.01] transition-all',
   },
   slate: {
     hex: '#64748B',
     iconContainer: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
-    activeRing: 'ring-2 ring-slate-400/60 border-slate-400/40',
+    activeRing: 'shadow-[0_0_15px_rgba(100,116,139,0.18)] border-slate-400 scale-[1.01] transition-all',
   },
 }
 
@@ -316,7 +316,10 @@ export function KpiCard({
       </div>
 
       {/* Value */}
-      <div className="mt-1 text-[28px] font-bold leading-none tracking-tight text-[#111111] dark:text-slate-100">
+      <div 
+        className="mt-1 text-[32px] font-bold leading-none tracking-tight transition-colors duration-150"
+        style={{ color: selectedStyle.hex }}
+      >
         {value}
       </div>
 
@@ -392,7 +395,7 @@ export function KpiCard({
               })}
             </div>
           ) : normalizedChartData ? (
-            <div className="h-9 -mx-1">
+            <div className="h-10 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl">
               <ChartContainer
                 config={{ value: { label: 'Value', color: selectedStyle.hex } }}
                 className="aspect-auto h-full w-full"
@@ -401,7 +404,7 @@ export function KpiCard({
                   <AreaChart data={normalizedChartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
                     <defs>
                       <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={selectedStyle.hex} stopOpacity={0.15} />
+                        <stop offset="0%" stopColor={selectedStyle.hex} stopOpacity={0.16} />
                         <stop offset="100%" stopColor={selectedStyle.hex} stopOpacity={0} />
                       </linearGradient>
                     </defs>
@@ -409,7 +412,7 @@ export function KpiCard({
                       type="monotone"
                       dataKey="value"
                       stroke={selectedStyle.hex}
-                      strokeWidth={2}
+                      strokeWidth={1.8}
                       fill={`url(#${gradientId})`}
                       isAnimationActive={false}
                     />

@@ -565,11 +565,8 @@ export default function VehicleListPage() {
             trendValue={`${activePct}% Active`}
             description="Total assets in database"
             icon={FleetTruck}
-            completionGauge={{
-              percentage: activePct || 88,
-              label: `${activePct}% Operational Rate`,
-              subtext: `${activeCount} Active • ${maintenanceCount} Maintenance`
-            }}
+            chartData={[36, 38, 40, 41, 42, 43, totalCount]}
+            isActive={selectedStatus === 'All'}
             onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
 
@@ -579,14 +576,11 @@ export default function VehicleListPage() {
             value={availableCount}
             variant="emerald"
             trend="up"
-            trendValue="Ready for Trip"
+            trendValue={`${availableCount} Available`}
             description="Ready for operational trip"
             icon={CheckBadge}
-            completionGauge={{
-              percentage: totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 75,
-              label: `${availableCount} Units Available`,
-              subtext: 'Immediate Dispatch Clear'
-            }}
+            chartData={[12, 14, 11, 15, 13, 16, availableCount]}
+            isActive={selectedStatus === 'Available'}
             onClick={() => { setSelectedStatus('Available'); setViewMode('map'); setCurrentPage(1); }}
           />
 
@@ -595,15 +589,12 @@ export default function VehicleListPage() {
             title="MAINTENANCE BAY"
             value={maintenanceCount}
             variant="amber"
-            trend={maintenanceCount > 0 ? 'down' : 'neutral'}
+            trend={maintenanceCount > 3 ? 'up' : 'down'}
             trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
             description="Active servicing units"
             icon={MaintenanceWrench}
-            progressSegments={[
-              { label: `${maintenanceCount} In Shop`, value: maintenanceCount > 0 ? 60 : 0, color: 'bg-amber-500' },
-              { label: 'Scheduled', value: maintenanceCount > 0 ? 40 : 0, color: 'bg-indigo-500' },
-              { label: 'Clear', value: maintenanceCount > 0 ? 0 : 100, color: 'bg-slate-200' },
-            ]}
+            chartData={[5, 4, 6, 3, 2, 4, maintenanceCount]}
+            isActive={selectedStatus === 'Maintenance'}
             onClick={() => { setSelectedStatus('Maintenance'); setCurrentPage(1); }}
           />
 
@@ -616,10 +607,8 @@ export default function VehicleListPage() {
             trendValue="MOT Verified"
             description="Vehicle permit status radar"
             icon={ShieldCheck}
-            progressSegments={[
-              { label: 'Valid (92%)', value: 92, color: 'bg-emerald-500' },
-              { label: 'Due <30d (8%)', value: 8, color: 'bg-amber-500' },
-            ]}
+            chartData={[95, 96, 96, 97, 98, 99, 100]}
+            isActive={false}
             onClick={() => navigate('/documents')}
           />
         </div>
