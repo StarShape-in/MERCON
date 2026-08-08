@@ -176,8 +176,9 @@ export default function VehicleListPage() {
 
     const dataRows = rowsToExport.map(row => {
       const activeTrip = row.trips?.[0];
-      const assignedDriver = activeTrip?.driver 
-        ? `${activeTrip.driver.first_name} ${activeTrip.driver.last_name}`
+      const driver = row.assignedDriver || activeTrip?.driver;
+      const assignedDriver = driver 
+        ? `${driver.first_name} ${driver.last_name}`
         : 'None';
       
       return [
@@ -230,7 +231,7 @@ export default function VehicleListPage() {
               </Badge>
             </div>
             <span className="text-[10px] text-slate-500 font-medium">
-              {row.trailer_type ? `Trailer: ${row.trailer_type}` : 'Commercial Heavy Truck'}
+              Rigid Box Truck
             </span>
           </div>
         </div>
@@ -240,9 +241,48 @@ export default function VehicleListPage() {
       header: 'Asset Type',
       accessor: (row: Vehicle) => (
         <Badge variant="outline" className={cn("text-[10px] font-bold px-2 py-0.5", getTypeStyle(row.asset_type))}>
-          {row.asset_type || 'Heavy Tractor'}
+          {row.asset_type || 'Box Truck'}
         </Badge>
       ),
+    },
+    {
+      header: 'Assigned Driver',
+      accessor: (row: Vehicle) => {
+        const activeTrip = row.trips?.[0];
+        const driver = row.assignedDriver || activeTrip?.driver;
+
+        if (!driver) {
+          return (
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">
+              Unassigned
+            </span>
+          );
+        }
+
+        const driverName = `${driver.first_name || ''} ${driver.last_name || ''}`.trim() || 'Assigned Driver';
+        const initials = `${driver.first_name?.[0] || ''}${driver.last_name?.[0] || ''}`.toUpperCase() || 'DR';
+
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-800 flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+              {initials}
+            </div>
+            <div className="flex flex-col">
+              <span 
+                className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-[#E8450F] transition-colors cursor-pointer"
+                onClick={() => navigate(`/drivers/${driver.id}`)}
+              >
+                {driverName}
+              </span>
+              {driver.phone_primary && (
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {driver.phone_primary}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      },
     },
     {
       header: 'Payload Capacity',
@@ -272,14 +312,6 @@ export default function VehicleListPage() {
     {
       header: 'Status',
       accessor: (row: Vehicle) => <StatusBadge status={row.status} />,
-    },
-    {
-      header: 'Trailer Number',
-      accessor: (row: Vehicle) => (
-        <span className="text-xs text-slate-600 dark:text-slate-400 font-mono font-medium">
-          {row.trailer_number ? row.trailer_number : <span className="text-slate-300 dark:text-slate-600">—</span>}
-        </span>
-      ),
     },
     {
       header: 'Actions',
@@ -735,14 +767,20 @@ export default function VehicleListPage() {
                       {v.plate_number}
                     </h4>
                     <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                      {v.ref_id || 'TRK-9021'} • {v.asset_type || 'Heavy Tractor'}
+                      {v.ref_id || 'TRK-9021'} • {v.asset_type || 'Box Truck'}
                     </p>
                   </div>
 
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1.5 text-[11px]">
                     <div className="flex justify-between text-slate-500">
-                      <span>Trailer Spec:</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">{v.trailer_type || 'Commercial Heavy'}</span>
+                      <span>Assigned Driver:</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        {v.assignedDriver ? `${v.assignedDriver.first_name} ${v.assignedDriver.last_name}` : (v.trips?.[0]?.driver ? `${v.trips[0].driver.first_name} ${v.trips[0].driver.last_name}` : 'Unassigned')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-500">
+                      <span>Vehicle Model:</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">Isuzu FTR Box</span>
                     </div>
                     <div className="flex justify-between text-slate-500">
                       <span>Payload Capacity:</span>

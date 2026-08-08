@@ -9,6 +9,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
+import KpiCard from '@/components/ui/KpiCard';
 import { customerService } from '@/services/customerService';
 import { invoiceService } from '@/services/invoiceService';
 import { rateCardService } from '@/services/rateCardService';
@@ -175,25 +176,14 @@ export default function CustomerDetailsPage() {
     >
       <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto">
         
-        {/* ── Top Scope & Action Header Bar ─────────────────────────────── */}
+        {/* ── Header Title & Standard Top Bar Actions ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/customers')}
-              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Customers
-            </Button>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              <span>MERCON Commercial</span>
-              <span>•</span>
-              <span className="text-slate-900 dark:text-slate-100 font-bold">Account Center</span>
-            </div>
-            <Badge variant="outline" className="bg-cyan-50 text-cyan-700 border-cyan-200 font-bold dark:bg-cyan-950/40 dark:text-cyan-300">
-              Enterprise Client
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              {customer.name}
+            </h1>
+            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+              Customers Module
             </Badge>
           </div>
 
@@ -216,7 +206,7 @@ export default function CustomerDetailsPage() {
               disabled={customerTrips.length === 0}
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-emerald-700"
             >
-              <FileText className="w-3.5 h-3.5 text-emerald-600" /> Export Customer Report (CSV)
+              <FileText className="w-3.5 h-3.5 text-emerald-600" /> Export CSV
             </Button>
 
             <Button
@@ -226,15 +216,6 @@ export default function CustomerDetailsPage() {
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
             >
               <FileText className="w-3.5 h-3.5 text-indigo-600" /> Contracts
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/invoices/new`)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
-            >
-              <Receipt className="w-3.5 h-3.5 text-amber-500" /> Create Invoice
             </Button>
 
             <Button
@@ -256,24 +237,55 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
 
+        {/* ── Instrument-Panel KPI Cards ─────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            title="Total Freight Billed"
+            value={`SAR ${totalBilledInvoices.toLocaleString()}`}
+            icon={Receipt}
+            variant="emerald"
+            subtitle="Cumulative customer invoice volume"
+          />
+          <KpiCard
+            title="Utilized Credit Exposure"
+            value={`SAR ${utilizedCredit.toLocaleString()}`}
+            icon={CreditCard}
+            variant="amber"
+            subtitle={`${creditPct}% of SAR ${creditLimit.toLocaleString()} limit`}
+          />
+          <KpiCard
+            title="Active Freight Dispatches"
+            value={`${activeTripsCount} Active`}
+            icon={Truck}
+            variant="brand"
+            subtitle="Currently in-transit & active"
+          />
+          <KpiCard
+            title="Completed Trips YTD"
+            value={`${completedTripsCount} Trips`}
+            icon={CheckCircle2}
+            variant="purple"
+            subtitle="Delivered customer shipments"
+          />
+        </div>
 
         {/* ── Hero Executive Card & Credit Exposure Meter ────────────────── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden border-l-4 border-l-cyan-600 p-6 space-y-6">
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-6 space-y-6">
           
           {/* Top Identity Row */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             
             {/* Customer Avatar & Company Title */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-cyan-600 text-white flex items-center justify-center text-2xl font-black shadow-md shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl font-extrabold shadow-xs shrink-0">
                 {customer.name?.[0]?.toUpperCase() || 'C'}
               </div>
 
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
                     {customer.name}
-                  </h1>
+                  </h2>
                   <Badge 
                     variant="outline" 
                     className={`text-[10px] font-extrabold px-2 py-0.5 ${
@@ -289,9 +301,9 @@ export default function CustomerDetailsPage() {
                 <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap font-mono">
                   <span>ID: <strong className="text-slate-800 dark:text-slate-200">CUST-{customer.id.slice(0, 6).toUpperCase()}</strong></span>
                   <span>•</span>
-                  <span>CR: <strong className="text-slate-800 dark:text-slate-200">1010839281</strong></span>
+                  <span>CR: <strong className="text-slate-800 dark:text-slate-200">{(customer as any).commercial_reg_no || (customer as any).cr_number || '1010839281'}</strong></span>
                   <span>•</span>
-                  <span>VAT: <strong className="text-slate-800 dark:text-slate-200">300192837400003</strong></span>
+                  <span>VAT: <strong className="text-slate-800 dark:text-slate-200">{(customer as any).vat_number || '300192837400003'}</strong></span>
                 </div>
               </div>
             </div>
@@ -299,13 +311,13 @@ export default function CustomerDetailsPage() {
             {/* Contact Details Pill */}
             <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-1.5 text-xs shrink-0 min-w-[240px]">
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold">
-                <Building2 className="w-3.5 h-3.5 text-slate-400" /> Commercial Logistics Director
+                <Building2 className="w-3.5 h-3.5 text-slate-400" /> Commercial Contact
               </div>
               <div className="flex items-center gap-2 text-slate-500 font-mono">
                 <Phone className="w-3.5 h-3.5 text-slate-400" /> {customer.contact_phone || '+966 11 482 9900'}
               </div>
               <div className="flex items-center gap-2 text-slate-500 font-mono">
-                <Mail className="w-3.5 h-3.5 text-slate-400" /> logistics@customer.sa
+                <Mail className="w-3.5 h-3.5 text-slate-400" /> {(customer as any).contact_email || (customer as any).email || 'logistics@customer.sa'}
               </div>
             </div>
 
@@ -315,16 +327,16 @@ export default function CustomerDetailsPage() {
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-3">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-slate-100">
-                <CreditCard className="w-4 h-4 text-cyan-600" />
-                <span>Financial Credit Limit & Outstanding Exposure</span>
+                <CreditCard className="w-4 h-4 text-indigo-600" />
+                <span>Financial Credit Limit & Exposure</span>
               </div>
               <span className="font-mono text-slate-500">
                 Terms: <strong className="text-slate-800 dark:text-slate-200">Net 30 Days</strong>
               </span>
             </div>
 
-            <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden flex">
-              <div className="bg-cyan-600 h-full rounded-full transition-all" style={{ width: `${creditPct}%` }}></div>
+            <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden flex">
+              <div className="bg-indigo-600 h-full rounded-full transition-all" style={{ width: `${creditPct}%` }}></div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono pt-1">
@@ -335,7 +347,7 @@ export default function CustomerDetailsPage() {
 
               <div>
                 <span className="text-slate-400 text-[10px] uppercase font-bold block">Utilized Exposure ({creditPct}%)</span>
-                <span className="font-extrabold text-cyan-600">SAR {utilizedCredit.toLocaleString()}</span>
+                <span className="font-extrabold text-indigo-600">SAR {utilizedCredit.toLocaleString()}</span>
               </div>
 
               <div>
@@ -528,32 +540,6 @@ export default function CustomerDetailsPage() {
                     </div>
                   ))
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Card 2: Account Health & Performance Summary */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" /> Account Health Scorecard
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-3.5 text-xs">
-                <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-500 font-medium">Credit Risk Rating</span>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-extrabold text-[10px]">A+ EXCELLENT</Badge>
-                </div>
-
-                <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-500 font-medium">Completed Trips YTD</span>
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{completedTripsCount} Trips</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500 font-medium">On-Time Payment Score</span>
-                  <span className="font-mono font-bold text-emerald-600">98.4%</span>
-                </div>
               </CardContent>
             </Card>
 

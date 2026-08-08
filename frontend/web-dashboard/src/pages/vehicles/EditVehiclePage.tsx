@@ -172,41 +172,7 @@ export default function EditVehiclePage() {
             </div>
           </FormSection>
 
-          <FormSection 
-            title="Trailer Information" 
-            description="Details about an attached trailer (Optional)."
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInput 
-                label="Trailer Number" 
-                name="trailer_number" 
-                icon={<Truck size={16} />} 
-                value={formData.trailer_number}
-                onChange={handleChange}
-              />
-              <FormInput
-                label="Trailer Type"
-                type="select"
-                name="trailer_type"
-                value={formData.trailer_type}
-                onChange={handleChange}
-                options={[
-                  { value: 'Flatbed', label: 'Flatbed' },
-                  { value: 'Reefer', label: 'Reefer' },
-                  { value: 'Box', label: 'Box' },
-                  { value: 'Tanker', label: 'Tanker' },
-                ]}
-              />
-              <FormInput
-                label="Trailer Capacity (kg)"
-                name="trailer_capacity_kg" 
-                type="number"
-                icon={<Activity size={16} />} 
-                value={formData.trailer_capacity_kg}
-                onChange={handleChange}
-              />
-            </div>
-          </FormSection>
+
 
           {error && (
             <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm font-semibold border border-destructive/20">

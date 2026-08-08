@@ -26,6 +26,7 @@ export const getVehicles = async (req: Request, res: Response) => {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
+          assignedDriver: true,
           trips: {
             where: {
               deletedAt: null,
@@ -61,7 +62,22 @@ export const getVehicles = async (req: Request, res: Response) => {
 export const getVehicleById = async (req: Request, res: Response) => {
   try {
     const vehicle = await prisma.vehicle.findUnique({
-      where: { id: req.params.id as string, deletedAt: null }
+      where: { id: req.params.id as string, deletedAt: null },
+      include: {
+        assignedDriver: true,
+        trips: {
+          where: {
+            deletedAt: null,
+            status: {
+              in: ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
+            }
+          },
+          include: {
+            driver: true
+          },
+          take: 1
+        }
+      }
     });
 
     if (!vehicle) {

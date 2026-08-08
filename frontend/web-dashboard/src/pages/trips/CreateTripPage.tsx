@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   RotateCcw,
@@ -49,7 +49,13 @@ export default function CreateTripPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Step lives in the URL (?step=) so browser/hardware back moves through the
+  // wizard one step at a time, and only exits the page once you're on step 1.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const step: 1 | 2 | 3 = (() => {
+    const raw = Number(searchParams.get('step'));
+    return raw === 2 || raw === 3 ? raw : 1;
+  })();
 
   const [plannedStart, setPlannedStart] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -118,6 +124,7 @@ export default function CreateTripPage() {
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedDriver = drivers.find(d => d.id === driverId);
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
+  const vehicleAutoAssigned = !!selectedDriver?.assignedVehicleId && selectedDriver.assignedVehicleId === vehicleId;
 
   // Auto-fill the driver's assigned vehicle when a driver is picked
   useEffect(() => {
@@ -265,7 +272,7 @@ export default function CreateTripPage() {
   });
 
   const handleReset = () => {
-    setStep(1);
+    setSearchParams({}, { replace: true });
     setPlannedStart('');
     setCustomerId('');
     setDriverId('');
@@ -299,12 +306,18 @@ export default function CreateTripPage() {
       setError('Please assign a vehicle, or check "Assign vehicle later".');
       return;
     }
-    setStep((s) => (s < 3 ? (s + 1) as 1 | 2 | 3 : 3));
+    const next = (step < 3 ? step + 1 : 3) as 1 | 2 | 3;
+    const params = new URLSearchParams(searchParams);
+    params.set('step', String(next));
+    setSearchParams(params);
   };
 
+  // Mirrors the browser's own back button: pops one history entry instead of
+  // jumping straight out of the wizard. On step 1 there's nothing wizard-side
+  // to pop, so this lands wherever the user came from (e.g. the trips list).
   const prevStep = () => {
     setError(null);
-    setStep((s) => (s > 1 ? (s - 1) as 1 | 2 | 3 : 1));
+    navigate(-1);
   };
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
@@ -374,7 +387,7 @@ export default function CreateTripPage() {
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
-      <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in">
 
         {/* Header & actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
@@ -457,7 +470,9 @@ export default function CreateTripPage() {
           </Alert>
         )}
 
-        {/* Wizard steps */}
+        {/* Wizard steps (left) + live trip summary & pricing (right, sticky) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        <div className="lg:col-span-2 space-y-4 min-w-0">
         {step === 1 && (
           <Card className="rounded-xl shadow-xs border-border/80">
             <CardHeader className="border-b bg-muted/10">
@@ -674,6 +689,11 @@ export default function CreateTripPage() {
                     emptyText="No available vehicles found."
                     disabled={assignVehicleLater}
                   />
+                  {vehicleAutoAssigned && (
+                    <p className="text-[11px] text-primary flex items-center gap-1">
+                      <Sparkles className="size-3" /> Auto-set from {selectedDriver?.first_name}'s assigned vehicle — change anytime.
+                    </p>
+                  )}
                   <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
                     <Checkbox
                       checked={assignVehicleLater}
@@ -1007,157 +1027,6 @@ export default function CreateTripPage() {
                 </div>
               )}
 
-              {/* Trip Pricing & Rate Card Section */}
-              <div className="space-y-4 p-4 rounded-xl border bg-gradient-to-br from-background via-muted/20 to-muted/40 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800">
-                      <Receipt className="size-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        Trip Pricing &amp; Tariff
-                      </h4>
-                      <p className="text-[11px] text-muted-foreground">
-                        Contract rate card &amp; trip billing amount (saved to ledger and invoices)
-                      </p>
-                    </div>
-                  </div>
-
-                  {matchedRateCard ? (
-                    <Badge variant="outline" className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 border-indigo-200">
-                      <Tag className="w-3 h-3 mr-1" />
-                      {matchedRateCard.name}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground">
-                      Standard Tariff
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Rate Card Context Card */}
-                {matchedRateCard && (
-                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-xs">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-indigo-900 dark:text-indigo-200">
-                          {matchedRateCard.name}
-                        </span>
-                        <span className="text-[10px] text-indigo-600 font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50">
-                          {matchedRateCard.route_origin || 'Origin'} → {matchedRateCard.route_destination || 'Destination'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
-                        Contract Base Rate: <strong className="font-mono font-bold">{matchedRateCard.currency || 'SAR'} {Number(matchedRateCard.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
-                      </p>
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setBillingAmount(String(matchedRateCard.base_price));
-                        setIsPriceCustomized(false);
-                      }}
-                      className="h-7 px-2 text-[11px] text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-semibold"
-                    >
-                      Reset to Rate Card
-                    </Button>
-                  </div>
-                )}
-
-                {/* Editable Billing Amount Input */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="billing_amount" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-indigo-600" /> Trip Billing Amount (SAR)
-                    </Label>
-                    <span className="text-[11px] text-muted-foreground font-mono font-semibold">
-                      {billingAmount ? `Total: SAR ${Number(billingAmount).toLocaleString()}` : 'Price not set'}
-                    </span>
-                  </div>
-
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">
-                      SAR
-                    </div>
-                    <Input
-                      id="billing_amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={billingAmount}
-                      onChange={(e) => {
-                        setBillingAmount(e.target.value);
-                        setIsPriceCustomized(true);
-                      }}
-                      placeholder={matchedRateCard ? String(matchedRateCard.base_price) : "e.g. 3500.00"}
-                      className="h-10 pl-12 pr-3 rounded-xl font-mono text-sm font-semibold border-border/80 focus:border-indigo-500"
-                    />
-                  </div>
-
-                  {/* Quick price adjustment chips */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
-                      Quick adjustments:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => adjustPrice(100)}
-                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      +100 SAR
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => adjustPrice(250)}
-                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      +250 SAR
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => adjustPrice(500)}
-                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      +500 SAR
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBillingAmount('2500');
-                        setIsPriceCustomized(true);
-                      }}
-                      className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      2.5k
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBillingAmount('3500');
-                        setIsPriceCustomized(true);
-                      }}
-                      className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      3.5k
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBillingAmount('4500');
-                        setIsPriceCustomized(true);
-                      }}
-                      className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      4.5k
-                    </button>
-                  </div>
-                </div>
-              </div>
-
             </CardContent>
             <CardFooter className="justify-between rounded-b-xl border-t bg-muted/10">
               <Btn
@@ -1180,6 +1049,226 @@ export default function CreateTripPage() {
             </CardFooter>
           </Card>
         )}
+
+        </div>
+
+        {/* Live trip summary & pricing — visible from step 1, sticky so it never scrolls out of reach */}
+        <div className="space-y-4 lg:sticky lg:top-4">
+          <Card className="rounded-xl shadow-xs border-border/80">
+            <CardHeader className="border-b bg-muted/10 py-3.5">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <ShieldCheck className="size-4 text-primary" /> Trip Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4 text-xs">
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-muted-foreground font-medium shrink-0">Customer</span>
+                <span className={cn('text-right font-semibold truncate', !selectedCustomer && 'text-muted-foreground/60 font-normal')}>
+                  {selectedCustomer ? selectedCustomer.name : 'Not selected'}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-muted-foreground font-medium shrink-0">Planned start</span>
+                <span className={cn('text-right font-semibold truncate', !plannedStart && 'text-muted-foreground/60 font-normal')}>
+                  {plannedStart && isValid(parseISO(plannedStart)) ? format(parseISO(plannedStart), 'MMM d, hh:mm a') : 'Unscheduled'}
+                </span>
+              </div>
+
+              <div className="h-px bg-border/70" />
+
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-muted-foreground font-medium shrink-0">Driver</span>
+                <span className={cn('text-right font-semibold truncate', !selectedDriver && !assignDriverLater && 'text-muted-foreground/60 font-normal')}>
+                  {selectedDriver ? `${selectedDriver.first_name} ${selectedDriver.last_name}` : assignDriverLater ? 'Assign later' : 'Not assigned'}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-muted-foreground font-medium shrink-0">Vehicle</span>
+                <span className={cn('text-right font-semibold truncate', !selectedVehicle && !assignVehicleLater && 'text-muted-foreground/60 font-normal')}>
+                  {selectedVehicle ? selectedVehicle.plate_number : assignVehicleLater ? 'Assign later' : 'Not assigned'}
+                </span>
+              </div>
+
+              <div className="h-px bg-border/70" />
+
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-muted-foreground font-medium shrink-0">Pickup</span>
+                <span className={cn('text-right font-semibold truncate', !pickupName && 'text-muted-foreground/60 font-normal')}>
+                  {pickupName || 'Not set'}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-muted-foreground font-medium shrink-0">Dropoff</span>
+                <span className={cn('text-right font-semibold truncate', !dropoffName && 'text-muted-foreground/60 font-normal')}>
+                  {dropoffName || 'Not set'}
+                </span>
+              </div>
+
+              {transitInfo && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'w-full justify-center py-1 text-[11px] font-bold font-mono',
+                    transitInfo.isInvalid
+                      ? 'bg-destructive/10 border-destructive/40 text-destructive'
+                      : transitInfo.isTight
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                  )}
+                >
+                  ⏱️ {transitInfo.durationString} transit
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Trip Pricing & Rate Card */}
+          <Card className="rounded-xl shadow-xs border-border/80 bg-gradient-to-br from-background via-muted/20 to-muted/40">
+            <CardHeader className="border-b bg-muted/10 py-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Receipt className="size-4 text-indigo-600" /> Pricing &amp; Tariff
+                </CardTitle>
+                {matchedRateCard ? (
+                  <Badge variant="outline" className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0">
+                    <Tag className="w-3 h-3 mr-1" />
+                    {matchedRateCard.name}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground shrink-0">
+                    Standard Tariff
+                  </Badge>
+                )}
+              </div>
+              <CardDescription className="text-xs">
+                Contract rate card &amp; trip billing amount (saved to ledger and invoices)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              {/* Rate Card Context Card */}
+              {matchedRateCard && (
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-xs">
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-indigo-900 dark:text-indigo-200">
+                        {matchedRateCard.name}
+                      </span>
+                      <span className="text-[10px] text-indigo-600 font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50">
+                        {matchedRateCard.route_origin || 'Origin'} → {matchedRateCard.route_destination || 'Destination'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
+                      Contract Base Rate: <strong className="font-mono font-bold">{matchedRateCard.currency || 'SAR'} {Number(matchedRateCard.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setBillingAmount(String(matchedRateCard.base_price));
+                      setIsPriceCustomized(false);
+                    }}
+                    className="h-7 px-2 text-[11px] text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-semibold shrink-0"
+                  >
+                    Reset to Rate Card
+                  </Button>
+                </div>
+              )}
+
+              {/* Editable Billing Amount Input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="billing_amount" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-indigo-600" /> Trip Billing Amount (SAR)
+                  </Label>
+                </div>
+                <span className="text-[11px] text-muted-foreground font-mono font-semibold block">
+                  {billingAmount ? `Total: SAR ${Number(billingAmount).toLocaleString()}` : 'Price not set'}
+                </span>
+
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">
+                    SAR
+                  </div>
+                  <Input
+                    id="billing_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={billingAmount}
+                    onChange={(e) => {
+                      setBillingAmount(e.target.value);
+                      setIsPriceCustomized(true);
+                    }}
+                    placeholder={matchedRateCard ? String(matchedRateCard.base_price) : "e.g. 3500.00"}
+                    className="h-10 pl-12 pr-3 rounded-xl font-mono text-sm font-semibold border-border/80 focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* Quick price adjustment chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1 w-full">
+                    Quick adjustments:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => adjustPrice(100)}
+                    className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                  >
+                    +100 SAR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => adjustPrice(250)}
+                    className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                  >
+                    +250 SAR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => adjustPrice(500)}
+                    className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                  >
+                    +500 SAR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBillingAmount('2500');
+                      setIsPriceCustomized(true);
+                    }}
+                    className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                  >
+                    2.5k
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBillingAmount('3500');
+                      setIsPriceCustomized(true);
+                    }}
+                    className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                  >
+                    3.5k
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBillingAmount('4500');
+                      setIsPriceCustomized(true);
+                    }}
+                    className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                  >
+                    4.5k
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        </div>
 
       </div>
 
