@@ -12,14 +12,14 @@ import {
   ChevronLeft,
   User,
   Truck,
-  Building2,
   AlertCircle,
   Sparkles,
-  Timer,
   AlertTriangle,
   ArrowRight,
   ShieldCheck,
-  Calendar as CalendarIcon,
+  Receipt,
+  Tag,
+  DollarSign,
 } from 'lucide-react';
 import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes, format } from 'date-fns';
 
@@ -31,11 +31,13 @@ import { tripService, CreateTripPayload } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
+import { rateCardService } from '@/services/rateCardService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -71,7 +73,11 @@ export default function CreateTripPage() {
   const [dropoffTime, setDropoffTime] = useState('');
   const [dropoffName, setDropoffName] = useState('');
 
-  // Fetch Customers, Drivers, Vehicles for Select inputs
+  // Pricing & Rate Card
+  const [billingAmount, setBillingAmount] = useState<string>('');
+  const [isPriceCustomized, setIsPriceCustomized] = useState(false);
+
+  // Fetch Customers, Drivers, Vehicles, and Rate Cards
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
     queryFn: () => customerService.getAll({ per_page: 100 }),
@@ -87,9 +93,15 @@ export default function CreateTripPage() {
     queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
   });
 
+  const { data: rateCardsRes } = useQuery({
+    queryKey: ['rate-cards-select'],
+    queryFn: () => rateCardService.getAll(),
+  });
+
   const customers = customersRes?.data || [];
   const drivers = driversRes?.data || [];
   const vehicles = vehiclesRes?.data || [];
+  const rateCards = rateCardsRes?.data || [];
 
   const driverOptions = drivers.map((d) => ({
     value: d.id,
@@ -127,6 +139,40 @@ export default function CreateTripPage() {
       }
     }
   }, [selectedCustomer]);
+
+  // Match active Rate Card for selected customer and route
+  const matchedRateCard = useMemo(() => {
+    if (!rateCards.length) return null;
+
+    // 1. Try customer-specific and route-matching rate card
+    if (customerId && pickupName && dropoffName) {
+      const pLower = pickupName.toLowerCase();
+      const dLower = dropoffName.toLowerCase();
+      const routeSpecific = rateCards.find(rc =>
+        rc.customerId === customerId &&
+        rc.is_active &&
+        ((rc.route_origin && (pLower.includes(rc.route_origin.toLowerCase()) || rc.route_origin.toLowerCase().includes(pLower))) &&
+         (rc.route_destination && (dLower.includes(rc.route_destination.toLowerCase()) || rc.route_destination.toLowerCase().includes(dLower))))
+      );
+      if (routeSpecific) return routeSpecific;
+    }
+
+    // 2. Try customer-specific active rate card
+    if (customerId) {
+      const custCard = rateCards.find(rc => rc.customerId === customerId && rc.is_active);
+      if (custCard) return custCard;
+    }
+
+    // 3. Fallback to general standard active rate card
+    return rateCards.find(rc => !rc.customerId && rc.is_active) || rateCards[0] || null;
+  }, [rateCards, customerId, pickupName, dropoffName]);
+
+  // Auto-populate billing price from matched rate card when customer/rate card changes (if not manually edited)
+  useEffect(() => {
+    if (matchedRateCard && !isPriceCustomized) {
+      setBillingAmount(String(matchedRateCard.base_price));
+    }
+  }, [matchedRateCard, isPriceCustomized]);
 
   // Transit Duration & SLA Buffer Calculation
   const transitInfo = useMemo(() => {
@@ -182,6 +228,14 @@ export default function CreateTripPage() {
     setError(null);
   };
 
+  // Quick Price Adjustments
+  const adjustPrice = (amount: number) => {
+    const current = parseFloat(billingAmount || '0') || 0;
+    const updated = Math.max(0, current + amount);
+    setBillingAmount(String(updated));
+    setIsPriceCustomized(true);
+  };
+
   // Create Trip Mutation
   const createMutation = useMutation({
     mutationFn: (payload: CreateTripPayload) => tripService.create(payload),
@@ -226,6 +280,8 @@ export default function CreateTripPage() {
     setDropoffLng(39.1728);
     setDropoffTime('');
     setDropoffName('');
+    setBillingAmount('');
+    setIsPriceCustomized(false);
     setError(null);
   };
 
@@ -286,11 +342,15 @@ export default function CreateTripPage() {
       return;
     }
 
+    const numericPrice = billingAmount && !isNaN(parseFloat(billingAmount)) ? parseFloat(billingAmount) : undefined;
+
     const payload: CreateTripPayload = {
       customer_id: customerId,
       driver_id: assignDriverLater ? undefined : driverId,
       vehicle_id: assignVehicleLater ? undefined : vehicleId,
       planned_start: plannedStart || undefined,
+      billing_amount: numericPrice,
+      trip_charges: numericPrice,
       stops: [
         {
           stop_type: 'Pickup',
@@ -310,23 +370,20 @@ export default function CreateTripPage() {
     };
 
     createMutation.mutate(payload);
-  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, plannedStart, pickupTime, dropoffTime, pickupName, dropoffName, createMutation]);
+  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, plannedStart, pickupTime, dropoffTime, pickupName, dropoffName, billingAmount, createMutation]);
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
       <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 pb-6 space-y-4 animate-fade-in">
 
-        {/* Scope & actions */}
+        {/* Header & actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-md border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-              <Building2 className="w-3.5 h-3.5" />
-              MERCON Fleet
-              <span className="text-muted-foreground/50">/</span>
-              <span className="text-foreground font-bold">Dispatch &amp; Operations</span>
-            </span>
-            <Badge variant="outline" className="font-semibold bg-indigo-50 text-indigo-700 border-indigo-200">
-              Trip Dispatch Wizard
+            <span className="text-sm font-semibold text-muted-foreground">Trips</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/60" />
+            <span className="text-sm font-bold text-foreground">Create New Trip</span>
+            <Badge variant="outline" className="ml-1.5 font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+              Dispatch
             </Badge>
           </div>
 
@@ -337,7 +394,7 @@ export default function CreateTripPage() {
               size="sm"
               onClick={() => navigate('/trips')}
               className="h-9 text-xs"
-              label="Back"
+              label="Back to Trips"
               icon={<ArrowLeft className="w-3.5 h-3.5" />}
               shortcut={{ key: 'b', alt: true }}
             />
@@ -376,14 +433,14 @@ export default function CreateTripPage() {
               {((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
             </div>
 
-            {/* Route & SLA */}
+            {/* Location Selection & Pricing */}
             <div className={`flex-1 p-3.5 flex items-center gap-3 w-full transition-colors ${step === 3 ? 'bg-muted/50' : ''}`}>
               <Navigation className={`w-4 h-4 shrink-0 ${!missingLocation && !missingSchedule && !isScheduleInvalid ? 'text-primary' : 'text-muted-foreground/40'}`} />
               <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">3. Route &amp; Schedule SLA</span>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">3. Location Selection &amp; Pricing</span>
                 <p className={`text-sm font-bold truncate mt-0.5 ${!missingLocation && !missingSchedule && !isScheduleInvalid ? 'text-foreground' : 'text-muted-foreground/60'}`}>
                   {!missingLocation && !missingSchedule && !isScheduleInvalid
-                    ? `Set (${transitInfo?.durationString || 'Scheduled'})`
+                    ? `${pickupName || 'Origin'} → ${dropoffName || 'Destination'}${billingAmount ? ` • SAR ${Number(billingAmount).toLocaleString()}` : ''}`
                     : 'Pending...'}
                 </p>
               </div>
@@ -657,10 +714,10 @@ export default function CreateTripPage() {
           <Card className="rounded-xl shadow-xs border-border/80">
             <CardHeader className="border-b bg-muted/10">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Navigation className="size-4 text-primary" /> Step 3: Route Stops &amp; Geofencing Schedule
+                <Navigation className="size-4 text-primary" /> Step 3: Location Selection &amp; Pricing
               </CardTitle>
               <CardDescription className="text-xs">
-                Pinpoint the exact pickup &amp; dropoff coordinates and establish the timeline SLA.
+                Select pickup and dropoff locations, establish timeline schedule, and set trip pricing.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-5">
@@ -678,7 +735,7 @@ export default function CreateTripPage() {
                 </div>
 
                 <LocationPickerMap
-                  label="Pickup Geofence Pin (Click map to pin)"
+                  label="Pickup Location (Click map or enter address)"
                   lat={pickupLat}
                   lng={pickupLng}
                   onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
@@ -777,7 +834,7 @@ export default function CreateTripPage() {
                 </div>
 
                 <LocationPickerMap
-                  label="Dropoff Geofence Pin (Click map to pin)"
+                  label="Dropoff Location (Click map or enter address)"
                   lat={dropoffLat}
                   lng={dropoffLng}
                   onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
@@ -949,6 +1006,157 @@ export default function CreateTripPage() {
                   )}
                 </div>
               )}
+
+              {/* Trip Pricing & Rate Card Section */}
+              <div className="space-y-4 p-4 rounded-xl border bg-gradient-to-br from-background via-muted/20 to-muted/40 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-200 dark:border-indigo-800">
+                      <Receipt className="size-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        Trip Pricing &amp; Tariff
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        Contract rate card &amp; trip billing amount (saved to ledger and invoices)
+                      </p>
+                    </div>
+                  </div>
+
+                  {matchedRateCard ? (
+                    <Badge variant="outline" className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 border-indigo-200">
+                      <Tag className="w-3 h-3 mr-1" />
+                      {matchedRateCard.name}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground">
+                      Standard Tariff
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Rate Card Context Card */}
+                {matchedRateCard && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-indigo-900 dark:text-indigo-200">
+                          {matchedRateCard.name}
+                        </span>
+                        <span className="text-[10px] text-indigo-600 font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50">
+                          {matchedRateCard.route_origin || 'Origin'} → {matchedRateCard.route_destination || 'Destination'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
+                        Contract Base Rate: <strong className="font-mono font-bold">{matchedRateCard.currency || 'SAR'} {Number(matchedRateCard.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setBillingAmount(String(matchedRateCard.base_price));
+                        setIsPriceCustomized(false);
+                      }}
+                      className="h-7 px-2 text-[11px] text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-semibold"
+                    >
+                      Reset to Rate Card
+                    </Button>
+                  </div>
+                )}
+
+                {/* Editable Billing Amount Input */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="billing_amount" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-indigo-600" /> Trip Billing Amount (SAR)
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground font-mono font-semibold">
+                      {billingAmount ? `Total: SAR ${Number(billingAmount).toLocaleString()}` : 'Price not set'}
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">
+                      SAR
+                    </div>
+                    <Input
+                      id="billing_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={billingAmount}
+                      onChange={(e) => {
+                        setBillingAmount(e.target.value);
+                        setIsPriceCustomized(true);
+                      }}
+                      placeholder={matchedRateCard ? String(matchedRateCard.base_price) : "e.g. 3500.00"}
+                      className="h-10 pl-12 pr-3 rounded-xl font-mono text-sm font-semibold border-border/80 focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {/* Quick price adjustment chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
+                      Quick adjustments:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => adjustPrice(100)}
+                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                    >
+                      +100 SAR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => adjustPrice(250)}
+                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                    >
+                      +250 SAR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => adjustPrice(500)}
+                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                    >
+                      +500 SAR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBillingAmount('2500');
+                        setIsPriceCustomized(true);
+                      }}
+                      className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                    >
+                      2.5k
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBillingAmount('3500');
+                        setIsPriceCustomized(true);
+                      }}
+                      className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                    >
+                      3.5k
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBillingAmount('4500');
+                        setIsPriceCustomized(true);
+                      }}
+                      className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
+                    >
+                      4.5k
+                    </button>
+                  </div>
+                </div>
+              </div>
 
             </CardContent>
             <CardFooter className="justify-between rounded-b-xl border-t bg-muted/10">
