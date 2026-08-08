@@ -33,6 +33,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { exportToCSV } from '@/utils/exportUtils';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import DataTable, { Column } from '@/components/ui/DataTable';
 
 export default function MaintenanceListPage() {
@@ -54,6 +55,17 @@ export default function MaintenanceListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<MaintenanceRecord | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Form states
   const [formData, setFormData] = useState<CreateMaintenancePayload>({
@@ -248,6 +260,53 @@ export default function MaintenanceListPage() {
         return <Badge className="bg-slate-100 text-slate-700 border-slate-200 font-bold">ROUTINE SERVICE</Badge>;
     }
   };
+
+  const bulkActions = [
+    {
+      label: 'Export CSV',
+      icon: <Download size={13} />,
+      variant: 'secondary' as const,
+      onClick: (selectedRows: MaintenanceRecord[]) => {
+        const exportData = selectedRows.map(r => ({
+          ID: r.id,
+          Vehicle: r.vehicle?.plate_number || 'N/A',
+          Ref_ID: r.vehicle?.ref_id || 'N/A',
+          Maintenance_Type: r.maintenance_type,
+          Status: r.status,
+          Start_Date: r.start_date ? new Date(r.start_date).toLocaleDateString() : '',
+          End_Date: r.end_date ? new Date(r.end_date).toLocaleDateString() : '',
+          Cost_SAR: r.cost,
+          Workshop: r.workshop_name,
+          Contact: r.workshop_contact || '',
+          Odometer_km: r.odometer_reading,
+          Work_Done: r.work_done || '',
+          Invoice_No: r.invoice_number || '',
+          Remarks: r.remarks || '',
+        }));
+        exportToCSV(exportData, `maintenance_export_${new Date().toISOString().split('T')[0]}.csv`);
+      }
+    },
+    {
+      label: 'Delete Selected',
+      icon: <Trash2 size={13} />,
+      variant: 'danger' as const,
+      onClick: (selectedRows: MaintenanceRecord[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Delete Selected Maintenance Records',
+          message: `Are you sure you want to delete ${selectedRows.length} maintenance records? This action cannot be undone.`,
+          onConfirm: async () => {
+            try {
+              await Promise.all(selectedRows.map(r => maintenanceService.delete(r.id)));
+              queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+            } catch (e) {
+              alert('Failed to delete selected maintenance records');
+            }
+          }
+        });
+      }
+    }
+  ];
 
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Maintenance">
@@ -586,6 +645,7 @@ export default function MaintenanceListPage() {
                   ]}
                   data={records}
                   enableSelection={true}
+                  bulkActions={bulkActions}
                   compact={true}
                   isLoading={isLoading}
                   currentPage={page}
@@ -917,6 +977,18 @@ export default function MaintenanceListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={async () => {
+          await confirmModal.onConfirm();
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        isDestructive={true}
+      />
 
     </DashboardLayout>
   );
