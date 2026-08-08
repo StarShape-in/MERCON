@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
-import { downloadCSVTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
+import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
 import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
@@ -175,7 +175,7 @@ export default function TripListPage() {
   // Export menu state — the dropdown is the primary UI; the small dialog below
   // only handles date-range picking, which doesn't fit a dropdown item.
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('csv');
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportStatusGroup, setExportStatusGroup] = useState<ExportStatusGroup>('All');
   const [exportStartDate, setExportStartDate] = useState('');
@@ -262,7 +262,7 @@ export default function TripListPage() {
   };
 
   const runExport = async (
-    format: 'csv' | 'pdf',
+    format: 'excel' | 'pdf',
     opts: { statusGroup: ExportStatusGroup; driverId?: string; vehicleId?: string; startDate?: string; endDate?: string }
   ) => {
     try {
@@ -281,15 +281,17 @@ export default function TripListPage() {
         return;
       }
 
-      const groupLabel = EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label.replace(/[\s/]+/g, '_') || 'Trips';
+      const groupLabel = EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label || 'All Trips';
+      const groupSlug = groupLabel.replace(/[\s/]+/g, '_');
       const datePart = new Date().toISOString().slice(0, 10);
-      const baseName = `trips_export_${groupLabel}_${datePart}`;
+      const baseName = `trips_export_${groupSlug}_${datePart}`;
 
       const exportRows = tripsToExportRows(matched);
-      if (format === 'csv') {
-        downloadCSVTable(TRIP_EXPORT_HEADERS, exportRows, `${baseName}.csv`);
+      const title = `Trips Export — ${groupLabel}`;
+      if (format === 'excel') {
+        await exportExcelTable(title, TRIP_EXPORT_HEADERS, exportRows, `${baseName}.xlsx`);
       } else {
-        exportPDFTable(`Trips Export — ${EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label}`, TRIP_EXPORT_HEADERS, exportRows, `${baseName}.pdf`);
+        exportPDFTable(title, TRIP_EXPORT_HEADERS, exportRows, `${baseName}.pdf`);
       }
       setExportDialogOpen(false);
     } catch (e) {
@@ -521,11 +523,11 @@ export default function TripListPage() {
       }
     },
     {
-      label: 'Export Selected CSV',
+      label: 'Export Selected Excel',
       icon: <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Trip[]) => {
-        downloadCSVTable(TRIP_EXPORT_HEADERS, tripsToExportRows(selectedRows), 'trips_export.csv');
+        exportExcelTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRows(selectedRows), 'trips_export.xlsx');
       }
     },
     {
@@ -601,11 +603,11 @@ export default function TripListPage() {
                 {/* Format toggle — applies to every option below */}
                 <div className="flex items-center gap-1 p-1 mb-1 rounded-lg bg-slate-100">
                   <button
-                    onClick={(e) => { e.preventDefault(); setExportFormat('csv'); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'csv' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                    onClick={(e) => { e.preventDefault(); setExportFormat('excel'); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
                   >
                     <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                    CSV
+                    Excel
                   </button>
                   <button
                     onClick={(e) => { e.preventDefault(); setExportFormat('pdf'); }}
@@ -620,7 +622,7 @@ export default function TripListPage() {
                   onClick={() => runExport(exportFormat, { statusGroup: 'All' })}
                   className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
                 >
-                  {exportFormat === 'csv'
+                  {exportFormat === 'excel'
                     ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
                     : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
                   All Trips
@@ -636,7 +638,7 @@ export default function TripListPage() {
                     onClick={() => runExport(exportFormat, { statusGroup: g.value })}
                     className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
                   >
-                    {exportFormat === 'csv'
+                    {exportFormat === 'excel'
                       ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
                       : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
                     {g.label}
@@ -1098,11 +1100,11 @@ export default function TripListPage() {
 
               <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-100 w-fit">
                 <button
-                  onClick={() => setExportFormat('csv')}
-                  className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'csv' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  onClick={() => setExportFormat('excel')}
+                  className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-[11px] font-bold transition-colors ${exportFormat === 'excel' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                  CSV
+                  Excel
                 </button>
                 <button
                   onClick={() => setExportFormat('pdf')}
@@ -1126,11 +1128,11 @@ export default function TripListPage() {
               </Button>
               <Button
                 size="sm"
-                className={`text-xs font-bold gap-1.5 ${exportFormat === 'csv' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
+                className={`text-xs font-bold gap-1.5 ${exportFormat === 'excel' ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
                 onClick={handleDateRangeExport}
                 disabled={isExporting}
               >
-                {exportFormat === 'csv' ? <FileSpreadsheet className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                {exportFormat === 'excel' ? <FileSpreadsheet className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
                 {isExporting ? 'Exporting...' : `Export ${exportFormat.toUpperCase()}`}
               </Button>
             </DialogFooter>
