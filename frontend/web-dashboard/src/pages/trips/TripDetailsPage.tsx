@@ -958,7 +958,7 @@ export default function TripDetailsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-[#9898A4] font-bold uppercase">Created</span>
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger>
                     <span className="text-[11px] font-bold text-[#111] cursor-default">
                       {new Date(trip.createdAt).toLocaleDateString()}
                     </span>
@@ -974,7 +974,7 @@ export default function TripDetailsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-[#9898A4] font-bold uppercase">Updated</span>
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger>
                     <span className="text-[11px] font-bold text-[#111] cursor-default">
                       {new Date(trip.updatedAt).toLocaleDateString()}
                     </span>
