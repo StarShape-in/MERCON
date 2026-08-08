@@ -67,6 +67,7 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 't
   isActive?: boolean
   onStageClick?: (stageName: string) => void
   onHealthClick?: (healthType: string) => void
+  customFooter?: React.ReactNode
 
   // Backward compatibility props
   delta?: string | number | null
@@ -217,6 +218,7 @@ export function KpiCard({
   isActive,
   onStageClick,
   onHealthClick,
+  customFooter,
   className,
   delta,
   up,
@@ -291,7 +293,7 @@ export function KpiCard({
     barSegments = progressSegments.map(s => ({ label: s.label, value: s.value, color: s.color }))
   }
 
-  const hasFooter = Boolean(barSegments || completionGauge || livePulseTrack || (pipelineStages && pipelineStages.length > 0) || normalizedChartData)
+  const hasFooter = Boolean(barSegments || completionGauge || livePulseTrack || (pipelineStages && pipelineStages.length > 0) || normalizedChartData || customFooter)
 
   return (
     <Card
@@ -341,7 +343,9 @@ export function KpiCard({
       {/* Quiet visual footer — one style per data shape, never decorative */}
       {hasFooter && (
         <div className="mt-4">
-          {barSegments ? (
+          {customFooter ? (
+            customFooter
+          ) : barSegments ? (
             <SegmentBar segments={barSegments} />
           ) : completionGauge ? (
             <div className="flex flex-col gap-2">

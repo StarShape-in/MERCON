@@ -611,9 +611,69 @@ export default function VehicleListPage() {
             trendValue={`${availableCount} Available`}
             description="Ready for operational trip"
             icon={CheckBadge}
-            chartData={[12, 14, 11, 15, 13, 16, availableCount]}
             isActive={selectedStatus === 'Available'}
             onClick={() => { setSelectedStatus('Available'); setViewMode('map'); setCurrentPage(1); }}
+            customFooter={
+              <div className="relative h-12 w-full mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
+                <style>{`
+                  @keyframes routeDash {
+                    to {
+                      stroke-dashoffset: -12;
+                    }
+                  }
+                `}</style>
+                {/* Grid lines for map look */}
+                <svg className="absolute inset-0 h-full w-full opacity-[0.12]" stroke="currentColor" fill="none">
+                  <pattern id="card-map-grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                    <path d="M 10 0 L 0 0 0 10" strokeWidth="0.5" />
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#card-map-grid)" />
+                </svg>
+                
+                {/* Route line */}
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 260 48" preserveAspectRatio="none">
+                  {/* Base grey road */}
+                  <path 
+                    d="M -10 24 C 40 10, 80 38, 130 24 C 180 10, 220 38, 270 24" 
+                    fill="none" 
+                    stroke="#D1D5DB" 
+                    strokeWidth="3.5" 
+                    strokeLinecap="round"
+                  />
+                  {/* Green active route progress */}
+                  <path 
+                    d="M -10 24 C 40 10, 80 38, 130 24 C 180 10, 220 38, 270 24" 
+                    fill="none" 
+                    stroke="#10B981" 
+                    strokeWidth="3" 
+                    strokeDasharray="6,6"
+                    strokeLinecap="round"
+                    style={{ animation: 'routeDash 4s linear infinite' }}
+                  />
+                </svg>
+                
+                {/* The 3D Truck sitting in the middle of the route */}
+                <div 
+                  className="absolute"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%) scale(0.68)',
+                    zIndex: 10
+                  }}
+                >
+                  <div className="relative flex items-center justify-center">
+                    {/* Pulsing glow under the truck */}
+                    <div className="absolute h-8 w-8 rounded-full bg-emerald-500/30 animate-ping" />
+                    <img 
+                      src="/truck_3d_orange_transparent.png" 
+                      alt="Mini Map Truck" 
+                      className="h-9 w-9 object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            }
           />
 
           {/* Card 3: Maintenance Bay */}
