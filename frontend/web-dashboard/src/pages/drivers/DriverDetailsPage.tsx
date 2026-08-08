@@ -120,7 +120,7 @@ export default function DriverDetailsPage() {
                 <StatusBadge status={driver.status} />
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{driver.ref_id || 'N/A'}</span> • Commercial Heavy Fleet Operator
+                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{driver.ref_id || 'N/A'}</span>
               </p>
             </div>
           </div>
@@ -257,8 +257,8 @@ export default function DriverDetailsPage() {
               value="telematics" 
               className="text-xs font-semibold gap-1.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs rounded-lg"
             >
-              <Gauge className="w-3.5 h-3.5 text-slate-500" />
-              <span>Safety & Telematics</span>
+              <Truck className="w-3.5 h-3.5 text-slate-500" />
+              <span>Assigned Fleet Vehicle</span>
             </TabsTrigger>
           </TabsList>
 
@@ -456,61 +456,32 @@ export default function DriverDetailsPage() {
             />
           </TabsContent>
 
-          {/* ── TAB 4: Safety & Telematics ──────────────────────────────────── */}
+          {/* ── TAB 4: Assigned Fleet Vehicle ─────────────────────────────────── */}
           <TabsContent value="telematics" className="m-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Gauge className="w-4 h-4 text-indigo-500" /> Driver Safety Telematics Scorecard
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5 space-y-3.5 text-xs">
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-500 font-medium">Speeding Incidents (Last 30d)</span>
-                    <span className="font-mono font-bold text-emerald-600">0 Violations</span>
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-emerald-600" /> Assigned Fleet Vehicle
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 space-y-3 text-xs">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                  <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                      Volvo FH16 (600 HP)
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      Plate: 8821-KSA • Heavy Freight Tractor
+                    </p>
                   </div>
+                </div>
 
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-500 font-medium">Harsh Braking Index</span>
-                    <span className="font-mono font-bold text-emerald-600">98% Clean Score</span>
-                  </div>
-
-                  <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-500 font-medium">Weekly Driving Hours Cap</span>
-                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">34h / 48h Limit</span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-medium">Fleet Fuel Efficiency</span>
-                    <span className="font-mono font-bold text-indigo-600">31.2 L / 100 km</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-emerald-600" /> Assigned Fleet Vehicle
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-5 space-y-3 text-xs">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                    <Truck className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-                    <div>
-                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Volvo FH16 (600 HP)</h4>
-                      <p className="text-[11px] text-slate-400 font-mono">Plate: 8821-KSA • Heavy Freight Tractor</p>
-                    </div>
-                  </div>
-
-                  <p className="text-slate-500 text-[11px]">
-                    Assigned to primary long-haul routes between Riyadh, Jeddah, and Dammam distribution hubs.
-                  </p>
-                </CardContent>
-              </Card>
-
-            </div>
+                <p className="text-slate-500 text-[11px]">
+                  Assigned to primary long-haul routes between Riyadh, Jeddah, and Dammam distribution hubs.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
