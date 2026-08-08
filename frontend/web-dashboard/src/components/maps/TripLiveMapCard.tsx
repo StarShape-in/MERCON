@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Gauge, ShieldCheck } from 'lucide-react';
+import { Navigation, Gauge } from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
+import { cn } from '@/lib/utils';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -77,6 +78,13 @@ interface TripLiveMapCardProps {
   pickupLng?: number;
   dropoffLat?: number;
   dropoffLng?: number;
+  /** Show the title/theme-selector/"Full Radar" header row. Default true. */
+  showHeader?: boolean;
+  /** Show the bottom telemetry overlay (speed/progress/ETA bar). Default true. */
+  showTelemetryBar?: boolean;
+  /** Card corner radius + map inset height — lets embedding pages match their own layout. */
+  className?: string;
+  mapHeightClassName?: string;
 }
 
 export default function TripLiveMapCard({
@@ -86,6 +94,10 @@ export default function TripLiveMapCard({
   pickupLng = 46.7214,
   dropoffLat = 21.5433,
   dropoffLng = 39.1728,
+  showHeader = true,
+  showTelemetryBar = true,
+  className,
+  mapHeightClassName = 'h-[310px]',
 }: TripLiveMapCardProps) {
   const navigate = useNavigate();
   const { fleet } = useSimulatedTelemetry(1);
@@ -113,51 +125,55 @@ export default function TripLiveMapCard({
   const etaMin = simulatedTruck ? simulatedTruck.etaMinutes : 320;
 
   return (
-    <Card className="border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden">
-      <CardHeader className="pb-3 border-b border-black/[0.04]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
-              <CardTitle className="text-sm font-extrabold text-[#111]">Live Trip Route Tracking</CardTitle>
-              <Badge variant="outline" className={`text-[10px] font-mono ${currentTheme.badgeColor}`}>
-                {currentTheme.name}
-              </Badge>
+    <Card className={cn('border-black/[0.06] shadow-md rounded-2xl bg-white overflow-hidden p-0 gap-0', className)}>
+      {showHeader && (
+        <CardHeader className="p-4 pb-3 border-b border-black/[0.04]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#FF5500] animate-ping" />
+                <CardTitle className="text-sm font-extrabold text-[#111]">Live Trip Route Tracking</CardTitle>
+                <Badge variant="outline" className={`text-[10px] font-mono ${currentTheme.badgeColor}`}>
+                  {currentTheme.name}
+                </Badge>
+              </div>
+              <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
+                Live GPS telemetry positioning along Expressway Route 40
+              </CardDescription>
             </div>
-            <CardDescription className="text-xs text-[#6E6E80] mt-0.5">
-              Live GPS telemetry positioning along Expressway Route 40
-            </CardDescription>
+
+            <div className="flex items-center gap-2">
+              {/* Map Theme Dropdown Selector */}
+              <MapThemeSelector
+                currentThemeId={mapThemeId}
+                onThemeChange={(newTheme) => setMapThemeId(newTheme)}
+              />
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/trips/${tripId}/track`)}
+                className="h-8 text-xs font-bold gap-1 border-black/[0.08] hover:bg-[#F5F5F7]"
+              >
+                <Navigation size={13} className="text-[#FF5500]" />
+                <span>Full Radar</span>
+              </Button>
+            </div>
           </div>
+        </CardHeader>
+      )}
 
-          <div className="flex items-center gap-2">
-            {/* Map Theme Dropdown Selector */}
-            <MapThemeSelector
-              currentThemeId={mapThemeId}
-              onThemeChange={(newTheme) => setMapThemeId(newTheme)}
-            />
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate(`/trips/${tripId}/track`)}
-              className="h-8 text-xs font-bold gap-1 border-black/[0.08] hover:bg-[#F5F5F7]"
-            >
-              <Navigation size={13} className="text-[#FF5500]" />
-              <span>Full Radar</span>
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4">
         {/* Map View */}
-        <div className="h-[310px] rounded-xl overflow-hidden border border-black/[0.1] relative z-0 shadow-xl" style={{ background: currentTheme.previewColor }}>
+        <div className={cn('rounded-xl overflow-hidden border border-black/[0.1] relative z-0 shadow-xl', mapHeightClassName)} style={{ background: currentTheme.previewColor }}>
           <MapContainer
             center={[currentLat, currentLng]}
             zoom={8}
             scrollWheelZoom={true}
+            zoomControl={false}
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
+            <ZoomControl position="bottomright" />
             <TileLayer
               key={currentTheme.id}
               attribution={currentTheme.attribution}
@@ -203,6 +219,7 @@ export default function TripLiveMapCard({
           </MapContainer>
 
           {/* Bottom Telemetry Bar */}
+          {showTelemetryBar && (
           <div className={`absolute bottom-3 left-3 right-3 z-[400] p-3.5 rounded-xl shadow-xl border text-xs space-y-2 ${
             currentTheme.isDark 
               ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white' 
@@ -231,6 +248,7 @@ export default function TripLiveMapCard({
 
             <Progress value={progress} className="h-1.5 bg-gray-200 dark:bg-white/10" />
           </div>
+          )}
         </div>
       </CardContent>
     </Card>
