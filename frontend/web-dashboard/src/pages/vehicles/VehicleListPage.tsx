@@ -40,86 +40,50 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-// Custom icon builder for the vehicles on the map (renders 3D isometric container trucks)
+// Custom icon builder for the vehicles on the map (renders high-definition 3D Google Maps style navigation trucks)
 function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: boolean) {
-  // Setup 3D Container color styles based on Status
-  let colorBoxShadow = '#334155';    // Dark shadow slate
-  let colorBoxMedium = '#475569';    // Slate
-  let colorBoxHighlight = '#64748B'; // Light slate
-  let colorBorder = '#475569';
-  let glowColor = 'rgba(71, 85, 105, 0.4)';
-  
+  let imgFilter = '';
+  let glowColor = 'rgba(100, 116, 139, 0.4)';
+  let borderColor = '#94A3B8';
+
+  // Apply status-specific CSS filters and colors to the 3D orange truck asset
   if (status === 'Available') {
-    colorBoxShadow = '#B83206';      // Solid deep shadow orange
-    colorBoxMedium = '#E8450F';      // Brand orange
-    colorBoxHighlight = '#FF7A45';   // Highlight orange
-    colorBorder = '#E8450F';
-    glowColor = 'rgba(232, 69, 15, 0.7)';
+    imgFilter = 'drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
+    glowColor = 'rgba(232, 69, 15, 0.65)';
+    borderColor = '#E8450F';
   } else if (status === 'OnTrip') {
-    colorBoxShadow = '#047857';      // Shadow green
-    colorBoxMedium = '#10B981';      // Emerald
-    colorBoxHighlight = '#34D399';   // Highlight green
-    colorBorder = '#10B981';
-    glowColor = 'rgba(16, 185, 129, 0.7)';
+    imgFilter = 'hue-rotate(100deg) saturate(1.3) brightness(0.95) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
+    glowColor = 'rgba(16, 185, 129, 0.65)';
+    borderColor = '#10B981';
   } else if (status === 'Maintenance') {
-    colorBoxShadow = '#B45309';      // Shadow amber
-    colorBoxMedium = '#F59E0B';      // Amber
-    colorBoxHighlight = '#FBBF24';   // Highlight amber
-    colorBorder = '#F59E0B';
+    imgFilter = 'hue-rotate(15deg) saturate(1.4) brightness(1.05) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
     glowColor = 'rgba(245, 158, 11, 0.6)';
+    borderColor = '#F59E0B';
+  } else {
+    imgFilter = 'grayscale(100%) opacity(70%) drop-shadow(0 4px 6px rgba(0,0,0,0.2))';
+    glowColor = 'rgba(148, 163, 184, 0.3)';
+    borderColor = '#64748B';
   }
 
   const bgPod = isDarkTheme ? '#0F1017' : '#FFFFFF';
   const textPlate = isDarkTheme ? '#FFFFFF' : '#1E293B';
 
   const svgHtml = `
-    <div style="position: relative; width: 50px; height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <div style="position: relative; width: 56px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
       <!-- Pulsing Aura (flashing radar ring below the 3D vehicle) -->
-      ${(status === 'Available' || status === 'OnTrip') ? `<div class="animate-ping" style="position: absolute; width: 34px; height: 34px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35; z-index: 1;"></div>` : ''}
+      ${(status === 'Available' || status === 'OnTrip') ? `<div class="animate-ping" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35; z-index: 1;"></div>` : ''}
       
-      <!-- 3D Isometric container truck -->
-      <div style="position: relative; z-index: 2; transform: translateY(-4px);">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 32" width="44" height="32" style="filter: drop-shadow(0 3px 5px rgba(0,0,0,0.25));">
-          <!-- 3D Shadow Ellipse -->
-          <ellipse cx="23.6" cy="21" rx="15" ry="5.5" fill="rgba(0,0,0,0.22)" />
-
-          <!-- Chassis Side Bar -->
-          <polygon points="12.4,25.0 34.8,12.4 34.8,10.8 12.4,23.4" fill="#1E293B" />
-
-          <!-- Rear Wheels -->
-          <ellipse cx="28.4" cy="16.4" rx="3.2" ry="1.8" fill="#0F172A" />
-          <ellipse cx="28.4" cy="16.4" rx="1.3" ry="0.7" fill="#94A3B8" />
-
-          <!-- Front Wheels -->
-          <ellipse cx="14.8" cy="24.05" rx="3.2" ry="1.8" fill="#0F172A" />
-          <ellipse cx="14.8" cy="24.05" rx="1.3" ry="0.7" fill="#94A3B8" />
-
-          <!-- Cab (Silver/Grey) - Rendered first so Cargo Box sits on top of/behind it -->
-          <!-- Left Side Face of Cab (Shadow) -->
-          <polygon points="18.8,19.8 12.4,23.4 12.4,17.0 18.8,13.4" fill="#64748B" />
-          <!-- Front Face of Cab (Medium/Light fill) -->
-          <polygon points="12.4,23.4 20.4,27.9 20.4,21.5 12.4,17.0" fill="#CBD5E1" />
-          <!-- Top Face of Cab (Highlight) -->
-          <polygon points="18.8,13.4 12.4,17.0 20.4,21.5 26.8,17.9" fill="#E2E8F0" />
-
-          <!-- Windows -->
-          <!-- Front Windshield -->
-          <polygon points="13.2,20.65 19.6,24.25 19.6,21.45 13.2,17.85" fill="#1E293B" />
-          <!-- Side Window -->
-          <polygon points="17.2,17.1 13.2,19.35 13.2,16.95 17.2,14.7" fill="#334155" />
-
-          <!-- Cargo Box (Orange/Status Colored 3D Container) - Rendered last so it sits on top of cab roof -->
-          <!-- Left Side Face of Box (Shadow) -->
-          <polygon points="34.8,10.8 18.8,19.8 18.8,10.2 34.8,1.2" fill="${colorBoxShadow}" />
-          <!-- Front Face of Box (Medium shadow/fill) -->
-          <polygon points="18.8,19.8 26.8,24.1 26.8,14.7 18.8,10.2" fill="${colorBoxMedium}" />
-          <!-- Top Face of Box (Highlight) -->
-          <polygon points="34.8,1.2 18.8,10.2 26.8,14.7 42.8,5.7" fill="${colorBoxHighlight}" />
-        </svg>
+      <!-- 3D Google Maps style container truck image -->
+      <div style="position: relative; z-index: 2; transform: translateY(-2px); width: 44px; height: 44px;">
+        <img 
+          src="/truck_3d_orange.png" 
+          alt="3D Truck Marker" 
+          style="width: 100%; height: 100%; object-fit: contain; filter: ${imgFilter};" 
+        />
       </div>
 
       <!-- Plate number tag -->
-      <div style="position: absolute; bottom: 0px; background: ${bgPod}; color: ${textPlate}; font-family: monospace; font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 4px; white-space: nowrap; border: 1.5px solid ${colorBorder}; box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 3;">
+      <div style="position: absolute; bottom: 0px; background: ${bgPod}; color: ${textPlate}; font-family: monospace; font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 4px; white-space: nowrap; border: 1.5px solid ${borderColor}; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 3;">
         ${plateNumber}
       </div>
     </div>
@@ -128,8 +92,8 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
   return L.divIcon({
     html: svgHtml,
     className: '',
-    iconSize: [50, 50],
-    iconAnchor: [25, 25],
+    iconSize: [56, 56],
+    iconAnchor: [28, 28],
   });
 }
 
