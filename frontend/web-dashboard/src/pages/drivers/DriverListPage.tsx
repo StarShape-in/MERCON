@@ -253,62 +253,54 @@ export default function DriverListPage() {
     {
       header: 'Actions',
       accessor: (row: Driver) => (
-        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-7 px-2.5 text-[11px] font-semibold border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:text-slate-900 shadow-2xs gap-1.5 rounded-lg"
-              >
-                <span>Actions</span>
-                <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg rounded-xl border border-slate-200 bg-white">
-              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                Driver Operations
-              </DropdownMenuLabel>
-              
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/drivers/${row.id}`)}>
-                <Eye className="mr-2 h-3.5 w-3.5 text-blue-600 shrink-0" />
-                View Driver Profile
-              </DropdownMenuItem>
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => navigate(`/drivers/${row.id}`)}
+            title="View Driver Profile"
+            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </button>
 
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-emerald-50" onClick={() => {
-                setStatusDialogDriver(row);
-                setNewStatus(row.status);
-              }}>
-                <RefreshCw className="mr-2 h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                Quick Status Update
-              </DropdownMenuItem>
+          <button
+            onClick={() => {
+              setStatusDialogDriver(row);
+              setNewStatus(row.status);
+            }}
+            title="Quick Status Update"
+            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
 
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/drivers/${row.id}/documents`)}>
-                <FileText className="mr-2 h-3.5 w-3.5 text-purple-600 shrink-0" />
-                Driver Compliance Docs
-              </DropdownMenuItem>
+          <button
+            onClick={() => navigate(`/drivers/${row.id}/documents`)}
+            title="Driver Compliance Docs"
+            className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors"
+          >
+            <FileText className="h-3.5 w-3.5" />
+          </button>
 
-              <DropdownMenuItem className="cursor-pointer text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-slate-100" onClick={() => navigate(`/drivers/${row.id}/edit`)}>
-                <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600 shrink-0" />
-                Edit Driver Profile
-              </DropdownMenuItem>
+          <button
+            onClick={() => navigate(`/drivers/${row.id}/edit`)}
+            title="Edit Driver Profile"
+            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
+          >
+            <Edit2 className="h-3.5 w-3.5" />
+          </button>
 
-              <DropdownMenuSeparator className="my-1 border-slate-100" />
-
-              <DropdownMenuItem
-                className="cursor-pointer text-xs font-semibold py-2 px-2.5 rounded-lg text-rose-600 focus:text-rose-600 focus:bg-rose-50"
-                onClick={async () => {
-                  if (confirm(`Delete driver ${row.first_name} ${row.last_name}?`)) {
-                    await driverService.bulkDelete([row.id]);
-                    queryClient.invalidateQueries({ queryKey: ['drivers'] });
-                  }
-                }}
-              >
-                <Trash2 className="mr-2 h-3.5 w-3.5 text-rose-600 shrink-0" />
-                Delete Driver Record
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button
+            onClick={async () => {
+              if (confirm(`Delete driver ${row.first_name} ${row.last_name}?`)) {
+                await driverService.bulkDelete([row.id]);
+                queryClient.invalidateQueries({ queryKey: ['drivers'] });
+              }
+            }}
+            title="Delete Driver Record"
+            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       ),
     },

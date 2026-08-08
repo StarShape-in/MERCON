@@ -30,17 +30,6 @@ export interface PipelineStage {
   color: string
 }
 
-export interface SemiCircleGaugeSegment {
-  label: string
-  count: number
-  color: string
-  dotColor?: string
-}
-
-export interface SemiCircleGauge {
-  segments: SemiCircleGaugeSegment[]
-}
-
 export interface RouteHealthBreakdown {
   onSchedule: number
   delayed: number
@@ -63,7 +52,6 @@ export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 't
   routeHealthBreakdown?: RouteHealthBreakdown
   completionGauge?: CompletionGauge
   pipelineStages?: PipelineStage[]
-  semiCircleGauge?: SemiCircleGauge
   isActive?: boolean
   onStageClick?: (stageName: string) => void
   onHealthClick?: (healthType: string) => void
@@ -150,20 +138,6 @@ const defaultChartData = [
   { index: 6, value: 60 },
 ]
 
-function getSemiCircleArcPath(cx: number, cy: number, r: number, startAngleDeg: number, endAngleDeg: number) {
-  const rad1 = (startAngleDeg * Math.PI) / 180
-  const rad2 = (endAngleDeg * Math.PI) / 180
-
-  const x1 = cx + r * Math.cos(rad1)
-  const y1 = cy - r * Math.sin(rad1)
-  const x2 = cx + r * Math.cos(rad2)
-  const y2 = cy - r * Math.sin(rad2)
-
-  const largeArc = startAngleDeg - endAngleDeg > 180 ? 1 : 0
-
-  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`
-}
-
 export function KpiCard({
   title,
   label,
@@ -180,7 +154,6 @@ export function KpiCard({
   routeHealthBreakdown,
   completionGauge,
   pipelineStages,
-  semiCircleGauge,
   isActive,
   onStageClick,
   onHealthClick,
@@ -312,10 +285,8 @@ export function KpiCard({
 
         {/* Specialized Visual Indicator Component Area */}
         <div className="mt-3 -mx-5 -mb-5 overflow-hidden">
-          {/* Mode 0: Semi-Circle Arc Gauge (For TOTAL TRIPS) */}
-          {semiCircleGauge && semiCircleGauge.segments.length > 0 ? (
-            <SemiCircleArcGauge segments={semiCircleGauge.segments} />
-          ) : routeHealthBreakdown ? (
+          {/* Mode 1: Active Route Health Breakdown (For IN TRANSIT active trips) */}
+          {routeHealthBreakdown ? (
             <div className="px-5 pb-5 pt-1 flex flex-col gap-1.5">
               {/* 3-Color Route Health Bar */}
               <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5 border border-black/[0.04]">
@@ -531,73 +502,6 @@ export function KpiCard({
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-export function SemiCircleArcGauge({
-  segments,
-  className,
-}: {
-  segments: SemiCircleGaugeSegment[]
-  className?: string
-}) {
-  if (!segments || segments.length === 0) return null
-
-  return (
-    <div className={cn("px-4 pb-2 pt-0 flex flex-col items-center gap-1", className)}>
-      <div className="relative w-32 h-[52px] flex items-center justify-center">
-        <svg className="w-full h-full" viewBox="0 0 100 55">
-          {/* Background Track Arc */}
-          <path
-            d={getSemiCircleArcPath(50, 50, 38, 180, 0)}
-            stroke="currentColor"
-            strokeWidth="9"
-            fill="none"
-            className="text-slate-100 dark:text-slate-800"
-            strokeLinecap="round"
-          />
-          {/* Colored Segments */}
-          {(() => {
-            const total = segments.reduce((acc, s) => acc + s.count, 0) || 1
-            let currentAngle = 180
-            const activeCount = segments.filter(s => s.count > 0).length
-            const gapDeg = activeCount > 1 ? 4 : 0
-
-            return segments.map((seg, idx) => {
-              if (seg.count <= 0) return null
-              const fraction = seg.count / total
-              const sweepDeg = Math.max(2, fraction * 180 - gapDeg)
-              const startAngle = currentAngle
-              const endAngle = Math.max(0, currentAngle - sweepDeg)
-              currentAngle = endAngle - gapDeg
-
-              return (
-                <path
-                  key={idx}
-                  d={getSemiCircleArcPath(50, 50, 38, startAngle, endAngle)}
-                  stroke={seg.color}
-                  strokeWidth="9"
-                  fill="none"
-                  strokeLinecap="round"
-                  className="transition-all duration-500 hover:opacity-90"
-                />
-              )
-            })
-          })()}
-        </svg>
-      </div>
-
-      {/* Legend Row below Semi-Circle */}
-      <div className="flex items-center justify-center gap-2 text-[9px] font-mono font-semibold text-slate-700 dark:text-slate-300 flex-wrap leading-none">
-        {segments.map((seg, idx) => (
-          <div key={idx} className="flex items-center gap-1">
-            <span className={cn("w-2 h-2 rounded-full shrink-0", seg.dotColor || "bg-blue-500")} style={{ backgroundColor: !seg.dotColor ? seg.color : undefined }} />
-            <span>{seg.label}</span>
-            <span className="font-extrabold text-slate-900 dark:text-slate-100">({seg.count})</span>
-          </div>
-        ))}
-      </div>
-    </div>
   )
 }
 

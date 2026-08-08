@@ -716,28 +716,7 @@ export default function TripListPage() {
             trendValue="All Operations"
             description="Active logged site operations"
             icon={TruckMotion}
-            semiCircleGauge={{
-              segments: [
-                {
-                  label: "Completed",
-                  count: completedCount,
-                  color: "#10B981", // Emerald
-                  dotColor: "bg-emerald-500",
-                },
-                {
-                  label: "In Transit",
-                  count: inTransitCount,
-                  color: "#3B82F6", // Blue
-                  dotColor: "bg-blue-500",
-                },
-                {
-                  label: "Queue",
-                  count: dispatchQueueCount,
-                  color: "#F59E0B", // Amber
-                  dotColor: "bg-amber-500",
-                },
-              ]
-            }}
+            chartData={[10, 14, 18, 15, 22, 28, totalCount || 35]}
             isActive={selectedStatus === 'All'}
             onClick={() => {
               setSelectedStatus('All');
