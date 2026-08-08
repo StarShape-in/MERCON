@@ -188,45 +188,36 @@ export default function TripListPage() {
     }),
   });
 
-  // Fetch overall trips for KPI calculation (unfiltered by status)
+  // Fetch overall fleet totals for KPI cards (100% independent of page filters/search)
   const { data: allTripsRes } = useQuery({
-    queryKey: ['trips-kpis', dateFilter, debouncedSearch],
-    queryFn: () => tripService.getAll({
-      date_filter: dateFilter === 'All' ? undefined : dateFilter,
-      search: debouncedSearch || undefined,
-      per_page: 500,
-    }),
+    queryKey: ['trips-kpi-summary'],
+    queryFn: () => tripService.getAll({ per_page: 1000 }),
   });
 
   const rawTrips = tripsRes?.data || [];
   const totalPages = tripsRes?.meta?.total_pages || 1;
   const trips = rawTrips;
 
-  // Calculate totals for KPIs from real backend response data
-  const kpiTrips = allTripsRes?.data || rawTrips;
+  // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
+  const kpiTrips = allTripsRes?.data || [];
   const totalCount = allTripsRes?.meta?.total || kpiTrips.length;
 
-  // Exact In Transit counts
   const inTransitTrips = kpiTrips.filter(t => t.status === 'InTransit');
-  const atPickupTrips = kpiTrips.filter(t => t.status === 'AtPickup');
-  const atDeliveryTrips = kpiTrips.filter(t => t.status === 'AtDelivery');
   const inTransitCount = inTransitTrips.length;
 
-  // Exact Completed counts
   const completedTrips = kpiTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced');
   const completedCount = completedTrips.length;
   const completedPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Dispatch Queue counts
   const draftTrips = kpiTrips.filter(t => t.status === 'Draft');
-  const dispatchedTrips = kpiTrips.filter(t => t.status === 'Dispatched');
-  const dispatchQueueCount = draftTrips.length + dispatchedTrips.length;
-  const stageDraftCount = draftTrips.length;
-  const stageDispatchedCount = dispatchedTrips.length;
+  const dispatchQueueCount = draftTrips.length;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['trips'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['trips'] }),
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] }),
+    ]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -236,6 +227,7 @@ export default function TripListPage() {
       setIsUpdatingStatus(true);
       await tripService.updateStatus(statusDialogTrip.id, newStatus);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
       setStatusDialogTrip(null);
     } catch (e) {
       alert('Failed to update trip status');
@@ -327,7 +319,7 @@ export default function TripListPage() {
       setImportResult(result);
       if (result.imported > 0) {
         queryClient.invalidateQueries({ queryKey: ['trips'] });
-        queryClient.invalidateQueries({ queryKey: ['trips-kpis'] });
+        queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
       }
     } catch (e) {
       alert('Failed to import trips.');
@@ -478,6 +470,7 @@ export default function TripListPage() {
               if (confirm(`Delete trip ${row.ref_id || 'Draft'}?`)) {
                 await tripService.bulkDelete([row.id]);
                 queryClient.invalidateQueries({ queryKey: ['trips'] });
+                queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
               }
             }}
             title="Delete Trip Draft"
@@ -531,6 +524,7 @@ export default function TripListPage() {
         try {
           await tripService.bulkDelete(selectedRows.map(r => r.id));
           queryClient.invalidateQueries({ queryKey: ['trips'] });
+          queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
         } catch (e) { alert('Failed to delete trips'); }
       }
     }
@@ -563,10 +557,10 @@ export default function TripListPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-semibold border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-400 shadow-2xs"
               onClick={() => setImportDialogOpen(true)}
             >
-              <Upload className="h-3.5 w-3.5 text-slate-600" />
+              <Upload className="h-3.5 w-3.5" />
               Import
             </Button>
 
@@ -575,11 +569,11 @@ export default function TripListPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+                  className="h-9 gap-1.5 text-xs font-semibold border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:text-violet-800 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-400 shadow-2xs"
                 >
-                  <Download className="h-3.5 w-3.5 text-slate-600" />
+                  <Download className="h-3.5 w-3.5" />
                   Export
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                  <ChevronDown className="h-3 w-3 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">

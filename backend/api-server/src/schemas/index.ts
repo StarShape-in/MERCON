@@ -11,7 +11,7 @@ export const idParam = z.object({ id: z.string().uuid('Invalid id') });
 /** List query — pagination + search + sort. Coerces and guards against NaN. */
 export const listQuery = z.object({
   page: z.coerce.number().int().positive().default(1),
-  per_page: z.coerce.number().int().positive().max(200).default(20),
+  per_page: z.coerce.number().int().positive().max(5000).default(20),
   search: z.string().trim().optional(),
   sort_by: z.string().trim().optional(),
   sort_dir: z.enum(['asc', 'desc']).default('desc'),
