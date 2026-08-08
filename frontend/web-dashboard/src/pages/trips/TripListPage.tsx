@@ -735,27 +735,12 @@ export default function TripListPage() {
             variant="blue"
             trend="neutral"
             trendValue="En-Route"
-            description="Live on-road active trips"
+            description="Active trucks on the road"
             icon={RouteLine}
-            isActive={selectedStatus === 'InTransit' || selectedStatus === 'AtPickup' || selectedStatus === 'AtDelivery'}
-            routeHealthBreakdown={{
-              onSchedule: inTransitCount,
-              delayed: atDeliveryTrips.length,
-              stopped: atPickupTrips.length,
-              total: inTransitCount + atPickupTrips.length + atDeliveryTrips.length,
-            } as any}
+            chartData={[3, 5, 4, 8, 6, 9, inTransitCount || 10]}
+            isActive={selectedStatus === 'InTransit'}
             onClick={() => {
               setSelectedStatus('InTransit');
-              setCurrentPage(1);
-            }}
-            onHealthClick={(healthType) => {
-              if (healthType === 'stopped') {
-                setSelectedStatus('AtPickup');
-              } else if (healthType === 'delayed') {
-                setSelectedStatus('AtDelivery');
-              } else {
-                setSelectedStatus('InTransit');
-              }
               setCurrentPage(1);
             }}
           />
@@ -767,12 +752,8 @@ export default function TripListPage() {
             trendValue={`${completedPercentage}% Settled`}
             description="POD verified & delivered"
             icon={CheckBadge}
+            chartData={[12, 18, 22, 30, 35, 40, completedCount || 42]}
             isActive={selectedStatus === 'Completed'}
-            completionGauge={{
-              percentage: completedPercentage || 100,
-              label: `${completedPercentage}% Completed`,
-              subtext: `${completedCount} Delivered Receipts`
-            }}
             onClick={() => {
               setSelectedStatus('Completed');
               setCurrentPage(1);
@@ -780,27 +761,16 @@ export default function TripListPage() {
           />
           <KpiCard
             title="DISPATCH QUEUE"
-            value={dispatchQueueCount}
+            value={draftTrips.length}
             variant="amber"
             trend="neutral"
             trendValue="Pending Stage"
             description="Stage workflow queue"
             icon={ClockIcon}
-            isActive={selectedStatus === 'Draft' || selectedStatus === 'Dispatched'}
-            pipelineStages={[
-              { name: "Draft", count: stageDraftCount, color: "bg-amber-500" },
-              { name: "Dispatched", count: stageDispatchedCount, color: "bg-blue-500" },
-            ]}
+            chartData={[5, 8, 6, 12, 10, 7, draftTrips.length || 8]}
+            isActive={selectedStatus === 'Draft'}
             onClick={() => {
               setSelectedStatus('Draft');
-              setCurrentPage(1);
-            }}
-            onStageClick={(stageName) => {
-              if (stageName === 'Dispatched') {
-                setSelectedStatus('Dispatched');
-              } else {
-                setSelectedStatus('Draft');
-              }
               setCurrentPage(1);
             }}
           />
