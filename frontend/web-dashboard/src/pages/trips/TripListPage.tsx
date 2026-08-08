@@ -37,6 +37,7 @@ import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import KpiCard from '@/components/ui/KpiCard';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -197,6 +198,17 @@ export default function TripListPage() {
 
   // Import Dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
   const [importFileName, setImportFileName] = useState('');
   const [importRows, setImportRows] = useState<BulkImportTripRow[]>([]);
   const [importParseError, setImportParseError] = useState('');
@@ -491,12 +503,17 @@ export default function TripListPage() {
           </button>
 
           <button
-            onClick={async () => {
-              if (confirm(`Delete trip ${row.ref_id || 'Draft'}?`)) {
-                await tripService.bulkDelete([row.id]);
-                queryClient.invalidateQueries({ queryKey: ['trips'] });
-                queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-              }
+            onClick={() => {
+              setConfirmModal({
+                isOpen: true,
+                title: 'Delete Trip Draft',
+                message: `Are you sure you want to delete trip ${row.ref_id || 'Draft'}? This action cannot be undone.`,
+                onConfirm: async () => {
+                  await tripService.bulkDelete([row.id]);
+                  queryClient.invalidateQueries({ queryKey: ['trips'] });
+                  queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                }
+              });
             }}
             title="Delete Trip Draft"
             className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
@@ -542,13 +559,19 @@ export default function TripListPage() {
       label: 'Delete Selected',
       icon: <Trash2 size={13} />,
       variant: 'danger' as const,
-      onClick: async (selectedRows: Trip[]) => {
-        if (!confirm(`Are you sure you want to delete ${selectedRows.length} selected trips?`)) return;
-        try {
-          await tripService.bulkDelete(selectedRows.map(r => r.id));
-          queryClient.invalidateQueries({ queryKey: ['trips'] });
-          queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-        } catch (e) { alert('Failed to delete trips'); }
+      onClick: (selectedRows: Trip[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Delete Selected Trips',
+          message: `Are you sure you want to delete ${selectedRows.length} selected trips? This action cannot be undone.`,
+          onConfirm: async () => {
+            try {
+              await tripService.bulkDelete(selectedRows.map(r => r.id));
+              queryClient.invalidateQueries({ queryKey: ['trips'] });
+              queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+            } catch (e) { alert('Failed to delete trips'); }
+          }
+        });
       }
     }
   ];
@@ -1257,6 +1280,18 @@ export default function TripListPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={async () => {
+            await confirmModal.onConfirm();
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          isDestructive={true}
+        />
 
       </div>
     </DashboardLayout>
