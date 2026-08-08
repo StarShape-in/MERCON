@@ -205,13 +205,12 @@ export default function TripListPage() {
 
   // Fetch trips using React Query
   const { data: tripsRes, isLoading, isError, error } = useQuery({
-    queryKey: ['trips', selectedStatus, dateFilter, debouncedSearch, currentPage, pageSize],
+    queryKey: ['trips', selectedStatus, dateFilter, debouncedSearch],
     queryFn: () => tripService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       date_filter: dateFilter === 'All' ? undefined : dateFilter,
       search: debouncedSearch || undefined,
-      page: currentPage,
-      per_page: pageSize,
+      per_page: 1000,
     }),
   });
 
@@ -222,7 +221,6 @@ export default function TripListPage() {
   });
 
   const rawTrips = tripsRes?.data || [];
-  const totalPages = tripsRes?.meta?.total_pages || 1;
   const trips = rawTrips;
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
@@ -964,15 +962,8 @@ export default function TripListPage() {
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load trips.'}
             bulkActions={bulkActions}
-            currentPage={currentPage}
-            totalPages={totalPages}
             pageSize={pageSize}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setCurrentPage(1);
-            }}
-            totalRecords={totalCount}
-            onPageChange={(page) => setCurrentPage(page)}
+            onPageSizeChange={(size) => setPageSize(size)}
             onRowClick={(row) => navigate(`/trips/${row.id}`)}
           />
         </div>
