@@ -5,14 +5,14 @@ import {
   User, 
   Settings, 
   LogOut, 
-  Building2, 
   Plus, 
   Truck, 
   Users, 
   FileText, 
   Receipt,
   Menu,
-  FilePlus
+  FilePlus,
+  ArrowLeft
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
@@ -61,7 +61,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
   return (
     <div className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 lg:px-6 h-[56px] lg:h-[62px] flex items-center justify-between gap-2 sm:gap-4 relative z-20">
 
-      {/* Mobile: hamburger + current page title */}
+      {/* Mobile: hamburger + back button + current page title */}
       <div className="flex items-center gap-2.5 min-w-0 lg:hidden">
         <button
           onClick={onMenuClick}
@@ -69,6 +69,13 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
           className="p-2 -ml-1 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
         >
           <Menu size={20} />
+        </button>
+        <button
+          onClick={() => navigate(-1)}
+          className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+          title="Go Back"
+        >
+          <ArrowLeft size={18} />
         </button>
         <div className="min-w-0">
           <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate leading-tight">
@@ -80,51 +87,52 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
         </div>
       </div>
 
-      {/* Desktop Left: Context & Scope Indicator */}
+      {/* Desktop Left: Back button & Page Title */}
       <div className="hidden lg:flex items-center gap-3 min-w-0">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 text-xs font-semibold select-none">
-          <Building2 className="w-4 h-4 text-[#E8450F]" />
-          <span className="font-extrabold text-slate-900 dark:text-slate-100">MERCON Logistics</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-orange-100 text-[#E8450F] dark:bg-orange-950/50 dark:text-orange-300 font-bold uppercase tracking-wider">
-            Operations
-          </span>
-        </div>
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
+          title="Go Back"
+        >
+          <ArrowLeft size={14} className="text-slate-500 dark:text-slate-400" />
+          <span>Back</span>
+        </button>
         {title && (
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <span className="text-slate-300 dark:text-slate-600">/</span>
-            <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{title}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-300 dark:text-slate-600 font-light">/</span>
+            <span className="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate max-w-[260px]">{title}</span>
           </div>
         )}
       </div>
 
-      {/* Right Side: Quick Action Buttons in Project Color Palette & User Profile */}
+      {/* Right Side: Quick Action Buttons in Refined Project Color Palette & User Profile */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
 
-        {/* Primary Action Button: Create New Trip (Brand Orange #E8450F) */}
+        {/* Primary Action Button: Create New Trip (MERCON Brand Orange #E8450F) */}
         <button
           onClick={() => navigate('/trips/new')}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span className="hidden sm:inline">Create New Trip</span>
           <span className="sm:hidden">New Trip</span>
         </button>
 
-        {/* Secondary Action Button: Add New Document (Indigo / Violet Palette) */}
+        {/* Secondary Action Button: Add New Document (Dark Slate / Border Accent) */}
         <button
           onClick={() => navigate('/documents')}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer border border-slate-800 dark:border-slate-700"
         >
           <FilePlus className="w-3.5 h-3.5" />
           <span className="hidden md:inline">Add New Document</span>
           <span className="md:hidden hidden sm:inline">Add Document</span>
         </button>
 
-        {/* More Actions Dropdown Menu (Shadcn style) */}
+        {/* More Actions Dropdown Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button 
-              className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-2xs cursor-pointer"
+              className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-2xs cursor-pointer"
               title="More Actions"
             >
               <span>More</span>
@@ -215,4 +223,3 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
     </div>
   );
 }
-
