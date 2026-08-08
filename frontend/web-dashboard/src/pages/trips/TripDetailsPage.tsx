@@ -237,7 +237,7 @@ export default function TripDetailsPage() {
   if (isLoading || !trip) {
     return (
       <DashboardLayout active="Trips" title="Trip Details">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 pt-1 pb-6 space-y-4">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 -mt-3 sm:-mt-4 pb-6 space-y-4">
           <Skeleton className="h-6 w-48 rounded-lg" />
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
             <div className="space-y-4">
@@ -334,13 +334,13 @@ export default function TripDetailsPage() {
 
   return (
     <DashboardLayout active="Trips" title="Trip Details">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 pt-1 pb-6 space-y-4 animate-fade-in">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 -mt-3 sm:-mt-4 pb-6 space-y-4 animate-fade-in">
 
         {/* Breadcrumb + action bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-slate-100 dark:border-slate-800/80">
-          <div className="flex items-center gap-1.5 text-xs min-w-0">
+          <div className="flex items-center gap-2 text-sm min-w-0">
             <Link to="/trips" className="text-slate-500 font-semibold hover:text-slate-900 dark:hover:text-white transition-colors">Trips</Link>
-            <ChevronRight size={13} className="text-slate-400 shrink-0" />
+            <ChevronRight size={15} className="text-slate-400 shrink-0" />
             <span className="text-slate-900 dark:text-slate-100 font-bold truncate">Trip Details</span>
           </div>
 
@@ -625,54 +625,6 @@ export default function TripDetailsPage() {
               mapHeightClassName="h-[320px]"
             />
 
-            {/* Route row */}
-            <Card className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-5">
-              <div className="flex items-center gap-4">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <span className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                    <MapPin size={14} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Pickup Location</p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
-                      {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
-                    </p>
-                    {pickup && (
-                      <p className="text-xs text-[#6E6E80] mt-0.5">
-                        {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="hidden sm:flex items-center gap-2 text-[#9898A4] shrink-0 px-2">
-                  <span className="w-16 border-t border-dashed border-black/[0.12]" />
-                  <Truck size={14} className="text-[#9898A4]" />
-                  <span className="w-16 border-t border-dashed border-black/[0.12]" />
-                </div>
-
-                <div className="flex items-start gap-3 min-w-0 flex-1 justify-end text-right">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Drop-off Location</p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
-                      {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
-                    </p>
-                    {dropoff && (
-                      <p className="text-xs text-[#6E6E80] mt-0.5">
-                        {dropoff.actual_arrival
-                          ? fullDateTime(dropoff.actual_arrival)
-                          : dropoff.planned_arrival
-                            ? `${fullDateTime(dropoff.planned_arrival)} (Expected)`
-                            : '—'}
-                      </p>
-                    )}
-                  </div>
-                  <span className="w-8 h-8 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0">
-                    <MapPin size={14} />
-                  </span>
-                </div>
-              </div>
-            </Card>
 
             {/* Segmented content switcher */}
             <div className="flex items-center gap-6 border-b border-black/[0.06] px-1">
@@ -954,15 +906,50 @@ export default function TripDetailsPage() {
                 className="h-1.5 mt-3 [&_[data-slot=progress-track]]:bg-orange-100 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
               />
 
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#111] mt-4">
-                <MapPin size={13} className="text-emerald-500 shrink-0" />
-                <span className="truncate">{pickup?.location_name || 'Pickup'}</span>
-                <ArrowRight size={12} className="text-[#9898A4] shrink-0" />
-                <span className="truncate">{dropoff?.location_name || 'Drop-off'}</span>
+              {/* Pickup & Drop-off location details */}
+              <div className="mt-4 pt-4 border-t border-black/[0.06] space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <MapPin size={13} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Pickup Location</p>
+                    <p className="text-xs font-semibold text-[#111] truncate mt-0.5">
+                      {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
+                    </p>
+                    {pickup && (
+                      <p className="text-[11px] text-[#6E6E80] mt-0.5">
+                        {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pl-[13px] -my-1 py-0.5 flex items-center gap-2">
+                  <div className="w-0.5 h-3.5 bg-slate-200 dark:bg-slate-700" />
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <span className="w-7 h-7 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <MapPin size={13} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Drop-off Location</p>
+                    <p className="text-xs font-semibold text-[#111] truncate mt-0.5">
+                      {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
+                    </p>
+                    {dropoff && (
+                      <p className="text-[11px] text-[#6E6E80] mt-0.5">
+                        {dropoff.actual_arrival
+                          ? fullDateTime(dropoff.actual_arrival)
+                          : dropoff.planned_arrival
+                            ? `${fullDateTime(dropoff.planned_arrival)} (Expected)`
+                            : '—'}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-[#6E6E80] mt-1">
-                ETA: {trip.planned_end ? fullDateTime(trip.planned_end) : '—'}
-              </p>
 
               <Separator className="my-4" />
 
