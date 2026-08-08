@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
   FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { Building2, Package, Calendar, ClipboardList, TriangleAlert } from 'lucide-react-native';
+import { Building2, Calendar, ClipboardList, TriangleAlert } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
@@ -30,7 +30,6 @@ interface CardData {
   displayId: string;
   title: string;
   statusText: string;
-  cargo: string;
   date: string;
 }
 
@@ -42,7 +41,6 @@ function toCard(t: MobileTrip): CardData {
     displayId: t.ref_id ?? t.id.slice(0, 8),
     title: t.customer?.name ?? 'Unassigned customer',
     statusText: statusLabel(t.status),
-    cargo: t.cargo_type,
     date: formatDate(dateSource),
   };
 }
@@ -58,10 +56,6 @@ const TripCard = ({ item, onPress }: { item: CardData; onPress: () => void }) =>
       <Text style={styles.routeText}>{item.title}</Text>
     </View>
     <View style={styles.cardMeta}>
-      <View style={styles.metaItem}>
-        <Package size={13} color={Colors.gray500} strokeWidth={2} />
-        <Text style={styles.metaText}>{item.cargo}</Text>
-      </View>
       <View style={styles.metaItem}>
         <Calendar size={13} color={Colors.gray500} strokeWidth={2} />
         <Text style={styles.metaText}>{item.date}</Text>
@@ -96,8 +90,7 @@ const TripsScreen = ({ navigation }: any) => {
         (c) =>
           !q ||
           c.displayId.toLowerCase().includes(q) ||
-          c.title.toLowerCase().includes(q) ||
-          c.cargo.toLowerCase().includes(q)
+          c.title.toLowerCase().includes(q)
       );
   }, [selectedTab, current, history, search]);
 
@@ -116,7 +109,7 @@ const TripsScreen = ({ navigation }: any) => {
       <SearchInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search by trip ID, customer or cargo..."
+        placeholder="Search by trip ID or customer..."
         style={styles.search}
       />
 

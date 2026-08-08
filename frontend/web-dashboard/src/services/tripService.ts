@@ -6,7 +6,6 @@ export interface Trip {
   id: string;
   ref_id: string;
   status: TripStatus;
-  cargo_type: string;
   planned_start: string | null;
   actual_start: string | null;
   planned_end: string | null;
@@ -54,7 +53,6 @@ export interface CreateTripPayload {
   customer_id: string;
   driver_id?: string;
   vehicle_id?: string;
-  cargo_type?: string;
   planned_start?: string;
   stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string; location_name?: string }[];
 }
@@ -184,7 +182,6 @@ export interface BulkImportTripRow {
   customer_name: string;
   driver_name?: string;
   vehicle_plate?: string;
-  cargo_type?: string;
   planned_start?: string;
 }
 

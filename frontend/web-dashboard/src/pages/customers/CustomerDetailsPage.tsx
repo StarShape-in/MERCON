@@ -379,7 +379,6 @@ export default function CustomerDetailsPage() {
                     <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
                       <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Trip ID</th>
                       <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Dispatch Date</th>
-                      <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Cargo Type</th>
                       <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Status</th>
                       <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Action</th>
                     </tr>
@@ -392,9 +391,6 @@ export default function CustomerDetailsPage() {
                         </td>
                         <td className="px-5 py-3 text-slate-600 dark:text-slate-300 font-mono">
                           {new Date(trip.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">
-                          {(trip as any).cargo_type || 'General Goods'}
                         </td>
                         <td className="px-5 py-3">
                           <StatusBadge status={trip.status as any} />

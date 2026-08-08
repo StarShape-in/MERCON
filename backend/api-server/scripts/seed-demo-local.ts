@@ -221,7 +221,6 @@ async function main() {
       trips.push({
         ref_id: `TRP-${String(200000 + n)}`,
         customerId: customers[ci].id, driverId: drivers[di].id, vehicleId: vehicles[vi].id,
-        cargo_type: pick(['General Goods', 'Refrigerated', 'Dry Bulk', 'Oversized']),
         status: TripStatus.Completed,
         planned_start: depart, actual_start: depart, planned_end: plannedArrival,
         actual_end: new Date(actual.getTime() + dwell * MIN),

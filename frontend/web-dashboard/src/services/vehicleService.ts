@@ -60,7 +60,6 @@ export interface VehicleFinancials {
     ref_id: string | null;
     status: string;
     customer_name: string;
-    cargo_type: string;
     date: string;
     income: number;
   }>;

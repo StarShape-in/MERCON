@@ -315,11 +315,6 @@ export default function TripTrackingPage() {
                 )}
               </div>
 
-              <div>
-                <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Cargo Type</p>
-                <p className="text-xs font-semibold text-[#111] mt-0.5">{trip.cargo_type}</p>
-              </div>
-
               {pickup && dropoff && (
                 <div>
                   <p className="text-[9px] text-[#6E6E80] uppercase font-bold tracking-wider">Terminal Stops</p>

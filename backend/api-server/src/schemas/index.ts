@@ -30,7 +30,6 @@ export const createTripBody = z.object({
   customer_id: z.string().uuid('A valid customer is required'),
   driver_id: z.string().uuid('Invalid driver').optional(),
   vehicle_id: z.string().uuid('Invalid vehicle').optional(),
-  cargo_type: z.string().trim().optional().default('General Goods'),
   planned_start: z.coerce.date().optional(),
   stops: z.array(z.object({
     stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']),
@@ -53,7 +52,6 @@ export const bulkImportTripsBody = z.object({
     customer_name: nonEmpty('Customer name'),
     driver_name: z.string().trim().optional(),
     vehicle_plate: z.string().trim().optional(),
-    cargo_type: z.string().trim().optional(),
     planned_start: z.string().trim().optional(),
   })).min(1, 'At least one row is required').max(500, 'Import is limited to 500 rows at a time'),
 });

@@ -350,7 +350,6 @@ export default function DashboardPage() {
                 <TableRow>
                   <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Trip ID</TableHead>
                   <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Customer</TableHead>
-                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Cargo Type</TableHead>
                   <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Driver</TableHead>
                   <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Vehicle</TableHead>
                   <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Status</TableHead>
@@ -385,7 +384,6 @@ export default function DashboardPage() {
                     >
                       <TableCell className="font-mono text-xs font-bold text-[#E8450F]">{t.ref_id || 'Draft'}</TableCell>
                       <TableCell className="text-xs font-semibold text-[#111]">{t.customer?.name || '—'}</TableCell>
-                      <TableCell className="text-xs font-medium text-[#444]">{t.cargo_type}</TableCell>
                       <TableCell className="text-xs font-medium text-[#444]">
                         {t.driver ? (
                           `${t.driver.first_name} ${t.driver.last_name}`

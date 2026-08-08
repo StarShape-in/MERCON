@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Edit2, Navigation, CheckCircle2, XCircle, RefreshCcw,
+  ArrowLeft, Navigation, CheckCircle2, XCircle, RefreshCcw,
   MapPin, Calendar, Clock, ReceiptText, FileStack, PackageCheck,
   CreditCard, DollarSign, Building2, User as UserIcon, Truck, FileText,
   UploadCloud, ExternalLink, Timer,
@@ -58,8 +58,6 @@ function dwellMinutes(stop: TripStop): number | null {
   if (!stop.actual_arrival || !stop.actual_departure) return null;
   return Math.round((new Date(stop.actual_departure).getTime() - new Date(stop.actual_arrival).getTime()) / 60000);
 }
-
-const STATUS_RAIL: TripStatus[] = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery', 'Completed'];
 
 export default function TripDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -232,7 +230,6 @@ export default function TripDetailsPage() {
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup');
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff');
   const invoice = trip.invoices?.[0];
-  const railIndex = STATUS_RAIL.indexOf(trip.status);
 
   return (
     <DashboardLayout
@@ -249,15 +246,6 @@ export default function TripDetailsPage() {
             icon={<ArrowLeft size={13} />}
             onClick={() => navigate('/trips')}
           />
-          {!isClosed && (
-            <Btn
-              label="Edit Manifest"
-              variant="secondary"
-              size="sm"
-              icon={<Edit2 size={13} />}
-              onClick={() => navigate(`/trips/${trip.id}/edit`)}
-            />
-          )}
           {trip.status === 'InTransit' && (
             <Btn
               label="Track Live"
@@ -349,10 +337,6 @@ export default function TripDetailsPage() {
                   <p className="text-xs font-bold text-white">{trip.carrier_name || '—'}</p>
                   <p className="text-[8px] text-white/40 font-semibold uppercase">Carrier</p>
                 </div>
-                <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 col-span-2">
-                  <p className="text-xs font-bold text-white">{trip.cargo_type}</p>
-                  <p className="text-[8px] text-white/40 font-semibold uppercase">Cargo</p>
-                </div>
               </div>
             </div>
 
@@ -381,42 +365,7 @@ export default function TripDetailsPage() {
             </div>
           </div>
 
-          {/* Status Timeline */}
-          {trip.status !== 'Cancelled' ? (
-            <Card className="rounded-2xl border-black/[0.06] shadow-sm bg-white">
-              <CardContent className="px-5 py-4">
-                <div className="flex items-center">
-                  {STATUS_RAIL.map((step, i) => {
-                    const reached = railIndex >= i || (trip.status === 'Invoiced');
-                    const isCurrent = trip.status === step;
-                    return (
-                      <div key={step} className="flex items-center flex-1 last:flex-none">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <div
-                            className={`w-5 h-5 rounded-full flex items-center justify-center border-2 shrink-0 ${
-                              reached
-                                ? isCurrent
-                                  ? 'bg-[#E8450F] border-[#E8450F]'
-                                  : 'bg-[#16A34A] border-[#16A34A]'
-                                : 'bg-white border-gray-200'
-                            }`}
-                          >
-                            {reached && !isCurrent && <CheckCircle2 size={12} className="text-white" />}
-                          </div>
-                          <span className={`text-[9px] font-bold uppercase tracking-wide ${reached ? 'text-[#111]' : 'text-[#9898A4]'}`}>
-                            {step}
-                          </span>
-                        </div>
-                        {i < STATUS_RAIL.length - 1 && (
-                          <div className={`h-0.5 flex-1 mx-1 ${railIndex > i ? 'bg-[#16A34A]' : 'bg-gray-100'}`} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
+          {trip.status === 'Cancelled' && (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
               <XCircle size={18} className="text-red-600 shrink-0" />
               <p className="text-xs font-bold text-red-700">This trip was cancelled. Its driver and vehicle were released back to Available.</p>
@@ -450,13 +399,6 @@ export default function TripDetailsPage() {
                 <div className="text-center py-8">
                   <MapPin size={24} className="text-[#9898A4] mx-auto mb-2" />
                   <p className="text-xs font-semibold text-[#6E6E80]">No stops on this manifest yet.</p>
-                  <Btn
-                    label="Add stops in Edit Manifest"
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => navigate(`/trips/${trip.id}/edit`)}
-                  />
                 </div>
               ) : (
                 <div className="relative border-l border-gray-100 ml-3 space-y-6">

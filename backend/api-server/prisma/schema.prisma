@@ -232,7 +232,6 @@ model Trip {
   vehicle    Vehicle? @relation(fields: [vehicleId], references: [id])
 
   status           TripStatus @default(Draft)
-  cargo_type       String
   planned_distance Float?
 
   planned_start DateTime? @db.Timestamptz

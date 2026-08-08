@@ -27,7 +27,6 @@ export interface OperatorTrip {
   id: string;
   ref_id: string | null;
   status: string;
-  cargo_type: string;
   planned_start?: string | null;
   createdAt?: string;
   customer?: { name: string } | null;
@@ -51,7 +50,6 @@ export interface OperatorTripDetail {
   id: string;
   ref_id: string | null;
   status: TripStatus;
-  cargo_type: string;
   planned_distance: number | null;
   planned_start: string | null;
   actual_start: string | null;
@@ -76,7 +74,6 @@ export interface CreateTripInput {
   customer_id: string;
   driver_id: string;
   vehicle_id: string;
-  cargo_type: string;
   planned_start?: string;
   stops: CreateTripStopInput[];
 }

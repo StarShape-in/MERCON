@@ -4,7 +4,7 @@ import {
   StatusBar, FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { User, Package, Calendar, Truck } from 'lucide-react-native';
+import { User, Calendar, Truck } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput, FilterChip } from '../../components';
 import { useOperatorTrips, type OperatorTrip } from '../../lib/operator';
@@ -40,10 +40,6 @@ const TripCard = ({ item, onPress }: { item: OperatorTrip; onPress: () => void }
         <User size={13} color={Colors.gray500} strokeWidth={2} />
         <Text style={styles.metaText}>{driverName(item)}</Text>
       </View>
-      <View style={styles.metaItem}>
-        <Package size={13} color={Colors.gray500} strokeWidth={2} />
-        <Text style={styles.metaText}>{item.cargo_type}</Text>
-      </View>
     </View>
     <View style={styles.metaItem}>
       <Calendar size={13} color={Colors.gray400} strokeWidth={2} />
@@ -73,8 +69,7 @@ const TripListScreen = () => {
       return (
         (t.ref_id ?? '').toLowerCase().includes(q) ||
         (t.customer?.name ?? '').toLowerCase().includes(q) ||
-        driverName(t).toLowerCase().includes(q) ||
-        t.cargo_type.toLowerCase().includes(q)
+        driverName(t).toLowerCase().includes(q)
       );
     });
   }, [trips, filter, search]);
