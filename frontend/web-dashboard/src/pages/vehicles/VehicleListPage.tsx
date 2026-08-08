@@ -616,7 +616,7 @@ export default function VehicleListPage() {
             isActive={selectedStatus === 'Available'}
             onClick={() => { setSelectedStatus('Available'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-12 w-full mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
+              <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
                 <style>{`
                   @keyframes routeDash {
                     to {
@@ -625,18 +625,30 @@ export default function VehicleListPage() {
                   }
                 `}</style>
                 {/* Grid lines for map look */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.12]" stroke="currentColor" fill="none">
-                  <pattern id="card-map-grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                    <path d="M 10 0 L 0 0 0 10" strokeWidth="0.5" />
+                <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
+                  <pattern id="card-map-grid" width="12" height="12" patternUnits="userSpaceOnUse">
+                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
                   </pattern>
                   <rect width="100%" height="100%" fill="url(#card-map-grid)" />
                 </svg>
                 
+                {/* Stylized Intersecting Street Map Network */}
+                <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  {/* Minor Road 1 */}
+                  <path d="M 30 -5 C 35 15, 25 35, 30 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  {/* Minor Road 2 */}
+                  <path d="M 100 -5 C 95 15, 105 35, 98 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  {/* Minor Road 3 */}
+                  <path d="M 190 -5 C 200 15, 185 35, 195 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  {/* Minor Road 4 */}
+                  <path d="M 240 -5 C 235 15, 245 35, 238 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                </svg>
+
                 {/* Route line */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 260 48" preserveAspectRatio="none">
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
                   {/* Base grey road */}
                   <path 
-                    d="M -10 24 C 40 10, 80 38, 130 24 C 180 10, 220 38, 270 24" 
+                    d="M -10 24 C 50 10, 90 38, 140 24 C 190 10, 230 38, 290 24" 
                     fill="none" 
                     stroke="#D1D5DB" 
                     strokeWidth="3.5" 
@@ -644,7 +656,7 @@ export default function VehicleListPage() {
                   />
                   {/* Green active route progress */}
                   <path 
-                    d="M -10 24 C 40 10, 80 38, 130 24 C 180 10, 220 38, 270 24" 
+                    d="M -10 24 C 50 10, 90 38, 140 24 C 190 10, 230 38, 290 24" 
                     fill="none" 
                     stroke="#10B981" 
                     strokeWidth="3" 
@@ -653,6 +665,16 @@ export default function VehicleListPage() {
                     style={{ animation: 'routeDash 4s linear infinite' }}
                   />
                 </svg>
+
+                {/* Origin Pin */}
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                </div>
+
+                {/* Destination Pin */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/20" />
+                </div>
                 
                 {/* The 3D Truck sitting in the middle of the route */}
                 <div 
