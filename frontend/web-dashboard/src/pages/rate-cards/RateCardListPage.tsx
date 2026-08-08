@@ -32,7 +32,7 @@ import { RevenueChart, CustomerBuilding, RouteLine, CheckBadge } from '@/compone
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import AssignRateCardDialog from '@/components/rate-cards/AssignRateCardDialog';
-import { exportExcelTable, exportPDFTable, downloadCSV } from '@/utils/exportUtils';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,7 @@ import {
 
 const RATE_CARD_EXPORT_HEADERS = [
   'Rate Card ID', 'Contract Name', 'Applies To', 'Route Origin', 'Route Destination',
-  'Base Rate (SAR)', 'Status', 'Linked Lane'
+  'Base Tariff Rate (SAR)', 'Status', 'Linked Lane'
 ];
 
 const rateCardsToExportRows = (cards: RateCard[]) => cards.map(rc => [
@@ -79,8 +79,9 @@ export default function RateCardListPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [scopeFilter, setScopeFilter] = useState<'all' | 'standard' | 'customer'>('all');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
+  const [pageSize, setPageSize] = useState(10);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showTariffModal, setShowTariffModal] = useState(false);
   const [assignTarget, setAssignTarget] = useState<RateCard | null>(null);
   const [editTarget, setEditTarget] = useState<RateCard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -208,13 +209,13 @@ export default function RateCardListPage() {
 
   const columns = [
     {
-      header: 'Rate Card ID',
+      header: 'Rate Card Ref ID',
       accessor: (row: RateCard) => (
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5 min-w-[160px]">
           <span className="font-mono text-xs font-bold text-[#E8450F]">
             #{row.id.slice(0, 8).toUpperCase()}
           </span>
-          <span className="text-[11px] text-slate-500 font-medium truncate max-w-[140px]" title={row.name}>
+          <span className="text-[11px] text-slate-500 font-medium truncate max-w-[220px]" title={row.name}>
             {row.name}
           </span>
         </div>
@@ -223,7 +224,7 @@ export default function RateCardListPage() {
     {
       header: 'Applies to',
       accessor: (row: RateCard) => (
-        <div className="flex flex-col min-w-[140px]">
+        <div className="flex flex-col min-w-[160px]">
           {row.customerId ? (
             <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
@@ -241,7 +242,7 @@ export default function RateCardListPage() {
     {
       header: 'Route Lane',
       accessor: (row: RateCard) => (
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 min-w-[200px]">
           <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span>{row.route_origin}</span>
           <ArrowRight className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
@@ -259,9 +260,9 @@ export default function RateCardListPage() {
       ),
     },
     {
-      header: 'Base Rate',
+      header: 'Base Tariff Rate',
       accessor: (row: RateCard) => (
-        <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/60 dark:border-slate-700 w-fit">
+        <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/60 dark:border-slate-700 w-fit min-w-[120px]">
           {row.currency || 'SAR'} {Number(row.base_price).toLocaleString()}
         </div>
       ),
@@ -286,7 +287,7 @@ export default function RateCardListPage() {
       header: 'Actions',
       headerClassName: 'text-right',
       accessor: (row: RateCard) => (
-        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1 min-w-[130px]" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => setAssignTarget(row)}
             disabled={!row.originLocationId || !row.destinationLocationId}
@@ -328,7 +329,7 @@ export default function RateCardListPage() {
                 }
               });
             }}
-            title="Delete Rate Card"
+            title="Delete Tariff Rate"
             className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -379,7 +380,7 @@ export default function RateCardListPage() {
 
   return (
     <DashboardLayout active="RateCards" title="Rate Cards">
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
         
         {/* Page Content Header Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
@@ -392,9 +393,6 @@ export default function RateCardListPage() {
                   Rate Cards
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                One price per lane. Standard rates apply to every customer; a customer rate overrides them.
-              </p>
             </div>
           </div>
 
@@ -516,7 +514,7 @@ export default function RateCardListPage() {
             onClick={() => setStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
           />
 
-          {/* Card 2: Avg Base Rate */}
+          {/* Card 2: Avg Base Tariff Rate */}
           <KpiCard
             title="AVERAGE PRICE"
             value={`SAR ${kpis.avgPrice.toLocaleString()}`}
@@ -525,7 +523,7 @@ export default function RateCardListPage() {
             trendValue={`${kpis.total} rate${kpis.total === 1 ? '' : 's'}`}
             description="Mean price across all rates"
             icon={RevenueChart}
-            onClick={() => setShowPricingModal(true)}
+            onClick={() => setShowTariffModal(true)}
           />
 
           {/* Card 3: Most-priced lane */}
@@ -640,7 +638,7 @@ export default function RateCardListPage() {
                 <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-2">
                     <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="Status" />
+                    <SelectValue placeholder="Tariff Status" />
                   </div>
                 </SelectTrigger>
                 <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
@@ -705,7 +703,7 @@ export default function RateCardListPage() {
             {/* Right: Record Counter & View Switcher */}
             <div className="flex items-center gap-3 shrink-0 ml-auto">
               <div className="text-xs font-semibold text-slate-500">
-                <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredData.length}</span> rate card{filteredData.length === 1 ? '' : 's'}
+                <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredData.length}</span> tariff agreements
               </div>
 
               {/* View Mode Segmented Control */}
@@ -740,7 +738,7 @@ export default function RateCardListPage() {
 
         {/* Content Workspace: Ledger Table vs Grid Cards */}
         {viewMode === 'ledger' ? (
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="w-full flex flex-col">
             <DataTable
               title={
                 <span className="flex items-center gap-2">
@@ -757,7 +755,8 @@ export default function RateCardListPage() {
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
               searchPlaceholder="Search contract name, customer..."
-              onSearchChange={setSearch}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => setPageSize(size)}
               onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}
             />
           </div>
@@ -787,7 +786,7 @@ export default function RateCardListPage() {
                 className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs hover:border-[#E8450F]/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
                 tabIndex={0}
                 role="button"
-                aria-label={`Rate card ${rc.name}, base rate ${rc.currency || 'SAR'} ${rc.base_price}`}
+                aria-label={`Rate card ${rc.name}, base tariff ${rc.currency || 'SAR'} ${rc.base_price}`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -832,7 +831,7 @@ export default function RateCardListPage() {
                 </CardContent>
 
                 <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 flex items-center justify-between text-xs rounded-b-xl">
-                  <span className="text-[10px] text-slate-500 font-medium">Base Rate:</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Base Tariff Rate:</span>
                   <span className="font-mono font-extrabold text-slate-955 dark:text-slate-50">
                     {rc.currency || 'SAR'} {Number(rc.base_price).toLocaleString()}
                   </span>
@@ -850,8 +849,8 @@ export default function RateCardListPage() {
         />
         <AssignRateCardDialog rateCard={assignTarget} onClose={() => setAssignTarget(null)} />
 
-        {/* Pricing Summary Modal */}
-        <Dialog open={showPricingModal} onOpenChange={setShowPricingModal}>
+        {/* Tariff Market Benchmark Modal */}
+        <Dialog open={showTariffModal} onOpenChange={setShowTariffModal}>
           <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
             <DialogHeader>
               <RevenueChart className="w-7 h-7 text-orange-500 dark:text-orange-400 mb-2" />
@@ -866,16 +865,16 @@ export default function RateCardListPage() {
             <div className="space-y-3 my-4 text-xs">
               <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60">
                 <div>
-                  <div className="font-bold text-indigo-900 dark:text-indigo-300">Average Rate</div>
-                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Mean base rate across all rate cards</div>
+                  <div className="font-bold text-indigo-900 dark:text-indigo-300">Average Freight Tariff</div>
+                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Mean base rate across active corridors</div>
                 </div>
                 <span className="font-mono font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">SAR {kpis.avgPrice.toLocaleString()}</span>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100">Active Rate Cards</div>
-                  <div className="text-[10px] text-slate-400">Applied to new trips</div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">Active Rate Contracts</div>
+                  <div className="text-[10px] text-slate-400">Total tariff agreements in effect</div>
                 </div>
                 <Badge className="bg-[#E8450F] text-white font-mono font-bold text-xs">{kpis.activeCount} Active</Badge>
               </div>
@@ -886,9 +885,9 @@ export default function RateCardListPage() {
                 variant="outline"
                 size="sm"
                 className="w-full text-xs font-bold border-slate-200"
-                onClick={() => setShowPricingModal(false)}
+                onClick={() => setShowTariffModal(false)}
               >
-                Close
+                Close Benchmark Summary
               </Button>
             </DialogFooter>
           </DialogContent>
