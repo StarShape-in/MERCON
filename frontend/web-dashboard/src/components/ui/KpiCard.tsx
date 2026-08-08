@@ -544,14 +544,14 @@ export function SemiCircleArcGauge({
   if (!segments || segments.length === 0) return null
 
   return (
-    <div className={cn("px-5 pb-4 pt-1 flex flex-col items-center gap-2", className)}>
-      <div className="relative w-44 h-[88px] flex items-center justify-center">
+    <div className={cn("px-4 pb-2 pt-0 flex flex-col items-center gap-1", className)}>
+      <div className="relative w-32 h-[52px] flex items-center justify-center">
         <svg className="w-full h-full" viewBox="0 0 100 55">
           {/* Background Track Arc */}
           <path
             d={getSemiCircleArcPath(50, 50, 38, 180, 0)}
             stroke="currentColor"
-            strokeWidth="10"
+            strokeWidth="9"
             fill="none"
             className="text-slate-100 dark:text-slate-800"
             strokeLinecap="round"
@@ -576,7 +576,7 @@ export function SemiCircleArcGauge({
                   key={idx}
                   d={getSemiCircleArcPath(50, 50, 38, startAngle, endAngle)}
                   stroke={seg.color}
-                  strokeWidth="10"
+                  strokeWidth="9"
                   fill="none"
                   strokeLinecap="round"
                   className="transition-all duration-500 hover:opacity-90"
@@ -588,10 +588,10 @@ export function SemiCircleArcGauge({
       </div>
 
       {/* Legend Row below Semi-Circle */}
-      <div className="flex items-center justify-center gap-3 text-[10px] font-mono font-semibold text-slate-700 dark:text-slate-300 flex-wrap">
+      <div className="flex items-center justify-center gap-2 text-[9px] font-mono font-semibold text-slate-700 dark:text-slate-300 flex-wrap leading-none">
         {segments.map((seg, idx) => (
-          <div key={idx} className="flex items-center gap-1.5">
-            <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", seg.dotColor || "bg-blue-500")} style={{ backgroundColor: !seg.dotColor ? seg.color : undefined }} />
+          <div key={idx} className="flex items-center gap-1">
+            <span className={cn("w-2 h-2 rounded-full shrink-0", seg.dotColor || "bg-blue-500")} style={{ backgroundColor: !seg.dotColor ? seg.color : undefined }} />
             <span>{seg.label}</span>
             <span className="font-extrabold text-slate-900 dark:text-slate-100">({seg.count})</span>
           </div>
