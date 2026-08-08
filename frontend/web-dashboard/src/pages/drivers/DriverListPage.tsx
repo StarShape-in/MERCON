@@ -33,7 +33,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import KpiModal from '@/components/ui/KpiModal';
 import { DriverRosterKpi } from '@/components/ui/CustomKpiWidgets';
 
-import { downloadCSV, downloadExcel } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -154,7 +154,7 @@ export default function DriverListPage() {
     }
   };
 
-  const handleExportExcel = (rowsToExport: Driver[]) => {
+  const handleExportExcel = async (rowsToExport: Driver[]) => {
     const headers = [
       'Driver ID',
       'Driver Name',
@@ -182,7 +182,7 @@ export default function DriverListPage() {
       ];
     });
 
-    downloadExcel('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.xls`);
+    await exportExcelTable('MERCON Driver Roster', headers, dataRows, `drivers_roster_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const columns = [

@@ -12,7 +12,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { reportsService } from '@/services/reportsService';
 import { customerService } from '@/services/customerService';
 
-import { downloadExcel } from '@/utils/exportUtils';
+import { exportExcelTable } from '@/utils/exportUtils';
 
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
@@ -72,7 +72,7 @@ export default function CustomReportPage() {
     }),
   });
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (!reportData?.trips || reportData.trips.length === 0) return;
     
     const headers = [
@@ -163,7 +163,7 @@ export default function CustomReportPage() {
       ? `MERCON Trip Ledger Report - ${selectedCust.name || selectedCust.company_name}`
       : 'MERCON Custom Operational & Trip Ledger Report';
 
-    downloadExcel(titleText, headers, [...rows, summaryRow], `mercon_trip_ledger_${format(new Date(), 'yyyyMMdd_HHmm')}.xls`);
+    await exportExcelTable(titleText, headers, [...rows, summaryRow], `mercon_trip_ledger_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
   };
 
 

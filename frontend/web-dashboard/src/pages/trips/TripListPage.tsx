@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
-import { downloadCSV, downloadPDF, parseCSVFile } from '@/utils/exportUtils';
+import { downloadCSV, exportPDF, parseCSVFile } from '@/utils/exportUtils';
 import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
@@ -262,7 +262,7 @@ export default function TripListPage() {
       if (format === 'csv') {
         downloadCSV(matched, `${baseName}.csv`);
       } else {
-        downloadPDF(matched, `Trips Export — ${EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label}`);
+        exportPDF(matched, `Trips Export — ${EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label}`, `${baseName}.pdf`);
       }
       setExportDialogOpen(false);
     } catch (e) {
@@ -506,7 +506,7 @@ export default function TripListPage() {
       icon: <FileText size={13} className="text-rose-600 dark:text-rose-400" />,
       variant: 'secondary' as const,
       onClick: (selectedRows: Trip[]) => {
-        downloadPDF(selectedRows, 'Trips Export');
+        exportPDF(selectedRows, 'Trips Export', 'trips_export.pdf');
       }
     },
     {

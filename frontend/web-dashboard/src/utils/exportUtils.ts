@@ -1,8 +1,34 @@
+import ExcelJS from 'exceljs';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 const EXCLUDE_KEYS = new Set([
-  'id', 'deletedAt', 'created_by', 'updated_by', 'deleted_by', 
-  'version', 'password_hash', 'userId', 'driverId', 'vehicleId', 
+  'id', 'deletedAt', 'created_by', 'updated_by', 'deleted_by',
+  'version', 'password_hash', 'userId', 'driverId', 'vehicleId',
   'customerId', 'tripId', 'isActive'
 ]);
+
+// ─── MERCON brand palette (kept in sync with the app's Tailwind theme) ──────
+const BRAND = {
+  primary: 'FFE8450F',   // MERCON orange — table headers, PDF headers
+  primaryDark: 'FFB93A0C',
+  ink: 'FF1E293B',        // slate-800 — titles
+  subtle: 'FF64748B',     // slate-500 — subtitles/meta
+  border: 'FFE2E8F0',     // slate-200
+  zebra: 'FFF8FAFC',      // slate-50
+  totalsBg: 'FFF1F5F9',   // slate-100
+  totalsBorder: 'FF475569', // slate-600
+  good: 'FFDCFCE7',       // green-100
+  goodText: 'FF166534',   // green-800
+  bad: 'FFFEE2E2',        // red-100
+  badText: 'FF991B1B',    // red-800
+} as const;
+
+const BRAND_HEX = '#E8450F';
+const INK_HEX = '#1E293B';
+const SUBTLE_HEX = '#64748B';
+const BORDER_RGB: [number, number, number] = [226, 232, 240];
+const ZEBRA_RGB: [number, number, number] = [248, 250, 252];
 
 function formatHeaderLabel(key: string): string {
   const map: Record<string, string> = {
@@ -52,7 +78,7 @@ function extractValue(val: any): string {
   if (val === null || val === undefined) return '';
   if (typeof val === 'boolean') return val ? 'Yes' : 'No';
   if (typeof val === 'number') return String(val);
-  
+
   if (typeof val === 'object') {
     if (Array.isArray(val)) {
       return val.map((item) => extractValue(item)).filter(Boolean).join('; ');
@@ -95,7 +121,7 @@ export function downloadCSV<T extends Record<string, any>>(data: T[], filename: 
   const headers = rawKeys.map(formatHeaderLabel);
 
   const csvRows: string[] = [];
-  
+
   // Add header row
   csvRows.push(headers.join(','));
 
@@ -113,8 +139,8 @@ export function downloadCSV<T extends Record<string, any>>(data: T[], filename: 
   }
 
   const csvString = csvRows.join('\n');
-  const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' }); // UTF-8 BOM for Excel compatibility
-  
+  const blob = new Blob(['﻿' + csvString], { type: 'text/csv;charset=utf-8;' }); // UTF-8 BOM for Excel compatibility
+
   const link = document.createElement('a');
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);
@@ -127,98 +153,184 @@ export function downloadCSV<T extends Record<string, any>>(data: T[], filename: 
   }
 }
 
-export function downloadExcel(title: string, headers: string[], rows: any[][], filename: string = 'mercon_export.xls') {
-  let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
-  html += `<head><meta charset="utf-8" />`;
-  html += `<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>${title.slice(0,30).replace(/[\\*?:/[\]]/g, '')}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->`;
-  html += `<style>
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th { background-color: #4F46E5; color: #FFFFFF; font-weight: bold; text-align: center; border: 0.5pt solid #CBD5E1; padding: 10px 14px; font-size: 11px; }
-    td { border: 0.5pt solid #E2E8F0; padding: 8px 12px; font-size: 10px; color: #334155; }
-    .title-row { font-size: 16px; font-weight: bold; color: #1E293B; height: 35px; border: none; }
-    .subtitle-row { font-size: 11px; color: #64748B; height: 20px; border: none; padding-bottom: 10px; }
-    .even { background-color: #F8FAFC; }
-    .odd { background-color: #FFFFFF; }
-    .total-row td { font-weight: bold; background-color: #F1F5F9; border-top: 1pt solid #475569; border-bottom: 2.5pt double #475569; color: #0F172A; }
-    .text { mso-number-format: "\\@"; text-align: left; }
-    .number { mso-number-format: "#,##0"; text-align: right; }
-    .decimal { mso-number-format: "#,##0.00"; text-align: right; }
-    .currency { mso-number-format: "[$SAR ]#,##0.00"; text-align: right; }
-    .date { mso-number-format: "YYYY-MM-DD"; text-align: center; }
-    .status-active { background-color: #DCFCE7; color: #166534; font-weight: bold; text-align: center; }
-    .status-inactive { background-color: #FEE2E2; color: #991B1B; font-weight: bold; text-align: center; }
-    .charges-cell { color: #DC2626; font-weight: bold; text-align: right; mso-number-format: "[$SAR ]#,##0.00"; }
-    .balance-cell { color: #4F46E5; font-weight: bold; text-align: right; mso-number-format: "[$SAR ]#,##0.00"; }
-  </style></head><body>`;
-  
-  html += `<table>`;
-  // Title Row
-  html += `<tr><td colspan="${headers.length}" class="title-row" style="border:none;">${title}</td></tr>`;
-  html += `<tr><td colspan="${headers.length}" class="subtitle-row" style="border:none;">Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} | MERCON Logistics Platform</td></tr>`;
-  html += `<tr><td colspan="${headers.length}" style="border:none; height: 10px;"></td></tr>`; // Spacing row
+// ─── Cell classification (shared by the real .xlsx and .pdf engines) ───────
+type CellKind = 'text' | 'number' | 'currency' | 'date' | 'status-good' | 'status-bad' | 'center';
 
-  // Headers Row
-  html += `<tr>`;
-  headers.forEach(h => {
-    html += `<th>${h}</th>`;
+const MONEY_WORDS = ['charges', 'amount', 'billing', 'revenue', 'cost', 'total', 'balance', 'credit', 'limit'];
+const GOOD_WORDS = ['active', 'completed', 'delivered', 'paid', 'clear', 'approved', 'available'];
+const BAD_WORDS = ['inactive', 'cancelled', 'overdue', 'expired', 'rejected', 'blocked', 'suspended'];
+
+function classifyCell(cell: any, headerLower: string): CellKind {
+  if (typeof cell === 'number') {
+    return MONEY_WORDS.some(w => headerLower.includes(w)) ? 'currency' : 'number';
+  }
+  if (typeof cell === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cell) || /^\d{2}-\d{2}-\d{4}$/.test(cell) || /^\d{2}\/\d{2}\/\d{4}$/.test(cell)) {
+      return 'date';
+    }
+    if (headerLower.includes('status')) {
+      const lower = cell.toLowerCase();
+      if (GOOD_WORDS.some(w => lower.includes(w))) return 'status-good';
+      if (BAD_WORDS.some(w => lower.includes(w))) return 'status-bad';
+      return 'center';
+    }
+  }
+  return 'text';
+}
+
+function isTotalsRow(row: any[]): boolean {
+  const first = String(row[0] ?? '').trim().toUpperCase();
+  return first === 'TOTALS' || first === 'TOTAL' || first === 'GRAND TOTAL';
+}
+
+interface TableExportOptions {
+  /** Extra descriptive line under the title (defaults to a generated-on stamp). */
+  subtitle?: string;
+  /** Sheet tab name (Excel only, 31-char limit enforced automatically). */
+  sheetName?: string;
+  /** Force landscape/portrait for the PDF; auto-detected from column count if omitted. */
+  orientation?: 'portrait' | 'landscape';
+}
+
+/**
+ * Builds a real, styled .xlsx workbook (brand header row, zebra striping,
+ * per-column number/currency/date formats, a bold totals row, frozen header,
+ * autofilter, and auto-sized columns) and downloads it.
+ */
+export async function exportExcelTable(
+  title: string,
+  headers: string[],
+  rows: any[][],
+  filename: string = 'mercon_export.xlsx',
+  options: TableExportOptions = {}
+) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'MERCON Logistics Platform';
+  workbook.created = new Date();
+
+  const sheetName = (options.sheetName || title).replace(/[\\*?:/[\]]/g, '').slice(0, 31) || 'Report';
+  const sheet = workbook.addWorksheet(sheetName, {
+    views: [{ state: 'frozen', ySplit: 4 }],
+    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 },
   });
-  html += `</tr>`;
 
-  // Data Rows
+  const colCount = headers.length;
+
+  // ── Title & subtitle band ────────────────────────────────────────────
+  sheet.mergeCells(1, 1, 1, colCount);
+  const titleCell = sheet.getCell(1, 1);
+  titleCell.value = title;
+  titleCell.font = { name: 'Calibri', size: 16, bold: true, color: { argb: BRAND.ink } };
+  titleCell.alignment = { vertical: 'middle' };
+  sheet.getRow(1).height = 26;
+
+  sheet.mergeCells(2, 1, 2, colCount);
+  const subtitleCell = sheet.getCell(2, 1);
+  subtitleCell.value = options.subtitle
+    || `Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} · MERCON Logistics Platform · ${rows.length} record${rows.length === 1 ? '' : 's'}`;
+  subtitleCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: BRAND.subtle } };
+  sheet.getRow(2).height = 16;
+
+  sheet.getRow(3).height = 6; // spacer
+
+  // ── Header row ────────────────────────────────────────────────────────
+  const headerRowIdx = 4;
+  const headerRow = sheet.getRow(headerRowIdx);
+  headers.forEach((h, i) => {
+    const cell = headerRow.getCell(i + 1);
+    cell.value = h;
+    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.primary } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    cell.border = {
+      top: { style: 'thin', color: { argb: BRAND.primaryDark } },
+      bottom: { style: 'thin', color: { argb: BRAND.primaryDark } },
+      left: { style: 'thin', color: { argb: BRAND.primaryDark } },
+      right: { style: 'thin', color: { argb: BRAND.primaryDark } },
+    };
+  });
+  headerRow.height = 22;
+
+  // ── Data rows ─────────────────────────────────────────────────────────
   rows.forEach((row, rIdx) => {
-    const isTotalRow = row[0] === 'TOTALS' || row[0] === 'Total' || row[0] === 'Totals';
-    const rowClass = isTotalRow ? 'total-row' : (rIdx % 2 === 0 ? 'even' : 'odd');
-    
-    html += `<tr class="${rowClass}">`;
-    row.forEach((cell, cIdx) => {
-      let cellClass = 'text';
-      const headerLower = headers[cIdx]?.toLowerCase() || '';
+    const totals = isTotalsRow(row);
+    const excelRow = sheet.getRow(headerRowIdx + 1 + rIdx);
+    row.forEach((value, cIdx) => {
+      const headerLower = (headers[cIdx] || '').toLowerCase();
+      const kind = classifyCell(value, headerLower);
+      const cell = excelRow.getCell(cIdx + 1);
+      cell.value = value === null || value === undefined || value === '' ? null : value;
 
-      if (isTotalRow) {
-        if (typeof cell === 'number') {
-          cellClass = (headerLower.includes('charges') || headerLower.includes('amount') || headerLower.includes('billing') || headerLower.includes('revenue') || headerLower.includes('cost') || headerLower.includes('total') || headerLower.includes('balance')) 
-            ? 'currency' 
-            : 'number';
-        }
-      } else {
-        if (typeof cell === 'number') {
-          if (headerLower.includes('charges') || headerLower.includes('amount') || headerLower.includes('billing') || headerLower.includes('revenue') || headerLower.includes('cost') || headerLower.includes('total') || headerLower.includes('balance')) {
-            cellClass = 'currency';
-            if (headerLower.includes('trip charges') || headerLower.includes('maintenance cost')) {
-              cellClass = 'charges-cell';
-            } else if (headerLower.includes('balance amount') || headerLower.includes('net balance')) {
-              cellClass = 'balance-cell';
-            }
-          } else if (headerLower.includes('odometer') || headerLower.includes('capacity') || headerLower.includes('trips')) {
-            cellClass = 'number';
-          } else {
-            cellClass = 'number';
-          }
-        } else if (typeof cell === 'string') {
-          // Date format detection
-          if (/^\d{4}-\d{2}-\d{2}$/.test(cell) || /^\d{2}-\d{2}-\d{4}$/.test(cell)) {
-            cellClass = 'date';
-          } else if (headerLower.includes('status')) {
-            if (cell.toLowerCase().includes('active') || cell.toLowerCase().includes('completed') || cell.toLowerCase().includes('delivered') || cell.toLowerCase().includes('paid')) {
-              cellClass = 'status-active';
-            } else if (cell.toLowerCase().includes('inactive') || cell.toLowerCase().includes('cancelled') || cell.toLowerCase().includes('overdue')) {
-              cellClass = 'status-inactive';
-            } else {
-              cellClass = 'center';
-            }
-          }
-        }
+      switch (kind) {
+        case 'currency':
+          cell.numFmt = '#,##0.00 "SAR"';
+          cell.alignment = { horizontal: 'right' };
+          break;
+        case 'number':
+          cell.numFmt = '#,##0';
+          cell.alignment = { horizontal: 'right' };
+          break;
+        case 'date':
+          cell.alignment = { horizontal: 'center' };
+          break;
+        case 'status-good':
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.good } };
+          cell.font = { bold: true, color: { argb: BRAND.goodText } };
+          cell.alignment = { horizontal: 'center' };
+          break;
+        case 'status-bad':
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.bad } };
+          cell.font = { bold: true, color: { argb: BRAND.badText } };
+          cell.alignment = { horizontal: 'center' };
+          break;
+        case 'center':
+          cell.alignment = { horizontal: 'center' };
+          break;
+        default:
+          cell.alignment = { horizontal: 'left' };
       }
 
-      html += `<td class="${cellClass}">${cell !== null && cell !== undefined ? cell : ''}</td>`;
+      cell.border = {
+        top: { style: 'thin', color: { argb: BRAND.border } },
+        bottom: { style: 'thin', color: { argb: BRAND.border } },
+        left: { style: 'thin', color: { argb: BRAND.border } },
+        right: { style: 'thin', color: { argb: BRAND.border } },
+      };
+
+      if (totals) {
+        cell.font = { ...(cell.font || {}), bold: true, color: { argb: 'FF0F172A' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.totalsBg } };
+        cell.border = {
+          ...cell.border,
+          top: { style: 'medium', color: { argb: BRAND.totalsBorder } },
+          bottom: { style: 'double', color: { argb: BRAND.totalsBorder } },
+        };
+      } else if (rIdx % 2 === 0) {
+        cell.fill = cell.fill || { type: 'pattern', pattern: 'solid', fgColor: { argb: BRAND.zebra } };
+      }
     });
-    html += `</tr>`;
+    excelRow.height = 18;
   });
 
-  html += `</table></body></html>`;
+  // ── Column widths (auto-fit from header + sampled content) ─────────────
+  headers.forEach((h, i) => {
+    let maxLen = h.length;
+    for (const row of rows.slice(0, 200)) {
+      const v = row[i];
+      const len = v === null || v === undefined ? 0 : String(v).length;
+      if (len > maxLen) maxLen = len;
+    }
+    sheet.getColumn(i + 1).width = Math.min(38, Math.max(10, maxLen + 3));
+  });
 
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  // ── Autofilter across the header row ────────────────────────────────
+  sheet.autoFilter = {
+    from: { row: headerRowIdx, column: 1 },
+    to: { row: headerRowIdx, column: colCount },
+  };
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -226,55 +338,146 @@ export function downloadExcel(title: string, headers: string[], rows: any[][], f
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
-/** Opens a print-formatted HTML table in a new tab so the user can "Save as PDF"
- *  from the browser's print dialog — same no-dependency approach already used
- *  for the per-invoice Print/PDF action, applied here to a whole table. */
-export function downloadPDF<T extends Record<string, any>>(data: T[], title: string = 'MERCON Export') {
-  if (!data || !data.length) {
-    return;
-  }
-
+/**
+ * Excel export for a plain array of record objects (mirrors downloadCSV's
+ * header derivation) — a one-line drop-in wherever a CSV export already
+ * exists but a styled, real .xlsx is wanted instead.
+ */
+export async function exportExcel<T extends Record<string, any>>(
+  data: T[],
+  filename: string = 'mercon_export.xlsx',
+  title: string = 'MERCON Export',
+  options: TableExportOptions = {}
+) {
+  if (!data || !data.length) return;
   const rawKeys = Object.keys(data[0]).filter(k => !EXCLUDE_KEYS.has(k));
   const headers = rawKeys.map(formatHeaderLabel);
+  const rows = data.map(row => rawKeys.map(key => {
+    const v = extractValue(row[key]);
+    const num = Number(v);
+    return v !== '' && !Number.isNaN(num) && typeof row[key] === 'number' ? num : v;
+  }));
+  await exportExcelTable(title, headers, rows, filename, options);
+}
 
-  let html = `<!doctype html><html><head><meta charset="utf-8" /><title>${title}</title>`;
-  html += `<style>
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 24px; color: #1E293B; }
-    h1 { font-size: 16px; margin: 0 0 4px; }
-    p.subtitle { font-size: 11px; color: #64748B; margin: 0 0 16px; }
-    table { border-collapse: collapse; width: 100%; }
-    th { background-color: #E8450F; color: #FFFFFF; font-weight: bold; text-align: left; border: 0.5pt solid #CBD5E1; padding: 6px 10px; font-size: 10px; }
-    td { border: 0.5pt solid #E2E8F0; padding: 6px 10px; font-size: 10px; color: #334155; }
-    tr:nth-child(even) td { background-color: #F8FAFC; }
-    @media print { body { margin: 0.5cm; } }
-  </style></head><body>`;
-  html += `<h1>${title}</h1>`;
-  html += `<p class="subtitle">Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} · MERCON Logistics Platform · ${data.length} record${data.length === 1 ? '' : 's'}</p>`;
+/**
+ * Builds a real, styled PDF (branded header band, zebra rows, bold totals
+ * row, footer with page numbers + generated-on stamp) and downloads it —
+ * no browser print dialog involved.
+ */
+export function exportPDFTable(
+  title: string,
+  headers: string[],
+  rows: any[][],
+  filename: string = 'mercon_export.pdf',
+  options: TableExportOptions = {}
+) {
+  const orientation = options.orientation || (headers.length > 6 ? 'landscape' : 'portrait');
+  const doc = new jsPDF({ orientation, unit: 'pt', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 32;
 
-  html += `<table><thead><tr>`;
-  headers.forEach(h => { html += `<th>${h}</th>`; });
-  html += `</tr></thead><tbody>`;
+  // ── Brand header band ───────────────────────────────────────────────
+  doc.setFillColor(BRAND_HEX);
+  doc.rect(0, 0, pageWidth, 56, 'F');
+  doc.setTextColor('#FFFFFF');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('MERCON LOGISTICS PLATFORM', margin, 22);
+  doc.setFontSize(15);
+  doc.text(title, margin, 42);
 
-  for (const row of data) {
-    html += `<tr>`;
-    rawKeys.forEach(key => {
-      const val = extractValue(row[key]);
-      html += `<td>${val.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
-    });
-    html += `</tr>`;
-  }
+  const subtitle = options.subtitle
+    || `Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} · ${rows.length} record${rows.length === 1 ? '' : 's'}`;
 
-  html += `</tbody></table></body></html>`;
+  const bodyRows = rows.filter(r => !isTotalsRow(r));
+  const totalsRows = rows.filter(r => isTotalsRow(r));
 
-  const win = window.open('', '_blank');
-  if (!win) return;
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  win.onload = () => win.print();
+  autoTable(doc, {
+    head: [headers],
+    body: bodyRows,
+    foot: totalsRows.length ? totalsRows : undefined,
+    startY: 68,
+    margin: { left: margin, right: margin },
+    styles: { font: 'helvetica', fontSize: 8, cellPadding: 5, textColor: INK_HEX, lineColor: BORDER_RGB, lineWidth: 0.5 },
+    headStyles: { fillColor: BRAND_HEX, textColor: '#FFFFFF', fontStyle: 'bold', halign: 'center' },
+    footStyles: { fillColor: [241, 245, 249], textColor: '#0F172A', fontStyle: 'bold', lineWidth: { top: 1 } },
+    alternateRowStyles: { fillColor: ZEBRA_RGB },
+    didParseCell: (data) => {
+      if (data.section !== 'body' && data.section !== 'foot') return;
+      const headerLower = (headers[data.column.index] || '').toLowerCase();
+      const raw = data.cell.raw;
+      const kind = classifyCell(raw, headerLower);
+      if (kind === 'currency' || kind === 'number') {
+        data.cell.styles.halign = 'right';
+        if (typeof raw === 'number' && kind === 'currency') {
+          data.cell.text = [`SAR ${raw.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`];
+        }
+      } else if (kind === 'date' || kind === 'center') {
+        data.cell.styles.halign = 'center';
+      } else if (kind === 'status-good') {
+        data.cell.styles.halign = 'center';
+        data.cell.styles.fillColor = data.section === 'body' ? [220, 252, 231] : data.cell.styles.fillColor;
+        data.cell.styles.textColor = [22, 101, 52];
+        data.cell.styles.fontStyle = 'bold';
+      } else if (kind === 'status-bad') {
+        data.cell.styles.halign = 'center';
+        data.cell.styles.fillColor = data.section === 'body' ? [254, 226, 226] : data.cell.styles.fillColor;
+        data.cell.styles.textColor = [153, 27, 27];
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+    didDrawPage: () => {
+      // Subtitle only needs to be drawn once, right under the header band
+      if (doc.getNumberOfPages() === 1) {
+        doc.setTextColor(SUBTLE_HEX);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(subtitle, margin, 64);
+      }
+
+      const pageCount = doc.getNumberOfPages();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setDrawColor(...BORDER_RGB);
+      doc.setLineWidth(0.5);
+      doc.line(margin, pageHeight - 28, pageWidth - margin, pageHeight - 28);
+      doc.setTextColor(SUBTLE_HEX);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('MERCON Logistics Platform', margin, pageHeight - 16);
+      doc.text(
+        `Page ${doc.getCurrentPageInfo().pageNumber} of ${pageCount}`,
+        pageWidth - margin,
+        pageHeight - 16,
+        { align: 'right' }
+      );
+    },
+  });
+
+  doc.save(filename);
+}
+
+/**
+ * PDF export for a plain array of record objects (mirrors downloadCSV's
+ * header derivation) — real generated PDF, branded and paginated, downloaded
+ * directly (no print dialog).
+ */
+export function exportPDF<T extends Record<string, any>>(
+  data: T[],
+  title: string = 'MERCON Export',
+  filename?: string,
+  options: TableExportOptions = {}
+) {
+  if (!data || !data.length) return;
+  const rawKeys = Object.keys(data[0]).filter(k => !EXCLUDE_KEYS.has(k));
+  const headers = rawKeys.map(formatHeaderLabel);
+  const rows = data.map(row => rawKeys.map(key => extractValue(row[key])));
+  const safeName = filename
+    || `${title.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  exportPDFTable(title, headers, rows, safeName, options);
 }
 
 export const exportToCSV = downloadCSV;
@@ -349,4 +552,3 @@ export function parseCSVFile(file: File): Promise<Record<string, string>[]> {
     reader.readAsText(file);
   });
 }
-

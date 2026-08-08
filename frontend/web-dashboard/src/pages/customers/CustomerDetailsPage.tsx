@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DataTable from '@/components/ui/DataTable';
 
-import { downloadExcel } from '@/utils/exportUtils';
+import { exportExcelTable } from '@/utils/exportUtils';
 
 export default function CustomerDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -101,7 +101,7 @@ export default function CustomerDetailsPage() {
   const activeTripsCount = customerTrips.filter(t => ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(t.status)).length;
   const completedTripsCount = customerTrips.filter(t => t.status === 'Completed' || t.status === 'Delivered').length;
 
-  const handleExportLedger = () => {
+  const handleExportLedger = async () => {
     if (!customerTrips || customerTrips.length === 0) return;
     
     const headers = [
@@ -159,11 +159,11 @@ export default function CustomerDetailsPage() {
       sumWaitingLabor, sumAdditionalStops, sumBilling, sumTotal, sumTripCharges, sumBalance, ''
     ];
 
-    downloadExcel(
-      `MERCON Customer Ledger - ${customer.name}`, 
-      headers, 
-      [...rows, summaryRow], 
-      `${customer.name.toLowerCase().replace(/\s+/g, '_')}_trip_ledger_${new Date().toISOString().slice(0,10)}.xls`
+    await exportExcelTable(
+      `MERCON Customer Ledger - ${customer.name}`,
+      headers,
+      [...rows, summaryRow],
+      `${customer.name.toLowerCase().replace(/\s+/g, '_')}_trip_ledger_${new Date().toISOString().slice(0,10)}.xlsx`
     );
   };
 

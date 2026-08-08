@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
-import { downloadCSV, downloadExcel } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
 import { notificationService } from '@/services/notificationService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
@@ -84,7 +84,7 @@ export default function VehicleListPage() {
     return 'bg-slate-50 text-slate-600 border-slate-200';
   };
 
-  const handleExportExcel = (rowsToExport: Vehicle[]) => {
+  const handleExportExcel = async (rowsToExport: Vehicle[]) => {
     const headers = [
       'Vehicle ID',
       'Plate Number',
@@ -116,7 +116,7 @@ export default function VehicleListPage() {
       ];
     });
 
-    downloadExcel('MERCON Fleet Inventory', headers, dataRows, `fleet_inventory_${new Date().toISOString().slice(0, 10)}.xls`);
+    await exportExcelTable('MERCON Fleet Inventory', headers, dataRows, `fleet_inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   // Table columns
