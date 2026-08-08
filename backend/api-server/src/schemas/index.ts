@@ -33,6 +33,9 @@ export const createTripBody = z.object({
   planned_start: z.coerce.date().optional(),
   billing_amount: z.coerce.number().optional(),
   trip_charges: z.coerce.number().optional(),
+  // The rate card the dispatcher was shown. Recorded on the trip so invoicing
+  // bills what was quoted instead of re-deriving it later.
+  rate_card_id: z.string().uuid('Invalid rate card').optional(),
   stops: z.array(z.object({
     stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']),
     // Client + controller use lat/lng (controller reads stop.lat/stop.lng), not location_*.
@@ -41,6 +44,10 @@ export const createTripBody = z.object({
     planned_arrival: z.string().optional(),
     // Human-readable name for this place — the route label in delay reports.
     location_name: z.string().trim().max(120).optional(),
+    // The lane endpoint this stop sits in ("Riyadh"), as opposed to the exact
+    // yard within it that location_name/lat/lng describe. This is what the rate
+    // card is priced against.
+    location_id: z.string().uuid('Invalid location').optional(),
     stop_sequence: z.number().int().optional(),
   })).min(2, 'At least a pickup and a dropoff are required'),
 });

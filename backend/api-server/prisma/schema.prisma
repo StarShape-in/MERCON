@@ -224,10 +224,10 @@ model Vehicle {
   // four hours ago looks exactly like a truck parked four hours ago — the
   // fleet already contains such a device (DEVICE_NOT_WORKING, last report
   // 4h22m stale) so this is not hypothetical.
-  last_speed_kph  Float?
-  last_heading    Float?
-  last_status     String?
-  last_seen_at    DateTime? @db.Timestamptz
+  last_speed_kph Float?
+  last_heading   Float?
+  last_status    String?
+  last_seen_at   DateTime? @db.Timestamptz
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -240,7 +240,7 @@ model Vehicle {
 
   trips              Trip[]
   maintenanceRecords MaintenanceRecord[]
-  assignedDriver     Driver?              @relation("DriverAssignedVehicle")
+  assignedDriver     Driver?             @relation("DriverAssignedVehicle")
 }
 
 // -----------------------------------------
@@ -255,6 +255,13 @@ model Trip {
   driver     Driver?  @relation(fields: [driverId], references: [id])
   vehicleId  String?  @db.Uuid
   vehicle    Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  // Which rate card the billing amount came from, recorded at dispatch. Without
+  // it, invoicing has to re-guess the rate later — and it guessed with a
+  // different rule than the wizard used, so the invoice could disagree with the
+  // price the dispatcher was shown. Null means the price was typed by hand.
+  rateCardId String?   @db.Uuid
+  rateCard   RateCard? @relation(fields: [rateCardId], references: [id])
 
   status           TripStatus @default(Draft)
   planned_distance Float?
@@ -309,6 +316,11 @@ model TripStop {
   // same site never accumulates a history. Free text, because these are the
   // customer's yards and depots, not a list we own.
   location_name    String?
+  // The lane endpoint this stop belongs to ("Riyadh"), as opposed to the exact
+  // yard within it that location_name/lat/lng describe. This is what makes a
+  // trip's lane recoverable after the fact, and what the rate lookup keys on.
+  locationId       String?   @db.Uuid
+  location         Location? @relation(fields: [locationId], references: [id])
   planned_arrival  DateTime? @db.Timestamptz
   actual_arrival   DateTime? @db.Timestamptz
   // When the driver left this stop. Paired with actual_arrival this is how
@@ -437,6 +449,12 @@ model Invoice {
 // -----------------------------------------
 // 7. PRICING & QUOTATIONS (Rate Cards)
 // -----------------------------------------
+// A priced lane. Origin/destination used to be free text, which meant the
+// dispatcher's stop name ("Khamis Sorting Center") never matched the lane
+// ("Riyadh") and the wrong price was quietly applied. The Location FKs are
+// the real identity of the lane now; route_origin/route_destination are kept
+// as a denormalised copy of the two location names so existing rows, exports
+// and invoices keep rendering without a join.
 model RateCard {
   id                String @id @default(uuid()) @db.Uuid
   name              String
@@ -445,8 +463,17 @@ model RateCard {
   base_price        Float
   currency          String @default("SAR")
 
-  customerId String?   @db.Uuid // If null, it's a default/standard rate card
+  originLocationId      String?   @db.Uuid
+  originLocation        Location? @relation("RateCardOrigin", fields: [originLocationId], references: [id])
+  destinationLocationId String?   @db.Uuid
+  destinationLocation   Location? @relation("RateCardDestination", fields: [destinationLocationId], references: [id])
+
+  // Null customer = the standard price for this lane, used by every customer.
+  // A row with a customer overrides the standard one for that customer only.
+  customerId String?   @db.Uuid
   customer   Customer? @relation(fields: [customerId], references: [id])
+
+  trips Trip[]
 
   is_active Boolean @default(true)
 
@@ -457,6 +484,39 @@ model RateCard {
   updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
   deletedAt  DateTime? @db.Timestamptz
   version    Int       @default(1)
+
+  @@index([customerId, originLocationId, destinationLocationId])
+}
+
+// A place a lane starts or ends — Riyadh, Jeddah, Makkah, Madinah. Rate cards
+// are priced between two of these, so they have to come from one shared list
+// rather than whatever each user typed: "Madina" and "Madinah" as free text
+// are two lanes that never match each other, or the rate card.
+//
+// slug is the lowercased, whitespace-collapsed name and carries the unique
+// constraint, so the same place can't be entered twice under different casing.
+// lat/lng are the default map pin for the place; a trip stop still stores its
+// own exact coordinates, since "Riyadh" is a city and the dock is a point in it.
+model Location {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+  slug String @unique
+  lat  Float?
+  lng  Float?
+
+  is_active Boolean @default(true)
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  version    Int       @default(1)
+
+  originRateCards      RateCard[] @relation("RateCardOrigin")
+  destinationRateCards RateCard[] @relation("RateCardDestination")
+  tripStops            TripStop[]
 }
 
 // -----------------------------------------

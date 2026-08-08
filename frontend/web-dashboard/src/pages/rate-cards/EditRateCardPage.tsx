@@ -1,96 +1,108 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, ArrowLeft } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Save, ArrowLeft, ArrowRight, Building2, Globe2, Info } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import FormSection from '@/components/ui/FormSection';
-import FormInput from '@/components/ui/FormInput';
 import Btn from '@/components/ui/Btn';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import LocationCombobox from '@/components/rate-cards/LocationCombobox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { rateCardService } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
+import { cn } from '@/lib/utils';
 
 export default function EditRateCardPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '',
-    customerId: '',
-    route_origin: '',
-    route_destination: '',
-    base_price: '',
-    currency: 'SAR',
-    is_active: true,
-  });
+  const queryClient = useQueryClient();
+
+  const [scope, setScope] = useState<'standard' | 'customer'>('standard');
+  const [customerId, setCustomerId] = useState('');
+  const [originId, setOriginId] = useState('');
+  const [destinationId, setDestinationId] = useState('');
+  const [basePrice, setBasePrice] = useState('');
+  const [currency, setCurrency] = useState('SAR');
+  const [name, setName] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch rate card details
   const { data: rateCard, isLoading: isFetching } = useQuery({
     queryKey: ['rate-card', id],
     queryFn: () => rateCardService.getById(id!),
     enabled: !!id,
   });
 
-  // Sync with form
   useEffect(() => {
-    if (rateCard) {
-      setFormData({
-        name: rateCard.name || '',
-        customerId: rateCard.customerId || '',
-        route_origin: rateCard.route_origin || '',
-        route_destination: rateCard.route_destination || '',
-        base_price: rateCard.base_price?.toString() || '',
-        currency: rateCard.currency || 'SAR',
-        is_active: rateCard.is_active,
-      });
-    }
+    if (!rateCard) return;
+    setScope(rateCard.customerId ? 'customer' : 'standard');
+    setCustomerId(rateCard.customerId || '');
+    setOriginId(rateCard.originLocationId || '');
+    setDestinationId(rateCard.destinationLocationId || '');
+    setBasePrice(rateCard.base_price?.toString() || '');
+    setCurrency(rateCard.currency || 'SAR');
+    setName(rateCard.name || '');
+    setIsActive(rateCard.is_active);
   }, [rateCard]);
 
-  // Fetch active customers
   const { data: customersResponse } = useQuery({
-    queryKey: ['customers', 'Active'],
-    queryFn: () => customerService.getAll({ is_active: true })
+    queryKey: ['customers-select'],
+    queryFn: () => customerService.getAll({ per_page: 100 }),
   });
   const customers = customersResponse?.data || [];
 
+  const numericPrice = parseFloat(basePrice || '');
+  const hasPrice = !isNaN(numericPrice) && numericPrice > 0;
+  const laneComplete = !!originId && !!destinationId && originId !== destinationId;
+  const isFormValid = laneComplete && hasPrice && (scope === 'standard' || !!customerId);
+
+  // Cards created before lanes existed have text endpoints but no location
+  // links, so their rate never matches on a trip. Say so rather than letting
+  // them look fine.
+  const needsLaneLink = !!rateCard && (!rateCard.originLocationId || !rateCard.destinationLocationId);
+
   const updateMutation = useMutation({
-    mutationFn: (data: any) => rateCardService.update(id!, data),
+    mutationFn: () =>
+      rateCardService.update(id!, {
+        name: name.trim() || undefined,
+        customerId: scope === 'customer' ? customerId : null,
+        origin_location_id: originId,
+        destination_location_id: destinationId,
+        base_price: numericPrice,
+        currency,
+        is_active: isActive,
+      }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-card', id] });
       navigate('/rate-cards');
     },
     onError: (err: any) => {
       setError(err.response?.data?.error?.message || err.message || 'Failed to update rate card');
-    }
+    },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError(null);
-    updateMutation.mutate({
-      name: formData.name,
-      customerId: formData.customerId,
-      route_origin: formData.route_origin,
-      route_destination: formData.route_destination,
-      base_price: parseFloat(formData.base_price),
-      currency: formData.currency,
-      is_active: formData.is_active,
-    });
-  };
-
-  const handleChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (!laneComplete) return setError('Pick both an origin and a destination — they must be different places.');
+    if (scope === 'customer' && !customerId) return setError('Choose which customer this rate is for.');
+    if (!hasPrice) return setError('Enter a price greater than 0.');
+    updateMutation.mutate();
   };
 
   return (
-    <DashboardLayout 
-      active="Customers" 
-      title={`Edit Rate Card: ${id}`}
+    <DashboardLayout
+      active="RateCards"
+      title="Edit Rate Card"
       breadcrumb="Rate Cards"
-      pageTitle={`Edit Rate Card: ${id}`} 
+      pageTitle={rateCard ? rateCard.name : 'Edit Rate Card'}
       actions={
         <div className="flex gap-2">
           <Btn label="Cancel" variant="ghost" onClick={() => navigate('/rate-cards')} disabled={updateMutation.isPending} shortcut={{ key: 'Escape' }} />
-          <Btn label="Save Changes" icon={<Save size={14} />} onClick={handleSubmit} isLoading={updateMutation.isPending} shortcut={{ key: 'Enter', metaOrControl: true }} />
+          <Btn label="Save Changes" icon={<Save size={14} />} onClick={() => handleSubmit()} isLoading={updateMutation.isPending} disabled={!isFormValid} shortcut={{ key: 'Enter', metaOrControl: true }} />
         </div>
       }
     >
@@ -103,78 +115,163 @@ export default function EditRateCardPage() {
         </button>
 
         {isFetching ? (
-          <div className="py-20 flex justify-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div></div>
+          <div className="py-20 flex justify-center">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
-            <FormSection title="General Details" description="Assign this rate card to a specific customer and name the agreement.">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <FormInput
-                  label="Rate Card Name"
-                  placeholder="e.g. SABIC Dammam Route 2024"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  required
-                />
-                <FormInput
-                  label="Customer / Client"
-                  type="select"
-                  value={formData.customerId}
-                  onChange={(e) => handleChange('customerId', e.target.value)}
-                  required
-                  options={customers.map(c => ({ value: c.id, label: c.name }))}
-                />
+
+            {needsLaneLink && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4 text-xs">
+                <p className="font-bold text-amber-900 dark:text-amber-200">This rate isn't linked to a lane yet</p>
+                <p className="text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                  It was created when origin and destination were free text
+                  {rateCard?.route_origin ? ` ("${rateCard.route_origin} → ${rateCard.route_destination}")` : ''}, so
+                  trips never pick it up. Choose both places below and save to fix it.
+                </p>
+              </div>
+            )}
+
+            <FormSection title="Applies to" description="A standard rate is used by every customer. A customer rate overrides it for that customer only.">
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setScope('standard')}
+                    className={cn(
+                      'flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all',
+                      scope === 'standard'
+                        ? 'border-[#E8450F] bg-[#E8450F]/5'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    )}
+                  >
+                    <Globe2 className="mt-0.5 w-4 h-4 shrink-0 text-[#E8450F]" />
+                    <span>
+                      <span className="block text-xs font-bold">Standard rate</span>
+                      <span className="block text-[11px] text-muted-foreground mt-0.5">Every customer</span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setScope('customer')}
+                    className={cn(
+                      'flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all',
+                      scope === 'customer'
+                        ? 'border-[#E8450F] bg-[#E8450F]/5'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    )}
+                  >
+                    <Building2 className="mt-0.5 w-4 h-4 shrink-0 text-indigo-600" />
+                    <span>
+                      <span className="block text-xs font-bold">One customer</span>
+                      <span className="block text-[11px] text-muted-foreground mt-0.5">Overrides standard</span>
+                    </span>
+                  </button>
+                </div>
+
+                {scope === 'customer' && (
+                  <Select value={customerId} onValueChange={setCustomerId}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Choose customer..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </FormSection>
 
-            <FormSection title="Route & Pricing" description="Define the origin, destination, and fixed price.">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <FormInput
-                  label="Route Origin"
-                  placeholder="e.g. Riyadh"
-                  value={formData.route_origin}
-                  onChange={(e) => handleChange('route_origin', e.target.value)}
-                  required
-                />
-                <FormInput
-                  label="Route Destination"
-                  placeholder="e.g. Dammam"
-                  value={formData.route_destination}
-                  onChange={(e) => handleChange('route_destination', e.target.value)}
-                  required
-                />
-                <FormInput
-                  label="Base Price"
-                  type="number"
-                  step="0.01"
-                  placeholder="e.g. 1500.00"
-                  value={formData.base_price}
-                  onChange={(e) => handleChange('base_price', e.target.value)}
-                  required
-                />
-                <FormInput
-                  label="Currency"
-                  type="select"
-                  value={formData.currency}
-                  onChange={(e) => handleChange('currency', e.target.value)}
-                  required
-                  options={[
-                    { value: 'SAR', label: 'SAR (Saudi Riyal)' },
-                    { value: 'USD', label: 'USD (US Dollar)' },
-                  ]}
-                />
+            <FormSection title="Lane & pricing" description="The origin and destination this price covers.">
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Lane</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <LocationCombobox
+                        value={originId}
+                        onChange={(locId) => { setOriginId(locId); setError(null); }}
+                        placeholder="From..."
+                        excludeLocationId={destinationId}
+                      />
+                    </div>
+                    <ArrowRight className="w-4 h-4 shrink-0 text-[#E8450F]" />
+                    <div className="flex-1 min-w-0">
+                      <LocationCombobox
+                        value={destinationId}
+                        onChange={(locId) => { setDestinationId(locId); setError(null); }}
+                        placeholder="To..."
+                        excludeLocationId={originId}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <Info className="w-3 h-3 shrink-0" />
+                    Type a name in the dropdown to add a place that isn't listed.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <Label htmlFor="base_price" className="text-xs font-semibold">Price per trip</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-xs font-bold text-slate-400 font-mono">{currency}</span>
+                      <Input
+                        id="base_price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={basePrice}
+                        onChange={(e) => setBasePrice(e.target.value)}
+                        className="h-9 text-xs pl-12 font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="currency" className="text-xs font-semibold">Currency</Label>
+                    <Select value={currency} onValueChange={setCurrency}>
+                      <SelectTrigger id="currency" className="h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SAR">SAR — Saudi Riyal</SelectItem>
+                        <SelectItem value="USD">USD — US Dollar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-xs font-semibold">
+                    Label <span className="font-normal text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Defaults to the lane name"
+                    className="h-9 text-xs"
+                  />
+                </div>
               </div>
             </FormSection>
 
-            <FormSection title="Status" description="Activate or deactivate this rate card.">
+            <FormSection title="Status" description="An inactive rate is never applied to new trips.">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => handleChange('is_active', !formData.is_active)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.is_active ? 'bg-primary' : 'bg-muted'}`}
+                  onClick={() => setIsActive((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isActive ? 'bg-primary' : 'bg-muted'}`}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
-                <span className="text-sm font-semibold text-foreground">{formData.is_active ? 'Active' : 'Inactive'}</span>
+                <span className="text-sm font-semibold text-foreground">{isActive ? 'Active' : 'Inactive'}</span>
               </div>
             </FormSection>
 
@@ -183,17 +280,8 @@ export default function EditRateCardPage() {
                 {error}
               </div>
             )}
-
-            <div className="bg-[#FEF9C3] border border-[#CA8A04]/20 rounded-lg p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-[#CA8A04] mb-1">Pricing Example Preview</h3>
-              <p className="text-xs text-[#CA8A04]/80 mb-3">This route will cost exactly:</p>
-              <div className="text-2xl font-bold text-[#CA8A04]">
-                {formData.currency} {parseFloat(formData.base_price || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </div>
-            </div>
           </form>
         )}
-
       </div>
     </DashboardLayout>
   );

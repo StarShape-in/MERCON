@@ -20,6 +20,7 @@ import {
   Receipt,
   Tag,
   DollarSign,
+  MapPinned,
 } from 'lucide-react';
 import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes, format } from 'date-fns';
 
@@ -27,6 +28,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationPickerMap from '@/components/trips/LocationPickerMap';
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
+import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import { tripService, CreateTripPayload } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
@@ -68,12 +70,19 @@ export default function CreateTripPage() {
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
 
-  // Stops
+  // Stops. Each has two parts: the LANE ENDPOINT (a Location — "Riyadh"), which
+  // is what the rate card is priced against, and the exact spot within it
+  // (name + coordinates — "Khamis Sorting Center"), which is what the driver
+  // navigates to. Conflating the two is why pricing never matched before.
+  const [pickupLocationId, setPickupLocationId] = useState('');
+  const [pickupLocationName, setPickupLocationName] = useState('');
   const [pickupLat, setPickupLat] = useState<number | null>(24.7136); // Default Riyadh
   const [pickupLng, setPickupLng] = useState<number | null>(46.6753);
   const [pickupTime, setPickupTime] = useState('');
   const [pickupName, setPickupName] = useState('');
 
+  const [dropoffLocationId, setDropoffLocationId] = useState('');
+  const [dropoffLocationName, setDropoffLocationName] = useState('');
   const [dropoffLat, setDropoffLat] = useState<number | null>(21.5433); // Default Jeddah
   const [dropoffLng, setDropoffLng] = useState<number | null>(39.1728);
   const [dropoffTime, setDropoffTime] = useState('');
@@ -82,6 +91,8 @@ export default function CreateTripPage() {
   // Pricing & Rate Card
   const [billingAmount, setBillingAmount] = useState<string>('');
   const [isPriceCustomized, setIsPriceCustomized] = useState(false);
+  // What to do with a price typed for a lane nobody has priced yet.
+  const [saveRateAs, setSaveRateAs] = useState<'standard' | 'customer' | 'none'>('standard');
 
   // Fetch Customers, Drivers, Vehicles, and Rate Cards
   const { data: customersRes } = useQuery({
@@ -99,15 +110,9 @@ export default function CreateTripPage() {
     queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
   });
 
-  const { data: rateCardsRes } = useQuery({
-    queryKey: ['rate-cards-select'],
-    queryFn: () => rateCardService.getAll(),
-  });
-
   const customers = customersRes?.data || [];
   const drivers = driversRes?.data || [];
   const vehicles = vehiclesRes?.data || [];
-  const rateCards = rateCardsRes?.data || [];
 
   const driverOptions = drivers.map((d) => ({
     value: d.id,
@@ -147,34 +152,34 @@ export default function CreateTripPage() {
     }
   }, [selectedCustomer]);
 
-  // Match active Rate Card for selected customer and route
-  const matchedRateCard = useMemo(() => {
-    if (!rateCards.length) return null;
+  // What this lane costs this customer. Asked of the server, which applies the
+  // one rule (customer's rate for the lane → standard rate for the lane →
+  // nothing) that invoicing uses too.
+  //
+  // This replaces a client-side guess that matched rate cards by substring
+  // against the stop's free-text name — "Khamis Sorting Center" never contains
+  // "Riyadh", so it fell through to "any card for this customer" and finally to
+  // whichever card happened to be first in the list. The price shown was
+  // frequently not the price for this route.
+  const laneReady = !!pickupLocationId && !!dropoffLocationId && pickupLocationId !== dropoffLocationId;
 
-    // 1. Try customer-specific and route-matching rate card
-    if (customerId && pickupName && dropoffName) {
-      const pLower = pickupName.toLowerCase();
-      const dLower = dropoffName.toLowerCase();
-      const routeSpecific = rateCards.find(rc =>
-        rc.customerId === customerId &&
-        rc.is_active &&
-        ((rc.route_origin && (pLower.includes(rc.route_origin.toLowerCase()) || rc.route_origin.toLowerCase().includes(pLower))) &&
-         (rc.route_destination && (dLower.includes(rc.route_destination.toLowerCase()) || rc.route_destination.toLowerCase().includes(dLower))))
-      );
-      if (routeSpecific) return routeSpecific;
-    }
+  const { data: rateLookup, isFetching: isLookingUpRate } = useQuery({
+    queryKey: ['rate-card-lookup', customerId, pickupLocationId, dropoffLocationId],
+    queryFn: () =>
+      rateCardService.lookup({
+        customer_id: customerId,
+        origin_location_id: pickupLocationId,
+        destination_location_id: dropoffLocationId,
+      }),
+    enabled: !!customerId && laneReady,
+  });
 
-    // 2. Try customer-specific active rate card
-    if (customerId) {
-      const custCard = rateCards.find(rc => rc.customerId === customerId && rc.is_active);
-      if (custCard) return custCard;
-    }
+  const matchedRateCard = rateLookup?.rate_card ?? null;
+  const rateSource = rateLookup?.source ?? null;
+  const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && !matchedRateCard;
 
-    // 3. Fallback to general standard active rate card
-    return rateCards.find(rc => !rc.customerId && rc.is_active) || rateCards[0] || null;
-  }, [rateCards, customerId, pickupName, dropoffName]);
-
-  // Auto-populate billing price from matched rate card when customer/rate card changes (if not manually edited)
+  // Auto-fill the price from the matched rate, unless the dispatcher has typed
+  // their own for this trip.
   useEffect(() => {
     if (matchedRateCard && !isPriceCustomized) {
       setBillingAmount(String(matchedRateCard.base_price));
@@ -243,9 +248,39 @@ export default function CreateTripPage() {
     setIsPriceCustomized(true);
   };
 
-  // Create Trip Mutation
+  // Create Trip Mutation.
+  //
+  // When the lane has no rate yet and the dispatcher chose to save the price
+  // they typed, the rate card is created FIRST so the trip records which card
+  // it was priced from. If saving the rate fails the trip is still dispatched —
+  // a pricing bookkeeping problem must not block getting a truck on the road —
+  // and the failure is surfaced afterwards.
+  const [rateSaveWarning, setRateSaveWarning] = useState<string | null>(null);
+
   const createMutation = useMutation({
-    mutationFn: (payload: CreateTripPayload) => tripService.create(payload),
+    mutationFn: async (payload: CreateTripPayload) => {
+      let rateCardId = matchedRateCard?.id;
+
+      if (!matchedRateCard && laneHasNoRate && saveRateAs !== 'none' && payload.billing_amount) {
+        try {
+          const created = await rateCardService.create({
+            base_price: payload.billing_amount,
+            currency: 'SAR',
+            customerId: saveRateAs === 'customer' ? customerId : null,
+            origin_location_id: pickupLocationId,
+            destination_location_id: dropoffLocationId,
+          });
+          rateCardId = created.id;
+        } catch (e: any) {
+          setRateSaveWarning(
+            e.response?.data?.error?.message ||
+              'The trip was created, but the new rate could not be saved for reuse.'
+          );
+        }
+      }
+
+      return tripService.create({ ...payload, rate_card_id: rateCardId });
+    },
     onSuccess: async () => {
       // Auto-save locations to customer
       if (customerId && pickupLat && pickupLng && dropoffLat && dropoffLng) {
@@ -264,6 +299,7 @@ export default function CreateTripPage() {
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['fleet-performance'] });
       queryClient.invalidateQueries({ queryKey: ['customers-select'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       navigate('/trips');
     },
     onError: (err: any) => {
@@ -279,16 +315,22 @@ export default function CreateTripPage() {
     setVehicleId('');
     setAssignDriverLater(false);
     setAssignVehicleLater(false);
+    setPickupLocationId('');
+    setPickupLocationName('');
     setPickupLat(24.7136);
     setPickupLng(46.6753);
     setPickupTime('');
     setPickupName('');
+    setDropoffLocationId('');
+    setDropoffLocationName('');
     setDropoffLat(21.5433);
     setDropoffLng(39.1728);
     setDropoffTime('');
     setDropoffName('');
     setBillingAmount('');
     setIsPriceCustomized(false);
+    setSaveRateAs('standard');
+    setRateSaveWarning(null);
     setError(null);
   };
 
@@ -322,13 +364,16 @@ export default function CreateTripPage() {
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
   const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
+  const missingLane = !pickupLocationId || !dropoffLocationId;
+  const sameLaneEndpoints = !!pickupLocationId && pickupLocationId === dropoffLocationId;
   const missingSchedule = pickupTime === '' || dropoffTime === '';
   const isScheduleInvalid = pickupTime !== '' && dropoffTime !== '' && dropoffTime <= pickupTime;
   const isFormValid =
     customerId !== '' &&
     (assignDriverLater || driverId !== '') &&
     (assignVehicleLater || vehicleId !== '') &&
-    !missingLocation && !missingName && !missingSchedule && !isScheduleInvalid;
+    !missingLocation && !missingName && !missingLane && !sameLaneEndpoints &&
+    !missingSchedule && !isScheduleInvalid;
 
   const handleSubmit = useCallback(() => {
     setError(null);
@@ -343,6 +388,14 @@ export default function CreateTripPage() {
     }
     if (pickupName.trim() === '' || dropoffName.trim() === '') {
       setError('Name both locations (e.g. "Khamis Sorting Center") — reports group trips by these names.');
+      return;
+    }
+    if (!pickupLocationId || !dropoffLocationId) {
+      setError('Pick the origin and destination for both stops — that is what the rate is priced against.');
+      return;
+    }
+    if (pickupLocationId === dropoffLocationId) {
+      setError('Origin and destination must be different places.');
       return;
     }
     if (!pickupTime || !dropoffTime) {
@@ -371,6 +424,7 @@ export default function CreateTripPage() {
           lng: pickupLng,
           planned_arrival: pickupTime || undefined,
           location_name: pickupName.trim() || undefined,
+          location_id: pickupLocationId || undefined,
         },
         {
           stop_type: 'Dropoff',
@@ -378,12 +432,13 @@ export default function CreateTripPage() {
           lng: dropoffLng,
           planned_arrival: dropoffTime || undefined,
           location_name: dropoffName.trim() || undefined,
+          location_id: dropoffLocationId || undefined,
         },
       ],
     };
 
     createMutation.mutate(payload);
-  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, plannedStart, pickupTime, dropoffTime, pickupName, dropoffName, billingAmount, createMutation]);
+  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, plannedStart, pickupTime, dropoffTime, pickupName, dropoffName, billingAmount, createMutation]);
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
@@ -448,16 +503,16 @@ export default function CreateTripPage() {
 
             {/* Location Selection & Pricing */}
             <div className={`flex-1 p-3.5 flex items-center gap-3 w-full transition-colors ${step === 3 ? 'bg-muted/50' : ''}`}>
-              <Navigation className={`w-4 h-4 shrink-0 ${!missingLocation && !missingSchedule && !isScheduleInvalid ? 'text-primary' : 'text-muted-foreground/40'}`} />
+              <Navigation className={`w-4 h-4 shrink-0 ${!missingLocation && !missingLane && !missingSchedule && !isScheduleInvalid ? 'text-primary' : 'text-muted-foreground/40'}`} />
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">3. Location Selection &amp; Pricing</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${!missingLocation && !missingSchedule && !isScheduleInvalid ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                  {!missingLocation && !missingSchedule && !isScheduleInvalid
-                    ? `${pickupName || 'Origin'} → ${dropoffName || 'Destination'}${billingAmount ? ` • SAR ${Number(billingAmount).toLocaleString()}` : ''}`
+                <p className={`text-sm font-bold truncate mt-0.5 ${!missingLocation && !missingLane && !missingSchedule && !isScheduleInvalid ? 'text-foreground' : 'text-muted-foreground/60'}`}>
+                  {!missingLocation && !missingLane && !missingSchedule && !isScheduleInvalid
+                    ? `${pickupLocationName} → ${dropoffLocationName}${billingAmount ? ` • SAR ${Number(billingAmount).toLocaleString()}` : ''}`
                     : 'Pending...'}
                 </p>
               </div>
-              {!missingLocation && !missingSchedule && !isScheduleInvalid && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+              {!missingLocation && !missingLane && !missingSchedule && !isScheduleInvalid && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
             </div>
           </div>
         </Card>
@@ -754,8 +809,41 @@ export default function CreateTripPage() {
                   </span>
                 </div>
 
+                {/* Lane endpoint — what the rate card is priced against */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="pickup_location" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <MapPinned className="w-3.5 h-3.5 text-emerald-600" /> Origin <span className="text-destructive">*</span>
+                  </Label>
+                  <LocationCombobox
+                    id="pickup_location"
+                    value={pickupLocationId}
+                    onChange={(locId, loc) => {
+                      setPickupLocationId(locId);
+                      setPickupLocationName(loc?.name || '');
+                      // A place carries a default pin, so picking "Riyadh" moves
+                      // the map there instead of leaving it on the last trip's
+                      // coordinates. The dispatcher can still drag it to the
+                      // exact yard afterwards.
+                      if (loc?.lat != null && loc?.lng != null) {
+                        setPickupLat(loc.lat);
+                        setPickupLng(loc.lng);
+                      }
+                      if (loc && !pickupName.trim()) setPickupName(loc.name);
+                      setError(null);
+                    }}
+                    placeholder="Where does this trip start? (e.g. Riyadh)"
+                    excludeLocationId={dropoffLocationId}
+                    newLocationLat={pickupLat}
+                    newLocationLng={pickupLng}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    The city or hub this lane starts from — pricing is per lane. Type a new name in the
+                    dropdown to add it.
+                  </p>
+                </div>
+
                 <LocationPickerMap
-                  label="Pickup Location (Click map or enter address)"
+                  label="Exact pickup point (click map or enter address)"
                   lat={pickupLat}
                   lng={pickupLng}
                   onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
@@ -853,8 +941,36 @@ export default function CreateTripPage() {
                   </span>
                 </div>
 
+                {/* Lane endpoint — what the rate card is priced against */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="dropoff_location" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <MapPinned className="w-3.5 h-3.5 text-destructive" /> Destination <span className="text-destructive">*</span>
+                  </Label>
+                  <LocationCombobox
+                    id="dropoff_location"
+                    value={dropoffLocationId}
+                    onChange={(locId, loc) => {
+                      setDropoffLocationId(locId);
+                      setDropoffLocationName(loc?.name || '');
+                      if (loc?.lat != null && loc?.lng != null) {
+                        setDropoffLat(loc.lat);
+                        setDropoffLng(loc.lng);
+                      }
+                      if (loc && !dropoffName.trim()) setDropoffName(loc.name);
+                      setError(null);
+                    }}
+                    placeholder="Where does it end? (e.g. Jeddah)"
+                    excludeLocationId={pickupLocationId}
+                    newLocationLat={dropoffLat}
+                    newLocationLng={dropoffLng}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Together with the origin this is the lane the price comes from.
+                  </p>
+                </div>
+
                 <LocationPickerMap
-                  label="Dropoff Location (Click map or enter address)"
+                  label="Exact dropoff point (click map or enter address)"
                   lat={dropoffLat}
                   lng={dropoffLng}
                   onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
@@ -1092,13 +1208,19 @@ export default function CreateTripPage() {
               <div className="h-px bg-border/70" />
 
               <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Pickup</span>
+                <span className="text-muted-foreground font-medium shrink-0">Lane</span>
+                <span className={cn('text-right font-semibold truncate', !laneReady && 'text-muted-foreground/60 font-normal')}>
+                  {laneReady ? `${pickupLocationName} → ${dropoffLocationName}` : 'Not set'}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-muted-foreground font-medium shrink-0">Pickup point</span>
                 <span className={cn('text-right font-semibold truncate', !pickupName && 'text-muted-foreground/60 font-normal')}>
                   {pickupName || 'Not set'}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground font-medium shrink-0">Dropoff</span>
+                <span className="text-muted-foreground font-medium shrink-0">Dropoff point</span>
                 <span className={cn('text-right font-semibold truncate', !dropoffName && 'text-muted-foreground/60 font-normal')}>
                   {dropoffName || 'Not set'}
                 </span>
@@ -1129,23 +1251,39 @@ export default function CreateTripPage() {
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
                   <Receipt className="size-4 text-indigo-600" /> Pricing &amp; Tariff
                 </CardTitle>
-                {matchedRateCard ? (
+                {isLookingUpRate ? (
+                  <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground shrink-0">
+                    Checking...
+                  </Badge>
+                ) : matchedRateCard ? (
                   <Badge variant="outline" className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0">
                     <Tag className="w-3 h-3 mr-1" />
-                    {matchedRateCard.name}
+                    {rateSource === 'customer' ? 'Customer rate' : 'Standard rate'}
+                  </Badge>
+                ) : laneHasNoRate ? (
+                  <Badge variant="outline" className="text-[11px] font-semibold bg-amber-50 text-amber-700 border-amber-200 shrink-0">
+                    New lane
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground shrink-0">
-                    Standard Tariff
+                    Pick a lane
                   </Badge>
                 )}
               </div>
               <CardDescription className="text-xs">
-                Contract rate card &amp; trip billing amount (saved to ledger and invoices)
+                What this trip bills. Taken from the rate for this lane, and editable per trip.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
-              {/* Rate Card Context Card */}
+
+              {/* Nothing to price against yet */}
+              {!laneReady && (
+                <p className="text-[11px] text-muted-foreground rounded-lg border border-dashed border-border p-3">
+                  Choose an origin and destination in step 3 to see the price for this lane.
+                </p>
+              )}
+
+              {/* Matched rate */}
               {matchedRateCard && (
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-xs">
                   <div className="space-y-0.5 min-w-0">
@@ -1154,26 +1292,82 @@ export default function CreateTripPage() {
                         {matchedRateCard.name}
                       </span>
                       <span className="text-[10px] text-indigo-600 font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/50">
-                        {matchedRateCard.route_origin || 'Origin'} → {matchedRateCard.route_destination || 'Destination'}
+                        {matchedRateCard.route_origin} → {matchedRateCard.route_destination}
                       </span>
                     </div>
                     <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
-                      Contract Base Rate: <strong className="font-mono font-bold">{matchedRateCard.currency || 'SAR'} {Number(matchedRateCard.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                      {rateSource === 'customer'
+                        ? `${selectedCustomer?.name || 'This customer'}'s own rate: `
+                        : 'Standard rate for this lane: '}
+                      <strong className="font-mono font-bold">
+                        {matchedRateCard.currency || 'SAR'} {Number(matchedRateCard.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </strong>
                     </p>
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setBillingAmount(String(matchedRateCard.base_price));
-                      setIsPriceCustomized(false);
-                    }}
-                    className="h-7 px-2 text-[11px] text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-semibold shrink-0"
-                  >
-                    Reset to Rate Card
-                  </Button>
+                  {isPriceCustomized && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setBillingAmount(String(matchedRateCard.base_price));
+                        setIsPriceCustomized(false);
+                      }}
+                      className="h-7 px-2 text-[11px] text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-semibold shrink-0"
+                    >
+                      Reset to rate
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* New lane — offer to save the typed price for reuse */}
+              {laneHasNoRate && (
+                <div className="rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/20 p-3 space-y-2.5 text-xs">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-amber-900 dark:text-amber-200">
+                        No rate for {pickupLocationName || 'origin'} → {dropoffLocationName || 'destination'} yet
+                      </p>
+                      <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                        Enter the price below and save it, so the next trip on this lane fills in
+                        automatically.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 pl-5.5">
+                    {([
+                      { key: 'standard', label: 'Save as the standard rate', hint: 'Every customer uses it' },
+                      { key: 'customer', label: `Save for ${selectedCustomer?.name || 'this customer'} only`, hint: 'Overrides the standard rate' },
+                      { key: 'none', label: "Don't save", hint: 'One-off price for this trip' },
+                    ] as const).map((option) => (
+                      <label
+                        key={option.key}
+                        className="flex items-start gap-2 cursor-pointer rounded-md px-1.5 py-1 hover:bg-amber-100/60 dark:hover:bg-amber-900/20 transition-colors"
+                      >
+                        <input
+                          type="radio"
+                          name="save_rate_as"
+                          checked={saveRateAs === option.key}
+                          onChange={() => setSaveRateAs(option.key)}
+                          className="mt-0.5 accent-[#E8450F]"
+                        />
+                        <span>
+                          <span className="block font-semibold text-amber-900 dark:text-amber-200">{option.label}</span>
+                          <span className="block text-[10px] text-amber-800/70 dark:text-amber-300/70">{option.hint}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {rateSaveWarning && (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700">
+                  {rateSaveWarning}
                 </div>
               )}
 
