@@ -588,16 +588,10 @@ export default function MaintenanceListPage() {
                   enableSelection={true}
                   compact={true}
                   isLoading={isLoading}
-                  isError={isError}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  pageSize={pageSize}
-                  onPageSizeChange={(size) => {
-                    setPageSize(size);
-                    setCurrentPage(1);
-                  }}
-                  totalRecords={totalCount}
-                  onPageChange={setCurrentPage}
+                  currentPage={page}
+                  totalPages={maintenanceRes?.meta?.total_pages || 1}
+                  totalRecords={maintenanceRes?.meta?.total || records.length}
+                  onPageChange={setPage}
                   onRowClick={(row) => navigate(`/maintenance/${row.id}`)}
                 />
               </div>

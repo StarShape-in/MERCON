@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import DataTable from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
 
 export default function VehicleDetailsPage() {
@@ -548,140 +549,128 @@ export default function VehicleDetailsPage() {
             </Card>
 
             {/* Section 4: Workshop Maintenance & Service History Ledger */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-amber-500" /> Maintenance & Service History Ledger
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500">
-                    Workshop repairs, oil services, renewals, and work done details for this vehicle.
-                  </CardDescription>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setMaintFormData({
-                        vehicle_id: id || '',
-                        workshop_name: '',
-                        workshop_contact: '',
-                        maintenance_type: 'Routine',
-                        status: 'Completed',
-                        start_date: new Date().toISOString().split('T')[0],
-                        end_date: new Date().toISOString().split('T')[0],
-                        work_done: '',
-                        odometer_reading: vehicle.current_odometer || 0,
-                        cost: 0,
-                        invoice_number: '',
-                        remarks: '',
-                      });
-                      setIsLogMaintModalOpen(true);
-                    }}
-                    className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Log Maintenance
-                  </Button>
-                  <Badge variant="outline" className="text-[10px] font-mono font-bold text-slate-500">
-                    {maintenanceRecords.length} Logs
-                  </Badge>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-0">
-                {isMaintLoading ? (
-                  <div className="p-8 text-center text-slate-400 animate-pulse text-xs">
-                    Loading maintenance records...
-                  </div>
-                ) : maintenanceRecords.length === 0 ? (
-                  <div className="p-10 text-center text-slate-400 flex flex-col items-center gap-2">
-                    <Wrench className="w-8 h-8 opacity-30 text-slate-400" />
-                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">No maintenance records logged for this vehicle yet.</p>
+            <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-amber-500" />
+                  <span>Vehicle Maintenance Service History</span>
+                </span>
+              }
+              actionsElement={
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setMaintFormData({
+                      vehicle_id: id || '',
+                      workshop_name: '',
+                      workshop_contact: '',
+                      maintenance_type: 'Routine',
+                      status: 'Scheduled',
+                      start_date: '',
+                      end_date: '',
+                      work_done: '',
+                      odometer_reading: vehicle.current_odometer || 0,
+                      cost: 0,
+                      invoice_number: '',
+                      remarks: '',
+                    });
+                    setIsLogMaintModalOpen(true);
+                  }}
+                  className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Log Maintenance
+                </Button>
+              }
+              columns={[
+                {
+                  header: 'Start / End Date',
+                  accessor: (m: any) => (
+                    <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                      <div>{m.start_date ? new Date(m.start_date).toLocaleDateString() : new Date(m.service_date).toLocaleDateString()}</div>
+                      {m.end_date && (
+                        <div className="text-[10px] text-slate-400">to {new Date(m.end_date).toLocaleDateString()}</div>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  header: 'Type',
+                  accessor: (m: any) => (
+                    <Badge variant="outline" className="text-[10px] font-bold">
+                      {m.maintenance_type}
+                    </Badge>
+                  ),
+                },
+                {
+                  header: 'Work Done / Details',
+                  accessor: (m: any) => (
+                    <div>
+                      <div className="font-semibold text-slate-800 dark:text-slate-200">{m.workshop_name}</div>
+                      <div className="text-[11px] text-slate-500 truncate max-w-xs">{m.work_done || m.remarks || 'Standard Service'}</div>
+                    </div>
+                  ),
+                },
+                {
+                  header: 'Expense',
+                  accessor: (m: any) => (
+                    <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 text-xs">
+                      SAR {(m.cost || 0).toLocaleString()}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Status',
+                  accessor: (m: any) => (
+                    <Badge className={cn(
+                      "text-[10px] font-bold",
+                      m.status === 'Completed' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                      m.status === 'In_Progress' ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700"
+                    )}>
+                      {m.status.toUpperCase()}
+                    </Badge>
+                  ),
+                },
+                {
+                  header: 'Actions',
+                  headerClassName: 'text-right',
+                  className: 'text-right',
+                  accessor: (m: any) => (
                     <Button
+                      variant="ghost"
                       size="sm"
-                      onClick={() => setIsLogMaintModalOpen(true)}
-                      className="mt-1 text-xs font-bold bg-[#E8450F] text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMaintFormData({
+                          vehicle_id: m.vehicleId,
+                          workshop_name: m.workshop_name,
+                          workshop_contact: m.workshop_contact || '',
+                          maintenance_type: m.maintenance_type,
+                          status: m.status,
+                          start_date: m.start_date ? m.start_date.split('T')[0] : '',
+                          end_date: m.end_date ? m.end_date.split('T')[0] : '',
+                          work_done: m.work_done || '',
+                          odometer_reading: m.odometer_reading || 0,
+                          cost: m.cost || 0,
+                          invoice_number: m.invoice_number || '',
+                          remarks: m.remarks || '',
+                        });
+                        setIsLogMaintModalOpen(true);
+                      }}
+                      className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
+                      title="Edit Log"
                     >
-                      + Log First Maintenance
+                      <Edit2 className="w-3.5 h-3.5" />
                     </Button>
-                  </div>
-                ) : (
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
-                        <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Start / End Date</th>
-                        <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Type</th>
-                        <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Work Done / Details</th>
-                        <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Expense</th>
-                        <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider">Status</th>
-                        <th className="px-5 py-3 font-bold text-[10px] uppercase text-slate-400 tracking-wider text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                      {maintenanceRecords.map((m) => (
-                        <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                          <td className="px-5 py-3 font-mono font-semibold text-slate-700 dark:text-slate-300">
-                            <div>{m.start_date ? new Date(m.start_date).toLocaleDateString() : new Date(m.service_date).toLocaleDateString()}</div>
-                            {m.end_date && (
-                              <div className="text-[10px] text-slate-400">to {new Date(m.end_date).toLocaleDateString()}</div>
-                            )}
-                          </td>
-                          <td className="px-5 py-3">
-                            <Badge variant="outline" className="text-[10px] font-bold">
-                              {m.maintenance_type}
-                            </Badge>
-                          </td>
-                          <td className="px-5 py-3">
-                            <div className="font-semibold text-slate-800 dark:text-slate-200">{m.workshop_name}</div>
-                            <div className="text-[11px] text-slate-500 truncate max-w-xs">{m.work_done || m.remarks || 'Standard Service'}</div>
-                          </td>
-                          <td className="px-5 py-3 font-mono font-extrabold text-rose-600 dark:text-rose-400">
-                            SAR {(m.cost || 0).toLocaleString()}
-                          </td>
-                          <td className="px-5 py-3">
-                            <Badge className={cn(
-                              "text-[10px] font-bold",
-                              m.status === 'Completed' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                              m.status === 'In_Progress' ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700"
-                            )}>
-                              {m.status.toUpperCase()}
-                            </Badge>
-                          </td>
-                          <td className="px-5 py-3 text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setMaintFormData({
-                                  vehicle_id: m.vehicleId,
-                                  workshop_name: m.workshop_name,
-                                  workshop_contact: m.workshop_contact || '',
-                                  maintenance_type: m.maintenance_type,
-                                  status: m.status,
-                                  start_date: m.start_date ? m.start_date.split('T')[0] : '',
-                                  end_date: m.end_date ? m.end_date.split('T')[0] : '',
-                                  work_done: m.work_done || '',
-                                  odometer_reading: m.odometer_reading || 0,
-                                  cost: m.cost || 0,
-                                  invoice_number: m.invoice_number || '',
-                                  remarks: m.remarks || '',
-                                });
-                                setIsLogMaintModalOpen(true);
-                              }}
-                              className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
-                              title="Edit Log"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </CardContent>
-            </Card>
+                  ),
+                },
+              ]}
+              data={maintenanceRecords}
+              compact={true}
+              enableSelection={false}
+              isLoading={isMaintLoading}
+              emptyTitle="No Maintenance Logs"
+              emptyMessage="No maintenance records logged for this vehicle yet."
+            />
 
           </div>
 
