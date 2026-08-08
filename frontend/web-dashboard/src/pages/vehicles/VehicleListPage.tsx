@@ -16,6 +16,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { vehicleService, Vehicle, AssetStatus } from '@/services/vehicleService';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 import KpiCard from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,18 @@ export default function VehicleListPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    isDestructive?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -237,10 +250,17 @@ export default function VehicleListPage() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={async () => {
-                  if (!confirm(`Mark ${row.plate_number} as Maintenance?`)) return;
-                  await vehicleService.bulkUpdateStatus([row.id], 'Maintenance');
-                  queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: 'Mark Maintenance',
+                    message: `Are you sure you want to mark vehicle ${row.plate_number} as Maintenance?`,
+                    isDestructive: false,
+                    onConfirm: async () => {
+                      await vehicleService.bulkUpdateStatus([row.id], 'Maintenance');
+                      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                    }
+                  });
                 }} 
                 className="text-xs font-semibold text-amber-600"
               >
@@ -268,36 +288,57 @@ export default function VehicleListPage() {
     {
       label: 'Mark Available',
       icon: <CheckCircle size={13} />,
-      onClick: async (selectedRows: Vehicle[]) => {
-        if (!confirm(`Mark ${selectedRows.length} vehicles as Available?`)) return;
-        try {
-          await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Available');
-          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-        } catch (e) { alert('Failed to update status'); }
+      onClick: (selectedRows: Vehicle[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Mark Vehicles as Available',
+          message: `Are you sure you want to mark ${selectedRows.length} vehicles as Available?`,
+          isDestructive: false,
+          onConfirm: async () => {
+            try {
+              await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Available');
+              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+            } catch (e) { alert('Failed to update status'); }
+          }
+        });
       }
     },
     {
       label: 'Mark Maintenance',
       icon: <Wrench size={13} />,
       variant: 'secondary' as const,
-      onClick: async (selectedRows: Vehicle[]) => {
-        if (!confirm(`Mark ${selectedRows.length} vehicles as Maintenance?`)) return;
-        try {
-          await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Maintenance');
-          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-        } catch (e) { alert('Failed to update status'); }
+      onClick: (selectedRows: Vehicle[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Mark Vehicles as Maintenance',
+          message: `Are you sure you want to mark ${selectedRows.length} vehicles as Maintenance?`,
+          isDestructive: false,
+          onConfirm: async () => {
+            try {
+              await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Maintenance');
+              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+            } catch (e) { alert('Failed to update status'); }
+          }
+        });
       }
     },
     {
       label: 'Mark Inactive',
       icon: <XCircle size={13} />,
       variant: 'secondary' as const,
-      onClick: async (selectedRows: Vehicle[]) => {
-        if (!confirm(`Mark ${selectedRows.length} vehicles as Inactive?`)) return;
-        try {
-          await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Inactive');
-          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-        } catch (e) { alert('Failed to update status'); }
+      onClick: (selectedRows: Vehicle[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Mark Vehicles as Inactive',
+          message: `Are you sure you want to mark ${selectedRows.length} vehicles as Inactive?`,
+          isDestructive: false,
+          onConfirm: async () => {
+            try {
+              await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Inactive');
+              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+            } catch (e) { alert('Failed to update status'); }
+          }
+        });
       }
     },
     {
@@ -331,12 +372,19 @@ export default function VehicleListPage() {
       label: 'Delete',
       icon: <Trash2 size={13} />,
       variant: 'danger' as const,
-      onClick: async (selectedRows: Vehicle[]) => {
-        if (!confirm(`Are you sure you want to delete ${selectedRows.length} vehicles?`)) return;
-        try {
-          await vehicleService.bulkDelete(selectedRows.map(r => r.id));
-          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-        } catch (e) { alert('Failed to delete vehicles'); }
+      onClick: (selectedRows: Vehicle[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Delete Selected Vehicles',
+          message: `Are you sure you want to delete ${selectedRows.length} vehicles? This action cannot be undone.`,
+          isDestructive: true,
+          onConfirm: async () => {
+            try {
+              await vehicleService.bulkDelete(selectedRows.map(r => r.id));
+              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+            } catch (e) { alert('Failed to delete vehicles'); }
+          }
+        });
       }
     }
   ];
@@ -657,6 +705,18 @@ export default function VehicleListPage() {
             ))}
           </div>
         )}
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={async () => {
+            await confirmModal.onConfirm();
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          isDestructive={confirmModal.isDestructive}
+        />
 
       </div>
     </DashboardLayout>

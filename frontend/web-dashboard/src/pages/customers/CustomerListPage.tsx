@@ -33,6 +33,7 @@ import { CreditExposureKpi } from '@/components/ui/CustomKpiWidgets';
 import { customerService, Customer } from '@/services/customerService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -76,6 +77,17 @@ export default function CustomerListPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -214,11 +226,16 @@ export default function CustomerListPage() {
           </button>
 
           <button
-            onClick={async () => {
-              if (confirm(`Delete customer ${row.name}?`)) {
-                await customerService.delete(row.id);
-                queryClient.invalidateQueries({ queryKey: ['customers'] });
-              }
+            onClick={() => {
+              setConfirmModal({
+                isOpen: true,
+                title: 'Delete Customer Account',
+                message: `Are you sure you want to delete customer ${row.name}? This action cannot be undone.`,
+                onConfirm: async () => {
+                  await customerService.delete(row.id);
+                  queryClient.invalidateQueries({ queryKey: ['customers'] });
+                }
+              });
             }}
             title="Delete Customer Account"
             className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
@@ -243,12 +260,20 @@ export default function CustomerListPage() {
       label: 'Delete Selected',
       icon: <Trash2 size={13} />,
       variant: 'danger' as const,
-      onClick: async (selectedRows: Customer[]) => {
-        if (!confirm(`Are you sure you want to delete ${selectedRows.length} customers?`)) return;
-        try {
-          await Promise.all(selectedRows.map(c => customerService.delete(c.id)));
-          queryClient.invalidateQueries({ queryKey: ['customers'] });
-        } catch (e) { alert('Failed to delete selected customers'); }
+      onClick: (selectedRows: Customer[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Delete Selected Customers',
+          message: `Are you sure you want to delete ${selectedRows.length} customers? This action cannot be undone.`,
+          onConfirm: async () => {
+            try {
+              await Promise.all(selectedRows.map(c => customerService.delete(c.id)));
+              queryClient.invalidateQueries({ queryKey: ['customers'] });
+            } catch (e) {
+              alert('Failed to delete selected customers');
+            }
+          }
+        });
       }
     }
   ];
@@ -640,6 +665,18 @@ export default function CustomerListPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={async () => {
+            await confirmModal.onConfirm();
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          isDestructive={true}
+        />
 
       </div>
     </DashboardLayout>

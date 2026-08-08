@@ -41,6 +41,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -89,6 +90,18 @@ export default function DriverListPage() {
   const [newStatus, setNewStatus] = useState<DriverStatus>('Available');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showMotModal, setShowMotModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    isDestructive?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Origin-aware KPI modal state
   const [originRect, setOriginRect] = useState<DOMRect | null>(null);
@@ -291,11 +304,17 @@ export default function DriverListPage() {
           </button>
 
           <button
-            onClick={async () => {
-              if (confirm(`Delete driver ${row.first_name} ${row.last_name}?`)) {
-                await driverService.bulkDelete([row.id]);
-                queryClient.invalidateQueries({ queryKey: ['drivers'] });
-              }
+            onClick={() => {
+              setConfirmModal({
+                isOpen: true,
+                title: 'Delete Driver Record',
+                message: `Are you sure you want to delete driver ${row.first_name} ${row.last_name}? This action cannot be undone.`,
+                isDestructive: true,
+                onConfirm: async () => {
+                  await driverService.bulkDelete([row.id]);
+                  queryClient.invalidateQueries({ queryKey: ['drivers'] });
+                }
+              });
             }}
             title="Delete Driver Record"
             className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
@@ -321,24 +340,38 @@ export default function DriverListPage() {
     {
       label: 'Mark Available',
       icon: <CheckCircle size={13} />,
-      onClick: async (selectedRows: Driver[]) => {
-        if (!confirm(`Mark ${selectedRows.length} drivers as Available?`)) return;
-        try {
-          await driverService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Available');
-          queryClient.invalidateQueries({ queryKey: ['drivers'] });
-        } catch (e) { alert('Failed to update status'); }
+      onClick: (selectedRows: Driver[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Mark Drivers as Available',
+          message: `Are you sure you want to mark ${selectedRows.length} drivers as Available?`,
+          isDestructive: false,
+          onConfirm: async () => {
+            try {
+              await driverService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Available');
+              queryClient.invalidateQueries({ queryKey: ['drivers'] });
+            } catch (e) { alert('Failed to update status'); }
+          }
+        });
       }
     },
     {
       label: 'Mark Off-Duty',
       icon: <XCircle size={13} />,
       variant: 'secondary' as const,
-      onClick: async (selectedRows: Driver[]) => {
-        if (!confirm(`Mark ${selectedRows.length} drivers as Off Duty?`)) return;
-        try {
-          await driverService.bulkUpdateStatus(selectedRows.map(r => r.id), 'OffDuty');
-          queryClient.invalidateQueries({ queryKey: ['drivers'] });
-        } catch (e) { alert('Failed to update status'); }
+      onClick: (selectedRows: Driver[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Mark Drivers as Off-Duty',
+          message: `Are you sure you want to mark ${selectedRows.length} drivers as Off Duty?`,
+          isDestructive: false,
+          onConfirm: async () => {
+            try {
+              await driverService.bulkUpdateStatus(selectedRows.map(r => r.id), 'OffDuty');
+              queryClient.invalidateQueries({ queryKey: ['drivers'] });
+            } catch (e) { alert('Failed to update status'); }
+          }
+        });
       }
     },
     {
@@ -372,12 +405,19 @@ export default function DriverListPage() {
       label: 'Delete Selected',
       icon: <Trash2 size={13} />,
       variant: 'danger' as const,
-      onClick: async (selectedRows: Driver[]) => {
-        if (!confirm(`Are you sure you want to delete ${selectedRows.length} driver records?`)) return;
-        try {
-          await driverService.bulkDelete(selectedRows.map(r => r.id));
-          queryClient.invalidateQueries({ queryKey: ['drivers'] });
-        } catch (e) { alert('Failed to delete drivers'); }
+      onClick: (selectedRows: Driver[]) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Delete Selected Drivers',
+          message: `Are you sure you want to delete ${selectedRows.length} driver records? This action cannot be undone.`,
+          isDestructive: true,
+          onConfirm: async () => {
+            try {
+              await driverService.bulkDelete(selectedRows.map(r => r.id));
+              queryClient.invalidateQueries({ queryKey: ['drivers'] });
+            } catch (e) { alert('Failed to delete drivers'); }
+          }
+        });
       }
     }
   ];
@@ -1171,6 +1211,18 @@ export default function DriverListPage() {
             </div>
           </div>
         </KpiModal>
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={async () => {
+            await confirmModal.onConfirm();
+            setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          isDestructive={confirmModal.isDestructive}
+        />
 
       </div>
     </DashboardLayout>
