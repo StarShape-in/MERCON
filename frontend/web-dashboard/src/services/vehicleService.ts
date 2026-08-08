@@ -26,6 +26,7 @@ export interface Vehicle {
   createdAt: string;
   documents?: import('./documentService').MerconDocument[];
   trips?: any[];
+  assignedDriver?: any;
 }
 
 export interface CreateVehiclePayload {

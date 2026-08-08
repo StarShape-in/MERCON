@@ -26,7 +26,8 @@ import {
   XCircle,
   X,
   Send,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Truck
 } from 'lucide-react';
 import { DriverBadge, CheckBadge, RouteLine, TruckMotion, RiskAlert } from '@/components/ui/kpi-icons';
 import KpiCard from '@/components/ui/KpiCard';
@@ -181,7 +182,7 @@ export default function DriverListPage() {
 
     const dataRows = rowsToExport.map(row => {
       const activeTrip = row.trips?.[0];
-      const assignedVehicle = activeTrip?.vehicle?.plate_number || 'None';
+      const assignedVehicle = row.assignedVehicle?.plate_number || activeTrip?.vehicle?.plate_number || 'None';
       
       return [
         row.ref_id || `DRV-${row.id.slice(0, 5).toUpperCase()}`,
@@ -228,6 +229,40 @@ export default function DriverListPage() {
               <span className="text-[11px] text-slate-500 flex items-center gap-1">
                 <Phone className="w-3 h-3 text-slate-400 shrink-0" />
                 {row.phone_primary}
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Assigned Vehicle',
+      accessor: (row: Driver) => {
+        const activeTrip = row.trips?.[0];
+        const vehicle = row.assignedVehicle || activeTrip?.vehicle;
+
+        if (!vehicle) {
+          return (
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">
+              Unassigned
+            </span>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
+              <Truck size={14} />
+            </div>
+            <div className="flex flex-col">
+              <span 
+                className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-[#E8450F] transition-colors cursor-pointer"
+                onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+              >
+                {vehicle.plate_number}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {vehicle.ref_id || vehicle.asset_type || 'Vehicle'}
               </span>
             </div>
           </div>
@@ -773,6 +808,12 @@ export default function DriverListPage() {
                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                       <span className="font-medium text-slate-400 dark:text-slate-500">Phone:</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">{d.phone_primary}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                      <span className="font-medium text-slate-400 dark:text-slate-500">Vehicle:</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        {d.assignedVehicle?.plate_number || d.trips?.[0]?.vehicle?.plate_number || 'Unassigned'}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
                       <span className="font-medium text-slate-400 dark:text-slate-500">License:</span>
