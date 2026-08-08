@@ -450,6 +450,7 @@ export default function DriverListPage() {
                 { label: "Off Duty", count: Math.max(0, totalCount - availableCount - onTripCount), color: "#D97706" },
               ]
             }}
+            isActive={activeKpiModal === 'total'}
             onClick={(e) => {
               setSelectedStatus('All');
               setCurrentPage(1);
@@ -470,6 +471,7 @@ export default function DriverListPage() {
               label: `${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`,
               subtext: `${availableCount} Ready • ${onTripCount} Dispatched`
             }}
+            isActive={activeKpiModal === 'available'}
             onClick={(e) => {
               setSelectedStatus('Available');
               setCurrentPage(1);
@@ -486,6 +488,7 @@ export default function DriverListPage() {
             description="Active en-route drivers"
             icon={TruckMotion}
             chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
+            isActive={activeKpiModal === 'onTrip'}
             onClick={(e) => {
               setSelectedStatus('OnTrip');
               setCurrentPage(1);
@@ -505,6 +508,7 @@ export default function DriverListPage() {
               { label: `Expired (${expiredLicenseCount})`, value: Math.max(expiredLicenseCount > 0 ? 10 : 0, expiredSegPct), color: 'bg-amber-500' },
               { label: `Valid (${clearDriversCount})`, value: Math.max(10, clearSegPct), color: 'bg-emerald-500' },
             ]}
+            isActive={activeKpiModal === 'expired'}
             onClick={(e) => {
               openKpiModal(e, 'expired');
             }}
