@@ -1,4 +1,5 @@
 import { api, ApiResponse } from '@/lib/api';
+import { Vehicle } from './vehicleService';
 
 export type DriverStatus = 'Available' | 'OnTrip' | 'OffDuty' | 'Inactive';
 
@@ -14,6 +15,8 @@ export interface Driver {
   ai_risk_score: number;
   isActive: boolean;
   createdAt: string;
+  assignedVehicleId: string | null;
+  assignedVehicle?: Vehicle | null;
   trips?: any[];
   documents?: Document[];
 }
@@ -24,6 +27,7 @@ export interface CreateDriverPayload {
   phone_primary: string;
   license_number: string;
   license_expiry: string;
+  assigned_vehicle_id?: string | null;
 }
 
 export interface DriverFilters {

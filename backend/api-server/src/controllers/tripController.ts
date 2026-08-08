@@ -141,7 +141,7 @@ export const getTripById = async (req: Request, res: Response) => {
 
 export const createTrip = async (req: Request, res: Response) => {
   try {
-    const { customer_id, driver_id, vehicle_id, planned_start, stops } = req.body;
+    const { customer_id, driver_id, vehicle_id, planned_start, billing_amount, trip_charges, stops } = req.body;
 
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
     const parsedPlannedStart = (planned_start && !isNaN(Date.parse(planned_start)))
@@ -201,6 +201,24 @@ export const createTrip = async (req: Request, res: Response) => {
             }
           }
 
+          let defaultBilling: number | null = null;
+          if (billing_amount !== undefined && billing_amount !== null && !isNaN(Number(billing_amount))) {
+            defaultBilling = Number(billing_amount);
+          } else {
+            const rateCard = await tx.rateCard.findFirst({
+              where: { customerId: customer_id, is_active: true }
+            }) || await tx.rateCard.findFirst({
+              where: { customerId: null, is_active: true }
+            });
+            if (rateCard) {
+              defaultBilling = rateCard.base_price;
+            }
+          }
+
+          const finalTripCharges = (trip_charges !== undefined && trip_charges !== null && !isNaN(Number(trip_charges)))
+            ? Number(trip_charges)
+            : (defaultBilling ?? 0);
+
           return tx.trip.create({
             data: {
               ref_id,
@@ -210,6 +228,8 @@ export const createTrip = async (req: Request, res: Response) => {
               planned_start: parsedPlannedStart,
               status: (driver_id && vehicle_id) ? TripStatus.Dispatched : TripStatus.Draft,
               ...(createdBy ? { created_by: createdBy } : {}),
+              ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
+              trip_charges: finalTripCharges,
               stops: {
                 create: (stops || []).map((stop: any, index: number) => ({
                   stop_sequence: index + 1,

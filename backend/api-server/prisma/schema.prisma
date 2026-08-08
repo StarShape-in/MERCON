@@ -172,6 +172,12 @@ model Driver {
   license_expiry DateTime     @db.Timestamptz
   ai_risk_score  Float        @default(0.0)
 
+  // The vehicle this driver normally drives, set from the Drivers module.
+  // Trip creation pre-fills this as the trip's vehicle so dispatchers don't
+  // re-pick it every time — it can still be overridden per trip.
+  assignedVehicleId String?  @unique @db.Uuid
+  assignedVehicle   Vehicle? @relation("DriverAssignedVehicle", fields: [assignedVehicleId], references: [id])
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid
@@ -234,6 +240,7 @@ model Vehicle {
 
   trips              Trip[]
   maintenanceRecords MaintenanceRecord[]
+  assignedDriver     Driver?              @relation("DriverAssignedVehicle")
 }
 
 // -----------------------------------------

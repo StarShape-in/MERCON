@@ -52,6 +52,8 @@ export interface CreateTripPayload {
   driver_id?: string;
   vehicle_id?: string;
   planned_start?: string;
+  billing_amount?: number;
+  trip_charges?: number;
   stops: { stop_type: string; lat: number; lng: number; planned_arrival?: string; location_name?: string }[];
 }
 

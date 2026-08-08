@@ -31,6 +31,8 @@ export const createTripBody = z.object({
   driver_id: z.string().uuid('Invalid driver').optional(),
   vehicle_id: z.string().uuid('Invalid vehicle').optional(),
   planned_start: z.coerce.date().optional(),
+  billing_amount: z.coerce.number().optional(),
+  trip_charges: z.coerce.number().optional(),
   stops: z.array(z.object({
     stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']),
     // Client + controller use lat/lng (controller reads stop.lat/stop.lng), not location_*.
@@ -74,6 +76,7 @@ export const createDriverBody = z.object({
   phone_primary: nonEmpty('Phone number'),
   license_number: nonEmpty('License number'),
   license_expiry: z.coerce.date(),
+  assigned_vehicle_id: z.string().uuid().nullable().optional(),
 });
 
 // Partial update: every field optional, unknown keys stripped, and
@@ -85,6 +88,7 @@ export const updateDriverBody = z.object({
   license_number: nonEmpty('License number').optional(),
   license_expiry: z.coerce.date().optional(),
   status: z.enum(['Available', 'OnTrip', 'OffDuty', 'Inactive']).optional(),
+  assigned_vehicle_id: z.string().uuid().nullable().optional(),
 });
 
 /* ─── Customers ──────────────────────────────────────────────────────────── */

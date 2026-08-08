@@ -38,7 +38,8 @@ export const getDrivers = async (req: Request, res: Response) => {
               vehicle: true
             },
             take: 1
-          }
+          },
+          assignedVehicle: true
         }
       }),
       prisma.driver.count({ where: whereClause })
@@ -65,7 +66,7 @@ export const getDriverById = async (req: Request, res: Response) => {
   try {
     const driver = await prisma.driver.findUnique({
       where: { id: req.params.id as string, deletedAt: null },
-      include: { trips: { take: 5, orderBy: { createdAt: 'desc' } } }
+      include: { trips: { take: 5, orderBy: { createdAt: 'desc' } }, assignedVehicle: true }
     });
 
     if (!driver) {
@@ -84,7 +85,7 @@ export const getDriverById = async (req: Request, res: Response) => {
 
 export const createDriver = async (req: Request, res: Response) => {
   try {
-    const { first_name, last_name, phone_primary, license_number, license_expiry } = req.body; // validated by createDriverBody
+    const { first_name, last_name, phone_primary, license_number, license_expiry, assigned_vehicle_id } = req.body; // validated by createDriverBody
 
     const ref_id = await generateRefId('DRV', () =>
       prisma.driver.findMany({ select: { ref_id: true } }));
@@ -97,6 +98,7 @@ export const createDriver = async (req: Request, res: Response) => {
         phone_primary,
         license_number,
         license_expiry: new Date(license_expiry),
+        assignedVehicleId: assigned_vehicle_id || null,
         created_by: (req as any).user?.id
       }
     });
@@ -104,7 +106,10 @@ export const createDriver = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: newDriver });
   } catch (error: any) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ success: false, error: { code: 'DUPLICATE_ENTRY', message: 'Phone number already exists' } });
+      const message = error.meta?.target?.includes?.('assignedVehicleId')
+        ? 'That vehicle is already assigned to another driver'
+        : 'Phone number already exists';
+      return res.status(400).json({ success: false, error: { code: 'DUPLICATE_ENTRY', message } });
     }
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create driver' } });
   }
@@ -112,16 +117,21 @@ export const createDriver = async (req: Request, res: Response) => {
 
 export const updateDriver = async (req: Request, res: Response) => {
   try {
+    const { assigned_vehicle_id, ...rest } = req.body;
     const updatedDriver = await prisma.driver.update({
       where: { id: req.params.id as string },
       data: {
-        ...req.body,
+        ...rest,
+        ...(assigned_vehicle_id !== undefined ? { assignedVehicleId: assigned_vehicle_id } : {}),
         updated_by: (req as any).user?.id
       }
     });
 
     res.json({ success: true, data: updatedDriver });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 'P2002' && error.meta?.target?.includes?.('assignedVehicleId')) {
+      return res.status(400).json({ success: false, error: { code: 'DUPLICATE_ENTRY', message: 'That vehicle is already assigned to another driver' } });
+    }
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update driver' } });
   }
 };

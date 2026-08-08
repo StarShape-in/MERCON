@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Phone, FileText, Calendar, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { User, Phone, FileText, Calendar, Truck, Plus, AlertCircle, Loader2 } from 'lucide-react';
 
 import { driverService, CreateDriverPayload, Driver } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Combobox } from '@/components/ui/combobox';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface CreateDriverModalProps {
   isOpen: boolean;
@@ -25,7 +28,19 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
     phone_primary: '',
     license_number: '',
     license_expiry: '',
+    assigned_vehicle_id: '',
   });
+
+  const { data: vehiclesRes } = useQuery({
+    queryKey: ['vehicles-select'],
+    queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
+    enabled: isOpen,
+  });
+  const vehicleOptions = (vehiclesRes?.data || []).map((v) => ({
+    value: v.id,
+    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
+    keywords: `${v.plate_number} ${v.asset_type}`,
+  }));
 
   useEffect(() => {
     if (isOpen) {
@@ -35,6 +50,7 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
         phone_primary: '',
         license_number: '',
         license_expiry: '',
+        assigned_vehicle_id: '',
       });
       setError(null);
     }
@@ -87,7 +103,7 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
       return;
     }
 
-    createMutation.mutate(formData);
+    createMutation.mutate({ ...formData, assigned_vehicle_id: formData.assigned_vehicle_id || undefined });
   };
 
   return (
@@ -168,11 +184,11 @@ export default function CreateDriverModal({ isOpen, onClose, onCreated }: Create
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" /> License Expiry <span className="text-rose-500">*</span>
               </Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={formData.license_expiry}
-                onChange={(e) => handleChange('license_expiry', e.target.value)}
-                className="h-9 text-xs border-slate-200 dark:border-slate-800"
+                onChange={(_, dateStr) => handleChange('license_expiry', dateStr)}
+                placeholder="Select expiry date..."
+                minDate={new Date()}
               />
             </div>
           </div>
