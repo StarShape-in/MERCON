@@ -264,6 +264,111 @@ export const createTrip = async (req: Request, res: Response) => {
   }
 };
 
+/** One trip per CSV row, matched to existing customers/drivers/vehicles by
+ *  name/plate (the sheet can't know internal ids). Rows are independent —
+ *  a bad row is reported and skipped rather than failing the whole import. */
+export const bulkImportTrips = async (req: Request, res: Response) => {
+  try {
+    const { rows } = req.body as {
+      rows: Array<{
+        customer_name: string;
+        driver_name?: string;
+        vehicle_plate?: string;
+        cargo_type?: string;
+        planned_start?: string;
+      }>;
+    };
+    const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
+
+    const results: Array<{ row: number; success: boolean; ref_id?: string; error?: string }> = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        const customer = await prisma.customer.findFirst({
+          where: { name: { equals: row.customer_name.trim(), mode: 'insensitive' }, deletedAt: null },
+        });
+        if (!customer) throw new Error(`Customer "${row.customer_name}" not found`);
+
+        let driverId: string | undefined;
+        if (row.driver_name && row.driver_name.trim()) {
+          const parts = row.driver_name.trim().split(/\s+/);
+          const driver = await prisma.driver.findFirst({
+            where: {
+              deletedAt: null,
+              first_name: { equals: parts[0], mode: 'insensitive' },
+              ...(parts.length > 1 ? { last_name: { equals: parts.slice(1).join(' '), mode: 'insensitive' } } : {}),
+            },
+          });
+          if (!driver) throw new Error(`Driver "${row.driver_name}" not found`);
+          driverId = driver.id;
+        }
+
+        let vehicleId: string | undefined;
+        if (row.vehicle_plate && row.vehicle_plate.trim()) {
+          const vehicle = await prisma.vehicle.findFirst({
+            where: { plate_number: { equals: row.vehicle_plate.trim(), mode: 'insensitive' }, deletedAt: null },
+          });
+          if (!vehicle) throw new Error(`Vehicle "${row.vehicle_plate}" not found`);
+          vehicleId = vehicle.id;
+        }
+
+        const parsedPlannedStart = (row.planned_start && !isNaN(Date.parse(row.planned_start)))
+          ? new Date(row.planned_start)
+          : null;
+
+        const ref_id = await generateRefId('TRP', () =>
+          prisma.trip.findMany({ select: { ref_id: true } }));
+
+        const trip = await prisma.$transaction(async (tx) => {
+          if (driverId) {
+            const driverClaim = await tx.driver.updateMany({
+              where: { id: driverId, status: 'Available' },
+              data: { status: 'OnTrip' },
+            });
+            if (driverClaim.count === 0) throw new Error(`Driver "${row.driver_name}" is not available`);
+          }
+          if (vehicleId) {
+            const vehicleClaim = await tx.vehicle.updateMany({
+              where: { id: vehicleId, status: 'Available' },
+              data: { status: 'OnTrip' },
+            });
+            if (vehicleClaim.count === 0) throw new Error(`Vehicle "${row.vehicle_plate}" is not available`);
+          }
+
+          return tx.trip.create({
+            data: {
+              ref_id,
+              customerId: customer.id,
+              ...(driverId ? { driverId } : {}),
+              ...(vehicleId ? { vehicleId } : {}),
+              cargo_type: row.cargo_type?.trim() || 'General Goods',
+              planned_start: parsedPlannedStart,
+              status: (driverId && vehicleId) ? TripStatus.Dispatched : TripStatus.Draft,
+              ...(createdBy ? { created_by: createdBy } : {}),
+            },
+          });
+        });
+
+        if (driverId) await notifyDriverAssigned(driverId, trip);
+
+        results.push({ row: i + 1, success: true, ref_id: trip.ref_id ?? undefined });
+      } catch (err: any) {
+        results.push({ row: i + 1, success: false, error: err.message || 'Failed to import row' });
+      }
+    }
+
+    const imported = results.filter(r => r.success).length;
+    res.status(200).json({
+      success: true,
+      data: { results, imported, failed: results.length - imported },
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to bulk import trips');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to import trips' } });
+  }
+};
+
 export const updateTripStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;

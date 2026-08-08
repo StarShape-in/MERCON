@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Download,
+  Upload,
   Edit2,
   Trash2,
   Navigation,
@@ -15,6 +16,7 @@ import {
   Layers,
   Filter,
   CheckCircle2,
+  AlertTriangle,
   RotateCw,
   Calendar as CalendarIcon,
   Building2,
@@ -22,8 +24,8 @@ import {
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
-import { downloadCSV, downloadPDF } from '@/utils/exportUtils';
-import { tripService, Trip, TripStatus } from '@/services/tripService';
+import { downloadCSV, downloadPDF, parseCSVFile } from '@/utils/exportUtils';
+import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -71,6 +73,35 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
   if (group === 'NotCompleted') return status !== 'Completed' && status !== 'AtDelivery' && status !== 'Invoiced';
   return true;
 };
+
+const IMPORT_FIELD_ALIASES: Record<keyof BulkImportTripRow, string[]> = {
+  customer_name: ['customer_name', 'customer', 'client', 'client_name'],
+  driver_name: ['driver_name', 'driver'],
+  vehicle_plate: ['vehicle_plate', 'vehicle', 'plate_number', 'plate'],
+  cargo_type: ['cargo_type', 'cargo'],
+  planned_start: ['planned_start', 'planned_start_date', 'start_date', 'planned_date'],
+};
+
+function pickImportField(row: Record<string, string>, field: keyof BulkImportTripRow): string {
+  for (const alias of IMPORT_FIELD_ALIASES[field]) {
+    if (row[alias]) return row[alias];
+  }
+  return '';
+}
+
+function downloadImportTemplate() {
+  const headers = ['Customer Name', 'Driver Name', 'Vehicle Plate', 'Cargo Type', 'Planned Start'];
+  const example = ['Acme Trading Co.', 'John Doe', 'ABC-1234', 'General Goods', '2026-08-15'];
+  const csv = '﻿' + [headers.join(','), example.join(',')].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', 'trips_import_template.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 const STATUS_TABS: { label: string; value: TripStatus | 'All' }[] = [
   { label: 'All Operations', value: 'All' },
@@ -121,6 +152,14 @@ export default function TripListPage() {
   });
   const exportDrivers = exportDriversRes?.data || [];
   const exportVehicles = exportVehiclesRes?.data || [];
+
+  // Import Dialog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFileName, setImportFileName] = useState('');
+  const [importRows, setImportRows] = useState<BulkImportTripRow[]>([]);
+  const [importParseError, setImportParseError] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<BulkImportResult | null>(null);
 
   // Fetch trips using React Query
   const { data: tripsRes, isLoading, isError, error } = useQuery({
@@ -220,6 +259,63 @@ export default function TripListPage() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setImportResult(null);
+    setImportParseError('');
+    setImportRows([]);
+    setImportFileName(file.name);
+
+    try {
+      const rawRows = await parseCSVFile(file);
+      const normalized: BulkImportTripRow[] = rawRows
+        .map(row => ({
+          customer_name: pickImportField(row, 'customer_name'),
+          driver_name: pickImportField(row, 'driver_name') || undefined,
+          vehicle_plate: pickImportField(row, 'vehicle_plate') || undefined,
+          cargo_type: pickImportField(row, 'cargo_type') || undefined,
+          planned_start: pickImportField(row, 'planned_start') || undefined,
+        }))
+        .filter(row => row.customer_name);
+
+      if (!normalized.length) {
+        setImportParseError('No valid rows found. Make sure the CSV has a "Customer Name" column and at least one data row.');
+        return;
+      }
+      setImportRows(normalized);
+    } catch (err) {
+      setImportParseError('Could not read that file. Make sure it\'s a valid CSV.');
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importRows.length) return;
+    try {
+      setIsImporting(true);
+      const result = await tripService.bulkImport(importRows);
+      setImportResult(result);
+      if (result.imported > 0) {
+        queryClient.invalidateQueries({ queryKey: ['trips'] });
+        queryClient.invalidateQueries({ queryKey: ['trips-kpis'] });
+      }
+    } catch (e) {
+      alert('Failed to import trips.');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const resetImportDialog = () => {
+    setImportDialogOpen(false);
+    setImportFileName('');
+    setImportRows([]);
+    setImportParseError('');
+    setImportResult(null);
   };
 
   const columns = [
@@ -385,7 +481,8 @@ export default function TripListPage() {
     {
       label: 'Export Selected CSV',
       icon: <Download size={13} />,
-      variant: 'secondary' as const,
+      variant: 'outline' as const,
+      className: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400',
       onClick: (selectedRows: Trip[]) => {
         downloadCSV(selectedRows, 'trips_export.csv');
       }
@@ -393,7 +490,8 @@ export default function TripListPage() {
     {
       label: 'Export Selected PDF',
       icon: <FileText size={13} />,
-      variant: 'secondary' as const,
+      variant: 'outline' as const,
+      className: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-400',
       onClick: (selectedRows: Trip[]) => {
         downloadPDF(selectedRows, 'Trips Export');
       }
@@ -436,6 +534,16 @@ export default function TripListPage() {
 
           {/* Page-Level Action Buttons */}
           <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <Upload className="h-3.5 w-3.5 text-slate-600" />
+              Import
+            </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -894,7 +1002,7 @@ export default function TripListPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-xs font-semibold gap-1.5 w-full sm:w-auto"
+                className="text-xs font-semibold gap-1.5 w-full sm:w-auto border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-400"
                 onClick={() => handleExport('pdf')}
                 disabled={isExporting}
               >
@@ -903,13 +1011,133 @@ export default function TripListPage() {
               </Button>
               <Button
                 size="sm"
-                className="text-xs font-bold bg-brand hover:bg-brand/90 text-white gap-1.5 w-full sm:w-auto"
+                className="text-xs font-bold gap-1.5 w-full sm:w-auto border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
                 onClick={() => handleExport('csv')}
                 disabled={isExporting}
               >
                 <Download className="h-3.5 w-3.5" />
                 {isExporting ? 'Exporting...' : 'Export CSV'}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* CSV Import Dialog */}
+        <Dialog open={importDialogOpen} onOpenChange={(open) => !open && resetImportDialog()}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <Upload className="h-4 w-4 text-[#E8450F]" />
+                Import Trips from CSV
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Bulk-create Draft trips from a spreadsheet. Route stops aren't imported — add them per trip afterward.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-2 space-y-3.5">
+              {!importResult && (
+                <>
+                  <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                    <div className="text-[11px] text-slate-600 leading-snug">
+                      Columns: <span className="font-mono font-semibold">Customer Name</span> (required),{' '}
+                      <span className="font-mono font-semibold">Driver Name</span>,{' '}
+                      <span className="font-mono font-semibold">Vehicle Plate</span>,{' '}
+                      <span className="font-mono font-semibold">Cargo Type</span>,{' '}
+                      <span className="font-mono font-semibold">Planned Start</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-9 gap-1.5 text-xs font-semibold border-slate-200"
+                    onClick={downloadImportTemplate}
+                  >
+                    <Download className="h-3.5 w-3.5 text-slate-600" />
+                    Download CSV Template
+                  </Button>
+
+                  <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-slate-200 rounded-lg py-6 cursor-pointer hover:border-[#E8450F]/40 hover:bg-orange-50/30 transition-colors">
+                    <Upload className="h-5 w-5 text-slate-400" />
+                    <span className="text-xs font-semibold text-slate-700">
+                      {importFileName || 'Click to choose a CSV file'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">.csv up to 500 rows</span>
+                    <input type="file" accept=".csv" className="hidden" onChange={handleImportFileChange} />
+                  </label>
+
+                  {importParseError && (
+                    <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      {importParseError}
+                    </div>
+                  )}
+
+                  {importRows.length > 0 && (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700 font-semibold">
+                      {importRows.length} trip{importRows.length > 1 ? 's' : ''} ready to import from "{importFileName}".
+                    </div>
+                  )}
+                </>
+              )}
+
+              {importResult && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-center">
+                      <div className="text-lg font-extrabold text-emerald-700">{importResult.imported}</div>
+                      <div className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Imported</div>
+                    </div>
+                    <div className="flex-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-center">
+                      <div className="text-lg font-extrabold text-rose-700">{importResult.failed}</div>
+                      <div className="text-[10px] font-semibold text-rose-600 uppercase tracking-wide">Failed</div>
+                    </div>
+                  </div>
+
+                  {importResult.failed > 0 && (
+                    <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
+                      {importResult.results.filter(r => !r.success).map(r => (
+                        <div key={r.row} className="px-3 py-1.5 text-[11px] text-slate-600">
+                          <span className="font-mono font-bold text-rose-600">Row {r.row}:</span> {r.error}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              {importResult ? (
+                <Button
+                  size="sm"
+                  className="text-xs font-bold bg-brand hover:bg-brand/90 text-white"
+                  onClick={resetImportDialog}
+                >
+                  Done
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={resetImportDialog}
+                    disabled={isImporting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="text-xs font-bold bg-brand hover:bg-brand/90 text-white"
+                    onClick={handleConfirmImport}
+                    disabled={isImporting || !importRows.length}
+                  >
+                    {isImporting ? 'Importing...' : `Import ${importRows.length || ''} Trip${importRows.length === 1 ? '' : 's'}`}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

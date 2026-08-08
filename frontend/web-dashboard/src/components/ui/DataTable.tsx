@@ -18,6 +18,7 @@ export interface BulkAction<T> {
   label: string;
   icon?: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger';
+  className?: string;
   onClick: (selectedRows: T[]) => void | Promise<void>;
 }
 
@@ -198,6 +199,7 @@ export default function DataTable<T>({
                     icon={action.icon}
                     variant={action.variant || 'secondary'}
                     size="sm"
+                    className={action.className}
                     onClick={() => {
                       const selectedRows = Array.from(selectedIndices).map(idx => displayData[idx]);
                       action.onClick(selectedRows);

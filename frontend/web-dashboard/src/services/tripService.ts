@@ -161,5 +161,24 @@ export const tripService = {
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
     await api.post('/trips/bulk-update-status', { ids, status });
   },
+
+  async bulkImport(rows: BulkImportTripRow[]): Promise<BulkImportResult> {
+    const res = await api.post<ApiResponse<BulkImportResult>>('/trips/bulk-import', { rows });
+    return res.data.data;
+  },
 };
+
+export interface BulkImportTripRow {
+  customer_name: string;
+  driver_name?: string;
+  vehicle_plate?: string;
+  cargo_type?: string;
+  planned_start?: string;
+}
+
+export interface BulkImportResult {
+  imported: number;
+  failed: number;
+  results: Array<{ row: number; success: boolean; ref_id?: string; error?: string }>;
+}
 

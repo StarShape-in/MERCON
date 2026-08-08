@@ -280,3 +280,74 @@ export function downloadPDF<T extends Record<string, any>>(data: T[], title: str
 
 export const exportToCSV = downloadCSV;
 
+/** Parses one CSV line respecting double-quoted fields (with "" escaping),
+ *  since values can legitimately contain commas (e.g. "Acme, Inc."). */
+function parseCSVLine(line: string): string[] {
+  const values: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      values.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  values.push(current);
+  return values;
+}
+
+/** Reads an uploaded CSV file into an array of plain objects keyed by a
+ *  normalized version of the header row (lowercase, spaces → underscores),
+ *  so "Customer Name" and "customer_name" both resolve to `customer_name`. */
+export function parseCSVFile(file: File): Promise<Record<string, string>[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || '').replace(/^﻿/, '');
+        const lines = text.split(/\r\n|\n|\r/).filter(line => line.trim().length > 0);
+        if (!lines.length) {
+          resolve([]);
+          return;
+        }
+
+        const headers = parseCSVLine(lines[0]).map(h =>
+          h.trim().toLowerCase().replace(/\s+/g, '_')
+        );
+
+        const rows: Record<string, string>[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCSVLine(lines[i]);
+          const row: Record<string, string> = {};
+          headers.forEach((h, idx) => {
+            row[h] = (values[idx] ?? '').trim();
+          });
+          rows.push(row);
+        }
+        resolve(rows);
+      } catch (e) {
+        reject(e as Error);
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+

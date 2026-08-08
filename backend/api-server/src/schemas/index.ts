@@ -44,6 +44,20 @@ export const createTripBody = z.object({
   })).min(2, 'At least a pickup and a dropoff are required'),
 });
 
+/** Bulk CSV import — one trip per row, matched to existing customers/drivers/
+ *  vehicles by name/plate rather than id (the CSV can't know internal ids).
+ *  No stops: imported trips land in Draft/Dispatched with route stops added
+ *  later through the normal trip edit UI. */
+export const bulkImportTripsBody = z.object({
+  rows: z.array(z.object({
+    customer_name: nonEmpty('Customer name'),
+    driver_name: z.string().trim().optional(),
+    vehicle_plate: z.string().trim().optional(),
+    cargo_type: z.string().trim().optional(),
+    planned_start: z.string().trim().optional(),
+  })).min(1, 'At least one row is required').max(500, 'Import is limited to 500 rows at a time'),
+});
+
 /** Operator logging why a stop was reached late. Reason is required — the
  *  whole point is replacing "no explanation" with one, and `Other` plus a note
  *  already covers anything the list misses. */

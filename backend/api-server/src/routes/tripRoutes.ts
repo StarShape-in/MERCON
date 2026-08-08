@@ -3,12 +3,12 @@ import {
   getTrips, getTripById, createTrip, updateTripStatus, approveDriverPayment,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify,
   bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials,
-  logStopDelay
+  logStopDelay, bulkImportTrips
 } from '../controllers/tripController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
-import { createTripBody, listQuery, logStopDelayBody } from '../schemas';
+import { createTripBody, listQuery, logStopDelayBody, bulkImportTripsBody } from '../schemas';
 
 const router = Router();
 
@@ -17,6 +17,7 @@ router.use(authorizeRoles('Admin', 'Operator'));
 router.get('/unsettled', getUnsettledCompletedTrips);
 router.post('/bulk-delete', bulkDeleteTrips);
 router.post('/bulk-update-status', bulkUpdateTripStatus);
+router.post('/bulk-import', validate({ body: bulkImportTripsBody }), bulkImportTrips);
 
 
 router.get('/', validate({ query: listQuery }), getTrips);
