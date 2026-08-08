@@ -709,9 +709,95 @@ export default function VehicleListPage() {
             trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
             description="Active servicing units"
             icon={MaintenanceWrench}
-            chartData={[5, 4, 6, 3, 2, 4, maintenanceCount]}
             isActive={selectedStatus === 'Maintenance'}
             onClick={() => { setSelectedStatus('Maintenance'); setCurrentPage(1); }}
+            customFooter={
+              <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#FFFDF2] dark:bg-[#D97706]/10 border-t border-amber-500/10">
+                <style>{`
+                  @keyframes routeDashAmber {
+                    to {
+                      stroke-dashoffset: -12;
+                    }
+                  }
+                `}</style>
+                {/* Grid lines for map look */}
+                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                  <pattern id="card-map-grid-amber" width="12" height="12" patternUnits="userSpaceOnUse">
+                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#card-map-grid-amber)" />
+                </svg>
+                
+                {/* Stylized Intersecting Street Map Network */}
+                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#FDE047" strokeWidth="1.5" />
+                  <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#FDE047" strokeWidth="1.5" />
+                  <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#FDE047" strokeWidth="1.5" />
+                </svg>
+
+                {/* Route line */}
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  {/* Base grey road */}
+                  <path 
+                    d="M -10 24 C 60 38, 120 10, 180 34 C 220 20, 250 38, 290 24" 
+                    fill="none" 
+                    stroke="#D1D5DB" 
+                    strokeWidth="3.5" 
+                    strokeLinecap="round"
+                  />
+                  {/* Amber active route progress */}
+                  <path 
+                    d="M -10 24 C 60 38, 120 10, 180 34 C 220 20, 250 38, 290 24" 
+                    fill="none" 
+                    stroke="#D97706" 
+                    strokeWidth="3" 
+                    strokeDasharray="6,6"
+                    strokeLinecap="round"
+                    style={{ animation: 'routeDashAmber 4s linear infinite' }}
+                  />
+                </svg>
+
+                {/* Bay Entry Pin */}
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-amber-500 ring-4 ring-amber-500/20" />
+                </div>
+                
+                {/* The 3D Truck sitting in the middle of the route */}
+                <div 
+                  className="absolute"
+                  style={{
+                    left: '52%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%) scale(0.68)',
+                    zIndex: 10
+                  }}
+                >
+                  <div className="relative flex items-center justify-center">
+                    {/* Bouncing Warning Popup Badge */}
+                    <div 
+                      className="absolute bottom-[24px] bg-amber-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      <span>⚠️</span>
+                      <span>SERVICE</span>
+                      {/* Arrow */}
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-amber-600" />
+                    </div>
+
+                    {/* Glow ring */}
+                    <div className="absolute h-8 w-8 rounded-full bg-amber-500/20" />
+                    
+                    {/* Desaturated/Gray-tinted truck to indicate servicing status */}
+                    <img 
+                      src="/truck_3d_orange_transparent.png" 
+                      alt="Servicing Truck" 
+                      className="h-9 w-9 object-contain"
+                      style={{ filter: 'saturate(0.4) brightness(0.9)' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            }
           />
 
           {/* Card 4: Istimara Expiry Radar */}
