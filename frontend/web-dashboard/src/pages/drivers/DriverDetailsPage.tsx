@@ -142,10 +142,10 @@ export default function DriverDetailsPage() {
     <DashboardLayout active="Drivers" title={`Driver: ${driver.ref_id || 'N/A'}`}>
       <div className="px-4 sm:px-6 pb-8 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── 1. HEADER LAYOUT & TOP BAR ACTIONS (MERCON Spec Rule 1) ────── */}
+        {/* ── 1. CLEAN PAGE HEADER & TOP BAR ACTIONS ───────────────────── */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
           
-          {/* Top Left: Context Pill & Page Title */}
+          {/* Top Left: Back Button & Driver Name */}
           <div className="flex items-center gap-3 min-w-0">
             <Button
               variant="outline"
@@ -158,28 +158,19 @@ export default function DriverDetailsPage() {
             </Button>
 
             <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                {/* Scope & Context Selector Pill */}
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                  <span>🏢 MERCON Logistics</span>
-                  <span className="text-slate-400">↕</span>
-                </div>
-
-                <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800/80 text-[11px] py-0.5">
-                  Fleet Operations Module
-                </Badge>
-              </div>
-
-              <div className="flex items-center gap-2.5 mt-1">
+              <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight truncate">
                   {driver.first_name} {driver.last_name}
                 </h1>
                 <StatusBadge status={driver.status} />
               </div>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{driver.ref_id || 'N/A'}</span>
+              </p>
             </div>
           </div>
 
-          {/* Top Right: Top Bar Actions Group */}
+          {/* Top Right: Actions Group */}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             {/* Refresh Button */}
             <Button
@@ -246,155 +237,6 @@ export default function DriverDetailsPage() {
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
-        </div>
-
-        {/* ── 2. INSTRUMENT-PANEL KPI CARDS (MERCON Spec Rule 2) ─────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          {/* Card 1: Total Dispatch Trips */}
-          <Card className="relative overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Total Dispatch Trips
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900/50 flex items-center justify-center text-[#E8450F] shrink-0">
-                <MapPin className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-2">
-              <div className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight font-mono">
-                {totalTripsCount}
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">
-                <span>↑</span>
-                <span>{completedTripsCount} completed ({totalTripsCount ? Math.round((completedTripsCount/totalTripsCount)*100) : 100}% rate)</span>
-              </div>
-            </div>
-            {/* Sparkline Area Background */}
-            <div className="h-6 w-full -mb-4 -mx-4 mt-2 opacity-40">
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 25">
-                <defs>
-                  <linearGradient id="kpi-orange-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#E8450F" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#E8450F" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path d="M0,20 Q15,5 30,15 T60,8 T90,18 L100,10 L100,25 L0,25 Z" fill="url(#kpi-orange-grad)" />
-                <path d="M0,20 Q15,5 30,15 T60,8 T90,18 L100,10" fill="none" stroke="#E8450F" strokeWidth="2" />
-              </svg>
-            </div>
-          </Card>
-
-          {/* Card 2: License & MOT Compliance Status */}
-          <Card className="relative overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                MOT Compliance Status
-              </span>
-              <div className={cn(
-                "w-8 h-8 rounded-xl border flex items-center justify-center shrink-0",
-                isLicenseExpired 
-                  ? "bg-rose-50 border-rose-100 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900/50" 
-                  : "bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-900/50"
-              )}>
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-2">
-              <div className={cn(
-                "text-2xl font-black tracking-tight font-mono",
-                isLicenseExpired ? "text-rose-600" : "text-emerald-600"
-              )}>
-                {isLicenseExpired ? 'EXPIRED' : (daysUntilExpiry != null ? `${daysUntilExpiry}d Valid` : 'VERIFIED')}
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                <span>→</span>
-                <span>{isLicenseExpired ? 'Immediate Renewal Required' : 'Saudi MOT Permit Verified'}</span>
-              </div>
-            </div>
-            {/* Sparkline Area Background */}
-            <div className="h-6 w-full -mb-4 -mx-4 mt-2 opacity-40">
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 25">
-                <defs>
-                  <linearGradient id="kpi-green-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path d="M0,18 Q20,10 40,15 T70,5 T100,12 L100,25 L0,25 Z" fill="url(#kpi-green-grad)" />
-                <path d="M0,18 Q20,10 40,15 T70,5 T100,12" fill="none" stroke="#10B981" strokeWidth="2" />
-              </svg>
-            </div>
-          </Card>
-
-          {/* Card 3: AI Telematics Safety Score */}
-          <Card className="relative overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Safety & Telematics
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center text-indigo-600 shrink-0">
-                <Gauge className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-2">
-              <div className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight font-mono">
-                {safetyScore} <span className="text-xs text-slate-400 font-normal">/ 100</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 mt-0.5">
-                <span>↑</span>
-                <span>Tier-1 Master Operator</span>
-              </div>
-            </div>
-            {/* Sparkline Area Background */}
-            <div className="h-6 w-full -mb-4 -mx-4 mt-2 opacity-40">
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 25">
-                <defs>
-                  <linearGradient id="kpi-indigo-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366F1" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path d="M0,22 Q25,8 50,14 T80,4 T100,10 L100,25 L0,25 Z" fill="url(#kpi-indigo-grad)" />
-                <path d="M0,22 Q25,8 50,14 T80,4 T100,10" fill="none" stroke="#6366F1" strokeWidth="2" />
-              </svg>
-            </div>
-          </Card>
-
-          {/* Card 4: Assigned Fleet Asset */}
-          <Card className="relative overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Assigned Vehicle
-              </span>
-              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900/50 flex items-center justify-center text-purple-600 shrink-0">
-                <Truck className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-2">
-              <div className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight font-mono truncate">
-                {assignedVehiclePlate}
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-purple-600 dark:text-purple-400 mt-0.5">
-                <span>→</span>
-                <span>Volvo FH16 (600 HP Tractor)</span>
-              </div>
-            </div>
-            {/* Sparkline Area Background */}
-            <div className="h-6 w-full -mb-4 -mx-4 mt-2 opacity-40">
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 25">
-                <defs>
-                  <linearGradient id="kpi-purple-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#A855F7" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#A855F7" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path d="M0,15 Q30,5 60,18 T90,8 T100,14 L100,25 L0,25 Z" fill="url(#kpi-purple-grad)" />
-                <path d="M0,15 Q30,5 60,18 T90,8 T100,14" fill="none" stroke="#A855F7" strokeWidth="2" />
-              </svg>
-            </div>
-          </Card>
-
         </div>
 
         {/* ── 3. HERO COMMAND PROFILE HEADER CARD ─────────────────────────── */}
