@@ -6,7 +6,7 @@ import {
   Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
   Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
-  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen,
+  UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen, MessageCircle,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -234,6 +234,41 @@ export default function TripDetailsPage() {
     }
   };
 
+  const handleShareWhatsApp = () => {
+    if (!trip) return;
+    const pickupLoc = pickup?.location_name || 'Pickup location';
+    const dropoffLoc = dropoff?.location_name || 'Drop-off location';
+    const driverName = trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned';
+    const vehicleInfo = trip.vehicle ? trip.vehicle.plate_number : 'Unassigned';
+    const etaText = trip.planned_end
+      ? new Date(trip.planned_end).toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '—';
+
+    const text = [
+      `🚚 *MERCON Logistics - Trip Status Update*`,
+      ``,
+      `*Trip ID:* ${trip.ref_id || trip.id}`,
+      `*Customer:* ${trip.customer?.name || 'Customer'}`,
+      `*Status:* ${statusLabel(trip.status)}`,
+      ``,
+      `📍 *Pickup:* ${pickupLoc}`,
+      `🎯 *Drop-off:* ${dropoffLoc}`,
+      `⏱️ *ETA:* ${etaText}`,
+      ``,
+      `👤 *Driver:* ${driverName}`,
+      `🚛 *Vehicle:* ${vehicleInfo}`,
+      ``,
+      `Thank you for shipping with MERCON Logistics!`,
+    ].join('\n');
+
+    const cleanPhone = trip.customer?.contact_phone?.replace(/[^0-9]/g, '');
+    const waUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
   if (isLoading || !trip) {
     return (
       <DashboardLayout active="Trips" title="Trip Details">
@@ -357,11 +392,12 @@ export default function TripDetailsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.print()}
-              className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
+              onClick={handleShareWhatsApp}
+              className="h-8.5 px-3.5 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-950/60 shadow-2xs transition-all active:scale-[0.98] gap-1.5 cursor-pointer"
+              title="Share status update via WhatsApp"
             >
-              <Printer className="w-3.5 h-3.5 text-slate-500" />
-              Print
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              Share to WhatsApp
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
