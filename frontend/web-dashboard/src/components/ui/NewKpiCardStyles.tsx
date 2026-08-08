@@ -28,27 +28,18 @@ export function HeroStatBanner({
   onClick?: () => void;
   children?: React.ReactNode;
 }) {
-  const bgColors = {
-    brand: 'from-[#E8450F]/10 via-[#E8450F]/[0.02] to-transparent border-[#E8450F]/20',
-    indigo: 'from-indigo-500/10 via-indigo-500/[0.02] to-transparent border-indigo-500/20',
-    emerald: 'from-emerald-500/10 via-emerald-500/[0.02] to-transparent border-emerald-500/20',
-    amber: 'from-amber-500/10 via-amber-500/[0.02] to-transparent border-amber-500/20',
-    rose: 'from-rose-500/10 via-rose-500/[0.02] to-transparent border-rose-500/20',
-  };
-
   return (
     <div 
       onClick={onClick}
       className={cn(
-        "relative overflow-hidden rounded-2xl border bg-gradient-to-r p-5 shadow-xs transition-all hover:shadow-md",
-        onClick && "cursor-pointer hover:scale-[1.015] active:scale-[0.99]",
-        bgColors[accentColor]
+        "relative overflow-hidden rounded-2xl border bg-white dark:bg-card p-5 shadow-xs",
+        onClick && "cursor-pointer"
       )}
     >
       <div className="flex items-center justify-between gap-4 mb-3">
         <div className="flex items-center gap-2">
           {Icon && (
-            <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-800 dark:text-slate-200">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-800 dark:text-slate-200">
               <Icon className="w-4 h-4" />
             </div>
           )}
@@ -58,7 +49,7 @@ export function HeroStatBanner({
         </div>
 
         {badgeText && (
-          <span className="text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
+          <span className="text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
             {badgeText}
           </span>
         )}
@@ -111,8 +102,8 @@ export function GlassmeterCard({
     <div 
       onClick={onClick}
       className={cn(
-        "relative rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between",
-        onClick && "cursor-pointer hover:scale-[1.015] active:scale-[0.99] hover:border-slate-300 dark:hover:border-slate-700"
+        "relative rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-card p-4 shadow-2xs flex flex-col justify-between",
+        onClick && "cursor-pointer"
       )}
     >
       <div className="flex items-center justify-between mb-2">
@@ -164,12 +155,10 @@ export function TelemetryDarkCard({
     <div 
       onClick={onClick}
       className={cn(
-        "relative rounded-2xl bg-slate-950 text-white p-4 shadow-md border border-slate-800 flex flex-col justify-between overflow-hidden transition-all",
-        onClick && "cursor-pointer hover:scale-[1.015] active:scale-[0.99] hover:border-indigo-500/50"
+        "relative rounded-2xl bg-slate-950 text-white p-4 shadow-md border border-slate-800 flex flex-col justify-between overflow-hidden",
+        onClick && "cursor-pointer"
       )}
     >
-      <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
-
       <div className="flex items-center justify-between mb-3 z-10">
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{title}</span>
         {statusText && (
@@ -198,7 +187,7 @@ export function CompactCapsulePill({
   value,
   badgeText,
   icon: Icon,
-  accentColor = 'border-indigo-200 bg-indigo-50/50',
+  accentColor = 'border-slate-200 bg-white dark:bg-card',
   onClick,
 }: {
   title: string;
@@ -212,14 +201,14 @@ export function CompactCapsulePill({
     <div 
       onClick={onClick}
       className={cn(
-        "flex items-center justify-between p-3.5 rounded-2xl border shadow-2xs bg-white dark:bg-slate-900 transition-all",
-        onClick && "cursor-pointer hover:scale-[1.015] active:scale-[0.99]",
+        "flex items-center justify-between p-3.5 rounded-2xl border shadow-2xs bg-white dark:bg-card",
+        onClick && "cursor-pointer",
         accentColor
       )}
     >
       <div className="flex items-center gap-3">
         {Icon && (
-          <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-800 dark:text-slate-200 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 shadow-2xs flex items-center justify-center text-slate-800 dark:text-slate-200 shrink-0">
             <Icon className="w-4 h-4" />
           </div>
         )}

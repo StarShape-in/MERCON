@@ -69,51 +69,51 @@ const variantStyles: Record<KpiCardVariant, {
   chartColor: string
 }> = {
   brand: {
-    cardBg: 'to-[#E8450F]/[0.03] dark:to-[#E8450F]/[0.015]',
-    accentLine: 'bg-[#E8450F] group-hover:bg-[#E8450F]',
-    iconContainer: 'bg-[#E8450F]/10 border-[#E8450F]/25 text-[#E8450F] group-hover:bg-[#E8450F]/20 group-hover:border-[#E8450F]/40',
+    cardBg: '',
+    accentLine: 'bg-[#E8450F]',
+    iconContainer: 'bg-[#E8450F]/10 border-[#E8450F]/25 text-[#E8450F]',
     textColor: 'text-[#E8450F]',
     chartColor: '#E8450F',
   },
   blue: {
-    cardBg: 'to-blue-500/[0.03] dark:to-blue-400/[0.015]',
-    accentLine: 'bg-blue-500 group-hover:bg-blue-600',
-    iconContainer: 'bg-blue-500/10 border-blue-500/25 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 group-hover:border-blue-500/40',
+    cardBg: '',
+    accentLine: 'bg-blue-500',
+    iconContainer: 'bg-blue-500/10 border-blue-500/25 text-blue-600 dark:text-blue-400',
     textColor: 'text-blue-600 dark:text-blue-400',
     chartColor: '#2563EB',
   },
   emerald: {
-    cardBg: 'to-emerald-500/[0.03] dark:to-emerald-400/[0.015]',
-    accentLine: 'bg-emerald-500 group-hover:bg-emerald-600',
-    iconContainer: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/40',
+    cardBg: '',
+    accentLine: 'bg-emerald-500',
+    iconContainer: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400',
     textColor: 'text-emerald-600 dark:text-emerald-400',
     chartColor: '#16A34A',
   },
   amber: {
-    cardBg: 'to-amber-500/[0.03] dark:to-amber-400/[0.015]',
-    accentLine: 'bg-amber-500 group-hover:bg-amber-600',
-    iconContainer: 'bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500/20 group-hover:border-amber-500/40',
+    cardBg: '',
+    accentLine: 'bg-amber-500',
+    iconContainer: 'bg-amber-500/10 border-amber-500/25 text-amber-600 dark:text-amber-400',
     textColor: 'text-amber-600 dark:text-amber-400',
     chartColor: '#D97706',
   },
   purple: {
-    cardBg: 'to-purple-500/[0.03] dark:to-purple-400/[0.015]',
-    accentLine: 'bg-purple-500 group-hover:bg-purple-600',
-    iconContainer: 'bg-purple-500/10 border-purple-500/25 text-purple-600 dark:text-purple-400 group-hover:bg-purple-500/20 group-hover:border-purple-500/40',
+    cardBg: '',
+    accentLine: 'bg-purple-500',
+    iconContainer: 'bg-purple-500/10 border-purple-500/25 text-purple-600 dark:text-purple-400',
     textColor: 'text-purple-600 dark:text-purple-400',
     chartColor: '#7C3AED',
   },
   rose: {
-    cardBg: 'to-rose-500/[0.03] dark:to-rose-400/[0.015]',
-    accentLine: 'bg-rose-500 group-hover:bg-rose-600',
-    iconContainer: 'bg-rose-500/10 border-rose-500/25 text-rose-600 dark:text-rose-400 group-hover:bg-rose-500/20 group-hover:border-rose-500/40',
+    cardBg: '',
+    accentLine: 'bg-rose-500',
+    iconContainer: 'bg-rose-500/10 border-rose-500/25 text-rose-600 dark:text-rose-400',
     textColor: 'text-rose-600 dark:text-rose-400',
     chartColor: '#DC2626',
   },
   slate: {
-    cardBg: 'to-slate-500/[0.02]',
-    accentLine: 'bg-border/60 group-hover:bg-border',
-    iconContainer: 'bg-muted/40 border-border/50 text-muted-foreground group-hover:border-border group-hover:text-foreground',
+    cardBg: '',
+    accentLine: 'bg-border/60',
+    iconContainer: 'bg-muted/40 border-border/50 text-muted-foreground',
     textColor: 'text-muted-foreground',
     chartColor: '#94A3B8',
   },
@@ -213,24 +213,23 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        'group relative rounded-none border-border/70 shadow-none transition-all duration-150 hover:-translate-y-0.5 hover:border-black/[0.12] dark:hover:border-white/20 p-5 gap-0 bg-gradient-to-b from-card via-card to-transparent',
-        props.onClick && 'cursor-pointer active:scale-[0.99] hover:shadow-md',
-        selectedStyle.cardBg,
+        'group relative rounded-none border-border/70 shadow-none p-5 gap-0 bg-white dark:bg-card',
+        props.onClick && 'cursor-pointer',
         className
       )}
       {...props}
     >
-      {/* Top accent rule — lights up on hover */}
+      {/* Top accent rule */}
       <div
         className={cn(
-          'absolute inset-x-0 top-0 h-px opacity-40 transition-opacity duration-150 group-hover:opacity-100',
+          'absolute inset-x-0 top-0 h-px opacity-40',
           selectedStyle.accentLine
         )}
       />
 
       {/* Corner ticks — instrument-panel reference */}
-      <span className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-border/20 transition-colors duration-150 group-hover:border-border" />
-      <span className="pointer-events-none absolute bottom-0 right-0 h-2 w-2 border-b border-r border-border/20 transition-colors duration-150 group-hover:border-border" />
+      <span className="pointer-events-none absolute left-0 top-0 h-2 w-2 border-l border-t border-border/20" />
+      <span className="pointer-events-none absolute bottom-0 right-0 h-2 w-2 border-b border-r border-border/20" />
 
       <CardHeader className="flex flex-row items-center justify-between gap-4 p-0 pb-3">
         <CardTitle className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
@@ -238,7 +237,7 @@ export function KpiCard({
         </CardTitle>
         {renderedIcon && (
           <div className={cn(
-            "flex h-6 w-6 shrink-0 items-center justify-center border transition-all duration-150",
+            "flex h-6 w-6 shrink-0 items-center justify-center border",
             selectedStyle.iconContainer
           )}>
             {renderedIcon}
