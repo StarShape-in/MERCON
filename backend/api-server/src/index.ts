@@ -45,6 +45,7 @@ import rateCardRoutes from './routes/rateCardRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import userRoutes from './routes/userRoutes';
+import trashRoutes from './routes/trashRoutes';
 import { initFleetTracking } from './services/icces/fleetPoller';
 
 import helmet from 'helmet';
@@ -87,6 +88,7 @@ app.use('/rate-cards', rateCardRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/upload', uploadRoutes);
 app.use('/users', userRoutes);
+app.use('/trash', trashRoutes);
 
 // Mobile API Routes
 app.use('/mobile/auth', mobileAuthRoutes);
