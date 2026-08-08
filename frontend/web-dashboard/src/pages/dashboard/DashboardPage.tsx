@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Truck, Car, DollarSign, AlertTriangle, 
-  ArrowRight, ArrowUpRight, Loader2, RefreshCw, Clock, CheckCircle2, LayoutDashboard
+  ArrowRight, ArrowUpRight, Loader2, RefreshCw, Clock, CheckCircle2, LayoutDashboard, Layers
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -23,6 +23,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import DataTable from '@/components/ui/DataTable';
 import { reportsService } from '@/services/reportsService';
 import { tripService, Trip } from '@/services/tripService';
 import { authStore } from '@/store/authStore';
@@ -327,92 +328,80 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Trips Table Ledger */}
-        <Card className="border-black/[0.06] shadow-sm rounded-2xl bg-white overflow-hidden shrink-0">
-          <CardHeader className="py-4 px-5 border-b border-[#F0F0F2] flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Recent Operations Trips</CardTitle>
-              <CardDescription className="text-xs text-[#6E6E80]">Latest active and dispatched manifests</CardDescription>
-            </div>
-            <Button 
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/trips')}
-              className="text-xs text-[#E8450F] font-bold gap-1 hover:text-[#d03d0c]"
-            >
-              <span>View All Trips</span>
-              <ArrowRight size={13} />
-            </Button>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-[#FAFAFA]">
-                <TableRow>
-                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Trip ID</TableHead>
-                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Customer</TableHead>
-                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Cargo Type</TableHead>
-                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Driver</TableHead>
-                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Vehicle</TableHead>
-                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Status</TableHead>
-                  <TableHead className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">Planned Start</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tripsLoading ? (
-                  Array.from({ length: 3 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell><div className="h-4 skeleton w-12" /></TableCell>
-                      <TableCell><div className="h-4 skeleton w-24" /></TableCell>
-                      <TableCell><div className="h-4 skeleton w-20" /></TableCell>
-                      <TableCell><div className="h-4 skeleton w-28" /></TableCell>
-                      <TableCell><div className="h-4 skeleton w-16" /></TableCell>
-                      <TableCell><div className="h-5 skeleton w-16 rounded-full" /></TableCell>
-                      <TableCell><div className="h-4 skeleton w-24" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : recentTrips.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10 text-xs font-semibold text-[#9898A4]">
-                      No recent trips available. Click 'New Trip' to create one.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  recentTrips.map((t) => (
-                    <TableRow 
-                      key={t.id} 
-                      onClick={() => navigate(`/trips/${t.id}`)}
-                      className="cursor-pointer hover:bg-[#FAFAFA] transition-colors"
-                    >
-                      <TableCell className="font-mono text-xs font-bold text-[#E8450F]">{t.ref_id || 'Draft'}</TableCell>
-                      <TableCell className="text-xs font-semibold text-[#111]">{t.customer?.name || '—'}</TableCell>
-                      <TableCell className="text-xs font-medium text-[#444]">{t.cargo_type}</TableCell>
-                      <TableCell className="text-xs font-medium text-[#444]">
-                        {t.driver ? (
-                          `${t.driver.first_name} ${t.driver.last_name}`
-                        ) : (
-                          <span className="italic text-slate-400 font-normal">Unassigned</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs font-semibold text-[#6E6E80]">
-                        {t.vehicle?.plate_number ? (
-                          <span className="font-mono">{t.vehicle.plate_number}</span>
-                        ) : (
-                          <span className="italic text-slate-400 font-normal">Unassigned</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={t.status} />
-                      </TableCell>
-                      <TableCell className="text-xs font-medium text-[#9898A4]">
-                        {t.planned_start ? new Date(t.planned_start).toLocaleDateString() : '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="w-full flex flex-col shrink-0">
+          <DataTable
+            title={
+              <span className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-indigo-500" />
+                <span>Recent Trips Ledger</span>
+              </span>
+            }
+            columns={[
+              {
+                header: 'Trip ID',
+                accessor: (t: Trip) => (
+                  <span className="font-mono text-xs font-bold text-[#E8450F]">{t.ref_id || 'Draft'}</span>
+                ),
+              },
+              {
+                header: 'Customer',
+                accessor: (t: Trip) => (
+                  <span className="text-xs font-semibold text-[#111] dark:text-slate-200">{t.customer?.name || '—'}</span>
+                ),
+              },
+              {
+                header: 'Cargo Type',
+                accessor: (t: Trip) => (
+                  <span className="text-xs font-medium text-[#444] dark:text-slate-300">{t.cargo_type}</span>
+                ),
+              },
+              {
+                header: 'Driver',
+                accessor: (t: Trip) => (
+                  <span className="text-xs font-medium text-[#444] dark:text-slate-300">
+                    {t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : <span className="italic text-slate-400 font-normal">Unassigned</span>}
+                  </span>
+                ),
+              },
+              {
+                header: 'Vehicle',
+                accessor: (t: Trip) => (
+                  <span className="text-xs font-semibold text-[#6E6E80] dark:text-slate-400">
+                    {t.vehicle?.plate_number ? <span className="font-mono">{t.vehicle.plate_number}</span> : <span className="italic text-slate-400 font-normal">Unassigned</span>}
+                  </span>
+                ),
+              },
+              {
+                header: 'Status',
+                accessor: (t: Trip) => <StatusBadge status={t.status} />,
+              },
+              {
+                header: 'Planned Start',
+                accessor: (t: Trip) => (
+                  <span className="text-xs font-medium text-slate-500 font-mono">
+                    {t.planned_start ? new Date(t.planned_start).toLocaleDateString() : '—'}
+                  </span>
+                ),
+              },
+            ]}
+            data={recentTrips}
+            compact={true}
+            enableSelection={false}
+            isLoading={tripsLoading}
+            actionsElement={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/trips')}
+                className="text-xs text-[#E8450F] font-bold gap-1 hover:text-[#d03d0c] h-8"
+              >
+                <span>View All Trips</span>
+                <ArrowRight size={13} />
+              </Button>
+            }
+            onRowClick={(t) => navigate(`/trips/${t.id}`)}
+          />
+        </div>
 
         {/* Post-Trip Settlement Modal */}
         <PostTripSettlementModal
