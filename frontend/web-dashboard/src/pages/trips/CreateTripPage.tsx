@@ -1249,7 +1249,7 @@ export default function CreateTripPage() {
             <CardHeader className="border-b bg-muted/10 py-3.5">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <Receipt className="size-4 text-indigo-600" /> Pricing &amp; Tariff
+                  <Receipt className="size-4 text-indigo-600" /> Pricing &amp; Rate Card
                 </CardTitle>
                 {isLookingUpRate ? (
                   <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground shrink-0">

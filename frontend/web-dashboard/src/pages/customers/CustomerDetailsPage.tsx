@@ -518,7 +518,7 @@ export default function CustomerDetailsPage() {
 
           </div>
 
-          {/* Right Column (Tariff Cards & Account Summary) */}
+          {/* Right Column (Rate Cards & Account Summary) */}
           <div className="space-y-6">
 
             {/* What this customer is charged, lane by lane */}

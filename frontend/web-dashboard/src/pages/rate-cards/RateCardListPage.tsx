@@ -57,7 +57,7 @@ import {
 
 const RATE_CARD_EXPORT_HEADERS = [
   'Rate Card ID', 'Contract Name', 'Applies To', 'Route Origin', 'Route Destination',
-  'Base Tariff Rate (SAR)', 'Status', 'Linked Lane'
+  'Base Rate (SAR)', 'Status', 'Linked Lane'
 ];
 
 const rateCardsToExportRows = (cards: RateCard[]) => cards.map(rc => [
@@ -80,7 +80,7 @@ export default function RateCardListPage() {
   const [scopeFilter, setScopeFilter] = useState<'all' | 'standard' | 'customer'>('all');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showTariffModal, setShowTariffModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const [assignTarget, setAssignTarget] = useState<RateCard | null>(null);
   const [editTarget, setEditTarget] = useState<RateCard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -259,7 +259,7 @@ export default function RateCardListPage() {
       ),
     },
     {
-      header: 'Base Tariff Rate',
+      header: 'Base Rate',
       accessor: (row: RateCard) => (
         <div className="font-mono text-xs font-extrabold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/60 dark:border-slate-700 w-fit">
           {row.currency || 'SAR'} {Number(row.base_price).toLocaleString()}
@@ -328,7 +328,7 @@ export default function RateCardListPage() {
                 }
               });
             }}
-            title="Delete Tariff Rate"
+            title="Delete Rate Card"
             className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -516,7 +516,7 @@ export default function RateCardListPage() {
             onClick={() => setStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
           />
 
-          {/* Card 2: Avg Base Tariff Rate */}
+          {/* Card 2: Avg Base Rate */}
           <KpiCard
             title="AVERAGE PRICE"
             value={`SAR ${kpis.avgPrice.toLocaleString()}`}
@@ -525,7 +525,7 @@ export default function RateCardListPage() {
             trendValue={`${kpis.total} rate${kpis.total === 1 ? '' : 's'}`}
             description="Mean price across all rates"
             icon={RevenueChart}
-            onClick={() => setShowTariffModal(true)}
+            onClick={() => setShowPricingModal(true)}
           />
 
           {/* Card 3: Most-priced lane */}
@@ -640,7 +640,7 @@ export default function RateCardListPage() {
                 <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-2">
                     <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="Tariff Status" />
+                    <SelectValue placeholder="Status" />
                   </div>
                 </SelectTrigger>
                 <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
@@ -705,7 +705,7 @@ export default function RateCardListPage() {
             {/* Right: Record Counter & View Switcher */}
             <div className="flex items-center gap-3 shrink-0 ml-auto">
               <div className="text-xs font-semibold text-slate-500">
-                <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredData.length}</span> tariff agreements
+                <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredData.length}</span> rate card{filteredData.length === 1 ? '' : 's'}
               </div>
 
               {/* View Mode Segmented Control */}
@@ -787,7 +787,7 @@ export default function RateCardListPage() {
                 className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs hover:border-[#E8450F]/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
                 tabIndex={0}
                 role="button"
-                aria-label={`Rate card ${rc.name}, base tariff ${rc.currency || 'SAR'} ${rc.base_price}`}
+                aria-label={`Rate card ${rc.name}, base rate ${rc.currency || 'SAR'} ${rc.base_price}`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -832,7 +832,7 @@ export default function RateCardListPage() {
                 </CardContent>
 
                 <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 flex items-center justify-between text-xs rounded-b-xl">
-                  <span className="text-[10px] text-slate-500 font-medium">Base Tariff Rate:</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Base Rate:</span>
                   <span className="font-mono font-extrabold text-slate-955 dark:text-slate-50">
                     {rc.currency || 'SAR'} {Number(rc.base_price).toLocaleString()}
                   </span>
@@ -850,8 +850,8 @@ export default function RateCardListPage() {
         />
         <AssignRateCardDialog rateCard={assignTarget} onClose={() => setAssignTarget(null)} />
 
-        {/* Tariff Market Benchmark Modal */}
-        <Dialog open={showTariffModal} onOpenChange={setShowTariffModal}>
+        {/* Pricing Summary Modal */}
+        <Dialog open={showPricingModal} onOpenChange={setShowPricingModal}>
           <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
             <DialogHeader>
               <RevenueChart className="w-7 h-7 text-orange-500 dark:text-orange-400 mb-2" />
@@ -866,16 +866,16 @@ export default function RateCardListPage() {
             <div className="space-y-3 my-4 text-xs">
               <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60">
                 <div>
-                  <div className="font-bold text-indigo-900 dark:text-indigo-300">Average Freight Tariff</div>
-                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Mean base rate across active corridors</div>
+                  <div className="font-bold text-indigo-900 dark:text-indigo-300">Average Rate</div>
+                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Mean base rate across all rate cards</div>
                 </div>
                 <span className="font-mono font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">SAR {kpis.avgPrice.toLocaleString()}</span>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100">Active Rate Contracts</div>
-                  <div className="text-[10px] text-slate-400">Total tariff agreements in effect</div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">Active Rate Cards</div>
+                  <div className="text-[10px] text-slate-400">Applied to new trips</div>
                 </div>
                 <Badge className="bg-[#E8450F] text-white font-mono font-bold text-xs">{kpis.activeCount} Active</Badge>
               </div>
@@ -886,9 +886,9 @@ export default function RateCardListPage() {
                 variant="outline"
                 size="sm"
                 className="w-full text-xs font-bold border-slate-200"
-                onClick={() => setShowTariffModal(false)}
+                onClick={() => setShowPricingModal(false)}
               >
-                Close Benchmark Summary
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>
