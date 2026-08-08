@@ -219,7 +219,7 @@ export default function DataTable<T>({
             <>
               {/* Left Side: Ledger Title & Search / Filter Controls */}
               <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                {title ? (
+                {title && (
                   <div className="flex items-center gap-2.5 mr-2">
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                       {title}
@@ -227,34 +227,8 @@ export default function DataTable<T>({
                     <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
                       {totalCount} {totalCount === 1 ? 'record' : 'records'}
                     </Badge>
-                    {enableSelection && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSelectAll}
-                        className="h-7 text-xs font-semibold px-2.5 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      >
-                        <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                        <span>{selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}</span>
-                      </Button>
-                    )}
                   </div>
-                ) : (
-                  enableSelection && (
-                    <div className="flex items-center gap-2.5 mr-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSelectAll}
-                        className="h-7 text-xs font-semibold px-2.5 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      >
-                        <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                        <span>{selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}</span>
-                      </Button>
-                    </div>
-                  )
                 )}
-
 
                 {onSearchChange !== undefined && (
                   <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm sm:min-w-[200px]">
@@ -282,8 +256,19 @@ export default function DataTable<T>({
                 {filterElement}
               </div>
 
-              {/* Right Side: Actions & Export */}
-              <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0">
+              {/* Right Side: Selection Controls, Actions & Export */}
+              <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
+                {enableSelection && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAll}
+                    className="h-8 text-xs font-semibold px-3 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 transition-colors"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>{selectedIndices.size === displayData.length && displayData.length > 0 ? "Deselect All" : "Select All"}</span>
+                  </Button>
+                )}
                 {actionsElement}
                 {onExport && (
                   <Btn

@@ -350,13 +350,13 @@ export default function CustomerListPage() {
             trendValue="Credit Portfolio"
             description="Credit facility summary"
             icon={MoneyBills}
+            completionGauge={{
+              percentage: 65,
+              label: '65% Utilized',
+              subtext: `Portfolio Limit SAR ${(totalCreditLimit / 1000).toFixed(0)}K`
+            }}
             onClick={() => setShowCreditModal(true)}
-          >
-            <CreditExposureKpi 
-              usedAmount={Math.round(totalCreditLimit * 0.65)} 
-              limitAmount={totalCreditLimit || 500000} 
-            />
-          </KpiCard>
+          />
  
           {/* Card 4: Contract Renewals Due — Urgency Progress Bar */}
           <KpiCard
