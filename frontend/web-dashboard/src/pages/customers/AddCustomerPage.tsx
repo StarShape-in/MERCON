@@ -5,11 +5,12 @@ import {
   ArrowLeft, 
   RotateCcw, 
   Plus, 
-  CheckCircle2, 
   Building2, 
   Phone, 
   Mail, 
-  DollarSign, 
+  User,
+  MapPin,
+  Briefcase,
   FileText
 } from 'lucide-react';
 
@@ -29,7 +30,7 @@ export default function AddCustomerPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  // Streamlined Form State
+  // Form State
   const [formData, setFormData] = useState({
     name: '',
     trade_alias: '',
@@ -41,7 +42,6 @@ export default function AddCustomerPage() {
     contact_person: '',
     contact_title: '',
     billing_address: '',
-    credit_limit: '100000',
     isActive: true,
   });
 
@@ -61,7 +61,6 @@ export default function AddCustomerPage() {
       contact_person: '',
       contact_title: '',
       billing_address: '',
-      credit_limit: '100000',
       isActive: true,
     });
     setError(null);
@@ -96,7 +95,6 @@ export default function AddCustomerPage() {
     createMutation.mutate({
       name: formData.name.trim(),
       contact_phone: formData.contact_phone.trim(),
-      credit_limit: formData.credit_limit ? Number(formData.credit_limit) : 0,
     });
   }, [formData, createMutation]);
 
@@ -115,20 +113,20 @@ export default function AddCustomerPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSubmit, isFormValid, createMutation.isPending, navigate]);
 
-  // Field Completion Tracking
+  // Completion Tracking
   const completionFields = [
     { label: 'Company Name', filled: formData.name.trim() !== '' },
     { label: 'Contact Phone', filled: formData.contact_phone.trim() !== '' },
     { label: 'Billing Email', filled: formData.email.trim() !== '' },
     { label: 'CR Number', filled: formData.cr_number.trim() !== '' },
-    { label: 'Credit Limit', filled: formData.credit_limit !== '' },
+    { label: 'Contact Person', filled: formData.contact_person.trim() !== '' },
   ];
   const filledCount = completionFields.filter(f => f.filled).length;
   const completionPct = Math.round((filledCount / completionFields.length) * 100);
 
   return (
     <DashboardLayout active="Customers" title="Add Customer">
-      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1300px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1250px] mx-auto">
         
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
@@ -174,7 +172,7 @@ export default function AddCustomerPage() {
           </div>
         </div>
 
-        {/* 2-Column Clean Layout */}
+        {/* 2-Column Balanced Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
           {/* Main Form Card (8 Columns) */}
@@ -185,7 +183,7 @@ export default function AddCustomerPage() {
                   <Building2 className="w-4 h-4 text-orange-500" /> Company & Contact Details
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500">
-                  Enter primary company identity, contact representative, and credit limit.
+                  Enter primary company identity and contact representative information.
                 </CardDescription>
               </CardHeader>
 
@@ -350,50 +348,34 @@ export default function AddCustomerPage() {
 
                 <hr className="border-slate-100 dark:border-slate-800" />
 
-                {/* 3. Credit Limit & Account Status */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="credit_limit" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Credit Limit (SAR)
-                    </Label>
-                    <Input 
-                      id="credit_limit" 
-                      type="number" 
-                      placeholder="100000" 
-                      value={formData.credit_limit} 
-                      onChange={(e) => handleChange('credit_limit', e.target.value)} 
-                      className="h-9 text-xs font-mono font-bold" 
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Account Status
-                    </Label>
-                    <div className="flex items-center gap-2 pt-0.5">
-                      <button
-                        type="button"
-                        onClick={() => handleChange('isActive', true)}
-                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border text-center transition-all ${
-                          formData.isActive
-                            ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-2xs'
-                            : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
-                        }`}
-                      >
-                        Active
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChange('isActive', false)}
-                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border text-center transition-all ${
-                          !formData.isActive
-                            ? 'bg-rose-600 text-white border-rose-600 font-bold shadow-2xs'
-                            : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
-                        }`}
-                      >
-                        Inactive
-                      </button>
-                    </div>
+                {/* 3. Account Status */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Account Status
+                  </Label>
+                  <div className="flex items-center gap-3 pt-0.5 max-w-xs">
+                    <button
+                      type="button"
+                      onClick={() => handleChange('isActive', true)}
+                      className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border text-center transition-all ${
+                        formData.isActive
+                          ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-2xs'
+                          : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
+                      }`}
+                    >
+                      Active
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleChange('isActive', false)}
+                      className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border text-center transition-all ${
+                        !formData.isActive
+                          ? 'bg-rose-600 text-white border-rose-600 font-bold shadow-2xs'
+                          : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
+                      }`}
+                    >
+                      Inactive
+                    </button>
                   </div>
                 </div>
 
@@ -452,15 +434,18 @@ export default function AddCustomerPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <DollarSign className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Approved Credit Limit</span>
-                    <p className="text-xs font-bold font-mono text-slate-900 dark:text-slate-100">
-                      SAR {formData.credit_limit ? Number(formData.credit_limit).toLocaleString() : '0'}
-                    </p>
+                {formData.contact_person.trim() && (
+                  <div className="flex items-start gap-3">
+                    <User className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Representative</span>
+                      <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                        {formData.contact_person}
+                      </p>
+                      {formData.contact_title && <span className="text-[11px] text-slate-500">{formData.contact_title}</span>}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Progress Bar */}
