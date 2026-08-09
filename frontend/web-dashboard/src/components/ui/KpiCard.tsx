@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { Area, AreaChart, ResponsiveContainer } from 'recharts'
-import { Card } from '@/components/ui/card'
 import { ChartContainer } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
 
@@ -47,7 +46,7 @@ export interface RouteHealthBreakdown {
   stopped: number
 }
 
-export interface KpiCardProps extends Omit<React.ComponentProps<typeof Card>, 'title' | 'value'> {
+export interface KpiCardProps extends Omit<React.ComponentProps<'div'>, 'title' | 'value'> {
   title?: string
   label?: string
   value: React.ReactNode
@@ -297,9 +296,9 @@ export function KpiCard({
   const hasFullBleedFooter = Boolean(customFooter || normalizedChartData)
 
   return (
-    <Card
+    <div
       className={cn(
-        'group relative gap-0 rounded-2xl border border-black/[0.06] bg-white pt-5 px-5 pb-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
+        'group relative flex flex-col gap-0 rounded-2xl border border-black/[0.06] bg-white pt-5 px-5 pb-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card overflow-hidden',
         hasFullBleedFooter && 'pb-0',
         props.onClick && 'cursor-pointer hover:border-black/[0.14] dark:hover:border-white/[0.16]',
         isActive && selectedStyle.activeRing,
@@ -431,7 +430,7 @@ export function KpiCard({
           </div>
         )
       )}
-    </Card>
+    </div>
   )
 }
 
