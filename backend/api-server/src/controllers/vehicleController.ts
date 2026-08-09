@@ -265,20 +265,47 @@ export const bulkImportVehicles = async (req: Request, res: Response) => {
         }
 
         if (!driver) {
-          const parts = who.split(/\s+/);
-          const nameMatches = await prisma.driver.findMany({
-            where: {
-              deletedAt: null,
-              first_name: { equals: parts[0], mode: 'insensitive' },
-              ...(parts.length > 1 ? { last_name: { equals: parts.slice(1).join(' '), mode: 'insensitive' } } : {}),
-            },
-            take: 2,
+          // Try matching by driver ref_id (e.g. DRV-101)
+          driver = await prisma.driver.findFirst({
+            where: { ref_id: { equals: who, mode: 'insensitive' }, deletedAt: null },
           });
-          if (nameMatches.length > 1) {
-            result.warning = `Imported, but more than one driver is called "${who}" — assign the truck by phone number instead`;
-            continue;
+        }
+
+        if (!driver) {
+          // Smart fuzzy/prefix name matching for partial names (e.g. "IMTIAZ AHMED" -> "IMTIAZ AHMED KHIZAR HAYAT")
+          const allDrivers = await prisma.driver.findMany({ where: { deletedAt: null } });
+          const normTarget = who.toLowerCase().replace(/\s+/g, ' ');
+
+          const matches = allDrivers.filter((d) => {
+            const fn = (d.first_name || '').toLowerCase().trim();
+            const ln = (d.last_name || '').toLowerCase().trim();
+            const fullName = `${fn} ${ln}`.replace(/\s+/g, ' ');
+
+            if (fullName.startsWith(normTarget) || normTarget.startsWith(fullName)) return true;
+
+            const targetWords = normTarget.split(' ');
+            const fullWords = fullName.split(' ');
+            if (targetWords.length > 0 && targetWords.every((tw) => fullWords.some((fw) => fw.startsWith(tw)))) {
+              return true;
+            }
+
+            return false;
+          });
+
+          if (matches.length === 1) {
+            driver = matches[0];
+          } else if (matches.length > 1) {
+            const exactPrefix = matches.filter((d) => {
+              const fullName = `${d.first_name} ${d.last_name}`.toLowerCase().replace(/\s+/g, ' ');
+              return fullName.startsWith(normTarget);
+            });
+            if (exactPrefix.length === 1) {
+              driver = exactPrefix[0];
+            } else {
+              result.warning = `Imported, but more than one driver matches "${who}" — assign the truck by phone number or driver ID`;
+              continue;
+            }
           }
-          driver = nameMatches[0] ?? null;
         }
 
         if (!driver) {
