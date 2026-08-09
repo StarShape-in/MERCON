@@ -894,18 +894,17 @@ export default function VehicleListPage() {
             }
           />
 
-          {/* Card 4: Istimara Expiry Radar */}
+          {/* Card 4: Active On Trips */}
           <KpiCard
-            title="ISTIMARA PERMIT RADAR"
-            value={vehicles.length}
+            title="ACTIVE ON TRIPS"
+            value={onTripCount}
             variant="blue"
-            trend="neutral"
-            trendValue="MOT Verified"
-            description="Vehicle permit status radar"
-            icon={ShieldCheck}
-            chartData={[95, 96, 96, 97, 98, 99, 100]}
-            isActive={false}
-            onClick={() => navigate('/documents')}
+            trend={onTripCount > 0 ? 'up' : 'neutral'}
+            trendValue={`${onTripCount} En Route`}
+            description="Currently dispatched on active trips"
+            icon={Truck}
+            isActive={selectedStatus === 'OnTrip'}
+            onClick={() => { setSelectedStatus('OnTrip'); setCurrentPage(1); }}
           />
         </div>
 
