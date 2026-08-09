@@ -8,6 +8,7 @@ import {
   Eye, 
   Edit2, 
   Trash2,
+  Search,
   AlertTriangle,
   RefreshCw, 
   User, 
@@ -46,6 +47,7 @@ import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -633,11 +635,33 @@ export default function DriverListPage() {
         </div>
 
         {/* Filter & Control Bar */}
-        <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
+        <div className="bg-white rounded-xl border border-black/[0.08] p-3 sm:p-4 shadow-2xs shrink-0 flex flex-col gap-3">
+
+          {/* Row 1: Ledger Heading */}
+          <div className="flex items-center gap-2.5">
+            <Users className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Driver Roster Ledger</h3>
+            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+              {totalCount} {totalCount === 1 ? 'record' : 'records'}
+            </Badge>
+          </div>
+
+          {/* Row 2: Search Bar & Filtration Tools */}
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
-            
-            {/* Inline Dropdown Controls (Strictly Horizontal) */}
+
+            {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
             <div className="flex items-center gap-3 shrink-0">
+
+              {/* Search Input */}
+              <div className="relative w-64 shrink-0">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search driver ID, name, phone..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
+                />
+              </div>
 
               {/* Status Filter Dropdown */}
               <Select
@@ -755,12 +779,6 @@ export default function DriverListPage() {
         {viewMode === 'list' ? (
           <div className="w-full flex flex-col">
             <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-emerald-500" />
-                  <span>Driver Roster Ledger</span>
-                </span>
-              }
               data={filteredDrivers}
               columns={columns}
               enableSelection={true}
@@ -768,9 +786,6 @@ export default function DriverListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load drivers.'}
-              searchPlaceholder="Search driver ID, name, phone..."
-              searchValue={search}
-              onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
               bulkActions={bulkActions}
               currentPage={currentPage}
               totalPages={totalPages}

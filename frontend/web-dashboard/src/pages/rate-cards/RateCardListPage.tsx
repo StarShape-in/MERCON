@@ -10,6 +10,7 @@ import {
   Trash2, 
   RotateCw, 
   Filter,
+  Search,
   ArrowRight,
   Building2, 
   MapPin, 
@@ -36,6 +37,7 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu,
@@ -615,11 +617,33 @@ export default function RateCardListPage() {
         )}
 
         {/* Toolbar & Control Bar Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 sm:p-4 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0 flex flex-col gap-3">
+
+          {/* Row 1: Ledger Heading */}
+          <div className="flex items-center gap-2.5">
+            <Layers className="w-4 h-4 text-indigo-500" />
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Rate Card Ledger</h3>
+            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+              {filteredData.length} {filteredData.length === 1 ? 'record' : 'records'}
+            </Badge>
+          </div>
+
+          {/* Row 2: Search Bar & Filtration Tools */}
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
-            
-            {/* Left: Status & Scope Dropdowns */}
+
+            {/* Left: Search + Status & Scope Dropdowns */}
             <div className="flex items-center gap-3 shrink-0">
+
+              {/* Search Bar */}
+              <div className="relative w-64 sm:w-72 shrink-0">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <Input
+                  placeholder="Search ID, customer, route..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
+                />
+              </div>
 
               {/* Status Filter Dropdown */}
               <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
@@ -688,12 +712,8 @@ export default function RateCardListPage() {
 
             </div>
 
-            {/* Right: Record Counter & View Switcher */}
+            {/* Right: View Switcher */}
             <div className="flex items-center gap-3 shrink-0 ml-auto">
-              <div className="text-xs font-semibold text-slate-500">
-                <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredData.length}</span> tariff agreements
-              </div>
-
               {/* View Mode Segmented Control */}
               <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
                 <button
@@ -728,12 +748,6 @@ export default function RateCardListPage() {
         {viewMode === 'ledger' ? (
           <div className="w-full flex flex-col">
             <DataTable
-              title={
-                <span className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-indigo-500" />
-                  <span>Rate Card Ledger</span>
-                </span>
-              }
               columns={columns}
               data={filteredData}
               bulkActions={bulkActions}
@@ -742,9 +756,6 @@ export default function RateCardListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
-              searchPlaceholder="Search ID, customer, route..."
-              searchValue={search}
-              onSearchChange={setSearch}
               pageSize={pageSize}
               onPageSizeChange={(size) => setPageSize(size)}
               onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}

@@ -9,6 +9,7 @@ import {
   Edit2,
   Trash2,
   Navigation,
+  Search,
   RefreshCw,
   Truck,
   User,
@@ -41,6 +42,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -866,9 +868,31 @@ export default function TripListPage() {
           </div>
         )}
         {/* Filter & Control Bar */}
-        <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
+        <div className="bg-white rounded-xl border border-black/[0.08] p-3 sm:p-4 shadow-2xs shrink-0 flex flex-col gap-3">
+
+          {/* Row 1: Ledger Heading */}
+          <div className="flex items-center gap-2.5">
+            <Layers className="w-4 h-4 text-indigo-500" />
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Trip Ledger</h3>
+            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+              {trips.length} {trips.length === 1 ? 'record' : 'records'}
+            </Badge>
+          </div>
+
+          {/* Row 2: Search Bar & Filtration Tools */}
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
-            
+
+            {/* Search Input */}
+            <div className="relative w-64 sm:w-72 shrink-0">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search trip ID, customer, driver..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
+              />
+            </div>
+
             {/* Filter Dropdowns */}
             <div className="flex items-center gap-2.5 shrink-0">
               {/* Status Filter Dropdown */}
@@ -982,12 +1006,6 @@ export default function TripListPage() {
 
         <div className="w-full flex flex-col">
           <DataTable
-            title={
-              <span className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-500" />
-                <span>Trip Ledger</span>
-              </span>
-            }
             data={trips}
             columns={columns}
             enableSelection={true}
@@ -995,9 +1013,6 @@ export default function TripListPage() {
             isLoading={isLoading}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load trips.'}
-            searchPlaceholder="Search trip ID, customer, driver..."
-            searchValue={search}
-            onSearchChange={setSearch}
             bulkActions={bulkActions}
             pageSize={pageSize}
             onPageSizeChange={(size) => setPageSize(size)}

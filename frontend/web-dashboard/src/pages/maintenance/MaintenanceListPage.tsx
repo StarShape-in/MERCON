@@ -496,9 +496,20 @@ export default function MaintenanceListPage() {
         </div>
 
         {/* ── 3. Toolbar & Control Bar ────────────────────────────────────── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 rounded-xl shadow-2xs shrink-0">
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl shadow-2xs shrink-0 flex flex-col gap-3">
+
+          {/* Row 1: Ledger Heading */}
+          <div className="flex items-center gap-2.5">
+            <Wrench className="w-4 h-4 text-amber-500" />
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Maintenance Ledger</h3>
+            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+              {maintenanceRes?.meta?.total || records.length} {(maintenanceRes?.meta?.total || records.length) === 1 ? 'record' : 'records'}
+            </Badge>
+          </div>
+
+          {/* Row 2: Search Bar & Filtration Tools */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 overflow-x-auto">
-            
+
             {/* Search Input & Inline Filter Dropdown Controls */}
             <div className="flex items-center gap-3 w-full sm:w-auto flex-1 min-w-[280px]">
               
@@ -594,12 +605,6 @@ export default function MaintenanceListPage() {
             ) : viewMode === 'list' ? (
               <div className="w-full flex flex-col">
                 <DataTable
-                  title={
-                    <span className="flex items-center gap-2">
-                      <Wrench className="w-4 h-4 text-amber-500" />
-                      <span>Maintenance Ledger</span>
-                    </span>
-                  }
                   columns={[
                     {
                       header: 'Order #',
@@ -722,9 +727,6 @@ export default function MaintenanceListPage() {
                   bulkActions={bulkActions}
                   compact={true}
                   isLoading={isLoading}
-                  searchPlaceholder="Search vehicle plate, workshop, invoice, or work done..."
-                  searchValue={search}
-                  onSearchChange={setSearch}
                   pageSize={pageSize}
                   onPageSizeChange={setPageSize}
                   currentPage={page}
@@ -737,15 +739,6 @@ export default function MaintenanceListPage() {
             ) : (
               /* Grid View */
               <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100">Maintenance Ledger</span>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-slate-400">
-                    {records.length} records
-                  </span>
-                </div>
                 <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {records.map((r) => (
                   <Card key={r.id} className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl space-y-3">
