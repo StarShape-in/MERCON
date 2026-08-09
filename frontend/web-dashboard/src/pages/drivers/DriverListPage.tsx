@@ -41,6 +41,7 @@ import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { notificationService } from '@/services/notificationService';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { cn } from '@/lib/utils';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -493,6 +494,30 @@ export default function DriverListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Segmented View Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="List View"
+              >
+                <List size={14} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Grid View"
+              >
+                <LayoutGrid size={14} />
+              </button>
+            </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -634,151 +659,16 @@ export default function DriverListPage() {
           />
         </div>
 
-        {/* Filter & Control Bar */}
-        <div className="bg-white rounded-xl border border-black/[0.08] p-3 sm:p-4 shadow-2xs shrink-0 flex flex-col gap-3">
-
-          {/* Row 1: Ledger Heading */}
-          <div className="flex items-center gap-2.5">
-            <Users className="w-4 h-4 text-emerald-500" />
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Driver Roster Ledger</h3>
-            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-              {totalCount} {totalCount === 1 ? 'record' : 'records'}
-            </Badge>
-          </div>
-
-          {/* Row 2: Search Bar & Filtration Tools */}
-          <div className="flex items-center justify-between gap-3 overflow-x-auto">
-
-            {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
-            <div className="flex items-center gap-3 shrink-0">
-
-              {/* Search Input */}
-              <div className="relative w-64 shrink-0">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search driver ID, name, phone..."
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
-                />
-              </div>
-
-              {/* Status Filter Dropdown */}
-              <Select
-                value={selectedStatus}
-                onValueChange={(val) => {
-                  if (val) {
-                    setSelectedStatus(val as DriverStatus | 'All');
-                    setCurrentPage(1);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="All Statuses" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      Filter Duty Status
-                    </SelectLabel>
-                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-slate-700">
-                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                        All Statuses
-                      </span>
-                    </SelectItem>
-                  </SelectGroup>
-                  <SelectSeparator className="my-1 border-slate-100" />
-                  <SelectGroup>
-                    <SelectItem value="Available" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-emerald-700">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        Available
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="OnTrip" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-blue-700">
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        On Trip
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="OffDuty" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-slate-700">
-                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                        Off Duty
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="Inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-rose-700">
-                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                        Inactive
-                      </span>
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* License Expiry Filter Dropdown */}
-              <Select
-                value={licenseFilter}
-                onValueChange={(val) => { if (val) setLicenseFilter(val as any); }}
-              >
-                <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="License Expiry" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      License Status
-                    </SelectLabel>
-                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Licenses</SelectItem>
-                    <SelectItem value="Valid" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Valid Licenses</SelectItem>
-                    <SelectItem value="Expired" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600">Expired Licenses</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-            </div>
-
-            {/* View Mode Switcher Pill */}
-            <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shrink-0 ml-auto">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  viewMode === 'list' 
-                    ? 'bg-white text-slate-900 shadow-2xs' 
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <List size={13} />
-                <span>List</span>
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  viewMode === 'grid' 
-                    ? 'bg-white text-slate-900 shadow-2xs' 
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <LayoutGrid size={13} />
-                <span>Grid</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-
         {/* Dynamic Table or Grid Render */}
         {viewMode === 'list' ? (
           <div className="w-full flex flex-col">
             <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-emerald-500" />
+                  <span>Driver Roster Ledger</span>
+                </span>
+              }
               data={filteredDrivers}
               columns={columns}
               enableSelection={true}
@@ -786,6 +676,91 @@ export default function DriverListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load drivers.'}
+              searchPlaceholder="Search driver ID, name, phone..."
+              searchValue={search}
+              onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
+              filterElement={
+                <div className="flex items-center gap-3">
+                  <Select
+                    value={selectedStatus}
+                    onValueChange={(val) => {
+                      if (val) {
+                        setSelectedStatus(val as DriverStatus | 'All');
+                        setCurrentPage(1);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                        <SelectValue placeholder="All Statuses" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                      <SelectGroup>
+                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                          Filter Duty Status
+                        </SelectLabel>
+                        <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700">
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            All Statuses
+                          </span>
+                        </SelectItem>
+                      </SelectGroup>
+                      <SelectSeparator className="my-1 border-slate-100" />
+                      <SelectGroup>
+                        <SelectItem value="Available" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-emerald-700">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Available
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="OnTrip" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-blue-700">
+                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                            On Trip
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="OffDuty" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700">
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            Off Duty
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="Inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-rose-700">
+                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                            Inactive
+                          </span>
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={licenseFilter}
+                    onValueChange={(val) => { if (val) setLicenseFilter(val as any); }}
+                  >
+                    <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                        <SelectValue placeholder="License Expiry" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                      <SelectGroup>
+                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                          License Status
+                        </SelectLabel>
+                        <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Licenses</SelectItem>
+                        <SelectItem value="Valid" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Valid Licenses</SelectItem>
+                        <SelectItem value="Expired" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600">Expired Licenses</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              }
               bulkActions={bulkActions}
               currentPage={currentPage}
               totalPages={totalPages}

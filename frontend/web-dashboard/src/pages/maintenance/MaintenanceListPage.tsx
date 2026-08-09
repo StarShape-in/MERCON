@@ -386,6 +386,30 @@ export default function MaintenanceListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Segmented View Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="List View"
+              >
+                <List size={14} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Grid View"
+              >
+                <LayoutGrid size={14} />
+              </button>
+            </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -495,94 +519,7 @@ export default function MaintenanceListPage() {
 
         </div>
 
-        {/* ── 3. Toolbar & Control Bar ────────────────────────────────────── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl shadow-2xs shrink-0 flex flex-col gap-3">
-
-          {/* Row 1: Ledger Heading */}
-          <div className="flex items-center gap-2.5">
-            <Wrench className="w-4 h-4 text-amber-500" />
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Maintenance Ledger</h3>
-            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-              {maintenanceRes?.meta?.total || records.length} {(maintenanceRes?.meta?.total || records.length) === 1 ? 'record' : 'records'}
-            </Badge>
-          </div>
-
-          {/* Row 2: Search Bar & Filtration Tools */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 overflow-x-auto">
-
-            {/* Search Input & Inline Filter Dropdown Controls */}
-            <div className="flex items-center gap-3 w-full sm:w-auto flex-1 min-w-[280px]">
-              
-              {/* Search Input Box */}
-              <div className="relative min-w-[220px] max-w-sm flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <Input
-                  placeholder="Search vehicle plate, workshop, invoice, or work done..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                />
-              </div>
-
-              {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 text-xs w-[140px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="In_Progress">In Progress</SelectItem>
-                  <SelectItem value="Scheduled">Scheduled</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Type Filter */}
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-9 text-xs w-[160px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="Maintenance Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Routine">Routine Service</SelectItem>
-                  <SelectItem value="Repair">Repair</SelectItem>
-                  <SelectItem value="Inspection">Inspection</SelectItem>
-                  <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-                  <SelectItem value="Emergency">Emergency</SelectItem>
-                </SelectContent>
-              </Select>
-
-            </div>
-
-            {/* Segmented View Switcher */}
-            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
-              <button
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5",
-                  viewMode === 'list' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs" : "text-slate-500 hover:text-slate-900"
-                )}
-              >
-                <List className="w-3.5 h-3.5" />
-                List
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5",
-                  viewMode === 'grid' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs" : "text-slate-500 hover:text-slate-900"
-                )}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                Grid
-              </button>
-            </div>
-
-          </div>
-        </Card>
-
-        {/* ── 4. Data Table Ledger & Empty States ─────────────────────────── */}
+        {/* ── 3. Data Table Ledger & Empty States ─────────────────────────── */}
         {isLoading ? (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center text-slate-400 animate-pulse text-xs font-semibold shadow-2xs">
             Loading maintenance service records...
@@ -605,6 +542,12 @@ export default function MaintenanceListPage() {
             ) : viewMode === 'list' ? (
               <div className="w-full flex flex-col">
                 <DataTable
+                  title={
+                    <span className="flex items-center gap-2">
+                      <Wrench className="w-4 h-4 text-amber-500" />
+                      <span>Maintenance Ledger</span>
+                    </span>
+                  }
                   columns={[
                     {
                       header: 'Order #',
@@ -727,6 +670,39 @@ export default function MaintenanceListPage() {
                   bulkActions={bulkActions}
                   compact={true}
                   isLoading={isLoading}
+                  searchPlaceholder="Search vehicle plate, workshop, invoice, or work done..."
+                  searchValue={search}
+                  onSearchChange={setSearch}
+                  filterElement={
+                    <div className="flex items-center gap-3">
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="h-9 text-xs w-[140px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="In_Progress">In Progress</SelectItem>
+                          <SelectItem value="Scheduled">Scheduled</SelectItem>
+                          <SelectItem value="Completed">Completed</SelectItem>
+                          <SelectItem value="Cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger className="h-9 text-xs w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                          <SelectValue placeholder="Maintenance Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="Routine">Routine Service</SelectItem>
+                          <SelectItem value="Repair">Repair</SelectItem>
+                          <SelectItem value="Inspection">Inspection</SelectItem>
+                          <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
+                          <SelectItem value="Emergency">Emergency</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  }
                   pageSize={pageSize}
                   onPageSizeChange={setPageSize}
                   currentPage={page}

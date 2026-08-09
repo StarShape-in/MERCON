@@ -398,6 +398,32 @@ export default function RateCardListPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Segmented View Switcher */}
+            <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('ledger')}
+                className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
+                  viewMode === 'ledger'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+                title="Ledger Table View"
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+                title="Grid Card View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -616,138 +642,16 @@ export default function RateCardListPage() {
           </div>
         )}
 
-        {/* Toolbar & Control Bar Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-3 sm:p-4 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0 flex flex-col gap-3">
-
-          {/* Row 1: Ledger Heading */}
-          <div className="flex items-center gap-2.5">
-            <Layers className="w-4 h-4 text-indigo-500" />
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Rate Card Ledger</h3>
-            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-              {filteredData.length} {filteredData.length === 1 ? 'record' : 'records'}
-            </Badge>
-          </div>
-
-          {/* Row 2: Search Bar & Filtration Tools */}
-          <div className="flex items-center justify-between gap-3 overflow-x-auto">
-
-            {/* Left: Search + Status & Scope Dropdowns */}
-            <div className="flex items-center gap-3 shrink-0">
-
-              {/* Search Bar */}
-              <div className="relative w-64 sm:w-72 shrink-0">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-                <Input
-                  placeholder="Search ID, customer, route..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
-                />
-              </div>
-
-              {/* Status Filter Dropdown */}
-              <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
-                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="Tariff Status" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      Status Filter
-                    </SelectLabel>
-                    <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-slate-700">
-                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                        All Statuses
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-emerald-700">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        Active Only
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-slate-500">
-                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                        Inactive Only
-                      </span>
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* Scope Filter */}
-              <Select value={scopeFilter} onValueChange={(val: any) => setScopeFilter(val)}>
-                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <Globe2 className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
-                    <SelectValue placeholder="Applies to" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      Applies To
-                    </SelectLabel>
-                    <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Rates</SelectItem>
-                    <SelectItem value="standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-[#E8450F]">
-                        <Globe2 className="w-3 h-3 text-[#E8450F]" />
-                        Standard (all customers)
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="customer" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-indigo-700">
-                        <Building2 className="w-3 h-3 text-indigo-600" />
-                        Customer-specific
-                      </span>
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-            </div>
-
-            {/* Right: View Switcher */}
-            <div className="flex items-center gap-3 shrink-0 ml-auto">
-              {/* View Mode Segmented Control */}
-              <div className="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={() => setViewMode('ledger')}
-                  className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
-                    viewMode === 'ledger' 
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' 
-                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                  title="Ledger Table View"
-                >
-                  <List className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
-                    viewMode === 'grid' 
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs' 
-                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                  title="Grid Card View"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
         {/* Content Workspace: Ledger Table vs Grid Cards */}
         {viewMode === 'ledger' ? (
           <div className="w-full flex flex-col">
             <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-indigo-500" />
+                  <span>Rate Card Ledger</span>
+                </span>
+              }
               columns={columns}
               data={filteredData}
               bulkActions={bulkActions}
@@ -756,6 +660,75 @@ export default function RateCardListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
+              searchPlaceholder="Search ID, customer, route..."
+              searchValue={search}
+              onSearchChange={setSearch}
+              filterElement={
+                <div className="flex items-center gap-3">
+                  <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
+                    <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                        <SelectValue placeholder="Tariff Status" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                      <SelectGroup>
+                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                          Status Filter
+                        </SelectLabel>
+                        <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700">
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            All Statuses
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-emerald-700">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Active Only
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-500">
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            Inactive Only
+                          </span>
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={scopeFilter} onValueChange={(val: any) => setScopeFilter(val)}>
+                    <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <Globe2 className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+                        <SelectValue placeholder="Applies to" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                      <SelectGroup>
+                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                          Applies To
+                        </SelectLabel>
+                        <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Rates</SelectItem>
+                        <SelectItem value="standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-[#E8450F]">
+                            <Globe2 className="w-3 h-3 text-[#E8450F]" />
+                            Standard (all customers)
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="customer" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-indigo-700">
+                            <Building2 className="w-3 h-3 text-indigo-600" />
+                            Customer-specific
+                          </span>
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              }
               pageSize={pageSize}
               onPageSizeChange={(size) => setPageSize(size)}
               onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}

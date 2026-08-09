@@ -42,7 +42,6 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -867,145 +866,14 @@ export default function TripListPage() {
             </button>
           </div>
         )}
-        {/* Filter & Control Bar */}
-        <div className="bg-white rounded-xl border border-black/[0.08] p-3 sm:p-4 shadow-2xs shrink-0 flex flex-col gap-3">
-
-          {/* Row 1: Ledger Heading */}
-          <div className="flex items-center gap-2.5">
-            <Layers className="w-4 h-4 text-indigo-500" />
-            <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Trip Ledger</h3>
-            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-              {trips.length} {trips.length === 1 ? 'record' : 'records'}
-            </Badge>
-          </div>
-
-          {/* Row 2: Search Bar & Filtration Tools */}
-          <div className="flex items-center justify-between gap-3 overflow-x-auto">
-
-            {/* Search Input */}
-            <div className="relative w-64 sm:w-72 shrink-0">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search trip ID, customer, driver..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
-              />
-            </div>
-
-            {/* Filter Dropdowns */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              {/* Status Filter Dropdown */}
-              <Select
-                value={selectedStatus}
-                onValueChange={(val) => {
-                  if (val) {
-                    setSelectedStatus(val as TripStatus | 'All');
-                    setCurrentPage(1);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="All Operations" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      Filter Status
-                    </SelectLabel>
-                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-slate-700">
-                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                        All Operations
-                      </span>
-                    </SelectItem>
-                  </SelectGroup>
-                  <SelectSeparator className="my-1 border-slate-100" />
-                  <SelectGroup>
-                    <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-amber-700">
-                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                        Drafts
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="Dispatched" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-blue-700">
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        Dispatched
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="AtPickup" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-purple-700">
-                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                        At Pickup
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="InTransit" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-[#E8450F]">
-                        <span className="w-2 h-2 rounded-full bg-[#E8450F]"></span>
-                        In Transit
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="AtDelivery" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-indigo-700">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                        At Delivery
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-emerald-700">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        Completed
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                      <span className="flex items-center gap-2 font-medium text-rose-700">
-                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                        Cancelled
-                      </span>
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* Date Range Dropdown */}
-              <Select
-                value={dateFilter}
-                onValueChange={(val) => {
-                  if (val) {
-                    setDateFilter(val);
-                    setCurrentPage(1);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="All Dates" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      Date Horizon
-                    </SelectLabel>
-                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Dates</SelectItem>
-                    <SelectItem value="Today" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Today</SelectItem>
-                    <SelectItem value="ThisWeek" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Week</SelectItem>
-                    <SelectItem value="ThisMonth" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Month</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-            </div>
-          </div>
-        </div>
-
         <div className="w-full flex flex-col">
           <DataTable
+            title={
+              <span className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-indigo-500" />
+                <span>Trip Ledger</span>
+              </span>
+            }
             data={trips}
             columns={columns}
             enableSelection={true}
@@ -1013,6 +881,115 @@ export default function TripListPage() {
             isLoading={isLoading}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load trips.'}
+            searchPlaceholder="Search trip ID, customer, driver..."
+            searchValue={search}
+            onSearchChange={setSearch}
+            filterElement={
+              <div className="flex items-center gap-2.5">
+                <Select
+                  value={selectedStatus}
+                  onValueChange={(val) => {
+                    if (val) {
+                      setSelectedStatus(val as TripStatus | 'All');
+                      setCurrentPage(1);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                      <SelectValue placeholder="All Operations" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                        Filter Status
+                      </SelectLabel>
+                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-slate-700">
+                          <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                          All Operations
+                        </span>
+                      </SelectItem>
+                    </SelectGroup>
+                    <SelectSeparator className="my-1 border-slate-100" />
+                    <SelectGroup>
+                      <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-amber-700">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          Drafts
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="Dispatched" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-blue-700">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                          Dispatched
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="AtPickup" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-purple-700">
+                          <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                          At Pickup
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="InTransit" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-[#E8450F]">
+                          <span className="w-2 h-2 rounded-full bg-[#E8450F]"></span>
+                          In Transit
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="AtDelivery" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-indigo-700">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                          At Delivery
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-emerald-700">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          Completed
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-rose-700">
+                          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                          Cancelled
+                        </span>
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={dateFilter}
+                  onValueChange={(val) => {
+                    if (val) {
+                      setDateFilter(val);
+                      setCurrentPage(1);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                      <SelectValue placeholder="All Dates" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                        Date Horizon
+                      </SelectLabel>
+                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Dates</SelectItem>
+                      <SelectItem value="Today" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Today</SelectItem>
+                      <SelectItem value="ThisWeek" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Week</SelectItem>
+                      <SelectItem value="ThisMonth" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Month</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            }
             bulkActions={bulkActions}
             pageSize={pageSize}
             onPageSizeChange={(size) => setPageSize(size)}
