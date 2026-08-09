@@ -278,39 +278,82 @@ export default function VehicleDetailsPage() {
         </div>
 
         {/* ── Visual Hero Command Panel ─────────────────────────────────── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-6 overflow-hidden">
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-xs p-6 overflow-hidden">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
-            {/* Left: Authentic Saudi License Plate Graphic (Plate Number ONLY inside graphic frame) */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            {/* Left: Authentic Dual-Language Saudi Plate Card (Bigger, featuring Ref ID, Capacity & Mileage inside) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6 w-full lg:w-auto">
               
-              {/* Dual-Language Saudi Plate Frame */}
-              <div className="w-48 h-24 rounded-xl border-2 border-slate-900 dark:border-slate-100 bg-slate-50 dark:bg-slate-950 p-2.5 shadow-md flex flex-col justify-between shrink-0 select-none">
-                <div className="flex items-center justify-between border-b border-slate-900/40 dark:border-slate-100/40 pb-1 font-bold">
-                  <span className="font-mono text-base text-slate-900 dark:text-slate-100 tracking-wider">{plateNum} {plateLetters}</span>
+              {/* Bigger Saudi License Plate Card with Embedded Vehicle Specs */}
+              <div className="w-72 h-36 rounded-2xl border-2 border-slate-900 dark:border-slate-100 bg-slate-50 dark:bg-slate-950 p-3.5 shadow-md flex flex-col justify-between shrink-0 select-none relative">
+                
+                {/* Header row: English & Arabic Plate Code */}
+                <div className="flex items-center justify-between border-b-2 border-slate-900/60 dark:border-slate-100/60 pb-1.5 font-bold">
+                  <span className="font-mono text-xl text-slate-900 dark:text-slate-100 tracking-wider font-extrabold">{plateNum} {plateLetters}</span>
+                  <span className="text-xs text-slate-500 font-mono font-bold">KSA 🇸🇦</span>
                 </div>
-                <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest pt-1">
-                  <span>KSA</span>
+
+                {/* Specs Row inside Plate Card: Ref ID, Capacity & Mileage */}
+                <div className="grid grid-cols-3 gap-1.5 py-1 text-center">
+                  
+                  {/* Ref ID */}
+                  <div className="bg-slate-200/80 dark:bg-slate-800/80 rounded-lg p-1">
+                    <span className="text-[8px] font-extrabold text-slate-500 uppercase block leading-none">Ref ID</span>
+                    <span className="font-mono text-[10px] font-extrabold text-slate-900 dark:text-slate-100 truncate block mt-0.5">
+                      {vehicle.ref_id || `VEH-${vehicle.id.slice(0, 4).toUpperCase()}`}
+                    </span>
+                  </div>
+
+                  {/* Capacity */}
+                  <div className="bg-indigo-50 dark:bg-indigo-950/60 rounded-lg p-1 border border-indigo-200/60 dark:border-indigo-900/50">
+                    <span className="text-[8px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase block leading-none">Capacity</span>
+                    <span className="font-mono text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 block mt-0.5">
+                      {capacityTons}T
+                    </span>
+                  </div>
+
+                  {/* Mileage */}
+                  <div className="bg-emerald-50 dark:bg-emerald-950/60 rounded-lg p-1 border border-emerald-200/60 dark:border-emerald-900/50">
+                    <span className="text-[8px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase block leading-none">Mileage</span>
+                    <span className="font-mono text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 block mt-0.5">
+                      {(vehicle.current_odometer ?? 0).toLocaleString()}k
+                    </span>
+                  </div>
+
+                </div>
+
+                {/* Footer bar */}
+                <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-400 uppercase tracking-widest pt-1 border-t border-slate-200/80 dark:border-slate-800">
+                  <span>SAUDI ARABIA</span>
+                  <span className="font-mono text-[#E8450F]">{vehicle.asset_type || 'HEAVY TRUCK'}</span>
                 </div>
               </div>
 
-              {/* Primary Asset Info (No duplicate plate_number text next to graphic) */}
-              <div className="space-y-2">
+              {/* Primary Asset Specification Metadata */}
+              <div className="space-y-2.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   {vehicle.asset_type && (
-                    <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-xs font-extrabold uppercase font-mono px-2.5 py-0.5">
+                    <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-xs font-extrabold uppercase font-mono px-3 py-1">
                       {vehicle.asset_type}
                     </Badge>
                   )}
                   <StatusBadge status={vehicle.status} />
                 </div>
 
-                <p className="text-xs text-slate-500 font-medium">
-                  Ref ID: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>
-                  {vehicle.trailer_number ? ` • Trailer: ${vehicle.trailer_number}` : ''}
-                </p>
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium space-y-1">
+                  <p>
+                    <span className="text-slate-400">Ref ID:</span> <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>
+                    {vehicle.trailer_number ? ` • Trailer: ${vehicle.trailer_number}` : ''}
+                  </p>
+                  <p>
+                    <span className="text-slate-400">Payload Rating:</span> <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{capacityTons} Tons ({vehicle.capacity_kg ? vehicle.capacity_kg.toLocaleString() : '24,000'} kg)</span>
+                  </p>
+                  <p>
+                    <span className="text-slate-400">Odometer Mileage:</span> <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{(vehicle.current_odometer ?? 0).toLocaleString()} km</span>
+                  </p>
+                </div>
 
-                <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
+                <div className="flex items-center gap-3 text-xs text-slate-500 font-mono pt-0.5">
                   {vehicle.gps_device_id && (
                     <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
                       <Radio className="w-3.5 h-3.5" /> GPS: {vehicle.gps_device_id}
@@ -323,57 +366,39 @@ export default function VehicleDetailsPage() {
                     </>
                   )}
                   {!vehicle.gps_device_id && !vehicle.icces_device_id && (
-                    <span className="text-slate-400 italic">No Telematics Unit Linked</span>
+                    <span className="text-slate-400 italic">No Telematics Tracker Linked</span>
                   )}
                 </div>
               </div>
 
             </div>
 
-            {/* Right: Integrated Instrument-Panel KPI Tiles (Vibrant Brand Colors) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0">
+            {/* Right: Net Profit & Services Summary Cards */}
+            <div className="grid grid-cols-2 gap-3 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0">
               
-              {/* Payload Tonnage */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[125px]">
+              {/* Net Profit Tile */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[130px]">
                 <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
-                  <Truck className="w-3 h-3 text-indigo-500" /> Capacity
-                </div>
-                <div className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                  {capacityTons} <span className="text-[10px] font-sans text-slate-500">Tons</span>
-                </div>
-              </div>
-
-              {/* Odometer */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[125px]">
-                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
-                  <Gauge className="w-3 h-3 text-emerald-500" /> Mileage
-                </div>
-                <div className="text-sm font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">
-                  {(vehicle.current_odometer ?? 0).toLocaleString()} <span className="text-[10px] font-sans text-slate-500">km</span>
-                </div>
-              </div>
-
-              {/* Net Profit */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[125px]">
-                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
-                  <DollarSign className="w-3 h-3 text-[#E8450F]" /> Net Profit
+                  <DollarSign className="w-3.5 h-3.5 text-[#E8450F]" /> Net Profit
                 </div>
                 <div className={cn(
-                  "text-sm font-mono font-extrabold mt-1",
+                  "text-base font-mono font-extrabold mt-1",
                   (financials?.summary.net_profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
                 )}>
                   SAR {(financials?.summary.net_profit ?? 0).toLocaleString()}
                 </div>
+                <span className="text-[10px] text-slate-400 block mt-0.5">P&L Financials</span>
               </div>
 
-              {/* Service Logs */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[125px]">
+              {/* Service Logs Tile */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[130px]">
                 <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
-                  <Wrench className="w-3 h-3 text-amber-500" /> Services
+                  <Wrench className="w-3.5 h-3.5 text-amber-500" /> Services
                 </div>
-                <div className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                  {financials?.summary.total_maintenance_count ?? maintenanceRecords.length} <span className="text-[10px] font-sans text-slate-500">Logs</span>
+                <div className="text-base font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                  {financials?.summary.total_maintenance_count ?? maintenanceRecords.length} <span className="text-xs font-sans text-slate-500">Logs</span>
                 </div>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Workshop History</span>
               </div>
 
             </div>
