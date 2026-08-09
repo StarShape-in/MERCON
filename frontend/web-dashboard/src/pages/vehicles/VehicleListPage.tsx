@@ -629,7 +629,12 @@ export default function VehicleListPage() {
           {/* Card 1: Total Fleet Assets */}
           <KpiCard
             title="TOTAL FLEET ASSETS"
-            value={totalCount}
+            value={
+              <span>
+                {totalCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
+              </span>
+            }
             variant="brand"
             trend="up"
             trendValue={`${activePct}% Active`}
@@ -735,7 +740,12 @@ export default function VehicleListPage() {
           {/* Card 2: Dispatch Ready */}
           <KpiCard
             title="DISPATCH READY"
-            value={availableCount}
+            value={
+              <span>
+                {availableCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ready</span>
+              </span>
+            }
             variant="blue"
             trend="up"
             trendValue={`${availableCount} Available`}
@@ -822,7 +832,12 @@ export default function VehicleListPage() {
           {/* Card 3: Maintenance Bay */}
           <KpiCard
             title="MAINTENANCE BAY"
-            value={maintenanceCount}
+            value={
+              <span>
+                {maintenanceCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">In Shop</span>
+              </span>
+            }
             variant="rose"
             trend={maintenanceCount > 3 ? 'up' : 'down'}
             trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
@@ -922,7 +937,12 @@ export default function VehicleListPage() {
           {/* Card 4: Active On Trips */}
           <KpiCard
             title="ACTIVE ON TRIPS"
-            value={onTripCount}
+            value={
+              <span>
+                {onTripCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">En Route</span>
+              </span>
+            }
             variant="emerald"
             trend={onTripCount > 0 ? 'up' : 'neutral'}
             trendValue={`${onTripCount} En Route`}

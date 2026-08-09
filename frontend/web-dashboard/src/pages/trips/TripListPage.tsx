@@ -752,11 +752,16 @@ export default function TripListPage() {
           </div>
         </div>
         
-        {/* Instrument Panel KPI Section */}
+        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
             title="TOTAL TRIPS"
-            value={totalCount}
+            value={
+              <span>
+                {totalCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+              </span>
+            }
             variant="brand"
             description="All fleet operations"
             icon={TruckMotion}
@@ -775,7 +780,12 @@ export default function TripListPage() {
           />
           <KpiCard
             title="IN TRANSIT"
-            value={inTransitCount}
+            value={
+              <span>
+                {inTransitCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">On Road</span>
+              </span>
+            }
             variant="blue"
             description="Trucks on the road now"
             icon={RouteLine}
@@ -791,7 +801,12 @@ export default function TripListPage() {
           />
           <KpiCard
             title="DELIVERED & COMPLETED"
-            value={completedCount}
+            value={
+              <span>
+                {completedCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Delivered</span>
+              </span>
+            }
             variant="emerald"
             description="POD verified & delivered"
             icon={CheckBadge}
@@ -808,7 +823,12 @@ export default function TripListPage() {
           />
           <KpiCard
             title="SCHEDULED TRIPS"
-            value={draftTrips.length}
+            value={
+              <span>
+                {draftTrips.length}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
+              </span>
+            }
             variant="amber"
             description="Upcoming & planned trips"
             icon={ClockIcon}

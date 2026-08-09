@@ -532,11 +532,16 @@ export default function DriverListPage() {
           </div>
         </div>
 
-        {/* Instrument Panel KPI Section */}
+        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
             title="TOTAL REGISTERED DRIVERS"
-            value={totalCount}
+            value={
+              <span>
+                {totalCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Drivers</span>
+              </span>
+            }
             variant="brand"
             description="Total driver profiles"
             icon={DriverBadge}
@@ -557,7 +562,12 @@ export default function DriverListPage() {
 
           <KpiCard
             title="AVAILABLE NOW"
-            value={availableCount}
+            value={
+              <span>
+                {availableCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ready</span>
+              </span>
+            }
             variant="emerald"
             trend="up"
             trendValue="Available"
@@ -578,7 +588,12 @@ export default function DriverListPage() {
 
           <KpiCard
             title="ACTIVE ON ROAD"
-            value={onTripCount}
+            value={
+              <span>
+                {onTripCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Dispatched</span>
+              </span>
+            }
             variant="blue"
             trend="neutral"
             trendValue="Dispatched"
@@ -595,7 +610,12 @@ export default function DriverListPage() {
 
           <KpiCard
             title="EXPIRED LICENSES"
-            value={expiredLicenseCount}
+            value={
+              <span>
+                {expiredLicenseCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Permits</span>
+              </span>
+            }
             variant="amber"
             trend={expiredLicenseCount > 0 ? "down" : "neutral"}
             trendValue={expiredLicenseCount > 0 ? "Renewal Required" : "All Valid"}
