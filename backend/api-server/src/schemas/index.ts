@@ -55,6 +55,16 @@ export const createTripBody = z.object({
   })).min(2, 'At least a pickup and a dropoff are required'),
 });
 
+/** Correcting a stop after the trip exists — every field optional, since the
+ *  usual case is fixing one wrong address and nothing else. */
+export const updateTripStopBody = z.object({
+  location_name: z.string().trim().max(120).optional(),
+  location_address: z.string().trim().max(500).optional(),
+  location_id: z.string().uuid('Invalid location').nullable().optional(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+});
+
 /** Bulk CSV import — one trip per row, matched to existing customers/drivers/
  *  vehicles by name/plate rather than id (the CSV can't know internal ids).
  *  No stops: imported trips land in Draft/Dispatched with route stops added

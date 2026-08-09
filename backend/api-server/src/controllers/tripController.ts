@@ -770,6 +770,79 @@ export const logStopDelay = async (req: Request, res: Response) => {
 };
 
 
+/**
+ * Correct where a stop actually is — its label, its full address, the lane
+ * endpoint it belongs to, and its coordinates.
+ *
+ * This did not exist: once a trip was created, a wrong address was wrong
+ * forever, and the driver kept being sent to it. Correcting it mid-trip is the
+ * whole point, so in-flight trips are editable.
+ *
+ * Timestamps are never touched. Moving a pin does not un-arrive a driver, and
+ * the delay report reads arrival/departure, which stay exactly as recorded.
+ */
+export const updateTripStop = async (req: Request, res: Response) => {
+  try {
+    const { id: tripId, stopId } = req.params as { id: string; stopId: string };
+    const { location_name, location_address, location_id, lat, lng } = req.body;
+
+    const trip = await prisma.trip.findFirst({
+      where: { id: tripId, deletedAt: null },
+      select: { id: true, status: true },
+    });
+    if (!trip) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
+
+    // A finished trip is a record of what happened. Rewriting the address after
+    // the fact would change where the delivery is reported to have gone, and
+    // its invoice is already priced off that lane.
+    const FROZEN: TripStatus[] = [TripStatus.Completed, TripStatus.Invoiced, TripStatus.Cancelled];
+    if (FROZEN.includes(trip.status)) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'TRIP_CLOSED',
+          message: `This trip is ${trip.status.toLowerCase()} — its stops can no longer be changed.`,
+        },
+      });
+    }
+
+    const stop = await prisma.tripStop.findFirst({
+      where: { id: stopId, tripId, deletedAt: null },
+    });
+    if (!stop) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Stop not found on this trip' } });
+    }
+
+    if (location_id) {
+      const location = await prisma.location.findFirst({ where: { id: location_id, deletedAt: null } });
+      if (!location) {
+        return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'That location no longer exists' } });
+      }
+    }
+
+    const updated = await prisma.tripStop.update({
+      where: { id: stopId },
+      data: {
+        ...(location_name !== undefined ? { location_name: String(location_name).trim() || null } : {}),
+        ...(location_address !== undefined ? { location_address: String(location_address).trim() || null } : {}),
+        ...(location_id !== undefined ? { locationId: location_id || null } : {}),
+        ...(lat !== undefined ? { location_lat: Number(lat) } : {}),
+        ...(lng !== undefined ? { location_lng: Number(lng) } : {}),
+        updated_by: (req as any).user?.id ?? null,
+      },
+      include: { location: { select: { id: true, name: true, address: true } } },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to update trip stop');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update this stop' } });
+  }
+};
+
+
 /** Trip statuses where the assigned driver/vehicle are actively held as `OnTrip`. */
 const IN_FLIGHT_STATUSES: TripStatus[] = [
   TripStatus.Dispatched, TripStatus.AtPickup, TripStatus.InTransit, TripStatus.AtDelivery,

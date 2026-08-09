@@ -7,9 +7,17 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import FormSection from '@/components/ui/FormSection';
 import FormInput from '@/components/ui/FormInput';
 import Btn from '@/components/ui/Btn';
+import StopAddressEditor from '@/components/trips/StopAddressEditor';
 import { tripService, TripStatus } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
+
+/**
+ * Once a trip reaches one of these, its stops are a record of what happened —
+ * rewriting an address would change where the delivery is reported to have gone,
+ * and the invoice is already priced off that lane. The API enforces this too.
+ */
+const STOPS_FROZEN_IN: TripStatus[] = ['Completed', 'Invoiced', 'Cancelled'];
 
 const STATUS_DESCRIPTIONS: Record<TripStatus, { title: string; description: string; color: string }> = {
   Draft: {
@@ -338,6 +346,31 @@ export default function EditTripPage() {
                 </p>
               </div>
 
+            </div>
+          </FormSection>
+
+          {/* Section 3: Correct the route addresses */}
+          <FormSection
+            title="3. Correct Pickup & Drop-off Addresses"
+            description="Fix a wrong address here and the driver's app updates — this is the only place a stop can be corrected after dispatch."
+          >
+            <div className="space-y-4">
+              {(trip.stops ?? []).length === 0 ? (
+                <p className="text-xs text-[#6E6E80]">This trip has no stops on its manifest.</p>
+              ) : (
+                (trip.stops ?? [])
+                  .slice()
+                  .sort((a, b) => a.stop_sequence - b.stop_sequence)
+                  .map((stop) => (
+                    <StopAddressEditor
+                      key={stop.id}
+                      tripId={id!}
+                      stop={stop}
+                      title={stop.stop_type === 'Pickup' ? 'Pickup' : stop.stop_type === 'Dropoff' ? 'Drop-off' : stop.stop_type}
+                      editable={!STOPS_FROZEN_IN.includes(trip.status)}
+                    />
+                  ))
+              )}
             </div>
           </FormSection>
 

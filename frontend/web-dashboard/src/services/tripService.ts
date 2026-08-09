@@ -37,7 +37,13 @@ export interface TripStop {
   stop_type: 'Pickup' | 'Dropoff' | 'Rest' | 'Refuel';
   location_lat: number;
   location_lng: number;
+  /** Short label for the exact yard — "Khamis Sorting Center". */
   location_name: string | null;
+  /** Its full postal address. This is what the driver's app shows. */
+  location_address: string | null;
+  /** The lane endpoint this stop sits in — what the rate card is priced against. */
+  locationId: string | null;
+  location?: { id: string; name: string; address: string | null } | null;
   planned_arrival: string | null;
   actual_arrival: string | null;
   actual_departure: string | null;
@@ -155,6 +161,25 @@ export const tripService = {
 
   /** Record why a stop was reached late. Re-callable — a first guess often
    *  turns out to be something else once the driver is actually reached. */
+  /**
+   * Correct where a stop is. Refused (409) once the trip is completed,
+   * invoiced or cancelled — a finished trip is a record of what happened.
+   */
+  async updateStop(
+    tripId: string,
+    stopId: string,
+    payload: {
+      location_name?: string;
+      location_address?: string;
+      location_id?: string | null;
+      lat?: number;
+      lng?: number;
+    }
+  ): Promise<TripStop> {
+    const res = await api.patch<ApiResponse<TripStop>>(`/trips/${tripId}/stops/${stopId}`, payload);
+    return res.data.data;
+  },
+
   async logStopDelay(tripId: string, stopId: string, payload: LogStopDelayPayload): Promise<TripStop> {
     const res = await api.patch<ApiResponse<TripStop>>(`/trips/${tripId}/stops/${stopId}/delay`, payload);
     return res.data.data;
