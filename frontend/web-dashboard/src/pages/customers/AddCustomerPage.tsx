@@ -10,13 +10,7 @@ import {
   Phone, 
   Mail, 
   DollarSign, 
-  Factory, 
-  Sparkles,
-  FileText,
-  Zap,
-  Briefcase,
-  Truck,
-  Award
+  FileText
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -53,24 +47,6 @@ export default function AddCustomerPage() {
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Quick Presets
-  const applyPreset = (tier: 'enterprise' | 'midmarket' | 'sme' | 'standard') => {
-    switch (tier) {
-      case 'enterprise':
-        setFormData((prev) => ({ ...prev, industry: 'Logistics', credit_limit: '250000' }));
-        break;
-      case 'midmarket':
-        setFormData((prev) => ({ ...prev, industry: 'Retail', credit_limit: '100000' }));
-        break;
-      case 'sme':
-        setFormData((prev) => ({ ...prev, industry: 'FMCG', credit_limit: '25000' }));
-        break;
-      case 'standard':
-        setFormData((prev) => ({ ...prev, industry: 'General', credit_limit: '0' }));
-        break;
-    }
   };
 
   const handleReset = () => {
@@ -201,8 +177,8 @@ export default function AddCustomerPage() {
         {/* 2-Column Clean Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
-          {/* Form Card (7 Columns) */}
-          <div className="lg:col-span-7 space-y-4">
+          {/* Main Form Card (8 Columns) */}
+          <div className="lg:col-span-8 space-y-4">
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
               <CardHeader className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                 <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -426,9 +402,9 @@ export default function AddCustomerPage() {
                     size="sm" 
                     onClick={handleSubmit} 
                     disabled={createMutation.isPending || !isFormValid}
-                    className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5"
+                    className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5 shadow-xs"
                   >
-                    {createMutation.isPending ? 'Saving...' : 'Save Customer'}
+                    {createMutation.isPending ? 'Saving...' : 'Save Customer Account'}
                   </Button>
                 </div>
               </CardContent>
@@ -441,70 +417,24 @@ export default function AddCustomerPage() {
             )}
           </div>
 
-          {/* Right Sidebar: Presets & Live Summary (5 Columns) */}
-          <div className="lg:col-span-5 space-y-4">
+          {/* Right Sidebar: Live Summary (4 Columns) */}
+          <div className="lg:col-span-4 space-y-4">
             
-            {/* Presets Card */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 rounded-xl p-4 space-y-2.5">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#E8450F]" />
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Quick Credit Templates</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyPreset('enterprise')}
-                  className="h-8 text-xs font-semibold justify-start bg-white dark:bg-slate-800"
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-500 mr-1.5" /> Enterprise (250k)
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyPreset('midmarket')}
-                  className="h-8 text-xs font-semibold justify-start bg-white dark:bg-slate-800"
-                >
-                  <Briefcase className="w-3.5 h-3.5 text-blue-500 mr-1.5" /> Mid-Market (100k)
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyPreset('sme')}
-                  className="h-8 text-xs font-semibold justify-start bg-white dark:bg-slate-800"
-                >
-                  <Truck className="w-3.5 h-3.5 text-emerald-500 mr-1.5" /> SME (25k)
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applyPreset('standard')}
-                  className="h-8 text-xs font-semibold justify-start bg-white dark:bg-slate-800"
-                >
-                  <DollarSign className="w-3.5 h-3.5 text-slate-500 mr-1.5" /> Standard (0)
-                </Button>
-              </div>
-            </Card>
-
             {/* Live Customer Summary */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-4 space-y-4">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-4 space-y-4 shadow-2xs">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Live Account Summary</span>
-                <Badge variant="outline" className="text-[10px] font-mono text-[#E8450F]">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Account Summary</span>
+                <Badge variant="outline" className="text-[10px] font-mono text-[#E8450F] border-orange-200">
                   {completionPct}% Complete
                 </Badge>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div className="flex items-start gap-3">
-                  <Building2 className="w-4 h-4 text-orange-500 mt-0.5" />
-                  <div>
+                  <Building2 className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Company</span>
-                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                       {formData.name.trim() || 'New Customer Account'}
                     </p>
                     <span className="text-[11px] text-slate-500">{formData.industry}</span>
@@ -512,19 +442,19 @@ export default function AddCustomerPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Phone className="w-4 h-4 text-blue-500 mt-0.5" />
-                  <div>
+                  <Phone className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Contact</span>
-                    <p className="text-xs font-bold font-mono text-slate-900 dark:text-slate-100">
+                    <p className="text-xs font-bold font-mono text-slate-900 dark:text-slate-100 truncate">
                       {formData.contact_phone.trim() ? `+966 ${formData.contact_phone}` : 'Not specified'}
                     </p>
-                    <span className="text-[11px] text-slate-500">{formData.email || 'No email specified'}</span>
+                    <span className="text-[11px] text-slate-500 truncate block">{formData.email || 'No email specified'}</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <DollarSign className="w-4 h-4 text-emerald-500 mt-0.5" />
-                  <div>
+                  <DollarSign className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Approved Credit Limit</span>
                     <p className="text-xs font-bold font-mono text-slate-900 dark:text-slate-100">
                       SAR {formData.credit_limit ? Number(formData.credit_limit).toLocaleString() : '0'}
