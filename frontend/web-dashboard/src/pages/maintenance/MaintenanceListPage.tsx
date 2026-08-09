@@ -234,30 +234,74 @@ export default function MaintenanceListPage() {
     switch (status) {
       case 'In_Progress':
       case 'In Progress':
-        return <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-bold">IN PROGRESS</Badge>;
+        return (
+          <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950/20 dark:text-purple-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] flex items-center gap-1.5 shadow-none shrink-0 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></span>
+            In Progress
+          </Badge>
+        );
       case 'Scheduled':
-        return <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-bold">SCHEDULED</Badge>;
+        return (
+          <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] flex items-center gap-1.5 shadow-none shrink-0 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+            Scheduled
+          </Badge>
+        );
       case 'Completed':
-        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">COMPLETED</Badge>;
+        return (
+          <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] flex items-center gap-1.5 shadow-none shrink-0 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+            Completed
+          </Badge>
+        );
       case 'Cancelled':
-        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 font-bold">CANCELLED</Badge>;
+        return (
+          <Badge className="bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] flex items-center gap-1.5 shadow-none shrink-0 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+            Cancelled
+          </Badge>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return (
+          <Badge className="bg-slate-50 text-slate-600 dark:bg-slate-900 dark:text-slate-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] shadow-none w-fit">
+            {status}
+          </Badge>
+        );
     }
   };
 
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'Renewal':
-        return <Badge className="bg-purple-50 text-purple-700 border-purple-200 font-bold">RENEWAL / ISTIMARA</Badge>;
+        return (
+          <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950/20 dark:text-purple-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] shadow-none w-fit">
+            Renewal
+          </Badge>
+        );
       case 'Repair':
-        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 font-bold">REPAIR</Badge>;
+        return (
+          <Badge className="bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] shadow-none w-fit">
+            Repair
+          </Badge>
+        );
       case 'Inspection':
-        return <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-bold">INSPECTION</Badge>;
+        return (
+          <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] shadow-none w-fit">
+            Inspection
+          </Badge>
+        );
       case 'Emergency':
-        return <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-bold">EMERGENCY</Badge>;
+        return (
+          <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] shadow-none w-fit">
+            Emergency
+          </Badge>
+        );
       default:
-        return <Badge className="bg-slate-100 text-slate-700 border-slate-200 font-bold">ROUTINE SERVICE</Badge>;
+        return (
+          <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] shadow-none w-fit">
+            Routine Service
+          </Badge>
+        );
     }
   };
 
