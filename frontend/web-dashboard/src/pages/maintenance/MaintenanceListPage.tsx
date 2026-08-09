@@ -513,18 +513,6 @@ export default function MaintenanceListPage() {
         {/* ── 4. Data Table Ledger & Empty States ─────────────────────────── */}
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
           
-          <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-indigo-500" />
-              <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                Maintenance Ledger
-              </CardTitle>
-            </div>
-            <span className="text-xs font-mono font-bold text-slate-400">
-              {records.length} records found
-            </span>
-          </CardHeader>
-
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-12 text-center text-slate-400 animate-pulse text-xs font-semibold">
@@ -551,7 +539,7 @@ export default function MaintenanceListPage() {
                   title={
                     <span className="flex items-center gap-2">
                       <Wrench className="w-4 h-4 text-amber-500" />
-                      <span>Maintenance Service Ledger</span>
+                      <span>Maintenance Ledger</span>
                     </span>
                   }
                   columns={[
@@ -677,8 +665,18 @@ export default function MaintenanceListPage() {
               </div>
             ) : (
               /* Grid View */
-              <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {records.map((r) => (
+              <div className="flex flex-col">
+                <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-amber-500" />
+                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100">Maintenance Ledger</span>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-slate-400">
+                    {records.length} records
+                  </span>
+                </div>
+                <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {records.map((r) => (
                   <Card key={r.id} className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
@@ -713,7 +711,8 @@ export default function MaintenanceListPage() {
                   </Card>
                 ))}
               </div>
-            )}
+            </div>
+          )}
 
             {/* Pagination Controls */}
             {maintenanceRes?.meta && maintenanceRes.meta.total_pages > 1 && (
