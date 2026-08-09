@@ -654,25 +654,45 @@ export default function VehicleListPage() {
                 </svg>
                 
                 {/* Intersecting Fleet Route Network */}
-                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  {/* Base Road 1 (Green Trip Route) */}
-                  <path d="M -10 16 C 80 8, 160 24, 290 16" fill="none" stroke="#E5E7EB" strokeWidth="3" strokeLinecap="round" />
-                  <path d="M -10 16 C 80 8, 160 24, 290 16" fill="none" stroke="#10B981" strokeWidth="2.5" strokeDasharray="5,5" strokeLinecap="round" style={{ animation: 'routeDashBrand 5s linear infinite' }} />
-
-                  {/* Base Road 2 (Orange Trip Route) */}
-                  <path d="M -10 32 C 80 40, 160 20, 290 32" fill="none" stroke="#D1D5DB" strokeWidth="3" strokeLinecap="round" />
-                  <path d="M -10 32 C 80 40, 160 20, 290 32" fill="none" stroke="#E8450F" strokeWidth="2.5" strokeDasharray="5,5" strokeLinecap="round" style={{ animation: 'routeDashBrand 4s linear infinite' }} />
-
-                  {/* Minor connecting road */}
-                  <path d="M 120 -5 C 130 20, 110 30, 125 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" opacity="0.4" />
+                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
+                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
+                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#FDBA74" strokeWidth="1.5" />
                 </svg>
+
+                {/* Route line */}
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  {/* Base grey road */}
+                  <path 
+                    d="M -10 24 C 70 10, 150 38, 290 24" 
+                    fill="none" 
+                    stroke="#D1D5DB" 
+                    strokeWidth="3.5" 
+                    strokeLinecap="round"
+                  />
+                  {/* Orange brand route progress */}
+                  <path 
+                    d="M -10 24 C 70 10, 150 38, 290 24" 
+                    fill="none" 
+                    stroke="#E8450F" 
+                    strokeWidth="3" 
+                    strokeDasharray="6,6"
+                    strokeLinecap="round"
+                    style={{ animation: 'routeDashBrand 4s linear infinite' }}
+                  />
+                </svg>
+
+                {/* Start Pin */}
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/20" />
+                </div>
 
                 {/* Truck 1: Pulsing Active Orange Truck (Available) */}
                 <div 
                   className="absolute"
                   style={{
                     left: '28%',
-                    top: '24px',
+                    top: '35%',
                     transform: 'translate(-50%, -50%) scale(0.55)',
                     zIndex: 10
                   }}
@@ -692,7 +712,7 @@ export default function VehicleListPage() {
                   className="absolute"
                   style={{
                     left: '72%',
-                    top: '12px',
+                    top: '60%',
                     transform: 'translate(-50%, -50%) scale(0.55)',
                     zIndex: 10
                   }}
@@ -741,21 +761,16 @@ export default function VehicleListPage() {
                 
                 {/* Stylized Intersecting Street Map Network */}
                 <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  {/* Minor Road 1 */}
-                  <path d="M 30 -5 C 35 15, 25 35, 30 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  {/* Minor Road 2 */}
-                  <path d="M 100 -5 C 95 15, 105 35, 98 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  {/* Minor Road 3 */}
-                  <path d="M 190 -5 C 200 15, 185 35, 195 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  {/* Minor Road 4 */}
-                  <path d="M 240 -5 C 235 15, 245 35, 238 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
                 </svg>
 
                 {/* Route line */}
                 <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
                   {/* Base grey road */}
                   <path 
-                    d="M -10 24 C 50 10, 90 38, 140 24 C 190 10, 230 38, 290 24" 
+                    d="M -10 24 C 70 10, 150 38, 290 24" 
                     fill="none" 
                     stroke="#D1D5DB" 
                     strokeWidth="3.5" 
@@ -763,7 +778,7 @@ export default function VehicleListPage() {
                   />
                   {/* Green active route progress */}
                   <path 
-                    d="M -10 24 C 50 10, 90 38, 140 24 C 190 10, 230 38, 290 24" 
+                    d="M -10 24 C 70 10, 150 38, 290 24" 
                     fill="none" 
                     stroke="#10B981" 
                     strokeWidth="3" 
@@ -774,20 +789,15 @@ export default function VehicleListPage() {
                 </svg>
 
                 {/* Origin Pin */}
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
                   <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                </div>
-
-                {/* Destination Pin */}
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-orange-500 ring-4 ring-orange-500/20" />
                 </div>
                 
                 {/* The 3D Truck sitting in the middle of the route */}
                 <div 
                   className="absolute"
                   style={{
-                    left: '50%',
+                    left: '52%',
                     top: '50%',
                     transform: 'translate(-50%, -50%) scale(0.68)',
                     zIndex: 10
@@ -800,6 +810,7 @@ export default function VehicleListPage() {
                       src="/truck_3d_orange_transparent.png" 
                       alt="Mini Map Truck" 
                       className="h-9 w-9 object-contain"
+                      style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
                     />
                   </div>
                 </div>
