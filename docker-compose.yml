@@ -55,6 +55,16 @@ services:
     build:
       context: .
       dockerfile: frontend/web-dashboard/Dockerfile
+      args:
+        # Vite inlines VITE_* at build time, so this is a build arg rather than
+        # a runtime `environment:` entry — the bundle is already written by the
+        # time a container starts.
+        #
+        # `:-` (default empty), not `:?` (required), on purpose: an absent key
+        # means address search falls back to Nominatim, so the stack still
+        # builds and runs for anyone without the secret. JWT_SECRET below uses
+        # `:?` because a missing one is genuinely unserviceable; this is not.
+        VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
     container_name: mercon-frontend
     restart: unless-stopped
     ports:
