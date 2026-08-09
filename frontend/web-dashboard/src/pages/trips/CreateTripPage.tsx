@@ -445,7 +445,10 @@ export default function CreateTripPage() {
     };
 
     createMutation.mutate(payload);
-  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, pickupTime, dropoffTime, pickupName, dropoffName, billingAmount, createMutation]);
+    // pickupAddress / dropoffAddress are read in the payload above and so must
+    // be listed: without them, editing only the address left this callback
+    // closed over the previous value and submitted it.
+  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, pickupTime, dropoffTime, pickupName, dropoffName, pickupAddress, dropoffAddress, billingAmount, createMutation]);
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
@@ -750,7 +753,16 @@ export default function CreateTripPage() {
                       // the map there instead of leaving it on the last trip's
                       // coordinates. The dispatcher can still drag it to the
                       // exact yard afterwards.
-                      if (loc?.lat != null && loc?.lng != null) {
+                      //
+                      // But only while no exact point has been chosen yet. A
+                      // searched address is the actual yard; this endpoint's pin
+                      // is a city centroid, and overwriting one with the other
+                      // silently downgraded the stop to city-level coordinates
+                      // while the name and address still read correctly. The
+                      // address is the tell: it is non-empty only once a search
+                      // has filled it, whereas lat/lng always hold the Riyadh /
+                      // Jeddah defaults and so cannot distinguish the two.
+                      if (loc?.lat != null && loc?.lng != null && !pickupAddress.trim()) {
                         setPickupLat(loc.lat);
                         setPickupLng(loc.lng);
                       }
@@ -881,7 +893,9 @@ export default function CreateTripPage() {
                     onChange={(locId, loc) => {
                       setDropoffLocationId(locId);
                       setDropoffLocationName(loc?.name || '');
-                      if (loc?.lat != null && loc?.lng != null) {
+                      // Guarded for the same reason as the pickup endpoint above:
+                      // never replace a searched, exact pin with a city centroid.
+                      if (loc?.lat != null && loc?.lng != null && !dropoffAddress.trim()) {
                         setDropoffLat(loc.lat);
                         setDropoffLng(loc.lng);
                       }
