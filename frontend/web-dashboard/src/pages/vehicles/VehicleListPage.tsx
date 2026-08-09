@@ -846,7 +846,7 @@ export default function VehicleListPage() {
                 <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
                   {/* Base grey road */}
                   <path 
-                    d="M -10 24 C 60 38, 120 10, 180 34 C 220 20, 250 38, 290 24" 
+                    d="M -10 24 C 70 10, 150 38, 290 24" 
                     fill="none" 
                     stroke="#D1D5DB" 
                     strokeWidth="3.5" 
@@ -854,7 +854,7 @@ export default function VehicleListPage() {
                   />
                   {/* Amber active route progress */}
                   <path 
-                    d="M -10 24 C 60 38, 120 10, 180 34 C 220 20, 250 38, 290 24" 
+                    d="M -10 24 C 70 10, 150 38, 290 24" 
                     fill="none" 
                     stroke="#D97706" 
                     strokeWidth="3" 
