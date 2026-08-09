@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  Wrench, Download, Plus, RotateCw, Filter,
+  Wrench, Download, Plus, RotateCw, Filter, Search,
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
   Building2, Gauge, Layers, ChevronDown, Eye,
