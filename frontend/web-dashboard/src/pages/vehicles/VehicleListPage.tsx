@@ -163,6 +163,25 @@ export default function VehicleListPage() {
     return rawVehicles.filter(v => v.asset_type.toLowerCase().includes(selectedType.toLowerCase()));
   }, [rawVehicles, selectedType]);
 
+  /**
+   * Only vehicles that have actually reported a position belong on the map.
+   *
+   * This previously synthesised coordinates from the vehicle's UUID whenever
+   * `last_lat`/`last_lng` were null, which placed a stable, plausible marker
+   * inside Saudi Arabia for a truck that has never reported at all — and an
+   * operator had no way to tell it from a real one. A vehicle with no GPS is
+   * now absent from the map and counted instead.
+   *
+   * `Number.isFinite` rather than a truthiness check: latitude 0 is a real
+   * coordinate, and the old `||` would have discarded it.
+   */
+  const { trackedVehicles, untrackedCount } = useMemo(() => {
+    const tracked = vehicles.filter(
+      (v) => Number.isFinite(v.last_lat) && Number.isFinite(v.last_lng)
+    );
+    return { trackedVehicles: tracked, untrackedCount: vehicles.length - tracked.length };
+  }, [vehicles]);
+
   // Telematics calculations for KPI cards (sourced from overall fleet data so KPI numbers stay fixed when filtering)
   const kpiVehicles = kpiVehiclesRes?.data || [];
   const totalCount = kpiVehiclesRes?.meta?.total || (kpiVehicles.length > 0 ? kpiVehicles.length : (vehiclesRes?.meta?.total || rawVehicles.length));
@@ -1214,15 +1233,11 @@ export default function VehicleListPage() {
                 url={MAP_THEMES[mapThemeId]?.url || MAP_THEMES.voyager.url}
               />
 
-              {vehicles.map((v) => {
-                // Determine stable but randomized mock coordinates for demo purposes if not present
-                const lat = v.last_lat || (24.5000 + (Math.sin(v.id.charCodeAt(0) + v.id.charCodeAt(1)) * 3.5));
-                const lng = v.last_lng || (44.5000 + (Math.cos(v.id.charCodeAt(2) + v.id.charCodeAt(3)) * 4.5));
-
+              {trackedVehicles.map((v) => {
                 return (
                   <Marker
                     key={v.id}
-                    position={[lat, lng]}
+                    position={[v.last_lat as number, v.last_lng as number]}
                     icon={createVehicleMapIcon(v.plate_number, v.status, MAP_THEMES[mapThemeId]?.isDark || false)}
                   >
                     <Popup maxWidth={320}>
@@ -1295,8 +1310,36 @@ export default function VehicleListPage() {
                 : 'bg-white/90 backdrop-blur-xl border-black/[0.08] text-[#111]'
             }`}>
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{vehicles.length} VEHICLES RENDERED IN CURRENT FILTER</span>
+              {/* Says what is actually on the map, and names what is missing.
+                  "N VEHICLES RENDERED" was counting the whole filter, including
+                  the ones with no position at all. */}
+              <span>{trackedVehicles.length} TRACKED IN CURRENT FILTER</span>
+              {untrackedCount > 0 && (
+                <span className="font-semibold text-amber-600 dark:text-amber-400">
+                  • {untrackedCount} NO GPS
+                </span>
+              )}
             </div>
+
+            {/* An empty map with no explanation reads as "nothing is moving".
+                It usually means no tracker has reported yet. */}
+            {trackedVehicles.length === 0 && (
+              <div className="absolute inset-0 z-[400] flex items-center justify-center pointer-events-none">
+                <div className={`px-4 py-3 rounded-xl shadow-lg border text-center max-w-xs ${
+                  MAP_THEMES[mapThemeId]?.isDark
+                    ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white'
+                    : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
+                }`}>
+                  <Navigation size={18} className="mx-auto mb-1.5 text-[#E8450F]" />
+                  <p className="text-xs font-bold">Location unavailable</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {vehicles.length === 0
+                      ? 'No vehicles match the current filter.'
+                      : `None of the ${vehicles.length} vehicle${vehicles.length === 1 ? '' : 's'} in this filter has reported a GPS position yet.`}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Floating Close Map Button */}
             <Button
