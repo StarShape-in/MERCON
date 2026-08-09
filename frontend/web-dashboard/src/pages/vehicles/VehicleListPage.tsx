@@ -70,6 +70,15 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
 
   const svgHtml = `
     <div style="position: relative; width: 56px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <!-- Bouncing Service Warning Popup Badge for Maintenance status -->
+      ${status === 'Maintenance' ? `
+        <div class="absolute animate-bounce" style="top: -12px; left: 50%; transform: translateX(-50%); z-index: 10; background-color: #D97706; color: white; font-family: system-ui, sans-serif; font-size: 7px; font-weight: 900; padding: 1.5px 4.5px; border-radius: 3.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 1.5px; white-space: nowrap;">
+          <span>⚠️</span>
+          <span>SERVICE</span>
+          <div style="position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 2.5px solid transparent; border-right: 2.5px solid transparent; border-top: 3.5px solid #D97706;"></div>
+        </div>
+      ` : ''}
+
       <!-- Pulsing Aura (flashing radar ring below the 3D vehicle) -->
       ${(status === 'Available' || status === 'OnTrip') ? `<div class="animate-ping" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.35; z-index: 1;"></div>` : ''}
       
