@@ -1,6 +1,12 @@
 import { Platform } from 'react-native';
 
-const isWeb = Platform.OS === 'web' || typeof window !== 'undefined';
+// Platform.OS is the only reliable web check: React Native sets
+// `global.window = global` on native too (see RN's setUpGlobals.js), so
+// `typeof window !== 'undefined'` is true even on iOS/Android and used to
+// route every read/write through `window.localStorage` — which doesn't
+// exist in React Native, so every write silently no-op'd. Tokens never
+// actually reached the Keychain, yet sign-in proceeded as if they had.
+const isWeb = Platform.OS === 'web';
 
 let NativeSecureStore: any = null;
 if (Platform.OS !== 'web') {
