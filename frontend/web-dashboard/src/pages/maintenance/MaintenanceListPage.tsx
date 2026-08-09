@@ -556,15 +556,12 @@ export default function MaintenanceListPage() {
         </Card>
 
         {/* ── 4. Data Table Ledger & Empty States ─────────────────────────── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-          
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="p-12 text-center text-slate-400 animate-pulse text-xs font-semibold">
-                Loading maintenance service records...
-              </div>
+        {isLoading ? (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center text-slate-400 animate-pulse text-xs font-semibold shadow-2xs">
+            Loading maintenance service records...
+          </div>
             ) : records.length === 0 ? (
-              <div className="p-16 flex flex-col items-center justify-center text-center">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-16 flex flex-col items-center justify-center text-center shadow-2xs">
                 <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
                   <FileText className="w-8 h-8" />
                 </div>
@@ -712,7 +709,7 @@ export default function MaintenanceListPage() {
               </div>
             ) : (
               /* Grid View */
-              <div className="flex flex-col">
+              <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs overflow-hidden">
                 <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wrench className="w-4 h-4 text-amber-500" />
@@ -760,10 +757,6 @@ export default function MaintenanceListPage() {
               </div>
             </div>
           )}
-
-          </CardContent>
-
-        </Card>
 
       </div>
 
