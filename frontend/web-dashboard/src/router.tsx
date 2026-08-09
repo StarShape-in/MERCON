@@ -33,6 +33,7 @@ const VehicleDetailsPage      = lazy(() => import('@/pages/vehicles/VehicleDetai
 const AddVehiclePage          = lazy(() => import('@/pages/vehicles/AddVehiclePage'));
 const EditVehiclePage         = lazy(() => import('@/pages/vehicles/EditVehiclePage'));
 const VehicleDocumentsPage    = lazy(() => import('@/pages/vehicles/VehicleDocumentsPage'));
+const VehicleFinancialsPage   = lazy(() => import('@/pages/vehicles/VehicleFinancialsPage'));
 const MaintenanceListPage     = lazy(() => import('@/pages/maintenance/MaintenanceListPage'));
 const MaintenanceDetailsPage  = lazy(() => import('@/pages/maintenance/MaintenanceDetailsPage'));
 
@@ -114,10 +115,12 @@ export default function AppRouter() {
 
           {/* Vehicles */}
           <Route path="/vehicles"                 element={<ProtectedRoute><VehicleListPage /></ProtectedRoute>} />
+          <Route path="/vehicles/financials"      element={<ProtectedRoute><VehicleFinancialsPage /></ProtectedRoute>} />
           <Route path="/vehicles/new"             element={<ProtectedRoute><AddVehiclePage /></ProtectedRoute>} />
           <Route path="/vehicles/:id"             element={<ProtectedRoute><VehicleDetailsPage /></ProtectedRoute>} />
           <Route path="/vehicles/:id/edit"        element={<ProtectedRoute><EditVehiclePage /></ProtectedRoute>} />
           <Route path="/vehicles/:id/documents"   element={<ProtectedRoute><VehicleDocumentsPage /></ProtectedRoute>} />
+          <Route path="/vehicles/:id/financials"  element={<ProtectedRoute><VehicleFinancialsPage /></ProtectedRoute>} />
           <Route path="/maintenance"              element={<ProtectedRoute><MaintenanceListPage /></ProtectedRoute>} />
           <Route path="/maintenance/:id"          element={<ProtectedRoute><MaintenanceDetailsPage /></ProtectedRoute>} />
 

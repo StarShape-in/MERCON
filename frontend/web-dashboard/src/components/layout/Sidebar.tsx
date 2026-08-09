@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
-  Settings, User, LogOut, Wrench, X, MapPin
+  Settings, User, LogOut, Wrench, X, MapPin, DollarSign
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -59,6 +59,7 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
         // one end of a priced lane, and that's where you go to fix one.
         { icon: MapPin, label: 'Locations', path: '/locations' },
         { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
+        { icon: DollarSign, label: 'Vehicle P&L', path: '/vehicles/financials' },
       ],
     },
     {

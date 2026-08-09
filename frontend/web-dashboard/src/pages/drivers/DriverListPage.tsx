@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, 
-  Download, 
+  Download, UploadCloud,
   Eye, 
   Edit2, 
   Trash2, 
@@ -35,6 +35,8 @@ import KpiModal from '@/components/ui/KpiModal';
 import { DriverRosterKpi } from '@/components/ui/CustomKpiWidgets';
 
 import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
+import { DRIVER_COLUMNS } from '@/utils/importUtils';
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { notificationService } from '@/services/notificationService';
 import { driverService, Driver, DriverStatus } from '@/services/driverService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -85,6 +87,7 @@ export default function DriverListPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   
   // Quick status update dialog state
   const [statusDialogDriver, setStatusDialogDriver] = useState<Driver | null>(null);
@@ -487,6 +490,16 @@ export default function DriverListPage() {
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
               Export Excel
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => setIsImportOpen(true)}
+            >
+              <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
+              Import Excel
             </Button>
 
             <Button
@@ -1268,6 +1281,18 @@ export default function DriverListPage() {
           title={confirmModal.title}
           message={confirmModal.message}
           isDestructive={confirmModal.isDestructive}
+        />
+
+        <ExcelImportDialog
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          entityLabel="Drivers"
+          columns={DRIVER_COLUMNS}
+          requiredFields={['first_name', 'last_name', 'phone_primary', 'license_number', 'license_expiry']}
+          preferSheet="driver"
+          templateUrl="/templates/MERCON_Drivers_Import_Template.xlsx"
+          onImport={(rows: any[]) => driverService.importRows(rows)}
+          invalidateKeys={[['drivers'], ['drivers-select']]}
         />
 
       </div>
