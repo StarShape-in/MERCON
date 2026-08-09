@@ -34,6 +34,7 @@ import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { rateCardService } from '@/services/rateCardService';
+import { locationService } from '@/services/locationService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import Btn from '@/components/ui/Btn';
 import { cn } from '@/lib/utils';
+
+function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
@@ -95,7 +110,7 @@ export default function CreateTripPage() {
   // What to do with a price typed for a lane nobody has priced yet.
   const [saveRateAs, setSaveRateAs] = useState<'standard' | 'customer' | 'none'>('standard');
 
-  // Fetch Customers, Drivers, Vehicles, and Rate Cards
+  // Fetch Customers, Drivers, Vehicles, and Locations
   const { data: customersRes } = useQuery({
     queryKey: ['customers-select'],
     queryFn: () => customerService.getAll({ per_page: 100 }),
@@ -111,9 +126,65 @@ export default function CreateTripPage() {
     queryFn: () => vehicleService.getAll({ per_page: 100, status: 'Available' }),
   });
 
+  const { data: locationsRes } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => locationService.getAll({ active_only: true }),
+  });
+
   const customers = customersRes?.data || [];
   const drivers = driversRes?.data || [];
   const vehicles = vehiclesRes?.data || [];
+  const locations = locationsRes?.data || [];
+
+  const selectedPickupLocation = useMemo(
+    () => locations.find((l) => l.id === pickupLocationId) || null,
+    [locations, pickupLocationId]
+  );
+
+  const selectedDropoffLocation = useMemo(
+    () => locations.find((l) => l.id === dropoffLocationId) || null,
+    [locations, dropoffLocationId]
+  );
+
+  const pickupDistanceKm = useMemo(() => {
+    if (
+      pickupLat == null ||
+      pickupLng == null ||
+      !selectedPickupLocation ||
+      selectedPickupLocation.lat == null ||
+      selectedPickupLocation.lng == null
+    ) {
+      return null;
+    }
+    return Math.round(
+      calculateHaversineDistanceKm(
+        pickupLat,
+        pickupLng,
+        selectedPickupLocation.lat,
+        selectedPickupLocation.lng
+      )
+    );
+  }, [pickupLat, pickupLng, selectedPickupLocation]);
+
+  const dropoffDistanceKm = useMemo(() => {
+    if (
+      dropoffLat == null ||
+      dropoffLng == null ||
+      !selectedDropoffLocation ||
+      selectedDropoffLocation.lat == null ||
+      selectedDropoffLocation.lng == null
+    ) {
+      return null;
+    }
+    return Math.round(
+      calculateHaversineDistanceKm(
+        dropoffLat,
+        dropoffLng,
+        selectedDropoffLocation.lat,
+        selectedDropoffLocation.lng
+      )
+    );
+  }, [dropoffLat, dropoffLng, selectedDropoffLocation]);
 
   const driverOptions = drivers.map((d) => ({
     value: d.id,
@@ -839,6 +910,15 @@ export default function CreateTripPage() {
                   onAddressChange={setPickupAddress}
                 />
 
+                {pickupDistanceKm !== null && pickupDistanceKm > 50 && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-300/80 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 text-xs font-medium animate-fade-in">
+                    <AlertTriangle className="size-4 text-amber-600 shrink-0" />
+                    <span>
+                      ⚠️ Pickup pin is approximately <strong>{pickupDistanceKm.toLocaleString()} km</strong> from the selected <strong>{selectedPickupLocation?.name}</strong> hub.
+                    </span>
+                  </div>
+                )}
+
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="pickup_time" className="text-xs font-bold text-foreground flex items-center gap-1.5">
@@ -944,6 +1024,15 @@ export default function CreateTripPage() {
                   address={dropoffAddress}
                   onAddressChange={setDropoffAddress}
                 />
+
+                {dropoffDistanceKm !== null && dropoffDistanceKm > 50 && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-300/80 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 text-xs font-medium animate-fade-in">
+                    <AlertTriangle className="size-4 text-amber-600 shrink-0" />
+                    <span>
+                      ⚠️ Dropoff pin is approximately <strong>{dropoffDistanceKm.toLocaleString()} km</strong> from the selected <strong>{selectedDropoffLocation?.name}</strong> hub.
+                    </span>
+                  </div>
+                )}
 
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
