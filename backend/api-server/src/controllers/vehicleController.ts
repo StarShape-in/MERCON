@@ -95,6 +95,34 @@ export const getVehicleById = async (req: Request, res: Response) => {
   }
 };
 
+function normalizeAssetType(raw: any): AssetType {
+  const str = String(raw || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+  if (str.includes('BOX')) return AssetType.Box;
+  if (str.includes('REEFER') || str.includes('COLD') || str.includes('FRIDGE')) return AssetType.Reefer;
+  if (str.includes('TANK')) return AssetType.Tanker;
+  if (str.includes('FLAT') || str.includes('BED')) return AssetType.Flatbed;
+  return AssetType.Box;
+}
+
+function cleanString(val: any): string | null {
+  if (val === null || val === undefined) return null;
+  const str = String(val).trim();
+  const lower = str.toLowerCase();
+  if (!str || ['nil', 'nill', 'none', 'n/a', 'na', 'null', 'undefined', '-', '0'].includes(lower)) {
+    return null;
+  }
+  return str;
+}
+
+function cleanNumber(val: any): number | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'number') return isNaN(val) ? null : val;
+  const cleaned = String(val).replace(/[^0-9.]/g, '');
+  if (!cleaned) return null;
+  const num = Number(cleaned);
+  return isNaN(num) ? null : num;
+}
+
 /**
  * Bulk-import vehicles from the fleet workbook.
  *
@@ -114,12 +142,12 @@ export const bulkImportVehicles = async (req: Request, res: Response) => {
         ref_id?: string;
         plate_number: string;
         asset_type: string;
-        capacity_kg: number;
-        current_odometer?: number;
-        icces_device_id?: string;
+        capacity_kg: number | string;
+        current_odometer?: number | string;
+        icces_device_id?: string | number;
         trailer_number?: string;
         trailer_type?: string;
-        trailer_capacity_kg?: number;
+        trailer_capacity_kg?: number | string;
         assigned_driver?: string;
       }>;
     };
@@ -133,27 +161,46 @@ export const bulkImportVehicles = async (req: Request, res: Response) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const rowNumber = i + 1;
-      const plate = row.plate_number.trim();
+      const plate = String(row.plate_number || '').trim();
+
+      if (!plate) {
+        results.push({ row: rowNumber, success: false, error: 'Plate number is required' });
+        continue;
+      }
 
       try {
-        const existing = await prisma.vehicle.findFirst({
+        let existing = await prisma.vehicle.findFirst({
           where: { plate_number: { equals: plate, mode: 'insensitive' } },
         });
 
+        const refIdClean = cleanString(row.ref_id);
+        if (!existing && refIdClean) {
+          existing = await prisma.vehicle.findFirst({
+            where: { ref_id: { equals: refIdClean, mode: 'insensitive' } },
+          });
+        }
+
+        const iccesDeviceIdClean = cleanString(row.icces_device_id);
+        const trailerNumberClean = cleanString(row.trailer_number);
+        const trailerTypeClean = row.trailer_type ? normalizeAssetType(row.trailer_type) : null;
+        const trailerCapacityKgClean = cleanNumber(row.trailer_capacity_kg);
+        const currentOdometerClean = cleanNumber(row.current_odometer);
+
         const shared = {
-          asset_type: row.asset_type as AssetType,
-          capacity_kg: Number(row.capacity_kg),
-          ...(row.current_odometer !== undefined ? { current_odometer: Number(row.current_odometer) } : {}),
-          ...(row.icces_device_id ? { icces_device_id: String(row.icces_device_id).trim() } : {}),
-          ...(row.trailer_number ? { trailer_number: String(row.trailer_number).trim() } : {}),
-          ...(row.trailer_type ? { trailer_type: row.trailer_type as AssetType } : {}),
-          ...(row.trailer_capacity_kg !== undefined ? { trailer_capacity_kg: Number(row.trailer_capacity_kg) } : {}),
+          asset_type: normalizeAssetType(row.asset_type),
+          capacity_kg: cleanNumber(row.capacity_kg) ?? 10000,
+          ...(currentOdometerClean !== null ? { current_odometer: currentOdometerClean } : {}),
+          icces_device_id: iccesDeviceIdClean,
+          trailer_number: trailerNumberClean,
+          trailer_type: trailerTypeClean,
+          trailer_capacity_kg: trailerCapacityKgClean,
         };
 
         if (existing) {
           await prisma.vehicle.update({
             where: { id: existing.id },
             data: {
+              plate_number: plate,
               ...shared,
               ...(existing.deletedAt ? { deletedAt: null, deleted_by: null, isActive: true } : {}),
               updated_by: userId,
@@ -161,8 +208,18 @@ export const bulkImportVehicles = async (req: Request, res: Response) => {
           });
           results.push({ row: rowNumber, success: true, ref_id: existing.ref_id ?? undefined, label: plate, action: 'updated' });
         } else {
-          const ref_id = String(row.ref_id || '').trim() || await generateRefId('TRK', () =>
-            prisma.vehicle.findMany({ select: { ref_id: true } }));
+          let ref_id = refIdClean;
+          if (!ref_id) {
+            ref_id = await generateRefId('TRK', () =>
+              prisma.vehicle.findMany({ select: { ref_id: true } }));
+          } else {
+            // Ensure ref_id isn't collision with existing vehicle
+            const refCollision = await prisma.vehicle.findFirst({ where: { ref_id } });
+            if (refCollision) {
+              ref_id = await generateRefId('TRK', () =>
+                prisma.vehicle.findMany({ select: { ref_id: true } }));
+            }
+          }
 
           const created = await prisma.vehicle.create({
             data: { ref_id, plate_number: plate, ...shared, created_by: userId },
@@ -182,18 +239,14 @@ export const bulkImportVehicles = async (req: Request, res: Response) => {
     // Pass 2 — driver assignments, now that every truck in this file exists.
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      // The template's own sample writes this column as
-      // "+966 50 123 4567 (Ahmed)", so drop a trailing parenthetical before
-      // matching — otherwise the file we ship fails against itself.
-      const who = String(row.assigned_driver || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+      const whoRaw = cleanString(row.assigned_driver);
       const result = results[i];
-      if (!who || !result?.success) continue;
+      if (!whoRaw || !result?.success) continue;
+
+      const who = whoRaw.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      if (!who) continue;
 
       try {
-        // Phone is unique, a name is not — so try phone first and only fall
-        // back to a name match, which can legitimately be ambiguous.
-        // Compared digits-only, because the same number gets typed as
-        // "+966 50 123 4567", "+966501234567" and "0501234567".
         const digits = who.replace(/\D/g, '');
         let driver = await prisma.driver.findFirst({
           where: { phone_primary: who, deletedAt: null },
@@ -206,8 +259,6 @@ export const bulkImportVehicles = async (req: Request, res: Response) => {
           });
           const hit = candidates.find((c) => {
             const theirs = (c.phone_primary ?? '').replace(/\D/g, '');
-            // Suffix comparison handles a country code present on one side
-            // only; 7 digits is short enough to be safe against collisions.
             return theirs.endsWith(digits) || digits.endsWith(theirs);
           });
           if (hit) driver = await prisma.driver.findUnique({ where: { id: hit.id } });
@@ -236,7 +287,7 @@ export const bulkImportVehicles = async (req: Request, res: Response) => {
         }
 
         const vehicle = await prisma.vehicle.findFirst({
-          where: { plate_number: { equals: row.plate_number.trim(), mode: 'insensitive' } },
+          where: { plate_number: { equals: String(row.plate_number).trim(), mode: 'insensitive' } },
         });
         if (!vehicle) continue;
 
