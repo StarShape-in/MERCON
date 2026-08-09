@@ -50,9 +50,9 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
 
   // Apply status-specific CSS filters and colors to the 3D orange truck asset
   if (status === 'Available') {
-    imgFilter = 'drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
-    glowColor = 'rgba(232, 69, 15, 0.65)';
-    borderColor = '#E8450F';
+    imgFilter = 'hue-rotate(200deg) saturate(1.2) brightness(0.95) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
+    glowColor = 'rgba(59, 130, 246, 0.65)';
+    borderColor = '#3B82F6';
   } else if (status === 'OnTrip') {
     imgFilter = 'hue-rotate(100deg) saturate(1.3) brightness(0.95) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
     glowColor = 'rgba(16, 185, 129, 0.65)';
@@ -735,7 +735,7 @@ export default function VehicleListPage() {
           <KpiCard
             title="DISPATCH READY"
             value={availableCount}
-            variant="emerald"
+            variant="blue"
             trend="up"
             trendValue={`${availableCount} Available`}
             description="Ready for operational trip"
@@ -743,27 +743,27 @@ export default function VehicleListPage() {
             isActive={selectedStatus === 'Available'}
             onClick={() => { setSelectedStatus('Available'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
+              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#F0F6FF] dark:bg-[#1E3A8A]/10 border-t border-blue-500/10">
                 <style>{`
-                  @keyframes routeDash {
+                  @keyframes routeDashBlue {
                     to {
                       stroke-dashoffset: -12;
                     }
                   }
                 `}</style>
                 {/* Grid lines for map look */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
-                  <pattern id="card-map-grid" width="12" height="12" patternUnits="userSpaceOnUse">
+                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                  <pattern id="card-map-grid-blue" width="12" height="12" patternUnits="userSpaceOnUse">
                     <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
                   </pattern>
-                  <rect width="100%" height="100%" fill="url(#card-map-grid)" />
+                  <rect width="100%" height="100%" fill="url(#card-map-grid-blue)" />
                 </svg>
                 
                 {/* Stylized Intersecting Street Map Network */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
-                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
+                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
+                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
                 </svg>
 
                 {/* Route line */}
@@ -776,21 +776,21 @@ export default function VehicleListPage() {
                     strokeWidth="3.5" 
                     strokeLinecap="round"
                   />
-                  {/* Green active route progress */}
+                  {/* Blue active route progress */}
                   <path 
                     d="M -10 24 C 70 10, 150 38, 290 24" 
                     fill="none" 
-                    stroke="#10B981" 
+                    stroke="#3B82F6" 
                     strokeWidth="3" 
                     strokeDasharray="6,6"
                     strokeLinecap="round"
-                    style={{ animation: 'routeDash 4s linear infinite' }}
+                    style={{ animation: 'routeDashBlue 4s linear infinite' }}
                   />
                 </svg>
 
                 {/* Origin Pin */}
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                  <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
                 </div>
                 
                 {/* The 3D Truck sitting in the middle of the route */}
@@ -805,12 +805,12 @@ export default function VehicleListPage() {
                 >
                   <div className="relative flex items-center justify-center">
                     {/* Pulsing glow under the truck */}
-                    <div className="absolute h-8 w-8 rounded-full bg-emerald-500/30 animate-ping" />
+                    <div className="absolute h-8 w-8 rounded-full bg-blue-500/30 animate-ping" />
                     <img 
                       src="/truck_3d_orange_transparent.png" 
                       alt="Mini Map Truck" 
                       className="h-9 w-9 object-contain"
-                      style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
+                      style={{ filter: 'hue-rotate(200deg) saturate(1.2) brightness(0.95)' }}
                     />
                   </div>
                 </div>
@@ -922,7 +922,7 @@ export default function VehicleListPage() {
           <KpiCard
             title="ACTIVE ON TRIPS"
             value={onTripCount}
-            variant="blue"
+            variant="emerald"
             trend={onTripCount > 0 ? 'up' : 'neutral'}
             trendValue={`${onTripCount} En Route`}
             description="Currently dispatched on active trips"
@@ -930,27 +930,27 @@ export default function VehicleListPage() {
             isActive={selectedStatus === 'OnTrip'}
             onClick={() => { setSelectedStatus('OnTrip'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#F0F6FF] dark:bg-[#1E3A8A]/10 border-t border-blue-500/10">
+              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
                 <style>{`
-                  @keyframes routeDashBlue {
+                  @keyframes routeDash {
                     to {
                       stroke-dashoffset: -12;
                     }
                   }
                 `}</style>
                 {/* Grid lines for map look */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="card-map-grid-blue" width="12" height="12" patternUnits="userSpaceOnUse">
+                <svg className="absolute inset-0 h-full w-full opacity-[0.08]" stroke="currentColor" fill="none">
+                  <pattern id="card-map-grid" width="12" height="12" patternUnits="userSpaceOnUse">
                     <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
                   </pattern>
-                  <rect width="100%" height="100%" fill="url(#card-map-grid-blue)" />
+                  <rect width="100%" height="100%" fill="url(#card-map-grid)" />
                 </svg>
                 
                 {/* Stylized Intersecting Street Map Network */}
-                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
-                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
+                <svg className="absolute inset-0 h-full w-full opacity-[0.4]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
+                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#A7F3D0" strokeWidth="1.5" />
                 </svg>
 
                 {/* Route line */}
@@ -963,21 +963,21 @@ export default function VehicleListPage() {
                     strokeWidth="3.5" 
                     strokeLinecap="round"
                   />
-                  {/* Blue active route progress */}
+                  {/* Green active route progress */}
                   <path 
                     d="M -10 24 C 70 10, 150 38, 290 24" 
                     fill="none" 
-                    stroke="#3B82F6" 
+                    stroke="#10B981" 
                     strokeWidth="3" 
                     strokeDasharray="6,6"
                     strokeLinecap="round"
-                    style={{ animation: 'routeDashBlue 4s linear infinite' }}
+                    style={{ animation: 'routeDash 4s linear infinite' }}
                   />
                 </svg>
 
                 {/* Start Pin */}
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
                 </div>
                 
                 {/* The 3D Truck sitting in the middle of the route */}
@@ -992,14 +992,14 @@ export default function VehicleListPage() {
                 >
                   <div className="relative flex items-center justify-center">
                     {/* Glow ring */}
-                    <div className="absolute h-8 w-8 rounded-full bg-blue-500/20 animate-ping" />
+                    <div className="absolute h-8 w-8 rounded-full bg-emerald-500/20 animate-ping" />
                     
-                    {/* Blue-ish/Cyan tinted truck to indicate active on road status */}
+                    {/* Green tinted truck to indicate active status */}
                     <img 
                       src="/truck_3d_orange_transparent.png" 
                       alt="En Route Truck" 
                       className="h-9 w-9 object-contain"
-                      style={{ filter: 'hue-rotate(200deg) saturate(1.2) brightness(0.95)' }}
+                      style={{ filter: 'hue-rotate(100deg) saturate(1.3) brightness(0.95)' }}
                     />
                   </div>
                 </div>
