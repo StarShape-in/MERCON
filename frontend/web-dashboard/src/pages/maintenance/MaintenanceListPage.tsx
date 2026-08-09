@@ -45,11 +45,12 @@ export default function MaintenanceListPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter, typeFilter]);
+  }, [debouncedSearch, statusFilter, typeFilter, pageSize]);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,13 +87,13 @@ export default function MaintenanceListPage() {
 
   // Queries
   const { data: maintenanceRes, isLoading, refetch } = useQuery({
-    queryKey: ['maintenance', debouncedSearch, statusFilter, typeFilter, page],
+    queryKey: ['maintenance', debouncedSearch, statusFilter, typeFilter, page, pageSize],
     queryFn: () => maintenanceService.getAll({
       search: debouncedSearch || undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
       maintenance_type: typeFilter !== 'all' ? typeFilter : undefined,
       page,
-      per_page: 25,
+      per_page: pageSize,
     }),
   });
 
@@ -700,6 +701,8 @@ export default function MaintenanceListPage() {
                   bulkActions={bulkActions}
                   compact={true}
                   isLoading={isLoading}
+                  pageSize={pageSize}
+                  onPageSizeChange={setPageSize}
                   currentPage={page}
                   totalPages={maintenanceRes?.meta?.total_pages || 1}
                   totalRecords={maintenanceRes?.meta?.total || records.length}
@@ -758,34 +761,6 @@ export default function MaintenanceListPage() {
             </div>
           )}
 
-            {/* Pagination Controls */}
-            {maintenanceRes?.meta && maintenanceRes.meta.total_pages > 1 && (
-              <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex items-center justify-between text-xs">
-                <span className="text-slate-500 font-medium">
-                  Showing page <strong className="text-slate-900 dark:text-slate-100">{maintenanceRes.meta.page}</strong> of <strong className="text-slate-900 dark:text-slate-100">{maintenanceRes.meta.total_pages}</strong> ({maintenanceRes.meta.total} records)
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={page <= 1}
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    className="h-8 px-3 text-xs"
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={page >= maintenanceRes.meta.total_pages}
-                    onClick={() => setPage(p => p + 1)}
-                    className="h-8 px-3 text-xs"
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
           </CardContent>
 
         </Card>
