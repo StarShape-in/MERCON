@@ -89,7 +89,7 @@ export default function TripCardSwiper() {
         opts={{ align: 'start', containScroll: 'trimSnaps', dragFree: false }}
         className="shrink-0"
       >
-        <Card className="overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-black/[0.06]">
+        <Card className="overflow-hidden rounded-lg bg-white shadow-md ring-1 ring-black/[0.06]">
           <CardHeader className="border-b border-black/[0.04] pb-3.5">
             <CardTitle className="flex items-center gap-2 text-sm font-extrabold tracking-tight text-[#111]">
               <span className="inline-flex size-2 rounded-full bg-[#E8450F]" />
@@ -129,7 +129,7 @@ export default function TripCardSwiper() {
                       }
                     }}
                     className={cn(
-                      'group relative cursor-pointer select-none space-y-2.5 rounded-xl border border-black/[0.08] bg-white p-3.5',
+                      'group relative cursor-pointer select-none space-y-2.5 rounded-lg border border-black/[0.08] bg-white p-3.5',
                       'transition-colors duration-150',
                       'hover:border-[#E8450F]/50 hover:shadow-sm',
                       'focus-visible:border-[#E8450F]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/40'
@@ -150,7 +150,7 @@ export default function TripCardSwiper() {
                     </div>
 
                     {/* Route micro-map */}
-                    <div className="overflow-hidden rounded-lg border border-black/[0.06]">
+                    <div className="overflow-hidden rounded-md border border-black/[0.06]">
                       <TripMicroMap
                         currentLat={truck.currentCoords.lat}
                         currentLng={truck.currentCoords.lng}
@@ -173,7 +173,7 @@ export default function TripCardSwiper() {
                     </div>
 
                     {/* Origin → Destination corridor */}
-                    <div className="rounded-lg border border-black/[0.06] bg-white p-2">
+                    <div className="rounded-md border border-black/[0.06] bg-white p-2">
                       <p className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-muted-foreground">
                         <RouteIcon size={9} /> Route Corridor
                       </p>
@@ -193,7 +193,7 @@ export default function TripCardSwiper() {
                           render={
                             <div
                               onClick={(e) => e.stopPropagation()}
-                              className="cursor-default rounded-lg border border-black/[0.06] bg-white p-2 text-left transition-colors hover:border-black/[0.14]"
+                              className="cursor-default rounded-md border border-black/[0.06] bg-white p-2 text-left transition-colors hover:border-black/[0.14]"
                             />
                           }
                         >
@@ -203,39 +203,26 @@ export default function TripCardSwiper() {
                           <div className="mt-0.5 flex items-center gap-1.5">
                             <Avatar className="size-4">
                               <AvatarFallback className="bg-[#E8450F]/10 text-[7px] font-bold text-[#E8450F]">
-                                {initials(truck.driverName)}
+                                {truck.driverName ? truck.driverName.charAt(0) : 'D'}
                               </AvatarFallback>
                             </Avatar>
                             <span className="truncate text-[10px] font-bold text-[#111]">
-                              {truck.driverName}
+                              {truck.driverName ? truck.driverName.split(' ')[0] : 'Assigned'}
                             </span>
                           </div>
                         </HoverCardTrigger>
 
-                        <HoverCardContent side="top" className="w-56">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="size-10">
-                              <AvatarFallback className="bg-[#E8450F]/10 text-xs font-bold text-[#E8450F]">
-                                {initials(truck.driverName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-[#111]">{truck.driverName}</p>
-                              <p className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
-                                <Phone size={11} /> {truck.driverPhone}
+                        <HoverCardContent side="top" className="w-56 p-3">
+                          <div className="space-y-1">
+                            <p className="text-xs font-extrabold text-[#111]">{truck.driverName || 'Primary Driver'}</p>
+                            <p className="text-[10px] font-medium text-muted-foreground">
+                              Assigned Fleet Driver — Mercon Logistics
+                            </p>
+                            {truck.driverPhone && (
+                              <p className="font-mono text-[10px] font-semibold text-[#E8450F]">
+                                {truck.driverPhone}
                               </p>
-                            </div>
-                          </div>
-                          <Separator className="my-3" />
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <p className="text-[10px] uppercase text-muted-foreground">Plate</p>
-                              <p className="font-mono font-bold text-[#111]">{truck.plateNumber}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] uppercase text-muted-foreground">Cargo</p>
-                              <p className="truncate font-bold text-[#111]">{truck.cargoType}</p>
-                            </div>
+                            )}
                           </div>
                         </HoverCardContent>
                       </HoverCard>
@@ -245,7 +232,7 @@ export default function TripCardSwiper() {
                           render={
                             <div
                               onClick={(e) => e.stopPropagation()}
-                              className="cursor-default rounded-lg border border-black/[0.06] bg-white p-2 text-left transition-colors hover:border-black/[0.14]"
+                              className="cursor-default rounded-md border border-black/[0.06] bg-white p-2 text-left transition-colors hover:border-black/[0.14]"
                             />
                           }
                         >
@@ -292,7 +279,7 @@ export default function TripCardSwiper() {
                     {/* CTA */}
                     <Button
                       size="sm"
-                      className="h-7 w-full gap-1 rounded-lg bg-[#1C1C2E] text-[10px] font-bold text-white transition-colors group-hover:bg-[#E8450F]"
+                      className="h-7 w-full gap-1 rounded-md bg-[#1C1C2E] text-[10px] font-bold text-white transition-colors group-hover:bg-[#E8450F]"
                       tabIndex={-1}
                     >
                       View Full Details

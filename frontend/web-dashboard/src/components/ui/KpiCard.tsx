@@ -298,7 +298,7 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        'group relative gap-0 rounded-xl border border-black/[0.06] bg-white p-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
+        'group relative gap-0 rounded-lg border border-black/[0.06] bg-white p-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
         props.onClick && 'cursor-pointer hover:border-black/[0.14] dark:hover:border-white/[0.16]',
         isActive && selectedStyle.activeRing,
         className
@@ -311,7 +311,7 @@ export function KpiCard({
           {displayTitle}
         </span>
         {renderedIcon && (
-          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', selectedStyle.iconContainer)}>
+          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-md', selectedStyle.iconContainer)}>
             {renderedIcon}
           </span>
         )}
@@ -399,7 +399,7 @@ export function KpiCard({
               })}
             </div>
           ) : normalizedChartData ? (
-            <div className="h-10 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl">
+            <div className="h-10 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-lg">
               <ChartContainer
                 config={{ value: { label: 'Value', color: selectedStyle.hex } }}
                 className="aspect-auto h-full w-full"
