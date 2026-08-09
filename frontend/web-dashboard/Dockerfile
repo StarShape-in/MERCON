@@ -18,6 +18,23 @@ COPY packages/shared-types ./packages/shared-types
 RUN npm run build -w @mercon/shared-types
 # Copy source code and build the Vite app
 COPY frontend/web-dashboard ./frontend/web-dashboard
+
+# Google address autocomplete key. Vite inlines VITE_* at build time, so this
+# has to be present *here* — supplying it to the running container would be too
+# late, the bundle is already written.
+#
+# Declared immediately before the build so the cached npm install and
+# shared-types layers survive a key change, and deliberately NOT required: with
+# no key the app falls back to Nominatim address search, so a local build or a
+# fork without the secret still produces a working dashboard.
+#
+# This value ends up readable in the shipped JavaScript. That is inherent to
+# any browser-side Google Maps key and is why the key is restricted by HTTP
+# referrer to mercon.tech in the Google Cloud console — the referrer
+# restriction is the control, not secrecy of the string.
+ARG VITE_GOOGLE_MAPS_API_KEY=""
+ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
+
 RUN npm run build -w @mercon/web-dashboard
 
 # Production stage

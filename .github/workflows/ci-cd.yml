@@ -29,6 +29,13 @@ jobs:
           ICCES_USER: ${{ secrets.ICCES_USER }}
           ICCES_PASS: ${{ secrets.ICCES_PASS }}
           ICCES_ACCT: ${{ secrets.ICCES_ACCT }}
+          # Google address autocomplete. Reaches the frontend as a
+          # docker-compose build arg, because Vite inlines VITE_* at build time
+          # — a runtime env var would arrive after the bundle is written.
+          # Optional like the ICCES pair above: without it address search falls
+          # back to Nominatim, so a missing key degrades one feature rather
+          # than failing the deploy.
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
         run: |
           echo "Rebuilding backend and frontend services..."
           # docker-compose.yml lives at the repo root (workspace-aware builds)
