@@ -11,7 +11,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { vehicleService } from '@/services/vehicleService';
-import { maintenanceService, CreateMaintenancePayload, MaintenanceType, MaintenanceStatus } from '@/services/maintenanceService';
+import { maintenanceService, CreateMaintenancePayload } from '@/services/maintenanceService';
 import { documentService, DocType, MerconDocument } from '@/services/documentService';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -34,6 +34,8 @@ export default function VehicleDetailsPage() {
 
   // Maintenance Log Modal State
   const [isLogMaintModalOpen, setIsLogMaintModalOpen] = useState(false);
+  const [selectedTypeSelect, setSelectedTypeSelect] = useState<string>('Routine');
+  const [customTypeInput, setCustomTypeInput] = useState<string>('');
   const [maintFormData, setMaintFormData] = useState<CreateMaintenancePayload>({
     vehicle_id: id || '',
     workshop_name: '',
@@ -80,6 +82,37 @@ export default function VehicleDetailsPage() {
 
   const maintenanceRecords = maintenanceRes?.data || [];
   const documents = docsRes?.data || [];
+
+  // Open Log Maintenance Modal helper
+  const openLogMaintModal = (initialData?: Partial<CreateMaintenancePayload>) => {
+    const type = initialData?.maintenance_type || 'Routine';
+    const standardTypes = ['Routine', 'Repair', 'Inspection', 'Renewal', 'Emergency', 'Tires', 'Oil_Change'];
+    
+    if (standardTypes.includes(type)) {
+      setSelectedTypeSelect(type);
+      setCustomTypeInput('');
+    } else {
+      setSelectedTypeSelect('Other');
+      setCustomTypeInput(type);
+    }
+
+    setMaintFormData({
+      vehicle_id: id || '',
+      workshop_name: initialData?.workshop_name || '',
+      workshop_contact: initialData?.workshop_contact || '',
+      maintenance_type: type,
+      status: initialData?.status || 'Completed',
+      start_date: initialData?.start_date ? initialData.start_date.split('T')[0] : new Date().toISOString().split('T')[0],
+      end_date: initialData?.end_date ? initialData.end_date.split('T')[0] : '',
+      work_done: initialData?.work_done || '',
+      odometer_reading: initialData?.odometer_reading || vehicle?.current_odometer || 0,
+      cost: initialData?.cost || 0,
+      invoice_number: initialData?.invoice_number || '',
+      remarks: initialData?.remarks || '',
+    });
+    setMaintFormError('');
+    setIsLogMaintModalOpen(true);
+  };
 
   // Mutations
   const createMaintMutation = useMutation({
@@ -154,7 +187,7 @@ export default function VehicleDetailsPage() {
 
   const capacityTons = ((vehicle.capacity_kg || 24000) / 1000).toFixed(1);
 
-  // Parse plate numbers into English and Arabic representation
+  // Parse plate numbers into English representation
   const rawPlate = vehicle.plate_number || '7821-LSA';
   const plateParts = rawPlate.split('-');
   const plateNum = plateParts[0] || '7821';
@@ -173,7 +206,7 @@ export default function VehicleDetailsPage() {
     <DashboardLayout active="Vehicles" title="Vehicle Details">
       <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── Page Header & Top Bar Actions (No Duplicate Plate/Ref Text) ────── */}
+        {/* ── Page Header & Top Bar Actions ────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <Button
@@ -215,23 +248,7 @@ export default function VehicleDetailsPage() {
 
             <Button
               size="sm"
-              onClick={() => {
-                setMaintFormData({
-                  vehicle_id: id || '',
-                  workshop_name: '',
-                  workshop_contact: '',
-                  maintenance_type: 'Routine',
-                  status: 'Scheduled',
-                  start_date: new Date().toISOString().split('T')[0],
-                  end_date: '',
-                  work_done: '',
-                  odometer_reading: vehicle.current_odometer || 0,
-                  cost: 0,
-                  invoice_number: '',
-                  remarks: '',
-                });
-                setIsLogMaintModalOpen(true);
-              }}
+              onClick={() => openLogMaintModal()}
               className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white shadow-2xs"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -260,15 +277,15 @@ export default function VehicleDetailsPage() {
           </div>
         </div>
 
-        {/* ── Visual Hero Command Panel ─────────────────────────────────── */}
+        {/* ── Visual Hero Command Panel (Consolidated Header & Integrated KPIs) ─ */}
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-6 overflow-hidden">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
-            {/* Left: Authentic Saudi License Plate Graphic & Identity (Rendered ONCE cleanly) */}
+            {/* Left: Authentic Saudi License Plate Graphic (Plate Number ONLY inside graphic frame) */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               
               {/* Dual-Language Saudi Plate Frame */}
-              <div className="w-48 h-24 rounded-xl border-2 border-slate-900 dark:border-slate-100 bg-slate-50 dark:bg-slate-950 p-2 shadow-md flex flex-col justify-between shrink-0 select-none">
+              <div className="w-48 h-24 rounded-xl border-2 border-slate-900 dark:border-slate-100 bg-slate-50 dark:bg-slate-950 p-2.5 shadow-md flex flex-col justify-between shrink-0 select-none">
                 <div className="flex items-center justify-between border-b border-slate-900/40 dark:border-slate-100/40 pb-1 font-bold">
                   <span className="font-mono text-base text-slate-900 dark:text-slate-100 tracking-wider">{plateNum} {plateLetters}</span>
                 </div>
@@ -277,14 +294,11 @@ export default function VehicleDetailsPage() {
                 </div>
               </div>
 
-              {/* Primary Asset Info */}
+              {/* Primary Asset Info (No duplicate plate_number text next to graphic) */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
-                    {vehicle.plate_number}
-                  </h2>
                   {vehicle.asset_type && (
-                    <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold">
+                    <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-xs font-extrabold uppercase font-mono px-2.5 py-0.5">
                       {vehicle.asset_type}
                     </Badge>
                   )}
@@ -292,7 +306,7 @@ export default function VehicleDetailsPage() {
                 </div>
 
                 <p className="text-xs text-slate-500 font-medium">
-                  Ref ID: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>
+                  Ref ID: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>
                   {vehicle.trailer_number ? ` • Trailer: ${vehicle.trailer_number}` : ''}
                 </p>
 
@@ -309,104 +323,68 @@ export default function VehicleDetailsPage() {
                     </>
                   )}
                   {!vehicle.gps_device_id && !vehicle.icces_device_id && (
-                    <span className="text-slate-400 italic">No Telematics Tracker Unit Linked</span>
+                    <span className="text-slate-400 italic">No Telematics Unit Linked</span>
                   )}
                 </div>
               </div>
 
             </div>
 
-            {/* Right: Quick Telematics Status Badge */}
-            <div className="border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0 flex items-center gap-4">
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[140px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telematics Signal</div>
-                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${vehicle.icces_device_id || vehicle.gps_device_id ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                  <span>{vehicle.icces_device_id || vehicle.gps_device_id ? 'CONNECTED' : 'UNTRACKED'}</span>
+            {/* Right: Integrated Instrument-Panel KPI Tiles (Vibrant Brand Colors) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0">
+              
+              {/* Payload Tonnage */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[125px]">
+                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
+                  <Truck className="w-3 h-3 text-indigo-500" /> Capacity
+                </div>
+                <div className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                  {capacityTons} <span className="text-[10px] font-sans text-slate-500">Tons</span>
                 </div>
               </div>
+
+              {/* Odometer */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[125px]">
+                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
+                  <Gauge className="w-3 h-3 text-emerald-500" /> Mileage
+                </div>
+                <div className="text-sm font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">
+                  {(vehicle.current_odometer ?? 0).toLocaleString()} <span className="text-[10px] font-sans text-slate-500">km</span>
+                </div>
+              </div>
+
+              {/* Net Profit */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[125px]">
+                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
+                  <DollarSign className="w-3 h-3 text-[#E8450F]" /> Net Profit
+                </div>
+                <div className={cn(
+                  "text-sm font-mono font-extrabold mt-1",
+                  (financials?.summary.net_profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
+                )}>
+                  SAR {(financials?.summary.net_profit ?? 0).toLocaleString()}
+                </div>
+              </div>
+
+              {/* Service Logs */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[125px]">
+                <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
+                  <Wrench className="w-3 h-3 text-amber-500" /> Services
+                </div>
+                <div className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                  {financials?.summary.total_maintenance_count ?? maintenanceRecords.length} <span className="text-[10px] font-sans text-slate-500">Logs</span>
+                </div>
+              </div>
+
             </div>
 
           </div>
         </Card>
 
-        {/* ── 4-Column Instrument-Panel KPI Cards Grid ──────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          {/* Card 1: Payload Tonnage */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Payload Capacity</span>
-              <Truck className="w-4 h-4 text-indigo-500" />
-            </div>
-            <div className="text-2xl font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-2">
-              {capacityTons} <span className="text-xs text-slate-500 font-sans font-normal">Tons</span>
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1 font-medium">
-              Max weight rating ({vehicle.capacity_kg ? vehicle.capacity_kg.toLocaleString() : '24,000'} kg)
-            </div>
-          </Card>
-
-          {/* Card 2: Current Odometer */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Odometer Reading</span>
-              <Gauge className="w-4 h-4 text-emerald-500" />
-            </div>
-            <div className="text-2xl font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">
-              {(vehicle.current_odometer ?? 0).toLocaleString()} <span className="text-xs text-slate-500 font-sans font-normal">km</span>
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1 font-medium">
-              Recorded vehicle mileage
-            </div>
-          </Card>
-
-          {/* Card 3: Net Profit P&L */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Net Vehicle Profit</span>
-              <DollarSign className="w-4 h-4 text-emerald-500" />
-            </div>
-            <div className={cn(
-              "text-2xl font-mono font-extrabold mt-2",
-              (financials?.summary.net_profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
-            )}>
-              SAR {(financials?.summary.net_profit ?? 0).toLocaleString()}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1 font-medium flex items-center gap-1">
-              {financials && (
-                <>
-                  {financials.summary.margin_percent >= 0 ? (
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
-                    <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
-                  )}
-                  <span>{financials.summary.margin_percent}% profit margin</span>
-                </>
-              )}
-            </div>
-          </Card>
-
-          {/* Card 4: Service Logs & Expense */}
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Service History</span>
-              <Wrench className="w-4 h-4 text-amber-500" />
-            </div>
-            <div className="text-2xl font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-2">
-              {financials?.summary.total_maintenance_count ?? maintenanceRecords.length} <span className="text-xs text-slate-500 font-sans font-normal">Logs</span>
-            </div>
-            <div className="text-[11px] text-rose-600 dark:text-rose-400 font-mono font-bold mt-1">
-              SAR {(financials?.summary.total_expenses ?? 0).toLocaleString()} total maintenance cost
-            </div>
-          </Card>
-
-        </div>
-
         {/* ── Main Dashboard 2-Column Grid ───────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Left Column (Financial P&L & Maintenance Service Ledger) */}
+          {/* Left Column (Financial P&L Summary & Maintenance Service Ledger) */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* Section 1: Vehicle Financial & Profitability Overview (P&L) */}
@@ -515,23 +493,7 @@ export default function VehicleDetailsPage() {
               actionsElement={
                 <Button
                   size="sm"
-                  onClick={() => {
-                    setMaintFormData({
-                      vehicle_id: id || '',
-                      workshop_name: '',
-                      workshop_contact: '',
-                      maintenance_type: 'Routine',
-                      status: 'Scheduled',
-                      start_date: new Date().toISOString().split('T')[0],
-                      end_date: '',
-                      work_done: '',
-                      odometer_reading: vehicle.current_odometer || 0,
-                      cost: 0,
-                      invoice_number: '',
-                      remarks: '',
-                    });
-                    setIsLogMaintModalOpen(true);
-                  }}
+                  onClick={() => openLogMaintModal()}
                   className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" /> Log Maintenance
@@ -596,21 +558,7 @@ export default function VehicleDetailsPage() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setMaintFormData({
-                          vehicle_id: m.vehicleId || id,
-                          workshop_name: m.workshop_name,
-                          workshop_contact: m.workshop_contact || '',
-                          maintenance_type: m.maintenance_type,
-                          status: m.status,
-                          start_date: m.start_date ? m.start_date.split('T')[0] : '',
-                          end_date: m.end_date ? m.end_date.split('T')[0] : '',
-                          work_done: m.work_done || '',
-                          odometer_reading: m.odometer_reading || 0,
-                          cost: m.cost || 0,
-                          invoice_number: m.invoice_number || '',
-                          remarks: m.remarks || '',
-                        });
-                        setIsLogMaintModalOpen(true);
+                        openLogMaintModal(m);
                       }}
                       className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
                       title="Edit Log"
@@ -630,10 +578,10 @@ export default function VehicleDetailsPage() {
 
           </div>
 
-          {/* Right Column (REAL Documents Vault & Live Telematics Radar) */}
+          {/* Right Column (REAL Documents Vault & Telematics Radar) */}
           <div className="space-y-6">
 
-            {/* REAL Vehicle Documents Vault (Replaces fake compliance audit mock) */}
+            {/* REAL Vehicle Documents Vault */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -805,7 +753,12 @@ export default function VehicleDetailsPage() {
               setMaintFormError('Workshop name is required.');
               return;
             }
-            createMaintMutation.mutate({ ...maintFormData, vehicle_id: vehicle.id });
+            const finalType = selectedTypeSelect === 'Other' ? (customTypeInput.trim() || 'Other') : selectedTypeSelect;
+            createMaintMutation.mutate({ 
+              ...maintFormData, 
+              vehicle_id: vehicle.id,
+              maintenance_type: finalType as any,
+            });
           }} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
             
             {maintFormError && (
@@ -820,10 +773,15 @@ export default function VehicleDetailsPage() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Maintenance Type *</Label>
                 <Select
-                  value={maintFormData.maintenance_type}
-                  onValueChange={(val: MaintenanceType) => setMaintFormData(prev => ({ ...prev, maintenance_type: val }))}
+                  value={selectedTypeSelect}
+                  onValueChange={(val) => {
+                    setSelectedTypeSelect(val);
+                    if (val !== 'Other') {
+                      setMaintFormData(prev => ({ ...prev, maintenance_type: val as any }));
+                    }
+                  }}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="h-9 text-xs font-medium">
                     <SelectValue placeholder="Select Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -831,28 +789,64 @@ export default function VehicleDetailsPage() {
                     <SelectItem value="Repair">Repair</SelectItem>
                     <SelectItem value="Inspection">Inspection</SelectItem>
                     <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-                    <SelectItem value="Emergency">Emergency</SelectItem>
+                    <SelectItem value="Emergency">Emergency Repair</SelectItem>
+                    <SelectItem value="Tires">Tire Replacement</SelectItem>
+                    <SelectItem value="Oil_Change">Oil & Filter Change</SelectItem>
+                    <SelectItem value="Other">Other / Custom</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Status *</Label>
-                <Select
-                  value={maintFormData.status}
-                  onValueChange={(val: MaintenanceStatus) => setMaintFormData(prev => ({ ...prev, status: val }))}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Scheduled">Scheduled</SelectItem>
-                    <SelectItem value="In_Progress">In Progress</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {selectedTypeSelect === 'Other' ? (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-[#E8450F]">Custom Maintenance Type *</Label>
+                  <Input
+                    value={customTypeInput}
+                    onChange={(e) => setCustomTypeInput(e.target.value)}
+                    placeholder="e.g. Transmission Service, Brake Replacement..."
+                    className="h-9 text-xs border-[#E8450F]/50 focus:border-[#E8450F]"
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Status *</Label>
+                  <Select
+                    value={maintFormData.status}
+                    onValueChange={(val: any) => setMaintFormData(prev => ({ ...prev, status: val }))}
+                  >
+                    <SelectTrigger className="h-9 text-xs font-medium">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Scheduled">Scheduled</SelectItem>
+                      <SelectItem value="In_Progress">In Progress</SelectItem>
+                      <SelectItem value="Completed">Completed</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {selectedTypeSelect === 'Other' && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Status *</Label>
+                  <Select
+                    value={maintFormData.status}
+                    onValueChange={(val: any) => setMaintFormData(prev => ({ ...prev, status: val }))}
+                  >
+                    <SelectTrigger className="h-9 text-xs font-medium">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Scheduled">Scheduled</SelectItem>
+                      <SelectItem value="In_Progress">In Progress</SelectItem>
+                      <SelectItem value="Completed">Completed</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Cost / Expense (SAR) *</Label>
