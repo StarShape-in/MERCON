@@ -133,7 +133,7 @@ export default function DashboardPage() {
         </div>
 
         {summaryError && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl shadow-xs flex items-center gap-3">
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg shadow-xs flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
             <div className="text-sm font-semibold">
               Failed to load real-time dashboard KPIs. Showing cached or default values.
@@ -144,9 +144,9 @@ export default function DashboardPage() {
 
         {/* Pending Post-Trip Financial Settlement Notification Banner */}
         {unsettledTrips.length > 0 && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-lg p-4 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-md bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
                 <Clock size={20} />
               </div>
               <div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                 <button
                   key={t.id}
                   onClick={() => setSelectedSettlementTrip(t)}
-                  className="px-3 py-2 bg-white hover:bg-amber-100/50 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 shadow-2xs flex items-center gap-1.5 transition-all"
+                  className="px-3 py-2 bg-white hover:bg-amber-100/50 border border-amber-200 rounded-md text-xs font-bold text-amber-900 shadow-2xs flex items-center gap-1.5 transition-all"
                 >
                   <DollarSign size={13} className="text-[#E8450F]" />
                   <span>#{t.ref_id || t.id.substring(0, 6)}</span>
@@ -262,7 +262,7 @@ export default function DashboardPage() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 shrink-0">
           {/* Revenue / Trip Trend */}
-          <Card className="lg:col-span-2 border-black/[0.06] shadow-sm rounded-xl bg-white flex flex-col justify-between">
+          <Card className="lg:col-span-2 border-black/[0.06] shadow-sm rounded-lg bg-white flex flex-col justify-between">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Revenue Trend</CardTitle>
               <CardDescription className="text-xs text-[#6E6E80]">Monthly completed freight payments (SAR)</CardDescription>
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F2" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#6E6E80', fontWeight: 600 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: '#6E6E80', fontWeight: 600 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 12, fontSize: 11, border: '1px solid #F0F0F2', fontFamily: 'Plus Jakarta Sans' }} />
+                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 11, border: '1px solid #F0F0F2', fontFamily: 'Plus Jakarta Sans' }} />
                   <Area type="monotone" dataKey="revenue" stroke="#E8450F" strokeWidth={2} fill="url(#revenueGrad)" name="Revenue" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Trip Status Distribution */}
-          <Card className="border-black/[0.06] shadow-sm rounded-xl bg-white flex flex-col justify-between">
+          <Card className="border-black/[0.06] shadow-sm rounded-lg bg-white flex flex-col justify-between">
             <CardHeader className="pb-0">
               <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Trip Status Distribution</CardTitle>
               <CardDescription className="text-xs text-[#6E6E80]">Manifest progress status overview</CardDescription>
