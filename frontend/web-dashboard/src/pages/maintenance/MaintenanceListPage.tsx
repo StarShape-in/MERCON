@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  Wrench, Download, Plus, RotateCw, Search, Filter, 
+  Wrench, Download, Plus, RotateCw, Filter,
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
   Building2, Gauge, Layers, ChevronDown, Eye,
@@ -358,7 +359,7 @@ export default function MaintenanceListPage() {
               await Promise.all(selectedRows.map(r => maintenanceService.delete(r.id)));
               queryClient.invalidateQueries({ queryKey: ['maintenance'] });
             } catch (e) {
-              alert('Failed to delete selected maintenance records');
+              toast.error('Failed to delete selected maintenance records');
             }
           }
         });
@@ -496,18 +497,7 @@ export default function MaintenanceListPage() {
 
         {/* ── 3. Toolbar & Control Bar ────────────────────────────────────── */}
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-2xs">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            
-            {/* Search Input */}
-            <div className="relative flex-1 w-full">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input
-                placeholder="Search vehicle plate, workshop, invoice, or work done..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-              />
-            </div>
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
 
             {/* Filter Dropdowns */}
             <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap">
@@ -719,6 +709,9 @@ export default function MaintenanceListPage() {
                   bulkActions={bulkActions}
                   compact={true}
                   isLoading={isLoading}
+                  searchPlaceholder="Search vehicle plate, workshop, invoice, or work done..."
+                  searchValue={search}
+                  onSearchChange={setSearch}
                   pageSize={pageSize}
                   onPageSizeChange={setPageSize}
                   currentPage={page}
