@@ -1,10 +1,11 @@
 # Google Maps setup — address entry
 
-**Status: not connected yet.** Nothing in the codebase calls Google. This
-document is what the owner needs to do to enable it, and what will change once
-the key exists.
+**Status: connected.** `frontend/web-dashboard/src/services/addressSearch.ts` is
+the only file that calls Google, and it answers with Nominatim whenever the key
+is absent or Google fails. This document is what has to be set up in Google
+Cloud for the Google path to be the one that actually runs.
 
-## What we use today, and why it has to change
+## What we used before, and why it had to change
 
 | Job | Today | Problem |
 |---|---|---|
@@ -29,14 +30,21 @@ change; see "Still outstanding" below.
 3. Enable exactly these two APIs — nothing else, so a mistake can't quietly bill
    you for Directions or Map Loads:
    - **Places API (New)** — the address autocomplete dropdown
-   - **Geocoding API** — turning a chosen address into coordinates
+   - **Maps JavaScript API** — how the browser reaches Places. The app loads
+     the Places library through `google.maps.importLibrary("places")`, which is
+     served by this API. It does **not** render a Google map: tiles stay on
+     OpenStreetMap, so no Dynamic Maps load is billed.
+
+   **Geocoding API is deliberately not enabled.** Place Details already returns
+   the formatted address *and* the coordinates in the same response, so
+   geocoding would be a second billed call for data we were already handed.
 4. Create an API key under *APIs & Services → Credentials*.
 5. **Restrict the key** before using it. An unrestricted Maps key found in a
    public JS bundle gets scraped and billed to you:
    - *Application restrictions*: **HTTP referrers**, set to `https://mercon.tech/*`
      (add `http://localhost:*` while developing).
    - *API restrictions*: **Restrict key** → tick only Places API (New) and
-     Geocoding API.
+     Maps JavaScript API.
 6. Set a **budget alert** on the project (*Billing → Budgets & alerts*). Google
    does not cap spend by default; an alert is the only thing that tells you if
    something starts looping.
@@ -56,18 +64,31 @@ Add the same variable as a build argument in `docker-compose.yml` for the
 web-dashboard service, since Vite inlines env vars at **build** time — setting
 it only at runtime on the container has no effect.
 
-## What changes in the app once the key is set
+## How the app uses it
 
-- `LocationPickerMap`'s "Search an address…" box switches from Nominatim to
-  Google Places Autocomplete. Same field, better and legally usable results.
-- Picking a suggestion fills, as it does now: the pin coordinates, the short
-  **location name**, and the full **address** — the last of which is what the
-  driver's app displays.
-- Adding a place from the location dropdown geocodes the typed name, so a
-  `Location` gets a real verified address and coordinates instead of only a name.
-- **Fallback:** if `VITE_GOOGLE_MAPS_API_KEY` is absent, the search must keep
-  working on Nominatim rather than breaking. Local development and any
-  environment without the key has to stay usable.
+`LocationPickerMap`'s "Search an address…" box is the only consumer, and it
+talks to `services/addressSearch.ts` rather than to Google directly.
+
+- **Autocomplete.** Each keystroke (debounced 400ms) calls
+  `AutocompleteSuggestion.fetchAutocompleteSuggestions`.
+- **Session token.** One token is minted on the first keystroke of an
+  interaction and reused for every later keystroke, then spent by the Place
+  Details call that ends it. That is what makes a whole interaction bill as one
+  session instead of per request — so abandoning a search without picking
+  anything is the expensive shape, not a long one.
+- **Place Details** requests exactly three fields: `displayName`,
+  `formattedAddress` and `location`. This terminates the session using a
+  request containing a Pro-tier field; the exact SKU of that terminating
+  request is governed by Google's current Places pricing. Adding fields can
+  move it into a higher tier, which is why the list is fixed.
+- **What gets stored.** `displayName` → `location_name` (the short label reports
+  group routes by), `formattedAddress` → `location_address` (what the driver's
+  app shows), `location.lat/lng` → `location_lat` / `location_lng` (the pin).
+- **Fallback.** With no key, the Google branch is statically dead and the
+  bundler drops it entirely — the build ships Nominatim only. With a key that
+  fails at runtime (blocked script, rejected referrer, API error) the module
+  falls back to Nominatim for the rest of the page's life and logs a warning.
+  Local development without a key stays fully usable.
 
 ## Still outstanding
 
