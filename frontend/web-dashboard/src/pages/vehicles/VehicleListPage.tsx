@@ -76,7 +76,7 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
       ${status === 'Maintenance' ? `
         <div class="absolute animate-bounce" style="top: -12px; left: 50%; transform: translateX(-50%); z-index: 10; background-color: #DC2626; color: white; font-family: system-ui, sans-serif; font-size: 7px; font-weight: 900; padding: 1.5px 4.5px; border-radius: 3.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 1.5px; white-space: nowrap;">
           <span>⚠️</span>
-          <span>SERVICE</span>
+          <span>MAINTENANCE</span>
           <div style="position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 2.5px solid transparent; border-right: 2.5px solid transparent; border-top: 3.5px solid #DC2626;"></div>
         </div>
       ` : ''}
@@ -897,7 +897,7 @@ export default function VehicleListPage() {
                       style={{ whiteSpace: 'nowrap' }}
                     >
                       <span>⚠️</span>
-                      <span>SERVICE</span>
+                      <span>MAINTENANCE</span>
                       {/* Arrow */}
                       <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
                     </div>
