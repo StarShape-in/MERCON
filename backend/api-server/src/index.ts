@@ -48,6 +48,7 @@ import uploadRoutes from './routes/uploadRoutes';
 import userRoutes from './routes/userRoutes';
 import trashRoutes from './routes/trashRoutes';
 import { initFleetTracking } from './services/icces/fleetPoller';
+import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
 
 import helmet from 'helmet';
 
@@ -149,10 +150,16 @@ io.on('connection', (socket: Socket) => {
     if (user.role !== 'Driver' || !user.driver_id) return;
     if (!data || typeof data.tripId !== 'string' || data.driverId !== user.driver_id) return;
 
+    // Authorisation says who may speak; it says nothing about what they said.
+    // This payload used to be relayed verbatim, so a malformed or hostile
+    // client could put a non-numeric position on every watching operator's map.
+    const update = normalizeMobileLocationUpdate(data);
+    if (!update) return;
+
     const trip = await prisma.trip.findUnique({ where: { id: data.tripId }, select: { driverId: true } });
     if (trip?.driverId !== user.driver_id) return;
 
-    io.to(`trip:${data.tripId}`).emit(`trip:location_update:${data.tripId}`, data);
+    io.to(`trip:${data.tripId}`).emit(`trip:location_update:${data.tripId}`, update);
   });
 
   socket.on('disconnect', () => {

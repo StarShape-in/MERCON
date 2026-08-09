@@ -29,6 +29,7 @@ import { env, iccesConfigured } from '../../config/env';
 import { IccesSession, IccesAuthError } from './iccesSession';
 import { createAxiosTransport } from './axiosTransport';
 import type { IccesTelemetry } from './trackParser';
+import { trackerLocationUpdate } from '../tracking/locationUpdate';
 
 /** Matches the dashboard's own refresh rate. Fast enough to watch a truck
  *  move, slow enough that 27 vehicles cost one request per 30s, not per truck. */
@@ -78,9 +79,10 @@ async function persist(telemetry: IccesTelemetry[]): Promise<{ matched: number; 
  * Pushes positions to trip rooms so an operator watching `/trips/:id/track`
  * sees the marker move.
  *
- * The payload shape matches what the driver mobile app already emits, so the
- * dashboard needs no change to accept it — the two GPS sources are
- * interchangeable at the socket. `source` distinguishes them for diagnostics.
+ * Both GPS sources emit the one shape defined in `services/tracking`, so the
+ * dashboard cannot tell them apart by accident — `source` says which produced
+ * a reading, and it is now set the same way on both paths rather than only
+ * this one.
  */
 async function broadcastToActiveTrips(telemetry: IccesTelemetry[]): Promise<number> {
   const deviceIds = telemetry.map((t) => t.deviceId);
@@ -104,15 +106,7 @@ async function broadcastToActiveTrips(telemetry: IccesTelemetry[]): Promise<numb
     const t = byDevice.get(deviceId);
     if (!t) continue;
 
-    io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, {
-      lat: t.latitude,
-      lng: t.longitude,
-      speed: t.speedKph ?? 0,
-      heading: t.headingDeg ?? 0,
-      status: t.status,
-      recordedAt: t.recordedAt.toISOString(),
-      source: 'ICCES',
-    });
+    io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, trackerLocationUpdate(t));
     sent += 1;
   }
 

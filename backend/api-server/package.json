@@ -10,7 +10,8 @@
     "seed": "ts-node prisma/seed.ts",
     "seed:demo": "ts-node scripts/seed-demo-local.ts",
     "demo:purge": "ts-node scripts/demo-purge.ts",
-    "test:icces": "node -r ts-node/register --test src/services/icces/trackParser.test.ts src/services/icces/iccesSession.test.ts"
+    "test:icces": "node -r ts-node/register --test src/services/icces/trackParser.test.ts src/services/icces/iccesSession.test.ts",
+    "test:tracking": "node -r ts-node/register --test src/services/tracking/locationUpdate.test.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
