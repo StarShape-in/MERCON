@@ -58,9 +58,9 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
     glowColor = 'rgba(16, 185, 129, 0.65)';
     borderColor = '#10B981';
   } else if (status === 'Maintenance') {
-    imgFilter = 'hue-rotate(15deg) saturate(1.4) brightness(1.05) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
-    glowColor = 'rgba(245, 158, 11, 0.6)';
-    borderColor = '#F59E0B';
+    imgFilter = 'hue-rotate(335deg) saturate(2) brightness(0.85) drop-shadow(0 4px 6px rgba(0,0,0,0.25))';
+    glowColor = 'rgba(220, 38, 38, 0.65)';
+    borderColor = '#DC2626';
   } else {
     imgFilter = 'grayscale(100%) opacity(70%) drop-shadow(0 4px 6px rgba(0,0,0,0.2))';
     glowColor = 'rgba(148, 163, 184, 0.3)';
@@ -74,10 +74,10 @@ function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: 
     <div style="position: relative; width: 56px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
       <!-- Bouncing Service Warning Popup Badge for Maintenance status -->
       ${status === 'Maintenance' ? `
-        <div class="absolute animate-bounce" style="top: -12px; left: 50%; transform: translateX(-50%); z-index: 10; background-color: #D97706; color: white; font-family: system-ui, sans-serif; font-size: 7px; font-weight: 900; padding: 1.5px 4.5px; border-radius: 3.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 1.5px; white-space: nowrap;">
+        <div class="absolute animate-bounce" style="top: -12px; left: 50%; transform: translateX(-50%); z-index: 10; background-color: #DC2626; color: white; font-family: system-ui, sans-serif; font-size: 7px; font-weight: 900; padding: 1.5px 4.5px; border-radius: 3.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 1.5px; white-space: nowrap;">
           <span>⚠️</span>
           <span>SERVICE</span>
-          <div style="position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 2.5px solid transparent; border-right: 2.5px solid transparent; border-top: 3.5px solid #D97706;"></div>
+          <div style="position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 2.5px solid transparent; border-right: 2.5px solid transparent; border-top: 3.5px solid #DC2626;"></div>
         </div>
       ` : ''}
 
@@ -822,7 +822,7 @@ export default function VehicleListPage() {
           <KpiCard
             title="MAINTENANCE BAY"
             value={maintenanceCount}
-            variant="amber"
+            variant="rose"
             trend={maintenanceCount > 3 ? 'up' : 'down'}
             trendValue={maintenanceCount > 0 ? 'Service Active' : 'All Clear'}
             description="Active servicing units"
@@ -830,9 +830,9 @@ export default function VehicleListPage() {
             isActive={selectedStatus === 'Maintenance'}
             onClick={() => { setSelectedStatus('Maintenance'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFFDF2] dark:bg-[#D97706]/10 border-t border-amber-500/10">
+              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
                 <style>{`
-                  @keyframes routeDashAmber {
+                  @keyframes routeDashRed {
                     to {
                       stroke-dashoffset: -12;
                     }
@@ -840,17 +840,17 @@ export default function VehicleListPage() {
                 `}</style>
                 {/* Grid lines for map look */}
                 <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
-                  <pattern id="card-map-grid-amber" width="12" height="12" patternUnits="userSpaceOnUse">
+                  <pattern id="card-map-grid-red" width="12" height="12" patternUnits="userSpaceOnUse">
                     <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
                   </pattern>
-                  <rect width="100%" height="100%" fill="url(#card-map-grid-amber)" />
+                  <rect width="100%" height="100%" fill="url(#card-map-grid-red)" />
                 </svg>
                 
                 {/* Stylized Intersecting Street Map Network */}
                 <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
-                  <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#FDE047" strokeWidth="1.5" />
-                  <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#FDE047" strokeWidth="1.5" />
-                  <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#FDE047" strokeWidth="1.5" />
+                  <path d="M 45 -5 C 50 15, 40 35, 45 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
+                  <path d="M 115 -5 C 110 15, 120 35, 113 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
+                  <path d="M 180 -5 C 190 15, 175 35, 185 55" fill="none" stroke="#FECACA" strokeWidth="1.5" />
                 </svg>
 
                 {/* Route line */}
@@ -863,21 +863,21 @@ export default function VehicleListPage() {
                     strokeWidth="3.5" 
                     strokeLinecap="round"
                   />
-                  {/* Amber active route progress */}
+                  {/* Red active route progress */}
                   <path 
                     d="M -10 24 C 70 10, 150 38, 290 24" 
                     fill="none" 
-                    stroke="#D97706" 
+                    stroke="#DC2626" 
                     strokeWidth="3" 
                     strokeDasharray="6,6"
                     strokeLinecap="round"
-                    style={{ animation: 'routeDashAmber 4s linear infinite' }}
+                    style={{ animation: 'routeDashRed 4s linear infinite' }}
                   />
                 </svg>
 
                 {/* Bay Entry Pin */}
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-amber-500 ring-4 ring-amber-500/20" />
+                  <div className="h-2 w-2 rounded-full bg-red-500 ring-4 ring-red-500/20" />
                 </div>
                 
                 {/* The 3D Truck sitting in the middle of the route */}
@@ -893,24 +893,24 @@ export default function VehicleListPage() {
                   <div className="relative flex items-center justify-center">
                     {/* Bouncing Warning Popup Badge */}
                     <div 
-                      className="absolute bottom-[18px] bg-amber-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
+                      className="absolute bottom-[18px] bg-red-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
                       style={{ whiteSpace: 'nowrap' }}
                     >
                       <span>⚠️</span>
                       <span>SERVICE</span>
                       {/* Arrow */}
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-amber-600" />
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-600" />
                     </div>
 
                     {/* Glow ring */}
-                    <div className="absolute h-8 w-8 rounded-full bg-amber-500/20" />
+                    <div className="absolute h-8 w-8 rounded-full bg-red-500/20" />
                     
-                    {/* Desaturated/Gray-tinted truck to indicate servicing status */}
+                    {/* Desaturated red truck to indicate servicing status */}
                     <img 
                       src="/truck_3d_orange_transparent.png" 
                       alt="Servicing Truck" 
                       className="h-9 w-9 object-contain"
-                      style={{ filter: 'saturate(0.4) brightness(0.9)' }}
+                      style={{ filter: 'hue-rotate(335deg) saturate(0.8) brightness(0.9)' }}
                     />
                   </div>
                 </div>
