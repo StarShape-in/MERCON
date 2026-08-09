@@ -79,9 +79,22 @@ export const getLocations = async (req: Request, res: Response) => {
     if (active_only === 'true') whereClause.is_active = true;
     if (search) whereClause.name = { contains: search as string, mode: 'insensitive' };
 
+    // Usage counts come back with the list so the page can separate places that
+    // are actually in use from typos and abandoned entries — which is the whole
+    // reason to look at this list. Counting rate cards on both ends of the lane
+    // separately, because a place can be an origin, a destination, or both.
     const locations = await prisma.location.findMany({
       where: whereClause,
       orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: {
+            originRateCards: { where: { deletedAt: null } },
+            destinationRateCards: { where: { deletedAt: null } },
+            tripStops: { where: { deletedAt: null } },
+          },
+        },
+      },
     });
 
     res.json({ success: true, data: locations });

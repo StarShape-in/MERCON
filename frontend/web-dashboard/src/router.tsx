@@ -44,6 +44,7 @@ const EditCustomerPage        = lazy(() => import('@/pages/customers/EditCustome
 const CustomerContractsPage   = lazy(() => import('@/pages/customers/CustomerContractsPage'));
 
 // Rate Cards (static/mock for now)
+const LocationListPage        = lazy(() => import('@/pages/locations/LocationListPage'));
 const RateCardListPage        = lazy(() => import('@/pages/rate-cards/RateCardListPage'));
 const CreateRateCardPage      = lazy(() => import('@/pages/rate-cards/CreateRateCardPage'));
 const RateCardDetailsPage     = lazy(() => import('@/pages/rate-cards/RateCardDetailsPage'));
@@ -126,6 +127,9 @@ export default function AppRouter() {
           <Route path="/customers/:id"            element={<ProtectedRoute><CustomerDetailsPage /></ProtectedRoute>} />
           <Route path="/customers/:id/edit"       element={<ProtectedRoute><EditCustomerPage /></ProtectedRoute>} />
           <Route path="/customers/:id/contracts"  element={<ProtectedRoute><CustomerContractsPage /></ProtectedRoute>} />
+
+          {/* Locations — the places rate card lanes are priced between */}
+          <Route path="/locations"                element={<ProtectedRoute><LocationListPage /></ProtectedRoute>} />
 
           {/* Rate Cards */}
           <Route path="/rate-cards"               element={<ProtectedRoute><RateCardListPage /></ProtectedRoute>} />
