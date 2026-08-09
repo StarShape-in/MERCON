@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   ArrowLeft, Edit2, FileText, Truck, MapPin, AlertTriangle, Trash2, 
-  Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
+  Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge, X,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink
 } from 'lucide-react';
 
@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import DataTable from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
 
@@ -32,8 +33,11 @@ export default function VehicleDetailsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  // Maintenance Log Modal State
-  const [isLogMaintModalOpen, setIsLogMaintModalOpen] = useState(false);
+  // Maintenance Log Popover States (anchored directly to each trigger button)
+  const [isTopLogMaintOpen, setIsTopLogMaintOpen] = useState(false);
+  const [isTableLogMaintOpen, setIsTableLogMaintOpen] = useState(false);
+  const [rowEditMaintId, setRowEditMaintId] = useState<string | null>(null);
+
   const [selectedTypeSelect, setSelectedTypeSelect] = useState<string>('Routine');
   const [customTypeInput, setCustomTypeInput] = useState<string>('');
   const [maintFormData, setMaintFormData] = useState<CreateMaintenancePayload>({
@@ -83,8 +87,8 @@ export default function VehicleDetailsPage() {
   const maintenanceRecords = maintenanceRes?.data || [];
   const documents = docsRes?.data || [];
 
-  // Open Log Maintenance Modal helper
-  const openLogMaintModal = (initialData?: Partial<CreateMaintenancePayload>) => {
+  // Init maintenance form payload
+  const initMaintForm = (initialData?: Partial<CreateMaintenancePayload>) => {
     const type = initialData?.maintenance_type || 'Routine';
     const standardTypes = ['Routine', 'Repair', 'Inspection', 'Renewal', 'Emergency', 'Tires', 'Oil_Change'];
     
@@ -111,7 +115,6 @@ export default function VehicleDetailsPage() {
       remarks: initialData?.remarks || '',
     });
     setMaintFormError('');
-    setIsLogMaintModalOpen(true);
   };
 
   // Mutations
@@ -122,7 +125,9 @@ export default function VehicleDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance', id] });
       queryClient.invalidateQueries({ queryKey: ['vehicle-financials', id] });
-      setIsLogMaintModalOpen(false);
+      setIsTopLogMaintOpen(false);
+      setIsTableLogMaintOpen(false);
+      setRowEditMaintId(null);
       setMaintFormError('');
     },
     onError: (err: any) => {
@@ -202,6 +207,223 @@ export default function VehicleDetailsPage() {
     }
   };
 
+  // Anchored Maintenance Form Renderer
+  const renderMaintenanceForm = (onClose: () => void) => (
+    <div className="w-[520px] p-5 space-y-4 text-xs bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div>
+          <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Wrench className="w-4 h-4 text-[#E8450F]" /> Log Maintenance for {vehicle.plate_number}
+          </h3>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            Enter service details, dates, cost expense, and work done description.
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0 text-slate-400">
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        if (!maintFormData.workshop_name.trim()) {
+          setMaintFormError('Workshop name is required.');
+          return;
+        }
+        const finalType = selectedTypeSelect === 'Other' ? (customTypeInput.trim() || 'Other') : selectedTypeSelect;
+        createMaintMutation.mutate({ 
+          ...maintFormData, 
+          vehicle_id: vehicle.id,
+          maintenance_type: finalType as any,
+        });
+      }} className="space-y-4">
+        
+        {maintFormError && (
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>{maintFormError}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-bold">Maintenance Type *</Label>
+            <Select
+              value={selectedTypeSelect}
+              onValueChange={(val) => {
+                setSelectedTypeSelect(val);
+                if (val !== 'Other') {
+                  setMaintFormData(prev => ({ ...prev, maintenance_type: val as any }));
+                }
+              }}
+            >
+              <SelectTrigger className="h-8.5 text-xs font-medium">
+                <SelectValue placeholder="Select Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Routine">Routine Service</SelectItem>
+                <SelectItem value="Repair">Repair</SelectItem>
+                <SelectItem value="Inspection">Inspection</SelectItem>
+                <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
+                <SelectItem value="Emergency">Emergency Repair</SelectItem>
+                <SelectItem value="Tires">Tire Replacement</SelectItem>
+                <SelectItem value="Oil_Change">Oil & Filter Change</SelectItem>
+                <SelectItem value="Other">Other / Custom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedTypeSelect === 'Other' ? (
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-bold text-[#E8450F]">Custom Maintenance Type *</Label>
+              <Input
+                value={customTypeInput}
+                onChange={(e) => setCustomTypeInput(e.target.value)}
+                placeholder="e.g. Transmission Service..."
+                className="h-8.5 text-xs border-[#E8450F]/50 focus:border-[#E8450F]"
+                required
+              />
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-bold">Status *</Label>
+              <Select
+                value={maintFormData.status}
+                onValueChange={(val: any) => setMaintFormData(prev => ({ ...prev, status: val }))}
+              >
+                <SelectTrigger className="h-8.5 text-xs font-medium">
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="In_Progress">In Progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {selectedTypeSelect === 'Other' && (
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-bold">Status *</Label>
+              <Select
+                value={maintFormData.status}
+                onValueChange={(val: any) => setMaintFormData(prev => ({ ...prev, status: val }))}
+              >
+                <SelectTrigger className="h-8.5 text-xs font-medium">
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="In_Progress">In Progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-bold">Cost / Expense (SAR) *</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={maintFormData.cost}
+              onChange={(e) => setMaintFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
+              placeholder="0.00"
+              className="h-8.5 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-bold">Odometer Reading (km)</Label>
+            <Input
+              type="number"
+              value={maintFormData.odometer_reading}
+              onChange={(e) => setMaintFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
+              className="h-8.5 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-bold">Start Date ("When Put") *</Label>
+            <Input
+              type="date"
+              value={maintFormData.start_date}
+              onChange={(e) => setMaintFormData(prev => ({ ...prev, start_date: e.target.value }))}
+              className="h-8.5 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-bold">End Date ("When Ends")</Label>
+            <Input
+              type="date"
+              value={maintFormData.end_date || ''}
+              onChange={(e) => setMaintFormData(prev => ({ ...prev, end_date: e.target.value }))}
+              className="h-8.5 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-bold">Workshop Center *</Label>
+            <Input
+              value={maintFormData.workshop_name}
+              onChange={(e) => setMaintFormData(prev => ({ ...prev, workshop_name: e.target.value }))}
+              placeholder="Al-Riyadh Workshop"
+              className="h-8.5 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-bold">Invoice Ref Number</Label>
+            <Input
+              value={maintFormData.invoice_number || ''}
+              onChange={(e) => setMaintFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
+              placeholder="INV-1092"
+              className="h-8.5 text-xs"
+            />
+          </div>
+
+        </div>
+
+        <div className="space-y-1.5 pt-1">
+          <Label className="text-[11px] font-bold">Work Done Details *</Label>
+          <textarea
+            value={maintFormData.work_done || ''}
+            onChange={(e) => setMaintFormData(prev => ({ ...prev, work_done: e.target.value }))}
+            placeholder="Details of oil replacement, brake repair..."
+            rows={2}
+            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F]"
+          />
+        </div>
+
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-xs h-8"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={createMaintMutation.isPending}
+            className="text-xs h-8 bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
+          >
+            {createMaintMutation.isPending ? 'Saving...' : 'Save Log'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Details">
       <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
@@ -246,15 +468,26 @@ export default function VehicleDetailsPage() {
               Upload Document
             </Button>
 
-            <Button
-              size="sm"
-              onClick={() => openLogMaintModal()}
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white shadow-2xs"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Log Maintenance
-            </Button>
+            {/* Anchored Top Bar Log Maintenance Popover */}
+            <Popover open={isTopLogMaintOpen} onOpenChange={(open) => {
+              setIsTopLogMaintOpen(open);
+              if (open) initMaintForm();
+            }}>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Log Maintenance
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={8} className="p-0 border-none bg-transparent shadow-none z-50">
+                {renderMaintenanceForm(() => setIsTopLogMaintOpen(false))}
+              </PopoverContent>
+            </Popover>
 
+            {/* Renamed from Edit Asset to Edit */}
             <Button
               variant="outline"
               size="sm"
@@ -262,7 +495,7 @@ export default function VehicleDetailsPage() {
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs"
             >
               <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-              Edit Asset
+              Edit
             </Button>
 
             <Button
@@ -277,7 +510,7 @@ export default function VehicleDetailsPage() {
           </div>
         </div>
 
-        {/* ── Visual Hero Command Panel (Consolidated Header & Integrated KPIs) ─ */}
+        {/* ── Visual Hero Command Panel ─────────────────────────────────── */}
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-6 overflow-hidden">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
@@ -491,13 +724,23 @@ export default function VehicleDetailsPage() {
                 </span>
               }
               actionsElement={
-                <Button
-                  size="sm"
-                  onClick={() => openLogMaintModal()}
-                  className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Log Maintenance
-                </Button>
+                /* Anchored Table Header Log Maintenance Popover */
+                <Popover open={isTableLogMaintOpen} onOpenChange={(open) => {
+                  setIsTableLogMaintOpen(open);
+                  if (open) initMaintForm();
+                }}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Log Maintenance
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" sideOffset={8} className="p-0 border-none bg-transparent shadow-none z-50">
+                    {renderMaintenanceForm(() => setIsTableLogMaintOpen(false))}
+                  </PopoverContent>
+                </Popover>
               }
               columns={[
                 {
@@ -553,18 +796,29 @@ export default function VehicleDetailsPage() {
                   headerClassName: 'text-right',
                   className: 'text-right',
                   accessor: (m: any) => (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openLogMaintModal(m);
-                      }}
-                      className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
-                      title="Edit Log"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <Popover open={rowEditMaintId === m.id} onOpenChange={(open) => {
+                      if (open) {
+                        setRowEditMaintId(m.id);
+                        initMaintForm(m);
+                      } else {
+                        setRowEditMaintId(null);
+                      }
+                    }}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
+                          title="Edit Log"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" sideOffset={8} className="p-0 border-none bg-transparent shadow-none z-50">
+                        {renderMaintenanceForm(() => setRowEditMaintId(null))}
+                      </PopoverContent>
+                    </Popover>
                   ),
                 },
               ]}
@@ -734,218 +988,6 @@ export default function VehicleDetailsPage() {
           queryClient.invalidateQueries({ queryKey: ['documents', 'Vehicle', id] });
         }}
       />
-
-      {/* ── Log Maintenance Dialog Modal ────────────────────────────── */}
-      <Dialog open={isLogMaintModalOpen} onOpenChange={(open) => !open && setIsLogMaintModalOpen(false)}>
-        <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
-          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 shrink-0">
-            <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-[#E8450F]" /> Log Maintenance for {vehicle.plate_number}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 mt-1">
-              Enter service details, dates when maintenance started and ended, cost expense, and work done description.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (!maintFormData.workshop_name.trim()) {
-              setMaintFormError('Workshop name is required.');
-              return;
-            }
-            const finalType = selectedTypeSelect === 'Other' ? (customTypeInput.trim() || 'Other') : selectedTypeSelect;
-            createMaintMutation.mutate({ 
-              ...maintFormData, 
-              vehicle_id: vehicle.id,
-              maintenance_type: finalType as any,
-            });
-          }} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
-            
-            {maintFormError && (
-              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                <span>{maintFormError}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Maintenance Type *</Label>
-                <Select
-                  value={selectedTypeSelect}
-                  onValueChange={(val) => {
-                    setSelectedTypeSelect(val);
-                    if (val !== 'Other') {
-                      setMaintFormData(prev => ({ ...prev, maintenance_type: val as any }));
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-9 text-xs font-medium">
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Routine">Routine Service</SelectItem>
-                    <SelectItem value="Repair">Repair</SelectItem>
-                    <SelectItem value="Inspection">Inspection</SelectItem>
-                    <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-                    <SelectItem value="Emergency">Emergency Repair</SelectItem>
-                    <SelectItem value="Tires">Tire Replacement</SelectItem>
-                    <SelectItem value="Oil_Change">Oil & Filter Change</SelectItem>
-                    <SelectItem value="Other">Other / Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedTypeSelect === 'Other' ? (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-[#E8450F]">Custom Maintenance Type *</Label>
-                  <Input
-                    value={customTypeInput}
-                    onChange={(e) => setCustomTypeInput(e.target.value)}
-                    placeholder="e.g. Transmission Service, Brake Replacement..."
-                    className="h-9 text-xs border-[#E8450F]/50 focus:border-[#E8450F]"
-                    required
-                  />
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold">Status *</Label>
-                  <Select
-                    value={maintFormData.status}
-                    onValueChange={(val: any) => setMaintFormData(prev => ({ ...prev, status: val }))}
-                  >
-                    <SelectTrigger className="h-9 text-xs font-medium">
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Scheduled">Scheduled</SelectItem>
-                      <SelectItem value="In_Progress">In Progress</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {selectedTypeSelect === 'Other' && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold">Status *</Label>
-                  <Select
-                    value={maintFormData.status}
-                    onValueChange={(val: any) => setMaintFormData(prev => ({ ...prev, status: val }))}
-                  >
-                    <SelectTrigger className="h-9 text-xs font-medium">
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Scheduled">Scheduled</SelectItem>
-                      <SelectItem value="In_Progress">In Progress</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Cost / Expense (SAR) *</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={maintFormData.cost}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
-                  placeholder="0.00"
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Odometer Reading (km)</Label>
-                <Input
-                  type="number"
-                  value={maintFormData.odometer_reading}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Start Date ("When Put") *</Label>
-                <Input
-                  type="date"
-                  value={maintFormData.start_date}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">End Date ("When Ends")</Label>
-                <Input
-                  type="date"
-                  value={maintFormData.end_date || ''}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Workshop / Service Center *</Label>
-                <Input
-                  value={maintFormData.workshop_name}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, workshop_name: e.target.value }))}
-                  placeholder="Al-Riyadh Workshop"
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Invoice Ref Number</Label>
-                <Input
-                  value={maintFormData.invoice_number || ''}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                  placeholder="INV-1092"
-                  className="h-9 text-xs"
-                />
-              </div>
-
-            </div>
-
-            <div className="space-y-1.5 pt-2">
-              <Label className="text-xs font-bold">Work Done Details ("What All Was Done") *</Label>
-              <textarea
-                value={maintFormData.work_done || ''}
-                onChange={(e) => setMaintFormData(prev => ({ ...prev, work_done: e.target.value }))}
-                placeholder="Details of oil replacement, brake pad repair, renewal fees paid..."
-                rows={3}
-                className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F]"
-              />
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsLogMaintModalOpen(false)}
-                className="text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={createMaintMutation.isPending}
-                className="text-xs bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
-              >
-                {createMaintMutation.isPending ? 'Saving...' : 'Save Maintenance Log'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* ── Delete Vehicle Confirmation Modal ────────────────────────────── */}
       <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
