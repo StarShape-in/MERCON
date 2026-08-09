@@ -4,6 +4,7 @@ import { prisma } from '../index';
 import { DocType, DocStatus } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
+// @ts-ignore
 import archiver from 'archiver';
 
 /* ─── List documents ──────────────────────────────────────────────────────── */
@@ -219,7 +220,7 @@ export const bulkDownloadDocuments = async (req: Request, res: Response) => {
     res.setHeader('Content-Disposition', `attachment; filename="documents-${Date.now()}.zip"`);
 
     const archive = archiver('zip', { zlib: { level: 9 } });
-    archive.on('error', (err) => {
+    archive.on('error', (err: any) => {
       if (!res.headersSent) {
         res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to build archive' } });
       } else {

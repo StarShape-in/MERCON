@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils';
 const STATUS_META: Record<string, { label: string; className: string }> = {
   Scheduled: { label: 'Scheduled', className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
   In_Progress: { label: 'In Progress', className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
+  'In Progress': { label: 'In Progress', className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
   Completed: { label: 'Completed', className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
   Cancelled: { label: 'Cancelled', className: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
 };
@@ -59,8 +60,11 @@ const LIFECYCLE: MaintenanceStatus[] = ['Scheduled', 'In_Progress', 'Completed']
 
 const EMPTY = '—';
 
-const formatDate = (value?: string | null) =>
-  value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : EMPTY;
+const formatDate = (value?: string | null) => {
+  if (!value) return EMPTY;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? EMPTY : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 
 const formatSAR = (value?: number | null) =>
   `SAR ${(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -281,7 +285,8 @@ export default function MaintenanceDetailsPage() {
 
   const orderNo = record.ref_id || `MNT-${record.id.slice(0, 8)}`;
   const isCancelled = record.status === 'Cancelled';
-  const currentStep = LIFECYCLE.indexOf(record.status as MaintenanceStatus);
+  const normalizedStatus = (record.status as string) === 'In Progress' ? 'In_Progress' : record.status;
+  const currentStep = LIFECYCLE.indexOf(normalizedStatus as MaintenanceStatus);
   // Fill the rail up to the active milestone; a completed order fills it entirely.
   const progressPct = isCancelled ? 0 : (Math.max(0, currentStep) / (LIFECYCLE.length - 1)) * 100;
 

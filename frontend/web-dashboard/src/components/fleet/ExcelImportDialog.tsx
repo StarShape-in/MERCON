@@ -128,7 +128,7 @@ export default function ExcelImportDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl rounded-2xl">
+      <DialogContent className="sm:max-w-4xl max-w-[95vw] w-full rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-base font-extrabold flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
