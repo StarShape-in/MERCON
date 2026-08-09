@@ -330,60 +330,7 @@ export default function CustomerDetailsPage() {
           />
         </div>
 
-        {/* ── Hero Executive Corporate Identity Card ────────────────── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-5">
-          
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            
-            {/* Customer Avatar & Company Title */}
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl font-extrabold shadow-xs shrink-0">
-                {customer.name?.[0]?.toUpperCase() || 'C'}
-              </div>
 
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                    {customer.name}
-                  </h2>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-[10px] font-extrabold px-2 py-0.5 ${
-                      customer.isActive 
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400' 
-                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
-                    }`}
-                  >
-                    {customer.isActive ? '● Active Account' : '○ Inactive Account'}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap font-mono">
-                  <span>ID: <strong className="text-slate-800 dark:text-slate-200">CUST-{customer.id.slice(0, 6).toUpperCase()}</strong></span>
-                  <span>•</span>
-                  <span>CR: <strong className="text-slate-800 dark:text-slate-200">{(customer as any).commercial_reg_no || (customer as any).cr_number || '1010839281'}</strong></span>
-                  <span>•</span>
-                  <span>VAT: <strong className="text-slate-800 dark:text-slate-200">{(customer as any).vat_number || '300192837400003'}</strong></span>
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Details Pill */}
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-1 text-xs shrink-0 min-w-[240px]">
-              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold">
-                <Building2 className="w-3.5 h-3.5 text-slate-400" /> Commercial Contact
-              </div>
-              <div className="flex items-center gap-2 text-slate-500 font-mono">
-                <Phone className="w-3.5 h-3.5 text-slate-400" /> {customer.contact_phone || '+966 11 482 9900'}
-              </div>
-              <div className="flex items-center gap-2 text-slate-500 font-mono">
-                <Mail className="w-3.5 h-3.5 text-slate-400" /> {(customer as any).contact_email || (customer as any).email || 'logistics@customer.sa'}
-              </div>
-            </div>
-
-          </div>
-
-        </Card>
 
         {/* ── Main Dashboard 2-Column Grid ────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
