@@ -3,13 +3,13 @@ import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar,
   FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { Building2, Calendar, ClipboardList, TriangleAlert } from 'lucide-react-native';
+import { Building2, Calendar, ClipboardList, TriangleAlert, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput } from '../../components';
 import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useTripHistory } from '../../lib/use-trip-history';
-import { statusLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
+import { statusLabel, stopLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
 
 const TABS = ['Active', 'Upcoming', 'Completed'] as const;
 type Tab = typeof TABS[number];
@@ -29,17 +29,24 @@ interface CardData {
   tripId: string;
   displayId: string;
   title: string;
+  /** "Riyadh → Jeddah", or null when the trip predates lane endpoints. */
+  route: string | null;
   statusText: string;
   date: string;
 }
 
 function toCard(t: MobileTrip): CardData {
   const dateSource = t.actual_end ?? t.planned_end ?? t.actual_start ?? t.planned_start ?? null;
+  const from = stopLabel(t.stops?.find((s) => s.stop_type === 'Pickup'));
+  const to = stopLabel(t.stops?.find((s) => s.stop_type === 'Dropoff'));
   return {
     key: t.id,
     tripId: t.id,
     displayId: t.ref_id ?? t.id.slice(0, 8),
     title: t.customer?.name ?? 'Unassigned customer',
+    // Which trip was this? The customer name alone doesn't distinguish two runs
+    // for the same customer on the same day; the route does.
+    route: from && to ? `${from} → ${to}` : null,
     statusText: statusLabel(t.status),
     date: formatDate(dateSource),
   };
@@ -53,8 +60,14 @@ const TripCard = ({ item, onPress }: { item: CardData; onPress: () => void }) =>
     </View>
     <View style={styles.cardRoute}>
       <Building2 size={16} color={Colors.gray500} strokeWidth={2} />
-      <Text style={styles.routeText}>{item.title}</Text>
+      <Text style={styles.routeText} numberOfLines={1}>{item.title}</Text>
     </View>
+    {item.route && (
+      <View style={styles.cardRoute}>
+        <MapPin size={16} color={Colors.primary} strokeWidth={2} />
+        <Text style={styles.routeText} numberOfLines={1}>{item.route}</Text>
+      </View>
+    )}
     <View style={styles.cardMeta}>
       <View style={styles.metaItem}>
         <Calendar size={13} color={Colors.gray500} strokeWidth={2} />

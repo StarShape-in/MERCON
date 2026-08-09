@@ -4,11 +4,11 @@ import {
   StatusBar, Image, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Info, Camera, Plus, ArrowLeft } from 'lucide-react-native';
+import { Info, Camera, Plus, ArrowLeft, MapPin } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
@@ -17,6 +17,7 @@ const MIN_PHOTOS = 1;
 const PickupVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading } = useCurrentTrip();
+  const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   // Track which photo indices have already been uploaded successfully so a retry
@@ -85,6 +86,22 @@ const PickupVerificationScreen = () => {
             <Text style={styles.summaryValue}>{trip?.customer?.name ?? '—'}</Text>
           </View>
         </View>
+
+        {/* Which yard this pickup is at — the driver is standing somewhere and
+            needs to confirm it's the right place before photographing cargo. */}
+        {(stopLabel(pickupStop) || stopAddress(pickupStop)) && (
+          <View style={styles.locationCard}>
+            <MapPin size={16} color={Colors.primary} strokeWidth={2.2} />
+            <View style={styles.locationText}>
+              <Text style={styles.locationName} numberOfLines={1}>
+                {stopLabel(pickupStop) ?? 'Pickup location'}
+              </Text>
+              {stopAddress(pickupStop) && (
+                <Text style={styles.locationAddress}>{stopAddress(pickupStop)}</Text>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Instructions */}
         <View style={styles.instructionCard}>
@@ -194,6 +211,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray200,
     marginVertical: Spacing.xs,
   },
+  locationCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+  locationText: { flex: 1 },
+  locationName: { fontSize: Typography.base, fontWeight: '700', color: Colors.gray900 },
+  locationAddress: { fontSize: Typography.sm, color: Colors.gray500, marginTop: 2, lineHeight: 18 },
   instructionCard: {
     flexDirection: 'row',
     backgroundColor: Colors.primaryLight || '#FFF7ED',

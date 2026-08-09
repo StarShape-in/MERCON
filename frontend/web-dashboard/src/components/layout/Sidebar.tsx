@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
-  Settings, User, LogOut, Wrench, X
+  Settings, User, LogOut, Wrench, X, MapPin
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -55,6 +55,9 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
       label: 'FINANCE',
       items: [
         { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards' },
+        // Sits with Rate Cards rather than Operations: a location exists to be
+        // one end of a priced lane, and that's where you go to fix one.
+        { icon: MapPin, label: 'Locations', path: '/locations' },
         { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
       ],
     },

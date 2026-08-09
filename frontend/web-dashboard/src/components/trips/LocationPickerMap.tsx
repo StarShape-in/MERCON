@@ -27,6 +27,15 @@ interface LocationPickerMapProps {
   /** What this place is called, shown as the route label in delay reports. */
   name: string;
   onNameChange: (name: string) => void;
+  /**
+   * The full postal address behind the pin. Separate from `name` because the
+   * name is a short label reports group by, while this is what the driver's
+   * app needs to actually find the place — truncating one into the other is
+   * lossy and can't be undone. Optional so callers that only want a pin and a
+   * label (the older screens) don't have to care.
+   */
+  address?: string;
+  onAddressChange?: (address: string) => void;
 }
 
 /**
@@ -61,7 +70,7 @@ function FlyToPin({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
-export default function LocationPickerMap({ label, lat, lng, onChange, name, onNameChange, defaultCenter = [24.7136, 46.6753] }: LocationPickerMapProps) {
+export default function LocationPickerMap({ label, lat, lng, onChange, name, onNameChange, address, onAddressChange, defaultCenter = [24.7136, 46.6753] }: LocationPickerMapProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -105,6 +114,10 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
     // path costs no extra typing. Overwrites deliberately: a new pin is a new
     // place, and carrying the old label over would silently mislabel it.
     onNameChange(placeNameFrom(r.display_name));
+    // Keep the whole address too. This used to be thrown away the moment the
+    // label was extracted, which is why a driver only ever received two
+    // coordinates and no way to tell where they were going.
+    onAddressChange?.(r.display_name);
     skipNextSearch.current = true;
     setQuery(r.display_name);
     setShowResults(false);
@@ -152,6 +165,19 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
         maxLength={120}
         className="w-full h-9 rounded-md bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white px-3 text-sm outline-none transition-colors"
       />
+
+      {/* Editable so a pin dropped by hand (never searched) can still be given
+          an address — otherwise the driver gets coordinates and nothing else. */}
+      {onAddressChange && (
+        <textarea
+          value={address ?? ''}
+          onChange={(e) => onAddressChange(e.target.value)}
+          placeholder="Full address the driver will see — filled in when you search, editable"
+          rows={2}
+          maxLength={500}
+          className="w-full rounded-md bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white px-3 py-2 text-xs outline-none transition-colors resize-none"
+        />
+      )}
 
       <div className="rounded-xl overflow-hidden border border-black/[0.06] h-[220px] relative z-0">
         <MapContainer center={center} zoom={lat != null ? 14 : 6} scrollWheelZoom style={{ height: '100%', width: '100%' }}>

@@ -59,7 +59,6 @@ export default function CreateTripPage() {
     return raw === 2 || raw === 3 ? raw : 1;
   })();
 
-  const [plannedStart, setPlannedStart] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [driverId, setDriverId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
@@ -80,6 +79,7 @@ export default function CreateTripPage() {
   const [pickupLng, setPickupLng] = useState<number | null>(46.6753);
   const [pickupTime, setPickupTime] = useState('');
   const [pickupName, setPickupName] = useState('');
+  const [pickupAddress, setPickupAddress] = useState('');
 
   const [dropoffLocationId, setDropoffLocationId] = useState('');
   const [dropoffLocationName, setDropoffLocationName] = useState('');
@@ -87,6 +87,7 @@ export default function CreateTripPage() {
   const [dropoffLng, setDropoffLng] = useState<number | null>(39.1728);
   const [dropoffTime, setDropoffTime] = useState('');
   const [dropoffName, setDropoffName] = useState('');
+  const [dropoffAddress, setDropoffAddress] = useState('');
 
   // Pricing & Rate Card
   const [billingAmount, setBillingAmount] = useState<string>('');
@@ -309,7 +310,6 @@ export default function CreateTripPage() {
 
   const handleReset = () => {
     setSearchParams({}, { replace: true });
-    setPlannedStart('');
     setCustomerId('');
     setDriverId('');
     setVehicleId('');
@@ -321,12 +321,14 @@ export default function CreateTripPage() {
     setPickupLng(46.6753);
     setPickupTime('');
     setPickupName('');
+    setPickupAddress('');
     setDropoffLocationId('');
     setDropoffLocationName('');
     setDropoffLat(21.5433);
     setDropoffLng(39.1728);
     setDropoffTime('');
     setDropoffName('');
+    setDropoffAddress('');
     setBillingAmount('');
     setIsPriceCustomized(false);
     setSaveRateAs('standard');
@@ -414,7 +416,10 @@ export default function CreateTripPage() {
       customer_id: customerId,
       driver_id: assignDriverLater ? undefined : driverId,
       vehicle_id: assignVehicleLater ? undefined : vehicleId,
-      planned_start: plannedStart || undefined,
+      // The trip starts when it's due at the pickup dock. This used to be a
+      // separate optional field in step 1, which meant the same moment was
+      // entered twice and the two could silently disagree.
+      planned_start: pickupTime || undefined,
       billing_amount: numericPrice,
       trip_charges: numericPrice,
       stops: [
@@ -424,6 +429,7 @@ export default function CreateTripPage() {
           lng: pickupLng,
           planned_arrival: pickupTime || undefined,
           location_name: pickupName.trim() || undefined,
+          location_address: pickupAddress.trim() || undefined,
           location_id: pickupLocationId || undefined,
         },
         {
@@ -432,13 +438,14 @@ export default function CreateTripPage() {
           lng: dropoffLng,
           planned_arrival: dropoffTime || undefined,
           location_name: dropoffName.trim() || undefined,
+          location_address: dropoffAddress.trim() || undefined,
           location_id: dropoffLocationId || undefined,
         },
       ],
     };
 
     createMutation.mutate(payload);
-  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, plannedStart, pickupTime, dropoffTime, pickupName, dropoffName, billingAmount, createMutation]);
+  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, pickupTime, dropoffTime, pickupName, dropoffName, billingAmount, createMutation]);
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
@@ -479,7 +486,7 @@ export default function CreateTripPage() {
             <div className={`flex-1 p-3.5 flex items-center gap-3 w-full transition-colors ${step === 1 ? 'bg-muted/50' : ''}`}>
               <User className={`w-4 h-4 shrink-0 ${selectedCustomer ? 'text-primary' : 'text-muted-foreground/40'}`} />
               <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">1. Customer &amp; Start</span>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">1. Customer</span>
                 <p className={`text-sm font-bold truncate mt-0.5 ${selectedCustomer ? 'text-foreground' : 'text-muted-foreground/60'}`}>
                   {selectedCustomer ? selectedCustomer.name : 'Pending...'}
                 </p>
@@ -532,10 +539,10 @@ export default function CreateTripPage() {
           <Card className="rounded-xl shadow-xs border-border/80">
             <CardHeader className="border-b bg-muted/10">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <User className="size-4 text-primary" /> Step 1: Customer Organization &amp; Planned Start
+                <User className="size-4 text-primary" /> Step 1: Customer Organization
               </CardTitle>
               <CardDescription className="text-xs">
-                Select the client organization and optionally schedule the planned trip start time.
+                Who is this trip for? The schedule is set in step 3, alongside the route.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-5">
@@ -564,87 +571,6 @@ export default function CreateTripPage() {
                 </Select>
               </div>
 
-              {/* Upgraded Planned Start Date & Time Picker */}
-              <div className="space-y-2.5 p-4 rounded-xl border bg-muted/20">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="planned_start" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-primary" /> Planned Trip Start (Optional)
-                  </Label>
-                  <span className="text-[11px] text-muted-foreground">
-                    Assists dispatch queue prioritization
-                  </span>
-                </div>
-
-                <DateTimePicker
-                  id="planned_start"
-                  value={plannedStart}
-                  onChange={(val) => {
-                    setPlannedStart(val);
-                    setError(null);
-                  }}
-                  placeholder="Select planned start date & time (Optional)..."
-                  label="Planned Start"
-                />
-
-                {/* Quick Presets Pills */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
-                    Quick dispatch:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const now = new Date();
-                      const year = now.getFullYear();
-                      const month = String(now.getMonth() + 1).padStart(2, '0');
-                      const day = String(now.getDate()).padStart(2, '0');
-                      const hours = String(now.getHours()).padStart(2, '0');
-                      const mins = String(now.getMinutes()).padStart(2, '0');
-                      setPlannedStart(`${year}-${month}-${day}T${hours}:${mins}`);
-                    }}
-                    className="text-[11px] px-2.5 py-1 rounded-lg font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all flex items-center gap-1"
-                  >
-                    <Sparkles className="size-3 text-primary" /> Dispatch ASAP
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const today = new Date();
-                      const target = setMinutes(setHours(today, 14), 0);
-                      const year = target.getFullYear();
-                      const month = String(target.getMonth() + 1).padStart(2, '0');
-                      const day = String(target.getDate()).padStart(2, '0');
-                      setPlannedStart(`${year}-${month}-${day}T14:00`);
-                    }}
-                    className="text-[11px] px-2.5 py-1 rounded-lg font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                  >
-                    Today 02:00 PM
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const tomorrow = addHours(new Date(), 24);
-                      const target = setMinutes(setHours(tomorrow, 8), 0);
-                      const year = target.getFullYear();
-                      const month = String(target.getMonth() + 1).padStart(2, '0');
-                      const day = String(target.getDate()).padStart(2, '0');
-                      setPlannedStart(`${year}-${month}-${day}T08:00`);
-                    }}
-                    className="text-[11px] px-2.5 py-1 rounded-lg font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                  >
-                    Tomorrow 08:00 AM
-                  </button>
-                  {plannedStart && (
-                    <button
-                      type="button"
-                      onClick={() => setPlannedStart('')}
-                      className="text-[11px] px-2 py-1 rounded-lg font-medium text-destructive hover:bg-destructive/10 transition-all ml-auto"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
             </CardContent>
             <CardFooter className="justify-end rounded-b-xl border-t bg-muted/10">
               <Btn
@@ -829,6 +755,7 @@ export default function CreateTripPage() {
                         setPickupLng(loc.lng);
                       }
                       if (loc && !pickupName.trim()) setPickupName(loc.name);
+                      if (loc?.address && !pickupAddress.trim()) setPickupAddress(loc.address);
                       setError(null);
                     }}
                     placeholder="Where does this trip start? (e.g. Riyadh)"
@@ -849,6 +776,8 @@ export default function CreateTripPage() {
                   onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
                   name={pickupName}
                   onNameChange={setPickupName}
+                  address={pickupAddress}
+                  onAddressChange={setPickupAddress}
                 />
 
                 <div className="space-y-2 pt-1">
@@ -957,6 +886,7 @@ export default function CreateTripPage() {
                         setDropoffLng(loc.lng);
                       }
                       if (loc && !dropoffName.trim()) setDropoffName(loc.name);
+                      if (loc?.address && !dropoffAddress.trim()) setDropoffAddress(loc.address);
                       setError(null);
                     }}
                     placeholder="Where does it end? (e.g. Jeddah)"
@@ -976,6 +906,8 @@ export default function CreateTripPage() {
                   onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
                   name={dropoffName}
                   onNameChange={setDropoffName}
+                  address={dropoffAddress}
+                  onAddressChange={setDropoffAddress}
                 />
 
                 <div className="space-y-2 pt-1">
@@ -1185,8 +1117,8 @@ export default function CreateTripPage() {
               </div>
               <div className="flex items-start justify-between gap-2">
                 <span className="text-muted-foreground font-medium shrink-0">Planned start</span>
-                <span className={cn('text-right font-semibold truncate', !plannedStart && 'text-muted-foreground/60 font-normal')}>
-                  {plannedStart && isValid(parseISO(plannedStart)) ? format(parseISO(plannedStart), 'MMM d, hh:mm a') : 'Unscheduled'}
+                <span className={cn('text-right font-semibold truncate', !pickupTime && 'text-muted-foreground/60 font-normal')}>
+                  {pickupTime && isValid(parseISO(pickupTime)) ? format(parseISO(pickupTime), 'MMM d, hh:mm a') : 'Unscheduled'}
                 </span>
               </div>
 

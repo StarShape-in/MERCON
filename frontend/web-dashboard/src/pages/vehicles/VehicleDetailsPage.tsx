@@ -2,16 +2,17 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
-  ArrowLeft, Edit2, FileText, Truck, MapPin, Settings, AlertTriangle, Trash2, 
-  ShieldCheck, CheckCircle2, Clock, User, Building2, Gauge, Fuel, 
-  Wrench, Calendar, Radio, FileCheck, AlertCircle, Eye, Link2, ShieldAlert,
-  DollarSign, Plus, TrendingUp, TrendingDown
+  ArrowLeft, Edit2, FileText, Truck, MapPin, AlertTriangle, Trash2, 
+  Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
+  TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
+import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { vehicleService } from '@/services/vehicleService';
 import { maintenanceService, CreateMaintenancePayload, MaintenanceType, MaintenanceStatus } from '@/services/maintenanceService';
+import { documentService, DocType, MerconDocument } from '@/services/documentService';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,10 @@ export default function VehicleDetailsPage() {
   });
   const [maintFormError, setMaintFormError] = useState('');
 
+  // Upload Document Modal State
+  const [isUploadDocModalOpen, setIsUploadDocModalOpen] = useState(false);
+
+  // Queries
   const { data: vehicle, isLoading, error } = useQuery({
     queryKey: ['vehicle', id],
     queryFn: () => vehicleService.getById(id!),
@@ -67,8 +72,16 @@ export default function VehicleDetailsPage() {
     enabled: !!id,
   });
 
-  const maintenanceRecords = maintenanceRes?.data || [];
+  const { data: docsRes, isLoading: isDocsLoading } = useQuery({
+    queryKey: ['documents', 'Vehicle', id],
+    queryFn: () => documentService.getAll({ entity_type: 'Vehicle', entity_id: id, per_page: 50 }),
+    enabled: !!id,
+  });
 
+  const maintenanceRecords = maintenanceRes?.data || [];
+  const documents = docsRes?.data || [];
+
+  // Mutations
   const createMaintMutation = useMutation({
     mutationFn: (payload: CreateMaintenancePayload) => maintenanceService.create(payload),
     onSuccess: () => {
@@ -92,6 +105,13 @@ export default function VehicleDetailsPage() {
     },
     onError: (err: any) => {
       setDeleteError(err.response?.data?.error?.message || 'Failed to delete vehicle asset.');
+    },
+  });
+
+  const deleteDocMutation = useMutation({
+    mutationFn: (docId: string) => documentService.delete(docId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents', 'Vehicle', id] });
     },
   });
 
@@ -140,12 +160,21 @@ export default function VehicleDetailsPage() {
   const plateNum = plateParts[0] || '7821';
   const plateLetters = plateParts[1] || 'LSA';
 
+  const getDocTypeLabel = (type: DocType) => {
+    switch (type) {
+      case 'VehicleRegistration': return 'Saudi Istimara Registration';
+      case 'Insurance': return 'Najm Commercial Insurance';
+      case 'CustomsClearance': return 'Customs Clearance';
+      default: return type;
+    }
+  };
+
   return (
-    <DashboardLayout active="Vehicles" title={`Vehicle: ${vehicle.plate_number}`}>
+    <DashboardLayout active="Vehicles" title="Vehicle Details">
       <div className="px-4 sm:px-6 pb-6 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
 
-        {/* ── Page Scope & Header Actions ─────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+        {/* ── Page Header & Top Bar Actions (No Duplicate Plate/Ref Text) ────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -156,38 +185,67 @@ export default function VehicleDetailsPage() {
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  {vehicle.plate_number}
-                </h1>
-                <StatusBadge status={vehicle.status} />
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Ref ID: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>{vehicle.asset_type ? ` • ${vehicle.asset_type}` : ''}
-              </p>
+            <div className="flex items-center gap-2">
+              <span 
+                onClick={() => navigate('/vehicles')}
+                className="text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+              >
+                Vehicles
+              </span>
+              <span className="text-slate-400 text-sm">/</span>
+              <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                Vehicle Details
+              </h1>
+              <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-[11px] ml-1">
+                Fleet Asset
+              </Badge>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/vehicles/${vehicle.id}/documents`)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
+              onClick={() => setIsUploadDocModalOpen(true)}
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs"
             >
-              <FileText className="w-3.5 h-3.5 text-indigo-500" />
-              Documents Vault
+              <UploadCloud className="w-3.5 h-3.5 text-indigo-500" />
+              Upload Document
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => {
+                setMaintFormData({
+                  vehicle_id: id || '',
+                  workshop_name: '',
+                  workshop_contact: '',
+                  maintenance_type: 'Routine',
+                  status: 'Scheduled',
+                  start_date: new Date().toISOString().split('T')[0],
+                  end_date: '',
+                  work_done: '',
+                  odometer_reading: vehicle.current_odometer || 0,
+                  cost: 0,
+                  invoice_number: '',
+                  remarks: '',
+                });
+                setIsLogMaintModalOpen(true);
+              }}
+              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Log Maintenance
             </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate(`/vehicles/${vehicle.id}/edit`)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs"
             >
               <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-              Edit Vehicle
+              Edit Asset
             </Button>
 
             <Button
@@ -197,7 +255,7 @@ export default function VehicleDetailsPage() {
               className="h-9 gap-1.5 text-xs font-semibold border-rose-200 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 shadow-2xs dark:bg-slate-900 dark:border-rose-900/50"
             >
               <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-              Delete Vehicle
+              Delete
             </Button>
           </div>
         </div>
@@ -206,7 +264,7 @@ export default function VehicleDetailsPage() {
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-6 overflow-hidden">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
-            {/* Left: Authentic Saudi License Plate Graphic & Identity */}
+            {/* Left: Authentic Saudi License Plate Graphic & Identity (Rendered ONCE cleanly) */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               
               {/* Dual-Language Saudi Plate Frame */}
@@ -219,7 +277,8 @@ export default function VehicleDetailsPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              {/* Primary Asset Info */}
+              <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">
                     {vehicle.plate_number}
@@ -233,7 +292,8 @@ export default function VehicleDetailsPage() {
                 </div>
 
                 <p className="text-xs text-slate-500 font-medium">
-                  Ref: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>
+                  Ref ID: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}</span>
+                  {vehicle.trailer_number ? ` • Trailer: ${vehicle.trailer_number}` : ''}
                 </p>
 
                 <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
@@ -248,60 +308,113 @@ export default function VehicleDetailsPage() {
                       <span>ICCES: {vehicle.icces_device_id}</span>
                     </>
                   )}
+                  {!vehicle.gps_device_id && !vehicle.icces_device_id && (
+                    <span className="text-slate-400 italic">No Telematics Tracker Unit Linked</span>
+                  )}
                 </div>
               </div>
 
             </div>
 
-            {/* Right: 4 Quick Sensor Bar Gauges */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0">
-              
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Payload Tonnage</div>
-                <div className="text-sm font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-1">
-                  {capacityTons} Tons
-                </div>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Odometer Reading</div>
-                <div className="text-sm font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">
-                  {(vehicle.current_odometer ?? 0).toLocaleString()} km
-                </div>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Asset Status</div>
-                <div className="text-xs font-mono font-extrabold mt-1 flex items-center justify-center gap-1">
-                  <StatusBadge status={vehicle.status} />
-                </div>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[120px]">
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telematics Unit</div>
-                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-1">
+            {/* Right: Quick Telematics Status Badge */}
+            <div className="border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6 shrink-0 flex items-center gap-4">
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[140px]">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telematics Signal</div>
+                <div className="text-xs font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center justify-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${vehicle.icces_device_id || vehicle.gps_device_id ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                  <span>{vehicle.icces_device_id || vehicle.gps_device_id ? 'ONLINE' : 'UNTRACKED'}</span>
+                  <span>{vehicle.icces_device_id || vehicle.gps_device_id ? 'CONNECTED' : 'UNTRACKED'}</span>
                 </div>
               </div>
-
             </div>
 
           </div>
         </Card>
 
+        {/* ── 4-Column Instrument-Panel KPI Cards Grid ──────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Card 1: Payload Tonnage */}
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Payload Capacity</span>
+              <Truck className="w-4 h-4 text-indigo-500" />
+            </div>
+            <div className="text-2xl font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-2">
+              {capacityTons} <span className="text-xs text-slate-500 font-sans font-normal">Tons</span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1 font-medium">
+              Max weight rating ({vehicle.capacity_kg ? vehicle.capacity_kg.toLocaleString() : '24,000'} kg)
+            </div>
+          </Card>
+
+          {/* Card 2: Current Odometer */}
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Odometer Reading</span>
+              <Gauge className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className="text-2xl font-mono font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">
+              {(vehicle.current_odometer ?? 0).toLocaleString()} <span className="text-xs text-slate-500 font-sans font-normal">km</span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1 font-medium">
+              Recorded vehicle mileage
+            </div>
+          </Card>
+
+          {/* Card 3: Net Profit P&L */}
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Net Vehicle Profit</span>
+              <DollarSign className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className={cn(
+              "text-2xl font-mono font-extrabold mt-2",
+              (financials?.summary.net_profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
+            )}>
+              SAR {(financials?.summary.net_profit ?? 0).toLocaleString()}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1 font-medium flex items-center gap-1">
+              {financials && (
+                <>
+                  {financials.summary.margin_percent >= 0 ? (
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                  ) : (
+                    <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
+                  )}
+                  <span>{financials.summary.margin_percent}% profit margin</span>
+                </>
+              )}
+            </div>
+          </Card>
+
+          {/* Card 4: Service Logs & Expense */}
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Service History</span>
+              <Wrench className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="text-2xl font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-2">
+              {financials?.summary.total_maintenance_count ?? maintenanceRecords.length} <span className="text-xs text-slate-500 font-sans font-normal">Logs</span>
+            </div>
+            <div className="text-[11px] text-rose-600 dark:text-rose-400 font-mono font-bold mt-1">
+              SAR {(financials?.summary.total_expenses ?? 0).toLocaleString()} total maintenance cost
+            </div>
+          </Card>
+
+        </div>
+
         {/* ── Main Dashboard 2-Column Grid ───────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Left Column (Asset Specifications & Trailer Coupling) */}
+          {/* Left Column (Financial P&L & Maintenance Service Ledger) */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Section 3: Vehicle Financial & Profitability Report (P&L) */}
+            {/* Section 1: Vehicle Financial & Profitability Report (P&L) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-emerald-500" /> Full Vehicle Financial & Profitability Report
+                    <DollarSign className="w-4 h-4 text-emerald-500" /> Vehicle Financial & Profitability Report (P&L)
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500">
                     Real-time calculation of Income generated by this vehicle vs Operational & Maintenance Expenses.
@@ -355,7 +468,7 @@ export default function VehicleDetailsPage() {
                       {/* Net Profit */}
                       <div className="bg-indigo-50/60 dark:bg-indigo-950/20 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
                         <span className="text-[10px] font-extrabold uppercase text-indigo-700 dark:text-indigo-400 block">
-                          Net Vehicle Profit
+                          Net Profit
                         </span>
                         <div className={cn(
                           "text-lg font-mono font-extrabold mt-1",
@@ -382,7 +495,7 @@ export default function VehicleDetailsPage() {
                           <span>{financials.summary.margin_percent}%</span>
                         </div>
                         <span className="text-[10px] text-slate-500 block mt-0.5 font-medium">
-                          Operational Efficiency
+                          Operational Margin
                         </span>
                       </div>
 
@@ -454,7 +567,7 @@ export default function VehicleDetailsPage() {
               </CardContent>
             </Card>
 
-            {/* Section 4: Workshop Maintenance & Service History Ledger */}
+            {/* Section 2: Workshop Maintenance & Service History Ledger */}
             <DataTable
               title={
                 <span className="flex items-center gap-2">
@@ -472,7 +585,7 @@ export default function VehicleDetailsPage() {
                       workshop_contact: '',
                       maintenance_type: 'Routine',
                       status: 'Scheduled',
-                      start_date: '',
+                      start_date: new Date().toISOString().split('T')[0],
                       end_date: '',
                       work_done: '',
                       odometer_reading: vehicle.current_odometer || 0,
@@ -492,7 +605,7 @@ export default function VehicleDetailsPage() {
                   header: 'Start / End Date',
                   accessor: (m: any) => (
                     <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                      <div>{m.start_date ? new Date(m.start_date).toLocaleDateString() : new Date(m.service_date).toLocaleDateString()}</div>
+                      <div>{m.start_date ? new Date(m.start_date).toLocaleDateString() : (m.service_date ? new Date(m.service_date).toLocaleDateString() : 'N/A')}</div>
                       {m.end_date && (
                         <div className="text-[10px] text-slate-400">to {new Date(m.end_date).toLocaleDateString()}</div>
                       )}
@@ -547,7 +660,7 @@ export default function VehicleDetailsPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setMaintFormData({
-                          vehicle_id: m.vehicleId,
+                          vehicle_id: m.vehicleId || id,
                           workshop_name: m.workshop_name,
                           workshop_contact: m.workshop_contact || '',
                           maintenance_type: m.maintenance_type,
@@ -580,57 +693,119 @@ export default function VehicleDetailsPage() {
 
           </div>
 
-          {/* Right Column (Compliance & Live Radar) */}
+          {/* Right Column (REAL Documents Vault & Live Telematics Radar) */}
           <div className="space-y-6">
 
-            {/* Card 1: Saudi Istimara & Compliance Audit */}
+            {/* REAL Vehicle Documents Vault (Replaces fake compliance audit mock) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
                 <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> Compliance Audit Vault
+                  <FileText className="w-4 h-4 text-indigo-600" /> Vehicle Documents Vault
                 </CardTitle>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => navigate(`/vehicles/${vehicle.id}/documents`)}
-                  className="h-7 text-xs font-bold text-indigo-600"
-                >
-                  Vault →
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsUploadDocModalOpen(true)}
+                    className="h-7 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50 gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Upload
+                  </Button>
+                </div>
               </CardHeader>
 
               <CardContent className="p-4 space-y-3">
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Saudi Istimara Registration</div>
-                    <div className="text-[10px] text-slate-400">MOT Valid • 142d Remaining</div>
+                {isDocsLoading ? (
+                  <div className="py-6 text-center text-slate-400 animate-pulse text-xs font-semibold">
+                    Loading vehicle documents...
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">VALID</Badge>
-                </div>
+                ) : documents.length === 0 ? (
+                  <div className="py-8 text-center space-y-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No Documents Uploaded</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs mx-auto">
+                        Upload Istimara, Insurance policy, or Customs clearance for this vehicle asset.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => setIsUploadDocModalOpen(true)}
+                      className="h-8 text-xs font-bold bg-indigo-600 text-white gap-1"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> Upload First Document
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {documents.map((doc: MerconDocument) => (
+                      <div
+                        key={doc.id}
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
+                            <FileCheck className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                              {getDocTypeLabel(doc.doc_type)}
+                            </div>
+                            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              {doc.expiry_date ? (
+                                <span>Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>
+                              ) : (
+                                <span>Uploaded: {new Date(doc.createdAt).toLocaleDateString()}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
 
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Najm Commercial Insurance</div>
-                    <div className="text-[10px] text-slate-400">Najm Fleet Coverage</div>
-                  </div>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold">VALID</Badge>
-                </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge className={cn(
+                            "text-[9px] font-bold",
+                            doc.status === 'Verified' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            doc.status === 'Expired' ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                          )}>
+                            {(doc.status || 'PENDING').toUpperCase()}
+                          </Badge>
 
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Fahs Technical Inspection</div>
-                    <div className="text-[10px] text-slate-400">Renewal due in 12 days</div>
+                          {doc.file_url && (
+                            <a
+                              href={doc.file_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 bg-white dark:bg-slate-900 transition-colors"
+                              title="View Document"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteDocMutation.mutate(doc.id)}
+                            className="w-7 h-7 p-0 text-slate-400 hover:text-rose-600"
+                            title="Delete Document"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold">DUE SOON</Badge>
-                </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Card 2: Live Location & Corridor Radar */}
+            {/* Live Location & Telematics Radar */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
                 <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#E8450F]" /> Live Location & Corridor Radar
+                  <MapPin className="w-4 h-4 text-[#E8450F]" /> Telematics & Dispatch Radar
                 </CardTitle>
               </CardHeader>
 
@@ -639,19 +814,19 @@ export default function VehicleDetailsPage() {
                   <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
                     <div className="flex items-center gap-2 text-indigo-600">
                       <MapPin className="w-4 h-4 animate-bounce" />
-                      <span className="text-xs font-extrabold">In Transit — Highway Corridor</span>
+                      <span className="text-xs font-extrabold">In Transit — Active Trip</span>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      En route: Riyadh Central Hub ➔ Dammam Freight Terminal
+                      Vehicle is dispatched on a live trip run.
                     </p>
                     <Button size="sm" onClick={() => navigate('/trips')} className="w-full h-8 text-xs font-bold bg-indigo-600 text-white">
-                      Track Trip Dispatch
+                      Track Live Dispatch
                     </Button>
                   </div>
                 ) : (
                   <div className="p-6 text-center text-slate-400 flex flex-col items-center gap-2">
                     <Truck size={28} className="opacity-30 text-slate-400" />
-                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Parked at Riyadh Central Hub.</p>
+                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Asset is currently parked and ready for dispatch.</p>
                   </div>
                 )}
               </CardContent>
@@ -662,6 +837,18 @@ export default function VehicleDetailsPage() {
         </div>
 
       </div>
+
+      {/* ── Upload Document Modal Component ───────────────────────────── */}
+      <UploadDocumentModal
+        isOpen={isUploadDocModalOpen}
+        onClose={() => setIsUploadDocModalOpen(false)}
+        entityType="Vehicle"
+        entityId={id || ''}
+        docType="VehicleRegistration"
+        onUploadSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['documents', 'Vehicle', id] });
+        }}
+      />
 
       {/* ── Log Maintenance Dialog Modal ────────────────────────────── */}
       <Dialog open={isLogMaintModalOpen} onOpenChange={(open) => !open && setIsLogMaintModalOpen(false)}>

@@ -24,7 +24,7 @@ if (Platform.OS !== 'web') {
 import { ArrowLeft, MapPin, Truck, Siren } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { getApiErrorMessage } from '../../lib/api';
 
 const ARRIVAL_RADIUS_M = 200;
@@ -266,6 +266,23 @@ const LiveNavigationScreen = () => {
       </View>
 
       <View style={styles.bottomCard}>
+        {/* Where the driver is actually heading. Without this the screen was a
+            blue line and a distance — correct, but it never said the name or
+            address of the place at the end of it. */}
+        <View style={styles.destinationBlock}>
+          <Text style={styles.destinationLabel}>
+            {isHeadingToPickup ? 'PICKING UP AT' : 'DELIVERING TO'}
+          </Text>
+          <Text style={styles.destinationName} numberOfLines={1}>
+            {stopLabel(activeStop) ?? 'Location not set'}
+          </Text>
+          {stopAddress(activeStop) && (
+            <Text style={styles.destinationAddress} numberOfLines={2}>
+              {stopAddress(activeStop)}
+            </Text>
+          )}
+        </View>
+
         {distanceToTarget != null ? (
           <View style={styles.navStats}>
             <Text style={styles.navEta}>{displayEta}</Text>
@@ -388,6 +405,30 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
     ...Shadows.lg,
+  },
+  destinationBlock: {
+    marginBottom: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray200,
+  },
+  destinationLabel: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: Colors.gray400,
+  },
+  destinationName: {
+    fontSize: Typography.lg,
+    fontWeight: '800',
+    color: Colors.gray900,
+    marginTop: 2,
+  },
+  destinationAddress: {
+    fontSize: Typography.sm,
+    color: Colors.gray500,
+    marginTop: 2,
+    lineHeight: 18,
   },
   navStats: {
     flexDirection: 'row',

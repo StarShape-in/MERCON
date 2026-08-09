@@ -10,15 +10,28 @@ export interface Location {
   id: string;
   name: string;
   slug: string;
+  /** Full postal address behind the name — what a stop inherits and a driver navigates to. */
+  address: string | null;
   lat: number | null;
   lng: number | null;
   is_active: boolean;
   createdAt: string;
   updatedAt: string;
+  /**
+   * How much this place is actually used. Present on list responses only.
+   * A place with zeros across the board is either brand new or a typo nobody
+   * noticed — that distinction is the point of the locations page.
+   */
+  _count?: {
+    originRateCards: number;
+    destinationRateCards: number;
+    tripStops: number;
+  };
 }
 
 export interface CreateLocationPayload {
   name: string;
+  address?: string | null;
   lat?: number | null;
   lng?: number | null;
 }

@@ -44,12 +44,25 @@ export const createTripBody = z.object({
     planned_arrival: z.string().optional(),
     // Human-readable name for this place — the route label in delay reports.
     location_name: z.string().trim().max(120).optional(),
+    // Full postal address, handed to the driver's app so they can actually find
+    // the place. Longer cap than the name: this is a whole address, not a label.
+    location_address: z.string().trim().max(500).optional(),
     // The lane endpoint this stop sits in ("Riyadh"), as opposed to the exact
     // yard within it that location_name/lat/lng describe. This is what the rate
     // card is priced against.
     location_id: z.string().uuid('Invalid location').optional(),
     stop_sequence: z.number().int().optional(),
   })).min(2, 'At least a pickup and a dropoff are required'),
+});
+
+/** Correcting a stop after the trip exists — every field optional, since the
+ *  usual case is fixing one wrong address and nothing else. */
+export const updateTripStopBody = z.object({
+  location_name: z.string().trim().max(120).optional(),
+  location_address: z.string().trim().max(500).optional(),
+  location_id: z.string().uuid('Invalid location').nullable().optional(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
 });
 
 /** Bulk CSV import — one trip per row, matched to existing customers/drivers/

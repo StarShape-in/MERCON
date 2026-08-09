@@ -3,12 +3,12 @@ import {
   getTrips, getTripById, createTrip, updateTripStatus, approveDriverPayment,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify,
   bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials,
-  logStopDelay, bulkImportTrips
+  logStopDelay, bulkImportTrips, updateTripStop
 } from '../controllers/tripController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
-import { createTripBody, listQuery, logStopDelayBody, bulkImportTripsBody } from '../schemas';
+import { createTripBody, listQuery, logStopDelayBody, bulkImportTripsBody, updateTripStopBody } from '../schemas';
 
 const router = Router();
 
@@ -33,6 +33,11 @@ router.post('/:id/replace-driver', replaceDriver);
 
 // Why a stop ran late — operator-filled, drivers never see this.
 router.patch('/:id/stops/:stopId/delay', validate({ body: logStopDelayBody }), logStopDelay);
+
+// Correct where a stop is (label, address, lane endpoint, pin). Allowed while
+// the trip is still running — a wrong address is exactly what needs fixing
+// mid-trip — and refused once it's completed, invoiced or cancelled.
+router.patch('/:id/stops/:stopId', validate({ body: updateTripStopBody }), updateTripStop);
 
 // Phase 2: Driver Workflow
 router.post('/:id/pickup/arrive', pickupArrive);

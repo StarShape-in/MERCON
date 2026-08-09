@@ -4,15 +4,32 @@ import { TripStatus, DocType } from '@prisma/client';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { notifyOperatorsOfDelay } from './notificationController';
 
+/**
+ * Everything the driver's app needs about a trip, in one shape.
+ *
+ * Defined once because every endpoint here returns a trip and they used to
+ * each build their own include — some with `stops: true`, which returns the
+ * stop's columns but not its Location, so which endpoint the app happened to
+ * call decided whether the driver saw a route or a pair of coordinates.
+ *
+ * Stops carry both halves of "where": `location` is the lane endpoint
+ * ("Jeddah"), while location_name/location_address/lat/lng are the exact yard
+ * inside it that the driver actually drives to.
+ */
+const tripInclude = {
+  customer: true,
+  vehicle: true,
+  stops: {
+    orderBy: { stop_sequence: 'asc' as const },
+    include: { location: { select: { id: true, name: true, address: true } } },
+  },
+};
+
 export const getCurrentTrip = async (req: Request, res: Response) => {
   const driverId = (req as any).user?.driver_id;
   if (!driverId) return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
 
-  const include = {
-    customer: true,
-    vehicle: true,
-    stops: { orderBy: { stop_sequence: 'asc' as const } },
-  };
+  const include = tripInclude;
 
   try {
     // Prefer an in-progress / dispatched trip.
@@ -62,11 +79,7 @@ export const getTripHistory = async (req: Request, res: Response) => {
         deletedAt: null,
         status: { in: [TripStatus.Completed, TripStatus.Invoiced, TripStatus.Cancelled] },
       },
-      include: {
-        customer: true,
-        vehicle: true,
-        stops: { orderBy: { stop_sequence: 'asc' } },
-      },
+      include: tripInclude,
       orderBy: [{ actual_end: 'desc' }, { createdAt: 'desc' }],
       take: limit,
     });
@@ -111,7 +124,7 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       const updatedTrip = await prisma.$transaction((tx) => completeTripAndInvoice(tx, id, null));
       const full = await prisma.trip.findUnique({
         where: { id: updatedTrip.id },
-        include: { customer: true, vehicle: true, stops: true },
+        include: tripInclude,
       });
       return res.json({ success: true, data: full });
     }
@@ -133,7 +146,7 @@ export const updateTripStatus = async (req: Request, res: Response) => {
           status,
           actual_start: status === TripStatus.InTransit && !trip.actual_start ? new Date() : undefined,
         },
-        include: { customer: true, vehicle: true, stops: true }
+        include: tripInclude
       });
     });
 

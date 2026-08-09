@@ -822,10 +822,22 @@ export default function TripDetailsPage() {
                     <MapPin size={12} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Pickup Location</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+                      Pickup Location{pickup?.location?.name ? ` · ${pickup.location.name}` : ''}
+                    </p>
                     <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
                       {pickup ? (pickup.location_name || `${pickup.location_lat.toFixed(4)}, ${pickup.location_lng.toFixed(4)}`) : 'No pickup stop on manifest'}
                     </p>
+                    {/* The address the driver was actually given. Absent on trips
+                        created before it was captured — say so rather than
+                        showing a blank line. */}
+                    {pickup && (
+                      <p className="text-[11px] text-[#6E6E80] mt-0.5 break-words">
+                        {pickup.location_address || pickup.location?.address || (
+                          <span className="italic text-amber-600">No address — the driver only gets a map pin</span>
+                        )}
+                      </p>
+                    )}
                     {pickup && (
                       <p className="text-[11px] text-[#6E6E80] mt-0.5">
                         {pickup.actual_arrival ? fullDateTime(pickup.actual_arrival) : pickup.planned_arrival ? fullDateTime(pickup.planned_arrival) : '—'}
@@ -843,10 +855,19 @@ export default function TripDetailsPage() {
                     <MapPin size={12} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Drop-off Location</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+                      Drop-off Location{dropoff?.location?.name ? ` · ${dropoff.location.name}` : ''}
+                    </p>
                     <p className="text-xs font-semibold text-[#111] dark:text-slate-100 truncate mt-0.5">
                       {dropoff ? (dropoff.location_name || `${dropoff.location_lat.toFixed(4)}, ${dropoff.location_lng.toFixed(4)}`) : 'No dropoff stop on manifest'}
                     </p>
+                    {dropoff && (
+                      <p className="text-[11px] text-[#6E6E80] mt-0.5 break-words">
+                        {dropoff.location_address || dropoff.location?.address || (
+                          <span className="italic text-amber-600">No address — the driver only gets a map pin</span>
+                        )}
+                      </p>
+                    )}
                     {dropoff && (
                       <p className="text-[11px] text-[#6E6E80] mt-0.5">
                         {dropoff.actual_arrival
