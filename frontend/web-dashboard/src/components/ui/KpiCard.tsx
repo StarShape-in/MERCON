@@ -298,7 +298,7 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        'group relative gap-0 rounded-lg border border-black/[0.06] bg-white p-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
+        'group relative gap-0 rounded-2xl border border-black/[0.06] bg-white p-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
         props.onClick && 'cursor-pointer hover:border-black/[0.14] dark:hover:border-white/[0.16]',
         isActive && selectedStyle.activeRing,
         className
@@ -342,90 +342,92 @@ export function KpiCard({
 
       {/* Quiet visual footer — one style per data shape, never decorative */}
       {hasFooter && (
-        <div className="mt-4">
-          {customFooter ? (
-            customFooter
-          ) : barSegments ? (
-            <SegmentBar segments={barSegments} />
-          ) : completionGauge ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between text-[10px] font-semibold leading-none text-[#6E6E80] dark:text-slate-400">
-                <span>{completionGauge.subtext || completionGauge.label}</span>
-                <span className="text-[11px] font-bold text-[#111111] dark:text-slate-100">
-                  {Math.round(completionGauge.percentage)}%
-                </span>
-              </div>
-              <div
-                className="h-1.5 w-full overflow-hidden rounded-full"
-                style={{ backgroundColor: `${selectedStyle.hex}1F` }}
-              >
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, Math.max(0, completionGauge.percentage))}%`, backgroundColor: selectedStyle.hex }}
-                />
-              </div>
-            </div>
-          ) : livePulseTrack ? (
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-xs font-semibold leading-none text-[#111111] dark:text-slate-100">
-                <span className="relative flex h-2 w-2 shrink-0">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ backgroundColor: selectedStyle.hex }} />
-                  <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: selectedStyle.hex }} />
-                </span>
-                {livePulseTrack.statusText}
-              </span>
-              {livePulseTrack.subText && (
-                <span className="text-[10px] leading-none text-[#9898A4]">{livePulseTrack.subText}</span>
-              )}
-            </div>
-          ) : pipelineStages && pipelineStages.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              {pipelineStages.map((stage, idx) => {
-                const s = swatch(stage.color)
-                return (
-                  <span
-                    key={idx}
-                    onClick={onStageClick && ((e) => { e.stopPropagation(); onStageClick(stage.name) })}
-                    className={cn(
-                      'flex items-center gap-1.5 text-[10px] font-semibold leading-none text-[#6E6E80] dark:text-slate-400',
-                      onStageClick && 'cursor-pointer transition-opacity hover:opacity-70'
-                    )}
-                  >
-                    <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.className)} style={s.style} />
-                    {stage.name}
-                    <span className="text-xs font-bold text-[#111111] dark:text-slate-100">{stage.count}</span>
+        customFooter ? (
+          customFooter
+        ) : normalizedChartData ? (
+          <div className="h-10 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl">
+            <ChartContainer
+              config={{ value: { label: 'Value', color: selectedStyle.hex } }}
+              className="aspect-auto h-full w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={normalizedChartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+                  <defs>
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={selectedStyle.hex} stopOpacity={0.16} />
+                      <stop offset="100%" stopColor={selectedStyle.hex} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke={selectedStyle.hex}
+                    strokeWidth={1.8}
+                    fill={`url(#${gradientId})`}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </div>
+        ) : (
+          <div className="mt-4">
+            {barSegments ? (
+              <SegmentBar segments={barSegments} />
+            ) : completionGauge ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-baseline justify-between text-[10px] font-semibold leading-none text-[#6E6E80] dark:text-slate-400">
+                  <span>{completionGauge.subtext || completionGauge.label}</span>
+                  <span className="text-[11px] font-bold text-[#111111] dark:text-slate-100">
+                    {Math.round(completionGauge.percentage)}%
                   </span>
-                )
-              })}
-            </div>
-          ) : normalizedChartData ? (
-            <div className="h-10 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-lg">
-              <ChartContainer
-                config={{ value: { label: 'Value', color: selectedStyle.hex } }}
-                className="aspect-auto h-full w-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={normalizedChartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-                    <defs>
-                      <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={selectedStyle.hex} stopOpacity={0.16} />
-                        <stop offset="100%" stopColor={selectedStyle.hex} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke={selectedStyle.hex}
-                      strokeWidth={1.8}
-                      fill={`url(#${gradientId})`}
-                      isAnimationActive={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
-          ) : null}
-        </div>
+                </div>
+                <div
+                  className="h-1.5 w-full overflow-hidden rounded-full"
+                  style={{ backgroundColor: `${selectedStyle.hex}1F` }}
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.max(0, completionGauge.percentage))}%`, backgroundColor: selectedStyle.hex }}
+                  />
+                </div>
+              </div>
+            ) : livePulseTrack ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-xs font-semibold leading-none text-[#111111] dark:text-slate-100">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ backgroundColor: selectedStyle.hex }} />
+                    <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: selectedStyle.hex }} />
+                  </span>
+                  {livePulseTrack.statusText}
+                </span>
+                {livePulseTrack.subText && (
+                  <span className="text-[10px] leading-none text-[#9898A4]">{livePulseTrack.subText}</span>
+                )}
+              </div>
+            ) : pipelineStages && pipelineStages.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                {pipelineStages.map((stage, idx) => {
+                  const s = swatch(stage.color)
+                  return (
+                    <span
+                      key={idx}
+                      onClick={onStageClick && ((e) => { e.stopPropagation(); onStageClick(stage.name) })}
+                      className={cn(
+                        'flex items-center gap-1.5 text-[10px] font-semibold leading-none text-[#6E6E80] dark:text-slate-400',
+                        onStageClick && 'cursor-pointer transition-opacity hover:opacity-70'
+                      )}
+                    >
+                      <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.className)} style={s.style} />
+                      {stage.name}
+                      <span className="text-xs font-bold text-[#111111] dark:text-slate-100">{stage.count}</span>
+                    </span>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+        )
       )}
     </Card>
   )
