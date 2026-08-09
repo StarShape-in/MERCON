@@ -294,11 +294,13 @@ export function KpiCard({
   }
 
   const hasFooter = Boolean(barSegments || completionGauge || livePulseTrack || (pipelineStages && pipelineStages.length > 0) || normalizedChartData || customFooter)
+  const hasFullBleedFooter = Boolean(customFooter || normalizedChartData)
 
   return (
     <Card
       className={cn(
-        'group relative gap-0 rounded-2xl border border-black/[0.06] bg-white p-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
+        'group relative gap-0 rounded-2xl border border-black/[0.06] bg-white pt-5 px-5 pb-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
+        hasFullBleedFooter && 'pb-0',
         props.onClick && 'cursor-pointer hover:border-black/[0.14] dark:hover:border-white/[0.16]',
         isActive && selectedStyle.activeRing,
         className
@@ -345,7 +347,7 @@ export function KpiCard({
         customFooter ? (
           customFooter
         ) : normalizedChartData ? (
-          <div className="h-10 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl">
+          <div className="h-10 mt-4 -mx-5 overflow-hidden rounded-b-2xl">
             <ChartContainer
               config={{ value: { label: 'Value', color: selectedStyle.hex } }}
               className="aspect-auto h-full w-full"
