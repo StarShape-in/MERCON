@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
@@ -113,6 +114,7 @@ export default function DocumentsCenterPage() {
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
   // Queries
   const { data: docs = [], isLoading, isError } = useQuery({
@@ -127,6 +129,26 @@ export default function DocumentsCenterPage() {
     queryKey: ['vehicles', 'lookup'],
     queryFn: async () => (await vehicleService.getAll()).data,
   });
+
+  const handleBulkDownload = async () => {
+    if (selectedDocIds.length === 0) return;
+    setIsDownloadingZip(true);
+    try {
+      const blob = await documentService.bulkDownloadZip(selectedDocIds);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `documents-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error('Failed to download document archive');
+    } finally {
+      setIsDownloadingZip(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -455,10 +477,11 @@ export default function DocumentsCenterPage() {
                 variant="outline"
                 size="sm"
                 className="h-9 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
-                onClick={() => alert(`Downloading ZIP archive for ${selectedDocIds.length} documents...`)}
+                onClick={handleBulkDownload}
+                disabled={isDownloadingZip}
               >
                 <Download className="w-3.5 h-3.5" />
-                Bulk Download ({selectedDocIds.length})
+                {isDownloadingZip ? 'Preparing…' : `Bulk Download (${selectedDocIds.length})`}
               </Button>
             )}
 

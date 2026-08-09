@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDocuments, getDocumentById, uploadDocument, updateDocumentStatus, deleteDocument , bulkDeleteDocuments, bulkUpdateDocumentStatus} from '../controllers/documentController';
+import { getDocuments, getDocumentById, uploadDocument, updateDocumentStatus, deleteDocument , bulkDeleteDocuments, bulkUpdateDocumentStatus, bulkDownloadDocuments} from '../controllers/documentController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { upload } from '../middlewares/upload';
@@ -10,6 +10,7 @@ router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
 router.post('/bulk-delete', bulkDeleteDocuments);
 router.post('/bulk-update-status', bulkUpdateDocumentStatus);
+router.post('/bulk-download', bulkDownloadDocuments);
 
 
 // List all documents (filterable by entity_type, entity_id, doc_type, status, expiring_within_days)
