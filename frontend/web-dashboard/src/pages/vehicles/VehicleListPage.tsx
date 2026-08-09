@@ -637,7 +637,7 @@ export default function VehicleListPage() {
             isActive={selectedStatus === 'All'}
             onClick={() => { setSelectedStatus('All'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#FFF8F6] dark:bg-[#E8450F]/10 border-t border-[#E8450F]/10">
+              <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#FFF8F6] dark:bg-[#E8450F]/10 border-t border-[#E8450F]/10">
                 <style>{`
                   @keyframes routeDashBrand {
                     to {
@@ -672,7 +672,7 @@ export default function VehicleListPage() {
                   className="absolute"
                   style={{
                     left: '28%',
-                    top: '32px',
+                    top: '24px',
                     transform: 'translate(-50%, -50%) scale(0.55)',
                     zIndex: 10
                   }}
@@ -692,7 +692,7 @@ export default function VehicleListPage() {
                   className="absolute"
                   style={{
                     left: '72%',
-                    top: '16px',
+                    top: '12px',
                     transform: 'translate(-50%, -50%) scale(0.55)',
                     zIndex: 10
                   }}
@@ -723,7 +723,7 @@ export default function VehicleListPage() {
             isActive={selectedStatus === 'Available'}
             onClick={() => { setSelectedStatus('Available'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
+              <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
                 <style>{`
                   @keyframes routeDash {
                     to {
@@ -819,7 +819,7 @@ export default function VehicleListPage() {
             isActive={selectedStatus === 'Maintenance'}
             onClick={() => { setSelectedStatus('Maintenance'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#FFFDF2] dark:bg-[#D97706]/10 border-t border-amber-500/10">
+              <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#FFFDF2] dark:bg-[#D97706]/10 border-t border-amber-500/10">
                 <style>{`
                   @keyframes routeDashAmber {
                     to {
@@ -882,7 +882,7 @@ export default function VehicleListPage() {
                   <div className="relative flex items-center justify-center">
                     {/* Bouncing Warning Popup Badge */}
                     <div 
-                      className="absolute bottom-[24px] bg-amber-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
+                      className="absolute bottom-[18px] bg-amber-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md flex items-center gap-1 animate-bounce"
                       style={{ whiteSpace: 'nowrap' }}
                     >
                       <span>⚠️</span>
@@ -919,7 +919,7 @@ export default function VehicleListPage() {
             isActive={selectedStatus === 'OnTrip'}
             onClick={() => { setSelectedStatus('OnTrip'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#F0F6FF] dark:bg-[#1E3A8A]/10 border-t border-blue-500/10">
+              <div className="relative h-9 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#F0F6FF] dark:bg-[#1E3A8A]/10 border-t border-blue-500/10">
                 <style>{`
                   @keyframes routeDashBlue {
                     to {
