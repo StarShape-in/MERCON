@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { Button } from '../../components';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService } from '../../lib/trips';
+import { tripService, stopAddress, stopLabel } from '../../lib/trips';
 import { ArrowLeft, Check, Camera, ClipboardCheck } from 'lucide-react-native';
 import { choosePhoto, type CapturedPhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
@@ -15,6 +15,7 @@ import { getApiErrorMessage } from '../../lib/api';
 const DeliveryVerificationScreen = () => {
   const router = useRouter();
   const { trip, loading } = useCurrentTrip();
+  const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
   const [step, setStep] = useState(1);
   const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -159,6 +160,15 @@ const DeliveryVerificationScreen = () => {
               <Text style={styles.timestampLabel}>Customer</Text>
               <Text style={styles.timestampValue}>{trip?.customer?.name ?? '—'}</Text>
             </View>
+            <View style={styles.timestampRow}>
+              <Text style={styles.timestampLabel}>Delivered to</Text>
+              <Text style={styles.timestampValue} numberOfLines={1}>
+                {stopLabel(dropoffStop) ?? '—'}
+              </Text>
+            </View>
+            {stopAddress(dropoffStop) && (
+              <Text style={styles.deliveryAddress}>{stopAddress(dropoffStop)}</Text>
+            )}
             <View style={styles.timestampRow}>
               <Text style={styles.timestampLabel}>POD Photos</Text>
               <Text style={styles.timestampValue}>{photos.length}</Text>
@@ -387,6 +397,17 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     fontWeight: '700',
     color: Colors.gray900,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  // Full-width under its row: an address wraps, and squeezing it into the
+  // right-hand column of a label/value row truncates it to uselessness.
+  deliveryAddress: {
+    fontSize: Typography.xs,
+    color: Colors.gray500,
+    lineHeight: 16,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.sm,
   },
 });
 

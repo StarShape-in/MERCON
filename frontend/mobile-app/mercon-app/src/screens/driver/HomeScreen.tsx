@@ -9,7 +9,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { Badge, DarkCard } from '../../components';
 import { useAuth } from '../../lib/auth-context';
 import { useCurrentTrip } from '../../lib/use-current-trip';
-import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, type TripStatus } from '../../lib/trips';
+import { tripService, NEXT_STEP, PHOTO_FOR, statusLabel, stopAddress, stopLabel, type TripStatus } from '../../lib/trips';
 import { choosePhoto } from '../../lib/camera';
 import { getApiErrorMessage } from '../../lib/api';
 
@@ -45,6 +45,8 @@ const HomeScreen = () => {
   const firstName = (profile?.name || 'Driver').split(' ')[0];
 
   const next = trip ? NEXT_STEP[trip.status] : undefined;
+  const pickupStop = trip?.stops?.find((s) => s.stop_type === 'Pickup') ?? null;
+  const dropoffStop = trip?.stops?.find((s) => s.stop_type === 'Dropoff') ?? null;
 
   const doAdvance = async () => {
     if (!trip || !next) return;
@@ -151,12 +153,28 @@ const HomeScreen = () => {
                 </View>
                 <View style={styles.routeCol}>
                   <View style={styles.routeStop}>
-                    <Text style={styles.routeStage}>PICKUP</Text>
-                    <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_start)}</Text>
+                    <View style={styles.routeStopHead}>
+                      <Text style={styles.routeStage}>PICKUP</Text>
+                      <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_start)}</Text>
+                    </View>
+                    <Text style={styles.routePlace} numberOfLines={1}>
+                      {stopLabel(pickupStop) ?? 'Location not set'}
+                    </Text>
+                    {stopAddress(pickupStop) && (
+                      <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(pickupStop)}</Text>
+                    )}
                   </View>
                   <View style={[styles.routeStop, styles.routeStopLast]}>
-                    <Text style={styles.routeStage}>DELIVERY</Text>
-                    <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_end)}</Text>
+                    <View style={styles.routeStopHead}>
+                      <Text style={styles.routeStage}>DELIVERY</Text>
+                      <Text style={styles.routeWhen} numberOfLines={1}>{shortWhen(trip.planned_end)}</Text>
+                    </View>
+                    <Text style={styles.routePlace} numberOfLines={1}>
+                      {stopLabel(dropoffStop) ?? 'Location not set'}
+                    </Text>
+                    {stopAddress(dropoffStop) && (
+                      <Text style={styles.routeAddress} numberOfLines={2}>{stopAddress(dropoffStop)}</Text>
+                    )}
                   </View>
                 </View>
               </View>
@@ -278,8 +296,13 @@ const styles = StyleSheet.create({
   routeCol: { flex: 1 },
   routeStop: { marginBottom: Spacing.lg },
   routeStopLast: { marginBottom: 0 },
+  routeStopHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   routeStage: { fontSize: Typography.xs, color: Colors.gray400, letterSpacing: 1, fontWeight: '700' },
-  routeWhen: { fontSize: Typography.base, fontWeight: '700', color: Colors.white, marginTop: 2 },
+  routeWhen: { fontSize: Typography.xs, fontWeight: '600', color: Colors.gray400, flexShrink: 1, textAlign: 'right' },
+  // The place is the headline now — the driver reads this first. The time was
+  // the only thing here before, which told them when but never where.
+  routePlace: { fontSize: Typography.base, fontWeight: '700', color: Colors.white, marginTop: 2 },
+  routeAddress: { fontSize: Typography.xs, color: Colors.gray400, marginTop: 2, lineHeight: 16 },
 
   divider: { height: 1, backgroundColor: Colors.gray700, marginVertical: Spacing.lg },
 

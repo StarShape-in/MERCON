@@ -316,6 +316,12 @@ model TripStop {
   // same site never accumulates a history. Free text, because these are the
   // customer's yards and depots, not a list we own.
   location_name    String?
+  // The full postal address of this stop, as returned by the address search.
+  // location_name is the short label a report groups by ("Khamis Sorting
+  // Center"); this is what a driver actually needs to find the place, and what
+  // gets handed to a navigation app. Kept separate because truncating the
+  // address down to a label is lossy and cannot be reversed.
+  location_address String?   @db.Text
   // The lane endpoint this stop belongs to ("Riyadh"), as opposed to the exact
   // yard within it that location_name/lat/lng describe. This is what makes a
   // trip's lane recoverable after the fact, and what the rate lookup keys on.
@@ -501,8 +507,13 @@ model Location {
   id   String @id @default(uuid()) @db.Uuid
   name String
   slug String @unique
-  lat  Float?
-  lng  Float?
+  // Full postal address of the place, from the address search. The name is the
+  // short label people pick from a dropdown ("Jeddah"); this is the verified
+  // address behind it, so a stop defaulting to this place inherits something a
+  // driver can actually navigate to rather than a bare pin.
+  address String? @db.Text
+  lat     Float?
+  lng     Float?
 
   is_active Boolean @default(true)
 

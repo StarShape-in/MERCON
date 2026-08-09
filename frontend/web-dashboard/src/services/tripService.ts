@@ -63,6 +63,8 @@ export interface CreateTripPayload {
     planned_arrival?: string;
     /** The exact yard/dock — what the driver navigates to. */
     location_name?: string;
+    /** Its full postal address, shown to the driver in the mobile app. */
+    location_address?: string;
     /** The lane endpoint this stop sits in ("Riyadh") — what the rate is priced against. */
     location_id?: string;
   }[];

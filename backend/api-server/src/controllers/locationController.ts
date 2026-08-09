@@ -24,7 +24,7 @@ export const toSlug = (name: string) =>
  */
 export const resolveLocation = async (
   tx: Pick<Prisma.TransactionClient, 'location'>,
-  input: { id?: string | null; name?: string | null; lat?: number | null; lng?: number | null },
+  input: { id?: string | null; name?: string | null; address?: string | null; lat?: number | null; lng?: number | null },
   userId?: string
 ) => {
   if (input.id) {
@@ -40,14 +40,18 @@ export const resolveLocation = async (
   const found = await tx.location.findUnique({ where: { slug } });
 
   if (found) {
-    // Revive a previously deleted place, and fill in coordinates if it never
-    // had any — but never overwrite coordinates someone deliberately set.
-    if (found.deletedAt || (found.lat == null && input.lat != null)) {
+    // Revive a previously deleted place, and backfill coordinates or an address
+    // if it never had any — but never overwrite values someone deliberately set.
+    const needsCoords = found.lat == null && input.lat != null;
+    const needsAddress = !found.address && !!input.address;
+
+    if (found.deletedAt || needsCoords || needsAddress) {
       return tx.location.update({
         where: { id: found.id },
         data: {
           ...(found.deletedAt ? { deletedAt: null, deleted_by: null, is_active: true } : {}),
-          ...(found.lat == null && input.lat != null ? { lat: input.lat, lng: input.lng ?? null } : {}),
+          ...(needsCoords ? { lat: input.lat, lng: input.lng ?? null } : {}),
+          ...(needsAddress ? { address: input.address } : {}),
           updated_by: userId ?? null,
         },
       });
@@ -59,6 +63,7 @@ export const resolveLocation = async (
     data: {
       name,
       slug,
+      address: input.address ?? null,
       lat: input.lat ?? null,
       lng: input.lng ?? null,
       created_by: userId ?? null,
@@ -101,7 +106,7 @@ export const getLocationById = async (req: Request, res: Response) => {
 
 export const createLocation = async (req: Request, res: Response) => {
   try {
-    const { name, lat, lng } = req.body;
+    const { name, address, lat, lng } = req.body;
     if (!String(name || '').trim()) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Location name is required' } });
     }
@@ -110,6 +115,7 @@ export const createLocation = async (req: Request, res: Response) => {
       prisma,
       {
         name,
+        address: String(address || '').trim() || null,
         lat: lat === undefined || lat === null || lat === '' ? null : Number(lat),
         lng: lng === undefined || lng === null || lng === '' ? null : Number(lng),
       },
@@ -125,7 +131,7 @@ export const createLocation = async (req: Request, res: Response) => {
 export const updateLocation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, lat, lng, is_active } = req.body;
+    const { name, address, lat, lng, is_active } = req.body;
 
     const existing = await prisma.location.findFirst({ where: { id: id as string, deletedAt: null } });
     if (!existing) {
@@ -155,6 +161,7 @@ export const updateLocation = async (req: Request, res: Response) => {
         where: { id: id as string },
         data: {
           ...(trimmedName !== undefined ? { name: trimmedName, slug: toSlug(trimmedName) } : {}),
+          ...(address !== undefined ? { address: String(address || '').trim() || null } : {}),
           ...(lat !== undefined ? { lat: lat === null || lat === '' ? null : Number(lat) } : {}),
           ...(lng !== undefined ? { lng: lng === null || lng === '' ? null : Number(lng) } : {}),
           ...(is_active !== undefined ? { is_active: !!is_active } : {}),

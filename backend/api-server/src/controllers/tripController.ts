@@ -269,6 +269,7 @@ export const createTrip = async (req: Request, res: Response) => {
                   // Empty string collapses to null so "unnamed" is one value in
                   // reports, not two that group separately.
                   location_name: String(stop.location_name ?? '').trim() || null,
+                  location_address: String(stop.location_address ?? '').trim() || null,
                   locationId: stop.location_id || null,
                   planned_arrival: (stop.planned_arrival && !isNaN(Date.parse(stop.planned_arrival)))
                     ? new Date(stop.planned_arrival)

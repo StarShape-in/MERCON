@@ -10,6 +10,8 @@ export interface Location {
   id: string;
   name: string;
   slug: string;
+  /** Full postal address behind the name — what a stop inherits and a driver navigates to. */
+  address: string | null;
   lat: number | null;
   lng: number | null;
   is_active: boolean;
@@ -19,6 +21,7 @@ export interface Location {
 
 export interface CreateLocationPayload {
   name: string;
+  address?: string | null;
   lat?: number | null;
   lng?: number | null;
 }

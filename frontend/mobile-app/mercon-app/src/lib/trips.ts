@@ -17,6 +17,30 @@ export interface TripStop {
   stop_type: StopType;
   location_lat: number;
   location_lng: number;
+  /**
+   * Where this stop actually is, in three parts — the API has always sent
+   * these; the type used to declare only the coordinates, so the app couldn't
+   * see them and the driver got a pin with no address.
+   *
+   *  location_name    short label — "Khamis Sorting Center"
+   *  location_address full postal address — what you navigate by
+   *  location         the lane endpoint it sits in — "Jeddah"
+   */
+  location_name: string | null;
+  location_address: string | null;
+  location?: { id: string; name: string; address: string | null } | null;
+}
+
+/** The best single line to show a driver for a stop, most specific first. */
+export function stopAddress(stop: TripStop | null | undefined): string | null {
+  if (!stop) return null;
+  return stop.location_address || stop.location?.address || null;
+}
+
+/** The best short label for a stop — falls back to the lane endpoint's name. */
+export function stopLabel(stop: TripStop | null | undefined): string | null {
+  if (!stop) return null;
+  return stop.location_name || stop.location?.name || null;
 }
 
 export interface MobileTrip {
