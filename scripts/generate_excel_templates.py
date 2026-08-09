@@ -4,6 +4,9 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
+# scripts/ lives one level below the repo root.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # ==========================================
 # EXECUTIVE COLOR PALETTE (MERCON PREMIUM)
 # ==========================================
@@ -245,7 +248,12 @@ def apply_drivers_sheet(ws):
 
 
 def apply_vehicles_sheet(ws):
-    ws.title = "🚛 Vehicles & Trailers Directory"
+    # Excel caps sheet names at 31 characters, and an emoji counts as TWO
+    # towards that limit in UTF-16 (which is how Excel and every reader measure
+    # it). "🚛 Vehicles & Trailers Directory" is 32, so readers truncate it —
+    # and ExcelJS then throws "worksheet name already exists" and cannot open
+    # the file at all, which broke the dashboard's Excel import outright.
+    ws.title = "🚛 Vehicles & Trailers"
     ws.views.sheetView[0].showGridLines = True
 
     # 1. Header Banner
@@ -362,8 +370,14 @@ def apply_vehicles_sheet(ws):
 
 def generate_all_professional_templates():
     output_dirs = [
-        r"d:\Mercon\docs\templates",
-        r"d:\Mercon\frontend\public\templates"
+        # Paths are relative to the repo root so this runs on any checkout,
+        # not just the machine it was written on.
+        os.path.join(REPO_ROOT, "docs", "templates"),
+        # The dashboard is a Vite app: only frontend/web-dashboard/public is
+        # actually served. The old path (frontend/public) was written to for
+        # months and served to nobody, which is why the in-app template
+        # download links 404'd.
+        os.path.join(REPO_ROOT, "frontend", "web-dashboard", "public", "templates"),
     ]
 
     # 1. Dedicated Drivers Import Workbook

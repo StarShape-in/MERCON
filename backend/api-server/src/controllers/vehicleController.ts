@@ -182,16 +182,36 @@ export const bulkImportVehicles = async (req: Request, res: Response) => {
     // Pass 2 — driver assignments, now that every truck in this file exists.
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const who = String(row.assigned_driver || '').trim();
+      // The template's own sample writes this column as
+      // "+966 50 123 4567 (Ahmed)", so drop a trailing parenthetical before
+      // matching — otherwise the file we ship fails against itself.
+      const who = String(row.assigned_driver || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
       const result = results[i];
       if (!who || !result?.success) continue;
 
       try {
         // Phone is unique, a name is not — so try phone first and only fall
         // back to a name match, which can legitimately be ambiguous.
+        // Compared digits-only, because the same number gets typed as
+        // "+966 50 123 4567", "+966501234567" and "0501234567".
+        const digits = who.replace(/\D/g, '');
         let driver = await prisma.driver.findFirst({
           where: { phone_primary: who, deletedAt: null },
         });
+
+        if (!driver && digits.length >= 7) {
+          const candidates = await prisma.driver.findMany({
+            where: { deletedAt: null, phone_primary: { not: null } },
+            select: { id: true, phone_primary: true },
+          });
+          const hit = candidates.find((c) => {
+            const theirs = (c.phone_primary ?? '').replace(/\D/g, '');
+            // Suffix comparison handles a country code present on one side
+            // only; 7 digits is short enough to be safe against collisions.
+            return theirs.endsWith(digits) || digits.endsWith(theirs);
+          });
+          if (hit) driver = await prisma.driver.findUnique({ where: { id: hit.id } });
+        }
 
         if (!driver) {
           const parts = who.split(/\s+/);
