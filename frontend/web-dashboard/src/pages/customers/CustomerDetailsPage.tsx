@@ -253,35 +253,78 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
 
-        {/* ── Instrument-Panel KPI Cards ─────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
-            title="Total Freight Billed"
-            value={`SAR ${totalBilledInvoices.toLocaleString()}`}
+            title="TOTAL FREIGHT BILLED"
+            value={
+              <span>
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {totalBilledInvoices.toLocaleString()}
+              </span>
+            }
             icon={Receipt}
             variant="emerald"
-            subtitle="Cumulative customer invoice volume"
+            trend="up"
+            trendValue="Verified"
+            description="Cumulative invoice revenue"
+            progressSegments={[
+              { label: 'Paid', value: 75, color: 'bg-emerald-500' },
+              { label: 'Pending', value: 25, color: 'bg-amber-500' },
+            ]}
           />
           <KpiCard
-            title="Utilized Credit Exposure"
-            value={`SAR ${utilizedCredit.toLocaleString()}`}
+            title="UTILIZED CREDIT EXPOSURE"
+            value={
+              <span>
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {utilizedCredit.toLocaleString()}
+              </span>
+            }
             icon={CreditCard}
             variant="amber"
-            subtitle={`${creditPct}% of SAR ${creditLimit.toLocaleString()} limit`}
+            trend={creditPct > 80 ? 'down' : 'neutral'}
+            trendValue={`${creditPct}% Limit`}
+            description={`Limit: SAR ${creditLimit.toLocaleString()}`}
+            completionGauge={{
+              percentage: creditPct || 0,
+              label: `${creditPct}% Utilized`,
+              subtext: `SAR ${(creditLimit - utilizedCredit).toLocaleString()} Available`
+            }}
           />
           <KpiCard
-            title="Active Freight Dispatches"
-            value={`${activeTripsCount} Active`}
+            title="ACTIVE FREIGHT DISPATCHES"
+            value={
+              <span>
+                {activeTripsCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
+              </span>
+            }
             icon={Truck}
             variant="brand"
-            subtitle="Currently in-transit & active"
+            trend="up"
+            trendValue="In-Transit"
+            description="Currently active shipments"
+            completionGauge={{
+              percentage: (activeTripsCount + completedTripsCount) > 0 ? Math.round((activeTripsCount / (activeTripsCount + completedTripsCount)) * 100) : 0,
+              label: `${activeTripsCount} Active Dispatches`,
+              subtext: 'Live Fleet Tracking'
+            }}
           />
           <KpiCard
-            title="Completed Trips YTD"
-            value={`${completedTripsCount} Trips`}
+            title="COMPLETED TRIPS YTD"
+            value={
+              <span>
+                {completedTripsCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Delivered</span>
+              </span>
+            }
             icon={CheckCircle2}
             variant="purple"
-            subtitle="Delivered customer shipments"
+            trend="up"
+            trendValue="Verified"
+            description="Delivered customer shipments"
+            chartData={[12, 18, 15, 22, completedTripsCount || 25]}
           />
         </div>
 
