@@ -71,10 +71,11 @@ const DriverPerformancePage   = lazy(() => import('@/pages/reports/DriverPerform
 const CustomReportPage        = lazy(() => import('@/pages/reports/CustomReportPage'));
 const DelayReportPage         = lazy(() => import('@/pages/reports/DelayReportPage'));
 
-// Settings
+// Settings & Governance
 const OperatorProfilePage     = lazy(() => import('@/pages/settings/OperatorProfilePage'));
 const SettingsPage            = lazy(() => import('@/pages/settings/SettingsPage'));
 const UserManagementPage      = lazy(() => import('@/pages/settings/UserManagementPage'));
+const RecycleBinPage          = lazy(() => import('@/pages/recycle-bin/RecycleBinPage'));
 
 /* ─── Protected Route wrapper ────────────────────────────────────────────── */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -160,10 +161,11 @@ export default function AppRouter() {
           <Route path="/reports/drivers"          element={<ProtectedRoute><DriverPerformancePage /></ProtectedRoute>} />
           <Route path="/reports/delays"           element={<ProtectedRoute><DelayReportPage /></ProtectedRoute>} />
 
-          {/* Settings */}
+          {/* Settings & Governance */}
           <Route path="/settings"                 element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/settings/profile"         element={<ProtectedRoute><OperatorProfilePage /></ProtectedRoute>} />
           <Route path="/settings/users"           element={<ProtectedRoute><RequireRole roles={['Admin', 'Operator']}><UserManagementPage /></RequireRole></ProtectedRoute>} />
+          <Route path="/recycle-bin"              element={<ProtectedRoute><RecycleBinPage /></ProtectedRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

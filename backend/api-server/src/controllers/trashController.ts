@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { logger } from '../utils/logger';
+import { nextMaintenanceRefId } from './maintenanceController';
 
 export async function getTrashItems(req: Request, res: Response) {
   try {
@@ -51,9 +52,19 @@ export async function restoreTrashItem(req: Request, res: Response) {
       case 'Trip':
         await prisma.trip.update({ where: { id }, data: { deletedAt: null } });
         break;
-      case 'MaintenanceRecord':
-        await prisma.maintenanceRecord.update({ where: { id }, data: { deletedAt: null } });
+      case 'MaintenanceRecord': {
+        // Deleting a service order releases its ref_id so the sequence stays
+        // gapless, so a restored order needs a fresh number at the end.
+        const restored = await prisma.maintenanceRecord.findUnique({ where: { id } });
+        await prisma.maintenanceRecord.update({
+          where: { id },
+          data: {
+            deletedAt: null,
+            ...(restored?.ref_id ? {} : { ref_id: await nextMaintenanceRefId() }),
+          },
+        });
         break;
+      }
       case 'Invoice':
         await prisma.invoice.update({ where: { id }, data: { deletedAt: null } });
         break;
