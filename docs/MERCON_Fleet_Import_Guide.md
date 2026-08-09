@@ -94,8 +94,54 @@ When processing the Excel file via backend parser (Node.g. `xlsx` or `exceljs`),
 
 ## 💡 Instructions to Give to the Client Company Owner
 
-1. **Download the File**: Share `MERCON_Master_Fleet_Import_Template.xlsx` (or separate Driver & Vehicle files).
-2. **Review Sample Data**: Rows 5–7 contain sample entries to illustrate expected formatting. These can be edited or overwritten.
+1. **Download the File**: Share the Driver & Vehicle templates (also downloadable in-app from the Drivers and Vehicles pages).
+2. **Review Sample Data**: The rows below the header contain sample entries to illustrate expected formatting. These can be edited or overwritten.
 3. **Use Dropdowns**: For fields like *Asset Type* and *Status*, select values directly from the dropdown arrow in Excel.
 4. **Mandatory Fields**: Ensure all columns marked with an asterisk (`*`) are completed.
-5. **Return File**: Return the completed `.xlsx` file to the MERCON team for direct system import.
+5. **Return File**: Return the completed `.xlsx` file, or upload it directly.
+
+---
+
+## ⬆️ 4. Importing (in the dashboard)
+
+**Drivers** → `/drivers` → **Import Excel**. **Vehicles** → `/vehicles` → **Import Excel**.
+
+The workbook is parsed **in the browser** and previewed — row count, any required
+columns that couldn't be found, and any headers that will be ignored — before a
+single record is written. Rows are then posted as JSON to
+`POST /drivers/import` / `POST /vehicles/import`, the same contract
+`/trips/bulk-import` uses.
+
+### Matching and re-imports
+| | Matched on | Effect of re-importing |
+|---|---|---|
+| Drivers | `Primary Phone` | Existing driver is **updated**, never duplicated |
+| Vehicles | `Plate Number` | Existing vehicle is **updated**, never duplicated |
+
+Fix a mistake in the sheet and upload the same file again — that is the intended
+workflow. **Status is never written by an import**, so a re-upload cannot flip a
+driver or truck that is currently out on a job back to Available.
+
+### Assignments run in a second pass
+The drivers sheet points at vehicles by plate, and the vehicles sheet points at
+drivers by phone/name — so whichever file you import first, half its references
+point at records that don't exist yet. Each import therefore creates the records
+first, then resolves the links. A reference that still can't be found is reported
+as a **warning on that row**, not a failure: the driver or truck is imported, only
+the assignment is skipped. Import the other file, re-upload this one, and the
+links resolve.
+
+Driver phone matching ignores formatting (`+966 50 123 4567`, `+966501234567` and
+`0501234567` all match) and ignores a trailing parenthetical such as
+`+966 50 123 4567 (Ahmed)`.
+
+### Column headers
+Headers are matched loosely — case, `*`, and bracketed units like `(KG)` are
+ignored, and several spellings are accepted per field. The header row is located
+by content rather than by position, so the banner rows above the table don't
+matter. A column the importer doesn't recognise is listed in the preview as
+*"will be ignored"* rather than silently dropped.
+
+> **Note:** `Trailer Type` appears in the API mapping above but has no column in
+> the current vehicles template. It is optional, so its absence doesn't block an
+> import.

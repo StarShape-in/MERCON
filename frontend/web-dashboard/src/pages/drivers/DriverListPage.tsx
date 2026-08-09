@@ -129,9 +129,14 @@ export default function DriverListPage() {
     }),
   });
 
+  // Fetch overall driver summary for KPI cards (100% independent of status/search page filters)
+  const { data: kpiDriversRes } = useQuery({
+    queryKey: ['drivers', 'kpi-summary'],
+    queryFn: () => driverService.getAll({ per_page: 1000 }),
+  });
+
   const drivers = driversRes?.data || [];
   const totalPages = driversRes?.meta?.total_pages || 1;
-  const totalCount = driversRes?.meta?.total || drivers.length;
 
   // Filter local data based on License filter
   const filteredDrivers = drivers.filter(d => {
@@ -140,14 +145,19 @@ export default function DriverListPage() {
     return true;
   });
 
-  // Calculate driver counts and dynamic progress segments from real backend data
-  const availableCount = drivers.filter(d => d.status === 'Available').length;
-  const onTripCount = drivers.filter(d => d.status === 'OnTrip').length;
+  // Calculate driver counts and dynamic progress segments from real backend data (sourced from overall fleet data)
+  const kpiDrivers = kpiDriversRes?.data || [];
+  const totalCount = kpiDriversRes?.meta?.total || (kpiDrivers.length > 0 ? kpiDrivers.length : (driversRes?.meta?.total || drivers.length));
 
-  const expiredLicenseCount = drivers.filter(d => new Date(d.license_expiry) < new Date()).length;
-  const clearDriversCount = drivers.filter(d => new Date(d.license_expiry) >= new Date()).length;
+  const sourceForKpis = kpiDrivers.length > 0 ? kpiDrivers : drivers;
 
-  const totalDriversCount = drivers.length || 1;
+  const availableCount = sourceForKpis.filter(d => d.status === 'Available').length;
+  const onTripCount = sourceForKpis.filter(d => d.status === 'OnTrip').length;
+
+  const expiredLicenseCount = sourceForKpis.filter(d => new Date(d.license_expiry) < new Date()).length;
+  const clearDriversCount = sourceForKpis.filter(d => new Date(d.license_expiry) >= new Date()).length;
+
+  const totalDriversCount = totalCount || 1;
   const expiredSegPct = Math.round((expiredLicenseCount / totalDriversCount) * 100);
   const clearSegPct = Math.max(0, 100 - expiredSegPct);
 

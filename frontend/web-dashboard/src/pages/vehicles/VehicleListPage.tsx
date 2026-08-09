@@ -147,6 +147,12 @@ export default function VehicleListPage() {
     }),
   });
 
+  // Fetch overall fleet totals for KPI cards (100% independent of status/search page filters)
+  const { data: kpiVehiclesRes } = useQuery({
+    queryKey: ['vehicles', 'kpi-summary'],
+    queryFn: () => vehicleService.getAll({ per_page: 1000 }),
+  });
+
   const rawVehicles = vehiclesRes?.data || [];
   const totalPages = vehiclesRes?.meta?.total_pages || 1;
 
@@ -156,11 +162,18 @@ export default function VehicleListPage() {
     return rawVehicles.filter(v => v.asset_type.toLowerCase().includes(selectedType.toLowerCase()));
   }, [rawVehicles, selectedType]);
 
-  // Telematics calculations
-  const totalCount = vehiclesRes?.meta?.total || rawVehicles.length;
-  const availableCount = rawVehicles.filter(v => v.status === 'Available').length;
-  const onTripCount = rawVehicles.filter(v => v.status === 'OnTrip').length;
-  const maintenanceCount = rawVehicles.filter(v => v.status === 'Maintenance').length;
+  // Telematics calculations for KPI cards (sourced from overall fleet data so KPI numbers stay fixed when filtering)
+  const kpiVehicles = kpiVehiclesRes?.data || [];
+  const totalCount = kpiVehiclesRes?.meta?.total || (kpiVehicles.length > 0 ? kpiVehicles.length : (vehiclesRes?.meta?.total || rawVehicles.length));
+  const availableCount = kpiVehicles.length > 0
+    ? kpiVehicles.filter(v => v.status === 'Available').length
+    : rawVehicles.filter(v => v.status === 'Available').length;
+  const onTripCount = kpiVehicles.length > 0
+    ? kpiVehicles.filter(v => v.status === 'OnTrip').length
+    : rawVehicles.filter(v => v.status === 'OnTrip').length;
+  const maintenanceCount = kpiVehicles.length > 0
+    ? kpiVehicles.filter(v => v.status === 'Maintenance').length
+    : rawVehicles.filter(v => v.status === 'Maintenance').length;
   const activeCount = availableCount + onTripCount;
   const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
 

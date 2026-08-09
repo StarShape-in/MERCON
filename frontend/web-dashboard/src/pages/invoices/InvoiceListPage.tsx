@@ -67,9 +67,18 @@ export default function InvoiceListPage() {
     }),
   });
 
+  // Fetch overall invoice summary for KPI cards (100% independent of status/search page filters)
+  const { data: kpiInvoicesRes } = useQuery({
+    queryKey: ['invoices', 'kpi-summary'],
+    queryFn: () => invoiceService.getAll({ per_page: 1000 }),
+  });
+
   const invoices = invoicesRes?.data || [];
   const totalPages = invoicesRes?.meta?.total_pages || 1;
-  const totalCount = invoicesRes?.meta?.total || invoices.length;
+
+  const kpiInvoices = kpiInvoicesRes?.data || [];
+  const totalCount = kpiInvoicesRes?.meta?.total || (kpiInvoices.length > 0 ? kpiInvoices.length : (invoicesRes?.meta?.total || invoices.length));
+  const sourceForKpis = kpiInvoices.length > 0 ? kpiInvoices : invoices;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -91,13 +100,13 @@ export default function InvoiceListPage() {
     }
   };
 
-  // KPIs
-  const paidCount = invoices.filter(i => i.status === 'Paid').length;
-  const pendingCount = invoices.filter(i => i.status === 'Pending').length;
-  const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
+  // KPIs (sourced from overall summary so numbers remain constant when filtering)
+  const paidCount = sourceForKpis.filter(i => i.status === 'Paid').length;
+  const pendingCount = sourceForKpis.filter(i => i.status === 'Pending').length;
+  const overdueCount = sourceForKpis.filter(i => i.status === 'Overdue').length;
 
   const paidRatioPct = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
-  const totalCollectedAmount = invoices.filter(i => i.status === 'Paid').reduce((acc, i) => acc + (Number(i.total_amount) || 0), 0);
+  const totalCollectedAmount = sourceForKpis.filter(i => i.status === 'Paid').reduce((acc, i) => acc + (Number(i.total_amount) || 0), 0);
 
   const getStatusBadge = (status: InvoiceStatus) => {
     switch (status) {
