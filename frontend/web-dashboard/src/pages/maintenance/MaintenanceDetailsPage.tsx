@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -6,6 +6,7 @@ import {
   AlertTriangle, FileText, Phone, Building2, Gauge,
   Trash2, ExternalLink, AlertCircle, RotateCw, CalendarClock,
   ChevronDown, Download, Receipt, Banknote, XCircle,
+  Upload, Paperclip, Printer, Hash, ClipboardList,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -18,7 +19,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
@@ -29,7 +29,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import { maintenanceService, CreateMaintenancePayload, MaintenanceType, MaintenanceStatus } from '@/services/maintenanceService';
+import {
+  maintenanceService,
+  MAINTENANCE_ENTITY_TYPE,
+  CreateMaintenancePayload,
+  MaintenanceType,
+  MaintenanceStatus,
+} from '@/services/maintenanceService';
+import { documentService, MerconDocument } from '@/services/documentService';
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +68,7 @@ const formatSAR = (value?: number | null) =>
 /** Small labelled row used across the detail cards. */
 function Field({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-2">
+    <div className="flex items-baseline justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800/70 last:border-0">
       <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
       <span className={cn('text-xs font-semibold text-slate-900 dark:text-slate-100 text-right', mono && 'font-mono')}>
         {value}
@@ -70,14 +77,36 @@ function Field({ label, value, mono = false }: { label: string; value: React.Rea
   );
 }
 
+/** Compact metric tile for the summary strip. */
+function Metric({
+  label, value, hint, icon: Icon, tone,
+}: {
+  label: string; value: string; hint: string;
+  icon: React.ElementType; tone: string;
+}) {
+  return (
+    <Card className="p-3.5 rounded-xl gap-0">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">{label}</span>
+        <Icon className={cn('w-3.5 h-3.5', tone)} />
+      </div>
+      <div className="text-lg font-mono font-black text-slate-900 dark:text-slate-100 mt-1.5 truncate">{value}</div>
+      <div className="text-[10px] text-slate-500 mt-1 truncate">{hint}</div>
+    </Card>
+  );
+}
+
 export default function MaintenanceDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState('overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [docToDelete, setDocToDelete] = useState<MerconDocument | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [editFormData, setEditFormData] = useState<CreateMaintenancePayload>({
     vehicle_id: '',
@@ -101,6 +130,14 @@ export default function MaintenanceDetailsPage() {
     queryFn: () => maintenanceService.getById(id!),
     enabled: !!id,
   });
+
+  const { data: docsRes } = useQuery({
+    queryKey: ['documents', MAINTENANCE_ENTITY_TYPE, id],
+    queryFn: () => documentService.getAll({ entity_type: MAINTENANCE_ENTITY_TYPE, entity_id: id, per_page: 50 }),
+    enabled: !!id,
+  });
+
+  const invoiceDocs = docsRes?.data ?? [];
 
   const updateMutation = useMutation({
     mutationFn: (payload: any) => maintenanceService.update(id!, payload),
@@ -127,6 +164,35 @@ export default function MaintenanceDetailsPage() {
     },
   });
 
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('entity_type', MAINTENANCE_ENTITY_TYPE);
+      formData.append('entity_id', id!);
+      formData.append('doc_type', 'Invoice');
+      return documentService.upload(formData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents', MAINTENANCE_ENTITY_TYPE, id] });
+      queryClient.invalidateQueries({ queryKey: ['maintenance-detail', id] });
+      setInvoiceFile(null);
+      setUploadError('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
+    onError: (err: any) => {
+      setUploadError(err.response?.data?.error?.message || 'Failed to upload the invoice.');
+    },
+  });
+
+  const deleteDocMutation = useMutation({
+    mutationFn: (docId: string) => documentService.delete(docId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents', MAINTENANCE_ENTITY_TYPE, id] });
+      setDocToDelete(null);
+    },
+  });
+
   const handleOpenEditModal = () => {
     if (!record) return;
     setEditFormData({
@@ -148,6 +214,22 @@ export default function MaintenanceDetailsPage() {
     setIsEditModalOpen(true);
   };
 
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editFormData.end_date && editFormData.start_date && editFormData.end_date < editFormData.start_date) {
+      setEditError('End date cannot be before the start date.');
+      return;
+    }
+    if (
+      editFormData.next_service_due && editFormData.start_date &&
+      editFormData.next_service_due < editFormData.start_date
+    ) {
+      setEditError('Next service due cannot be before the start date.');
+      return;
+    }
+    updateMutation.mutate(editFormData);
+  };
+
   const handleQuickStatusChange = (newStatus: MaintenanceStatus) => {
     updateMutation.mutate({ status: newStatus });
   };
@@ -165,7 +247,7 @@ export default function MaintenanceDetailsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-28 rounded-2xl" />
+              <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
           </div>
           <Skeleton className="h-96 rounded-2xl" />
@@ -197,8 +279,11 @@ export default function MaintenanceDetailsPage() {
   const statusMeta = STATUS_META[record.status] ?? { label: record.status, className: '' };
   const typeMeta = TYPE_META[record.maintenance_type] ?? { label: record.maintenance_type, className: '' };
 
+  const orderNo = record.ref_id || `MNT-${record.id.slice(0, 8)}`;
   const isCancelled = record.status === 'Cancelled';
   const currentStep = LIFECYCLE.indexOf(record.status as MaintenanceStatus);
+  // Fill the rail up to the active milestone; a completed order fills it entirely.
+  const progressPct = isCancelled ? 0 : (Math.max(0, currentStep) / (LIFECYCLE.length - 1)) * 100;
 
   const durationDays =
     record.start_date && record.end_date
@@ -216,8 +301,8 @@ export default function MaintenanceDetailsPage() {
       : null;
 
   return (
-    <DashboardLayout active="Vehicles" title={`Maintenance #${record.id.slice(0, 8)}`}>
-      <div className="px-4 sm:px-6 pb-8 space-y-6 animate-fade-in max-w-[1400px] mx-auto w-full">
+    <DashboardLayout active="Vehicles" title={`Service Order ${orderNo}`}>
+      <div className="px-4 sm:px-6 pb-8 space-y-5 animate-fade-in max-w-[1400px] mx-auto w-full">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
@@ -234,8 +319,11 @@ export default function MaintenanceDetailsPage() {
             </Button>
 
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight truncate">
-                Service Order #{record.id.slice(0, 8)}
+              <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                <Hash className="w-3 h-3" /> Service order
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight truncate font-mono">
+                {orderNo}
               </h1>
               <div className="flex items-center gap-2 flex-wrap mt-1.5">
                 <Badge className={cn('font-bold text-[10px] uppercase tracking-wide', typeMeta.className)}>
@@ -263,7 +351,18 @@ export default function MaintenanceDetailsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => exportToCSV([record], `maintenance_${record.id.slice(0, 8)}.csv`)}
+              onClick={() => window.print()}
+              className="h-9 gap-1.5 text-xs font-bold"
+              title="Print work report"
+            >
+              <Printer className="w-3.5 h-3.5 text-slate-500" />
+              Print
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportToCSV([record], `maintenance_${orderNo}.csv`)}
               className="h-9 gap-1.5 text-xs font-bold"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" />
@@ -312,294 +411,203 @@ export default function MaintenanceDetailsPage() {
           </div>
         </div>
 
-        {/* ── KPI row ────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ── Slim lifecycle rail ────────────────────────────────────────── */}
+        {isCancelled ? (
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-rose-500/5 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+            <XCircle className="w-4 h-4 shrink-0" />
+            <span className="text-xs font-extrabold">This service order was cancelled</span>
+            <span className="text-[11px] text-slate-500">· no further work is expected</span>
+          </div>
+        ) : (
+          <div className="px-1">
+            <div className="relative h-1 rounded-full bg-slate-200 dark:bg-slate-800">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-[#E8450F] transition-all duration-500"
+                style={{ width: `${progressPct}%` }}
+              />
+              {LIFECYCLE.map((step, index) => (
+                <span
+                  key={step}
+                  className={cn(
+                    'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-950 transition-colors',
+                    index <= currentStep ? 'bg-[#E8450F]' : 'bg-slate-300 dark:bg-slate-700',
+                  )}
+                  style={{ left: `${(index / (LIFECYCLE.length - 1)) * 100}%` }}
+                />
+              ))}
+            </div>
+            <div className="flex justify-between mt-2">
+              {LIFECYCLE.map((step, index) => (
+                <div
+                  key={step}
+                  className={cn(
+                    'text-[10px] font-bold uppercase tracking-wide',
+                    index === 0 && 'text-left',
+                    index === LIFECYCLE.length - 1 && 'text-right',
+                    index <= currentStep ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400',
+                  )}
+                >
+                  {STATUS_META[step].label}
+                  {step === 'Scheduled' && (
+                    <span className="block font-mono font-medium normal-case text-slate-400">
+                      {formatDate(record.start_date)}
+                    </span>
+                  )}
+                  {step === 'Completed' && (
+                    <span className="block font-mono font-medium normal-case text-slate-400">
+                      {formatDate(record.end_date)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-          <Card className="p-4 rounded-2xl gap-0">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Cost</span>
-              <Banknote className="w-4 h-4 text-rose-500" />
-            </div>
-            <div className="text-2xl font-mono font-black text-slate-900 dark:text-slate-100 mt-2">
-              {formatSAR(record.cost)}
-            </div>
-            <div className="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              Invoice {record.invoice_number || EMPTY}
-            </div>
-          </Card>
-
-          <Card className="p-4 rounded-2xl gap-0">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Odometer at service</span>
-              <Gauge className="w-4 h-4 text-indigo-500" />
-            </div>
-            <div className="text-2xl font-mono font-black text-slate-900 dark:text-slate-100 mt-2">
-              {record.odometer_reading ? `${record.odometer_reading.toLocaleString()} km` : EMPTY}
-            </div>
-            <div className="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              {odoSinceService !== null ? `+${odoSinceService.toLocaleString()} km driven since` : 'Vehicle odometer unavailable'}
-            </div>
-          </Card>
-
-          <Card className="p-4 rounded-2xl gap-0">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Downtime</span>
-              <Clock className="w-4 h-4 text-amber-500" />
-            </div>
-            <div className="text-2xl font-mono font-black text-slate-900 dark:text-slate-100 mt-2">
-              {durationDays !== null ? `${durationDays} ${durationDays === 1 ? 'day' : 'days'}` : EMPTY}
-            </div>
-            <div className="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              {record.end_date ? `Closed ${formatDate(record.end_date)}` : 'Not closed yet'}
-            </div>
-          </Card>
-
-          <Card className="p-4 rounded-2xl gap-0">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Next service due</span>
-              <CalendarClock className="w-4 h-4 text-emerald-500" />
-            </div>
-            <div className="text-2xl font-mono font-black text-slate-900 dark:text-slate-100 mt-2">
-              {formatDate(record.next_service_due)}
-            </div>
-            <div className="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              {record.next_service_due ? 'Scheduled follow-up' : 'No follow-up recorded'}
-            </div>
-          </Card>
-
+        {/* ── Summary metrics ────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Metric
+            label="Cost"
+            value={formatSAR(record.cost)}
+            hint={`Invoice ${record.invoice_number || EMPTY}`}
+            icon={Banknote}
+            tone="text-rose-500"
+          />
+          <Metric
+            label="Odometer at service"
+            value={record.odometer_reading ? `${record.odometer_reading.toLocaleString()} km` : EMPTY}
+            hint={odoSinceService !== null ? `+${odoSinceService.toLocaleString()} km driven since` : 'Vehicle odometer unavailable'}
+            icon={Gauge}
+            tone="text-indigo-500"
+          />
+          <Metric
+            label="Downtime"
+            value={durationDays !== null ? `${durationDays} ${durationDays === 1 ? 'day' : 'days'}` : EMPTY}
+            hint={record.end_date ? `Closed ${formatDate(record.end_date)}` : 'Not closed yet'}
+            icon={Clock}
+            tone="text-amber-500"
+          />
+          <Metric
+            label="Next service due"
+            value={formatDate(record.next_service_due)}
+            hint={record.next_service_due ? 'Scheduled follow-up' : 'No follow-up recorded'}
+            icon={CalendarClock}
+            tone="text-emerald-500"
+          />
         </div>
 
-        {/* ── Lifecycle stepper ──────────────────────────────────────────── */}
-        <Card className="p-4 sm:p-5 rounded-2xl">
-          {isCancelled ? (
-            <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400">
-              <XCircle className="w-5 h-5 shrink-0" />
-              <div>
-                <div className="text-sm font-extrabold">This service order was cancelled</div>
-                <div className="text-xs text-slate-500">No further work is expected on this record.</div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center">
-              {LIFECYCLE.map((step, index) => {
-                const reached = index <= currentStep;
-                return (
-                  <div key={step} className={cn('flex items-center', index < LIFECYCLE.length - 1 && 'flex-1')}>
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      <div
-                        className={cn(
-                          'w-7 h-7 rounded-full flex items-center justify-center border-2 transition-colors',
-                          reached
-                            ? 'bg-[#E8450F] border-[#E8450F] text-white'
-                            : 'border-slate-200 dark:border-slate-700 text-slate-400',
-                        )}
-                      >
-                        {reached ? <CheckCircle2 className="w-4 h-4" /> : <span className="text-[11px] font-bold">{index + 1}</span>}
-                      </div>
-                      <div className="hidden sm:block">
-                        <div className={cn('text-xs font-extrabold', reached ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400')}>
-                          {STATUS_META[step].label}
-                        </div>
-                        <div className="text-[10px] text-slate-500">
-                          {step === 'Scheduled' && formatDate(record.start_date)}
-                          {step === 'Completed' && formatDate(record.end_date)}
-                        </div>
-                      </div>
-                    </div>
-                    {index < LIFECYCLE.length - 1 && (
-                      <div
-                        className={cn(
-                          'h-0.5 flex-1 mx-3 rounded-full',
-                          index < currentStep ? 'bg-[#E8450F]' : 'bg-slate-200 dark:bg-slate-800',
-                        )}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-
-        {/* ── Tabs ───────────────────────────────────────────────────────── */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
-
-          <TabsList className="h-auto p-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 w-full sm:w-auto flex flex-wrap sm:inline-flex gap-1.5">
-            {[
-              { value: 'overview', icon: Wrench, label: 'Work report' },
-              { value: 'financial', icon: Receipt, label: 'Invoice' },
-              { value: 'vehicle', icon: Truck, label: 'Vehicle' },
-            ].map(({ value, icon: Icon, label }) => (
-              <TabsTrigger
-                key={value}
-                value={value}
-                className="px-4 py-2.5 sm:px-5 min-h-[44px] text-xs sm:text-sm font-extrabold gap-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm cursor-pointer transition-all"
-              >
-                <Icon className="w-4 h-4" /> {label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {/* ── Body ───────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
           {/* ── Work report ─────────────────────────────────────────────── */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2 rounded-2xl overflow-hidden gap-0 py-0">
 
-              <Card className="lg:col-span-2 rounded-2xl">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-extrabold flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#E8450F]" /> Work performed
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Activities and technical notes recorded by the workshop.
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="p-5 space-y-4">
-                  {record.work_done ? (
-                    <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed">
-                      {record.work_done}
-                    </p>
-                  ) : (
-                    <div className="flex items-center gap-2 text-xs text-slate-500 py-6 justify-center">
-                      <AlertCircle className="w-4 h-4" />
-                      No work details recorded for this service order.
-                    </div>
-                  )}
-
-                  {record.remarks && (
-                    <>
-                      <Separator />
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Remarks</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300 mt-1 whitespace-pre-line">{record.remarks}</p>
-                      </div>
-                    </>
-                  )}
-
-                  <Separator />
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
-                    <Field label="Start date" value={formatDate(record.start_date)} mono />
-                    <Field label="Completion date" value={formatDate(record.end_date)} mono />
-                    <Field label="Service date" value={formatDate(record.service_date)} mono />
-                    <Field label="Next service due" value={formatDate(record.next_service_due)} mono />
-                    <Field
-                      label="Odometer at service"
-                      value={record.odometer_reading ? `${record.odometer_reading.toLocaleString()} km` : EMPTY}
-                      mono
-                    />
-                    <Field label="Last updated" value={formatDate(record.updatedAt)} mono />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl h-fit">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                  <CardTitle className="text-sm font-extrabold flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-indigo-500" /> Workshop
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="p-4 space-y-3">
-                  <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                    {record.workshop_name || EMPTY}
-                  </div>
-
-                  {record.workshop_contact ? (
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">Contact</div>
-                        <div className="text-xs font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-0.5 truncate">
-                          {record.workshop_contact}
-                        </div>
-                      </div>
-                      <a
-                        href={`tel:${record.workshop_contact}`}
-                        className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-300 shrink-0"
-                        title="Call workshop"
-                      >
-                        <Phone className="w-4 h-4" />
-                      </a>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-500">No contact number on file.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-            </div>
-          </TabsContent>
-
-          {/* ── Invoice ─────────────────────────────────────────────────── */}
-          <TabsContent value="financial">
-            <Card className="rounded-2xl">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-start justify-between gap-4">
+            {/* Report letterhead */}
+            <div className="px-5 sm:px-6 py-4 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <CardTitle className="text-sm font-extrabold flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-emerald-500" /> Invoice
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Billing information recorded against this service order.
-                  </CardDescription>
+                  <div className="flex items-center gap-2 text-[#E8450F]">
+                    <ClipboardList className="w-4 h-4" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-[0.14em]">Workshop work report</span>
+                  </div>
+                  <div className="text-lg font-black text-slate-900 dark:text-slate-100 mt-1">
+                    {record.workshop_name || 'Unnamed workshop'}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">
+                    {typeMeta.label} · {vehicle ? vehicle.plate_number : 'No vehicle linked'}
+                  </div>
                 </div>
-                <span className="text-xl font-mono font-black text-slate-900 dark:text-slate-100 shrink-0">
-                  {formatSAR(record.cost)}
-                </span>
+
+                <div className="text-right shrink-0">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Order no.</div>
+                  <div className="text-sm font-mono font-black text-slate-900 dark:text-slate-100">{orderNo}</div>
+                  <div className="text-[10px] text-slate-500 mt-1 font-mono">{formatDate(record.service_date)}</div>
+                </div>
+              </div>
+            </div>
+
+            <CardContent className="px-5 sm:px-6 py-5 space-y-5">
+
+              {/* Scope of work */}
+              <section>
+                <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-2">
+                  Scope of work performed
+                </h3>
+                {record.work_done ? (
+                  <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed border-l-2 border-[#E8450F]/40 pl-3.5">
+                    {record.work_done}
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-slate-500 py-5 justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <AlertCircle className="w-4 h-4" />
+                    No work details recorded for this service order.
+                  </div>
+                )}
+              </section>
+
+              {record.remarks && (
+                <section>
+                  <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-2">
+                    Technician remarks
+                  </h3>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed rounded-xl bg-slate-50 dark:bg-slate-800/40 p-3.5 border border-slate-100 dark:border-slate-800">
+                    {record.remarks}
+                  </p>
+                </section>
+              )}
+
+              <Separator />
+
+              {/* Service record */}
+              <section>
+                <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-1">
+                  Service record
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+                  <Field label="Start date" value={formatDate(record.start_date)} mono />
+                  <Field label="Completion date" value={formatDate(record.end_date)} mono />
+                  <Field label="Service date" value={formatDate(record.service_date)} mono />
+                  <Field label="Next service due" value={formatDate(record.next_service_due)} mono />
+                  <Field
+                    label="Odometer at service"
+                    value={record.odometer_reading ? `${record.odometer_reading.toLocaleString()} km` : EMPTY}
+                    mono
+                  />
+                  <Field label="Last updated" value={formatDate(record.updatedAt)} mono />
+                </div>
+              </section>
+            </CardContent>
+          </Card>
+
+          {/* ── Side column ─────────────────────────────────────────────── */}
+          <div className="space-y-5">
+
+            {/* Vehicle */}
+            <Card className="rounded-2xl">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between gap-3">
+                <CardTitle className="text-sm font-extrabold flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-[#E8450F]" /> Vehicle
+                </CardTitle>
+                {vehicle && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                    className="text-[11px] font-bold text-[#E8450F] hover:underline inline-flex items-center gap-1"
+                  >
+                    View <ExternalLink className="w-3 h-3" />
+                  </button>
+                )}
               </CardHeader>
 
-              <CardContent className="p-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 divide-y sm:divide-y-0 divide-slate-100 dark:divide-slate-800">
-                  <Field label="Invoice number" value={record.invoice_number || EMPTY} mono />
-                  <Field label="Workshop" value={record.workshop_name || EMPTY} />
-                  <Field label="Maintenance type" value={typeMeta.label} />
-                  <Field label="Status" value={statusMeta.label} />
-                  <Field label="Recorded on" value={formatDate(record.createdAt)} mono />
-                  <Field
-                    label="Invoice document"
-                    value={
-                      record.invoice_url ? (
-                        <a
-                          href={record.invoice_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[#E8450F] hover:underline"
-                        >
-                          Open <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ) : (
-                        EMPTY
-                      )
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ── Vehicle ─────────────────────────────────────────────────── */}
-          <TabsContent value="vehicle">
-            {vehicle ? (
-              <Card className="rounded-2xl">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-start justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-sm font-extrabold flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-[#E8450F]" /> Vehicle
-                    </CardTitle>
-                    <CardDescription className="text-xs">Asset this service order belongs to.</CardDescription>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                    className="text-xs font-bold gap-1.5 shrink-0"
-                  >
-                    View vehicle <ExternalLink className="w-3.5 h-3.5" />
-                  </Button>
-                </CardHeader>
-
-                <CardContent className="p-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
-                    <Field label="Plate number" value={vehicle.plate_number} mono />
+              <CardContent className="px-4 pb-4">
+                {vehicle ? (
+                  <>
+                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 px-3.5 py-3 mb-1">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Plate number</div>
+                      <div className="text-lg font-mono font-black text-slate-900 dark:text-slate-100 tracking-wider">
+                        {vehicle.plate_number}
+                      </div>
+                    </div>
                     <Field label="Reference ID" value={vehicle.ref_id || EMPTY} mono />
                     <Field label="Asset type" value={vehicle.asset_type} />
                     <Field label="Vehicle status" value={vehicle.status} />
@@ -608,17 +616,171 @@ export default function MaintenanceDetailsPage() {
                       value={`${(vehicle.current_odometer || 0).toLocaleString()} km`}
                       mono
                     />
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="rounded-2xl p-10 text-center text-xs text-slate-500">
-                No vehicle is linked to this maintenance record.
-              </Card>
-            )}
-          </TabsContent>
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-500 py-4 text-center">No vehicle is linked to this record.</p>
+                )}
+              </CardContent>
+            </Card>
 
-        </Tabs>
+            {/* Workshop */}
+            <Card className="rounded-2xl">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <CardTitle className="text-sm font-extrabold flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-500" /> Workshop
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="px-4 pb-4 space-y-3">
+                <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                  {record.workshop_name || EMPTY}
+                </div>
+
+                {record.workshop_contact ? (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase">Contact</div>
+                      <div className="text-xs font-mono font-extrabold text-slate-900 dark:text-slate-100 mt-0.5 truncate">
+                        {record.workshop_contact}
+                      </div>
+                    </div>
+                    <a
+                      href={`tel:${record.workshop_contact}`}
+                      className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 dark:text-indigo-300 shrink-0"
+                      title="Call workshop"
+                    >
+                      <Phone className="w-4 h-4" />
+                    </a>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">No contact number on file.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* ── Invoice ────────────────────────────────────────────────────── */}
+        <Card className="rounded-2xl">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-sm font-extrabold flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-emerald-500" /> Invoice
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Billing recorded against this order, plus the invoice issued by the workshop.
+              </CardDescription>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Total</div>
+              <div className="text-xl font-mono font-black text-slate-900 dark:text-slate-100">
+                {formatSAR(record.cost)}
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* Billing summary */}
+            <div>
+              <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-1">
+                Billing details
+              </h3>
+              <Field label="Invoice number" value={record.invoice_number || EMPTY} mono />
+              <Field label="Workshop" value={record.workshop_name || EMPTY} />
+              <Field label="Maintenance type" value={typeMeta.label} />
+              <Field label="Status" value={statusMeta.label} />
+              <Field label="Recorded on" value={formatDate(record.createdAt)} mono />
+            </div>
+
+            {/* Uploaded workshop invoices */}
+            <div>
+              <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-2">
+                Workshop invoice ({invoiceDocs.length})
+              </h3>
+
+              <div className="space-y-2">
+                {invoiceDocs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center gap-1.5 py-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <Paperclip className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+                    <p className="text-xs text-slate-500">No invoice uploaded yet.</p>
+                    <p className="text-[10px] text-slate-400">Attach the bill issued by the workshop below.</p>
+                  </div>
+                ) : (
+                  invoiceDocs.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                          {doc.file_url.split('/').pop()}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          {formatDate(doc.createdAt)} · {doc.status}
+                        </div>
+                      </div>
+                      <a
+                        href={doc.file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 shrink-0"
+                        title="Open invoice"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setDocToDelete(doc)}
+                        className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0"
+                        title="Remove invoice"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Upload */}
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                {uploadError && (
+                  <div className="mb-2 p-2.5 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 text-[11px] font-bold flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                    onChange={(e) => {
+                      setInvoiceFile(e.target.files?.[0] ?? null);
+                      setUploadError('');
+                    }}
+                    className="h-9 text-xs file:text-xs file:font-bold file:mr-2 cursor-pointer"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!invoiceFile || uploadMutation.isPending}
+                    onClick={() => invoiceFile && uploadMutation.mutate(invoiceFile)}
+                    className="h-9 shrink-0 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {uploadMutation.isPending ? 'Uploading…' : 'Upload'}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">PDF or image, up to the server upload limit.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ── Edit modal ───────────────────────────────────────────────────── */}
@@ -626,20 +788,14 @@ export default function MaintenanceDetailsPage() {
         <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
             <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-[#E8450F]" /> Edit service order #{record.id.slice(0, 8)}
+              <Wrench className="w-5 h-5 text-[#E8450F]" /> Edit service order {orderNo}
             </DialogTitle>
             <DialogDescription className="text-xs">
               Changes are applied immediately to the maintenance record.
             </DialogDescription>
           </DialogHeader>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              updateMutation.mutate(editFormData);
-            }}
-            className="flex-1 overflow-y-auto p-6 space-y-4"
-          >
+          <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
             {editError && (
               <div className="p-3 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 text-xs font-bold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -701,6 +857,7 @@ export default function MaintenanceDetailsPage() {
                 <Label className="text-xs font-bold">Odometer reading (km)</Label>
                 <Input
                   type="number"
+                  min="0"
                   value={editFormData.odometer_reading}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
                   className="h-9 text-xs"
@@ -712,7 +869,14 @@ export default function MaintenanceDetailsPage() {
                 <Input
                   type="date"
                   value={editFormData.start_date}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                  onChange={(e) => {
+                    const start_date = e.target.value;
+                    setEditFormData(prev => ({
+                      ...prev,
+                      start_date,
+                      end_date: prev.end_date && prev.end_date < start_date ? start_date : prev.end_date,
+                    }));
+                  }}
                   className="h-9 text-xs"
                 />
               </div>
@@ -722,6 +886,7 @@ export default function MaintenanceDetailsPage() {
                 <Input
                   type="date"
                   value={editFormData.end_date || ''}
+                  min={editFormData.start_date || undefined}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, end_date: e.target.value }))}
                   className="h-9 text-xs"
                 />
@@ -759,6 +924,7 @@ export default function MaintenanceDetailsPage() {
                 <Input
                   type="date"
                   value={editFormData.next_service_due || ''}
+                  min={editFormData.start_date || undefined}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, next_service_due: e.target.value }))}
                   className="h-9 text-xs"
                 />
@@ -802,7 +968,7 @@ export default function MaintenanceDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete modal ─────────────────────────────────────────────────── */}
+      {/* ── Delete record modal ──────────────────────────────────────────── */}
       <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
         <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden">
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
@@ -811,8 +977,9 @@ export default function MaintenanceDetailsPage() {
               <DialogTitle className="text-base font-extrabold">Delete service order</DialogTitle>
             </div>
             <DialogDescription className="text-xs text-slate-500 mt-1">
-              This permanently deletes maintenance record #{record.id.slice(0, 8)}
-              {vehicle ? <> for vehicle <strong className="text-slate-900 dark:text-slate-100">{vehicle.plate_number}</strong></> : null}. This cannot be undone.
+              This deletes service order <strong className="font-mono text-slate-900 dark:text-slate-100">{orderNo}</strong>
+              {vehicle ? <> for vehicle <strong className="text-slate-900 dark:text-slate-100">{vehicle.plate_number}</strong></> : null}.
+              The order number is released and will be reused by the next service order.
             </DialogDescription>
           </DialogHeader>
 
@@ -828,6 +995,37 @@ export default function MaintenanceDetailsPage() {
               className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-4"
             >
               {deleteMutation.isPending ? 'Deleting…' : 'Delete record'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete invoice modal ─────────────────────────────────────────── */}
+      <Dialog open={!!docToDelete} onOpenChange={(open) => !open && setDocToDelete(null)}>
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-rose-600">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <DialogTitle className="text-base font-extrabold">Remove invoice</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-slate-500 mt-1">
+              Remove <strong className="text-slate-900 dark:text-slate-100">{docToDelete?.file_url.split('/').pop()}</strong> from
+              this service order?
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDocToDelete(null)} className="text-xs">
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={deleteDocMutation.isPending}
+              onClick={() => docToDelete && deleteDocMutation.mutate(docToDelete.id)}
+              className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-4"
+            >
+              {deleteDocMutation.isPending ? 'Removing…' : 'Remove invoice'}
             </Button>
           </DialogFooter>
         </DialogContent>

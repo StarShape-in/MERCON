@@ -67,7 +67,48 @@ async function main() {
   });
   console.log(`  ✓ Admin user: ${ilan.username}`);
 
+  await backfillMaintenanceRefIds();
+
   console.log('✅ Default accounts seeded successfully!');
+}
+
+/**
+ * Service orders gained a sequential `ref_id` (MNT-001, MNT-002, …) after records
+ * already existed. Number the un-numbered ones oldest-first so the sequence matches
+ * the order they were created in.
+ *
+ * Idempotent: records that already carry a ref_id are skipped, so this is a no-op on
+ * every start after the first.
+ */
+async function backfillMaintenanceRefIds() {
+  const unnumbered = await prisma.maintenanceRecord.findMany({
+    where: { ref_id: null, deletedAt: null },
+    select: { id: true },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (unnumbered.length === 0) return;
+
+  const taken = new Set(
+    (await prisma.maintenanceRecord.findMany({
+      where: { ref_id: { not: null } },
+      select: { ref_id: true },
+    }))
+      .map((r) => parseInt(String(r.ref_id).replace('MNT-', ''), 10))
+      .filter((n) => !isNaN(n)),
+  );
+
+  let next = 1;
+  for (const record of unnumbered) {
+    while (taken.has(next)) next++;
+    await prisma.maintenanceRecord.update({
+      where: { id: record.id },
+      data: { ref_id: `MNT-${String(next).padStart(3, '0')}` },
+    });
+    taken.add(next);
+  }
+
+  console.log(`  ✓ Backfilled ref_id for ${unnumbered.length} maintenance record(s)`);
 }
 
 main()

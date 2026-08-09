@@ -1,10 +1,16 @@
 import { api, ApiResponse } from '@/lib/api';
+import type { MerconDocument } from '@/services/documentService';
+
+/** entity_type used when attaching workshop invoices to a service order. */
+export const MAINTENANCE_ENTITY_TYPE = 'MaintenanceRecord';
 
 export type MaintenanceType = 'Routine' | 'Repair' | 'Inspection' | 'Renewal' | 'Emergency';
 export type MaintenanceStatus = 'Scheduled' | 'In_Progress' | 'Completed' | 'Cancelled';
 
 export interface MaintenanceRecord {
   id: string;
+  /** Sequential service-order number, e.g. "MNT-001". Null only for un-backfilled rows. */
+  ref_id?: string | null;
   vehicleId: string;
   workshop_name: string;
   workshop_contact?: string | null;
@@ -29,7 +35,10 @@ export interface MaintenanceRecord {
     asset_type: string;
     status: string;
     current_odometer: number;
+    capacity_kg?: number;
   };
+  /** Only returned by the detail endpoint. */
+  documents?: MerconDocument[];
 }
 
 export interface CreateMaintenancePayload {

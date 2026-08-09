@@ -36,6 +36,9 @@ import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import DataTable, { Column } from '@/components/ui/DataTable';
 
+/** `YYYY-MM-DD` for today — used as the `min` on scheduling date inputs. */
+const TODAY_ISO = new Date().toISOString().split('T')[0];
+
 export default function MaintenanceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -203,6 +206,16 @@ export default function MaintenanceListPage() {
       setFormError('Workshop name is required.');
       return;
     }
+    // A new service order is logged today or scheduled forward — never back-dated.
+    // Editing keeps whatever dates the record already has.
+    if (!editingRecord && formData.start_date && formData.start_date < TODAY_ISO) {
+      setFormError('Start date cannot be in the past — pick today or a later date.');
+      return;
+    }
+    if (formData.end_date && formData.start_date && formData.end_date < formData.start_date) {
+      setFormError('End date cannot be before the start date.');
+      return;
+    }
 
     if (editingRecord) {
       updateMutation.mutate({ id: editingRecord.id, payload: formData });
@@ -313,7 +326,7 @@ export default function MaintenanceListPage() {
       variant: 'secondary' as const,
       onClick: (selectedRows: MaintenanceRecord[]) => {
         const exportData = selectedRows.map(r => ({
-          ID: r.id,
+          Order_No: r.ref_id || '',
           Vehicle: r.vehicle?.plate_number || 'N/A',
           Ref_ID: r.vehicle?.ref_id || 'N/A',
           Maintenance_Type: r.maintenance_type,
@@ -586,6 +599,14 @@ export default function MaintenanceListPage() {
                   }
                   columns={[
                     {
+                      header: 'Order #',
+                      accessor: (r: MaintenanceRecord) => (
+                        <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">
+                          {r.ref_id || '—'}
+                        </span>
+                      ),
+                    },
+                    {
                       header: 'Vehicle / Ref',
                       accessor: (r: MaintenanceRecord) => (
                         <div>
@@ -723,9 +744,12 @@ export default function MaintenanceListPage() {
                   {records.map((r) => (
                   <Card key={r.id} className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                        <Truck className="w-4 h-4 text-indigo-500" />
-                        {r.vehicle?.plate_number || 'TRK-UNKNOWN'}
+                      <div className="min-w-0">
+                        <div className="font-mono text-[10px] font-extrabold text-slate-400">{r.ref_id || '—'}</div>
+                        <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                          <Truck className="w-4 h-4 text-indigo-500" />
+                          {r.vehicle?.plate_number || 'TRK-UNKNOWN'}
+                        </div>
                       </div>
                       {getStatusBadge(r.status)}
                     </div>
@@ -864,7 +888,17 @@ export default function MaintenanceListPage() {
                 <Input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                  min={editingRecord ? undefined : TODAY_ISO}
+                  onChange={(e) => {
+                    const start_date = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      start_date,
+                      // Keep the window coherent: an end date that now precedes the
+                      // start is snapped forward rather than left silently invalid.
+                      end_date: prev.end_date && prev.end_date < start_date ? start_date : prev.end_date,
+                    }));
+                  }}
                   className="h-9 text-xs"
                 />
               </div>
@@ -875,6 +909,7 @@ export default function MaintenanceListPage() {
                 <Input
                   type="date"
                   value={formData.end_date || ''}
+                  min={formData.start_date || (editingRecord ? undefined : TODAY_ISO)}
                   onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
                   className="h-9 text-xs"
                 />

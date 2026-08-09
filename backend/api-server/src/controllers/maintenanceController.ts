@@ -1,6 +1,37 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../index';
+import { generateRefId } from '../utils/refId';
+import { logger } from '../utils/logger';
+
+/** Service orders are numbered MNT-001, MNT-002, … and gaps are refilled on delete. */
+const MAINTENANCE_REF_PREFIX = 'MNT';
+const MAINTENANCE_REF_PAD = 3;
+
+export const nextMaintenanceRefId = () =>
+  generateRefId(
+    MAINTENANCE_REF_PREFIX,
+    () => prisma.maintenanceRecord.findMany({ where: { deletedAt: null }, select: { ref_id: true } }),
+    { padLength: MAINTENANCE_REF_PAD },
+  );
+
+/** Midnight today, used to reject back-dated / far-future scheduling. */
+const startOfToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+/**
+ * Dates arrive as `''`, `null`, `undefined` or an ISO/`YYYY-MM-DD` string. Anything
+ * that is not a real date must become `null` — handing Prisma an empty string or an
+ * Invalid Date throws and surfaces as a bare 500.
+ */
+const toDate = (value?: string | Date | null): Date | null => {
+  if (value === undefined || value === null || value === '') return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+};
 
 export const getMaintenanceRecords = async (req: Request, res: Response) => {
   try {
@@ -27,6 +58,7 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
     if (search) {
       const searchStr = (search as string).trim();
       whereClause.OR = [
+        { ref_id: { contains: searchStr, mode: 'insensitive' } },
         { workshop_name: { contains: searchStr, mode: 'insensitive' } },
         { invoice_number: { contains: searchStr, mode: 'insensitive' } },
         { remarks: { contains: searchStr, mode: 'insensitive' } },
@@ -149,6 +181,45 @@ const maintenanceSchema = z.object({
   remarks: z.string().optional().nullable(),
 });
 
+/**
+ * Shared date rules for a service order. Returns an error message, or null when the
+ * window is coherent.
+ *
+ * `enforceNotBackdated` is only applied on create: an existing record legitimately
+ * holds old dates, and editing an unrelated field must not fail because of them.
+ */
+function validateDateWindow({
+  startDateVal,
+  endDateVal,
+  nextServiceDueVal,
+  enforceNotBackdated,
+}: {
+  startDateVal: Date | null;
+  endDateVal: Date | null;
+  nextServiceDueVal: Date | null;
+  enforceNotBackdated: boolean;
+}): string | null {
+  const today = startOfToday();
+
+  if (enforceNotBackdated && startDateVal && startDateVal < today) {
+    return 'Start date cannot be in the past — a service order starts today or later.';
+  }
+
+  if (startDateVal && endDateVal && endDateVal < startDateVal) {
+    return 'End date cannot be before the start date.';
+  }
+
+  if (enforceNotBackdated && endDateVal && endDateVal < today) {
+    return 'End date cannot be in the past.';
+  }
+
+  if (nextServiceDueVal && startDateVal && nextServiceDueVal < startDateVal) {
+    return 'Next service due cannot be before the start date.';
+  }
+
+  return null;
+}
+
 export const createMaintenanceRecord = async (req: Request, res: Response) => {
   try {
     const parseResult = maintenanceSchema.safeParse(req.body);
@@ -181,33 +252,72 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
       remarks,
     } = parseResult.data;
 
-    const startDateVal = start_date ? new Date(start_date) : service_date ? new Date(service_date) : new Date();
-    const serviceDateVal = service_date ? new Date(service_date) : startDateVal;
-    const endDateVal = end_date ? new Date(end_date) : status === 'Completed' ? serviceDateVal : null;
+    const startDateVal = toDate(start_date) ?? toDate(service_date) ?? new Date();
+    const serviceDateVal = toDate(service_date) ?? startDateVal;
+    const endDateVal = toDate(end_date) ?? (status === 'Completed' ? serviceDateVal : null);
+    const nextServiceDueVal = toDate(next_service_due);
 
-    const record = await prisma.maintenanceRecord.create({
-      data: {
-        vehicleId: vehicle_id,
-        workshop_name,
-        workshop_contact: workshop_contact || null,
-        maintenance_type,
-        status: status || 'Completed',
-        start_date: startDateVal,
-        end_date: endDateVal,
-        service_date: serviceDateVal,
-        work_done: work_done || null,
-        odometer_reading,
-        cost: cost || 0,
-        invoice_number: invoice_number || null,
-        invoice_url: invoice_url || null,
-        next_service_due: next_service_due ? new Date(next_service_due) : null,
-        remarks: remarks || null,
-        created_by: (req as any).user?.id,
-      },
-      include: {
-        vehicle: true,
-      },
+    const dateError = validateDateWindow({
+      startDateVal,
+      endDateVal,
+      nextServiceDueVal,
+      // A brand new service order is logged today or scheduled forward — it can
+      // never start years in the past.
+      enforceNotBackdated: true,
     });
+    if (dateError) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: dateError },
+      });
+    }
+
+    const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicle_id, deletedAt: null } });
+    if (!vehicle) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Selected vehicle does not exist.' },
+      });
+    }
+
+    // ref_id is unique; two operators saving at the same instant can pick the same
+    // number, so retry on collision rather than failing the save.
+    let record;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        record = await prisma.maintenanceRecord.create({
+          data: {
+            ref_id: await nextMaintenanceRefId(),
+            vehicleId: vehicle_id,
+            workshop_name,
+            workshop_contact: workshop_contact || null,
+            maintenance_type,
+            status: status || 'Completed',
+            start_date: startDateVal,
+            end_date: endDateVal,
+            service_date: serviceDateVal,
+            work_done: work_done || null,
+            odometer_reading: Number.isFinite(odometer_reading) ? odometer_reading : 0,
+            cost: Number.isFinite(cost) ? cost : 0,
+            invoice_number: invoice_number || null,
+            invoice_url: invoice_url || null,
+            next_service_due: nextServiceDueVal,
+            remarks: remarks || null,
+            created_by: (req as any).user?.id,
+          },
+          include: {
+            vehicle: true,
+          },
+        });
+        break;
+      } catch (err: any) {
+        if (err?.code === 'P2002' && attempt < 4) {
+          logger.warn({ err }, `Maintenance ref_id collision. Retrying attempt ${attempt + 1}...`);
+          continue;
+        }
+        throw err;
+      }
+    }
 
     // If status is In_Progress, optionally update vehicle status to Maintenance
     if (status === 'In_Progress') {
@@ -217,8 +327,7 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
       });
     } else if (status === 'Completed') {
       // Update vehicle odometer reading if higher
-      const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicle_id } });
-      if (vehicle && odometer_reading > vehicle.current_odometer) {
+      if (odometer_reading > vehicle.current_odometer) {
         await prisma.vehicle.update({
           where: { id: vehicle_id },
           data: { current_odometer: odometer_reading },
@@ -228,6 +337,7 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: record });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to create maintenance record');
     res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to create maintenance record' },
@@ -261,13 +371,36 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
     }
 
     const data: any = { ...parseResult.data };
-    if (data.start_date) data.start_date = new Date(data.start_date);
-    if (data.end_date) data.end_date = new Date(data.end_date);
-    if (data.service_date) data.service_date = new Date(data.service_date);
-    if (data.next_service_due) data.next_service_due = new Date(data.next_service_due);
+
+    // Empty strings mean "clear this date". `service_date` and `start_date` are
+    // non-nullable in the schema, so an empty value there means "leave untouched".
+    for (const field of ['start_date', 'service_date'] as const) {
+      if (field in data) {
+        const parsed = toDate(data[field]);
+        if (parsed) data[field] = parsed;
+        else delete data[field];
+      }
+    }
+    for (const field of ['end_date', 'next_service_due'] as const) {
+      if (field in data) data[field] = toDate(data[field]);
+    }
+
     if (data.vehicle_id) {
       data.vehicleId = data.vehicle_id;
       delete data.vehicle_id;
+    }
+
+    const dateError = validateDateWindow({
+      startDateVal: data.start_date ?? existing.start_date,
+      endDateVal: 'end_date' in data ? data.end_date : existing.end_date,
+      nextServiceDueVal: 'next_service_due' in data ? data.next_service_due : existing.next_service_due,
+      enforceNotBackdated: false,
+    });
+    if (dateError) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: dateError },
+      });
     }
 
     const updated = await prisma.maintenanceRecord.update({
@@ -317,6 +450,7 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: updated });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to update maintenance record');
     res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to update maintenance record' },
@@ -339,6 +473,10 @@ export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
     await prisma.maintenanceRecord.update({
       where: { id: recordId },
       data: {
+        // Releasing the ref_id frees its number for the next service order, so the
+        // sequence stays gapless (delete MNT-005 → the next order becomes MNT-005).
+        // `ref_id` is unique across deleted rows too, so it must be cleared, not kept.
+        ref_id: null,
         deletedAt: new Date(),
         deleted_by: (req as any).user?.id,
       },
@@ -346,6 +484,7 @@ export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
 
     res.json({ success: true, message: 'Maintenance record deleted successfully' });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to delete maintenance record');
     res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to delete maintenance record' },

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
-  Settings, User, LogOut, Wrench, X, MapPin, DollarSign
+  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -75,6 +75,7 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
         { icon: User, label: 'Profile', path: '/settings/profile' },
         ...(user?.role === 'Admin' || user?.role === 'Operator' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
+        { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
       ],
     },
   ];
