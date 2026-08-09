@@ -496,12 +496,24 @@ export default function MaintenanceListPage() {
         </div>
 
         {/* ── 3. Toolbar & Control Bar ────────────────────────────────────── */}
-        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-2xs">
-          <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
-
-            {/* Filter Dropdowns */}
-            <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap">
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 rounded-xl shadow-2xs shrink-0">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 overflow-x-auto">
+            
+            {/* Search Input & Inline Filter Dropdown Controls */}
+            <div className="flex items-center gap-3 w-full sm:w-auto flex-1 min-w-[280px]">
               
+              {/* Search Input Box */}
+              <div className="relative min-w-[220px] max-w-sm flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input
+                  placeholder="Search vehicle plate, workshop, invoice, or work done..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 text-xs h-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                />
+              </div>
+
+              {/* Status Filter */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-9 text-xs w-[140px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Status" />
@@ -515,6 +527,7 @@ export default function MaintenanceListPage() {
                 </SelectContent>
               </Select>
 
+              {/* Type Filter */}
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="h-9 text-xs w-[160px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Maintenance Type" />
@@ -529,30 +542,30 @@ export default function MaintenanceListPage() {
                 </SelectContent>
               </Select>
 
-              {/* Segmented View Switcher */}
-              <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={cn(
-                    "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5",
-                    viewMode === 'list' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs" : "text-slate-500 hover:text-slate-900"
-                  )}
-                >
-                  <List className="w-3.5 h-3.5" />
-                  List
-                </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={cn(
-                    "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5",
-                    viewMode === 'grid' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs" : "text-slate-500 hover:text-slate-900"
-                  )}
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  Grid
-                </button>
-              </div>
+            </div>
 
+            {/* Segmented View Switcher */}
+            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5",
+                  viewMode === 'list' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs" : "text-slate-500 hover:text-slate-900"
+                )}
+              >
+                <List className="w-3.5 h-3.5" />
+                List
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  "px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5",
+                  viewMode === 'grid' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs" : "text-slate-500 hover:text-slate-900"
+                )}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Grid
+              </button>
             </div>
 
           </div>
