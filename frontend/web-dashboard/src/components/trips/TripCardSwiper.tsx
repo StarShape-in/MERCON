@@ -89,7 +89,7 @@ export default function TripCardSwiper() {
         opts={{ align: 'start', containScroll: 'trimSnaps', dragFree: false }}
         className="shrink-0"
       >
-        <Card className="overflow-hidden rounded-[24px] bg-white shadow-md ring-1 ring-black/[0.06]">
+        <Card className="overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-black/[0.06]">
           <CardHeader className="border-b border-black/[0.04] pb-3.5">
             <CardTitle className="flex items-center gap-2 text-sm font-extrabold tracking-tight text-[#111]">
               <span className="inline-flex size-2 rounded-full bg-[#E8450F]" />
@@ -129,7 +129,7 @@ export default function TripCardSwiper() {
                       }
                     }}
                     className={cn(
-                      'group relative cursor-pointer select-none space-y-2.5 rounded-2xl border border-black/[0.08] bg-white p-3.5',
+                      'group relative cursor-pointer select-none space-y-2.5 rounded-xl border border-black/[0.08] bg-white p-3.5',
                       'transition-colors duration-150',
                       'hover:border-[#E8450F]/50 hover:shadow-sm',
                       'focus-visible:border-[#E8450F]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/40'
@@ -150,7 +150,7 @@ export default function TripCardSwiper() {
                     </div>
 
                     {/* Route micro-map */}
-                    <div className="overflow-hidden rounded-xl border border-black/[0.06]">
+                    <div className="overflow-hidden rounded-lg border border-black/[0.06]">
                       <TripMicroMap
                         currentLat={truck.currentCoords.lat}
                         currentLng={truck.currentCoords.lng}
@@ -173,7 +173,7 @@ export default function TripCardSwiper() {
                     </div>
 
                     {/* Origin → Destination corridor */}
-                    <div className="rounded-xl border border-black/[0.06] bg-white p-2">
+                    <div className="rounded-lg border border-black/[0.06] bg-white p-2">
                       <p className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-muted-foreground">
                         <RouteIcon size={9} /> Route Corridor
                       </p>

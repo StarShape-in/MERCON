@@ -113,16 +113,16 @@ const variantStyles: Record<KpiCardVariant, {
     activeRing: 'shadow-[0_0_15px_rgba(220,38,38,0.18)] border-rose-500 scale-[1.01] transition-all',
   },
   slate: {
-    hex: '#64748B',
-    iconContainer: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
-    activeRing: 'shadow-[0_0_15px_rgba(100,116,139,0.18)] border-slate-400 scale-[1.01] transition-all',
+    hex: '#52525B',
+    iconContainer: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400',
+    activeRing: 'shadow-[0_0_15px_rgba(82,82,91,0.18)] border-zinc-400 scale-[1.01] transition-all',
   },
 }
 
 const trendChipStyles = {
   up: 'bg-emerald-600/10 text-emerald-700 dark:text-emerald-400',
   down: 'bg-rose-600/10 text-rose-700 dark:text-rose-400',
-  neutral: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+  neutral: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400',
 } as const
 
 const trendGlyph = {
@@ -298,7 +298,7 @@ export function KpiCard({
   return (
     <Card
       className={cn(
-        'group relative gap-0 rounded-2xl border border-black/[0.06] bg-white p-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
+        'group relative gap-0 rounded-xl border border-black/[0.06] bg-white p-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card',
         props.onClick && 'cursor-pointer hover:border-black/[0.14] dark:hover:border-white/[0.16]',
         isActive && selectedStyle.activeRing,
         className
@@ -311,7 +311,7 @@ export function KpiCard({
           {displayTitle}
         </span>
         {renderedIcon && (
-          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', selectedStyle.iconContainer)}>
+          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', selectedStyle.iconContainer)}>
             {renderedIcon}
           </span>
         )}

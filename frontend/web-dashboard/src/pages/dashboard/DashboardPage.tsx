@@ -248,7 +248,7 @@ export default function DashboardPage() {
             icon={CalendarAlert}
             progressSegments={[
               { label: `${kpis.docs_expiring_soon.value} Due Soon`, value: kpis.docs_expiring_soon.value > 0 ? 80 : 0, color: 'bg-amber-500' },
-              { label: 'Clear', value: kpis.docs_expiring_soon.value > 0 ? 20 : 100, color: 'bg-slate-300' },
+              { label: 'Clear', value: kpis.docs_expiring_soon.value > 0 ? 20 : 100, color: 'bg-zinc-200' },
             ]}
             onClick={() => navigate('/documents/expiring')}
           />
@@ -262,9 +262,9 @@ export default function DashboardPage() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 shrink-0">
           {/* Revenue / Trip Trend */}
-          <Card className="lg:col-span-2 border-black/[0.06] shadow-sm rounded-2xl bg-white flex flex-col justify-between">
+          <Card className="lg:col-span-2 border-black/[0.06] shadow-sm rounded-xl bg-white flex flex-col justify-between">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Revenue Trend</CardTitle>
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Revenue Trend</CardTitle>
               <CardDescription className="text-xs text-[#6E6E80]">Monthly completed freight payments (SAR)</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 min-h-[200px] pb-4">
@@ -287,9 +287,9 @@ export default function DashboardPage() {
           </Card>
 
           {/* Trip Status Distribution */}
-          <Card className="border-black/[0.06] shadow-sm rounded-2xl bg-white flex flex-col justify-between">
+          <Card className="border-black/[0.06] shadow-sm rounded-xl bg-white flex flex-col justify-between">
             <CardHeader className="pb-0">
-              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Trip Status Distribution</CardTitle>
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Trip Status Distribution</CardTitle>
               <CardDescription className="text-xs text-[#6E6E80]">Manifest progress status overview</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col justify-between flex-1 pt-2 pb-4">
