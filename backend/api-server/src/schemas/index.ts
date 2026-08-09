@@ -2,8 +2,12 @@ import { z } from 'zod';
 
 /* ─── Shared building blocks ─────────────────────────────────────────────── */
 
-/** A required, trimmed, non-empty string. */
-const nonEmpty = (label = 'Value') => z.string().trim().min(1, `${label} is required`);
+/** A required, trimmed, non-empty string. Safely coerces numbers to strings in Excel imports. */
+const nonEmpty = (label = 'Value') =>
+  z.preprocess(
+    (val) => (val === null || val === undefined ? val : String(val)),
+    z.string().trim().min(1, `${label} is required`)
+  );
 
 /** Route param `:id` must be a UUID. */
 export const idParam = z.object({ id: z.string().uuid('Invalid id') });
@@ -75,31 +79,31 @@ export const updateTripStopBody = z.object({
  *  workbook updates people rather than duplicating them. */
 export const bulkImportDriversBody = z.object({
   rows: z.array(z.object({
-    ref_id: z.string().trim().max(64).optional(),
+    ref_id: z.preprocess((val) => (val === null || val === undefined ? val : String(val)), z.string().trim().max(64).optional()),
     first_name: nonEmpty('First name'),
     last_name: nonEmpty('Last name'),
     phone_primary: nonEmpty('Primary phone'),
     license_number: nonEmpty('License number'),
-    license_expiry: z.string().trim().min(1, 'License expiry is required'),
-    assigned_vehicle_plate: z.string().trim().max(32).optional(),
+    license_expiry: z.preprocess((val) => (val === null || val === undefined ? val : String(val)), z.string().trim().min(1, 'License expiry is required')),
+    assigned_vehicle_plate: z.preprocess((val) => (val === null || val === undefined ? val : String(val)), z.string().trim().max(32).optional()),
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
 });
 
 /** Vehicles workbook — one vehicle per row, upserted on `plate_number`. */
 export const bulkImportVehiclesBody = z.object({
   rows: z.array(z.object({
-    ref_id: z.string().trim().max(64).optional(),
+    ref_id: z.preprocess((val) => (val === null || val === undefined ? val : String(val)), z.string().trim().max(64).optional()),
     plate_number: nonEmpty('Plate number'),
     asset_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker'], {
       message: 'Asset type must be Flatbed, Reefer, Box or Tanker',
     }),
     capacity_kg: z.coerce.number().int().positive('Capacity must be a positive whole number'),
     current_odometer: z.coerce.number().min(0).optional(),
-    icces_device_id: z.string().trim().max(64).optional(),
-    trailer_number: z.string().trim().max(64).optional(),
+    icces_device_id: z.preprocess((val) => (val === null || val === undefined ? val : String(val)), z.string().trim().max(64).optional()),
+    trailer_number: z.preprocess((val) => (val === null || val === undefined ? val : String(val)), z.string().trim().max(64).optional()),
     trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
     trailer_capacity_kg: z.coerce.number().int().positive().optional(),
-    assigned_driver: z.string().trim().max(120).optional(),
+    assigned_driver: z.preprocess((val) => (val === null || val === undefined ? val : String(val)), z.string().trim().max(120).optional()),
   })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
 });
 

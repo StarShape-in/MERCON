@@ -71,11 +71,13 @@ export default function ExcelImportDialog({
   const [isParsing, setIsParsing] = useState(false);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [validationDetails, setValidationDetails] = useState<Array<{ path: string; message: string }> | null>(null);
 
   const reset = () => {
     setFile(null);
     setParsed(null);
     setParseError(null);
+    setValidationDetails(null);
     setSummary(null);
     setIsParsing(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -104,9 +106,15 @@ export default function ExcelImportDialog({
       setSummary(res);
     },
     onError: (err: any) => {
+      const respErr = err.response?.data?.error;
       setParseError(
-        err.response?.data?.error?.message || err.message || 'The import failed.'
+        respErr?.message || err.message || 'The import failed.'
       );
+      if (respErr?.details && Array.isArray(respErr.details)) {
+        setValidationDetails(respErr.details);
+      } else {
+        setValidationDetails(null);
+      }
     },
   });
 
@@ -249,12 +257,24 @@ export default function ExcelImportDialog({
             {parseError && (
               <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs space-y-2">
                 <p className="font-semibold text-rose-700">{parseError}</p>
+                {validationDetails && validationDetails.length > 0 && (
+                  <div className="max-h-32 overflow-y-auto space-y-1.5 mt-1 text-[11px] text-rose-800 bg-white/60 p-2.5 rounded-lg border border-rose-100 dark:bg-slate-900/60 dark:border-rose-950/40 dark:text-rose-400">
+                    {validationDetails.map((det, idx) => (
+                      <div key={idx} className="flex flex-col gap-0.5">
+                        <span className="font-bold text-rose-900 dark:text-rose-300">
+                          {det.path.replace('rows.', 'Row ').replace(/\.(\w+)/g, ' ➔ $1')}
+                        </span>
+                        <span className="opacity-90">{det.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <a
                   href={templateUrl}
                   download
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-700 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-700 hover:underline pt-1"
                 >
-                  <Download className="w-3 h-3" /> Download the {entityLabel} template
+                  <Download className="w-3.5 h-3.5" /> Download the {entityLabel} template
                 </a>
               </div>
             )}
