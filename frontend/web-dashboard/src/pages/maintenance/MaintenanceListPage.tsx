@@ -363,7 +363,12 @@ export default function MaintenanceListPage() {
           
           <KpiCard
             title="TOTAL MAINTENANCE EXPENSE"
-            value={`SAR ${kpis.total_cost.toLocaleString()}`}
+            value={
+              <span>
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {kpis.total_cost.toLocaleString()}
+              </span>
+            }
             variant="brand"
             description={`${records.length} service records`}
             icon={MoneyBills}
@@ -375,7 +380,12 @@ export default function MaintenanceListPage() {
 
           <KpiCard
             title="IN-PROGRESS SERVICE"
-            value={`${kpis.active_count} Vehicles`}
+            value={
+              <span>
+                {kpis.active_count}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
+              </span>
+            }
             variant="amber"
             trend={kpis.active_count > 0 ? 'down' : 'neutral'}
             trendValue={kpis.active_count > 0 ? 'In Shop' : 'All Clear'}
@@ -390,7 +400,12 @@ export default function MaintenanceListPage() {
 
           <KpiCard
             title="RENEWALS & SCHEDULED"
-            value={`${kpis.scheduled_count} Scheduled`}
+            value={
+              <span>
+                {kpis.scheduled_count}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
+              </span>
+            }
             variant="purple"
             trend="neutral"
             trendValue="Upcoming"
@@ -401,7 +416,12 @@ export default function MaintenanceListPage() {
 
           <KpiCard
             title="COMPLETED REPAIRS"
-            value={`${kpis.completed_count} Records`}
+            value={
+              <span>
+                {kpis.completed_count}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Records</span>
+              </span>
+            }
             variant="emerald"
             trend="up"
             trendValue="Verified"
