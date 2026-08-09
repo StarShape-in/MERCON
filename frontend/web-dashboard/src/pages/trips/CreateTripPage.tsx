@@ -726,59 +726,106 @@ export default function CreateTripPage() {
             </CardHeader>
             <CardContent className="space-y-6 pt-5">
 
-              {/* Pickup Stop Section */}
+              {/* 1. SELECT PRICING LANE */}
+              <div className="space-y-3.5 p-4 rounded-xl border border-indigo-200/80 bg-indigo-50/40 dark:bg-indigo-950/20 dark:border-indigo-900/40">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span className="text-sm font-bold text-foreground">1. SELECT PRICING LANE</span>
+                    <Badge variant="outline" className="text-[10px] font-semibold bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800">
+                      Commercial Rate Lookup
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Used to determine the rate card for this trip.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* Origin Hub */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pickup_location" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <MapPinned className="w-3.5 h-3.5 text-emerald-600" /> Origin Hub <span className="text-destructive">*</span>
+                    </Label>
+                    <LocationCombobox
+                      id="pickup_location"
+                      value={pickupLocationId}
+                      onChange={(locId, loc) => {
+                        setPickupLocationId(locId);
+                        setPickupLocationName(loc?.name || '');
+                        // A place carries a default pin, so picking "Riyadh" moves
+                        // the map there instead of leaving it on the last trip's
+                        // coordinates. The dispatcher can still drag it to the
+                        // exact yard afterwards.
+                        //
+                        // But only while no exact point has been chosen yet. A
+                        // searched address is the actual yard; this endpoint's pin
+                        // is a city centroid, and overwriting one with the other
+                        // silently downgraded the stop to city-level coordinates
+                        // while the name and address still read correctly. The
+                        // address is the tell: it is non-empty only once a search
+                        // has filled it, whereas lat/lng always hold the Riyadh /
+                        // Jeddah defaults and so cannot distinguish the two.
+                        if (loc?.lat != null && loc?.lng != null && !pickupAddress.trim()) {
+                          setPickupLat(loc.lat);
+                          setPickupLng(loc.lng);
+                        }
+                        if (loc && !pickupName.trim()) setPickupName(loc.name);
+                        if (loc?.address && !pickupAddress.trim()) setPickupAddress(loc.address);
+                        setError(null);
+                      }}
+                      placeholder="Where does this trip start? (e.g. Riyadh)"
+                      excludeLocationId={dropoffLocationId}
+                      newLocationLat={pickupLat}
+                      newLocationLng={pickupLng}
+                    />
+                  </div>
+
+                  {/* Destination Hub */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dropoff_location" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <MapPinned className="w-3.5 h-3.5 text-destructive" /> Destination Hub <span className="text-destructive">*</span>
+                    </Label>
+                    <LocationCombobox
+                      id="dropoff_location"
+                      value={dropoffLocationId}
+                      onChange={(locId, loc) => {
+                        setDropoffLocationId(locId);
+                        setDropoffLocationName(loc?.name || '');
+                        // Guarded for the same reason as the pickup endpoint above:
+                        // never replace a searched, exact pin with a city centroid.
+                        if (loc?.lat != null && loc?.lng != null && !dropoffAddress.trim()) {
+                          setDropoffLat(loc.lat);
+                          setDropoffLng(loc.lng);
+                        }
+                        if (loc && !dropoffName.trim()) setDropoffName(loc.name);
+                        if (loc?.address && !dropoffAddress.trim()) setDropoffAddress(loc.address);
+                        setError(null);
+                      }}
+                      placeholder="Where does it end? (e.g. Jeddah)"
+                      excludeLocationId={pickupLocationId}
+                      newLocationLat={dropoffLat}
+                      newLocationLng={dropoffLng}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. EXACT PICKUP LOCATION */}
               <div className="space-y-3.5 p-4 rounded-xl border bg-muted/20">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 animate-pulse" />
-                    Pickup Origin (Stop Sequence 1)
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b pb-2.5">
+                  <div>
+                    <span className="text-sm font-bold flex items-center gap-2 text-foreground">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 animate-pulse" />
+                      2. EXACT PICKUP LOCATION
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Physical pickup address and coordinates for driver navigation.
+                    </p>
+                  </div>
                   <span className="text-xs font-mono text-muted-foreground">
                     {pickupLat && pickupLng ? `${pickupLat.toFixed(4)}, ${pickupLng.toFixed(4)}` : 'Location not set'}
                   </span>
-                </div>
-
-                {/* Lane endpoint — what the rate card is priced against */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="pickup_location" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <MapPinned className="w-3.5 h-3.5 text-emerald-600" /> Origin <span className="text-destructive">*</span>
-                  </Label>
-                  <LocationCombobox
-                    id="pickup_location"
-                    value={pickupLocationId}
-                    onChange={(locId, loc) => {
-                      setPickupLocationId(locId);
-                      setPickupLocationName(loc?.name || '');
-                      // A place carries a default pin, so picking "Riyadh" moves
-                      // the map there instead of leaving it on the last trip's
-                      // coordinates. The dispatcher can still drag it to the
-                      // exact yard afterwards.
-                      //
-                      // But only while no exact point has been chosen yet. A
-                      // searched address is the actual yard; this endpoint's pin
-                      // is a city centroid, and overwriting one with the other
-                      // silently downgraded the stop to city-level coordinates
-                      // while the name and address still read correctly. The
-                      // address is the tell: it is non-empty only once a search
-                      // has filled it, whereas lat/lng always hold the Riyadh /
-                      // Jeddah defaults and so cannot distinguish the two.
-                      if (loc?.lat != null && loc?.lng != null && !pickupAddress.trim()) {
-                        setPickupLat(loc.lat);
-                        setPickupLng(loc.lng);
-                      }
-                      if (loc && !pickupName.trim()) setPickupName(loc.name);
-                      if (loc?.address && !pickupAddress.trim()) setPickupAddress(loc.address);
-                      setError(null);
-                    }}
-                    placeholder="Where does this trip start? (e.g. Riyadh)"
-                    excludeLocationId={dropoffLocationId}
-                    newLocationLat={pickupLat}
-                    newLocationLng={pickupLng}
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    The city or hub this lane starts from — pricing is per lane. Type a new name in the
-                    dropdown to add it.
-                  </p>
                 </div>
 
                 <LocationPickerMap
@@ -870,47 +917,21 @@ export default function CreateTripPage() {
                 </div>
               </div>
 
-              {/* Dropoff Stop Section */}
+              {/* 3. EXACT DROPOFF LOCATION */}
               <div className="space-y-3.5 p-4 rounded-xl border bg-muted/20">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-destructive ring-4 ring-destructive/20" />
-                    Dropoff Destination (Stop Sequence 2)
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b pb-2.5">
+                  <div>
+                    <span className="text-sm font-bold flex items-center gap-2 text-foreground">
+                      <span className="w-2.5 h-2.5 rounded-full bg-destructive ring-4 ring-destructive/20" />
+                      3. EXACT DROPOFF LOCATION
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Physical delivery address and coordinates for driver navigation.
+                    </p>
+                  </div>
                   <span className="text-xs font-mono text-muted-foreground">
                     {dropoffLat && dropoffLng ? `${dropoffLat.toFixed(4)}, ${dropoffLng.toFixed(4)}` : 'Location not set'}
                   </span>
-                </div>
-
-                {/* Lane endpoint — what the rate card is priced against */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="dropoff_location" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <MapPinned className="w-3.5 h-3.5 text-destructive" /> Destination <span className="text-destructive">*</span>
-                  </Label>
-                  <LocationCombobox
-                    id="dropoff_location"
-                    value={dropoffLocationId}
-                    onChange={(locId, loc) => {
-                      setDropoffLocationId(locId);
-                      setDropoffLocationName(loc?.name || '');
-                      // Guarded for the same reason as the pickup endpoint above:
-                      // never replace a searched, exact pin with a city centroid.
-                      if (loc?.lat != null && loc?.lng != null && !dropoffAddress.trim()) {
-                        setDropoffLat(loc.lat);
-                        setDropoffLng(loc.lng);
-                      }
-                      if (loc && !dropoffName.trim()) setDropoffName(loc.name);
-                      if (loc?.address && !dropoffAddress.trim()) setDropoffAddress(loc.address);
-                      setError(null);
-                    }}
-                    placeholder="Where does it end? (e.g. Jeddah)"
-                    excludeLocationId={pickupLocationId}
-                    newLocationLat={dropoffLat}
-                    newLocationLng={dropoffLng}
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Together with the origin this is the lane the price comes from.
-                  </p>
                 </div>
 
                 <LocationPickerMap
