@@ -635,7 +635,7 @@ export default function VehicleListPage() {
             description="Total assets in database"
             icon={FleetTruck}
             isActive={selectedStatus === 'All'}
-            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('All'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
               <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#FFF8F6] dark:bg-[#E8450F]/10 border-t border-[#E8450F]/10">
                 <style>{`
@@ -817,7 +817,7 @@ export default function VehicleListPage() {
             description="Active servicing units"
             icon={MaintenanceWrench}
             isActive={selectedStatus === 'Maintenance'}
-            onClick={() => { setSelectedStatus('Maintenance'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('Maintenance'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
               <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#FFFDF2] dark:bg-[#D97706]/10 border-t border-amber-500/10">
                 <style>{`
@@ -917,7 +917,83 @@ export default function VehicleListPage() {
             description="Currently dispatched on active trips"
             icon={Truck}
             isActive={selectedStatus === 'OnTrip'}
-            onClick={() => { setSelectedStatus('OnTrip'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('OnTrip'); setViewMode('map'); setCurrentPage(1); }}
+            customFooter={
+              <div className="relative h-12 mt-4 -mx-5 -mb-5 overflow-hidden rounded-b-2xl bg-[#F0F6FF] dark:bg-[#1E3A8A]/10 border-t border-blue-500/10">
+                <style>{`
+                  @keyframes routeDashBlue {
+                    to {
+                      stroke-dashoffset: -12;
+                    }
+                  }
+                `}</style>
+                {/* Grid lines for map look */}
+                <svg className="absolute inset-0 h-full w-full opacity-[0.06]" stroke="currentColor" fill="none">
+                  <pattern id="card-map-grid-blue" width="12" height="12" patternUnits="userSpaceOnUse">
+                    <path d="M 12 0 L 0 0 0 12" strokeWidth="0.5" />
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#card-map-grid-blue)" />
+                </svg>
+                
+                {/* Stylized Intersecting Street Map Network */}
+                <svg className="absolute inset-0 h-full w-full opacity-[0.3]" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  <path d="M 60 -5 C 65 15, 55 35, 60 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
+                  <path d="M 140 -5 C 135 15, 145 35, 138 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
+                  <path d="M 210 -5 C 220 15, 205 35, 215 55" fill="none" stroke="#93C5FD" strokeWidth="1.5" />
+                </svg>
+
+                {/* Route line */}
+                <svg className="absolute inset-0 h-full w-full" viewBox="0 0 280 48" preserveAspectRatio="none">
+                  {/* Base grey road */}
+                  <path 
+                    d="M -10 24 C 70 10, 150 38, 290 24" 
+                    fill="none" 
+                    stroke="#D1D5DB" 
+                    strokeWidth="3.5" 
+                    strokeLinecap="round"
+                  />
+                  {/* Blue active route progress */}
+                  <path 
+                    d="M -10 24 C 70 10, 150 38, 290 24" 
+                    fill="none" 
+                    stroke="#3B82F6" 
+                    strokeWidth="3" 
+                    strokeDasharray="6,6"
+                    strokeLinecap="round"
+                    style={{ animation: 'routeDashBlue 4s linear infinite' }}
+                  />
+                </svg>
+
+                {/* Start Pin */}
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
+                </div>
+                
+                {/* The 3D Truck sitting in the middle of the route */}
+                <div 
+                  className="absolute"
+                  style={{
+                    left: '52%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%) scale(0.68)',
+                    zIndex: 10
+                  }}
+                >
+                  <div className="relative flex items-center justify-center">
+                    {/* Glow ring */}
+                    <div className="absolute h-8 w-8 rounded-full bg-blue-500/20 animate-ping" />
+                    
+                    {/* Blue-ish/Cyan tinted truck to indicate active on road status */}
+                    <img 
+                      src="/truck_3d_orange_transparent.png" 
+                      alt="En Route Truck" 
+                      className="h-9 w-9 object-contain"
+                      style={{ filter: 'hue-rotate(200deg) saturate(1.2) brightness(0.95)' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            }
           />
         </div>
 
