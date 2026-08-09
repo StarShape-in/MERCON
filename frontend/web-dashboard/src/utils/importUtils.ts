@@ -123,6 +123,19 @@ export async function parseSheet(
 
   const headerRowNumber = findHeaderRow(sheet, columns);
   if (headerRowNumber === null) {
+    // Smart detection: check if they uploaded the wrong entity template (e.g. Drivers vs Vehicles)
+    const isLookingForDrivers = columns === DRIVER_COLUMNS;
+    const oppositeColumns = isLookingForDrivers ? VEHICLE_COLUMNS : DRIVER_COLUMNS;
+    const oppositeLabel = isLookingForDrivers ? 'Vehicles' : 'Drivers';
+    const targetLabel = isLookingForDrivers ? 'Drivers' : 'Vehicles';
+
+    const oppositeSheet = workbook.worksheets.find((w) => findHeaderRow(w, oppositeColumns) !== null);
+    if (oppositeSheet) {
+      throw new Error(
+        `This file looks like a ${oppositeLabel} template. Please make sure to download and upload the correct ${targetLabel} template.`
+      );
+    }
+
     throw new Error(
       `Couldn't find the column headers on sheet "${sheet.name}". Use the MERCON template, or check the header row wasn't deleted.`
     );
