@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -8,7 +9,6 @@ import {
   Edit2,
   Trash2,
   Navigation,
-  Search,
   RefreshCw,
   Truck,
   User,
@@ -267,7 +267,7 @@ export default function TripListPage() {
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
       setStatusDialogTrip(null);
     } catch (e) {
-      alert('Failed to update trip status');
+      toast.error('Failed to update trip status');
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -289,7 +289,7 @@ export default function TripListPage() {
       const matched = (res.data || []).filter(t => matchesExportStatusGroup(t.status, opts.statusGroup));
 
       if (!matched.length) {
-        alert('No trips match the selected export filters.');
+        toast.warning('No trips match the selected export filters.');
         return;
       }
 
@@ -307,7 +307,7 @@ export default function TripListPage() {
       }
       setExportDialogOpen(false);
     } catch (e) {
-      alert('Failed to generate export.');
+      toast.error('Failed to generate export.');
     } finally {
       setIsExporting(false);
     }
@@ -361,7 +361,7 @@ export default function TripListPage() {
         queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
       }
     } catch (e) {
-      alert('Failed to import trips.');
+      toast.error('Failed to import trips.');
     } finally {
       setIsImporting(false);
     }
@@ -569,7 +569,7 @@ export default function TripListPage() {
               await tripService.bulkDelete(selectedRows.map(r => r.id));
               queryClient.invalidateQueries({ queryKey: ['trips'] });
               queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-            } catch (e) { alert('Failed to delete trips'); }
+            } catch (e) { toast.error('Failed to delete trips'); }
           }
         });
       }
@@ -849,19 +849,8 @@ export default function TripListPage() {
         <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
-            {/* Search Input (Left Side) */}
-            <div className="relative w-64 sm:w-72 shrink-0">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search trip ID, customer, driver..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
-              />
-            </div>
-
-            {/* Filter Dropdowns (Right Side, Opposite Search) */}
-            <div className="flex items-center gap-2.5 shrink-0 ml-auto">
+            {/* Filter Dropdowns */}
+            <div className="flex items-center gap-2.5 shrink-0">
               {/* Status Filter Dropdown */}
               <Select
                 value={selectedStatus}
@@ -986,6 +975,9 @@ export default function TripListPage() {
             isLoading={isLoading}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load trips.'}
+            searchPlaceholder="Search trip ID, customer, driver..."
+            searchValue={search}
+            onSearchChange={setSearch}
             bulkActions={bulkActions}
             pageSize={pageSize}
             onPageSizeChange={(size) => setPageSize(size)}

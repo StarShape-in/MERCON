@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -8,9 +9,8 @@ import {
   Download, 
   Trash2, 
   RotateCw, 
-  Filter, 
-  Search, 
-  ArrowRight, 
+  Filter,
+  ArrowRight,
   Building2, 
   MapPin, 
   LayoutGrid,
@@ -36,7 +36,6 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu,
@@ -192,7 +191,7 @@ export default function RateCardListPage() {
     }
 
     if (!dataToExport.length) {
-      alert('No rate cards available for export with selected filter.');
+      toast.warning('No rate cards available for export with selected filter.');
       return;
     }
 
@@ -369,8 +368,8 @@ export default function RateCardListPage() {
             try {
               await rateCardService.bulkDelete(selectedRows.map(r => r.id));
               queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
-            } catch (e) { 
-              alert('Failed to delete selected rate cards'); 
+            } catch (e) {
+              toast.error('Failed to delete selected rate cards');
             }
           }
         });
@@ -619,19 +618,8 @@ export default function RateCardListPage() {
         <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
-            {/* Left: Search Input + Status & Scope Dropdowns */}
+            {/* Left: Status & Scope Dropdowns */}
             <div className="flex items-center gap-3 shrink-0">
-              
-              {/* Search Bar */}
-              <div className="relative w-64 sm:w-72 shrink-0">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-                <Input
-                  placeholder="Search ID, customer, route..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
-                />
-              </div>
 
               {/* Status Filter Dropdown */}
               <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
@@ -754,7 +742,9 @@ export default function RateCardListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
-              searchPlaceholder="Search contract name, customer..."
+              searchPlaceholder="Search ID, customer, route..."
+              searchValue={search}
+              onSearchChange={setSearch}
               pageSize={pageSize}
               onPageSizeChange={(size) => setPageSize(size)}
               onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}

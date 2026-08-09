@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -421,7 +422,7 @@ export default function VehicleListPage() {
             try {
               await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Available');
               queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-            } catch (e) { alert('Failed to update status'); }
+            } catch (e) { toast.error('Failed to update status'); }
           }
         });
       }
@@ -440,7 +441,7 @@ export default function VehicleListPage() {
             try {
               await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Maintenance');
               queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-            } catch (e) { alert('Failed to update status'); }
+            } catch (e) { toast.error('Failed to update status'); }
           }
         });
       }
@@ -459,7 +460,7 @@ export default function VehicleListPage() {
             try {
               await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Inactive');
               queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-            } catch (e) { alert('Failed to update status'); }
+            } catch (e) { toast.error('Failed to update status'); }
           }
         });
       }
@@ -479,8 +480,8 @@ export default function VehicleListPage() {
             subject: 'Vehicle Alert',
             message: msg
           });
-          alert('Dispatch SMS queued successfully.');
-        } catch (e) { alert('Failed to send messages'); }
+          toast.success('Dispatch SMS queued successfully.');
+        } catch (e) { toast.error('Failed to send messages'); }
       }
     },
     {
@@ -505,7 +506,7 @@ export default function VehicleListPage() {
             try {
               await vehicleService.bulkDelete(selectedRows.map(r => r.id));
               queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-            } catch (e) { alert('Failed to delete vehicles'); }
+            } catch (e) { toast.error('Failed to delete vehicles'); }
           }
         });
       }

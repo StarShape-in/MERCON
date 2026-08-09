@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -6,9 +7,8 @@ import {
   Download, UploadCloud,
   Eye, 
   Edit2, 
-  Trash2, 
-  Search, 
-  AlertTriangle, 
+  Trash2,
+  AlertTriangle,
   RefreshCw, 
   User, 
   Users,
@@ -46,7 +46,6 @@ import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -175,7 +174,7 @@ export default function DriverListPage() {
       queryClient.invalidateQueries({ queryKey: ['drivers'] });
       setStatusDialogDriver(null);
     } catch (err) {
-      alert('Failed to update driver status.');
+      toast.error('Failed to update driver status.');
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -398,7 +397,7 @@ export default function DriverListPage() {
             try {
               await driverService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Available');
               queryClient.invalidateQueries({ queryKey: ['drivers'] });
-            } catch (e) { alert('Failed to update status'); }
+            } catch (e) { toast.error('Failed to update status'); }
           }
         });
       }
@@ -417,7 +416,7 @@ export default function DriverListPage() {
             try {
               await driverService.bulkUpdateStatus(selectedRows.map(r => r.id), 'OffDuty');
               queryClient.invalidateQueries({ queryKey: ['drivers'] });
-            } catch (e) { alert('Failed to update status'); }
+            } catch (e) { toast.error('Failed to update status'); }
           }
         });
       }
@@ -437,8 +436,8 @@ export default function DriverListPage() {
             subject: 'Dashboard Operational Notification',
             message: msg
           });
-          alert('Messages logged successfully (SMS dispatch pending real provider integration).');
-        } catch (e) { alert('Failed to log messages'); }
+          toast.success('Messages logged successfully (SMS dispatch pending real provider integration).');
+        } catch (e) { toast.error('Failed to log messages'); }
       }
     },
     {
@@ -463,7 +462,7 @@ export default function DriverListPage() {
             try {
               await driverService.bulkDelete(selectedRows.map(r => r.id));
               queryClient.invalidateQueries({ queryKey: ['drivers'] });
-            } catch (e) { alert('Failed to delete drivers'); }
+            } catch (e) { toast.error('Failed to delete drivers'); }
           }
         });
       }
@@ -617,19 +616,8 @@ export default function DriverListPage() {
         <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
-            {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
+            {/* Inline Dropdown Controls (Strictly Horizontal) */}
             <div className="flex items-center gap-3 shrink-0">
-              
-              {/* Search Input */}
-              <div className="relative w-64 shrink-0">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search driver ID, name, phone..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
-                />
-              </div>
 
               {/* Status Filter Dropdown */}
               <Select
@@ -760,6 +748,9 @@ export default function DriverListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load drivers.'}
+              searchPlaceholder="Search driver ID, name, phone..."
+              searchValue={search}
+              onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
               bulkActions={bulkActions}
               currentPage={currentPage}
               totalPages={totalPages}

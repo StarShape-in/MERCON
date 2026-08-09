@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -96,7 +97,7 @@ export default function InvoiceListPage() {
       await invoiceService.bulkDelete([id]);
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     } catch (e) {
-      alert('Failed to delete invoice.');
+      toast.error('Failed to delete invoice.');
     }
   };
 
@@ -232,7 +233,7 @@ export default function InvoiceListPage() {
         try {
           await invoiceService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Paid');
           queryClient.invalidateQueries({ queryKey: ['invoices'] });
-        } catch (e) { alert('Failed to update status'); }
+        } catch (e) { toast.error('Failed to update status'); }
       }
     },
     {
@@ -252,7 +253,7 @@ export default function InvoiceListPage() {
         try {
           await invoiceService.bulkDelete(selectedRows.map(r => r.id));
           queryClient.invalidateQueries({ queryKey: ['invoices'] });
-        } catch (e) { alert('Failed to delete invoices'); }
+        } catch (e) { toast.error('Failed to delete invoices'); }
       }
     }
   ];

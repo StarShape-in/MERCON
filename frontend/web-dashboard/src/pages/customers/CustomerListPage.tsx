@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -7,9 +8,8 @@ import {
   FileText, 
   Download, 
   RotateCw, 
-  Building2, 
-  Search, 
-  Eye, 
+  Building2,
+  Eye,
   Trash2, 
   ChevronDown, 
   Filter, 
@@ -35,7 +35,6 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -270,7 +269,7 @@ export default function CustomerListPage() {
               await Promise.all(selectedRows.map(c => customerService.delete(c.id)));
               queryClient.invalidateQueries({ queryKey: ['customers'] });
             } catch (e) {
-              alert('Failed to delete selected customers');
+              toast.error('Failed to delete selected customers');
             }
           }
         });
@@ -404,20 +403,9 @@ export default function CustomerListPage() {
         <div className="bg-white rounded-xl border border-black/[0.08] p-2.5 shadow-2xs shrink-0">
           <div className="flex items-center justify-between gap-3 overflow-x-auto">
             
-            {/* Search Input & Inline Dropdown Controls (Strictly Horizontal) */}
+            {/* Inline Dropdown Controls (Strictly Horizontal) */}
             <div className="flex items-center gap-3 shrink-0">
-              
-              {/* Search Input */}
-              <div className="relative w-64 shrink-0">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search company name, phone..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9 text-xs border-slate-200 rounded-lg focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] bg-white font-medium"
-                />
-              </div>
- 
+
               {/* Status Filter Dropdown */}
               <Select
                 value={selectedStatus}
@@ -533,6 +521,9 @@ export default function CustomerListPage() {
               isLoading={isLoading}
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load customers.'}
+              searchPlaceholder="Search company name, phone..."
+              searchValue={search}
+              onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
               currentPage={currentPage}
               totalPages={totalPages}
               pageSize={pageSize}
