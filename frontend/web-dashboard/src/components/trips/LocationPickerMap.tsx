@@ -3,6 +3,11 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Search, MapPin } from 'lucide-react';
+import {
+  createAddressSearchSession,
+  type AddressSearchSession,
+  type AddressSuggestion,
+} from '@/services/addressSearch';
 
 const pinIcon = L.divIcon({
   html: `<div style="background-color: #E8450F; color: white; padding: 5px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;"></div>`,
@@ -10,12 +15,6 @@ const pinIcon = L.divIcon({
   iconSize: [26, 26],
   iconAnchor: [13, 26],
 });
-
-interface NominatimResult {
-  display_name: string;
-  lat: string;
-  lon: string;
-}
 
 interface LocationPickerMapProps {
   label: string;
@@ -36,19 +35,6 @@ interface LocationPickerMapProps {
    */
   address?: string;
   onAddressChange?: (address: string) => void;
-}
-
-/**
- * Nominatim returns a full postal chain ("Khamis Mushait, Aseer Province,
- * 62454, Saudi Arabia"). A route label wants the place, not the address, so
- * take the leading segment — and the second as well when the first is just a
- * building or house number, which alone names nothing.
- */
-function placeNameFrom(displayName: string): string {
-  const parts = displayName.split(',').map((p) => p.trim()).filter(Boolean);
-  if (parts.length === 0) return '';
-  if (parts.length > 1 && /^\d+[A-Za-z]?$/.test(parts[0])) return `${parts[0]} ${parts[1]}`;
-  return parts[0];
 }
 
 function ClickToPlacePin({ onPick }: { onPick: (lat: number, lng: number) => void }) {
@@ -72,11 +58,26 @@ function FlyToPin({ lat, lng }: { lat: number; lng: number }) {
 
 export default function LocationPickerMap({ label, lat, lng, onChange, name, onNameChange, address, onAddressChange, defaultCenter = [24.7136, 46.6753] }: LocationPickerMapProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [results, setResults] = useState<AddressSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextSearch = useRef(false);
+  /**
+   * The current search interaction. Held across keystrokes so all of them
+   * share one billing session, and dropped after a pick — the session ends
+   * with the Place Details lookup, so the next search must start a new one.
+   */
+  const sessionRef = useRef<AddressSearchSession | null>(null);
+  /**
+   * Identifies the only search whose response we still want. Debouncing does
+   * not make searches mutually exclusive — clearing a timer that has already
+   * fired does nothing, so a slow request stays in flight while the next one
+   * starts, and responses can arrive out of order. Anything whose generation
+   * no longer matches was superseded, by a later keystroke or by a pick, and
+   * must not touch state.
+   */
+  const searchGeneration = useRef(0);
 
   useEffect(() => {
     if (skipNextSearch.current) {
@@ -89,18 +90,21 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
+      const generation = ++searchGeneration.current;
+      const current = () => generation === searchGeneration.current;
       setSearching(true);
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`
-        );
-        const data = await res.json();
-        setResults(data);
+        if (!sessionRef.current) sessionRef.current = createAddressSearchSession();
+        const rows = await sessionRef.current.search(query);
+        if (!current()) return;
+        setResults(rows);
         setShowResults(true);
       } catch {
-        setResults([]);
+        if (current()) setResults([]);
       } finally {
-        setSearching(false);
+        // Only the live request owns the spinner; a superseded one clearing it
+        // would report "done" while the newest search is still running.
+        if (current()) setSearching(false);
       }
     }, 400);
     return () => {
@@ -108,19 +112,31 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
     };
   }, [query]);
 
-  const pickResult = (r: NominatimResult) => {
-    onChange(parseFloat(r.lat), parseFloat(r.lon));
+  const pickResult = async (s: AddressSuggestion) => {
+    const session = sessionRef.current;
+    if (!session) return;
+    // Retire any search still in flight. Without this, one landing after the
+    // pick would re-open the dropdown over a session that is already spent.
+    searchGeneration.current++;
+    // Close the dropdown first: resolving is a network round trip, and leaving
+    // the list open through it invites a second click on a spent session.
+    setShowResults(false);
+    const picked = await session.resolve(s.id);
+    // The session is spent whether or not it answered — a token is billed once.
+    sessionRef.current = null;
+    if (!picked) return;
+
+    onChange(picked.lat, picked.lng);
     // Fill the name from the address that was just searched, so the common
     // path costs no extra typing. Overwrites deliberately: a new pin is a new
     // place, and carrying the old label over would silently mislabel it.
-    onNameChange(placeNameFrom(r.display_name));
+    onNameChange(picked.name);
     // Keep the whole address too. This used to be thrown away the moment the
     // label was extracted, which is why a driver only ever received two
     // coordinates and no way to tell where they were going.
-    onAddressChange?.(r.display_name);
+    onAddressChange?.(picked.address);
     skipNextSearch.current = true;
-    setQuery(r.display_name);
-    setShowResults(false);
+    setQuery(picked.address);
   };
 
   const center: [number, number] = lat != null && lng != null ? [lat, lng] : defaultCenter;
@@ -143,14 +159,14 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
         </div>
         {showResults && results.length > 0 && (
           <div className="absolute z-[500] mt-1 w-full bg-white rounded-md shadow-lg border border-black/[0.06] max-h-52 overflow-y-auto">
-            {results.map((r, i) => (
+            {results.map((r) => (
               <button
                 type="button"
-                key={i}
-                onClick={() => pickResult(r)}
+                key={r.id}
+                onClick={() => void pickResult(r)}
                 className="w-full text-left px-3 py-2 text-xs text-[#111] hover:bg-[#F5F5F7] border-b border-black/[0.04] last:border-b-0"
               >
-                {r.display_name}
+                {r.label}
               </button>
             ))}
           </div>
