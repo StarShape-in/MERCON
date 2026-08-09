@@ -298,7 +298,7 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        'group relative flex flex-col gap-0 rounded-2xl border border-black/[0.06] bg-white pt-5 px-5 pb-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card overflow-hidden',
+        'group relative flex flex-col gap-0 h-full rounded-2xl border border-black/[0.06] bg-white pt-5 px-5 pb-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card overflow-hidden',
         hasFullBleedFooter && 'pb-0',
         props.onClick && 'cursor-pointer hover:border-black/[0.14] dark:hover:border-white/[0.16]',
         isActive && selectedStyle.activeRing,
@@ -306,40 +306,43 @@ export function KpiCard({
       )}
       {...props}
     >
-      {/* Header: label + tinted icon */}
-      <div className="flex items-start justify-between gap-3">
-        <span className="pt-1 text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
-          {displayTitle}
-        </span>
-        {renderedIcon && (
-          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-md', selectedStyle.iconContainer)}>
-            {renderedIcon}
+      {/* Upper content wrapper to push footer to the absolute bottom */}
+      <div className="flex-1 flex flex-col">
+        {/* Header: label + tinted icon */}
+        <div className="flex items-start justify-between gap-3">
+          <span className="pt-1 text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+            {displayTitle}
           </span>
-        )}
-      </div>
-
-      {/* Value */}
-      <div 
-        className="mt-1 text-[32px] font-bold leading-none tracking-tight transition-colors duration-150"
-        style={{ color: selectedStyle.hex }}
-      >
-        {value}
-      </div>
-
-      {/* Context line: trend chip + description */}
-      {(displayDescription || (computedTrend && computedTrendValue)) && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-2">
-          {computedTrend && computedTrendValue && (
-            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none', trendChipStyles[computedTrend])}>
-              <span aria-hidden="true">{trendGlyph[computedTrend]}</span>
-              {computedTrendValue}
+          {renderedIcon && (
+            <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-md', selectedStyle.iconContainer)}>
+              {renderedIcon}
             </span>
           )}
-          {displayDescription && (
-            <span className="text-xs leading-none text-[#6E6E80] dark:text-slate-400">{displayDescription}</span>
-          )}
         </div>
-      )}
+
+        {/* Value */}
+        <div 
+          className="mt-1 text-[32px] font-bold leading-none tracking-tight transition-colors duration-150"
+          style={{ color: selectedStyle.hex }}
+        >
+          {value}
+        </div>
+
+        {/* Context line: trend chip + description */}
+        {(displayDescription || (computedTrend && computedTrendValue)) && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            {computedTrend && computedTrendValue && (
+              <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none', trendChipStyles[computedTrend])}>
+                <span aria-hidden="true">{trendGlyph[computedTrend]}</span>
+                {computedTrendValue}
+              </span>
+            )}
+            {displayDescription && (
+              <span className="text-xs leading-none text-[#6E6E80] dark:text-slate-400">{displayDescription}</span>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Quiet visual footer — one style per data shape, never decorative */}
       {hasFooter && (
