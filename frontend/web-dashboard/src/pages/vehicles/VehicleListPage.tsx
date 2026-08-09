@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, Wrench, 
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
-  Gauge, Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation
+  Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
@@ -1164,6 +1164,21 @@ export default function VehicleListPage() {
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>{vehicles.length} VEHICLES RENDERED IN CURRENT FILTER</span>
             </div>
+
+            {/* Floating Close Map Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setViewMode('list')}
+              className={`absolute top-3 right-3 z-[400] h-8 px-3 rounded-xl shadow-md border text-xs font-bold gap-1.5 transition-all active:scale-95 ${
+                MAP_THEMES[mapThemeId]?.isDark 
+                  ? 'bg-[#090A0F]/85 hover:bg-[#090A0F] text-white border-white/10 hover:text-white' 
+                  : 'bg-white/90 hover:bg-white text-[#111] border-black/[0.08] hover:text-[#111]'
+              }`}
+            >
+              <X size={14} />
+              <span>Close Map</span>
+            </Button>
           </div>
         )}
 
