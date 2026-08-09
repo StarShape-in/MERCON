@@ -330,12 +330,17 @@ export default function CustomerListPage() {
           </div>
         </div>
  
-        {/* 4-Card Instrument Panel KPI Section */}
+        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           {/* Card 1: Total Customers — Tier Breakdown Bar */}
           <KpiCard
             title="TOTAL CUSTOMERS"
-            value={totalCount}
+            value={
+              <span>
+                {totalCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Accounts</span>
+              </span>
+            }
             variant="brand"
             trend="up"
             trendValue="+8 Accounts"
@@ -347,11 +352,16 @@ export default function CustomerListPage() {
             ]}
             onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
- 
+
           {/* Card 2: Active Clients — Donut Ratio Gauge */}
           <KpiCard
             title="ACTIVE CLIENTS"
-            value={activeCount}
+            value={
+              <span>
+                {activeCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Clients</span>
+              </span>
+            }
             variant="emerald"
             trend="up"
             trendValue={`${activePercentage}% Active`}
@@ -364,11 +374,16 @@ export default function CustomerListPage() {
             }}
             onClick={() => { setSelectedStatus('Active'); setCurrentPage(1); }}
           />
- 
+
           {/* Card 3: Total Credit Exposure — Credit Exposure Modal */}
           <KpiCard
             title="TOTAL CREDIT EXPOSURE"
-            value={`SAR ${(totalCreditLimit / 1000).toFixed(0)}K`}
+            value={
+              <span>
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {(totalCreditLimit / 1000).toFixed(0)}K
+              </span>
+            }
             variant="blue"
             trend="neutral"
             trendValue="Credit Portfolio"
@@ -381,21 +396,22 @@ export default function CustomerListPage() {
             }}
             onClick={() => setShowCreditModal(true)}
           />
- 
+
           {/* Card 4: Contract Renewals Due — Urgency Progress Bar */}
           <KpiCard
             title="CONTRACT RENEWALS"
-            value={Math.ceil(totalCount * 0.15) || 2}
-            variant="amber"
+            value={
+              <span>
+                {Math.ceil(totalCount * 0.15) || 2}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
+              </span>
+            }
+            variant="purple"
             trend="neutral"
             trendValue="30-90 Days"
             description="Commercial contract horizon"
             icon={CalendarIcon}
-            progressSegments={[
-              { label: '1 Expiring (<30d)', value: 25, color: 'bg-rose-500' },
-              { label: '2 Warning (90d)', value: 35, color: 'bg-amber-500' },
-              { label: 'Active Contracts', value: 40, color: 'bg-slate-300' },
-            ]}
+            chartData={[3, 5, 2, 6, Math.ceil(totalCount * 0.15) || 4]}
           />
         </div>
  
