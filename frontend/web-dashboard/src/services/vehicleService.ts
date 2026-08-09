@@ -1,4 +1,5 @@
 import { api, ApiResponse } from '@/lib/api';
+import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 
 export type AssetStatus = 'Available' | 'OnTrip' | 'Maintenance' | 'Inactive';
 export type AssetType   = 'Flatbed' | 'Reefer' | 'Box' | 'Tanker';
@@ -109,5 +110,15 @@ export const vehicleService = {
 
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
     await api.post('/vehicles/bulk-update-status', { ids, status });
+  },
+
+  /**
+   * Import rows parsed from the fleet workbook in the browser. Matches existing
+   * vehicles on plate number and updates them, so re-uploading a corrected file
+   * fixes trucks instead of duplicating them.
+   */
+  async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
+    const res = await api.post<ApiResponse<ImportSummary>>('/vehicles/import', { rows });
+    return res.data.data;
   },
 };

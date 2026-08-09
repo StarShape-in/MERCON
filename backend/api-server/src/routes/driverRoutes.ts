@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus} from '../controllers/driverController';
+import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus, bulkImportDrivers} from '../controllers/driverController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
-import { createDriverBody, updateDriverBody, listQuery } from '../schemas';
+import { createDriverBody, updateDriverBody, listQuery, bulkImportDriversBody } from '../schemas';
 
 const router = Router();
 
@@ -12,6 +12,9 @@ router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
 router.post('/bulk-delete', bulkDeleteDrivers);
 router.post('/bulk-update-status', bulkUpdateDriverStatus);
+// Fleet workbook import — rows are parsed from the .xlsx in the browser and
+// posted as JSON, same contract as /trips/bulk-import.
+router.post('/import', validate({ body: bulkImportDriversBody }), bulkImportDrivers);
 
 
 router.get('/', validate({ query: listQuery }), getDrivers);

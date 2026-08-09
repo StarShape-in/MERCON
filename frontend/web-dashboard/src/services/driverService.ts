@@ -1,5 +1,6 @@
 import { api, ApiResponse } from '@/lib/api';
 import { Vehicle } from './vehicleService';
+import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 
 export type DriverStatus = 'Available' | 'OnTrip' | 'OffDuty' | 'Inactive';
 
@@ -68,5 +69,15 @@ export const driverService = {
 
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
     await api.post('/drivers/bulk-update-status', { ids, status });
+  },
+
+  /**
+   * Import rows parsed from the fleet workbook in the browser. Matches existing
+   * drivers on phone number and updates them, so re-uploading a corrected file
+   * fixes people instead of duplicating them.
+   */
+  async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
+    const res = await api.post<ApiResponse<ImportSummary>>('/drivers/import', { rows });
+    return res.data.data;
   },
 };

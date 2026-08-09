@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus, getVehicleFinancials } from '../controllers/vehicleController';
+import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus, getVehicleFinancials, bulkImportVehicles } from '../controllers/vehicleController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
-import { createVehicleBody, updateVehicleBody, listQuery, idParam } from '../schemas';
+import { createVehicleBody, updateVehicleBody, listQuery, idParam, bulkImportVehiclesBody } from '../schemas';
 
 const router = Router();
 
@@ -11,6 +11,8 @@ router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
 router.post('/bulk-delete', bulkDeleteVehicles);
 router.post('/bulk-update-status', bulkUpdateVehicleStatus);
+// Fleet workbook import — see the note on the drivers equivalent.
+router.post('/import', validate({ body: bulkImportVehiclesBody }), bulkImportVehicles);
 
 
 router.get('/', validate({ query: listQuery }), getVehicles);

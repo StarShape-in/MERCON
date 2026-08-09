@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, Wrench, 
+  Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
   Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X
 } from 'lucide-react';
@@ -15,6 +15,8 @@ import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 
 import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
+import { VEHICLE_COLUMNS } from '@/utils/importUtils';
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { notificationService } from '@/services/notificationService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
@@ -117,6 +119,7 @@ export default function VehicleListPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -569,6 +572,16 @@ export default function VehicleListPage() {
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
               Export Excel
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs dark:bg-slate-900 dark:border-slate-800"
+              onClick={() => setIsImportOpen(true)}
+            >
+              <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
+              Import Excel
             </Button>
 
             <Button
@@ -1192,6 +1205,18 @@ export default function VehicleListPage() {
           title={confirmModal.title}
           message={confirmModal.message}
           isDestructive={confirmModal.isDestructive}
+        />
+
+        <ExcelImportDialog
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          entityLabel="Vehicles"
+          columns={VEHICLE_COLUMNS}
+          requiredFields={['plate_number', 'asset_type', 'capacity_kg']}
+          preferSheet="vehicle"
+          templateUrl="/templates/MERCON_Vehicles_Import_Template.xlsx"
+          onImport={(rows) => vehicleService.importRows(rows)}
+          invalidateKeys={[['vehicles'], ['vehicles-select']]}
         />
 
       </div>

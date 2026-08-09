@@ -95,6 +95,155 @@ export const getVehicleById = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Bulk-import vehicles from the fleet workbook.
+ *
+ * Same two-pass shape as the driver import, and for the same reason: the two
+ * sheets reference each other, so whichever goes first has dangling references.
+ * Pass 1 upserts the trucks on `plate_number` (the unique column, so a
+ * re-upload corrects rather than duplicates); pass 2 links each truck to its
+ * driver, matched by phone first and falling back to full name.
+ *
+ * Status is never written. A re-import must not flip a truck that is out on a
+ * job back to Available.
+ */
+export const bulkImportVehicles = async (req: Request, res: Response) => {
+  try {
+    const { rows } = req.body as {
+      rows: Array<{
+        ref_id?: string;
+        plate_number: string;
+        asset_type: string;
+        capacity_kg: number;
+        current_odometer?: number;
+        icces_device_id?: string;
+        trailer_number?: string;
+        trailer_type?: string;
+        trailer_capacity_kg?: number;
+        assigned_driver?: string;
+      }>;
+    };
+    const userId = (req as any).user?.id;
+    const results: Array<{
+      row: number; success: boolean; ref_id?: string; label?: string;
+      action?: 'created' | 'updated'; error?: string; warning?: string;
+    }> = [];
+
+    // Pass 1 — the trucks.
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+      const plate = row.plate_number.trim();
+
+      try {
+        const existing = await prisma.vehicle.findFirst({
+          where: { plate_number: { equals: plate, mode: 'insensitive' } },
+        });
+
+        const shared = {
+          asset_type: row.asset_type as AssetType,
+          capacity_kg: Number(row.capacity_kg),
+          ...(row.current_odometer !== undefined ? { current_odometer: Number(row.current_odometer) } : {}),
+          ...(row.icces_device_id ? { icces_device_id: String(row.icces_device_id).trim() } : {}),
+          ...(row.trailer_number ? { trailer_number: String(row.trailer_number).trim() } : {}),
+          ...(row.trailer_type ? { trailer_type: row.trailer_type as AssetType } : {}),
+          ...(row.trailer_capacity_kg !== undefined ? { trailer_capacity_kg: Number(row.trailer_capacity_kg) } : {}),
+        };
+
+        if (existing) {
+          await prisma.vehicle.update({
+            where: { id: existing.id },
+            data: {
+              ...shared,
+              ...(existing.deletedAt ? { deletedAt: null, deleted_by: null, isActive: true } : {}),
+              updated_by: userId,
+            },
+          });
+          results.push({ row: rowNumber, success: true, ref_id: existing.ref_id ?? undefined, label: plate, action: 'updated' });
+        } else {
+          const ref_id = String(row.ref_id || '').trim() || await generateRefId('TRK', () =>
+            prisma.vehicle.findMany({ select: { ref_id: true } }));
+
+          const created = await prisma.vehicle.create({
+            data: { ref_id, plate_number: plate, ...shared, created_by: userId },
+          });
+          results.push({ row: rowNumber, success: true, ref_id: created.ref_id ?? undefined, label: plate, action: 'created' });
+        }
+      } catch (err: any) {
+        const message = err.code === 'P2002'
+          ? (err.meta?.target?.includes?.('icces_device_id')
+            ? 'That ICCES device ID is already on another vehicle'
+            : 'A vehicle with this plate or reference already exists')
+          : err.message || 'Could not import this row';
+        results.push({ row: rowNumber, success: false, label: plate, error: message });
+      }
+    }
+
+    // Pass 2 — driver assignments, now that every truck in this file exists.
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const who = String(row.assigned_driver || '').trim();
+      const result = results[i];
+      if (!who || !result?.success) continue;
+
+      try {
+        // Phone is unique, a name is not — so try phone first and only fall
+        // back to a name match, which can legitimately be ambiguous.
+        let driver = await prisma.driver.findFirst({
+          where: { phone_primary: who, deletedAt: null },
+        });
+
+        if (!driver) {
+          const parts = who.split(/\s+/);
+          const nameMatches = await prisma.driver.findMany({
+            where: {
+              deletedAt: null,
+              first_name: { equals: parts[0], mode: 'insensitive' },
+              ...(parts.length > 1 ? { last_name: { equals: parts.slice(1).join(' '), mode: 'insensitive' } } : {}),
+            },
+            take: 2,
+          });
+          if (nameMatches.length > 1) {
+            result.warning = `Imported, but more than one driver is called "${who}" — assign the truck by phone number instead`;
+            continue;
+          }
+          driver = nameMatches[0] ?? null;
+        }
+
+        if (!driver) {
+          result.warning = `Imported, but driver "${who}" wasn't found — import the drivers file, then re-upload this one`;
+          continue;
+        }
+
+        const vehicle = await prisma.vehicle.findFirst({
+          where: { plate_number: { equals: row.plate_number.trim(), mode: 'insensitive' } },
+        });
+        if (!vehicle) continue;
+
+        await prisma.driver.update({
+          where: { id: driver.id },
+          data: { assignedVehicleId: vehicle.id, updated_by: userId },
+        });
+      } catch (err: any) {
+        result.warning = err.code === 'P2002'
+          ? `Imported, but ${who} already has a different vehicle assigned`
+          : 'Imported, but the driver assignment failed';
+      }
+    }
+
+    const created = results.filter((r) => r.success && r.action === 'created').length;
+    const updated = results.filter((r) => r.success && r.action === 'updated').length;
+    const failed = results.filter((r) => !r.success).length;
+
+    res.json({
+      success: true,
+      data: { total: rows.length, created, updated, failed, results },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to import vehicles' } });
+  }
+};
+
 export const createVehicle = async (req: Request, res: Response) => {
   try {
     const {

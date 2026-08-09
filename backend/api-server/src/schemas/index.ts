@@ -65,6 +65,44 @@ export const updateTripStopBody = z.object({
   lng: z.coerce.number().min(-180).max(180).optional(),
 });
 
+/* ─── Fleet bulk import ───────────────────────────────────────────────────── */
+
+/** Drivers workbook — one driver per row. Columns are mapped to these names by
+ *  the client before posting; see docs/MERCON_Fleet_Import_Guide.md.
+ *
+ *  `phone_primary` is the upsert key: it is the only unique column on Driver
+ *  (license_number is not unique in the schema), so re-importing a corrected
+ *  workbook updates people rather than duplicating them. */
+export const bulkImportDriversBody = z.object({
+  rows: z.array(z.object({
+    ref_id: z.string().trim().max(64).optional(),
+    first_name: nonEmpty('First name'),
+    last_name: nonEmpty('Last name'),
+    phone_primary: nonEmpty('Primary phone'),
+    license_number: nonEmpty('License number'),
+    license_expiry: z.string().trim().min(1, 'License expiry is required'),
+    assigned_vehicle_plate: z.string().trim().max(32).optional(),
+  })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
+});
+
+/** Vehicles workbook — one vehicle per row, upserted on `plate_number`. */
+export const bulkImportVehiclesBody = z.object({
+  rows: z.array(z.object({
+    ref_id: z.string().trim().max(64).optional(),
+    plate_number: nonEmpty('Plate number'),
+    asset_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker'], {
+      message: 'Asset type must be Flatbed, Reefer, Box or Tanker',
+    }),
+    capacity_kg: z.coerce.number().int().positive('Capacity must be a positive whole number'),
+    current_odometer: z.coerce.number().min(0).optional(),
+    icces_device_id: z.string().trim().max(64).optional(),
+    trailer_number: z.string().trim().max(64).optional(),
+    trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
+    trailer_capacity_kg: z.coerce.number().int().positive().optional(),
+    assigned_driver: z.string().trim().max(120).optional(),
+  })).min(1, 'The file has no rows to import').max(1000, 'Import at most 1000 rows at a time'),
+});
+
 /** Bulk CSV import — one trip per row, matched to existing customers/drivers/
  *  vehicles by name/plate rather than id (the CSV can't know internal ids).
  *  No stops: imported trips land in Draft/Dispatched with route stops added
