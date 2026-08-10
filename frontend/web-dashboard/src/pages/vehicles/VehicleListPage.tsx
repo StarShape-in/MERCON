@@ -145,6 +145,8 @@ export default function VehicleListPage() {
   const refreshFleet = () => {
     queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+    // A workshop typed for the first time becomes a saved suggestion.
+    queryClient.invalidateQueries({ queryKey: ['workshops'] });
   };
 
   /**
@@ -1201,7 +1203,10 @@ export default function VehicleListPage() {
               errorMessage={(error as Error)?.message || 'Failed to load fleet vehicles.'}
               searchPlaceholder="Search by plate number, ref ID, or asset type..."
               searchValue={search}
-              onSearchChange={setSearch}
+              onSearchChange={(val) => {
+                setSearch(val);
+                setCurrentPage(1);
+              }}
               currentPage={currentPage}
               totalPages={totalPages}
               pageSize={pageSize}

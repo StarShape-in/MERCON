@@ -9,6 +9,7 @@ import {
   CheckCircle2, ChevronDown
 } from 'lucide-react';
 
+import WorkshopField from '@/components/fleet/WorkshopField';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
@@ -131,6 +132,7 @@ export default function VehicleDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance', id] });
       queryClient.invalidateQueries({ queryKey: ['vehicle-financials', id] });
+      queryClient.invalidateQueries({ queryKey: ['workshops'] });
       setIsLogMaintModalOpen(false);
       setMaintFormError('');
     },
@@ -1033,11 +1035,11 @@ export default function VehicleDetailsPage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Workshop / Service Center *</Label>
-                <Input
+                <WorkshopField
                   value={maintFormData.workshop_name}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, workshop_name: e.target.value }))}
+                  onChange={(name) => setMaintFormData(prev => ({ ...prev, workshop_name: name }))}
+                  onPick={(w) => setMaintFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
                   placeholder="Al-Riyadh Workshop"
-                  className="h-9 text-xs"
                 />
               </div>
 

@@ -10,6 +10,7 @@ import {
   ChevronsUpDown, ArrowUp, LayoutGrid, List, Phone, Database
 } from 'lucide-react';
 
+import WorkshopField from '@/components/fleet/WorkshopField';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MaintenanceWrench, CheckBadge, MoneyBills, CalendarAlert } from '@/components/ui/kpi-icons';
@@ -126,6 +127,8 @@ export default function MaintenanceListPage() {
     queryClient.invalidateQueries({ queryKey: ['maintenance'] });
     queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     queryClient.invalidateQueries({ queryKey: ['vehicle'] });
+    // A workshop typed for the first time becomes a saved suggestion.
+    queryClient.invalidateQueries({ queryKey: ['workshops'] });
   };
 
   // Mutations

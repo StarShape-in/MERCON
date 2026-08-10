@@ -9,6 +9,7 @@ import {
   Upload, Paperclip, Printer, Hash, ClipboardList,
 } from 'lucide-react';
 
+import WorkshopField from '@/components/fleet/WorkshopField';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -150,6 +151,7 @@ export default function MaintenanceDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ['maintenance'] });
       // Closing/reopening an order moves the vehicle in or out of the workshop.
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['workshops'] });
       if (record?.vehicleId) {
         queryClient.invalidateQueries({ queryKey: ['vehicle', record.vehicleId] });
         queryClient.invalidateQueries({ queryKey: ['vehicle-financials', record.vehicleId] });
@@ -905,10 +907,11 @@ export default function MaintenanceDetailsPage() {
 
               <div className="space-y-1">
                 <Label className="text-xs font-bold">Workshop name *</Label>
-                <Input
+                <WorkshopField
                   value={editFormData.workshop_name}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, workshop_name: e.target.value }))}
-                  className="h-8.5 text-xs"
+                  onChange={(name) => setEditFormData(prev => ({ ...prev, workshop_name: name }))}
+                  onPick={(w) => setEditFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
+                  className="h-8.5"
                 />
               </div>
 
