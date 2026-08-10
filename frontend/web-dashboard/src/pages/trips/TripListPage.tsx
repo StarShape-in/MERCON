@@ -1058,10 +1058,10 @@ export default function TripListPage() {
                     }
                   }}
                 >
-                  <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                    <div className="flex items-center gap-2">
+                  <SelectTrigger className="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
                       <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                      <SelectValue placeholder="All Operations" />
+                      <SelectValue placeholder="All Operations" className="whitespace-nowrap" />
                     </div>
                   </SelectTrigger>
                   <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">

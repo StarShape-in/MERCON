@@ -225,9 +225,9 @@ export default function DataTable<T>({
               />
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 w-full">
               {/* Left Side: Title & Search Bar */}
-              <div className="flex items-center gap-3 flex-1 flex-wrap min-w-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
                 {title && (
                   <div className="flex items-center gap-2 shrink-0">
                     <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -263,7 +263,7 @@ export default function DataTable<T>({
                 )}
               </div>
 
-              {/* Right Side: Filters, Select All & Actions */}
+              {/* Right Side: Filters, Select All, Actions & Export */}
               <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
                 {filterElement}
                 {enableSelection && (

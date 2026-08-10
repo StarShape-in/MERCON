@@ -41,10 +41,10 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): 
   return R * c;
 }
 
-function findClosestLocationHub(lat: number, lng: number, locations: Location[]): Location | null {
+function findClosestLocationHub(lat: number, lng: number, locations: Location[], maxDistanceKm: number = 35): Location | null {
   if (!locations || locations.length === 0) return null;
   let closest: Location | null = null;
-  let minDistance = Infinity;
+  let minDistance = maxDistanceKm;
 
   for (const loc of locations) {
     if (loc.lat != null && loc.lng != null) {
@@ -241,16 +241,35 @@ export default function TripStopCard({
       searchSessionRef.current = null; // Single use token
 
       if (resolved) {
-        setQuery(resolved.name || suggestion.label);
-        onNameChange(resolved.name || suggestion.label);
+        const placeName = resolved.name || suggestion.label;
+        setQuery(placeName);
+        onNameChange(placeName);
         onAddressChange(resolved.address);
         updateCoords(resolved.lat, resolved.lng);
 
-        // Auto-match closest saved location hub for Rate Card pricing
-        const closestHub = findClosestLocationHub(resolved.lat, resolved.lng, locations);
+        // Check for exact matching name/slug or hub within 35km
+        const searchSlug = placeName.trim().toLowerCase();
+        const exactNameHub = locations.find((l) => l.name.trim().toLowerCase() === searchSlug);
+        const closestHub = exactNameHub || findClosestLocationHub(resolved.lat, resolved.lng, locations, 35);
+
         if (closestHub) {
           updateLocationId(closestHub.id, closestHub);
           if (onLocationNameChange) onLocationNameChange(closestHub.name);
+        } else {
+          // Auto-create a location hub for this place so rate cards match it directly
+          try {
+            const newLoc = await locationService.create({
+              name: placeName,
+              address: resolved.address,
+              lat: resolved.lat,
+              lng: resolved.lng,
+            });
+            updateLocationId(newLoc.id, newLoc);
+            if (onLocationNameChange) onLocationNameChange(newLoc.name);
+          } catch (err) {
+            console.error('Failed to auto-create location hub for Google place', err);
+            updateLocationId('', null);
+          }
         }
       }
     } catch (e) {

@@ -3,8 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
-  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
-  ChevronLeft, ChevronRight
+  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -14,12 +13,14 @@ interface SidebarProps {
   /** Mobile drawer open state — ignored at lg and above, where the sidebar is always visible */
   open?: boolean;
   onClose?: () => void;
-  /** Desktop-only rail mode — collapses to an icon strip at lg and above. Mobile drawer is unaffected. */
+  /**
+   * Desktop-only rail mode — collapses to an icon strip at lg and above. Mobile drawer is
+   * unaffected. Toggled from the header, next to the Back button.
+   */
   collapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
-export default function Sidebar({ active, open = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({ active, open = false, onClose, collapsed = false }: SidebarProps) {
   const navigate = useNavigate();
   const user = authStore.getUser();
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
@@ -107,17 +108,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           ${collapsed ? 'lg:w-[76px]' : 'lg:w-[220px]'}
         `}
       >
-      {/* Desktop collapse toggle — rides the outer edge of the rail */}
-      <button
-        onClick={onToggleCollapse}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        aria-expanded={!collapsed}
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className="hidden lg:flex absolute -right-3 top-[104px] z-50 w-6 h-6 items-center justify-center rounded-full bg-[#18181B] border border-white/15 text-white/70 hover:text-white hover:bg-[#E8450F] hover:border-[#E8450F] shadow-md transition-colors cursor-pointer"
-      >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
-
       {/* Logo */}
       <div className="relative flex items-center shrink-0 justify-center bg-[#18181B] border-b border-white/10 h-[72px] lg:h-[88px] overflow-hidden">
         <img

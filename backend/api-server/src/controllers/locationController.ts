@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../index';
+import { getValidUuid } from '../utils/uuid';
 
 /**
  * Lane endpoints — the shared list of places rate cards are priced between.
@@ -25,8 +26,9 @@ export const toSlug = (name: string) =>
 export const resolveLocation = async (
   tx: Pick<Prisma.TransactionClient, 'location'>,
   input: { id?: string | null; name?: string | null; address?: string | null; lat?: number | null; lng?: number | null },
-  userId?: string
+  userId?: string | null
 ) => {
+  const validUserId = getValidUuid(userId);
   if (input.id) {
     const existing = await tx.location.findFirst({ where: { id: input.id, deletedAt: null } });
     if (!existing) throw new Error('LOCATION_NOT_FOUND');
@@ -52,7 +54,7 @@ export const resolveLocation = async (
           ...(found.deletedAt ? { deletedAt: null, deleted_by: null, is_active: true } : {}),
           ...(needsCoords ? { lat: input.lat, lng: input.lng ?? null } : {}),
           ...(needsAddress ? { address: input.address } : {}),
-          updated_by: userId ?? null,
+          updated_by: validUserId,
         },
       });
     }
@@ -66,7 +68,7 @@ export const resolveLocation = async (
       address: input.address ?? null,
       lat: input.lat ?? null,
       lng: input.lng ?? null,
-      created_by: userId ?? null,
+      created_by: validUserId,
     },
   });
 };
@@ -178,7 +180,7 @@ export const updateLocation = async (req: Request, res: Response) => {
           ...(lat !== undefined ? { lat: lat === null || lat === '' ? null : Number(lat) } : {}),
           ...(lng !== undefined ? { lng: lng === null || lng === '' ? null : Number(lng) } : {}),
           ...(is_active !== undefined ? { is_active: !!is_active } : {}),
-          updated_by: (req as any).user?.id ?? null,
+          updated_by: getValidUuid((req as any).user?.id),
           version: existing.version + 1,
         },
       });
@@ -231,7 +233,7 @@ export const deleteLocation = async (req: Request, res: Response) => {
       data: {
         deletedAt: new Date(),
         is_active: false,
-        deleted_by: (req as any).user?.id ?? null,
+        deleted_by: getValidUuid((req as any).user?.id),
       },
     });
 
