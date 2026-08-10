@@ -290,7 +290,6 @@ export default function TripDetailsPage() {
   const sidebarStats: { icon: typeof RouteIcon; tone: string; label: string; value: string }[] = [
     { icon: RouteIcon, tone: 'bg-rose-50 text-rose-500', label: 'Distance', value: trip.planned_distance != null ? `${trip.planned_distance} km` : '—' },
     { icon: Timer, tone: 'bg-emerald-50 text-emerald-600', label: 'Elapsed', value: elapsedMinutes != null ? formatDelay(elapsedMinutes) : (estDurationMinutes != null ? formatDelay(estDurationMinutes) : '—') },
-    { icon: MapPin, tone: 'bg-[#E8450F]/10 text-[#E8450F]', label: 'Stops', value: String(trip.stops?.length ?? 0) },
     { icon: Gauge, tone: 'bg-blue-50 text-blue-600', label: 'Avg. Speed', value: avgSpeedKmh != null ? `${avgSpeedKmh} km/h` : '—' },
   ];
 
