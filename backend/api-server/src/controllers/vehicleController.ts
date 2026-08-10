@@ -16,7 +16,34 @@ export const getVehicles = async (req: Request, res: Response) => {
       whereClause.status = status as AssetStatus;
     }
     if (search) {
-      whereClause.plate_number = { contains: search as string, mode: 'insensitive' };
+      const q = (search as string).trim();
+      if (q) {
+        const matchingAssetTypes = Object.values(AssetType).filter((t) =>
+          t.toLowerCase().includes(q.toLowerCase())
+        );
+
+        whereClause.OR = [
+          { plate_number: { contains: q, mode: 'insensitive' } },
+          { ref_id: { contains: q, mode: 'insensitive' } },
+          { trailer_number: { contains: q, mode: 'insensitive' } },
+          { gps_device_id: { contains: q, mode: 'insensitive' } },
+          { icces_device_id: { contains: q, mode: 'insensitive' } },
+          ...(matchingAssetTypes.length > 0
+            ? [{ asset_type: { in: matchingAssetTypes } }]
+            : []),
+          {
+            assignedDriver: {
+              OR: [
+                { first_name: { contains: q, mode: 'insensitive' } },
+                { last_name: { contains: q, mode: 'insensitive' } },
+                { phone: { contains: q, mode: 'insensitive' } },
+                { license_number: { contains: q, mode: 'insensitive' } },
+                { ref_id: { contains: q, mode: 'insensitive' } },
+              ],
+            },
+          },
+        ];
+      }
     }
 
     const [vehicles, total] = await Promise.all([
