@@ -1,4 +1,4 @@
-import { Building2, CheckCircle2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,11 @@ export default function TripStepCustomer({
   selectedCustomer,
   onSelectCustomer,
 }: TripStepCustomerProps) {
+  const custPhone = selectedCustomer ? (selectedCustomer.phone || selectedCustomer.contact_phone || 'N/A') : 'N/A';
+  const custCompany = selectedCustomer ? (selectedCustomer.company_name || 'Individual Shipper') : 'Individual Shipper';
+  const custPayment = selectedCustomer ? (selectedCustomer.payment_terms || 'Net 30') : 'Net 30';
+  const custTax = selectedCustomer ? (selectedCustomer.tax_number || '3000...') : '3000...';
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div>
@@ -61,7 +66,7 @@ export default function TripStepCustomer({
               </div>
               <div>
                 <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">{selectedCustomer.name}</h4>
-                <p className="text-[11px] text-slate-500">{selectedCustomer.company_name || 'Individual Shipper'}</p>
+                <p className="text-[11px] text-slate-500">{custCompany}</p>
               </div>
             </div>
             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
@@ -72,15 +77,15 @@ export default function TripStepCustomer({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-1 border-t border-slate-200/60 dark:border-slate-800">
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Contact Phone</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedCustomer.phone || 'N/A'}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">{custPhone}</span>
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Payment Terms</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedCustomer.payment_terms || 'Net 30'}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">{custPayment}</span>
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Tax Registration</span>
-              <span className="font-mono text-slate-700 dark:text-slate-300">{selectedCustomer.tax_number || '3000...'}</span>
+              <span className="font-mono text-slate-700 dark:text-slate-300">{custTax}</span>
             </div>
           </div>
         </Card>
