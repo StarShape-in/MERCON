@@ -440,21 +440,7 @@ export default function AddCustomerPage() {
 
                         <div className="space-y-1">
                           <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                            Job Title / Role
-                          </Label>
-                          <Input
-                            placeholder="e.g. Logistics Director"
-                            value={contact.title}
-                            onChange={(e) => updateContactPerson(contact.id, 'title', e.target.value)}
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                            Direct Phone {contact.is_primary && <span className="text-rose-500">*</span>}
+                            Contact Phone {contact.is_primary && <span className="text-rose-500">*</span>}
                           </Label>
                           <div className="relative">
                             <span className="absolute left-2.5 top-1.5 text-[11px] font-bold text-slate-400 font-mono">+966</span>
@@ -470,6 +456,20 @@ export default function AddCustomerPage() {
                               className="h-8 text-xs pl-12 font-mono"
                             />
                           </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Job Title / Role
+                          </Label>
+                          <Input
+                            placeholder="e.g. Logistics Director"
+                            value={contact.title}
+                            onChange={(e) => updateContactPerson(contact.id, 'title', e.target.value)}
+                            className="h-8 text-xs"
+                          />
                         </div>
 
                         <div className="space-y-1">

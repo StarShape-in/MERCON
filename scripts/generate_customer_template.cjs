@@ -56,7 +56,7 @@ async function generateCustomerTemplate() {
 
   guideSheet.mergeCells('E5:G6');
   const status3 = guideSheet.getCell('E5');
-  status3.value = 'MULTIPLE CONTACTS\nEnter Primary & Secondary Contacts per Row';
+  status3.value = 'MULTIPLE CONTACT PERSONNEL\nAdd Contact 1, Contact 2, Contact 3 per Row';
   status3.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '001E40AF' } };
   status3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '00DBEAFE' } };
   status3.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
@@ -68,10 +68,10 @@ async function generateCustomerTemplate() {
   guideSheet.getCell('B10').value = '• Columns with a red label and asterisk (*) are MANDATORY for importing.';
   guideSheet.getCell('B10').font = { name: 'Segoe UI', size: 10, color: { argb: '00334155' } };
 
-  guideSheet.getCell('B11').value = '• Required Customer fields: Company Name *, Primary Contact Phone *.';
+  guideSheet.getCell('B11').value = '• Required Customer fields: Company Name *, Contact 1 Phone *.';
   guideSheet.getCell('B11').font = { name: 'Segoe UI', size: 10, color: { argb: '00334155' } };
 
-  guideSheet.getCell('B12').value = '• Multiple Personnel: Enter Primary Contact details (Name, Phone, Email, Title) and Secondary Contact details (Name, Phone, Email, Title).';
+  guideSheet.getCell('B12').value = '• Multiple Personnel: Enter Contact 1 (Name, Phone, Email, Title), Contact 2 (Name, Phone, Email, Title), and Contact 3 (Name, Phone, Email, Title).';
   guideSheet.getCell('B12').font = { name: 'Segoe UI', size: 10, color: { argb: '00334155' } };
 
   // Step 2
@@ -95,21 +95,25 @@ async function generateCustomerTemplate() {
     { name: 'Industry', width: 20, isRequired: false },
     { name: 'Commercial Reg (CR) No.', width: 24, isRequired: false },
     { name: 'VAT / Tax Number', width: 26, isRequired: false },
-    { name: 'Primary Contact Name', width: 26, isRequired: false },
-    { name: 'Primary Phone *', width: 24, isRequired: true },
-    { name: 'Primary Email', width: 28, isRequired: false },
-    { name: 'Primary Contact Title', width: 24, isRequired: false },
-    { name: 'Secondary Contact Name', width: 26, isRequired: false },
-    { name: 'Secondary Phone', width: 24, isRequired: false },
-    { name: 'Secondary Email', width: 28, isRequired: false },
-    { name: 'Secondary Contact Title', width: 24, isRequired: false },
+    { name: 'Contact 1 Name', width: 26, isRequired: false },
+    { name: 'Contact 1 Phone *', width: 24, isRequired: true },
+    { name: 'Contact 1 Email', width: 28, isRequired: false },
+    { name: 'Contact 1 Title', width: 24, isRequired: false },
+    { name: 'Contact 2 Name', width: 26, isRequired: false },
+    { name: 'Contact 2 Phone', width: 24, isRequired: false },
+    { name: 'Contact 2 Email', width: 28, isRequired: false },
+    { name: 'Contact 2 Title', width: 24, isRequired: false },
+    { name: 'Contact 3 Name', width: 26, isRequired: false },
+    { name: 'Contact 3 Phone', width: 24, isRequired: false },
+    { name: 'Contact 3 Email', width: 28, isRequired: false },
+    { name: 'Contact 3 Title', width: 24, isRequired: false },
     { name: 'Billing Address / Notes', width: 36, isRequired: false },
   ];
 
   custSheet.columns = columns.map(c => ({ width: c.width }));
 
   // Header Banner Row 1-2
-  custSheet.mergeCells('A1:O2');
+  custSheet.mergeCells('A1:S2');
   const dirBanner = custSheet.getCell('A1');
   dirBanner.value = '🏢 CUSTOMER ACCOUNTS DIRECTORY  —  MULTIPLE CONTACT PERSONNEL ENTRY';
   dirBanner.font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: '00FFFFFF' } };
@@ -130,9 +134,9 @@ async function generateCustomerTemplate() {
   };
   modBox1.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
-  custSheet.mergeCells('E4:J5');
+  custSheet.mergeCells('E4:N5');
   const modBox2 = custSheet.getCell('E4');
-  modBox2.value = 'MULTIPLE PERSONNEL PER COMPANY\nPrimary & Secondary Representatives Supported';
+  modBox2.value = 'MULTIPLE CONTACT PERSONNEL PER COMPANY\nEnter Contact 1, Contact 2, Contact 3 side by side';
   modBox2.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '0064748B' } };
   modBox2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '00F1F5F9' } };
   modBox2.border = {
@@ -143,8 +147,8 @@ async function generateCustomerTemplate() {
   };
   modBox2.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
-  custSheet.mergeCells('K4:O5');
-  const modBox3 = custSheet.getCell('K4');
+  custSheet.mergeCells('O4:S5');
+  const modBox3 = custSheet.getCell('O4');
   modBox3.value = "INITIAL STATUS\nAuto-Defaulted to 'Active'";
   modBox3.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '0064748B' } };
   modBox3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '00F1F5F9' } };
@@ -192,6 +196,10 @@ async function generateCustomerTemplate() {
       '+966 50 123 9999',
       'sami@sabic.com',
       'Dispatch Ops Lead',
+      'Khalid Mansoor',
+      '+966 50 123 7777',
+      'khalid@sabic.com',
+      'Billing Manager',
       'Building 829, King Fahd Road, Riyadh',
     ],
     [
@@ -209,6 +217,10 @@ async function generateCustomerTemplate() {
       '+966 50 987 8888',
       'noura@almarai.com',
       'Billing Specialist',
+      'Salem Al-Harbi',
+      '+966 50 987 4444',
+      'salem@almarai.com',
+      'Fleet Manager',
       'Exit 7, Northern Ring Road, Riyadh',
     ],
     [
@@ -226,6 +238,10 @@ async function generateCustomerTemplate() {
       '+966 55 443 7777',
       'youssef@panda.com.sa',
       'Warehouse Manager',
+      '',
+      '',
+      '',
+      '',
       'Al-Andalus District, Jeddah',
     ],
   ];
