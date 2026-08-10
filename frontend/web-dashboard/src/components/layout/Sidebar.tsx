@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
-  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2
+  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -13,9 +14,12 @@ interface SidebarProps {
   /** Mobile drawer open state — ignored at lg and above, where the sidebar is always visible */
   open?: boolean;
   onClose?: () => void;
+  /** Desktop-only rail mode — collapses to an icon strip at lg and above. Mobile drawer is unaffected. */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export default function Sidebar({ active, open = false, onClose }: SidebarProps) {
+export default function Sidebar({ active, open = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const user = authStore.getUser();
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';

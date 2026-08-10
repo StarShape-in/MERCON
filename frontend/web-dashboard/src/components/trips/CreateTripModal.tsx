@@ -578,7 +578,10 @@ export default function CreateTripModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !createMutation.isPending && !open && onClose()}>
-        <DialogContent className="max-w-5xl lg:max-w-6xl w-[95vw] max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
+        <DialogContent className={cn(
+          "transition-all duration-300 max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl",
+          step === 1 ? "max-w-2xl sm:max-w-3xl w-[90vw]" : step === 2 ? "max-w-3xl lg:max-w-4xl w-[92vw]" : "max-w-5xl lg:max-w-6xl w-[95vw]"
+        )}>
           
           {/* Header */}
           <DialogHeader className="px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80">
@@ -602,9 +605,6 @@ export default function CreateTripModal({
                 <RotateCcw className="w-3.5 h-3.5" /> Reset Form
               </Button>
             </div>
-            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Dispatch freight across Saudi Arabia with automatic rate calculation and real-time SLA verification.
-            </DialogDescription>
 
             {/* Step Selector Tabs */}
             <div className="grid grid-cols-3 gap-2.5 mt-4 pt-1">
