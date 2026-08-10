@@ -21,7 +21,7 @@ const pickupMarkerIcon = L.divIcon({
   html: `
     <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
       <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.35);"></div>
-      <img src="/warehouse_pickup_3d.png" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
+      <img src="/warehouse_pickup_3d.png?v=3" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
     </div>
   `,
   className: '',
@@ -34,7 +34,7 @@ const dropoffMarkerIcon = L.divIcon({
   html: `
     <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
       <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.35);"></div>
-      <img src="/warehouse_dropoff_3d.png" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
+      <img src="/warehouse_dropoff_3d.png?v=3" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
     </div>
   `,
   className: '',
