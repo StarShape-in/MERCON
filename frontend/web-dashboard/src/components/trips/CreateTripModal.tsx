@@ -321,22 +321,72 @@ export default function CreateTripModal({
   // Mutation
   const createMutation = useMutation({
     mutationFn: async (payload: CreateTripPayload) => {
+      let finalPickupLocId = pickupLocationId;
+      let finalDropoffLocId = dropoffLocationId;
+
+      // 1. Ensure Pickup Location is saved to DB if missing locationId
+      if (!finalPickupLocId && pickupName.trim()) {
+        try {
+          const newLoc = await locationService.create({
+            name: pickupName.trim(),
+            address: pickupAddress.trim() || undefined,
+            lat: pickupLat ?? undefined,
+            lng: pickupLng ?? undefined,
+          });
+          finalPickupLocId = newLoc.id;
+          setPickupLocationId(newLoc.id);
+        } catch (e) {
+          console.error('Failed to auto-create pickup location', e);
+        }
+      }
+
+      // 2. Ensure Dropoff Location is saved to DB if missing locationId
+      if (!finalDropoffLocId && dropoffName.trim()) {
+        try {
+          const newLoc = await locationService.create({
+            name: dropoffName.trim(),
+            address: dropoffAddress.trim() || undefined,
+            lat: dropoffLat ?? undefined,
+            lng: dropoffLng ?? undefined,
+          });
+          finalDropoffLocId = newLoc.id;
+          setDropoffLocationId(newLoc.id);
+        } catch (e) {
+          console.error('Failed to auto-create dropoff location', e);
+        }
+      }
+
+      // Update payload stops with saved location IDs
+      if (payload.stops && payload.stops.length >= 2) {
+        if (finalPickupLocId) payload.stops[0].location_id = finalPickupLocId;
+        if (finalDropoffLocId) payload.stops[1].location_id = finalDropoffLocId;
+      }
+
+      // 3. Save Rate Card if requested
       let rateCardId = matchedRateCard?.id;
 
-      if (!matchedRateCard && laneHasNoRate && saveRateAs !== 'none' && payload.billing_amount) {
+      if (!matchedRateCard && saveRateAs !== 'none' && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
         try {
-          const created = await rateCardService.create({
+          const createdRate = await rateCardService.create({
+            name: `${pickupName.trim()} → ${dropoffName.trim()}`,
             base_price: payload.billing_amount,
             currency: 'SAR',
             customerId: saveRateAs === 'customer' ? customerId : null,
-            origin_location_id: pickupLocationId,
-            destination_location_id: dropoffLocationId,
+            origin_location_id: finalPickupLocId,
+            destination_location_id: finalDropoffLocId,
+            origin_name: pickupName.trim(),
+            destination_name: dropoffName.trim(),
+            origin_lat: pickupLat,
+            origin_lng: pickupLng,
+            destination_lat: dropoffLat,
+            destination_lng: dropoffLng,
           });
-          rateCardId = created.id;
+          rateCardId = createdRate.id;
         } catch (e: any) {
+          console.error('Failed to save rate card', e);
           setRateSaveWarning(
             e.response?.data?.error?.message ||
-              'The trip was created, but the new rate could not be saved for reuse.'
+              'The trip was created, but the new rate card could not be saved for reuse.'
           );
         }
       }
@@ -353,14 +403,15 @@ export default function CreateTripModal({
             default_dropoff_lng: dropoffLng,
           });
         } catch (e) {
-          console.error('Failed to auto-save locations', e);
+          console.error('Failed to auto-save customer locations', e);
         }
       }
 
       queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['fleet-performance'] });
       queryClient.invalidateQueries({ queryKey: ['customers-select'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       if (onTripCreated) onTripCreated(createdTrip);
       onClose();
     },
