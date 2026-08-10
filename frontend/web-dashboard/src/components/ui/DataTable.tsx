@@ -226,7 +226,7 @@ export default function DataTable<T>({
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 w-full">
-              {/* Left Side: Title, Search Bar & Filters */}
+              {/* Left Side: Title & Search Bar */}
               <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
                 {title && (
                   <div className="flex items-center gap-2 shrink-0">
@@ -261,12 +261,11 @@ export default function DataTable<T>({
                     )}
                   </div>
                 )}
-
-                {filterElement}
               </div>
 
-              {/* Right Side: Select All, Actions & Export */}
+              {/* Right Side: Filters, Select All, Actions & Export */}
               <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
+                {filterElement}
                 {enableSelection && (
                   <Button
                     variant="outline"
