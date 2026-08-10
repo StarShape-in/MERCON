@@ -24,7 +24,7 @@ import {
   Calendar as CalendarIcon,
   FileSpreadsheet
 } from 'lucide-react';
-import { CustomerBuilding, CheckBadge, MoneyBills } from '@/components/ui/kpi-icons';
+import { CustomerBuilding, CheckBadge } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
 import { CUSTOMER_COLUMNS } from '@/utils/importUtils';
@@ -33,7 +33,6 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { CreditExposureKpi } from '@/components/ui/CustomKpiWidgets';
 import { customerService, Customer } from '@/services/customerService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
@@ -60,14 +59,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 
 export default function CustomerListPage() {
   const navigate = useNavigate();
@@ -80,7 +71,6 @@ export default function CustomerListPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showCreditModal, setShowCreditModal] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -126,7 +116,6 @@ export default function CustomerListPage() {
   const inactiveCount = rawCustomers.filter(c => !c.isActive).length;
   const activePercentage = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
   
-  const totalCreditLimit = rawCustomers.reduce((acc, c) => acc + (c.credit_limit || 0), 0);
   const highCreditCount = rawCustomers.filter(c => (c.credit_limit || 0) >= 100000).length;
   const standardCreditCount = rawCustomers.filter(c => (c.credit_limit || 0) < 100000).length;
   const enterpriseTierPct = totalCount > 0 ? Math.round((highCreditCount / totalCount) * 100) : 70;
@@ -183,17 +172,6 @@ export default function CustomerListPage() {
               {row.contact_phone}
             </span>
           </div>
-        </div>
-      ),
-    },
-    {
-      header: 'Credit Limit Exposure',
-      accessor: (row: Customer) => (
-        <div className="flex flex-col gap-1">
-          <span className="font-mono text-xs font-bold text-slate-850 dark:text-slate-200">
-            SAR {(row.credit_limit || 0).toLocaleString()}
-          </span>
-          {getCreditTierBadge(row.credit_limit || 0)}
         </div>
       ),
     },
@@ -415,26 +393,26 @@ export default function CustomerListPage() {
             onClick={() => { setSelectedStatus('Active'); setCurrentPage(1); }}
           />
 
-          {/* Card 3: Total Credit Exposure — Credit Exposure Modal */}
+          {/* Card 3: Enterprise Accounts — Key Client Tier Metric */}
           <KpiCard
-            title="TOTAL CREDIT EXPOSURE"
+            title="ENTERPRISE ACCOUNTS"
             value={
               <span>
-                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
-                {(totalCreditLimit / 1000).toFixed(0)}K
+                {highCreditCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Key Clients</span>
               </span>
             }
             variant="blue"
-            trend="neutral"
-            trendValue="Credit Portfolio"
-            description="Credit facility summary"
-            icon={MoneyBills}
+            trend="up"
+            trendValue={`${enterpriseTierPct}% Key Tier`}
+            description="Enterprise tier portfolio"
+            icon={Building2}
             completionGauge={{
-              percentage: 65,
-              label: '65% Utilized',
-              subtext: `Portfolio Limit SAR ${(totalCreditLimit / 1000).toFixed(0)}K`
+              percentage: enterpriseTierPct,
+              label: `${enterpriseTierPct}% Enterprise Tier`,
+              subtext: `${highCreditCount} Enterprise • ${standardCreditCount} Commercial`
             }}
-            onClick={() => setShowCreditModal(true)}
+            onClick={() => { setCreditTierFilter('High'); setCurrentPage(1); }}
           />
 
           {/* Card 4: Contract Renewals Due — Urgency Progress Bar */}
@@ -613,8 +591,8 @@ export default function CustomerListPage() {
                       <span className="font-semibold text-slate-800 dark:text-slate-200">{c.contact_phone}</span>
                     </div>
                     <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
-                      <span className="font-medium text-slate-400 dark:text-slate-500">Credit Limit:</span>
-                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">SAR {(c.credit_limit || 0).toLocaleString()}</span>
+                      <span className="font-medium text-slate-400 dark:text-slate-500">Account Tier:</span>
+                      {getCreditTierBadge(c.credit_limit || 0)}
                     </div>
                   </div>
 
@@ -632,50 +610,6 @@ export default function CustomerListPage() {
             })}
           </div>
         )}
-
-        {/* Credit Exposure Breakdown Modal */}
-        <Dialog open={showCreditModal} onOpenChange={setShowCreditModal}>
-          <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
-            <DialogHeader>
-              <MoneyBills className="w-7 h-7 text-orange-500 dark:text-orange-400 mb-2" />
-              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                Enterprise Credit Exposure & Facility
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Summary of approved corporate credit lines and utilized balance.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-3 my-4 text-xs">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100">Total Credit Line Facility</div>
-                  <div className="text-[10px] text-slate-400">Approved corporate credit ceiling</div>
-                </div>
-                <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100 text-sm">SAR {(totalCreditLimit || 500000).toLocaleString()}</span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60">
-                <div>
-                  <div className="font-bold text-indigo-900 dark:text-indigo-300">Currently Utilized Credit</div>
-                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Outstanding active trip billing balance</div>
-                </div>
-                <span className="font-mono font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">SAR {Math.round((totalCreditLimit || 500000) * 0.65).toLocaleString()}</span>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs font-bold border-slate-200"
-                onClick={() => setShowCreditModal(false)}
-              >
-                Close Credit Facility Summary
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <ConfirmModal
           isOpen={confirmModal.isOpen}
@@ -705,3 +639,4 @@ export default function CustomerListPage() {
     </DashboardLayout>
   );
 }
+
