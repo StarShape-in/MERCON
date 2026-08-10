@@ -247,7 +247,7 @@ export default function DriverDetailsPage() {
 
               <Button
                 size="sm"
-                onClick={() => navigate('/trips/create')}
+                onClick={() => navigate('/trips/new')}
                 className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-sm rounded-lg px-3.5"
               >
                 <Plus className="w-4 h-4" />

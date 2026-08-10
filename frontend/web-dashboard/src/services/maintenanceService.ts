@@ -90,10 +90,24 @@ export interface MaintenanceListResponse {
   };
 }
 
+/** A workshop the fleet has used before, derived from existing service orders. */
+export interface Workshop {
+  name: string;
+  contact: string | null;
+  order_count: number;
+  last_used: string;
+}
+
 export const maintenanceService = {
   async getAll(filters: MaintenanceFilters = {}): Promise<MaintenanceListResponse> {
     const res = await api.get<MaintenanceListResponse>('/maintenance', { params: filters });
     return res.data;
+  },
+
+  /** Workshops already used on service orders, newest first — offered for reuse in forms. */
+  async getWorkshops(): Promise<Workshop[]> {
+    const res = await api.get<ApiResponse<Workshop[]>>('/maintenance/workshops');
+    return res.data.data;
   },
 
   async getById(id: string): Promise<MaintenanceRecord> {

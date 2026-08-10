@@ -5,7 +5,8 @@ import {
   createMaintenanceRecord, 
   updateMaintenanceRecord,
   deleteMaintenanceRecord,
-  returnVehicleToService
+  returnVehicleToService,
+  getWorkshops
 } from '../controllers/maintenanceController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
@@ -16,6 +17,8 @@ router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
 
 router.get('/', getMaintenanceRecords);
+// Must stay above '/:id', otherwise "workshops" is read as a record id.
+router.get('/workshops', getWorkshops);
 router.get('/:id', getMaintenanceRecordById);
 router.post('/', createMaintenanceRecord);
 // Closes a vehicle's open service orders — declared before nothing else matches POST /:id,

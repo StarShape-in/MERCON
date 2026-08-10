@@ -131,6 +131,57 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * The workshops this fleet has actually used, newest first, so the forms can offer them
+ * again instead of making the operator retype a name (and mistype it into a second,
+ * near-duplicate workshop). Derived from the service orders themselves — there is no
+ * separate workshop table to keep in sync.
+ *
+ * Names are matched case-insensitively; the spelling and contact returned are the ones
+ * from the most recent order, which is the most likely to be current.
+ */
+export const getWorkshops = async (_req: Request, res: Response) => {
+  try {
+    const records = await prisma.maintenanceRecord.findMany({
+      where: { deletedAt: null, workshop_name: { not: '' } },
+      select: { workshop_name: true, workshop_contact: true, start_date: true },
+      orderBy: { start_date: 'desc' },
+    });
+
+    const workshops = new Map<
+      string,
+      { name: string; contact: string | null; order_count: number; last_used: Date }
+    >();
+
+    for (const record of records) {
+      const name = record.workshop_name?.trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      const existing = workshops.get(key);
+      if (existing) {
+        existing.order_count += 1;
+        // Records arrive newest-first, so only fill a contact the newer order left blank.
+        if (!existing.contact && record.workshop_contact) existing.contact = record.workshop_contact;
+        continue;
+      }
+      workshops.set(key, {
+        name,
+        contact: record.workshop_contact ?? null,
+        order_count: 1,
+        last_used: record.start_date,
+      });
+    }
+
+    res.json({ success: true, data: Array.from(workshops.values()) });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to fetch workshops');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch workshops' },
+    });
+  }
+};
+
 const findMaintenanceRecordByIdOrRef = async (idOrRef: string) => {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrRef);
   return prisma.maintenanceRecord.findFirst({

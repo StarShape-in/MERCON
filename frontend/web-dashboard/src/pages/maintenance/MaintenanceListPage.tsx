@@ -902,11 +902,12 @@ export default function MaintenanceListPage() {
               {/* Workshop Name */}
               <div className="space-y-1">
                 <Label className="text-xs font-bold">Workshop / Service Center *</Label>
-                <Input
+                <WorkshopField
                   value={formData.workshop_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, workshop_name: e.target.value }))}
+                  onChange={(name) => setFormData(prev => ({ ...prev, workshop_name: name }))}
+                  onPick={(w) => setFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
                   placeholder="e.g. Al-Riyadh Heavy Fleet Service"
-                  className="h-8.5 text-xs"
+                  className="h-8.5"
                 />
               </div>
 

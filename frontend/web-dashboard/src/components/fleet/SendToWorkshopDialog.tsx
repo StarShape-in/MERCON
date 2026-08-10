@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { maintenanceService, MaintenanceType } from '@/services/maintenanceService';
+import WorkshopField from '@/components/fleet/WorkshopField';
 
 export interface WorkshopVehicle {
   id: string;
@@ -129,11 +130,10 @@ export default function SendToWorkshopDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Workshop *</Label>
-              <Input
+              <WorkshopField
                 value={workshopName}
-                onChange={(e) => setWorkshopName(e.target.value)}
-                placeholder="e.g. Al Salam Auto Workshop"
-                className="h-9 text-xs"
+                onChange={setWorkshopName}
+                onPick={(w) => setWorkshopContact(w.contact ?? '')}
                 autoFocus
               />
             </div>
