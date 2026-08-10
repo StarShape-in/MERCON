@@ -15,6 +15,7 @@ import { customerService } from '@/services/customerService';
 import { invoiceService } from '@/services/invoiceService';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
+import CreateTripModal from '@/components/trips/CreateTripModal';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,9 +29,8 @@ export default function CustomerDetailsPage() {
 
   const [isAddRateOpen, setIsAddRateOpen] = useState(false);
   const [editRateTarget, setEditRateTarget] = useState<RateCard | null>(null);
-  // A standard lane the user wants to give this customer their own price for.
-  // Opens the same form pre-filled with that lane, locked to this customer.
   const [overrideLane, setOverrideLane] = useState<RateCard | null>(null);
+  const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
 
   // Fetch Customer details
   const { data: customer, isLoading, error, refetch, isFetching } = useQuery({
@@ -245,7 +245,7 @@ export default function CustomerDetailsPage() {
 
             <Button
               size="sm"
-              onClick={() => navigate('/trips/new')}
+              onClick={() => setIsCreateTripOpen(true)}
               className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs px-4"
             >
               <Plus className="w-3.5 h-3.5" /> Dispatch New Trip
@@ -654,6 +654,12 @@ export default function CustomerDetailsPage() {
         defaultOriginLocationId={overrideLane?.originLocationId || undefined}
         defaultDestinationLocationId={overrideLane?.destinationLocationId || undefined}
         defaultPrice={overrideLane ? String(overrideLane.base_price) : undefined}
+      />
+
+      <CreateTripModal
+        isOpen={isCreateTripOpen}
+        onClose={() => setIsCreateTripOpen(false)}
+        initialCustomerId={id}
       />
     </DashboardLayout>
   );

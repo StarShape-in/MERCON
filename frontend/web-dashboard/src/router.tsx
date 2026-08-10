@@ -100,7 +100,7 @@ export default function AppRouter() {
 
           {/* Trips */}
           <Route path="/trips"                    element={<ProtectedRoute><TripListPage /></ProtectedRoute>} />
-          <Route path="/trips/new"                element={<ProtectedRoute><CreateTripPage /></ProtectedRoute>} />
+          <Route path="/trips/new"                element={<Navigate to="/trips?new=true" replace />} />
           <Route path="/trips/:id"                element={<ProtectedRoute><TripDetailsPage /></ProtectedRoute>} />
           <Route path="/trips/:id/edit"           element={<ProtectedRoute><EditTripPage /></ProtectedRoute>} />
           <Route path="/trips/:id/track"          element={<ProtectedRoute><TripTrackingPage /></ProtectedRoute>} />

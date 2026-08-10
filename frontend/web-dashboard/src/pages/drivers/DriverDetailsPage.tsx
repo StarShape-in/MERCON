@@ -14,6 +14,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
+import CreateTripModal from '@/components/trips/CreateTripModal';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,7 @@ export default function DriverDetailsPage() {
   const queryClient = useQueryClient();
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -247,7 +249,7 @@ export default function DriverDetailsPage() {
 
               <Button
                 size="sm"
-                onClick={() => navigate('/trips/new')}
+                onClick={() => setIsCreateTripOpen(true)}
                 className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-sm rounded-lg px-3.5"
               >
                 <Plus className="w-4 h-4" />
@@ -561,6 +563,12 @@ export default function DriverDetailsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <CreateTripModal
+        isOpen={isCreateTripOpen}
+        onClose={() => setIsCreateTripOpen(false)}
+        initialDriverId={id}
+      />
     </DashboardLayout>
   );
 }

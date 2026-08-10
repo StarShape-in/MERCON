@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Download,
@@ -39,6 +39,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import CreateTripModal from '@/components/trips/CreateTripModal';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -181,7 +182,25 @@ const STATUS_TABS: { label: string; value: TripStatus | 'All' }[] = [
 
 export default function TripListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  const [isCreateTripOpen, setIsCreateTripOpen] = useState(searchParams.get('new') === 'true');
+
+  useEffect(() => {
+    if (searchParams.get('new') === 'true') {
+      setIsCreateTripOpen(true);
+    }
+  }, [searchParams]);
+
+  const handleCloseCreateTrip = () => {
+    setIsCreateTripOpen(false);
+    if (searchParams.get('new') === 'true') {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('new');
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -879,7 +898,7 @@ export default function TripListPage() {
             <Button
               size="sm"
               className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
-              onClick={() => navigate('/trips/new')}
+              onClick={() => setIsCreateTripOpen(true)}
             >
               <Plus className="h-4 w-4" />
               New Trip
@@ -1598,6 +1617,11 @@ export default function TripListPage() {
           title={confirmModal.title}
           message={confirmModal.message}
           isDestructive={true}
+        />
+
+        <CreateTripModal
+          isOpen={isCreateTripOpen}
+          onClose={handleCloseCreateTrip}
         />
 
       </div>

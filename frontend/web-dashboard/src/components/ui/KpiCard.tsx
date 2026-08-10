@@ -328,18 +328,13 @@ export function KpiCard({
           {value}
         </div>
 
-        {/* Context line: trend chip + description */}
-        {(displayDescription || (computedTrend && computedTrendValue)) && (
+        {/* Context line: trend chip */}
+        {computedTrend && computedTrendValue && (
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            {computedTrend && computedTrendValue && (
-              <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none', trendChipStyles[computedTrend])}>
-                <span aria-hidden="true">{trendGlyph[computedTrend]}</span>
-                {computedTrendValue}
-              </span>
-            )}
-            {displayDescription && (
-              <span className="text-xs leading-none text-[#6E6E80] dark:text-slate-400">{displayDescription}</span>
-            )}
+            <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none', trendChipStyles[computedTrend])}>
+              <span aria-hidden="true">{trendGlyph[computedTrend]}</span>
+              {computedTrendValue}
+            </span>
           </div>
         )}
       </div>

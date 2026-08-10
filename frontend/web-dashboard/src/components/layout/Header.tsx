@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import CreateTripModal from '@/components/trips/CreateTripModal';
 
 interface HeaderProps {
   title?: string;
@@ -38,6 +39,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
   const location = useLocation();
   const user = authStore.getUser();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
@@ -110,7 +112,7 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
 
         {/* Primary Action Button: Create New Trip (MERCON Brand Orange #E8450F) */}
         <button
-          onClick={() => navigate('/trips/new')}
+          onClick={() => setIsCreateTripOpen(true)}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -220,6 +222,11 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
           )}
         </div>
       </div>
+
+      <CreateTripModal
+        isOpen={isCreateTripOpen}
+        onClose={() => setIsCreateTripOpen(false)}
+      />
     </div>
   );
 }
