@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { resolveLocation } from './locationController';
 import { findRateForLane, rateCardInclude } from '../services/rateLookup';
+import { getValidUuid } from '../utils/uuid';
+import { logger } from '../utils/logger';
 
 /**
  * Rate cards price a lane (origin → destination).
@@ -18,7 +20,7 @@ import { findRateForLane, rateCardInclude } from '../services/rateLookup';
  * (typed on the fly in the trip wizard), and still understands the old
  * route_origin/route_destination text so existing callers keep working.
  */
-const resolveLane = async (tx: any, body: any, userId?: string) => {
+const resolveLane = async (tx: any, body: any, userId?: string | null) => {
   const origin = await resolveLocation(
     tx,
     {
@@ -62,7 +64,7 @@ const laneAlreadyPriced = async (
 export const createRateCard = async (req: Request, res: Response) => {
   try {
     const { name, base_price, currency, customerId, is_active } = req.body;
-    const userId = (req as any).user?.id;
+    const userId = getValidUuid((req as any).user?.id);
 
     const price = Number(base_price);
     if (isNaN(price) || price <= 0) {
@@ -78,7 +80,7 @@ export const createRateCard = async (req: Request, res: Response) => {
         throw new Error('LANE_SAME_ENDPOINTS');
       }
 
-      const normalisedCustomerId = customerId || null;
+      const normalisedCustomerId = getValidUuid(customerId);
 
       const clash = await laneAlreadyPriced(tx, {
         customerId: normalisedCustomerId,
@@ -112,6 +114,7 @@ export const createRateCard = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: rateCard });
   } catch (error: any) {
+    logger.error({ err: error }, 'Failed to create rate card');
     if (error.message === 'LANE_INCOMPLETE') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Pick both an origin and a destination' } });
     }
@@ -133,7 +136,7 @@ export const createRateCard = async (req: Request, res: Response) => {
     if (error.message === 'LOCATION_NOT_FOUND') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'That location no longer exists' } });
     }
-    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to create rate card' } });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to create rate card' } });
   }
 };
 
@@ -206,7 +209,7 @@ export const assignRateCardToCustomers = async (req: Request, res: Response) => 
   try {
     const { id } = req.params;
     const { customer_ids } = req.body;
-    const userId = (req as any).user?.id;
+    const userId = getValidUuid((req as any).user?.id);
 
     if (!Array.isArray(customer_ids) || customer_ids.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Select at least one customer' } });
@@ -291,7 +294,7 @@ export const updateRateCard = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, base_price, currency, customerId, is_active } = req.body;
-    const userId = (req as any).user?.id;
+    const userId = getValidUuid((req as any).user?.id);
 
     if (base_price !== undefined) {
       const price = Number(base_price);
@@ -394,11 +397,11 @@ export const updateRateCard = async (req: Request, res: Response) => {
 export const deleteRateCard = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user?.id;
+    const userId = getValidUuid((req as any).user?.id);
 
     await prisma.rateCard.update({
       where: { id: id as string },
-      data: { deletedAt: new Date(), deleted_by: userId as string, is_active: false }
+      data: { deletedAt: new Date(), deleted_by: userId, is_active: false }
     });
     res.json({ success: true, message: 'RateCard deleted successfully' });
   } catch (error) {
@@ -409,7 +412,7 @@ export const deleteRateCard = async (req: Request, res: Response) => {
 
 export const bulkDeleteRateCards = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = getValidUuid((req as any).user?.id);
     const { ids } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
