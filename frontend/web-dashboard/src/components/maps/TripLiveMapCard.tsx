@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Gauge } from 'lucide-react';
+import { Navigation, Gauge, Maximize2, X } from 'lucide-react';
 
 import { PREDEFINED_ROUTES, GeoPoint } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
@@ -67,6 +67,17 @@ function MapFlyTo({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+function MapResizeTrigger({ isFullscreen }: { isFullscreen: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize({ animate: true });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isFullscreen, map]);
+  return null;
+}
+
 /** Fits the map to real pickup/dropoff points — used when there's no
  *  simulated-fleet truck to fly the camera to (i.e. a real trip whose
  *  route isn't one of the canned demo routes). */
@@ -116,6 +127,7 @@ export default function TripLiveMapCard({
   const navigate = useNavigate();
   const { fleet } = useSimulatedTelemetry(1);
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
@@ -186,7 +198,39 @@ export default function TripLiveMapCard({
 
       <CardContent className="p-4">
         {/* Map View */}
-        <div className={cn('rounded-xl overflow-hidden border border-black/[0.1] relative z-0 shadow-xl', mapHeightClassName)} style={{ background: currentTheme.previewColor }}>
+        <div 
+          className={cn(
+            'overflow-hidden relative shadow-xl transition-all duration-300',
+            isFullscreen 
+              ? 'fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none m-0' 
+              : cn('rounded-xl border border-black/[0.1] z-0', mapHeightClassName)
+          )} 
+          style={{ background: currentTheme.previewColor }}
+        >
+          {/* Floating Fullscreen / Close Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className={cn(
+              "absolute top-3 right-3 z-[400] flex items-center justify-center gap-1.5 rounded-xl transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95 font-sans text-xs font-bold cursor-pointer",
+              isFullscreen
+                ? "bg-red-500/90 hover:bg-red-500 border-red-600/20 text-white px-3 py-2"
+                : currentTheme.isDark
+                  ? "bg-[#090A0F]/85 backdrop-blur-xl border-white/10 hover:border-white/20 text-white hover:bg-[#090A0F] p-2"
+                  : "bg-white/95 backdrop-blur-xl border-black/[0.08] hover:border-black/[0.15] text-[#111] hover:bg-white p-2"
+            )}
+            title={isFullscreen ? "Close Fullscreen" : "Fullscreen Map"}
+          >
+            {isFullscreen ? (
+              <>
+                <X size={14} />
+                <span>Close</span>
+              </>
+            ) : (
+              <Maximize2 size={14} />
+            )}
+          </button>
+
           <MapContainer
             center={[currentLat, currentLng]}
             zoom={8}
@@ -194,6 +238,7 @@ export default function TripLiveMapCard({
             zoomControl={false}
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
+            <MapResizeTrigger isFullscreen={isFullscreen} />
             <ZoomControl position="bottomright" />
             <TileLayer
               key={currentTheme.id}
