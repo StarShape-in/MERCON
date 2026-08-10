@@ -7,7 +7,6 @@ import {
   Plus,
   CheckCircle2,
   Navigation,
-  Clock,
   ChevronRight,
   ChevronLeft,
   User,
@@ -20,15 +19,13 @@ import {
   Receipt,
   Tag,
   DollarSign,
-  MapPinned,
 } from 'lucide-react';
 import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes, format } from 'date-fns';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import LocationPickerMap from '@/components/trips/LocationPickerMap';
+import TripStopCard from '@/components/trips/TripStopCard';
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
-import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import { tripService, CreateTripPayload } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
@@ -44,7 +41,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DateTimePicker } from '@/components/ui/date-time-picker';
 import Btn from '@/components/ui/Btn';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +56,16 @@ function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, 
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+}
+
+/**
+ * `YYYY-MM-DDTHH:mm` in the dispatcher's own timezone, which is the format both
+ * schedule fields hold. Built by hand rather than with `toISOString()`, which
+ * would shift the time to UTC.
+ */
+function toLocalInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export default function CreateTripPage() {
@@ -297,18 +303,8 @@ export default function CreateTripPage() {
   // Quick Dropoff Time Offset Presets (Calculated from Pickup Time)
   const applyDropoffOffset = (hoursOffset: number, setEod: boolean = false) => {
     const base = pickupTime && isValid(parseISO(pickupTime)) ? parseISO(pickupTime) : new Date();
-    let target: Date;
-    if (setEod) {
-      target = setMinutes(setHours(base, 23), 59);
-    } else {
-      target = addHours(base, hoursOffset);
-    }
-    const year = target.getFullYear();
-    const month = String(target.getMonth() + 1).padStart(2, '0');
-    const day = String(target.getDate()).padStart(2, '0');
-    const hours = String(target.getHours()).padStart(2, '0');
-    const mins = String(target.getMinutes()).padStart(2, '0');
-    setDropoffTime(`${year}-${month}-${day}T${hours}:${mins}`);
+    const target = setEod ? setMinutes(setHours(base, 23), 59) : addHours(base, hoursOffset);
+    setDropoffTime(toLocalInput(target));
     setError(null);
   };
 
@@ -792,324 +788,141 @@ export default function CreateTripPage() {
                 <Navigation className="size-4 text-primary" /> Step 3: Location Selection &amp; Pricing
               </CardTitle>
               <CardDescription className="text-xs">
-                Select pickup and dropoff locations, establish timeline schedule, and set trip pricing.
+                Fill in each stop — its pricing hub, the exact address, and when the truck is due.
+                The price for the lane appears on the right as soon as both hubs are set.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 pt-5">
+            <CardContent className="space-y-4 pt-5">
 
-              {/* 1. SELECT PRICING LANE */}
-              <div className="space-y-3.5 p-4 rounded-xl border border-indigo-200/80 bg-indigo-50/40 dark:bg-indigo-950/20 dark:border-indigo-900/40">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    <span className="text-sm font-bold text-foreground">1. SELECT PRICING LANE</span>
-                    <Badge variant="outline" className="text-[10px] font-semibold bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800">
-                      Commercial Rate Lookup
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Used to determine the rate card for this trip.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                  {/* Origin Hub */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pickup_location" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <MapPinned className="w-3.5 h-3.5 text-emerald-600" /> Origin Hub <span className="text-destructive">*</span>
-                    </Label>
-                    <LocationCombobox
-                      id="pickup_location"
-                      value={pickupLocationId}
-                      onChange={(locId, loc) => {
-                        setPickupLocationId(locId);
-                        setPickupLocationName(loc?.name || '');
-                        // A place carries a default pin, so picking "Riyadh" moves
-                        // the map there instead of leaving it on the last trip's
-                        // coordinates. The dispatcher can still drag it to the
-                        // exact yard afterwards.
-                        //
-                        // But only while no exact point has been chosen yet. A
-                        // searched address is the actual yard; this endpoint's pin
-                        // is a city centroid, and overwriting one with the other
-                        // silently downgraded the stop to city-level coordinates
-                        // while the name and address still read correctly. The
-                        // address is the tell: it is non-empty only once a search
-                        // has filled it, whereas lat/lng always hold the Riyadh /
-                        // Jeddah defaults and so cannot distinguish the two.
-                        if (loc?.lat != null && loc?.lng != null && !pickupAddress.trim()) {
-                          setPickupLat(loc.lat);
-                          setPickupLng(loc.lng);
-                        }
-                        if (loc && !pickupName.trim()) setPickupName(loc.name);
-                        if (loc?.address && !pickupAddress.trim()) setPickupAddress(loc.address);
-                        setError(null);
-                      }}
-                      placeholder="Where does this trip start? (e.g. Riyadh)"
-                      excludeLocationId={dropoffLocationId}
-                      newLocationLat={pickupLat}
-                      newLocationLng={pickupLng}
-                    />
-                  </div>
-
-                  {/* Destination Hub */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="dropoff_location" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <MapPinned className="w-3.5 h-3.5 text-destructive" /> Destination Hub <span className="text-destructive">*</span>
-                    </Label>
-                    <LocationCombobox
-                      id="dropoff_location"
-                      value={dropoffLocationId}
-                      onChange={(locId, loc) => {
-                        setDropoffLocationId(locId);
-                        setDropoffLocationName(loc?.name || '');
-                        // Guarded for the same reason as the pickup endpoint above:
-                        // never replace a searched, exact pin with a city centroid.
-                        if (loc?.lat != null && loc?.lng != null && !dropoffAddress.trim()) {
-                          setDropoffLat(loc.lat);
-                          setDropoffLng(loc.lng);
-                        }
-                        if (loc && !dropoffName.trim()) setDropoffName(loc.name);
-                        if (loc?.address && !dropoffAddress.trim()) setDropoffAddress(loc.address);
-                        setError(null);
-                      }}
-                      placeholder="Where does it end? (e.g. Jeddah)"
-                      excludeLocationId={pickupLocationId}
-                      newLocationLat={dropoffLat}
-                      newLocationLng={dropoffLng}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. EXACT PICKUP LOCATION */}
-              <div className="space-y-3.5 p-4 rounded-xl border bg-muted/20">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b pb-2.5">
-                  <div>
-                    <span className="text-sm font-bold flex items-center gap-2 text-foreground">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 animate-pulse" />
-                      2. EXACT PICKUP LOCATION
-                    </span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Physical pickup address and coordinates for driver navigation.
-                    </p>
-                  </div>
-                  <span className="text-xs font-mono text-muted-foreground">
-                    {pickupLat && pickupLng ? `${pickupLat.toFixed(4)}, ${pickupLng.toFixed(4)}` : 'Location not set'}
-                  </span>
-                </div>
-
-                <LocationPickerMap
-                  label="Exact pickup point (click map or enter address)"
+              {/* The two stops, side by side. Each one carries its own hub,
+                  exact point and time, so the dispatcher fills a stop in one
+                  place instead of scrolling between three stacked sections. */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <TripStopCard
+                  tone="pickup"
+                  title="Pickup"
+                  hubLabel="Pricing hub (origin)"
+                  hubPlaceholder="Where does this trip start? (e.g. Riyadh)"
+                  locationId={pickupLocationId}
+                  onLocationChange={(locId, loc) => {
+                    setPickupLocationId(locId);
+                    setPickupLocationName(loc?.name || '');
+                    // A place carries a default pin, so picking "Riyadh" moves
+                    // the map there instead of leaving it on the last trip's
+                    // coordinates. The dispatcher can still drag it to the
+                    // exact yard afterwards.
+                    //
+                    // But only while no exact point has been chosen yet. A
+                    // searched address is the actual yard; this endpoint's pin
+                    // is a city centroid, and overwriting one with the other
+                    // silently downgraded the stop to city-level coordinates
+                    // while the name and address still read correctly. The
+                    // address is the tell: it is non-empty only once a search
+                    // has filled it, whereas lat/lng always hold the Riyadh /
+                    // Jeddah defaults and so cannot distinguish the two.
+                    if (loc?.lat != null && loc?.lng != null && !pickupAddress.trim()) {
+                      setPickupLat(loc.lat);
+                      setPickupLng(loc.lng);
+                    }
+                    if (loc && !pickupName.trim()) setPickupName(loc.name);
+                    if (loc?.address && !pickupAddress.trim()) setPickupAddress(loc.address);
+                    setError(null);
+                  }}
+                  excludeLocationId={dropoffLocationId}
                   lat={pickupLat}
                   lng={pickupLng}
-                  onChange={(lat: number, lng: number) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
+                  onCoordsChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
                   name={pickupName}
                   onNameChange={setPickupName}
                   address={pickupAddress}
                   onAddressChange={setPickupAddress}
+                  time={pickupTime}
+                  onTimeChange={(val) => { setPickupTime(val); setError(null); }}
+                  timeLabel="Planned arrival"
+                  timePlaceholder="When is the truck due at the dock?"
+                  timeError={!!error && !pickupTime}
+                  presets={[
+                    {
+                      label: '⚡ Now',
+                      onClick: () => { setPickupTime(toLocalInput(new Date())); setError(null); },
+                    },
+                    {
+                      label: '+2h',
+                      onClick: () => { setPickupTime(toLocalInput(addHours(new Date(), 2))); setError(null); },
+                    },
+                    {
+                      label: 'Tomorrow 08:00',
+                      onClick: () => {
+                        const target = setMinutes(setHours(addHours(new Date(), 24), 8), 0);
+                        setPickupTime(toLocalInput(target));
+                        setError(null);
+                      },
+                    },
+                  ]}
+                  warning={
+                    pickupDistanceKm !== null && pickupDistanceKm > 50 ? (
+                      <div className="flex items-start gap-2 p-2.5 rounded-lg border border-amber-300/80 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 text-[11px] font-medium animate-fade-in">
+                        <AlertTriangle className="size-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <span>
+                          Pin is about <strong>{pickupDistanceKm.toLocaleString()} km</strong> from the{' '}
+                          <strong>{selectedPickupLocation?.name}</strong> hub.
+                        </span>
+                      </div>
+                    ) : null
+                  }
                 />
 
-                {pickupDistanceKm !== null && pickupDistanceKm > 50 && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-300/80 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 text-xs font-medium animate-fade-in">
-                    <AlertTriangle className="size-4 text-amber-600 shrink-0" />
-                    <span>
-                      ⚠️ Pickup pin is approximately <strong>{pickupDistanceKm.toLocaleString()} km</strong> from the selected <strong>{selectedPickupLocation?.name}</strong> hub.
-                    </span>
-                  </div>
-                )}
-
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="pickup_time" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-emerald-600" /> Planned Pickup Arrival Time <span className="text-destructive">*</span>
-                    </Label>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                      Loading Dock Schedule
-                    </span>
-                  </div>
-
-                  <DateTimePicker
-                    id="pickup_time"
-                    value={pickupTime}
-                    onChange={(val) => {
-                      setPickupTime(val);
-                      setError(null);
-                    }}
-                    placeholder="Select planned pickup arrival date & time..."
-                    label="Pickup Arrival"
-                    error={!!error && !pickupTime}
-                  />
-
-                  {/* Quick Pickup Presets */}
-                  <div className="flex flex-wrap items-center gap-1 pt-1">
-                    <span className="text-[10px] font-bold text-muted-foreground mr-1">
-                      Quick pickup:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const now = new Date();
-                        const year = now.getFullYear();
-                        const month = String(now.getMonth() + 1).padStart(2, '0');
-                        const day = String(now.getDate()).padStart(2, '0');
-                        const hours = String(now.getHours()).padStart(2, '0');
-                        const mins = String(now.getMinutes()).padStart(2, '0');
-                        setPickupTime(`${year}-${month}-${day}T${hours}:${mins}`);
-                        setError(null);
-                      }}
-                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      ⚡ ASAP / Now
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const target = addHours(new Date(), 2);
-                        const year = target.getFullYear();
-                        const month = String(target.getMonth() + 1).padStart(2, '0');
-                        const day = String(target.getDate()).padStart(2, '0');
-                        const hours = String(target.getHours()).padStart(2, '0');
-                        const mins = String(target.getMinutes()).padStart(2, '0');
-                        setPickupTime(`${year}-${month}-${day}T${hours}:${mins}`);
-                        setError(null);
-                      }}
-                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      +2 Hours
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const tomorrow = addHours(new Date(), 24);
-                        const target = setMinutes(setHours(tomorrow, 8), 0);
-                        const year = target.getFullYear();
-                        const month = String(target.getMonth() + 1).padStart(2, '0');
-                        const day = String(target.getDate()).padStart(2, '0');
-                        setPickupTime(`${year}-${month}-${day}T08:00`);
-                        setError(null);
-                      }}
-                      className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                    >
-                      Tomorrow 08:00 AM
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. EXACT DROPOFF LOCATION */}
-              <div className="space-y-3.5 p-4 rounded-xl border bg-muted/20">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b pb-2.5">
-                  <div>
-                    <span className="text-sm font-bold flex items-center gap-2 text-foreground">
-                      <span className="w-2.5 h-2.5 rounded-full bg-destructive ring-4 ring-destructive/20" />
-                      3. EXACT DROPOFF LOCATION
-                    </span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Physical delivery address and coordinates for driver navigation.
-                    </p>
-                  </div>
-                  <span className="text-xs font-mono text-muted-foreground">
-                    {dropoffLat && dropoffLng ? `${dropoffLat.toFixed(4)}, ${dropoffLng.toFixed(4)}` : 'Location not set'}
-                  </span>
-                </div>
-
-                <LocationPickerMap
-                  label="Exact dropoff point (click map or enter address)"
+                <TripStopCard
+                  tone="dropoff"
+                  title="Dropoff"
+                  hubLabel="Pricing hub (destination)"
+                  hubPlaceholder="Where does it end? (e.g. Jeddah)"
+                  locationId={dropoffLocationId}
+                  onLocationChange={(locId, loc) => {
+                    setDropoffLocationId(locId);
+                    setDropoffLocationName(loc?.name || '');
+                    // Guarded for the same reason as the pickup endpoint above:
+                    // never replace a searched, exact pin with a city centroid.
+                    if (loc?.lat != null && loc?.lng != null && !dropoffAddress.trim()) {
+                      setDropoffLat(loc.lat);
+                      setDropoffLng(loc.lng);
+                    }
+                    if (loc && !dropoffName.trim()) setDropoffName(loc.name);
+                    if (loc?.address && !dropoffAddress.trim()) setDropoffAddress(loc.address);
+                    setError(null);
+                  }}
+                  excludeLocationId={pickupLocationId}
                   lat={dropoffLat}
                   lng={dropoffLng}
-                  onChange={(lat: number, lng: number) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
+                  onCoordsChange={(lat, lng) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
                   name={dropoffName}
                   onNameChange={setDropoffName}
                   address={dropoffAddress}
                   onAddressChange={setDropoffAddress}
+                  time={dropoffTime}
+                  onTimeChange={(val) => { setDropoffTime(val); setError(null); }}
+                  timeLabel="Delivery deadline"
+                  timePlaceholder="When must it be delivered?"
+                  minDate={pickupTime ? parseISO(pickupTime) : undefined}
+                  timeError={!!error && (!dropoffTime || (!!pickupTime && dropoffTime <= pickupTime))}
+                  presets={[
+                    { label: '+4h', onClick: () => applyDropoffOffset(4) },
+                    { label: '+12h', onClick: () => applyDropoffOffset(12) },
+                    { label: '+24h', onClick: () => applyDropoffOffset(24) },
+                    { label: 'End of day', onClick: () => applyDropoffOffset(0, true) },
+                  ]}
+                  warning={
+                    dropoffDistanceKm !== null && dropoffDistanceKm > 50 ? (
+                      <div className="flex items-start gap-2 p-2.5 rounded-lg border border-amber-300/80 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 text-[11px] font-medium animate-fade-in">
+                        <AlertTriangle className="size-3.5 text-amber-600 shrink-0 mt-0.5" />
+                        <span>
+                          Pin is about <strong>{dropoffDistanceKm.toLocaleString()} km</strong> from the{' '}
+                          <strong>{selectedDropoffLocation?.name}</strong> hub.
+                        </span>
+                      </div>
+                    ) : null
+                  }
                 />
-
-                {dropoffDistanceKm !== null && dropoffDistanceKm > 50 && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-300/80 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 text-xs font-medium animate-fade-in">
-                    <AlertTriangle className="size-4 text-amber-600 shrink-0" />
-                    <span>
-                      ⚠️ Dropoff pin is approximately <strong>{dropoffDistanceKm.toLocaleString()} km</strong> from the selected <strong>{selectedDropoffLocation?.name}</strong> hub.
-                    </span>
-                  </div>
-                )}
-
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="dropoff_time" className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-destructive" /> Planned Delivery Deadline <span className="text-destructive">*</span>
-                    </Label>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                      Guaranteed SLA Target
-                    </span>
-                  </div>
-
-                  <DateTimePicker
-                    id="dropoff_time"
-                    value={dropoffTime}
-                    onChange={(val) => {
-                      setDropoffTime(val);
-                      setError(null);
-                    }}
-                    placeholder="Select delivery deadline date & time..."
-                    label="Delivery Deadline"
-                    minDate={pickupTime ? parseISO(pickupTime) : undefined}
-                    error={!!error && (!dropoffTime || (!!pickupTime && dropoffTime <= pickupTime))}
-                  />
-
-                  {/* Smart Transit Window Offset Presets */}
-                  <div className="space-y-1 pt-1">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
-                      <span>Quick Transit Offset (From Pickup):</span>
-                      <span>Auto-calculates delivery arrival</span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => applyDropoffOffset(2)}
-                        className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                      >
-                        +2 Hours
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyDropoffOffset(4)}
-                        className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                      >
-                        +4 Hours
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyDropoffOffset(6)}
-                        className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                      >
-                        +6h Regional
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyDropoffOffset(12)}
-                        className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                      >
-                        +12h Long Haul
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyDropoffOffset(24)}
-                        className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                      >
-                        +24h Next Day
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyDropoffOffset(0, true)}
-                        className="text-[11px] px-2.5 py-0.5 rounded-md font-medium bg-background hover:bg-muted text-foreground border border-border/70 transition-all"
-                      >
-                        Same-Day 23:59 EOD
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Live Interactive Route SLA & Transit Timeline Widget */}

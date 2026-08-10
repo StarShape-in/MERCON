@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Search, MapPin } from 'lucide-react';
+import { Search, MapPin, Loader2, Map as MapIcon, Pencil, Check } from 'lucide-react';
 import {
   createAddressSearchSession,
   type AddressSearchSession,
   type AddressSuggestion,
 } from '@/services/addressSearch';
+import { cn } from '@/lib/utils';
 
 const pinIcon = L.divIcon({
   html: `<div style="background-color: #E8450F; color: white; padding: 5px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;"></div>`,
@@ -35,6 +36,16 @@ interface LocationPickerMapProps {
    */
   address?: string;
   onAddressChange?: (address: string) => void;
+  /**
+   * Compact layout: the address search is the only field on screen, and the
+   * map and the name/address inputs stay folded away until they are actually
+   * needed. Used by the create-trip wizard, where two of these sit side by
+   * side and two permanently-open 220px maps pushed the schedule and the price
+   * below the fold.
+   */
+  compact?: boolean;
+  /** Compact only — height of the map once it is unfolded. */
+  mapHeight?: number;
 }
 
 function ClickToPlacePin({ onPick }: { onPick: (lat: number, lng: number) => void }) {
@@ -56,8 +67,11 @@ function FlyToPin({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
-export default function LocationPickerMap({ label, lat, lng, onChange, name, onNameChange, address, onAddressChange, defaultCenter = [24.7136, 46.6753] }: LocationPickerMapProps) {
+export default function LocationPickerMap({ label, lat, lng, onChange, name, onNameChange, address, onAddressChange, defaultCenter = [24.7136, 46.6753], compact = false, mapHeight = 200 }: LocationPickerMapProps) {
   const [query, setQuery] = useState('');
+  /** Compact only — the map and the manual fields start folded. */
+  const [mapOpen, setMapOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [results, setResults] = useState<AddressSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -140,92 +154,178 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
   };
 
   const center: [number, number] = lat != null && lng != null ? [lat, lng] : defaultCenter;
+  const hasPin = lat != null && lng != null;
+  // Every caller's form requires the name, so while it is still blank the
+  // inputs stay open instead of hiding behind the disclosure.
+  const showDetails = !compact || detailsOpen || !name.trim();
 
-  return (
-    <div className="col-span-1 md:col-span-2 flex flex-col gap-1.5">
-      <label className="text-xs font-bold text-[#111]">{label}</label>
-
+  const searchField = (
+    <div className="relative">
       <div className="relative">
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6E6E80]" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => results.length > 0 && setShowResults(true)}
-            placeholder="Search an address…"
-            className="w-full h-9 rounded-md bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white pl-8 pr-3 text-sm outline-none transition-colors"
-          />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => results.length > 0 && setShowResults(true)}
+          placeholder="Search the address — e.g. Khamis Sorting Center, Riyadh"
+          className="w-full h-9 rounded-lg bg-muted/60 border border-transparent focus:border-primary/40 focus:bg-background pl-8 pr-8 text-sm outline-none transition-colors"
+        />
+        {searching && (
+          <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin" />
+        )}
+      </div>
+      {showResults && results.length > 0 && (
+        <div className="absolute z-[500] mt-1 w-full bg-popover text-popover-foreground rounded-md shadow-lg border max-h-52 overflow-y-auto">
+          {results.map((r) => (
+            <button
+              type="button"
+              key={r.id}
+              onClick={() => void pickResult(r)}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b border-border/50 last:border-b-0"
+            >
+              {r.label}
+            </button>
+          ))}
         </div>
-        {showResults && results.length > 0 && (
-          <div className="absolute z-[500] mt-1 w-full bg-white rounded-md shadow-lg border border-black/[0.06] max-h-52 overflow-y-auto">
-            {results.map((r) => (
+      )}
+    </div>
+  );
+
+  const nameField = (
+    <input
+      type="text"
+      value={name}
+      onChange={(e) => onNameChange(e.target.value)}
+      placeholder="Location name — e.g. Khamis Sorting Center"
+      maxLength={120}
+      className="w-full h-9 rounded-lg bg-muted/60 border border-transparent focus:border-primary/40 focus:bg-background px-3 text-sm outline-none transition-colors"
+    />
+  );
+
+  // Editable so a pin dropped by hand (never searched) can still be given an
+  // address — otherwise the driver gets coordinates and nothing else.
+  const addressField = onAddressChange ? (
+    <textarea
+      value={address ?? ''}
+      onChange={(e) => onAddressChange(e.target.value)}
+      placeholder="Full address the driver will see — filled in when you search, editable"
+      rows={2}
+      maxLength={500}
+      className="w-full rounded-lg bg-muted/60 border border-transparent focus:border-primary/40 focus:bg-background px-3 py-2 text-xs outline-none transition-colors resize-none"
+    />
+  ) : null;
+
+  const mapBlock = (
+    <div
+      className="rounded-xl overflow-hidden border relative z-0"
+      style={{ height: compact ? mapHeight : 220 }}
+    >
+      <MapContainer center={center} zoom={lat != null ? 14 : 6} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <ClickToPlacePin onPick={onChange} />
+        {lat != null && lng != null && (
+          <>
+            <FlyToPin lat={lat} lng={lng} />
+            <Marker
+              position={[lat, lng]}
+              icon={pinIcon}
+              draggable
+              eventHandlers={{
+                dragend: (e) => {
+                  const m = e.target as L.Marker;
+                  const pos = m.getLatLng();
+                  onChange(pos.lat, pos.lng);
+                },
+              }}
+            />
+          </>
+        )}
+      </MapContainer>
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <div className="flex flex-col gap-2">
+        {label && <label className="text-xs font-bold text-foreground">{label}</label>}
+
+        {searchField}
+
+        {/* What the driver will actually receive, in one glance. */}
+        <div className="rounded-lg border bg-muted/25 px-3 py-2 space-y-1">
+          <p className={cn('text-xs font-bold truncate', !name.trim() && 'font-medium text-muted-foreground')}>
+            {name.trim() || 'Not named yet — search above, or type it below'}
+          </p>
+          {address?.trim() && (
+            <p className="text-[11px] text-muted-foreground line-clamp-2">{address}</p>
+          )}
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 truncate">
+              <MapPin size={10} className="shrink-0" />
+              {hasPin ? `${lat!.toFixed(5)}, ${lng!.toFixed(5)}` : 'No pin dropped'}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
-                key={r.id}
-                onClick={() => void pickResult(r)}
-                className="w-full text-left px-3 py-2 text-xs text-[#111] hover:bg-[#F5F5F7] border-b border-black/[0.04] last:border-b-0"
+                onClick={() => setDetailsOpen((o) => !o)}
+                className="flex items-center gap-1 rounded-md border border-border/70 bg-background px-2 py-0.5 text-[10px] font-semibold hover:bg-muted transition-colors"
               >
-                {r.label}
+                {detailsOpen ? <Check size={10} /> : <Pencil size={10} />}
+                {detailsOpen ? 'Done' : 'Edit'}
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setMapOpen((o) => !o)}
+                className={cn(
+                  'flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-colors',
+                  mapOpen
+                    ? 'border-primary/40 bg-primary/10 text-primary'
+                    : 'border-border/70 bg-background hover:bg-muted'
+                )}
+              >
+                <MapIcon size={10} />
+                {mapOpen ? 'Hide map' : 'Adjust pin'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {showDetails && (
+          <div className="flex flex-col gap-1.5">
+            {nameField}
+            {addressField}
+          </div>
+        )}
+
+        {mapOpen && (
+          <div className="flex flex-col gap-1">
+            {mapBlock}
+            <span className="text-[10px] text-muted-foreground">
+              Click the map or drag the pin to move the exact stop.
+            </span>
           </div>
         )}
       </div>
+    );
+  }
 
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => onNameChange(e.target.value)}
-        placeholder="Location name — e.g. Khamis Sorting Center"
-        maxLength={120}
-        className="w-full h-9 rounded-md bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white px-3 text-sm outline-none transition-colors"
-      />
+  return (
+    <div className="col-span-1 md:col-span-2 flex flex-col gap-1.5">
+      <label className="text-xs font-bold text-foreground">{label}</label>
 
-      {/* Editable so a pin dropped by hand (never searched) can still be given
-          an address — otherwise the driver gets coordinates and nothing else. */}
-      {onAddressChange && (
-        <textarea
-          value={address ?? ''}
-          onChange={(e) => onAddressChange(e.target.value)}
-          placeholder="Full address the driver will see — filled in when you search, editable"
-          rows={2}
-          maxLength={500}
-          className="w-full rounded-md bg-[#F5F5F7] border border-transparent focus:border-[#E8450F]/30 focus:bg-white px-3 py-2 text-xs outline-none transition-colors resize-none"
-        />
-      )}
+      {searchField}
+      {nameField}
+      {addressField}
+      {mapBlock}
 
-      <div className="rounded-xl overflow-hidden border border-black/[0.06] h-[220px] relative z-0">
-        <MapContainer center={center} zoom={lat != null ? 14 : 6} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <ClickToPlacePin onPick={onChange} />
-          {lat != null && lng != null && (
-            <>
-              <FlyToPin lat={lat} lng={lng} />
-              <Marker
-                position={[lat, lng]}
-                icon={pinIcon}
-                draggable
-                eventHandlers={{
-                  dragend: (e) => {
-                    const m = e.target as L.Marker;
-                    const pos = m.getLatLng();
-                    onChange(pos.lat, pos.lng);
-                  },
-                }}
-              />
-            </>
-          )}
-        </MapContainer>
-      </div>
-
-      <div className="flex items-center gap-1.5 text-[10px] text-[#6E6E80]">
+      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <MapPin size={11} />
-        {lat != null && lng != null ? (
-          <span>{lat.toFixed(6)}, {lng.toFixed(6)}</span>
+        {hasPin ? (
+          <span>{lat!.toFixed(6)}, {lng!.toFixed(6)}</span>
         ) : (
           <span>Search an address or click the map to drop a pin</span>
         )}

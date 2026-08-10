@@ -35,7 +35,7 @@ async function generateCustomerTemplate() {
   // Subtitle
   guideSheet.mergeCells('A3:G3');
   const subCell = guideSheet.getCell('A3');
-  subCell.value = 'Official onboarding worksheet for Customer Accounts & Commercial Onboarding. Follow instructions below before returning the file.';
+  subCell.value = 'Official onboarding worksheet for Customer Accounts & Commercial Personnel. Follow instructions below before returning the file.';
   subCell.font = { name: 'Segoe UI', size: 10, italic: true, color: { argb: '00475569' } };
   subCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
@@ -56,7 +56,7 @@ async function generateCustomerTemplate() {
 
   guideSheet.mergeCells('E5:G6');
   const status3 = guideSheet.getCell('E5');
-  status3.value = 'SUPPORT & INGESTION\nsupport@mercon-logistics.com';
+  status3.value = 'MULTIPLE CONTACTS\nEnter Primary & Secondary Contacts per Row';
   status3.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '001E40AF' } };
   status3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '00DBEAFE' } };
   status3.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
@@ -68,10 +68,10 @@ async function generateCustomerTemplate() {
   guideSheet.getCell('B10').value = '• Columns with a red label and asterisk (*) are MANDATORY for importing.';
   guideSheet.getCell('B10').font = { name: 'Segoe UI', size: 10, color: { argb: '00334155' } };
 
-  guideSheet.getCell('B11').value = '• Required Customer fields: Company Name *, Primary Phone *.';
+  guideSheet.getCell('B11').value = '• Required Customer fields: Company Name *, Primary Contact Phone *.';
   guideSheet.getCell('B11').font = { name: 'Segoe UI', size: 10, color: { argb: '00334155' } };
 
-  guideSheet.getCell('B12').value = '• Optional fields: Trade Name, Industry, Commercial Reg. (CR) No., VAT / Tax Number, Billing Email, Contact Person, Job Title, Address / Notes.';
+  guideSheet.getCell('B12').value = '• Multiple Personnel: Enter Primary Contact details (Name, Phone, Email, Title) and Secondary Contact details (Name, Phone, Email, Title).';
   guideSheet.getCell('B12').font = { name: 'Segoe UI', size: 10, color: { argb: '00334155' } };
 
   // Step 2
@@ -95,25 +95,29 @@ async function generateCustomerTemplate() {
     { name: 'Industry', width: 20, isRequired: false },
     { name: 'Commercial Reg (CR) No.', width: 24, isRequired: false },
     { name: 'VAT / Tax Number', width: 26, isRequired: false },
+    { name: 'Primary Contact Name', width: 26, isRequired: false },
     { name: 'Primary Phone *', width: 24, isRequired: true },
-    { name: 'Billing Email', width: 28, isRequired: false },
-    { name: 'Contact Representative', width: 26, isRequired: false },
-    { name: 'Job Title', width: 24, isRequired: false },
+    { name: 'Primary Email', width: 28, isRequired: false },
+    { name: 'Primary Contact Title', width: 24, isRequired: false },
+    { name: 'Secondary Contact Name', width: 26, isRequired: false },
+    { name: 'Secondary Phone', width: 24, isRequired: false },
+    { name: 'Secondary Email', width: 28, isRequired: false },
+    { name: 'Secondary Contact Title', width: 24, isRequired: false },
     { name: 'Billing Address / Notes', width: 36, isRequired: false },
   ];
 
   custSheet.columns = columns.map(c => ({ width: c.width }));
 
   // Header Banner Row 1-2
-  custSheet.mergeCells('A1:K2');
+  custSheet.mergeCells('A1:O2');
   const dirBanner = custSheet.getCell('A1');
-  dirBanner.value = '🏢 CUSTOMER ACCOUNTS DIRECTORY  —  BULK DATA ENTRY';
+  dirBanner.value = '🏢 CUSTOMER ACCOUNTS DIRECTORY  —  MULTIPLE CONTACT PERSONNEL ENTRY';
   dirBanner.font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: '00FFFFFF' } };
   dirBanner.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '000F172A' } };
   dirBanner.alignment = { horizontal: 'center', vertical: 'middle' };
 
   // KPI Info Row 4-5
-  custSheet.mergeCells('A4:C5');
+  custSheet.mergeCells('A4:D5');
   const modBox1 = custSheet.getCell('A4');
   modBox1.value = 'MODULE\nCommercial & Customer Directory';
   modBox1.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '0064748B' } };
@@ -126,9 +130,9 @@ async function generateCustomerTemplate() {
   };
   modBox1.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
-  custSheet.mergeCells('D4:G5');
-  const modBox2 = custSheet.getCell('D4');
-  modBox2.value = 'PRIMARY KEY & CONTACT\nCompany Name & Primary Contact Phone';
+  custSheet.mergeCells('E4:J5');
+  const modBox2 = custSheet.getCell('E4');
+  modBox2.value = 'MULTIPLE PERSONNEL PER COMPANY\nPrimary & Secondary Representatives Supported';
   modBox2.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '0064748B' } };
   modBox2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '00F1F5F9' } };
   modBox2.border = {
@@ -139,8 +143,8 @@ async function generateCustomerTemplate() {
   };
   modBox2.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
-  custSheet.mergeCells('H4:K5');
-  const modBox3 = custSheet.getCell('H4');
+  custSheet.mergeCells('K4:O5');
+  const modBox3 = custSheet.getCell('K4');
   modBox3.value = "INITIAL STATUS\nAuto-Defaulted to 'Active'";
   modBox3.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: '0064748B' } };
   modBox3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '00F1F5F9' } };
@@ -160,7 +164,7 @@ async function generateCustomerTemplate() {
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: col.isRequired ? '00EA580C' : '00312E81' }, // Orange for required, Indigo for optional
+      fgColor: { argb: col.isRequired ? '00EA580C' : '00312E81' },
     };
     cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     cell.border = {
@@ -180,10 +184,14 @@ async function generateCustomerTemplate() {
       'Logistics',
       '1010892341',
       '310123456700003',
-      '+966 50 123 4567',
-      'billing@sabic.com',
       'Eng. Tariq Al-Mansoor',
+      '+966 50 123 4567',
+      'tariq@sabic.com',
       'VP of Supply Chain',
+      'Sami Al-Otaibi',
+      '+966 50 123 9999',
+      'sami@sabic.com',
+      'Dispatch Ops Lead',
       'Building 829, King Fahd Road, Riyadh',
     ],
     [
@@ -193,10 +201,14 @@ async function generateCustomerTemplate() {
       'FMCG',
       '1010776512',
       '310987654300003',
-      '+966 50 987 6543',
-      'commercial@almarai.com',
       'Fahad Al-Zahrani',
+      '+966 50 987 6543',
+      'fahad@almarai.com',
       'Logistics Director',
+      'Noura Al-Hassan',
+      '+966 50 987 8888',
+      'noura@almarai.com',
+      'Billing Specialist',
       'Exit 7, Northern Ring Road, Riyadh',
     ],
     [
@@ -206,10 +218,14 @@ async function generateCustomerTemplate() {
       'Retail',
       '1010334455',
       '310554433200003',
-      '+966 55 443 2211',
-      'invoicing@panda.com.sa',
       'Mona Hassan',
-      'Procurement Specialist',
+      '+966 55 443 2211',
+      'mona@panda.com.sa',
+      'Procurement Manager',
+      'Youssef Amer',
+      '+966 55 443 7777',
+      'youssef@panda.com.sa',
+      'Warehouse Manager',
       'Al-Andalus District, Jeddah',
     ],
   ];

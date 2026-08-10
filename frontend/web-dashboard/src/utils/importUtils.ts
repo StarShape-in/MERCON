@@ -53,10 +53,14 @@ export const CUSTOMER_COLUMNS: ColumnMap = {
   industry: ['industry', 'industry sector'],
   cr_number: ['commercial reg cr no', 'commercial reg no', 'cr number', 'cr no'],
   vat_number: ['vat tax number', 'vat number', 'tax number', 'vat no'],
-  contact_phone: ['primary phone', 'primary phone *', 'contact phone', 'phone', 'mobile', 'contact number'],
-  email: ['billing email', 'email address', 'email'],
-  contact_person: ['contact representative', 'contact person', 'representative'],
-  contact_title: ['job title', 'designation', 'title'],
+  contact_person: ['primary contact name', 'contact representative', 'contact person', 'representative'],
+  contact_phone: ['primary phone *', 'primary phone', 'contact phone', 'phone', 'mobile', 'contact number'],
+  email: ['primary email', 'billing email', 'email address', 'email'],
+  contact_title: ['primary contact title', 'job title', 'designation', 'title'],
+  secondary_person: ['secondary contact name', 'secondary contact', 'contact 2 name'],
+  secondary_phone: ['secondary phone', 'contact 2 phone'],
+  secondary_email: ['secondary email', 'contact 2 email'],
+  secondary_title: ['secondary contact title', 'contact 2 title'],
   billing_address: ['billing address notes', 'billing address', 'address', 'notes'],
 };
 
