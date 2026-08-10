@@ -690,10 +690,12 @@ export default function CustomerListPage() {
         />
 
         <ExcelImportDialog
-          open={importDialogOpen}
-          onOpenChange={setImportDialogOpen}
+          isOpen={importDialogOpen}
+          onClose={() => setImportDialogOpen(false)}
           entityLabel="Customers"
           columns={CUSTOMER_COLUMNS}
+          requiredFields={['name', 'contact_phone']}
+          preferSheet="customer"
           templateUrl="/templates/MERCON_Customers_Import_Template.xlsx"
           onImport={(rows) => customerService.importRows(rows)}
           invalidateKeys={[['customers']]}
