@@ -461,6 +461,55 @@ export const bulkUpdateVehicleStatus = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Revenue recognised for a trip. Falls back down the chain because older trips
+ * were captured before invoicing existed: explicit billing amount wins, then the
+ * issued invoice total, then the quoted trip charges.
+ */
+const tripIncome = (t: { billing_amount: number | null; trip_charges: number | null; invoices: { total_amount: number | null }[] }) => {
+  const invoice = t.invoices[0];
+  if (t.billing_amount && t.billing_amount > 0) return t.billing_amount;
+  if (invoice?.total_amount && invoice.total_amount > 0) return invoice.total_amount;
+  return t.trip_charges || 0;
+};
+
+/** Only completed/invoiced trips count as earned revenue. */
+const isEarned = (status: string) => status === 'Completed' || status === 'Invoiced';
+
+/** `YYYY-MM` bucket key used by the monthly trend series. */
+const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+
+/**
+ * Parses `from`/`to` query params into a Prisma date filter. Both are optional;
+ * an absent range means "all time".
+ */
+const parseDateRange = (req: Request) => {
+  const from = req.query.from ? new Date(String(req.query.from)) : null;
+  const to = req.query.to ? new Date(String(req.query.to)) : null;
+  const valid = (d: Date | null) => (d && !Number.isNaN(d.getTime()) ? d : null);
+  return { from: valid(from), to: valid(to) };
+};
+
+/** Builds the month-by-month income/expense/profit series from raw rows. */
+const buildMonthlySeries = (
+  incomeRows: { date: Date; amount: number }[],
+  expenseRows: { date: Date; amount: number }[]
+) => {
+  const buckets = new Map<string, { month: string; income: number; expenses: number; profit: number }>();
+  const bucket = (d: Date) => {
+    const key = monthKey(d);
+    if (!buckets.has(key)) buckets.set(key, { month: key, income: 0, expenses: 0, profit: 0 });
+    return buckets.get(key)!;
+  };
+
+  for (const row of incomeRows) bucket(row.date).income += row.amount;
+  for (const row of expenseRows) bucket(row.date).expenses += row.amount;
+
+  return [...buckets.values()]
+    .map((b) => ({ ...b, profit: b.income - b.expenses }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+};
+
 export const getVehicleFinancials = async (req: Request, res: Response) => {
   try {
     const vehicleId = req.params.id as string;
@@ -472,8 +521,11 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Vehicle not found' } });
     }
 
+    const { from, to } = parseDateRange(req);
+    const rangeFilter = from || to ? { gte: from ?? undefined, lte: to ?? undefined } : undefined;
+
     const trips = await prisma.trip.findMany({
-      where: { vehicleId, deletedAt: null },
+      where: { vehicleId, deletedAt: null, ...(rangeFilter ? { createdAt: rangeFilter } : {}) },
       orderBy: { createdAt: 'desc' },
       include: {
         customer: { select: { name: true } },
@@ -482,19 +534,14 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
     });
 
     const maintenanceRecords = await prisma.maintenanceRecord.findMany({
-      where: { vehicleId, deletedAt: null },
+      where: { vehicleId, deletedAt: null, ...(rangeFilter ? { start_date: rangeFilter } : {}) },
       orderBy: [{ start_date: 'desc' }, { service_date: 'desc' }],
     });
 
     let totalIncome = 0;
     const tripBreakdown = trips.map((t) => {
-      const invoice = t.invoices[0];
-      const income = (t.billing_amount && t.billing_amount > 0)
-        ? t.billing_amount
-        : (invoice?.total_amount && invoice.total_amount > 0)
-          ? invoice.total_amount
-          : (t.trip_charges || 0);
-      if (t.status === 'Completed' || t.status === 'Invoiced') {
+      const income = tripIncome(t);
+      if (isEarned(t.status)) {
         totalIncome += income;
       }
       return {
@@ -516,6 +563,13 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
     const netProfit = totalIncome - totalExpenses;
     const marginPercent = totalIncome > 0 ? Math.round((netProfit / totalIncome) * 1000) / 10 : 0;
 
+    const monthly = buildMonthlySeries(
+      trips
+        .filter((t) => isEarned(t.status))
+        .map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: tripIncome(t) })),
+      maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: m.cost || 0 }))
+    );
+
     res.json({
       success: true,
       data: {
@@ -530,15 +584,137 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
           renewal_expenses: renewalExpenses,
           net_profit: netProfit,
           margin_percent: marginPercent,
-          completed_trips_count: trips.filter((t) => t.status === 'Completed' || t.status === 'Invoiced').length,
+          completed_trips_count: trips.filter((t) => isEarned(t.status)).length,
           total_maintenance_count: maintenanceRecords.length,
         },
+        monthly,
         income_sources: tripBreakdown,
         expense_records: maintenanceRecords,
       },
     });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch vehicle financial report' } });
+  }
+};
+
+/**
+ * Fleet-wide P&L: one row per vehicle so the dashboard can rank the fleet by
+ * profit/loss without firing a request per truck. Accepts the same optional
+ * `from`/`to` range as the per-vehicle report.
+ */
+export const getFleetFinancials = async (req: Request, res: Response) => {
+  try {
+    const { from, to } = parseDateRange(req);
+    const rangeFilter = from || to ? { gte: from ?? undefined, lte: to ?? undefined } : undefined;
+
+    const [vehicles, trips, maintenanceRecords] = await Promise.all([
+      prisma.vehicle.findMany({
+        where: { deletedAt: null },
+        orderBy: { plate_number: 'asc' },
+      }),
+      prisma.trip.findMany({
+        where: { deletedAt: null, vehicleId: { not: null }, ...(rangeFilter ? { createdAt: rangeFilter } : {}) },
+        include: { invoices: { where: { deletedAt: null }, select: { total_amount: true } } },
+      }),
+      prisma.maintenanceRecord.findMany({
+        where: { deletedAt: null, ...(rangeFilter ? { start_date: rangeFilter } : {}) },
+      }),
+    ]);
+
+    type Bucket = {
+      income: number;
+      expenses: number;
+      maintenance_expenses: number;
+      renewal_expenses: number;
+      trips_count: number;
+      maintenance_count: number;
+    };
+    const byVehicle = new Map<string, Bucket>();
+    const bucket = (id: string) => {
+      if (!byVehicle.has(id)) {
+        byVehicle.set(id, {
+          income: 0, expenses: 0, maintenance_expenses: 0,
+          renewal_expenses: 0, trips_count: 0, maintenance_count: 0,
+        });
+      }
+      return byVehicle.get(id)!;
+    };
+
+    for (const t of trips) {
+      if (!t.vehicleId || !isEarned(t.status)) continue;
+      const b = bucket(t.vehicleId);
+      b.income += tripIncome(t);
+      b.trips_count += 1;
+    }
+
+    for (const m of maintenanceRecords) {
+      const b = bucket(m.vehicleId);
+      const cost = m.cost || 0;
+      b.expenses += cost;
+      b.maintenance_count += 1;
+      if (m.maintenance_type === 'Renewal') b.renewal_expenses += cost;
+      else b.maintenance_expenses += cost;
+    }
+
+    const rows = vehicles.map((v) => {
+      const b = byVehicle.get(v.id) ?? {
+        income: 0, expenses: 0, maintenance_expenses: 0,
+        renewal_expenses: 0, trips_count: 0, maintenance_count: 0,
+      };
+      const net = b.income - b.expenses;
+      return {
+        vehicle_id: v.id,
+        plate_number: v.plate_number,
+        ref_id: v.ref_id,
+        asset_type: v.asset_type,
+        status: v.status,
+        total_income: b.income,
+        total_expenses: b.expenses,
+        maintenance_expenses: b.maintenance_expenses,
+        renewal_expenses: b.renewal_expenses,
+        net_profit: net,
+        margin_percent: b.income > 0 ? Math.round((net / b.income) * 1000) / 10 : 0,
+        trips_count: b.trips_count,
+        maintenance_count: b.maintenance_count,
+        income_per_trip: b.trips_count > 0 ? Math.round(b.income / b.trips_count) : 0,
+      };
+    });
+
+    const totalIncome = rows.reduce((s, r) => s + r.total_income, 0);
+    const totalExpenses = rows.reduce((s, r) => s + r.total_expenses, 0);
+    const netProfit = totalIncome - totalExpenses;
+
+    const monthly = buildMonthlySeries(
+      trips
+        .filter((t) => t.vehicleId && isEarned(t.status))
+        .map((t) => ({ date: t.actual_end || t.actual_start || t.createdAt, amount: tripIncome(t) })),
+      maintenanceRecords.map((m) => ({ date: m.start_date || m.service_date, amount: m.cost || 0 }))
+    );
+
+    res.json({
+      success: true,
+      data: {
+        range: { from: from?.toISOString() ?? null, to: to?.toISOString() ?? null },
+        fleet_summary: {
+          total_income: totalIncome,
+          total_expenses: totalExpenses,
+          maintenance_expenses: rows.reduce((s, r) => s + r.maintenance_expenses, 0),
+          renewal_expenses: rows.reduce((s, r) => s + r.renewal_expenses, 0),
+          net_profit: netProfit,
+          margin_percent: totalIncome > 0 ? Math.round((netProfit / totalIncome) * 1000) / 10 : 0,
+          vehicles_count: rows.length,
+          profitable_count: rows.filter((r) => r.net_profit > 0).length,
+          loss_making_count: rows.filter((r) => r.net_profit < 0).length,
+          idle_count: rows.filter((r) => r.total_income === 0 && r.total_expenses === 0).length,
+          total_trips: rows.reduce((s, r) => s + r.trips_count, 0),
+          total_maintenance: rows.reduce((s, r) => s + r.maintenance_count, 0),
+        },
+        vehicles: rows,
+        monthly,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch fleet financial report' } });
   }
 };
 

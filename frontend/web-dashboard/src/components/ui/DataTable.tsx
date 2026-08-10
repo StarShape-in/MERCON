@@ -8,7 +8,8 @@ import { Badge } from './badge';
 import { cn } from '@/lib/utils';
 
 export interface Column<T> {
-  header: string;
+  /** Node rather than string so callers can render sortable header buttons. */
+  header: React.ReactNode;
   accessor: (row: T, index: number) => React.ReactNode;
   className?: string;
   headerClassName?: string;
