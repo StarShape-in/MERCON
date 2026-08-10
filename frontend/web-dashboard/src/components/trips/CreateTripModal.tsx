@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Receipt,
 } from 'lucide-react';
 import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes } from 'date-fns';
 
@@ -18,7 +19,8 @@ import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import TripStepCustomer from '@/components/trips/TripStepCustomer';
 import TripStepAssignments from '@/components/trips/TripStepAssignments';
-import TripStepStopsPricing from '@/components/trips/TripStepStopsPricing';
+import TripStepStopsSLA from '@/components/trips/TripStepStopsSLA';
+import TripStepRatesBilling from '@/components/trips/TripStepRatesBilling';
 
 import { tripService, CreateTripPayload, Trip } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
@@ -27,7 +29,7 @@ import { vehicleService } from '@/services/vehicleService';
 import { rateCardService } from '@/services/rateCardService';
 import { locationService } from '@/services/locationService';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,7 +71,7 @@ export default function CreateTripModal({
 }: CreateTripModalProps) {
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [customerId, setCustomerId] = useState(initialCustomerId || '');
   const [driverId, setDriverId] = useState(initialDriverId || '');
   const [vehicleId, setVehicleId] = useState('');
@@ -319,22 +321,72 @@ export default function CreateTripModal({
   // Mutation
   const createMutation = useMutation({
     mutationFn: async (payload: CreateTripPayload) => {
+      let finalPickupLocId = pickupLocationId;
+      let finalDropoffLocId = dropoffLocationId;
+
+      // 1. Ensure Pickup Location is saved to DB if missing locationId
+      if (!finalPickupLocId && pickupName.trim()) {
+        try {
+          const newLoc = await locationService.create({
+            name: pickupName.trim(),
+            address: pickupAddress.trim() || undefined,
+            lat: pickupLat ?? undefined,
+            lng: pickupLng ?? undefined,
+          });
+          finalPickupLocId = newLoc.id;
+          setPickupLocationId(newLoc.id);
+        } catch (e) {
+          console.error('Failed to auto-create pickup location', e);
+        }
+      }
+
+      // 2. Ensure Dropoff Location is saved to DB if missing locationId
+      if (!finalDropoffLocId && dropoffName.trim()) {
+        try {
+          const newLoc = await locationService.create({
+            name: dropoffName.trim(),
+            address: dropoffAddress.trim() || undefined,
+            lat: dropoffLat ?? undefined,
+            lng: dropoffLng ?? undefined,
+          });
+          finalDropoffLocId = newLoc.id;
+          setDropoffLocationId(newLoc.id);
+        } catch (e) {
+          console.error('Failed to auto-create dropoff location', e);
+        }
+      }
+
+      // Update payload stops with saved location IDs
+      if (payload.stops && payload.stops.length >= 2) {
+        if (finalPickupLocId) payload.stops[0].location_id = finalPickupLocId;
+        if (finalDropoffLocId) payload.stops[1].location_id = finalDropoffLocId;
+      }
+
+      // 3. Save Rate Card if requested
       let rateCardId = matchedRateCard?.id;
 
-      if (!matchedRateCard && laneHasNoRate && saveRateAs !== 'none' && payload.billing_amount) {
+      if (!matchedRateCard && saveRateAs !== 'none' && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
         try {
-          const created = await rateCardService.create({
+          const createdRate = await rateCardService.create({
+            name: `${pickupName.trim()} → ${dropoffName.trim()}`,
             base_price: payload.billing_amount,
             currency: 'SAR',
             customerId: saveRateAs === 'customer' ? customerId : null,
-            origin_location_id: pickupLocationId,
-            destination_location_id: dropoffLocationId,
+            origin_location_id: finalPickupLocId,
+            destination_location_id: finalDropoffLocId,
+            origin_name: pickupName.trim(),
+            destination_name: dropoffName.trim(),
+            origin_lat: pickupLat,
+            origin_lng: pickupLng,
+            destination_lat: dropoffLat,
+            destination_lng: dropoffLng,
           });
-          rateCardId = created.id;
+          rateCardId = createdRate.id;
         } catch (e: any) {
+          console.error('Failed to save rate card', e);
           setRateSaveWarning(
             e.response?.data?.error?.message ||
-              'The trip was created, but the new rate could not be saved for reuse.'
+              'The trip was created, but the new rate card could not be saved for reuse.'
           );
         }
       }
@@ -351,14 +403,15 @@ export default function CreateTripModal({
             default_dropoff_lng: dropoffLng,
           });
         } catch (e) {
-          console.error('Failed to auto-save locations', e);
+          console.error('Failed to auto-save customer locations', e);
         }
       }
 
       queryClient.invalidateQueries({ queryKey: ['trips'] });
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       queryClient.invalidateQueries({ queryKey: ['fleet-performance'] });
       queryClient.invalidateQueries({ queryKey: ['customers-select'] });
-      queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
       if (onTripCreated) onTripCreated(createdTrip);
       onClose();
     },
@@ -395,7 +448,7 @@ export default function CreateTripModal({
     setError(null);
   };
 
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     setError(null);
     if (step === 1 && !customerId) {
       setError('Please select a customer before proceeding.');
@@ -409,13 +462,57 @@ export default function CreateTripModal({
       setError('Please assign a vehicle, or check "Assign vehicle later".');
       return;
     }
-    setStep((prev) => (prev < 3 ? ((prev + 1) as 1 | 2 | 3) : 3));
-  };
+    if (step === 3) {
+      if (pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null) {
+        setError('Please select both pickup and dropoff locations.');
+        return;
+      }
+      if (pickupName.trim() === '' || dropoffName.trim() === '') {
+        setError('Name both locations — reports group trips by these names.');
+        return;
+      }
+      if (!pickupLocationId || !dropoffLocationId) {
+        setError('Pick origin and destination for both stops to match rate cards.');
+        return;
+      }
+      if (pickupLocationId === dropoffLocationId) {
+        setError('Origin and destination must be different places.');
+        return;
+      }
+      if (!pickupTime || !dropoffTime) {
+        setError('Set both planned arrival times.');
+        return;
+      }
+      if (dropoffTime <= pickupTime) {
+        setError('Planned delivery deadline must be strictly after pickup arrival time.');
+        return;
+      }
+    }
 
-  const prevStep = () => {
+    setStep((prev) => (prev < 4 ? ((prev + 1) as 1 | 2 | 3 | 4) : 4));
+  }, [
+    step,
+    customerId,
+    assignDriverLater,
+    driverId,
+    assignVehicleLater,
+    vehicleId,
+    pickupLat,
+    pickupLng,
+    dropoffLat,
+    dropoffLng,
+    pickupName,
+    dropoffName,
+    pickupLocationId,
+    dropoffLocationId,
+    pickupTime,
+    dropoffTime,
+  ]);
+
+  const prevStep = useCallback(() => {
     setError(null);
-    setStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3) : 1));
-  };
+    setStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3 | 4) : 1));
+  }, []);
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
   const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
@@ -521,10 +618,70 @@ export default function CreateTripModal({
     createMutation,
   ]);
 
+  // Keyboard Shortcuts Handler
+  useEffect(() => {
+    if (!isOpen || isAddDriverOpen || isAddVehicleOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape -> Cancel / Close
+      if (e.key === 'Escape') {
+        if (!createMutation.isPending) {
+          onClose();
+        }
+        return;
+      }
+
+      // Next Step / Dispatch Submit
+      if (
+        (e.altKey && (e.key === 'ArrowRight' || e.key.toLowerCase() === 'n')) ||
+        ((e.ctrlKey || e.metaKey) && e.key === 'Enter')
+      ) {
+        e.preventDefault();
+        if (step < 4) {
+          nextStep();
+        } else if (step === 4 && isFormValid && !createMutation.isPending) {
+          handleSubmit();
+        }
+        return;
+      }
+
+      // Back (Alt + LeftArrow, Alt + B)
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'b')) {
+        e.preventDefault();
+        if (step > 1) {
+          prevStep();
+        } else {
+          onClose();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isOpen,
+    isAddDriverOpen,
+    isAddVehicleOpen,
+    step,
+    isFormValid,
+    createMutation.isPending,
+    nextStep,
+    prevStep,
+    handleSubmit,
+    onClose,
+  ]);
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !createMutation.isPending && !open && onClose()}>
-        <DialogContent className="max-w-5xl lg:max-w-6xl w-[95vw] max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl">
+        <DialogContent className={cn(
+          "transition-all duration-300 max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl",
+          step === 1 ? "max-w-2xl sm:max-w-3xl w-[90vw]" :
+          step === 2 ? "max-w-3xl lg:max-w-4xl w-[92vw]" :
+          step === 3 ? "max-w-5xl lg:max-w-6xl w-[95vw]" :
+          "max-w-3xl lg:max-w-4xl w-[92vw]"
+        )}>
           
           {/* Header */}
           <DialogHeader className="px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80">
@@ -548,17 +705,14 @@ export default function CreateTripModal({
                 <RotateCcw className="w-3.5 h-3.5" /> Reset Form
               </Button>
             </div>
-            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Dispatch freight across Saudi Arabia with automatic rate calculation and real-time SLA verification.
-            </DialogDescription>
 
-            {/* Step Selector Tabs */}
-            <div className="grid grid-cols-3 gap-2.5 mt-4 pt-1">
+            {/* Step Selector Tabs (4 Steps) */}
+            <div className="grid grid-cols-4 gap-2 mt-4 pt-1">
               <button
                 type="button"
                 onClick={() => setStep(1)}
                 className={cn(
-                  'flex items-center gap-2 p-2.5 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer',
+                  'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer',
                   step === 1
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
                     : selectedCustomer
@@ -566,9 +720,9 @@ export default function CreateTripModal({
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
                 )}
               >
-                <User className="w-4 h-4 shrink-0" />
+                <User className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">1. Customer</span>
-                {selectedCustomer && <CheckCircle2 className="w-4 h-4 ml-auto text-emerald-600 shrink-0" />}
+                {selectedCustomer && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />}
               </button>
 
               <button
@@ -578,7 +732,7 @@ export default function CreateTripModal({
                 }}
                 disabled={!customerId}
                 className={cn(
-                  'flex items-center gap-2 p-2.5 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+                  'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 2
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
                     : (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)
@@ -586,10 +740,10 @@ export default function CreateTripModal({
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
                 )}
               >
-                <Truck className="w-4 h-4 shrink-0" />
+                <Truck className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">2. Assignments</span>
                 {((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) && (
-                  <CheckCircle2 className="w-4 h-4 ml-auto text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
                 )}
               </button>
 
@@ -602,17 +756,41 @@ export default function CreateTripModal({
                 }}
                 disabled={!customerId || (!assignDriverLater && !driverId) || (!assignVehicleLater && !vehicleId)}
                 className={cn(
-                  'flex items-center gap-2 p-2.5 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+                  'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 3
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
-                    : isFormValid
+                    : !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
                 )}
               >
-                <Navigation className="w-4 h-4 shrink-0" />
-                <span className="truncate">3. Stops &amp; Rates</span>
-                {isFormValid && <CheckCircle2 className="w-4 h-4 ml-auto text-emerald-600 shrink-0" />}
+                <Navigation className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">3. Route &amp; SLA</span>
+                {!missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid && (
+                  <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (customerId && (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater) && !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid) {
+                    setStep(4);
+                  }
+                }}
+                disabled={!isFormValid}
+                className={cn(
+                  'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+                  step === 4
+                    ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
+                    : isFormValid && billingAmount
+                    ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-500'
+                )}
+              >
+                <Receipt className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">4. Rates &amp; Billing</span>
+                {isFormValid && billingAmount && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />}
               </button>
             </div>
           </DialogHeader>
@@ -665,7 +843,7 @@ export default function CreateTripModal({
             )}
 
             {step === 3 && (
-              <TripStepStopsPricing
+              <TripStepStopsSLA
                 pickupLocationId={pickupLocationId}
                 pickupLocationName={pickupLocationName}
                 pickupLat={pickupLat}
@@ -686,14 +864,6 @@ export default function CreateTripModal({
                 pickupDistanceKm={pickupDistanceKm}
                 dropoffDistanceKm={dropoffDistanceKm}
                 transitInfo={transitInfo}
-                isLookingUpRate={isLookingUpRate}
-                matchedRateCard={matchedRateCard}
-                rateSource={rateSource}
-                laneHasNoRate={laneHasNoRate}
-                saveRateAs={saveRateAs}
-                selectedCustomer={selectedCustomer}
-                rateSaveWarning={rateSaveWarning}
-                billingAmount={billingAmount}
                 onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
                 onPickupLocationNameChange={setPickupLocationName}
                 onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
@@ -707,6 +877,21 @@ export default function CreateTripModal({
                 onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
                 onDropoffAddressChange={setDropoffAddress}
                 onApplyDropoffOffset={applyDropoffOffset}
+              />
+            )}
+
+            {step === 4 && (
+              <TripStepRatesBilling
+                pickupLocationName={pickupLocationName}
+                dropoffLocationName={dropoffLocationName}
+                isLookingUpRate={isLookingUpRate}
+                matchedRateCard={matchedRateCard}
+                rateSource={rateSource}
+                laneHasNoRate={laneHasNoRate}
+                saveRateAs={saveRateAs}
+                selectedCustomer={selectedCustomer}
+                rateSaveWarning={rateSaveWarning}
+                billingAmount={billingAmount}
                 onSaveRateAsChange={setSaveRateAs}
                 onBillingAmountChange={(val) => { setBillingAmount(val); setIsPriceCustomized(true); }}
                 onAdjustPrice={adjustPrice}
@@ -724,8 +909,11 @@ export default function CreateTripModal({
                   size="sm"
                   onClick={prevStep}
                   className="h-9 gap-1 text-xs font-bold border-slate-200 dark:border-slate-800"
+                  title="Keyboard Shortcut: Alt + LeftArrow or Alt + B"
                 >
-                  <ChevronLeft className="w-4 h-4" /> Back
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Back</span>
+                  <span className="ml-1 text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded">Alt+←</span>
                 </Button>
               ) : (
                 <Button
@@ -733,22 +921,27 @@ export default function CreateTripModal({
                   variant="ghost"
                   size="sm"
                   onClick={onClose}
-                  className="h-9 text-xs text-slate-500 hover:text-slate-900"
+                  className="h-9 gap-1 text-xs text-slate-500 hover:text-slate-900"
+                  title="Keyboard Shortcut: Escape"
                 >
-                  Cancel
+                  <span>Cancel</span>
+                  <span className="ml-1 text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded">Esc</span>
                 </Button>
               )}
             </div>
 
             <div className="flex items-center gap-2">
-              {step < 3 ? (
+              {step < 4 ? (
                 <Button
                   type="button"
                   size="sm"
                   onClick={nextStep}
                   className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-5"
+                  title="Keyboard Shortcut: Alt + RightArrow or Alt + N"
                 >
-                  Next Step <ChevronRight className="w-4 h-4" />
+                  <span>Next Step</span>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Alt+→</span>
                 </Button>
               ) : (
                 <Button
@@ -757,6 +950,7 @@ export default function CreateTripModal({
                   onClick={handleSubmit}
                   disabled={createMutation.isPending || !isFormValid}
                   className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-6 disabled:opacity-50"
+                  title="Keyboard Shortcut: Ctrl + Enter or Alt + N"
                 >
                   {createMutation.isPending ? (
                     <>
@@ -764,7 +958,9 @@ export default function CreateTripModal({
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4" /> Dispatch New Trip
+                      <Sparkles className="w-4 h-4" />
+                      <span>Dispatch New Trip</span>
+                      <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
                     </>
                   )}
                 </Button>

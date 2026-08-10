@@ -113,11 +113,13 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
         {/* Primary Action Button: Create New Trip (MERCON Brand Orange #E8450F) */}
         <button
           onClick={() => setIsCreateTripOpen(true)}
+          title="Create New Trip (Shortcut: Alt + T or Alt + N)"
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span className="hidden sm:inline">Create New Trip</span>
           <span className="sm:hidden">New Trip</span>
+          <span className="ml-1 hidden md:inline-block text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Alt+T</span>
         </button>
 
         {/* Secondary Action Button: Add New Document (Dark Slate / Border Accent) */}

@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
+const SIDEBAR_COLLAPSED_KEY = 'mercon.sidebarCollapsed';
+
 interface DashboardLayoutProps {
   active: string;
   title: string;
@@ -24,6 +26,14 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop rail preference — persisted so it survives navigation and reloads
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
+  );
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   // Close the mobile drawer whenever the route changes
   useEffect(() => {
@@ -50,7 +60,13 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-white">
-      <Sidebar active={active} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        active={active}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
+      />
       <div className="flex flex-col flex-1 min-w-0 bg-white">
         <Header title={title} breadcrumb={breadcrumb} onMenuClick={() => setSidebarOpen(true)} />
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white">
