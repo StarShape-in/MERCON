@@ -1200,6 +1200,7 @@ export default function VehicleListPage() {
               isError={isError}
               errorMessage={(error as Error)?.message || 'Failed to load fleet vehicles.'}
               searchPlaceholder="Search by plate number, ref ID, or asset type..."
+              searchValue={search}
               onSearchChange={setSearch}
               currentPage={currentPage}
               totalPages={totalPages}

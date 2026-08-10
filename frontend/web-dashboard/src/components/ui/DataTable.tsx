@@ -98,13 +98,21 @@ export default function DataTable<T>({
   const [internalPage, setInternalPage] = useState(1);
   const [internalPageSize, setInternalPageSize] = useState(pageSize || 10);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [internalSearch, setInternalSearch] = useState('');
+
+  const activeSearchValue = searchValue !== undefined ? searchValue : internalSearch;
+
+  const handleSearchChange = (val: string) => {
+    setInternalSearch(val);
+    onSearchChange?.(val);
+  };
 
   // Reset internal page if data length changes or search changes
   useEffect(() => {
     if (onPageChange === undefined) {
       setInternalPage(1);
     }
-  }, [data.length, searchValue]);
+  }, [data.length, activeSearchValue]);
 
   const isServerPaginated = onPageChange !== undefined;
   const activePage = isServerPaginated ? (currentPage || 1) : internalPage;
@@ -239,14 +247,14 @@ export default function DataTable<T>({
                       <Input
                         type="text"
                         placeholder={searchPlaceholder}
-                        value={searchValue || ''}
-                        onChange={(e) => onSearchChange(e.target.value)}
-                        className="w-full pl-9 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
+                        value={activeSearchValue}
+                        onChange={(e) => handleSearchChange(e.target.value)}
+                        className="w-full pl-9 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
                         aria-label="Search Table"
                       />
-                      {searchValue && (
+                      {activeSearchValue && (
                         <button
-                          onClick={() => onSearchChange('')}
+                          onClick={() => handleSearchChange('')}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                           aria-label="Clear search"
                         >

@@ -359,6 +359,7 @@ export default function LocationListPage() {
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load locations.'}
             searchPlaceholder="Search locations..."
+            searchValue={search}
             onSearchChange={setSearch}
             onRowClick={(row) => setEditTarget(row)}
           />
