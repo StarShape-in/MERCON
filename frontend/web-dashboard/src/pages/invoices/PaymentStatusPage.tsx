@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, CheckCircle2, Clock, AlertTriangle, Search, RotateCw, DollarSign, Plus, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -247,7 +248,7 @@ export default function PaymentStatusPage() {
                   try {
                     await invoiceService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Paid');
                     queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                  } catch (e) { alert('Failed to update status'); }
+                  } catch (e) { toast.error('Failed to update status'); }
                 }
               },
               {

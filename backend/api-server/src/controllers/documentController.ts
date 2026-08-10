@@ -3,6 +3,9 @@ import { env } from '../config/env';
 import { prisma } from '../index';
 import { DocType, DocStatus } from '@prisma/client';
 import path from 'path';
+import fs from 'fs';
+// @ts-ignore
+import archiver from 'archiver';
 
 /* ─── List documents ──────────────────────────────────────────────────────── */
 export const getDocuments = async (req: Request, res: Response) => {
@@ -193,6 +196,59 @@ export const bulkDeleteDocuments = async (req: Request, res: Response) => {
     res.json({ success: true, data: { message: `Successfully deleted ${ids.length} documents` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete documents` } });
+  }
+};
+
+/* ─── Bulk download as ZIP ─────────────────────────────────────────────────── */
+export const bulkDownloadDocuments = async (req: Request, res: Response) => {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
+    }
+
+    const documents = await prisma.document.findMany({
+      where: { id: { in: ids }, deletedAt: null }
+    });
+
+    if (documents.length === 0) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'No matching documents found' } });
+    }
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="documents-${Date.now()}.zip"`);
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.on('error', (err: any) => {
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to build archive' } });
+      } else {
+        res.destroy(err);
+      }
+    });
+    archive.pipe(res);
+
+    const usedNames = new Set<string>();
+    for (const doc of documents) {
+      const storedFilename = path.basename(new URL(doc.file_url).pathname);
+      const filePath = path.join(process.cwd(), 'uploads', storedFilename);
+      if (!fs.existsSync(filePath)) continue;
+
+      let entryName = `${doc.doc_type}${path.extname(storedFilename)}`;
+      if (usedNames.has(entryName)) {
+        entryName = `${doc.doc_type}-${doc.id.slice(0, 8)}${path.extname(storedFilename)}`;
+      }
+      usedNames.add(entryName);
+
+      archive.file(filePath, { name: entryName });
+    }
+
+    await archive.finalize();
+  } catch (error) {
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to bulk download documents' } });
+    }
   }
 };
 

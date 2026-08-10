@@ -8,7 +8,8 @@ import { Badge } from './badge';
 import { cn } from '@/lib/utils';
 
 export interface Column<T> {
-  header: string;
+  /** Node rather than string so callers can render sortable header buttons. */
+  header: React.ReactNode;
   accessor: (row: T, index: number) => React.ReactNode;
   className?: string;
   headerClassName?: string;
@@ -184,7 +185,7 @@ export default function DataTable<T>({
       
       {/* Table Toolbar Header */}
       {showToolbar && (
-        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-col gap-2.5 sm:gap-3">
           {selectedIndices.size > 0 ? (
             <div className="flex items-center flex-wrap gap-2 sm:gap-3 w-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 p-2 rounded-lg transition-all" role="alert">
               <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 px-2">
@@ -217,68 +218,71 @@ export default function DataTable<T>({
             </div>
           ) : (
             <>
-              {/* Left Side: Ledger Title & Search / Filter Controls */}
-              <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                {title && (
-                  <div className="flex items-center gap-2.5 mr-2">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                      {title}
-                    </h3>
-                    <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                      {totalCount} {totalCount === 1 ? 'record' : 'records'}
-                    </Badge>
-                  </div>
-                )}
+              {/* Row 1: Ledger Heading */}
+              {title && (
+                <div className="flex items-center gap-2.5">
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                    {title}
+                  </h3>
+                  <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                    {totalCount} {totalCount === 1 ? 'record' : 'records'}
+                  </Badge>
+                </div>
+              )}
 
-                {onSearchChange !== undefined && (
-                  <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm sm:min-w-[200px]">
-                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      type="text"
-                      placeholder={searchPlaceholder}
-                      value={searchValue || ''}
-                      onChange={(e) => onSearchChange(e.target.value)}
-                      className="w-full pl-9 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
-                      aria-label="Search Table"
+              {/* Row 2: Search Bar & Filtration Tools */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
+                  {onSearchChange !== undefined && (
+                    <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm sm:min-w-[200px]">
+                      <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <Input
+                        type="text"
+                        placeholder={searchPlaceholder}
+                        value={searchValue || ''}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        className="w-full pl-9 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
+                        aria-label="Search Table"
+                      />
+                      {searchValue && (
+                        <button
+                          onClick={() => onSearchChange('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                          aria-label="Clear search"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {filterElement}
+                </div>
+
+                {/* Right Side: Selection Controls, Actions & Export */}
+                <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
+                  {enableSelection && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAll}
+                      className="h-8 text-xs font-semibold px-3 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 transition-colors"
+                    >
+                      <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                      <span>{selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}</span>
+                    </Button>
+                  )}
+                  {actionsElement}
+                  {onExport && (
+                    <Btn
+                      label="Export"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Download size={13} />}
+                      onClick={onExport}
                     />
-                    {searchValue && (
-                      <button 
-                        onClick={() => onSearchChange('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                        aria-label="Clear search"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {filterElement}
-              </div>
-
-              {/* Right Side: Selection Controls, Actions & Export */}
-              <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
-                {enableSelection && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAll}
-                    className="h-8 text-xs font-semibold px-3 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 transition-colors"
-                  >
-                    <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>{selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}</span>
-                  </Button>
-                )}
-                {actionsElement}
-                {onExport && (
-                  <Btn
-                    label="Export"
-                    variant="secondary"
-                    size="sm"
-                    icon={<Download size={13} />}
-                    onClick={onExport}
-                  />
-                )}
+                  )}
+                </div>
               </div>
             </>
           )}

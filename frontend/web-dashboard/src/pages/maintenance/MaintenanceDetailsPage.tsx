@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils';
 const STATUS_META: Record<string, { label: string; className: string }> = {
   Scheduled: { label: 'Scheduled', className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
   In_Progress: { label: 'In Progress', className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
+  'In Progress': { label: 'In Progress', className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
   Completed: { label: 'Completed', className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
   Cancelled: { label: 'Cancelled', className: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
 };
@@ -59,8 +60,11 @@ const LIFECYCLE: MaintenanceStatus[] = ['Scheduled', 'In_Progress', 'Completed']
 
 const EMPTY = '—';
 
-const formatDate = (value?: string | null) =>
-  value ? new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : EMPTY;
+const formatDate = (value?: string | null) => {
+  if (!value) return EMPTY;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? EMPTY : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 
 const formatSAR = (value?: number | null) =>
   `SAR ${(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -281,7 +285,8 @@ export default function MaintenanceDetailsPage() {
 
   const orderNo = record.ref_id || `MNT-${record.id.slice(0, 8)}`;
   const isCancelled = record.status === 'Cancelled';
-  const currentStep = LIFECYCLE.indexOf(record.status as MaintenanceStatus);
+  const normalizedStatus = (record.status as string) === 'In Progress' ? 'In_Progress' : record.status;
+  const currentStep = LIFECYCLE.indexOf(normalizedStatus as MaintenanceStatus);
   // Fill the rail up to the active milestone; a completed order fills it entirely.
   const progressPct = isCancelled ? 0 : (Math.max(0, currentStep) / (LIFECYCLE.length - 1)) * 100;
 
@@ -785,17 +790,17 @@ export default function MaintenanceDetailsPage() {
 
       {/* ── Edit modal ───────────────────────────────────────────────────── */}
       <Dialog open={isEditModalOpen} onOpenChange={(open) => !open && setIsEditModalOpen(false)}>
-        <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
-          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+        <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
+          <DialogHeader className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
             <DialogTitle className="text-base font-extrabold flex items-center gap-2">
               <Wrench className="w-5 h-5 text-[#E8450F]" /> Edit service order {orderNo}
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-xs text-slate-500 mt-0.5">
               Changes are applied immediately to the maintenance record.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-5 space-y-3.5 text-xs">
             {editError && (
               <div className="p-3 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 text-xs font-bold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -803,14 +808,14 @@ export default function MaintenanceDetailsPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-bold">Maintenance type *</Label>
                 <Select
                   value={editFormData.maintenance_type}
                   onValueChange={(val: MaintenanceType) => setEditFormData(prev => ({ ...prev, maintenance_type: val }))}
                 >
-                  <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectTrigger className="h-8.5 text-xs w-full">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -823,13 +828,13 @@ export default function MaintenanceDetailsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-bold">Status *</Label>
                 <Select
                   value={editFormData.status}
                   onValueChange={(val: MaintenanceStatus) => setEditFormData(prev => ({ ...prev, status: val }))}
                 >
-                  <SelectTrigger className="h-9 text-xs w-full">
+                  <SelectTrigger className="h-8.5 text-xs w-full">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -841,7 +846,7 @@ export default function MaintenanceDetailsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-bold">Cost (SAR) *</Label>
                 <Input
                   type="number"
@@ -849,22 +854,11 @@ export default function MaintenanceDetailsPage() {
                   step="0.01"
                   value={editFormData.cost}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
-                  className="h-9 text-xs"
+                  className="h-8.5 text-xs"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Odometer reading (km)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={editFormData.odometer_reading}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-bold">Start date</Label>
                 <Input
                   type="date"
@@ -877,89 +871,102 @@ export default function MaintenanceDetailsPage() {
                       end_date: prev.end_date && prev.end_date < start_date ? start_date : prev.end_date,
                     }));
                   }}
-                  className="h-9 text-xs"
+                  className="h-8.5 text-xs"
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-bold">Completion date</Label>
                 <Input
                   type="date"
                   value={editFormData.end_date || ''}
                   min={editFormData.start_date || undefined}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="h-9 text-xs"
+                  className="h-8.5 text-xs"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Workshop name *</Label>
-                <Input
-                  value={editFormData.workshop_name}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, workshop_name: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Workshop contact</Label>
-                <Input
-                  value={editFormData.workshop_contact || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Invoice number</Label>
-                <Input
-                  value={editFormData.invoice_number || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs font-bold">Next service due</Label>
                 <Input
                   type="date"
                   value={editFormData.next_service_due || ''}
                   min={editFormData.start_date || undefined}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, next_service_due: e.target.value }))}
-                  className="h-9 text-xs"
+                  className="h-8.5 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Workshop name *</Label>
+                <Input
+                  value={editFormData.workshop_name}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, workshop_name: e.target.value }))}
+                  className="h-8.5 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Workshop contact</Label>
+                <Input
+                  value={editFormData.workshop_contact || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
+                  className="h-8.5 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Odometer reading (km)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editFormData.odometer_reading}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
+                  className="h-8.5 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Invoice number</Label>
+                <Input
+                  value={editFormData.invoice_number || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
+                  className="h-8.5 text-xs"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Work done *</Label>
-              <Textarea
-                value={editFormData.work_done || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, work_done: e.target.value }))}
-                rows={3}
-                className="text-xs"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Work done *</Label>
+                <Textarea
+                  value={editFormData.work_done || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, work_done: e.target.value }))}
+                  rows={2.5}
+                  className="text-xs resize-none p-2.5"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Remarks</Label>
+                <Textarea
+                  value={editFormData.remarks || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, remarks: e.target.value }))}
+                  rows={2.5}
+                  className="text-xs resize-none p-2.5"
+                />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Remarks</Label>
-              <Textarea
-                value={editFormData.remarks || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, remarks: e.target.value }))}
-                rows={2}
-                className="text-xs"
-              />
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditModalOpen(false)} className="text-xs">
+            <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditModalOpen(false)} className="text-xs h-8.5">
                 Cancel
               </Button>
               <Button
                 type="submit"
                 size="sm"
                 disabled={updateMutation.isPending}
-                className="text-xs bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
+                className="text-xs h-8.5 bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
               >
                 {updateMutation.isPending ? 'Saving…' : 'Save changes'}
               </Button>

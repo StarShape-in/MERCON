@@ -29,6 +29,7 @@ import { env, iccesConfigured } from '../../config/env';
 import { IccesSession, IccesAuthError } from './iccesSession';
 import { createAxiosTransport } from './axiosTransport';
 import type { IccesTelemetry } from './trackParser';
+import { trackerLocationUpdate } from '../tracking/locationUpdate';
 
 /** Matches the dashboard's own refresh rate. Fast enough to watch a truck
  *  move, slow enough that 27 vehicles cost one request per 30s, not per truck. */
@@ -48,16 +49,36 @@ let inFlight = false;
  * trackers for vehicles MERCON does not know about. The captured fleet has
  * exactly one such device, so this is counted and logged rather than treated
  * as a fault.
+ *
+ * Stale Protection:
+ * Only updates the vehicle position if the incoming telemetry's `recordedAt` is
+ * strictly newer than the vehicle's currently stored `last_seen_at` (or if
+ * `last_seen_at` is null). Out-of-order or duplicate packets are skipped so the
+ * vehicle position never moves backwards in time.
  */
-async function persist(telemetry: IccesTelemetry[]): Promise<{ matched: number; unmatched: string[] }> {
+export async function persist(
+  telemetry: IccesTelemetry[],
+  client: any = prisma,
+): Promise<{ matched: number; unmatched: string[] }> {
   const unmatched: string[] = [];
   let matched = 0;
 
   for (const t of telemetry) {
     // updateMany rather than update: it is a no-op when no vehicle carries this
     // device id, where update would throw for a tracker MERCON has never seen.
-    const res = await prisma.vehicle.updateMany({
-      where: { icces_device_id: t.deviceId, deletedAt: null },
+    //
+    // Guard against stale / out-of-order tracker updates:
+    // Only overwrite vehicle position if this reading is strictly newer than the
+    // currently stored `last_seen_at` (or if `last_seen_at` is null).
+    const res = await client.vehicle.updateMany({
+      where: {
+        icces_device_id: t.deviceId,
+        deletedAt: null,
+        OR: [
+          { last_seen_at: null },
+          { last_seen_at: { lt: t.recordedAt } },
+        ],
+      },
       data: {
         last_lat: t.latitude,
         last_lng: t.longitude,
@@ -67,8 +88,20 @@ async function persist(telemetry: IccesTelemetry[]): Promise<{ matched: number; 
         last_seen_at: t.recordedAt,
       },
     });
-    if (res.count > 0) matched += res.count;
-    else unmatched.push(t.deviceId);
+
+    if (res.count > 0) {
+      matched += res.count;
+    } else {
+      // Check if the vehicle exists in MERCON to distinguish unlinked devices from stale updates
+      const exists = await client.vehicle.count({
+        where: { icces_device_id: t.deviceId, deletedAt: null },
+      });
+      if (exists > 0) {
+        matched += exists;
+      } else {
+        unmatched.push(t.deviceId);
+      }
+    }
   }
 
   return { matched, unmatched };
@@ -78,9 +111,10 @@ async function persist(telemetry: IccesTelemetry[]): Promise<{ matched: number; 
  * Pushes positions to trip rooms so an operator watching `/trips/:id/track`
  * sees the marker move.
  *
- * The payload shape matches what the driver mobile app already emits, so the
- * dashboard needs no change to accept it — the two GPS sources are
- * interchangeable at the socket. `source` distinguishes them for diagnostics.
+ * Both GPS sources emit the one shape defined in `services/tracking`, so the
+ * dashboard cannot tell them apart by accident — `source` says which produced
+ * a reading, and it is now set the same way on both paths rather than only
+ * this one.
  */
 async function broadcastToActiveTrips(telemetry: IccesTelemetry[]): Promise<number> {
   const deviceIds = telemetry.map((t) => t.deviceId);
@@ -104,15 +138,7 @@ async function broadcastToActiveTrips(telemetry: IccesTelemetry[]): Promise<numb
     const t = byDevice.get(deviceId);
     if (!t) continue;
 
-    io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, {
-      lat: t.latitude,
-      lng: t.longitude,
-      speed: t.speedKph ?? 0,
-      heading: t.headingDeg ?? 0,
-      status: t.status,
-      recordedAt: t.recordedAt.toISOString(),
-      source: 'ICCES',
-    });
+    io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, trackerLocationUpdate(t));
     sent += 1;
   }
 

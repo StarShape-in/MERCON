@@ -108,3 +108,82 @@ export const deleteCustomer = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete customer' } });
   }
 };
+
+export const bulkImportCustomers = async (req: Request, res: Response) => {
+  try {
+    const { rows } = req.body as { rows: Record<string, any>[] };
+    const userId = (req as any).user?.id;
+    const results: any[] = [];
+
+    for (let i = 0; i < (rows || []).length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+      const label = row.name ? String(row.name).trim() : `Row ${rowNumber}`;
+
+      try {
+        if (!row.name || !String(row.name).trim()) {
+          results.push({ row: rowNumber, success: false, label, error: 'Company Name is missing' });
+          continue;
+        }
+
+        const name = String(row.name).trim();
+        const contact_phone = String(row.contact_phone || row.phone || '').trim();
+
+        if (!contact_phone) {
+          results.push({ row: rowNumber, success: false, label, error: 'Primary Contact Phone is missing' });
+          continue;
+        }
+
+        const existing = await prisma.customer.findFirst({
+          where: {
+            OR: [
+              { contact_phone: contact_phone },
+              { name: { equals: name, mode: 'insensitive' } }
+            ]
+          }
+        });
+
+        if (existing) {
+          await prisma.customer.update({
+            where: { id: existing.id },
+            data: {
+              name,
+              contact_phone,
+              ...(existing.deletedAt ? { deletedAt: null, deleted_by: null, isActive: true } : {}),
+              updated_by: userId,
+            }
+          });
+          results.push({ row: rowNumber, success: true, label, action: 'updated' });
+        } else {
+          const created = await prisma.customer.create({
+            data: {
+              name,
+              contact_phone,
+              created_by: userId,
+            }
+          });
+          results.push({ row: rowNumber, success: true, label, action: 'created' });
+        }
+      } catch (err: any) {
+        results.push({ row: rowNumber, success: false, label, error: err.message || 'Could not import customer' });
+      }
+    }
+
+    const created = results.filter(r => r.success && r.action === 'created').length;
+    const updated = results.filter(r => r.success && r.action === 'updated').length;
+    const failed = results.filter(r => !r.success).length;
+
+    res.json({
+      success: true,
+      data: {
+        total: rows.length,
+        created,
+        updated,
+        failed,
+        results
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to import customers' } });
+  }
+};

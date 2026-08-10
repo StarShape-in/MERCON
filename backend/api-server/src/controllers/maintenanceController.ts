@@ -127,17 +127,25 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
   }
 };
 
+const findMaintenanceRecordByIdOrRef = async (idOrRef: string) => {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrRef);
+  return prisma.maintenanceRecord.findFirst({
+    where: {
+      OR: isUuid ? [{ id: idOrRef }, { ref_id: idOrRef }] : [{ ref_id: idOrRef }],
+      deletedAt: null,
+    },
+    include: {
+      vehicle: true,
+    },
+  });
+};
+
 export const getMaintenanceRecordById = async (req: Request, res: Response) => {
   try {
     const recordId = req.params.id as string;
-    const record = await prisma.maintenanceRecord.findUnique({
-      where: { id: recordId },
-      include: {
-        vehicle: true,
-      },
-    });
+    const record = await findMaintenanceRecordByIdOrRef(recordId);
 
-    if (!record || record.deletedAt) {
+    if (!record) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Maintenance record not found' },
@@ -362,8 +370,8 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
       });
     }
 
-    const existing = await prisma.maintenanceRecord.findUnique({ where: { id: recordId } });
-    if (!existing || existing.deletedAt) {
+    const existing = await findMaintenanceRecordByIdOrRef(recordId);
+    if (!existing) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Maintenance record not found' },
@@ -404,7 +412,7 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
     }
 
     const updated = await prisma.maintenanceRecord.update({
-      where: { id: recordId },
+      where: { id: existing.id },
       data: {
         ...data,
         updated_by: (req as any).user?.id,
@@ -427,7 +435,7 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
             vehicleId: updated.vehicleId,
             status: 'In_Progress',
             deletedAt: null,
-            id: { not: recordId },
+            id: { not: existing.id },
           },
         });
         if (activeMaintenance === 0) {
@@ -461,9 +469,9 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
 export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
   try {
     const recordId = req.params.id as string;
-    const existing = await prisma.maintenanceRecord.findUnique({ where: { id: recordId } });
+    const existing = await findMaintenanceRecordByIdOrRef(recordId);
 
-    if (!existing || existing.deletedAt) {
+    if (!existing) {
       return res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Maintenance record not found' },
@@ -471,7 +479,7 @@ export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
     }
 
     await prisma.maintenanceRecord.update({
-      where: { id: recordId },
+      where: { id: existing.id },
       data: {
         // Releasing the ref_id frees its number for the next service order, so the
         // sequence stays gapless (delete MNT-005 → the next order becomes MNT-005).

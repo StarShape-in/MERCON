@@ -148,9 +148,12 @@ interface MapsWindow extends Window {
       importLibrary?: (name: string) => Promise<unknown>;
     };
   };
+  /** Readiness signal named in the bootstrap URL — see `loadMapsScript`. */
+  __merconGoogleMapsReady?: () => void;
 }
 
 const MAPS_SCRIPT_ID = 'mercon-google-maps-js';
+const MAPS_CALLBACK_NAME = '__merconGoogleMapsReady';
 
 let placesLibrary: Promise<PlacesLibrary> | null = null;
 
@@ -170,7 +173,14 @@ function loadMapsScript(key: string): Promise<void> {
   const script = existing ?? document.createElement('script');
 
   const settled = new Promise<void>((resolve, reject) => {
-    script.addEventListener('load', () => resolve(), { once: true });
+    // Resolve when Google says it is ready, NOT on the script's load event.
+    // `loading=async` means no JavaScript is triggered by that event: the
+    // bootstrap file finishes executing before the API has attached
+    // `importLibrary`, so reading the namespace at `load` finds nothing and
+    // throws — which is precisely how this shipped, and why every search fell
+    // through to Nominatim in production while `google.maps.importLibrary`
+    // looked fine from the console a moment later.
+    w[MAPS_CALLBACK_NAME] = () => resolve();
     script.addEventListener(
       'error',
       () => reject(new Error('Google Maps JavaScript API failed to load')),
@@ -181,9 +191,9 @@ function loadMapsScript(key: string): Promise<void> {
   if (!existing) {
     script.id = MAPS_SCRIPT_ID;
     script.async = true;
-    // `loading=async` is what makes `importLibrary` available; `libraries` is
-    // omitted on purpose, because importLibrary fetches places on demand.
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async`;
+    // `libraries` is omitted on purpose, because importLibrary fetches places
+    // on demand.
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&callback=${MAPS_CALLBACK_NAME}`;
     document.head.appendChild(script);
   }
 

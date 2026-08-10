@@ -1,4 +1,5 @@
 import { api, ApiResponse } from '@/lib/api';
+import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 
 export interface Customer {
   id: string;
@@ -54,5 +55,10 @@ export const customerService = {
 
   async delete(id: string): Promise<void> {
     await api.delete(`/customers/${id}`);
+  },
+
+  async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
+    const res = await api.post<ApiResponse<ImportSummary>>('/customers/import', { rows });
+    return res.data.data;
   },
 };

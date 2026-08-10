@@ -3,6 +3,7 @@ import { prisma } from '../index';
 import { TripStatus, DocType } from '@prisma/client';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { notifyOperatorsOfDelay } from './notificationController';
+import { getDrivingRoute, RoutingUnavailableError } from '../services/routing/routeProvider';
 
 /**
  * Everything the driver's app needs about a trip, in one shape.
@@ -191,5 +192,87 @@ export const uploadTripPhoto = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: document });
   } catch (error) {
     res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+};
+
+/**
+ * The road route from the driver's current position to the stop they are
+ * heading for.
+ *
+ * The destination is derived here, not accepted from the caller. That is
+ * deliberate: an endpoint that routed to arbitrary coordinates would turn
+ * MERCON into a free routing proxy for anyone holding a driver token, and the
+ * driver app never needed that freedom — it only ever asks for the stop the
+ * trip says is next.
+ *
+ * Which stop that is mirrors the app: a Dispatched trip is still heading to
+ * the pickup, anything later is heading to the dropoff.
+ */
+export const getTripRoute = async (req: Request, res: Response) => {
+  const driverId = (req as any).user?.driver_id;
+  const id = req.params.id as string;
+
+  if (!driverId) {
+    return res.status(403).json({ success: false, error: { message: 'Driver not authenticated' } });
+  }
+
+  const fromLat = Number(req.query.from_lat);
+  const fromLng = Number(req.query.from_lng);
+  if (!Number.isFinite(fromLat) || !Number.isFinite(fromLng)) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'from_lat and from_lng are required' },
+    });
+  }
+
+  try {
+    // Same ownership check every other mobile trip endpoint uses: a trip that
+    // is not this driver's is indistinguishable from one that does not exist.
+    const trip = await prisma.trip.findFirst({
+      where: { id, driverId, deletedAt: null },
+      select: {
+        status: true,
+        stops: {
+          select: { stop_type: true, location_lat: true, location_lng: true },
+        },
+      },
+    });
+
+    if (!trip) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Trip not found or not assigned to you' },
+      });
+    }
+
+    const headingToPickup = trip.status === TripStatus.Dispatched;
+    const target = trip.stops.find(
+      (s) => s.stop_type === (headingToPickup ? 'Pickup' : 'Dropoff'),
+    );
+
+    if (!target || target.location_lat == null || target.location_lng == null) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'That stop has no coordinates to route to' },
+      });
+    }
+
+    const route = await getDrivingRoute(
+      { lat: fromLat, lng: fromLng },
+      { lat: target.location_lat, lng: target.location_lng },
+    );
+
+    return res.json({ success: true, data: route });
+  } catch (error) {
+    // A routing outage is not a MERCON outage. 503 tells the app to carry on
+    // without a drawn route, which is exactly what it did when the old direct
+    // OSRM call failed — the driver keeps the map, the marker and the distance.
+    if (error instanceof RoutingUnavailableError) {
+      return res.status(503).json({
+        success: false,
+        error: { message: 'Routing is temporarily unavailable' },
+      });
+    }
+    return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 };

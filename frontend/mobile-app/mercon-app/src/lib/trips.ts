@@ -57,6 +57,16 @@ export interface MobileTrip {
   stops: TripStop[];
 }
 
+/** A road route to the trip's next stop, as MERCON returns it. */
+export interface TripRoute {
+  /** [lng, lat] pairs, GeoJSON order. */
+  geometry: [number, number][];
+  distanceMeters: number;
+  durationSeconds: number;
+  /** Which routing provider answered. Diagnostic only. */
+  provider: string;
+}
+
 export const tripService = {
   async getCurrent(): Promise<MobileTrip | null> {
     const { data } = await api.get('/mobile/trips/current');
@@ -67,6 +77,19 @@ export const tripService = {
   async getHistory(limit = 30): Promise<MobileTrip[]> {
     const { data } = await api.get('/mobile/trips/history', { params: { limit } });
     return (data.data ?? []) as MobileTrip[];
+  },
+
+  /**
+   * The road route from where the driver is now to the trip's next stop.
+   *
+   * Only the origin is sent — the server decides which stop is next and which
+   * routing provider to ask, so neither is baked into this app.
+   */
+  async getRoute(id: string, fromLat: number, fromLng: number): Promise<TripRoute> {
+    const { data } = await api.get(`/mobile/trips/${id}/route`, {
+      params: { from_lat: fromLat, from_lng: fromLng },
+    });
+    return data.data as TripRoute;
   },
 
   async updateStatus(id: string, status: TripStatus): Promise<MobileTrip> {

@@ -62,4 +62,9 @@ export const documentService = {
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
     await api.post('/documents/bulk-update-status', { ids, status });
   },
+
+  async bulkDownloadZip(ids: string[]): Promise<Blob> {
+    const res = await api.post('/documents/bulk-download', { ids }, { responseType: 'blob' });
+    return res.data as Blob;
+  },
 };

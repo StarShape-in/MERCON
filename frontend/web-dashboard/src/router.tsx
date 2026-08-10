@@ -44,7 +44,6 @@ const AddCustomerPage         = lazy(() => import('@/pages/customers/AddCustomer
 const EditCustomerPage        = lazy(() => import('@/pages/customers/EditCustomerPage'));
 const CustomerContractsPage   = lazy(() => import('@/pages/customers/CustomerContractsPage'));
 
-// Rate Cards (static/mock for now)
 const LocationListPage        = lazy(() => import('@/pages/locations/LocationListPage'));
 const RateCardListPage        = lazy(() => import('@/pages/rate-cards/RateCardListPage'));
 const CreateRateCardPage      = lazy(() => import('@/pages/rate-cards/CreateRateCardPage'));

@@ -5,21 +5,15 @@ import {
   ArrowLeft, 
   RotateCcw, 
   Plus, 
-  CheckCircle2, 
-  Circle, 
-  Keyboard, 
-  ChevronRight, 
-  ChevronLeft, 
   Building2, 
   Phone, 
   Mail, 
-  DollarSign, 
-  Factory, 
-  ToggleRight,
-  CreditCard,
-  Calendar,
-  FileCheck,
-  Sparkles
+  User,
+  Trash2,
+  CheckCircle2,
+  Briefcase,
+  Star,
+  Users
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -30,47 +24,131 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Btn from '@/components/ui/Btn';
+import { Textarea } from '@/components/ui/textarea';
+
+export interface ContactPerson {
+  id: string;
+  name: string;
+  title: string;
+  phone: string;
+  email: string;
+  is_primary: boolean;
+}
 
 export default function AddCustomerPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'company' | 'financial'>('company');
   const [error, setError] = useState<string | null>(null);
 
+  // Form State
   const [formData, setFormData] = useState({
     name: '',
+    trade_alias: '',
+    industry: 'Logistics',
+    cr_number: '',
+    vat_number: '',
     contact_phone: '',
     email: '',
-    industry: '',
-    credit_limit: '',
-    billing_cycle: '',
-    payment_terms: '',
+    billing_address: '',
     isActive: true,
   });
+
+  // Dynamic Contact Personnel List
+  const [contacts, setContacts] = useState<ContactPerson[]>([
+    {
+      id: '1',
+      name: '',
+      title: 'Logistics Director',
+      phone: '',
+      email: '',
+      is_primary: true,
+    },
+  ]);
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Contact Personnel Actions
+  const addContactPerson = () => {
+    const newId = String(Date.now());
+    setContacts((prev) => [
+      ...prev,
+      {
+        id: newId,
+        name: '',
+        title: '',
+        phone: '',
+        email: '',
+        is_primary: prev.length === 0,
+      },
+    ]);
+  };
+
+  const removeContactPerson = (id: string) => {
+    setContacts((prev) => {
+      const filtered = prev.filter((c) => c.id !== id);
+      if (filtered.length > 0 && !filtered.some((c) => c.is_primary)) {
+        filtered[0].is_primary = true;
+      }
+      return filtered;
+    });
+  };
+
+  const updateContactPerson = (id: string, field: keyof ContactPerson, value: any) => {
+    setContacts((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          return { ...c, [field]: value };
+        }
+        if (field === 'is_primary' && value === true) {
+          return { ...c, is_primary: false };
+        }
+        return c;
+      })
+    );
+  };
+
+  const setPrimaryContact = (id: string) => {
+    setContacts((prev) =>
+      prev.map((c) => ({
+        ...c,
+        is_primary: c.id === id,
+      }))
+    );
+  };
+
   const handleReset = () => {
-    setActiveTab('company');
     setFormData({
       name: '',
+      trade_alias: '',
+      industry: 'Logistics',
+      cr_number: '',
+      vat_number: '',
       contact_phone: '',
       email: '',
-      industry: '',
-      credit_limit: '',
-      billing_cycle: '',
-      payment_terms: '',
+      billing_address: '',
       isActive: true,
     });
+    setContacts([
+      {
+        id: '1',
+        name: '',
+        title: 'Logistics Director',
+        phone: '',
+        email: '',
+        is_primary: true,
+      },
+    ]);
     setError(null);
   };
 
-  // Create Customer Mutation
+  // Primary Contact details
+  const primaryContact = contacts.find((c) => c.is_primary) || contacts[0];
+  const effectivePhone = formData.contact_phone.trim() || primaryContact?.phone.trim() || '';
+
+  // Mutation
   const createMutation = useMutation({
     mutationFn: (payload: CreateCustomerPayload) => customerService.create(payload),
     onSuccess: () => {
@@ -78,277 +156,488 @@ export default function AddCustomerPage() {
       navigate('/customers');
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error?.message || err.message || 'Failed to onboard customer');
+      setError(err.response?.data?.error?.message || err.message || 'Failed to create customer');
     },
   });
 
-  const isFormValid = formData.name.trim() !== '' && formData.contact_phone.trim() !== '';
+  const isFormValid = formData.name.trim() !== '' && (formData.contact_phone.trim() !== '' || primaryContact?.phone.trim() !== '');
 
   const handleSubmit = useCallback(() => {
     setError(null);
 
     if (!formData.name.trim()) {
-      setActiveTab('company');
-      setError('Company name is required');
+      setError('Company Name is required');
       return;
     }
-    if (!formData.contact_phone.trim()) {
-      setActiveTab('company');
-      setError('Primary contact phone is required');
+    if (!effectivePhone) {
+      setError('Primary Contact Phone is required');
       return;
     }
 
     createMutation.mutate({
       name: formData.name.trim(),
-      contact_phone: formData.contact_phone.trim(),
-      credit_limit: formData.credit_limit ? Number(formData.credit_limit) : 0,
+      contact_phone: effectivePhone,
     });
-  }, [formData, createMutation]);
-
-  // Tab Navigation
-  const goToNextTab = useCallback(() => setActiveTab('financial'), []);
-  const goToPrevTab = useCallback(() => setActiveTab('company'), []);
+  }, [formData, effectivePhone, createMutation]);
 
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
-
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         if (isFormValid && !createMutation.isPending) handleSubmit();
-        return;
-      }
-      if (e.altKey && e.key === '1') { e.preventDefault(); setActiveTab('company'); return; }
-      if (e.altKey && e.key === '2') { e.preventDefault(); setActiveTab('financial'); return; }
-      if ((e.altKey || e.ctrlKey) && e.key === 'ArrowRight') { e.preventDefault(); goToNextTab(); return; }
-      if ((e.altKey || e.ctrlKey) && e.key === 'ArrowLeft') { e.preventDefault(); goToPrevTab(); return; }
-      if (!isInput) {
-        if (e.key === 'ArrowRight') { e.preventDefault(); goToNextTab(); }
-        else if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrevTab(); }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        navigate('/customers');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToNextTab, goToPrevTab, handleSubmit, isFormValid, createMutation.isPending]);
+  }, [handleSubmit, isFormValid, createMutation.isPending, navigate]);
 
-  // Form Completion Tracking
+  // Completion Tracking
   const completionFields = [
     { label: 'Company Name', filled: formData.name.trim() !== '' },
-    { label: 'Contact Phone', filled: formData.contact_phone.trim() !== '' },
-    { label: 'Business Email', filled: formData.email.trim() !== '' },
-    { label: 'Industry Vertical', filled: formData.industry !== '' },
-    { label: 'Credit Limit', filled: formData.credit_limit !== '' },
-    { label: 'Billing Cycle', filled: formData.billing_cycle !== '' },
+    { label: 'Primary Contact Phone', filled: effectivePhone !== '' },
+    { label: 'Billing Email', filled: formData.email.trim() !== '' || primaryContact?.email.trim() !== '' },
+    { label: 'CR Number', filled: formData.cr_number.trim() !== '' },
+    { label: 'Contact Person', filled: primaryContact?.name.trim() !== '' },
   ];
   const filledCount = completionFields.filter(f => f.filled).length;
   const completionPct = Math.round((filledCount / completionFields.length) * 100);
 
-  // Industry Presets
-  const industryPresets = ['Logistics', 'Retail', 'Manufacturing', 'FMCG', 'Government', 'Healthcare', 'Oil & Gas', 'Construction'];
-
   return (
-    <DashboardLayout active="Customers" title="Onboard Customer">
-      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1400px] mx-auto">
+    <DashboardLayout active="Customers" title="Add Customer">
+      <div className="px-4 sm:px-6 pb-6 space-y-4 animate-fade-in max-w-[1300px] mx-auto">
         
-        {/* Top Scope & Action Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-              <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              <span>MERCON Commercial</span>
-              <span>•</span>
-              <span className="text-slate-900 dark:text-slate-100 font-bold">Customer Onboarding</span>
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-0.5">
+              <button onClick={() => navigate('/customers')} className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+                Customers
+              </button>
+              <span>/</span>
+              <span className="text-[#E8450F] font-bold">New Customer</span>
             </div>
-            <Badge variant="outline" className="bg-cyan-50 text-cyan-700 border-cyan-200 font-bold dark:bg-cyan-950/40 dark:text-cyan-300">
-              New Customer
-            </Badge>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-[#E8450F]" />
+              New Customer Account
+            </h1>
           </div>
+
           <div className="flex items-center gap-2">
-            <Btn 
+            <Button 
               variant="outline" 
               size="sm" 
               onClick={() => navigate('/customers')}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              label="Back to Customers"
-              icon={<ArrowLeft className="w-3.5 h-3.5" />}
-              shortcut={{ key: 'b', alt: true }}
-            />
+              className="h-8 text-xs font-medium border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Cancel
+            </Button>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={handleReset}
-              className="h-9 gap-1.5 text-xs text-slate-500 hover:text-slate-900"
+              className="h-8 text-xs text-slate-600 dark:text-slate-400"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset
+              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
             </Button>
-            <Btn 
+            <Button 
               size="sm" 
-              onClick={() => handleSubmit()}
+              onClick={handleSubmit}
               disabled={createMutation.isPending || !isFormValid}
-              className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
-              label={createMutation.isPending ? 'Saving...' : 'Onboard Customer'}
-              icon={<Plus className="w-3.5 h-3.5" />}
-              shortcut={{ key: 'Enter', metaOrControl: true }}
-            />
+              className="h-8 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-4 shadow-xs"
+            >
+              {createMutation.isPending ? 'Saving...' : 'Save Customer'}
+            </Button>
           </div>
         </div>
 
-        <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-          <div className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800">
-            <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400 shrink-0">
-                <Building2 className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Client Account</span>
-                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100">
-                  {formData.name.trim() || 'New Customer Account'}
-                </p>
-              </div>
-              {formData.name.trim() && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-            <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 shrink-0">
-                <Phone className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Contact Details</span>
-                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
-                  {formData.contact_phone.trim() || formData.email.trim() ? `${formData.contact_phone.trim() || 'No Phone'} • ${formData.email.trim() || 'No Email'}` : 'Not Specified'}
-                </p>
-              </div>
-              {(formData.contact_phone.trim() || formData.email.trim()) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-            <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100 text-[#E8450F] dark:bg-amber-900/40 dark:text-[#ff6a38] shrink-0">
-                <DollarSign className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Financial SLA</span>
-                <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100 font-mono">
-                  Credit Limit: SAR {formData.credit_limit ? Number(formData.credit_limit).toLocaleString() : '0'}
-                </p>
-              </div>
-              {formData.credit_limit && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-            </div>
-          </div>
-        </Card>
+        {/* 2-Column Balanced Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          
+          {/* Main Form Card (8 Columns) */}
+          <div className="lg:col-span-8 space-y-4">
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
+              <CardHeader className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-orange-500" /> Company & Contact Personnel
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Enter company details and add one or multiple key contact representatives.
+                </CardDescription>
+              </CardHeader>
 
-        <div className="max-w-4xl mx-auto w-full pt-2">
-          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-            <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Building2 className="w-5 h-5 text-orange-500 dark:text-orange-400" />
-                  <div>
-                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      Customer Registration Details
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500">
-                      Configure company identity, contacts, and financial setup.
-                    </CardDescription>
+              <CardContent className="p-5 space-y-5">
+                
+                {/* 1. Company Profile */}
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Company Name <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input 
+                      id="name" 
+                      placeholder="e.g. SABIC Logistics Co." 
+                      value={formData.name} 
+                      onChange={(e) => handleChange('name', e.target.value)} 
+                      className="h-9 text-xs" 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="trade_alias" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Trade Name / Brand
+                      </Label>
+                      <Input 
+                        id="trade_alias" 
+                        placeholder="e.g. SABIC" 
+                        value={formData.trade_alias} 
+                        onChange={(e) => handleChange('trade_alias', e.target.value)} 
+                        className="h-9 text-xs" 
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="industry" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Industry
+                      </Label>
+                      <Select value={formData.industry} onValueChange={(v) => handleChange('industry', v)}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Logistics" className="text-xs">Logistics</SelectItem>
+                          <SelectItem value="Retail" className="text-xs">Retail & E-commerce</SelectItem>
+                          <SelectItem value="Manufacturing" className="text-xs">Manufacturing</SelectItem>
+                          <SelectItem value="FMCG" className="text-xs">FMCG</SelectItem>
+                          <SelectItem value="Healthcare" className="text-xs">Healthcare</SelectItem>
+                          <SelectItem value="Construction" className="text-xs">Construction</SelectItem>
+                          <SelectItem value="General" className="text-xs">General</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cr_number" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Commercial Reg. (CR) No.
+                      </Label>
+                      <Input 
+                        id="cr_number" 
+                        placeholder="1010XXXXXX" 
+                        value={formData.cr_number} 
+                        onChange={(e) => handleChange('cr_number', e.target.value)} 
+                        className="h-9 text-xs font-mono" 
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="vat_number" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        VAT / Tax Number
+                      </Label>
+                      <Input 
+                        id="vat_number" 
+                        placeholder="310123456700003" 
+                        value={formData.vat_number} 
+                        onChange={(e) => handleChange('vat_number', e.target.value)} 
+                        className="h-9 text-xs font-mono" 
+                      />
+                    </div>
                   </div>
                 </div>
+
+                <hr className="border-slate-100 dark:border-slate-800" />
+
+                {/* 2. Key Contact Personnel (Dynamic List) */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-blue-500" />
+                      <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        Key Contact Personnel ({contacts.length})
+                      </h3>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addContactPerson}
+                      className="h-7 text-xs font-semibold gap-1 text-[#E8450F] border-orange-200 hover:bg-orange-50 dark:border-slate-700"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Contact Person
+                    </Button>
+                  </div>
+
+                  {contacts.map((contact, idx) => (
+                    <div
+                      key={contact.id}
+                      className={`p-3.5 rounded-xl border space-y-3 transition-all ${
+                        contact.is_primary
+                          ? 'border-orange-200 bg-orange-50/30 dark:bg-orange-950/20 dark:border-orange-900/50'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={contact.is_primary ? 'default' : 'outline'}
+                            className={`text-[10px] font-bold cursor-pointer ${
+                              contact.is_primary
+                                ? 'bg-[#E8450F] text-white hover:bg-[#d03d0c]'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                            }`}
+                            onClick={() => setPrimaryContact(contact.id)}
+                          >
+                            {contact.is_primary ? (
+                              <span className="flex items-center gap-1">
+                                <Star className="w-3 h-3 fill-current" /> Primary Contact #{idx + 1}
+                              </span>
+                            ) : (
+                              `Contact Person #${idx + 1}`
+                            )}
+                          </Badge>
+                          {!contact.is_primary && (
+                            <button
+                              type="button"
+                              onClick={() => setPrimaryContact(contact.id)}
+                              className="text-[10px] text-slate-400 hover:text-orange-600 font-semibold underline"
+                            >
+                              Set as primary
+                            </button>
+                          )}
+                        </div>
+
+                        {contacts.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeContactPerson(contact.id)}
+                            className="h-6 w-6 p-0 text-slate-400 hover:text-rose-600"
+                            title="Remove contact"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Full Name {contact.is_primary && <span className="text-rose-500">*</span>}
+                          </Label>
+                          <Input
+                            placeholder="e.g. Eng. Tariq Al-Mansoor"
+                            value={contact.name}
+                            onChange={(e) => updateContactPerson(contact.id, 'name', e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Contact Phone {contact.is_primary && <span className="text-rose-500">*</span>}
+                          </Label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1.5 text-[11px] font-bold text-slate-400 font-mono">+966</span>
+                            <Input
+                              placeholder="50XXXXXXX"
+                              value={contact.phone}
+                              onChange={(e) => {
+                                updateContactPerson(contact.id, 'phone', e.target.value);
+                                if (contact.is_primary) {
+                                  handleChange('contact_phone', e.target.value);
+                                }
+                              }}
+                              className="h-8 text-xs pl-12 font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Job Title / Role
+                          </Label>
+                          <Input
+                            placeholder="e.g. Logistics Director"
+                            value={contact.title}
+                            onChange={(e) => updateContactPerson(contact.id, 'title', e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                            Email Address
+                          </Label>
+                          <Input
+                            type="email"
+                            placeholder="tariq@company.com"
+                            value={contact.email}
+                            onChange={(e) => {
+                              updateContactPerson(contact.id, 'email', e.target.value);
+                              if (contact.is_primary) {
+                                handleChange('email', e.target.value);
+                              }
+                            }}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <hr className="border-slate-100 dark:border-slate-800" />
+
+                {/* 3. Address & Operational Status */}
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="billing_address" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Company Address & Notes
+                    </Label>
+                    <Textarea 
+                      id="billing_address" 
+                      placeholder="District 4, Building 829, King Fahd Road, Riyadh, Saudi Arabia" 
+                      value={formData.billing_address} 
+                      onChange={(e) => handleChange('billing_address', e.target.value)} 
+                      className="min-h-[60px] text-xs" 
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Account Status
+                    </Label>
+                    <div className="flex items-center gap-3 pt-0.5 max-w-xs">
+                      <button
+                        type="button"
+                        onClick={() => handleChange('isActive', true)}
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border text-center transition-all ${
+                          formData.isActive
+                            ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-2xs'
+                            : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
+                        }`}
+                      >
+                        Active
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleChange('isActive', false)}
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border text-center transition-all ${
+                          !formData.isActive
+                            ? 'bg-rose-600 text-white border-rose-600 font-bold shadow-2xs'
+                            : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800'
+                        }`}
+                      >
+                        Inactive
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button 
+                    size="sm" 
+                    onClick={handleSubmit} 
+                    disabled={createMutation.isPending || !isFormValid}
+                    className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5 shadow-xs"
+                  >
+                    {createMutation.isPending ? 'Saving...' : 'Save Customer Account'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {error && (
+              <div className="p-3 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-xl text-xs font-semibold border border-rose-200 dark:border-rose-800">
+                {error}
               </div>
-            </CardHeader>
-            <CardContent className="p-5">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'company' | 'financial')}>
-                <TabsList className="grid grid-cols-2 w-full mb-4 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                  <TabsTrigger value="company" className="text-xs font-semibold flex items-center justify-between gap-1">
-                    <span>1. Company Identity</span>
-                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">Alt+1</kbd>
-                  </TabsTrigger>
-                  <TabsTrigger value="financial" className="text-xs font-semibold flex items-center justify-between gap-1">
-                    <span>2. Financial & Invoicing</span>
-                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">Alt+2</kbd>
-                  </TabsTrigger>
-                </TabsList>
+            )}
+          </div>
 
-                <TabsContent value="company" className="space-y-4 m-0">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Company Name / Legal Entity <span className="text-rose-500">*</span></Label>
-                      <Input id="name" placeholder="e.g. SABIC Industries Ltd" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} className="h-9 text-xs font-medium border-slate-200" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="contact_phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Primary Contact Phone <span className="text-rose-500">*</span></Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2 text-xs font-bold text-slate-400 font-mono">+966</span>
-                        <Input id="contact_phone" placeholder="50XXXXXXX" value={formData.contact_phone} onChange={(e) => handleChange('contact_phone', e.target.value)} className="h-9 text-xs pl-14 font-mono border-slate-200" />
+          {/* Right Sidebar: Live Summary (4 Columns) */}
+          <div className="lg:col-span-4 space-y-4">
+            
+            {/* Live Customer Summary */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-4 space-y-4 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Account Summary</span>
+                <Badge variant="outline" className="text-[10px] font-mono text-[#E8450F] border-orange-200">
+                  {completionPct}% Complete
+                </Badge>
+              </div>
+
+              <div className="space-y-3.5">
+                <div className="flex items-start gap-3">
+                  <Building2 className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Company</span>
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                      {formData.name.trim() || 'New Customer Account'}
+                    </p>
+                    <span className="text-[11px] text-slate-500">{formData.industry}</span>
+                  </div>
+                </div>
+
+                {/* Key Personnel List Summary */}
+                <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                    Key Contacts ({contacts.length})
+                  </span>
+                  
+                  {contacts.map((c, i) => (
+                    <div key={c.id} className="flex items-start gap-2.5 text-xs">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                        c.is_primary ? 'bg-orange-100 text-[#E8450F] dark:bg-orange-950/50' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
+                            {c.name.trim() || `Contact Person #${i + 1}`}
+                          </span>
+                          {c.is_primary && (
+                            <Badge className="bg-orange-100 text-[#E8450F] hover:bg-orange-100 text-[9px] px-1 py-0 font-bold border-none">
+                              Primary
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-500 block truncate">
+                          {c.title || 'Representative'} {c.phone ? `• +966 ${c.phone}` : ''}
+                        </span>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Billing Email Address <span className="text-rose-500">*</span></Label>
-                      <Input id="email" type="email" placeholder="billing@company.com" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} className="h-9 text-xs border-slate-200" />
-                    </div>
-                  </div>
-                  <div className="flex justify-end pt-2">
-                    <Btn type="button" size="sm" onClick={goToNextTab} className="text-xs font-bold gap-1 bg-[#E8450F] hover:bg-[#d03d0c] text-white" label="Next: Financial Setup" icon={<ChevronRight className="w-3.5 h-3.5" />} shortcut={{ key: 'ArrowRight', alt: true }} />
-                  </div>
-                </TabsContent>
+                  ))}
+                </div>
+              </div>
 
-                <TabsContent value="financial" className="space-y-4 m-0">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="credit_limit" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                        <DollarSign className="w-3.5 h-3.5 text-slate-400" /> Credit Limit (SAR)
-                      </Label>
-                      <Input id="credit_limit" type="number" placeholder="50,000" value={formData.credit_limit} onChange={(e) => handleChange('credit_limit', e.target.value)} className="h-9 text-xs font-medium border-slate-200" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="billing_cycle" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" /> Billing Cycle
-                      </Label>
-                      <Select value={formData.billing_cycle} onValueChange={(v) => handleChange('billing_cycle', v)}>
-                        <SelectTrigger className="h-9 text-xs font-medium border-slate-200"><SelectValue placeholder="Select billing cycle" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Monthly" className="text-xs">Monthly</SelectItem>
-                          <SelectItem value="Quarterly" className="text-xs">Quarterly</SelectItem>
-                          <SelectItem value="Annual" className="text-xs">Annual</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="payment_terms" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                        <CreditCard className="w-3.5 h-3.5 text-slate-400" /> Payment Terms
-                      </Label>
-                      <Select value={formData.payment_terms} onValueChange={(v) => handleChange('payment_terms', v)}>
-                        <SelectTrigger className="h-9 text-xs font-medium border-slate-200"><SelectValue placeholder="Select payment terms" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Net 15" className="text-xs font-mono">Net 15 Days</SelectItem>
-                          <SelectItem value="Net 30" className="text-xs font-mono">Net 30 Days (Standard)</SelectItem>
-                          <SelectItem value="Net 45" className="text-xs font-mono">Net 45 Days</SelectItem>
-                          <SelectItem value="Net 60" className="text-xs font-mono">Net 60 Days</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                        <ToggleRight className="w-3.5 h-3.5 text-slate-400" /> Active Account Status
-                      </Label>
-                      <div className="flex items-center gap-3 pt-2">
-                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, isActive: true }))} className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-all ${formData.isActive ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs font-bold' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'}`}>Active</button>
-                        <button type="button" onClick={() => setFormData(prev => ({ ...prev, isActive: false }))} className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-all ${!formData.isActive ? 'bg-rose-600 text-white border-rose-600 shadow-2xs font-bold' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'}`}>Inactive</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <Btn type="button" variant="outline" size="sm" onClick={goToPrevTab} className="text-xs font-bold gap-1 animate-none shadow-none" label="Company Identity" icon={<ChevronLeft className="w-3.5 h-3.5" />} shortcut={{ key: 'ArrowLeft', alt: true }} />
-                    <Btn size="sm" onClick={() => handleSubmit()} disabled={createMutation.isPending || !isFormValid} className="text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold gap-1 px-4" label={createMutation.isPending ? 'Saving...' : 'Onboard Customer'} icon={<Plus className="w-3.5 h-3.5" />} shortcut={{ key: 'Enter', metaOrControl: true }} />
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-          {error && (
-            <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-semibold border border-rose-200 flex items-center gap-2 mt-4">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-              {error}
-            </div>
-          )}
+              {/* Progress Bar */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+                <div className="flex justify-between text-[11px] font-semibold text-slate-500">
+                  <span>Required fields</span>
+                  <span>{filledCount} of {completionFields.length}</span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-[#E8450F] h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${completionPct}%` }}
+                  />
+                </div>
+              </div>
+            </Card>
+
+          </div>
+
         </div>
+
       </div>
     </DashboardLayout>
   );

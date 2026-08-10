@@ -63,6 +63,7 @@ export interface VehicleFinancials {
     completed_trips_count: number;
     total_maintenance_count: number;
   };
+  monthly: MonthlyPoint[];
   income_sources: Array<{
     id: string;
     ref_id: string | null;
@@ -72,6 +73,58 @@ export interface VehicleFinancials {
     income: number;
   }>;
   expense_records: import('./maintenanceService').MaintenanceRecord[];
+}
+
+/** One `YYYY-MM` bucket of the income/expense trend series. */
+export interface MonthlyPoint {
+  month: string;
+  income: number;
+  expenses: number;
+  profit: number;
+}
+
+/** A single vehicle's P&L row inside the fleet-wide report. */
+export interface FleetVehicleFinancials {
+  vehicle_id: string;
+  plate_number: string;
+  ref_id: string | null;
+  asset_type: AssetType;
+  status: AssetStatus;
+  total_income: number;
+  total_expenses: number;
+  maintenance_expenses: number;
+  renewal_expenses: number;
+  net_profit: number;
+  margin_percent: number;
+  trips_count: number;
+  maintenance_count: number;
+  income_per_trip: number;
+}
+
+export interface FleetFinancials {
+  range: { from: string | null; to: string | null };
+  fleet_summary: {
+    total_income: number;
+    total_expenses: number;
+    maintenance_expenses: number;
+    renewal_expenses: number;
+    net_profit: number;
+    margin_percent: number;
+    vehicles_count: number;
+    profitable_count: number;
+    loss_making_count: number;
+    idle_count: number;
+    total_trips: number;
+    total_maintenance: number;
+  };
+  vehicles: FleetVehicleFinancials[];
+  monthly: MonthlyPoint[];
+}
+
+/** Optional ISO date bounds shared by both financial reports. */
+export interface FinancialsRange {
+  from?: string;
+  to?: string;
 }
 
 export const vehicleService = {
@@ -85,8 +138,14 @@ export const vehicleService = {
     return res.data.data;
   },
 
-  async getFinancials(id: string): Promise<VehicleFinancials> {
-    const res = await api.get<ApiResponse<VehicleFinancials>>(`/vehicles/${id}/financials`);
+  async getFinancials(id: string, range: FinancialsRange = {}): Promise<VehicleFinancials> {
+    const res = await api.get<ApiResponse<VehicleFinancials>>(`/vehicles/${id}/financials`, { params: range });
+    return res.data.data;
+  },
+
+  /** Fleet-wide P&L — one row per vehicle, for ranking profit/loss across trucks. */
+  async getFleetFinancials(range: FinancialsRange = {}): Promise<FleetFinancials> {
+    const res = await api.get<ApiResponse<FleetFinancials>>('/vehicles/financials/fleet', { params: range });
     return res.data.data;
   },
 

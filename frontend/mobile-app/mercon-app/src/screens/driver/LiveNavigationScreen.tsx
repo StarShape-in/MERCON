@@ -119,33 +119,34 @@ const LiveNavigationScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStop?.id]);
 
-  // Fetch the driving route from OSRM to draw the polyline and get ETA
+  // Ask MERCON for the driving route to draw the polyline and get the ETA.
+  //
+  // This used to call the public OSRM demo server directly, which put the
+  // choice of routing provider inside a shipped binary — changing it would
+  // have needed an app release drivers may never install — and sent the
+  // driver's live position and the customer's coordinates to a third party.
+  // MERCON now answers, and picks the provider server-side. The destination is
+  // not sent: the server derives it from the trip's next stop.
   useEffect(() => {
-    if (!position || !activeStop) return;
+    if (!trip || !position || !activeStop) return;
     if (routeFetchedRef.current === activeStop.id) return;
 
     routeFetchedRef.current = activeStop.id;
     const fetchRoute = async () => {
       try {
-        const res = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${position.lng},${position.lat};${activeStop.location_lng},${activeStop.location_lat}?overview=full&geometries=geojson`
-        );
-        const data = await res.json();
-        if (data.code === 'Ok' && data.routes.length > 0) {
-          const r = data.routes[0];
-          setBaseDuration(r.duration);
-          setBaseDistance(r.distance);
-          setRouteCoords(r.geometry.coordinates.map((c: any) => ({
-            latitude: c[1],
-            longitude: c[0]
-          })));
-        }
+        const route = await tripService.getRoute(trip.id, position.lat, position.lng);
+        setBaseDuration(route.durationSeconds);
+        setBaseDistance(route.distanceMeters);
+        setRouteCoords(route.geometry.map((c) => ({ latitude: c[1], longitude: c[0] })));
       } catch (e) {
-        console.warn('Failed to fetch route from OSRM:', e);
+        // Routing being down is not a reason to break navigation: the driver
+        // keeps the map, both markers and the live distance, just without a
+        // drawn road line. Same degradation as before.
+        console.warn('Failed to fetch route:', e);
       }
     };
     fetchRoute();
-  }, [position, activeStop]);
+  }, [trip, position, activeStop]);
 
   // Frame both the driver and the active stop whenever they change.
   useEffect(() => {

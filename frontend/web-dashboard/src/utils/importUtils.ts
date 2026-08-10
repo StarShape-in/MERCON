@@ -46,6 +46,28 @@ export const VEHICLE_COLUMNS: ColumnMap = {
   assigned_driver: ['assigned driver phone name', 'assigned driver', 'driver phone', 'driver'],
 };
 
+export const CUSTOMER_COLUMNS: ColumnMap = {
+  ref_id: ['customer ref id', 'customer ref', 'ref id', 'customer id'],
+  name: ['company name', 'company name *', 'company', 'legal entity name', 'customer name', 'name'],
+  trade_alias: ['trade name brand', 'trade name', 'trade alias', 'brand'],
+  industry: ['industry', 'industry sector'],
+  cr_number: ['commercial reg cr no', 'commercial reg no', 'cr number', 'cr no'],
+  vat_number: ['vat tax number', 'vat number', 'tax number', 'vat no'],
+  contact_person: ['contact 1 name', 'primary contact name', 'contact representative', 'contact person', 'representative'],
+  contact_phone: ['contact 1 phone *', 'contact 1 phone', 'primary phone *', 'primary phone', 'contact phone', 'phone', 'mobile', 'contact number'],
+  email: ['contact 1 email', 'primary email', 'billing email', 'email address', 'email'],
+  contact_title: ['contact 1 title', 'primary contact title', 'job title', 'designation', 'title'],
+  secondary_person: ['contact 2 name', 'secondary contact name', 'secondary contact', 'contact 2 name'],
+  secondary_phone: ['contact 2 phone', 'secondary phone'],
+  secondary_email: ['contact 2 email', 'secondary email'],
+  secondary_title: ['contact 2 title', 'secondary contact title'],
+  tertiary_person: ['contact 3 name', 'tertiary contact name', 'contact 3 name'],
+  tertiary_phone: ['contact 3 phone', 'tertiary phone'],
+  tertiary_email: ['contact 3 email', 'tertiary email'],
+  tertiary_title: ['contact 3 title', 'tertiary contact title'],
+  billing_address: ['billing address notes', 'billing address', 'address', 'notes'],
+};
+
 export interface ParsedSheet {
   rows: Record<string, string | number>[];
   /** Fields the template defines that this file has no column for. */

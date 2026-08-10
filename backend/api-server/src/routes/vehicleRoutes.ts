@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus, getVehicleFinancials, bulkImportVehicles } from '../controllers/vehicleController';
+import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus, getVehicleFinancials, getFleetFinancials, bulkImportVehicles } from '../controllers/vehicleController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
@@ -17,6 +17,8 @@ router.post('/import', validate({ body: bulkImportVehiclesBody }), bulkImportVeh
 
 router.get('/', validate({ query: listQuery }), getVehicles);
 router.post('/', validate({ body: createVehicleBody }), createVehicle);
+// Must be registered before `/:id` so the literal path isn't captured as an id.
+router.get('/financials/fleet', getFleetFinancials);
 router.get('/:id/financials', validate({ params: idParam }), getVehicleFinancials);
 router.get('/:id', validate({ params: idParam }), getVehicleById);
 router.patch('/:id', validate({ params: idParam, body: updateVehicleBody }), updateVehicle);
