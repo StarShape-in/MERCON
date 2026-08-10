@@ -17,49 +17,50 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
-// High-Tech Neon Pickup Marker (Emerald LED)
+// High-Tech Neon Pickup Marker (Emerald LED with 3D Warehouse)
 const pickupMarkerIcon = L.divIcon({
   html: `
-    <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-      <div class="animate-ping" style="position: absolute; width: 30px; height: 30px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.4);"></div>
-      <div style="width: 26px; height: 26px; border-radius: 50%; background: #0F1017; color: #10B981; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(16, 185, 129, 0.8); border: 2px solid #10B981; z-index: 2;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.35);"></div>
+      <div style="width: 30px; height: 30px; border-radius: 50%; background: #0F1017; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(16, 185, 129, 0.8); border: 2.5px solid #10B981; z-index: 2; padding: 4.5px;">
+        <img src="/warehouse_3d.png" style="width: 100%; height: 100%; object-fit: contain;" />
       </div>
     </div>
   `,
   className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
+  iconSize: [38, 38],
+  iconAnchor: [19, 19],
 });
 
-// High-Tech Neon Dropoff Marker (Crimson LED)
+// High-Tech Neon Dropoff Marker (Crimson LED with 3D Warehouse)
 const dropoffMarkerIcon = L.divIcon({
   html: `
-    <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-      <div class="animate-ping" style="position: absolute; width: 30px; height: 30px; border-radius: 50%; background-color: rgba(244, 63, 94, 0.4);"></div>
-      <div style="width: 26px; height: 26px; border-radius: 50%; background: #0F1017; color: #F43F5E; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(244, 63, 94, 0.8); border: 2px solid #F43F5E; z-index: 2;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    <div style="position: relative; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background-color: rgba(244, 63, 94, 0.35);"></div>
+      <div style="width: 30px; height: 30px; border-radius: 50%; background: #0F1017; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(244, 63, 94, 0.8); border: 2.5px solid #F43F5E; z-index: 2; padding: 4.5px;">
+        <img src="/warehouse_3d.png" style="width: 100%; height: 100%; object-fit: contain;" />
       </div>
     </div>
   `,
   className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
+  iconSize: [38, 38],
+  iconAnchor: [19, 19],
 });
 
 function createLiveTruckIcon(heading: number) {
   return L.divIcon({
     html: `
-      <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-        <div class="animate-ping" style="position: absolute; width: 40px; height: 40px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.4);"></div>
-        <div style="width: 30px; height: 30px; border-radius: 50%; background: #0F1017; color: #FF5500; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(255, 85, 0, 0.9), inset 0 0 8px #FF5500; border: 2px solid #FF5500; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+        <div class="animate-ping" style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.25);"></div>
+        <div style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #0F1017; border: 2px solid #FF5500; box-shadow: 0 0 20px rgba(255, 85, 0, 0.8);"></div>
+        <div style="width: 30px; height: 30px; z-index: 2; display: flex; align-items: center; justify-content: center; transform: rotate(${heading}deg); transition: transform 0.3s ease;">
+          <img src="/truck_3d_orange_transparent.png" style="width: 30px; height: 30px; object-fit: contain;" />
         </div>
       </div>
     `,
     className: '',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
   });
 }
 
