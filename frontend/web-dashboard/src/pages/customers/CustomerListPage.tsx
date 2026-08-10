@@ -21,11 +21,14 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertTriangle,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  FileSpreadsheet
 } from 'lucide-react';
 import { CustomerBuilding, CheckBadge, MoneyBills } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
+import { CUSTOMER_COLUMNS } from '@/utils/importUtils';
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
@@ -78,6 +81,7 @@ export default function CustomerListPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -333,6 +337,16 @@ export default function CustomerListPage() {
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
               Export CSV
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+              Import Excel
             </Button>
  
             <Button
@@ -673,6 +687,16 @@ export default function CustomerListPage() {
           title={confirmModal.title}
           message={confirmModal.message}
           isDestructive={true}
+        />
+
+        <ExcelImportDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          entityLabel="Customers"
+          columns={CUSTOMER_COLUMNS}
+          templateUrl="/templates/MERCON_Customers_Import_Template.xlsx"
+          onImport={(rows) => customerService.importRows(rows)}
+          invalidateKeys={[['customers']]}
         />
 
       </div>

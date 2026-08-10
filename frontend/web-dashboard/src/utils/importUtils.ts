@@ -46,6 +46,20 @@ export const VEHICLE_COLUMNS: ColumnMap = {
   assigned_driver: ['assigned driver phone name', 'assigned driver', 'driver phone', 'driver'],
 };
 
+export const CUSTOMER_COLUMNS: ColumnMap = {
+  ref_id: ['customer ref id', 'customer ref', 'ref id', 'customer id'],
+  name: ['company name', 'company name *', 'company', 'legal entity name', 'customer name', 'name'],
+  trade_alias: ['trade name brand', 'trade name', 'trade alias', 'brand'],
+  industry: ['industry', 'industry sector'],
+  cr_number: ['commercial reg cr no', 'commercial reg no', 'cr number', 'cr no'],
+  vat_number: ['vat tax number', 'vat number', 'tax number', 'vat no'],
+  contact_phone: ['primary phone', 'primary phone *', 'contact phone', 'phone', 'mobile', 'contact number'],
+  email: ['billing email', 'email address', 'email'],
+  contact_person: ['contact representative', 'contact person', 'representative'],
+  contact_title: ['job title', 'designation', 'title'],
+  billing_address: ['billing address notes', 'billing address', 'address', 'notes'],
+};
+
 export interface ParsedSheet {
   rows: Record<string, string | number>[];
   /** Fields the template defines that this file has no column for. */
