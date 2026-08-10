@@ -480,8 +480,7 @@ export default function TripListPage() {
   const columns = [
     {
       header: 'Trip Ref ID',
-      className: 'w-[110px]',
-      headerClassName: 'w-[110px]',
+      className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1.5">
@@ -494,10 +493,9 @@ export default function TripListPage() {
     },
     {
       header: 'Customer',
-      className: 'w-[160px]',
-      headerClassName: 'w-[160px]',
+      className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
-        <div className="flex flex-col max-w-[160px]">
+        <div className="flex flex-col">
           <span className="font-semibold text-xs text-[#111] leading-snug truncate" title={row.customer?.name}>
             {row.customer?.name || '—'}
           </span>
@@ -511,38 +509,23 @@ export default function TripListPage() {
     },
     {
       header: 'Pickup & Dropoff',
-      className: 'w-[230px]',
-      headerClassName: 'w-[230px]',
+      className: 'whitespace-nowrap',
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         return (
-          <div className="flex flex-col gap-1 max-w-[230px] py-0.5">
-            <div className="flex items-start gap-1.5 min-w-0" title={`Pickup: ${pickup.name}${pickup.address ? ` (${pickup.address})` : ''}`}>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
-              <div className="flex flex-col min-w-0 leading-tight">
-                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
-                  {pickup.name}
-                </span>
-                {pickup.address && (
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
-                    {pickup.address}
-                  </span>
-                )}
-              </div>
+          <div className="flex flex-col gap-1 py-0.5 max-w-[260px]">
+            <div className="flex items-center gap-1.5 min-w-0" title={`Pickup: ${pickup.name}${pickup.address ? ` (${pickup.address})` : ''}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {pickup.name}
+              </span>
             </div>
-            <div className="flex items-start gap-1.5 min-w-0" title={`Dropoff: ${dropoff.name}${dropoff.address ? ` (${dropoff.address})` : ''}`}>
-              <span className="w-2 h-2 rounded-full bg-[#E8450F] shrink-0 mt-1" />
-              <div className="flex flex-col min-w-0 leading-tight">
-                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
-                  {dropoff.name}
-                </span>
-                {dropoff.address && (
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
-                    {dropoff.address}
-                  </span>
-                )}
-              </div>
+            <div className="flex items-center gap-1.5 min-w-0" title={`Dropoff: ${dropoff.name}${dropoff.address ? ` (${dropoff.address})` : ''}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E8450F] shrink-0" />
+              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {dropoff.name}
+              </span>
             </div>
           </div>
         );
@@ -550,12 +533,11 @@ export default function TripListPage() {
     },
     {
       header: 'Driver',
-      className: 'w-[150px]',
-      headerClassName: 'w-[150px]',
+      className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5 max-w-[150px]">
-          <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-            <User size={12} className="text-slate-500" />
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+            <User size={11} className="text-slate-500" />
           </div>
           <div className="flex flex-col min-w-0">
             {row.driver ? (
@@ -573,10 +555,9 @@ export default function TripListPage() {
     },
     {
       header: 'Vehicle',
-      className: 'w-[120px]',
-      headerClassName: 'w-[120px]',
+      className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5 max-w-[120px]">
+        <div className="flex items-center gap-1.5">
           <Truck size={13} className="text-slate-400 shrink-0" />
           {row.vehicle?.plate_number ? (
             <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded truncate">
@@ -592,8 +573,7 @@ export default function TripListPage() {
     },
     {
       header: 'Status',
-      className: 'w-[140px]',
-      headerClassName: 'w-[140px]',
+      className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
         <div className="flex items-center gap-1.5">
           <StatusBadge status={row.status} />
@@ -613,8 +593,7 @@ export default function TripListPage() {
     },
     {
       header: 'Planned Start',
-      className: 'w-[120px]',
-      headerClassName: 'w-[120px]',
+      className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
         <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
           {row.planned_start ? new Date(row.planned_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
@@ -623,8 +602,8 @@ export default function TripListPage() {
     },
     {
       header: 'Actions',
-      className: 'w-[120px] text-right',
-      headerClassName: 'w-[120px] text-right',
+      className: 'whitespace-nowrap text-right',
+      headerClassName: 'text-right',
       accessor: (row: Trip) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           {row.status === 'InTransit' && (

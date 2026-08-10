@@ -303,7 +303,7 @@ export default function DataTable<T>({
           <TableHeader>
             <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
               {enableSelection && (
-                <TableHead className={cn(compact ? "w-[44px] px-4" : "w-[48px] px-5")}>
+                <TableHead className={cn(compact ? "w-[36px] px-2.5" : "w-[48px] px-5")}>
                   <input
                     type="checkbox"
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
@@ -320,7 +320,7 @@ export default function DataTable<T>({
                 </TableHead>
               )}
               {columns.map((c, i) => (
-                <TableHead key={i} className={cn("text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 h-10", compact ? "px-3.5" : "px-5", c.headerClassName)}>
+                <TableHead key={i} className={cn("text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 h-9", compact ? "px-2.5" : "px-5", c.headerClassName)}>
                   {c.header}
                 </TableHead>
               ))}
@@ -409,7 +409,7 @@ export default function DataTable<T>({
                     }}
                   >
                     {enableSelection && (
-                      <TableCell className={cn(compact ? "px-4 py-2.5 w-[44px]" : "px-5 py-4 w-[48px]")}>
+                      <TableCell className={cn(compact ? "px-2.5 py-2 w-[36px]" : "px-5 py-4 w-[48px]")}>
                         <input
                           type="checkbox"
                           className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
@@ -420,7 +420,7 @@ export default function DataTable<T>({
                       </TableCell>
                     )}
                     {columns.map((col, colIndex) => (
-                      <TableCell key={colIndex} className={cn(compact ? "px-3.5 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200" : "px-5 py-4 text-sm font-medium text-slate-800 dark:text-slate-200", col.className)}>
+                      <TableCell key={colIndex} className={cn(compact ? "px-2.5 py-2 text-xs font-medium text-slate-800 dark:text-slate-200" : "px-5 py-4 text-sm font-medium text-slate-800 dark:text-slate-200", col.className)}>
                         {col.accessor(row, rowIndex)}
                       </TableCell>
                     ))}
