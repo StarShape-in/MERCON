@@ -395,7 +395,7 @@ export default function CreateTripModal({
     setError(null);
   };
 
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     setError(null);
     if (step === 1 && !customerId) {
       setError('Please select a customer before proceeding.');
@@ -410,12 +410,12 @@ export default function CreateTripModal({
       return;
     }
     setStep((prev) => (prev < 3 ? ((prev + 1) as 1 | 2 | 3) : 3));
-  };
+  }, [step, customerId, assignDriverLater, driverId, assignVehicleLater, vehicleId]);
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     setError(null);
     setStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3) : 1));
-  };
+  }, []);
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
   const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
@@ -519,6 +519,60 @@ export default function CreateTripModal({
     dropoffAddress,
     billingAmount,
     createMutation,
+  ]);
+
+  // Keyboard Shortcuts Handler: Escape (Cancel), Alt+Right/Alt+N/Ctrl+Enter (Next/Submit), Alt+Left/Alt+B (Back)
+  useEffect(() => {
+    if (!isOpen || isAddDriverOpen || isAddVehicleOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape -> Cancel / Close
+      if (e.key === 'Escape') {
+        if (!createMutation.isPending) {
+          onClose();
+        }
+        return;
+      }
+
+      // Next Step / Dispatch Submit (Alt + RightArrow, Alt + N, Ctrl + Enter)
+      if (
+        (e.altKey && (e.key === 'ArrowRight' || e.key.toLowerCase() === 'n')) ||
+        ((e.ctrlKey || e.metaKey) && e.key === 'Enter')
+      ) {
+        e.preventDefault();
+        if (step < 3) {
+          nextStep();
+        } else if (step === 3 && isFormValid && !createMutation.isPending) {
+          handleSubmit();
+        }
+        return;
+      }
+
+      // Back (Alt + LeftArrow, Alt + B)
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'b')) {
+        e.preventDefault();
+        if (step > 1) {
+          prevStep();
+        } else {
+          onClose();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isOpen,
+    isAddDriverOpen,
+    isAddVehicleOpen,
+    step,
+    isFormValid,
+    createMutation.isPending,
+    nextStep,
+    prevStep,
+    handleSubmit,
+    onClose,
   ]);
 
   return (
@@ -724,8 +778,11 @@ export default function CreateTripModal({
                   size="sm"
                   onClick={prevStep}
                   className="h-9 gap-1 text-xs font-bold border-slate-200 dark:border-slate-800"
+                  title="Keyboard Shortcut: Alt + LeftArrow or Alt + B"
                 >
-                  <ChevronLeft className="w-4 h-4" /> Back
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>Back</span>
+                  <span className="ml-1 text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded">Alt+←</span>
                 </Button>
               ) : (
                 <Button
@@ -733,9 +790,11 @@ export default function CreateTripModal({
                   variant="ghost"
                   size="sm"
                   onClick={onClose}
-                  className="h-9 text-xs text-slate-500 hover:text-slate-900"
+                  className="h-9 gap-1 text-xs text-slate-500 hover:text-slate-900"
+                  title="Keyboard Shortcut: Escape"
                 >
-                  Cancel
+                  <span>Cancel</span>
+                  <span className="ml-1 text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded">Esc</span>
                 </Button>
               )}
             </div>
@@ -747,8 +806,11 @@ export default function CreateTripModal({
                   size="sm"
                   onClick={nextStep}
                   className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-5"
+                  title="Keyboard Shortcut: Alt + RightArrow or Alt + N"
                 >
-                  Next Step <ChevronRight className="w-4 h-4" />
+                  <span>Next Step</span>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Alt+→</span>
                 </Button>
               ) : (
                 <Button
@@ -757,6 +819,7 @@ export default function CreateTripModal({
                   onClick={handleSubmit}
                   disabled={createMutation.isPending || !isFormValid}
                   className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-6 disabled:opacity-50"
+                  title="Keyboard Shortcut: Ctrl + Enter or Alt + N"
                 >
                   {createMutation.isPending ? (
                     <>
@@ -764,7 +827,9 @@ export default function CreateTripModal({
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4" /> Dispatch New Trip
+                      <Sparkles className="w-4 h-4" />
+                      <span>Dispatch New Trip</span>
+                      <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
                     </>
                   )}
                 </Button>
