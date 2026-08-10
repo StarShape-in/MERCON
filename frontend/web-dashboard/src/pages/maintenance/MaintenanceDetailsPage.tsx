@@ -148,6 +148,8 @@ export default function MaintenanceDetailsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-detail', id] });
       queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      // Closing/reopening an order moves the vehicle in or out of the workshop.
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       if (record?.vehicleId) {
         queryClient.invalidateQueries({ queryKey: ['vehicle', record.vehicleId] });
         queryClient.invalidateQueries({ queryKey: ['vehicle-financials', record.vehicleId] });
@@ -164,6 +166,10 @@ export default function MaintenanceDetailsPage() {
     mutationFn: () => maintenanceService.delete(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      if (record?.vehicleId) {
+        queryClient.invalidateQueries({ queryKey: ['vehicle', record.vehicleId] });
+      }
       navigate('/maintenance');
     },
   });

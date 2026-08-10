@@ -68,8 +68,72 @@ async function main() {
   console.log(`  ✓ Admin user: ${ilan.username}`);
 
   await backfillMaintenanceRefIds();
+  await releaseVehiclesStuckInMaintenance();
 
   console.log('✅ Default accounts seeded successfully!');
+}
+
+/**
+ * Repairs vehicles left showing "Maintenance" after their service order was closed.
+ *
+ * Before `syncVehicleMaintenanceStatus`, the vehicle was only released when a record was
+ * edited from an open state to Completed/Cancelled — completing it another way, logging an
+ * already-completed order, or deleting the open one left `Vehicle.status = 'Maintenance'`
+ * forever, which is what the Vehicles list, KPI cards and details page read.
+ *
+ * A vehicle is only released when it has service history, none of it open, and it has not
+ * been touched since its last service order changed. That last condition is what protects a
+ * deliberate "Mark Maintenance" from the Vehicles page: marking it bumps `Vehicle.updatedAt`
+ * past the record's, so this skips it.
+ *
+ * Idempotent: a no-op once every stuck vehicle is back to Available.
+ */
+async function releaseVehiclesStuckInMaintenance() {
+  // Normalise the legacy `In Progress` spelling first, so "is anything open?" is one check.
+  const renamed = await prisma.maintenanceRecord.updateMany({
+    where: { status: 'In Progress' },
+    data: { status: 'In_Progress' },
+  });
+  if (renamed.count > 0) {
+    console.log(`  ✓ Normalised ${renamed.count} maintenance record(s) to status In_Progress`);
+  }
+
+  const candidates = await prisma.vehicle.findMany({
+    where: {
+      status: 'Maintenance',
+      deletedAt: null,
+      maintenanceRecords: { some: { deletedAt: null } },
+      NOT: { maintenanceRecords: { some: { deletedAt: null, status: 'In_Progress' } } },
+    },
+    select: {
+      id: true,
+      plate_number: true,
+      updatedAt: true,
+      maintenanceRecords: {
+        where: { deletedAt: null },
+        select: { updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 1,
+      },
+    },
+  });
+
+  const stuck = candidates.filter(
+    (v) => v.maintenanceRecords[0] && v.updatedAt <= v.maintenanceRecords[0].updatedAt,
+  );
+
+  if (stuck.length === 0) return;
+
+  await prisma.vehicle.updateMany({
+    where: { id: { in: stuck.map((v) => v.id) } },
+    data: { status: 'Available' },
+  });
+
+  console.log(
+    `  ✓ Released ${stuck.length} vehicle(s) stuck in Maintenance: ${stuck
+      .map((v) => v.plate_number)
+      .join(', ')}`,
+  );
 }
 
 /**

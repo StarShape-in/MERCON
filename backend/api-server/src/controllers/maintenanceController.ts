@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
 import { logger } from '../utils/logger';
+import { syncVehicleMaintenanceStatus, ACTIVE_MAINTENANCE_STATUSES } from '../utils/vehicleMaintenanceStatus';
 
 /** Service orders are numbered MNT-001, MNT-002, … and gaps are refilled on delete. */
 const MAINTENANCE_REF_PREFIX = 'MNT';
@@ -48,7 +49,10 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
     }
 
     if (status && status !== 'all') {
-      whereClause.status = status as string;
+      // Legacy rows stored the open state as `In Progress` (space) before the enum
+      // settled on `In_Progress` — filtering must return both.
+      whereClause.status =
+        status === 'In_Progress' ? { in: ACTIVE_MAINTENANCE_STATUSES } : (status as string);
     }
 
     if (maintenance_type && maintenance_type !== 'all') {
@@ -327,20 +331,15 @@ export const createMaintenanceRecord = async (req: Request, res: Response) => {
       }
     }
 
-    // If status is In_Progress, optionally update vehicle status to Maintenance
-    if (status === 'In_Progress') {
+    // Keep the vehicle in step with its service orders: an open order puts it in the
+    // workshop, logging an already-completed one releases it if nothing else is open.
+    await syncVehicleMaintenanceStatus(vehicle_id);
+
+    if (status === 'Completed' && odometer_reading > vehicle.current_odometer) {
       await prisma.vehicle.update({
         where: { id: vehicle_id },
-        data: { status: 'Maintenance' },
+        data: { current_odometer: odometer_reading },
       });
-    } else if (status === 'Completed') {
-      // Update vehicle odometer reading if higher
-      if (odometer_reading > vehicle.current_odometer) {
-        await prisma.vehicle.update({
-          where: { id: vehicle_id },
-          data: { current_odometer: odometer_reading },
-        });
-      }
     }
 
     res.status(201).json({ success: true, data: record });
@@ -424,26 +423,10 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
 
     // Handle Vehicle status transitions and odometer updates
     if (updated.vehicleId) {
-      if (data.status === 'In_Progress') {
-        await prisma.vehicle.update({
-          where: { id: updated.vehicleId },
-          data: { status: 'Maintenance' },
-        });
-      } else if (data.status === 'Completed' || data.status === 'Cancelled') {
-        const activeMaintenance = await prisma.maintenanceRecord.count({
-          where: {
-            vehicleId: updated.vehicleId,
-            status: 'In_Progress',
-            deletedAt: null,
-            id: { not: existing.id },
-          },
-        });
-        if (activeMaintenance === 0) {
-          await prisma.vehicle.update({
-            where: { id: updated.vehicleId },
-            data: { status: 'Available' },
-          });
-        }
+      await syncVehicleMaintenanceStatus(updated.vehicleId);
+      // Moving the order to another vehicle can leave the old one stuck in the workshop.
+      if (existing.vehicleId !== updated.vehicleId) {
+        await syncVehicleMaintenanceStatus(existing.vehicleId);
       }
 
       if (data.odometer_reading && updated.vehicle) {
@@ -489,6 +472,9 @@ export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
         deleted_by: (req as any).user?.id,
       },
     });
+
+    // Deleting the order that put the vehicle in the workshop must let it out again.
+    await syncVehicleMaintenanceStatus(existing.vehicleId);
 
     res.json({ success: true, message: 'Maintenance record deleted successfully' });
   } catch (error) {

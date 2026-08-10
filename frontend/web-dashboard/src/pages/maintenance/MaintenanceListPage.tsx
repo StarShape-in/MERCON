@@ -117,11 +117,19 @@ export default function MaintenanceListPage() {
 
   const vehicles = vehiclesRes?.data || [];
 
+  // Writing a service order can move its vehicle in or out of the workshop, so the
+  // vehicle caches have to be dropped alongside the maintenance ones.
+  const invalidateMaintenanceAndVehicles = () => {
+    queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+    queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    queryClient.invalidateQueries({ queryKey: ['vehicle'] });
+  };
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: (payload: CreateMaintenancePayload) => maintenanceService.create(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      invalidateMaintenanceAndVehicles();
       setIsModalOpen(false);
       resetForm();
     },
@@ -133,7 +141,7 @@ export default function MaintenanceListPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: any }) => maintenanceService.update(id, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      invalidateMaintenanceAndVehicles();
       setIsModalOpen(false);
       resetForm();
     },
@@ -145,7 +153,7 @@ export default function MaintenanceListPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => maintenanceService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      invalidateMaintenanceAndVehicles();
       setRecordToDelete(null);
     },
   });
@@ -357,7 +365,7 @@ export default function MaintenanceListPage() {
           onConfirm: async () => {
             try {
               await Promise.all(selectedRows.map(r => maintenanceService.delete(r.id)));
-              queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+              invalidateMaintenanceAndVehicles();
             } catch (e) {
               toast.error('Failed to delete selected maintenance records');
             }
