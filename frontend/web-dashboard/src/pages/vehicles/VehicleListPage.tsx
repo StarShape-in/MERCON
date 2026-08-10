@@ -294,6 +294,8 @@ export default function VehicleListPage() {
     },
     {
       header: 'Assigned Driver',
+      className: 'w-[140px] max-w-[150px]',
+      headerClassName: 'w-[140px] max-w-[150px]',
       accessor: (row: Vehicle) => {
         const activeTrip = row.trips?.[0];
         const driver = row.assignedDriver || activeTrip?.driver;
@@ -310,19 +312,20 @@ export default function VehicleListPage() {
         const initials = `${driver.first_name?.[0] || ''}${driver.last_name?.[0] || ''}`.toUpperCase() || 'DR';
 
         return (
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-800 flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[130px]">
+            <div className="w-6 h-6 rounded-full bg-indigo-50 border border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-800 flex items-center justify-center text-[9px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
               {initials}
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0">
               <span 
-                className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-[#E8450F] transition-colors cursor-pointer"
+                className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-[#E8450F] transition-colors cursor-pointer truncate"
                 onClick={() => navigate(`/drivers/${driver.id}`)}
+                title={driverName}
               >
                 {driverName}
               </span>
               {driver.phone_primary && (
-                <span className="text-[10px] text-slate-400 font-mono">
+                <span className="text-[10px] text-slate-400 font-mono truncate" title={driver.phone_primary}>
                   {driver.phone_primary}
                 </span>
               )}
