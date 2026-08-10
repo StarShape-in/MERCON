@@ -7,3 +7,9 @@ export function isUuid(val: unknown): boolean {
 export function getValidUuid(val: unknown): string | null {
   return isUuid(val) ? (val as string) : null;
 }
+
+export function parseOptionalFloat(val: unknown): number | null {
+  if (val === null || val === undefined || val === '') return null;
+  const num = typeof val === 'number' ? val : parseFloat(String(val));
+  return isNaN(num) ? null : num;
+}

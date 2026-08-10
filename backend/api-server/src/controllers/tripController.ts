@@ -6,6 +6,7 @@ import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus 
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane } from '../services/rateLookup';
+import { parseOptionalFloat } from '../utils/uuid';
 
 const isUuid = (val: any): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -274,8 +275,8 @@ export const createTrip = async (req: Request, res: Response) => {
                 create: (stops || []).map((stop: any, index: number) => ({
                   stop_sequence: index + 1,
                   stop_type: stop.stop_type as StopType,
-                  location_lat: parseFloat(stop.lat),
-                  location_lng: parseFloat(stop.lng),
+                  location_lat: parseOptionalFloat(stop.lat),
+                  location_lng: parseOptionalFloat(stop.lng),
                   // Empty string collapses to null so "unnamed" is one value in
                   // reports, not two that group separately.
                   location_name: String(stop.location_name ?? '').trim() || null,
@@ -508,7 +509,7 @@ export const approveDriverPayment = async (req: Request, res: Response) => {
     const trip = await prisma.trip.update({
       where: { id: req.params.id as string },
       data: {
-        extra_driver_payment: parseFloat(amount),
+        extra_driver_payment: parseOptionalFloat(amount) ?? 0,
         payment_reason: reason,
         payment_status: PaymentStatus.Approved,
         payment_approved_by: (req as any).user?.id,
@@ -1026,10 +1027,10 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
       const updatedTrip = await tx.trip.update({
         where: { id: tripId },
         data: {
-          waiting_labor_charges: waiting_labor_charges !== undefined ? parseFloat(waiting_labor_charges) : trip.waiting_labor_charges,
-          additional_stop_charges: additional_stop_charges !== undefined ? parseFloat(additional_stop_charges) : trip.additional_stop_charges,
-          trip_charges: trip_charges !== undefined ? parseFloat(trip_charges) : trip.trip_charges,
-          billing_amount: billing_amount !== undefined ? parseFloat(billing_amount) : trip.billing_amount,
+          waiting_labor_charges: waiting_labor_charges !== undefined ? (parseOptionalFloat(waiting_labor_charges) ?? trip.waiting_labor_charges) : trip.waiting_labor_charges,
+          additional_stop_charges: additional_stop_charges !== undefined ? (parseOptionalFloat(additional_stop_charges) ?? trip.additional_stop_charges) : trip.additional_stop_charges,
+          trip_charges: trip_charges !== undefined ? (parseOptionalFloat(trip_charges) ?? trip.trip_charges) : trip.trip_charges,
+          billing_amount: billing_amount !== undefined ? (parseOptionalFloat(billing_amount) ?? trip.billing_amount) : trip.billing_amount,
           carrier_name: carrier_name !== undefined ? carrier_name : trip.carrier_name,
           is_post_trip_settled: Boolean(is_post_trip_settled),
           updated_by: (req as any).user?.id,
