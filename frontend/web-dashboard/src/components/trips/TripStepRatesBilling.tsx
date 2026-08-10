@@ -1,16 +1,19 @@
 import React from 'react';
-import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight } from 'lucide-react';
+import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { RateCard } from '@/services/rateCardService';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface TripStepRatesBillingProps {
   pickupLocationName: string;
   dropoffLocationName: string;
   isLookingUpRate: boolean;
+  availableRateCards: RateCard[];
+  selectedRateCardId: string;
   matchedRateCard: RateCard | null;
   rateSource: 'customer' | 'standard' | null;
   laneHasNoRate: boolean;
@@ -18,6 +21,7 @@ interface TripStepRatesBillingProps {
   selectedCustomer: Customer | null;
   rateSaveWarning: string | null;
   billingAmount: string;
+  onSelectRateCard: (card: RateCard | null) => void;
   onSaveRateAsChange: (val: 'standard' | 'customer' | 'none') => void;
   onBillingAmountChange: (val: string) => void;
   onAdjustPrice: (amount: number) => void;
@@ -27,6 +31,8 @@ export default function TripStepRatesBilling({
   pickupLocationName,
   dropoffLocationName,
   isLookingUpRate,
+  availableRateCards,
+  selectedRateCardId,
   matchedRateCard,
   rateSource,
   laneHasNoRate,
@@ -34,10 +40,13 @@ export default function TripStepRatesBilling({
   selectedCustomer,
   rateSaveWarning,
   billingAmount,
+  onSelectRateCard,
   onSaveRateAsChange,
   onBillingAmountChange,
   onAdjustPrice,
 }: TripStepRatesBillingProps) {
+  const hasAvailableCards = availableRateCards.length > 0;
+
   return (
     <div className="space-y-5 animate-in fade-in-50 duration-200">
       <div>
@@ -45,7 +54,7 @@ export default function TripStepRatesBilling({
           <Receipt className="w-4 h-4 text-[#E8450F]" /> 4. Lane Rate Card &amp; Billing Calculation
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Automatic contract rate card pricing for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'}.
+          Select from available contract rate cards or set custom pricing for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'}.
         </p>
       </div>
 
@@ -76,47 +85,99 @@ export default function TripStepRatesBilling({
               <Tag className="w-3.5 h-3.5 text-indigo-600" /> Contract Pricing Engine
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              System rate card matching for this operational lane
+              Choose a contract rate card or enter a custom rate
             </p>
           </div>
 
           {isLookingUpRate && (
             <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold animate-pulse">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Looking up contract rate...
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Looking up contract rates...
             </div>
           )}
         </div>
 
-        {/* Matched Contract Rate */}
-        {matchedRateCard && (
-          <div className="rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 p-4 border border-emerald-200/80 dark:border-emerald-900 flex items-center justify-between text-xs">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-emerald-900 dark:text-emerald-200 text-sm">
-                  Contract Rate Found: SAR {matchedRateCard.base_price.toLocaleString()}
-                </span>
-                <Badge className="bg-emerald-600 text-white text-[10px] uppercase tracking-wider font-extrabold">
-                  {rateSource === 'customer' ? 'Customer Contract' : 'Standard Rate Card'}
-                </Badge>
-              </div>
-              <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
-                Applied automatically to trip billing amount.
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Section 1: Selectable Available Rate Cards for Lane */}
+        {hasAvailableCards ? (
+          <div className="space-y-3">
+            <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                Available Rate Cards ({availableRateCards.length})
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold">Click to select rate</span>
+            </Label>
 
-        {/* No Rate Found Banner */}
-        {laneHasNoRate && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {availableRateCards.map((rc) => {
+                const isSelected = selectedRateCardId === rc.id;
+                const isCustomerCard = !!rc.customerId;
+                return (
+                  <div
+                    key={rc.id}
+                    onClick={() => onSelectRateCard(rc)}
+                    className={cn(
+                      "p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 text-xs",
+                      isSelected
+                        ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs"
+                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <span className="font-bold text-slate-900 dark:text-slate-100 block truncate">
+                          {rc.name}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block truncate">
+                          {rc.route_origin} → {rc.route_destination}
+                        </span>
+                      </div>
+                      <Badge className={cn("text-[9px] uppercase tracking-wider font-extrabold shrink-0 px-2 py-0.5", isCustomerCard ? "bg-indigo-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300")}>
+                        {isCustomerCard ? 'Customer Override' : 'Standard Rate'}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                      <span className="font-extrabold text-sm text-emerald-700 dark:text-emerald-300 font-mono">
+                        SAR {rc.base_price.toLocaleString()}
+                      </span>
+                      <span className={cn("text-[10px] font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1", isSelected ? "bg-emerald-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}>
+                        {isSelected && <Check className="w-3 h-3" />}
+                        <span>{isSelected ? 'Selected' : 'Use Rate'}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Select Custom Option */}
+            <button
+              type="button"
+              onClick={() => onSelectRateCard(null)}
+              className={cn(
+                "w-full p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all cursor-pointer mt-1",
+                !selectedRateCardId
+                  ? "border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F] font-bold"
+                  : "border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400"
+              )}
+            >
+              <span>✏️ Custom Billing Amount / Enter Manual Rate</span>
+              {!selectedRateCardId && <span className="text-[10px] font-bold px-2 py-0.5 bg-[#E8450F] text-white rounded-md">Custom Mode</span>}
+            </button>
+          </div>
+        ) : null}
+
+        {/* Section 2: Save New Rate Card Option when No Rate Selected / Custom Mode */}
+        {(!selectedRateCardId || laneHasNoRate) && (
           <div className="rounded-xl bg-amber-50/80 dark:bg-amber-950/30 p-4 border border-amber-200/80 dark:border-amber-900 space-y-3 text-xs">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-amber-900 dark:text-amber-200">
-                  No contract rate found for {pickupLocationName || 'origin'} → {dropoffLocationName || 'destination'}
+                  {hasAvailableCards ? 'Custom Billing Rate Selected' : `No contract rate card found for ${pickupLocationName || 'origin'} → ${dropoffLocationName || 'destination'}`}
                 </p>
                 <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                  Enter the billing price below and choose how to save it for future dispatches.
+                  Enter the billing price below and choose whether to save it as a reusable rate card.
                 </p>
               </div>
             </div>

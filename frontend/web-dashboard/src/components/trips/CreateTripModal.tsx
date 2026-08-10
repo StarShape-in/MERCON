@@ -252,10 +252,29 @@ export default function CreateTripModal({
     );
   }, [dropoffLat, dropoffLng, selectedDropoffLocation]);
 
-  // Rate card lookup
+  // Rate card lookup & available rate cards for lane
   const laneReady = !!pickupLocationId && !!dropoffLocationId && pickupLocationId !== dropoffLocationId;
 
-  const { data: rateLookup, isFetching: isLookingUpRate } = useQuery({
+  const [selectedRateCardId, setSelectedRateCardId] = useState<string>('');
+
+  const { data: availableRateCardsRes = [], isFetching: isLookingUpRate } = useQuery({
+    queryKey: ['available-rate-cards-lane', customerId, pickupLocationId, dropoffLocationId],
+    queryFn: async () => {
+      const res = await rateCardService.getAll({
+        customerId: customerId || undefined,
+        include_standard: true,
+        origin_location_id: pickupLocationId,
+        destination_location_id: dropoffLocationId,
+        active_only: true,
+      });
+      return res.data || [];
+    },
+    enabled: isOpen && laneReady,
+  });
+
+  const availableRateCards = availableRateCardsRes || [];
+
+  const { data: rateLookup } = useQuery({
     queryKey: ['rate-card-lookup', customerId, pickupLocationId, dropoffLocationId],
     queryFn: () =>
       rateCardService.lookup({
@@ -268,13 +287,21 @@ export default function CreateTripModal({
 
   const matchedRateCard = rateLookup?.rate_card ?? null;
   const rateSource = rateLookup?.source ?? null;
-  const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && !matchedRateCard;
+  const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && availableRateCards.length === 0;
 
+  // Auto-select best matching rate card when availableRateCards loads
   useEffect(() => {
-    if (matchedRateCard && !isPriceCustomized) {
-      setBillingAmount(String(matchedRateCard.base_price));
+    if (availableRateCards.length > 0) {
+      const customerCard = availableRateCards.find((rc) => rc.customerId === customerId);
+      const targetCard = customerCard || availableRateCards[0];
+      if (targetCard && (!selectedRateCardId || !availableRateCards.some((rc) => rc.id === selectedRateCardId))) {
+        setSelectedRateCardId(targetCard.id);
+        if (!isPriceCustomized) {
+          setBillingAmount(String(targetCard.base_price));
+        }
+      }
     }
-  }, [matchedRateCard, isPriceCustomized]);
+  }, [availableRateCards, customerId, isPriceCustomized, selectedRateCardId]);
 
   // SLA Calculation
   const transitInfo = useMemo(() => {
@@ -363,9 +390,9 @@ export default function CreateTripModal({
       }
 
       // 3. Save Rate Card if requested
-      let rateCardId = matchedRateCard?.id;
+      let rateCardId = selectedRateCardId || matchedRateCard?.id;
 
-      if (!matchedRateCard && saveRateAs !== 'none' && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
+      if (!selectedRateCardId && saveRateAs !== 'none' && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
         try {
           const createdRate = await rateCardService.create({
             name: `${pickupName.trim()} → ${dropoffName.trim()}`,
@@ -885,6 +912,8 @@ export default function CreateTripModal({
                 pickupLocationName={pickupLocationName}
                 dropoffLocationName={dropoffLocationName}
                 isLookingUpRate={isLookingUpRate}
+                availableRateCards={availableRateCards}
+                selectedRateCardId={selectedRateCardId}
                 matchedRateCard={matchedRateCard}
                 rateSource={rateSource}
                 laneHasNoRate={laneHasNoRate}
@@ -892,6 +921,16 @@ export default function CreateTripModal({
                 selectedCustomer={selectedCustomer}
                 rateSaveWarning={rateSaveWarning}
                 billingAmount={billingAmount}
+                onSelectRateCard={(card) => {
+                  if (card) {
+                    setSelectedRateCardId(card.id);
+                    setBillingAmount(String(card.base_price));
+                    setIsPriceCustomized(false);
+                  } else {
+                    setSelectedRateCardId('');
+                    setIsPriceCustomized(true);
+                  }
+                }}
                 onSaveRateAsChange={setSaveRateAs}
                 onBillingAmountChange={(val) => { setBillingAmount(val); setIsPriceCustomized(true); }}
                 onAdjustPrice={adjustPrice}
