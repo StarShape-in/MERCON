@@ -114,4 +114,16 @@ export const maintenanceService = {
   async delete(id: string): Promise<void> {
     await api.delete(`/maintenance/${id}`);
   },
+
+  /**
+   * Closes every open service order on a vehicle and puts it back to Available.
+   * Use this instead of writing the vehicle status directly, so the Maintenance page
+   * never shows an In Progress order for a vehicle the Vehicles page calls Available.
+   */
+  async returnVehicleToService(vehicleId: string): Promise<{ closed_orders: number }> {
+    const res = await api.post<ApiResponse<{ closed_orders: number }>>(
+      `/maintenance/vehicles/${vehicleId}/return-to-service`,
+    );
+    return res.data.data;
+  },
 };

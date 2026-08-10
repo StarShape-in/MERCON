@@ -163,8 +163,39 @@ export default function VehicleDetailsPage() {
     deleteMutation.mutate();
   };
 
+  const refreshVehicle = () => {
+    queryClient.invalidateQueries({ queryKey: ['vehicle', id] });
+    queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    queryClient.invalidateQueries({ queryKey: ['maintenance', id] });
+    queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+  };
+
+  /** Closes the open service order(s), which is what releases the vehicle to Available. */
+  const handleReturnToService = async () => {
+    if (!id) return;
+    try {
+      const { closed_orders } = await maintenanceService.returnVehicleToService(id);
+      toast.success(
+        closed_orders > 0
+          ? `${vehicle?.plate_number || 'Vehicle'} back in service — ${closed_orders} service order(s) closed`
+          : `${vehicle?.plate_number || 'Vehicle'} back in service`,
+      );
+      refreshVehicle();
+    } catch {
+      toast.error('Failed to return the vehicle to service.');
+    }
+  };
+
   const handleStatusUpdate = async (newStatus: AssetStatus) => {
     if (!id || newStatus === vehicle?.status) return;
+    // The workshop state belongs to the service order, so route those two through it.
+    if (newStatus === 'Maintenance') {
+      openLogMaintModal({ status: 'In_Progress' });
+      return;
+    }
+    if (vehicle?.status === 'Maintenance' && newStatus === 'Available') {
+      return handleReturnToService();
+    }
     try {
       await vehicleService.bulkUpdateStatus([id], newStatus);
       toast.success(`Vehicle ${vehicle?.plate_number || 'asset'} status updated to ${newStatus}`);
@@ -313,14 +344,14 @@ export default function VehicleDetailsPage() {
                   </Badge>
                 </h4>
                 <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                  Repairs or servicing in progress. Click below as soon as work completes to restore vehicle to active fleet roster instantly.
+                  Repairs or servicing in progress. Closing this marks the open service order Completed on the Maintenance page and returns the vehicle to the active fleet.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 size="sm"
-                onClick={() => handleStatusUpdate('Available')}
+                onClick={handleReturnToService}
                 className="h-9 px-4 gap-2 text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
               >
                 <CheckCircle2 className="w-4 h-4" />

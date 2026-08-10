@@ -449,6 +449,63 @@ export const updateMaintenanceRecord = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Closes every open service order on a vehicle and puts it back on the road.
+ *
+ * This is what "Return to service" on the Vehicles page calls. Doing it here (rather than
+ * writing `Vehicle.status = 'Available'` straight from the UI) keeps the two modules
+ * telling the same story: the workshop record is closed, so the vehicle is out of the
+ * workshop — instead of a vehicle that says Available next to a service order that still
+ * says In Progress.
+ */
+export const returnVehicleToService = async (req: Request, res: Response) => {
+  try {
+    const vehicleId = req.params.vehicleId as string;
+
+    const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicleId, deletedAt: null } });
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Vehicle not found' },
+      });
+    }
+
+    const openOrders = await prisma.maintenanceRecord.findMany({
+      where: { vehicleId, deletedAt: null, status: { in: ACTIVE_MAINTENANCE_STATUSES } },
+      select: { id: true, end_date: true },
+    });
+
+    const now = new Date();
+    for (const order of openOrders) {
+      await prisma.maintenanceRecord.update({
+        where: { id: order.id },
+        data: {
+          status: 'Completed',
+          end_date: order.end_date ?? now,
+          updated_by: (req as any).user?.id,
+        },
+      });
+    }
+
+    await syncVehicleMaintenanceStatus(vehicleId);
+
+    res.json({
+      success: true,
+      data: { closed_orders: openOrders.length },
+      message:
+        openOrders.length > 0
+          ? `Closed ${openOrders.length} open service order(s) and returned the vehicle to service`
+          : 'Vehicle returned to service',
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to return vehicle to service');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to return vehicle to service' },
+    });
+  }
+};
+
 export const deleteMaintenanceRecord = async (req: Request, res: Response) => {
   try {
     const recordId = req.params.id as string;

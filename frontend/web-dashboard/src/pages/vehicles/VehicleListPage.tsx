@@ -19,6 +19,8 @@ import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
 import { VEHICLE_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { notificationService } from '@/services/notificationService';
+import { maintenanceService } from '@/services/maintenanceService';
+import SendToWorkshopDialog from '@/components/fleet/SendToWorkshopDialog';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -135,7 +137,40 @@ export default function VehicleListPage() {
     onConfirm: () => {},
   });
 
+  // Vehicles selected for the "send to workshop" dialog (one row, or a bulk selection).
+  const [workshopVehicles, setWorkshopVehicles] = useState<Vehicle[]>([]);
+
   const debouncedSearch = useDebouncedValue(search, 300);
+
+  const refreshFleet = () => {
+    queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+  };
+
+  /**
+   * A vehicle enters the workshop by opening a service order, never by writing its status
+   * directly — that is what left the Maintenance page empty for vehicles the fleet showed
+   * as "Maintenance", with no order to later mark completed.
+   */
+  const sendToWorkshop = (vehicles: Vehicle[]) => setWorkshopVehicles(vehicles);
+
+  /** Closes the vehicles' open service orders, which releases them back to Available. */
+  const returnToService = async (vehicles: Vehicle[]) => {
+    try {
+      const results = await Promise.all(
+        vehicles.map((v) => maintenanceService.returnVehicleToService(v.id)),
+      );
+      const closed = results.reduce((sum, r) => sum + (r?.closed_orders ?? 0), 0);
+      toast.success(
+        vehicles.length === 1
+          ? `${vehicles[0].plate_number} is back in service${closed ? ` — ${closed} service order(s) closed` : ''}`
+          : `${vehicles.length} vehicles back in service${closed ? ` — ${closed} service order(s) closed` : ''}`,
+      );
+      refreshFleet();
+    } catch {
+      toast.error('Failed to return the vehicle to service');
+    }
+  };
 
   // Fetch vehicles using React Query
   const { data: vehiclesRes, isLoading, isError, error } = useQuery({
@@ -366,6 +401,9 @@ export default function VehicleListPage() {
       accessor: (row: Vehicle) => {
         const handleQuickStatusChange = async (newStatus: AssetStatus) => {
           if (newStatus === row.status) return;
+          // Maintenance is owned by the service order, not by a raw status write.
+          if (newStatus === 'Maintenance') return sendToWorkshop([row]);
+          if (row.status === 'Maintenance' && newStatus === 'Available') return returnToService([row]);
           try {
             await vehicleService.bulkUpdateStatus([row.id], newStatus);
             toast.success(`Vehicle ${row.plate_number} status updated to ${newStatus}`);
@@ -430,6 +468,32 @@ export default function VehicleListPage() {
             <Eye size={14} />
           </Button>
 
+          {/* Workshop toggle — one click, deliberately outside the ⋮ menu since it is the
+              action operators reach for most on this page. */}
+          {row.status === 'Maintenance' ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => returnToService([row])}
+              className="h-8 px-2 gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[11px] font-bold"
+              title="Close the open service order and put this vehicle back in service"
+            >
+              <CheckCircle size={14} />
+              <span className="hidden xl:inline">Return to service</span>
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => sendToWorkshop([row])}
+              className="h-8 px-2 gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-[11px] font-bold"
+              title="Open a service order and move this vehicle into Maintenance"
+            >
+              <Wrench size={14} />
+              <span className="hidden xl:inline">To workshop</span>
+            </Button>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
@@ -450,36 +514,26 @@ export default function VehicleListPage() {
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Status Control</DropdownMenuLabel>
               {row.status === 'Maintenance' ? (
-                <DropdownMenuItem 
-                  onClick={async () => {
-                    try {
-                      await vehicleService.bulkUpdateStatus([row.id], 'Available');
-                      toast.success(`Vehicle ${row.plate_number} marked Available`);
-                      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-                    } catch {
-                      toast.error('Failed to update status');
-                    }
-                  }} 
+                <DropdownMenuItem
+                  onClick={() => returnToService([row])}
                   className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/80"
                 >
-                  <CheckCircle size={13} className="mr-2 text-emerald-500" /> Mark Available (Ready)
+                  <CheckCircle size={13} className="mr-2 text-emerald-500" /> Return to Service
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem 
-                  onClick={async () => {
-                    try {
-                      await vehicleService.bulkUpdateStatus([row.id], 'Maintenance');
-                      toast.success(`Vehicle ${row.plate_number} marked Maintenance`);
-                      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-                    } catch {
-                      toast.error('Failed to update status');
-                    }
-                  }} 
+                <DropdownMenuItem
+                  onClick={() => sendToWorkshop([row])}
                   className="text-xs font-semibold text-amber-600 dark:text-amber-400"
                 >
-                  <Wrench size={13} className="mr-2 text-amber-500" /> Mark Maintenance
+                  <Wrench size={13} className="mr-2 text-amber-500" /> Send to Workshop
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem
+                onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(row.plate_number)}`)}
+                className="text-xs font-semibold"
+              >
+                <FileText size={13} className="mr-2 text-slate-500" /> Service History
+              </DropdownMenuItem>
               {row.status !== 'Inactive' && (
                 <DropdownMenuItem 
                   onClick={async () => {
@@ -516,41 +570,33 @@ export default function VehicleListPage() {
       }
     },
     {
-      label: 'Mark Available',
+      label: 'Return to Service',
       icon: <CheckCircle size={13} />,
       onClick: (selectedRows: Vehicle[]) => {
         setConfirmModal({
           isOpen: true,
-          title: 'Mark Vehicles as Available',
-          message: `Are you sure you want to mark ${selectedRows.length} vehicles as Available?`,
+          title: 'Return Vehicles to Service',
+          message: `Close any open service order on ${selectedRows.length} vehicle(s) and mark them Available?`,
           isDestructive: false,
           onConfirm: async () => {
+            const inWorkshop = selectedRows.filter(r => r.status === 'Maintenance');
+            const rest = selectedRows.filter(r => r.status !== 'Maintenance');
             try {
-              await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Available');
-              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+              if (inWorkshop.length > 0) await returnToService(inWorkshop);
+              if (rest.length > 0) {
+                await vehicleService.bulkUpdateStatus(rest.map(r => r.id), 'Available');
+              }
+              refreshFleet();
             } catch (e) { toast.error('Failed to update status'); }
           }
         });
       }
     },
     {
-      label: 'Mark Maintenance',
+      label: 'Send to Workshop',
       icon: <Wrench size={13} />,
       variant: 'secondary' as const,
-      onClick: (selectedRows: Vehicle[]) => {
-        setConfirmModal({
-          isOpen: true,
-          title: 'Mark Vehicles as Maintenance',
-          message: `Are you sure you want to mark ${selectedRows.length} vehicles as Maintenance?`,
-          isDestructive: false,
-          onConfirm: async () => {
-            try {
-              await vehicleService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Maintenance');
-              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-            } catch (e) { toast.error('Failed to update status'); }
-          }
-        });
-      }
+      onClick: (selectedRows: Vehicle[]) => sendToWorkshop(selectedRows),
     },
     {
       label: 'Mark Inactive',
@@ -1467,6 +1513,20 @@ export default function VehicleListPage() {
           templateUrl="/templates/MERCON_Vehicles_Import_Template.xlsx"
           onImport={(rows) => vehicleService.importRows(rows)}
           invalidateKeys={[['vehicles'], ['vehicles-select']]}
+        />
+
+        <SendToWorkshopDialog
+          open={workshopVehicles.length > 0}
+          onOpenChange={(open) => !open && setWorkshopVehicles([])}
+          vehicles={workshopVehicles}
+          onSuccess={() => {
+            toast.success(
+              workshopVehicles.length === 1
+                ? `Service order opened for ${workshopVehicles[0].plate_number}`
+                : `Service orders opened for ${workshopVehicles.length} vehicles`,
+            );
+            refreshFleet();
+          }}
         />
 
       </div>

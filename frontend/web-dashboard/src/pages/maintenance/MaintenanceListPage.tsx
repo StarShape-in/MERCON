@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Wrench, Download, Plus, RotateCw, Filter, Search,
@@ -44,7 +44,10 @@ export default function MaintenanceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [search, setSearch] = useState('');
+  // "Service History" on the Vehicles page links here as ?vehicle=<plate>; the list search
+  // already matches on plate number, so it lands pre-filtered to that vehicle.
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get('vehicle') ?? '');
   const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
