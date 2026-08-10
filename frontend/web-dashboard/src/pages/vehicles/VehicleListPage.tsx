@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
-  Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X
+  Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
@@ -361,7 +361,60 @@ export default function VehicleListPage() {
     },
     {
       header: 'Status',
-      accessor: (row: Vehicle) => <StatusBadge status={row.status} />,
+      className: 'w-[130px]',
+      headerClassName: 'w-[130px]',
+      accessor: (row: Vehicle) => {
+        const handleQuickStatusChange = async (newStatus: AssetStatus) => {
+          if (newStatus === row.status) return;
+          try {
+            await vehicleService.bulkUpdateStatus([row.id], newStatus);
+            toast.success(`Vehicle ${row.plate_number} status updated to ${newStatus}`);
+            queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+          } catch {
+            toast.error(`Failed to update status for ${row.plate_number}`);
+          }
+        };
+
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  className="group flex items-center gap-1 focus:outline-none rounded-full transition-transform hover:scale-105"
+                  title="Click to quick-change vehicle status"
+                >
+                  <StatusBadge status={row.status} />
+                  <ChevronDown size={11} className="text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-44 p-1">
+                <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">Quick Status Change</DropdownMenuLabel>
+                <DropdownMenuItem 
+                  onClick={() => handleQuickStatusChange('Available')}
+                  className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", row.status === 'Available' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  Available (Active)
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleQuickStatusChange('Maintenance')}
+                  className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", row.status === 'Maintenance' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  Maintenance (In Shop)
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleQuickStatusChange('Inactive')}
+                  className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", row.status === 'Inactive' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                >
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                  Inactive (Off Duty)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
     },
     {
       header: 'Actions',
@@ -383,7 +436,7 @@ export default function VehicleListPage() {
                 <MoreVertical size={14} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Asset Options</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => navigate(`/vehicles/${row.id}`)} className="text-xs font-semibold">
                 <Eye size={13} className="mr-2 text-indigo-500" /> View Details
@@ -395,23 +448,54 @@ export default function VehicleListPage() {
                 <FileText size={13} className="mr-2 text-slate-500" /> Documents Vault
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => {
-                  setConfirmModal({
-                    isOpen: true,
-                    title: 'Mark Maintenance',
-                    message: `Are you sure you want to mark vehicle ${row.plate_number} as Maintenance?`,
-                    isDestructive: false,
-                    onConfirm: async () => {
-                      await vehicleService.bulkUpdateStatus([row.id], 'Maintenance');
+              <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Status Control</DropdownMenuLabel>
+              {row.status === 'Maintenance' ? (
+                <DropdownMenuItem 
+                  onClick={async () => {
+                    try {
+                      await vehicleService.bulkUpdateStatus([row.id], 'Available');
+                      toast.success(`Vehicle ${row.plate_number} marked Available`);
                       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                    } catch {
+                      toast.error('Failed to update status');
                     }
-                  });
-                }} 
-                className="text-xs font-semibold text-amber-600"
-              >
-                <Wrench size={13} className="mr-2 text-amber-500" /> Mark Maintenance
-              </DropdownMenuItem>
+                  }} 
+                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/80"
+                >
+                  <CheckCircle size={13} className="mr-2 text-emerald-500" /> Mark Available (Ready)
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem 
+                  onClick={async () => {
+                    try {
+                      await vehicleService.bulkUpdateStatus([row.id], 'Maintenance');
+                      toast.success(`Vehicle ${row.plate_number} marked Maintenance`);
+                      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                    } catch {
+                      toast.error('Failed to update status');
+                    }
+                  }} 
+                  className="text-xs font-semibold text-amber-600 dark:text-amber-400"
+                >
+                  <Wrench size={13} className="mr-2 text-amber-500" /> Mark Maintenance
+                </DropdownMenuItem>
+              )}
+              {row.status !== 'Inactive' && (
+                <DropdownMenuItem 
+                  onClick={async () => {
+                    try {
+                      await vehicleService.bulkUpdateStatus([row.id], 'Inactive');
+                      toast.success(`Vehicle ${row.plate_number} marked Inactive`);
+                      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                    } catch {
+                      toast.error('Failed to update status');
+                    }
+                  }} 
+                  className="text-xs font-semibold text-rose-600 dark:text-rose-400"
+                >
+                  <XCircle size={13} className="mr-2 text-rose-500" /> Mark Inactive
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

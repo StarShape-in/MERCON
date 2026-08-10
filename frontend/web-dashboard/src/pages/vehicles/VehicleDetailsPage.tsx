@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { 
   ArrowLeft, Edit2, FileText, Truck, MapPin, AlertTriangle, Trash2, 
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
-  TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink
+  TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
+  CheckCircle2, ChevronDown
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
-import { vehicleService } from '@/services/vehicleService';
+import { vehicleService, AssetStatus } from '@/services/vehicleService';
 import { maintenanceService, CreateMaintenancePayload } from '@/services/maintenanceService';
 import { documentService, DocType, MerconDocument } from '@/services/documentService';
 
@@ -21,6 +23,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { 
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel 
+} from '@/components/ui/dropdown-menu';
 import DataTable from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
 
@@ -154,6 +163,18 @@ export default function VehicleDetailsPage() {
     deleteMutation.mutate();
   };
 
+  const handleStatusUpdate = async (newStatus: AssetStatus) => {
+    if (!id || newStatus === vehicle?.status) return;
+    try {
+      await vehicleService.bulkUpdateStatus([id], newStatus);
+      toast.success(`Vehicle ${vehicle?.plate_number || 'asset'} status updated to ${newStatus}`);
+      queryClient.invalidateQueries({ queryKey: ['vehicle', id] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    } catch {
+      toast.error('Failed to update vehicle status.');
+    }
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout active="Vehicles" title="Vehicle Details">
@@ -277,6 +298,38 @@ export default function VehicleDetailsPage() {
           </div>
         </div>
 
+        {/* Zero-friction Maintenance Return-to-Service Banner */}
+        {vehicle.status === 'Maintenance' && (
+          <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                <Wrench className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-extrabold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                  <span>Vehicle Currently In Maintenance</span>
+                  <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold">
+                    IN SHOP
+                  </Badge>
+                </h4>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                  Repairs or servicing in progress. Click below as soon as work completes to restore vehicle to active fleet roster instantly.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                onClick={() => handleStatusUpdate('Available')}
+                className="h-9 px-4 gap-2 text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Complete Service & Mark Available
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* ── Visual Hero Command Panel ─────────────────────────────────── */}
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-xs p-6 overflow-hidden">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -337,7 +390,38 @@ export default function VehicleDetailsPage() {
                       {vehicle.asset_type}
                     </Badge>
                   )}
-                  <StatusBadge status={vehicle.status} />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="group flex items-center gap-1 focus:outline-none rounded-full transition-transform hover:scale-105" title="Quick change status">
+                        <StatusBadge status={vehicle.status} />
+                        <ChevronDown size={12} className="text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-44 p-1">
+                      <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">Quick Status Change</DropdownMenuLabel>
+                      <DropdownMenuItem 
+                        onClick={() => handleStatusUpdate('Available')}
+                        className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Available' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                        Available (Active)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleStatusUpdate('Maintenance')}
+                        className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Maintenance' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                        Maintenance (In Shop)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleStatusUpdate('Inactive')}
+                        className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", vehicle.status === 'Inactive' && "bg-slate-100 dark:bg-slate-800 font-bold")}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                        Inactive (Off Duty)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="text-xs text-slate-600 dark:text-slate-400 font-medium space-y-1">
