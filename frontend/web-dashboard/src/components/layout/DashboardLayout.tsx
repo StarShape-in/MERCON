@@ -65,10 +65,15 @@ export default function DashboardLayout({
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       />
       <div className="flex flex-col flex-1 min-w-0 bg-white">
-        <Header title={title} breadcrumb={breadcrumb} onMenuClick={() => setSidebarOpen(true)} />
+        <Header
+          title={title}
+          breadcrumb={breadcrumb}
+          onMenuClick={() => setSidebarOpen(true)}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+        />
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white">
           {children}
         </div>
