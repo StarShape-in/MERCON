@@ -18,31 +18,27 @@ import { Button } from '@/components/ui/button';
 // High-Tech Neon Pickup Marker (Emerald LED with 3D Warehouse)
 const pickupMarkerIcon = L.divIcon({
   html: `
-    <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
       <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.35);"></div>
-      <div style="width: 32px; height: 32px; border-radius: 50%; background: #0F1017; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(16, 185, 129, 0.8); border: 2.5px solid #10B981; z-index: 2; padding: 5px;">
-        <img src="/warehouse_3d.png" style="width: 100%; height: 100%; object-fit: contain;" />
-      </div>
+      <img src="/warehouse_pickup_3d.png" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
     </div>
   `,
   className: '',
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
+  iconSize: [44, 44],
+  iconAnchor: [22, 22],
 });
 
-// High-Tech Neon Dropoff Marker (Crimson LED with 3D Warehouse)
+// High-Tech Neon Dropoff Marker (Orange LED with 3D Warehouse)
 const dropoffMarkerIcon = L.divIcon({
   html: `
-    <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-      <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(244, 63, 94, 0.35);"></div>
-      <div style="width: 32px; height: 32px; border-radius: 50%; background: #0F1017; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 18px rgba(244, 63, 94, 0.8); border: 2.5px solid #F43F5E; z-index: 2; padding: 5px;">
-        <img src="/warehouse_3d.png" style="width: 100%; height: 100%; object-fit: contain;" />
-      </div>
+    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 38px; height: 38px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.35);"></div>
+      <img src="/warehouse_dropoff_3d.png" style="width: 34px; height: 34px; object-fit: contain; z-index: 2;" />
     </div>
   `,
   className: '',
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
+  iconSize: [44, 44],
+  iconAnchor: [22, 22],
 });
 
 const truckMarkerIcon = L.divIcon({
