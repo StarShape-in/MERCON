@@ -49,6 +49,11 @@ export const getTrips = async (req: Request, res: Response) => {
       whereClause.OR = [
         { ref_id: { contains: search as string, mode: 'insensitive' } },
         { customer: { name: { contains: search as string, mode: 'insensitive' } } },
+        { driver: { first_name: { contains: search as string, mode: 'insensitive' } } },
+        { driver: { last_name: { contains: search as string, mode: 'insensitive' } } },
+        { vehicle: { plate_number: { contains: search as string, mode: 'insensitive' } } },
+        { stops: { some: { location_name: { contains: search as string, mode: 'insensitive' } } } },
+        { stops: { some: { location_address: { contains: search as string, mode: 'insensitive' } } } },
       ];
     }
 
@@ -101,7 +106,12 @@ export const getTrips = async (req: Request, res: Response) => {
         skip,
         take: limit,
         orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-        include: { driver: true, vehicle: true, customer: true }
+        include: {
+          driver: true,
+          vehicle: true,
+          customer: true,
+          stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
+        }
       }),
       prisma.trip.count({ where: whereClause })
     ]);

@@ -91,31 +91,53 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 };
 
 const TRIP_EXPORT_HEADERS = [
-  'Job / Ref ID', 'Status', 'Customer', 'Driver', 'Vehicle',
+  'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
   'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
   'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
 ];
 
 const formatExportDate = (value: string | null) => (value ? new Date(value).toISOString().slice(0, 10) : '');
 
+const getPickupInfo = (trip: Trip) => {
+  const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup') || trip.stops?.[0];
+  if (!pickup) return { name: '—', address: null };
+  const name = pickup.location_name || pickup.location?.name || pickup.location_address || pickup.location?.address || (pickup.location_lat ? `${pickup.location_lat.toFixed(3)}, ${pickup.location_lng.toFixed(3)}` : '—');
+  const address = (pickup.location_name && (pickup.location_address || pickup.location?.address)) ? (pickup.location_address || pickup.location?.address) : null;
+  return { name, address };
+};
+
+const getDropoffInfo = (trip: Trip) => {
+  const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff') || (trip.stops && trip.stops.length > 1 ? trip.stops[trip.stops.length - 1] : undefined);
+  if (!dropoff) return { name: '—', address: null };
+  const name = dropoff.location_name || dropoff.location?.name || dropoff.location_address || dropoff.location?.address || (dropoff.location_lat ? `${dropoff.location_lat.toFixed(3)}, ${dropoff.location_lng.toFixed(3)}` : '—');
+  const address = (dropoff.location_name && (dropoff.location_address || dropoff.location?.address)) ? (dropoff.location_address || dropoff.location?.address) : null;
+  return { name, address };
+};
+
 /** A raw `Trip` carries ~25 fields (nested driver/vehicle/customer objects,
  *  stops/invoices arrays, internal audit fields) — dumping it straight into
  *  a CSV/PDF export produces an unreadably wide, cluttered table. This picks
  *  just the columns an operator actually wants to see in an export. */
-const tripsToExportRows = (trips: Trip[]) => trips.map(t => [
-  t.ref_id,
-  t.status,
-  t.customer?.name || 'Unassigned',
-  t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned',
-  t.vehicle?.plate_number || 'Unassigned',
-  formatExportDate(t.planned_start),
-  formatExportDate(t.actual_start),
-  formatExportDate(t.planned_end),
-  formatExportDate(t.actual_end),
-  Number(t.trip_charges || 0),
-  Number(t.billing_amount || 0),
-  t.carrier_name || 'MERCON LOGISTICS',
-]);
+const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
+  const pickup = getPickupInfo(t);
+  const dropoff = getDropoffInfo(t);
+  return [
+    t.ref_id,
+    t.status,
+    t.customer?.name || 'Unassigned',
+    pickup.name !== '—' ? (pickup.address ? `${pickup.name} (${pickup.address})` : pickup.name) : '—',
+    dropoff.name !== '—' ? (dropoff.address ? `${dropoff.name} (${dropoff.address})` : dropoff.name) : '—',
+    t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned',
+    t.vehicle?.plate_number || 'Unassigned',
+    formatExportDate(t.planned_start),
+    formatExportDate(t.actual_start),
+    formatExportDate(t.planned_end),
+    formatExportDate(t.actual_end),
+    Number(t.trip_charges || 0),
+    Number(t.billing_amount || 0),
+    t.carrier_name || 'MERCON LOGISTICS',
+  ];
+});
 
 
 const IMPORT_FIELD_ALIASES: Record<keyof BulkImportTripRow, string[]> = {
@@ -471,7 +493,7 @@ export default function TripListPage() {
     {
       header: 'Customer',
       accessor: (row: Trip) => (
-        <div className="flex flex-col min-w-[140px]">
+        <div className="flex flex-col min-w-[130px]">
           <span className="font-semibold text-xs text-[#111] leading-snug">
             {row.customer?.name || '—'}
           </span>
@@ -482,6 +504,43 @@ export default function TripListPage() {
           )}
         </div>
       ),
+    },
+    {
+      header: 'Pickup & Dropoff',
+      accessor: (row: Trip) => {
+        const pickup = getPickupInfo(row);
+        const dropoff = getDropoffInfo(row);
+        return (
+          <div className="flex flex-col gap-1.5 min-w-[160px] max-w-[220px] py-0.5">
+            <div className="flex items-start gap-1.5 min-w-0" title={`Pickup: ${pickup.name}${pickup.address ? ` (${pickup.address})` : ''}`}>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
+              <div className="flex flex-col min-w-0 leading-tight">
+                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                  {pickup.name}
+                </span>
+                {pickup.address && (
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                    {pickup.address}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-start gap-1.5 min-w-0" title={`Dropoff: ${dropoff.name}${dropoff.address ? ` (${dropoff.address})` : ''}`}>
+              <span className="w-2 h-2 rounded-full bg-[#E8450F] shrink-0 mt-1" />
+              <div className="flex flex-col min-w-0 leading-tight">
+                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                  {dropoff.name}
+                </span>
+                {dropoff.address && (
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                    {dropoff.address}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      },
     },
     {
       header: 'Driver',
