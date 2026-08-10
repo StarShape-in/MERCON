@@ -131,44 +131,62 @@ export default function TripStepStopsPricing({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Pickup Stop Card */}
         <TripStopCard
+          tone="pickup"
           title="Pickup Stop (Origin)"
+          hubLabel="Pricing hub (origin)"
+          hubPlaceholder="Where does this trip start?"
           locationId={pickupLocationId}
-          onLocationIdChange={onPickupLocationIdChange}
-          locationName={pickupLocationName}
-          onLocationNameChange={onPickupLocationNameChange}
+          onLocationChange={(locId, loc) => {
+            onPickupLocationIdChange(locId);
+            if (loc) onPickupLocationNameChange(loc.name);
+            if (loc?.lat != null && loc?.lng != null && !pickupAddress.trim()) {
+              onPickupCoordinatesChange(loc.lat, loc.lng);
+            }
+            if (loc && !pickupName.trim()) onPickupNameChange(loc.name);
+            if (loc?.address && !pickupAddress.trim()) onPickupAddressChange(loc.address);
+          }}
           lat={pickupLat}
           lng={pickupLng}
-          onCoordinatesChange={onPickupCoordinatesChange}
+          onCoordsChange={(lat, lng) => onPickupCoordinatesChange(lat, lng)}
           time={pickupTime}
           onTimeChange={onPickupTimeChange}
+          timeLabel="Scheduled Pickup Time"
+          timePlaceholder="Select pickup date and time"
+          presets={[]}
           name={pickupName}
           onNameChange={onPickupNameChange}
           address={pickupAddress}
           onAddressChange={onPickupAddressChange}
-          locations={locations}
-          selectedLocation={selectedPickupLocation}
-          distanceKm={pickupDistanceKm}
         />
 
         {/* Dropoff Stop Card */}
         <TripStopCard
+          tone="dropoff"
           title="Dropoff Stop (Destination)"
+          hubLabel="Pricing hub (destination)"
+          hubPlaceholder="Where is this trip heading?"
           locationId={dropoffLocationId}
-          onLocationIdChange={onDropoffLocationIdChange}
-          locationName={dropoffLocationName}
-          onLocationNameChange={onDropoffLocationNameChange}
+          onLocationChange={(locId, loc) => {
+            onDropoffLocationIdChange(locId);
+            if (loc) onDropoffLocationNameChange(loc.name);
+            if (loc?.lat != null && loc?.lng != null && !dropoffAddress.trim()) {
+              onDropoffCoordinatesChange(loc.lat, loc.lng);
+            }
+            if (loc && !dropoffName.trim()) onDropoffNameChange(loc.name);
+            if (loc?.address && !dropoffAddress.trim()) onDropoffAddressChange(loc.address);
+          }}
           lat={dropoffLat}
           lng={dropoffLng}
-          onCoordinatesChange={onDropoffCoordinatesChange}
+          onCoordsChange={(lat, lng) => onDropoffCoordinatesChange(lat, lng)}
           time={dropoffTime}
           onTimeChange={onDropoffTimeChange}
+          timeLabel="Scheduled Delivery SLA"
+          timePlaceholder="Select target arrival date and time"
+          presets={[]}
           name={dropoffName}
           onNameChange={onDropoffNameChange}
           address={dropoffAddress}
           onAddressChange={onDropoffAddressChange}
-          locations={locations}
-          selectedLocation={selectedDropoffLocation}
-          distanceKm={dropoffDistanceKm}
         />
       </div>
 

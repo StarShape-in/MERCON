@@ -5,6 +5,10 @@ export interface Customer {
   id: string;
   name: string;
   contact_phone: string;
+  phone?: string;
+  company_name?: string;
+  payment_terms?: string;
+  tax_number?: string;
   credit_limit: number;
   isActive: boolean;
   createdAt: string;

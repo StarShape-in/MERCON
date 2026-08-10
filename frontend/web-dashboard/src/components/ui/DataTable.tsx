@@ -225,74 +225,70 @@ export default function DataTable<T>({
               />
             </div>
           ) : (
-            <>
-              {/* Row 1: Ledger Heading */}
-              {title && (
-                <div className="flex items-center gap-2.5">
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                    {title}
-                  </h3>
-                  <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                    {totalCount} {totalCount === 1 ? 'record' : 'records'}
-                  </Badge>
-                </div>
-              )}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+              {/* Left Side: Title & Search Bar */}
+              <div className="flex items-center gap-3 flex-1 flex-wrap min-w-0">
+                {title && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                      {title}
+                    </h3>
+                    <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                      {totalCount} {totalCount === 1 ? 'record' : 'records'}
+                    </Badge>
+                  </div>
+                )}
 
-              {/* Row 2: Search Bar & Filtration Tools */}
-              <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                  {onSearchChange !== undefined && (
-                    <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm sm:min-w-[200px]">
-                      <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <Input
-                        type="text"
-                        placeholder={searchPlaceholder}
-                        value={activeSearchValue}
-                        onChange={(e) => handleSearchChange(e.target.value)}
-                        className="w-full pl-9 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
-                        aria-label="Search Table"
-                      />
-                      {activeSearchValue && (
-                        <button
-                          onClick={() => handleSearchChange('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                          aria-label="Clear search"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {filterElement}
-                </div>
-
-                {/* Right Side: Selection Controls, Actions & Export */}
-                <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
-                  {enableSelection && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectAll}
-                      className="h-8 text-xs font-semibold px-3 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 transition-colors"
-                    >
-                      <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      <span>{selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}</span>
-                    </Button>
-                  )}
-                  {actionsElement}
-                  {onExport && (
-                    <Btn
-                      label="Export"
-                      variant="secondary"
-                      size="sm"
-                      icon={<Download size={13} />}
-                      onClick={onExport}
+                {onSearchChange !== undefined && (
+                  <div className="relative w-full sm:w-64 md:w-72 shrink-0">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder={searchPlaceholder}
+                      value={activeSearchValue}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
+                      aria-label="Search Table"
                     />
-                  )}
-                </div>
+                    {activeSearchValue && (
+                      <button
+                        onClick={() => handleSearchChange('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                        aria-label="Clear search"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-            </>
+
+              {/* Right Side: Filters, Select All & Actions */}
+              <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
+                {filterElement}
+                {enableSelection && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAll}
+                    className="h-9 text-xs font-semibold px-3 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 transition-colors"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>{selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}</span>
+                  </Button>
+                )}
+                {actionsElement}
+                {onExport && (
+                  <Btn
+                    label="Export"
+                    variant="secondary"
+                    size="sm"
+                    icon={<Download size={13} />}
+                    onClick={onExport}
+                  />
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}

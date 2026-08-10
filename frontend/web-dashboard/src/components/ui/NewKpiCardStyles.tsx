@@ -71,8 +71,6 @@ export function HeroStatBanner({
         )}
       </div>
 
-      {subLabel && <p className="text-xs text-slate-500 font-medium mt-1">{subLabel}</p>}
-
       {children && <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-800">{children}</div>}
     </div>
   );
@@ -126,7 +124,7 @@ export function GlassmeterCard({
         </div>
       )}
 
-      {subtitle && <span className="text-[10px] font-medium text-slate-400 mt-1">{subtitle}</span>}
+
     </div>
   );
 }
