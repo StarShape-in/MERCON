@@ -24,7 +24,9 @@ import {
   Globe, 
   LogOut,
   IdCard,
-  MapPin
+  MapPin,
+  LayoutDashboard,
+  Truck
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -861,11 +863,36 @@ export default function OperatorProfilePage() {
                         <SelectValue placeholder="Select startup page" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="/dashboard" className="text-xs">📊 Dashboard</SelectItem>
-                        <SelectItem value="/trips" className="text-xs">🚚 Trips Control Center</SelectItem>
-                        <SelectItem value="/vehicles" className="text-xs">🚛 Vehicle Fleet Ledger</SelectItem>
-                        <SelectItem value="/drivers" className="text-xs">👤 Driver Roster</SelectItem>
-                        <SelectItem value="/documents" className="text-xs">🛡️ Documents Center</SelectItem>
+                        <SelectItem value="/dashboard" className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <LayoutDashboard className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span>Dashboard</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="/trips" className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span>Trips Control Center</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="/vehicles" className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span>Vehicle Fleet Ledger</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="/drivers" className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span>Driver Roster</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="/documents" className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span>Documents Center</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

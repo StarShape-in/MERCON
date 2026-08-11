@@ -10,6 +10,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { StatusBadge, SearchInput, FilterChip } from '../../components';
 import { useOperatorTrips, type OperatorTrip } from '../../lib/operator';
 import { statusLabel, type TripStatus } from '../../lib/trips';
+import { matchesSearch } from '../../lib/search';
 
 const FILTERS: { label: string; statuses: string[] | null }[] = [
   { label: 'All', statuses: null },
@@ -62,16 +63,10 @@ const TripListScreen = () => {
 
   const filtered = useMemo(() => {
     const active = FILTERS.find((f) => f.label === filter) ?? FILTERS[0];
-    const q = search.trim().toLowerCase();
     return trips.filter((t) => {
       const okStatus = !active.statuses || active.statuses.includes(t.status);
       if (!okStatus) return false;
-      if (!q) return true;
-      return (
-        (t.ref_id ?? '').toLowerCase().includes(q) ||
-        (t.customer?.name ?? '').toLowerCase().includes(q) ||
-        driverName(t).toLowerCase().includes(q)
-      );
+      return matchesSearch(search, [t.ref_id, t.customer?.name, driverName(t)]);
     });
   }, [trips, filter, search]);
 

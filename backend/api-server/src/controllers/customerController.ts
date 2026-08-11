@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { buildSearchAnd } from '../utils/search';
+
+const CUSTOMER_SEARCH_FIELDS = ['name', 'contact_phone'];
 
 export const getCustomers = async (req: Request, res: Response) => {
   try {
@@ -13,8 +16,9 @@ export const getCustomers = async (req: Request, res: Response) => {
     if (is_active !== undefined) {
       whereClause.isActive = is_active === 'true';
     }
-    if (search) {
-      whereClause.name = { contains: search as string, mode: 'insensitive' };
+    const searchAnd = buildSearchAnd(search, CUSTOMER_SEARCH_FIELDS);
+    if (searchAnd.length > 0) {
+      whereClause.AND = searchAnd;
     }
 
     const [customers, total] = await Promise.all([

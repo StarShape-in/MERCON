@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
@@ -199,13 +200,13 @@ export default function DocumentsCenterPage() {
       .filter((d) => {
         const matchesCat = activeCategory === 'All' || d.category === activeCategory;
         const matchesExpiry = expiryFilter === 'all' || d.expStatus === expiryFilter;
-        const q = search.toLowerCase();
-        const matchesSearch =
-          docTypeLabel(d.doc_type).toLowerCase().includes(q) ||
-          d.entityName.toLowerCase().includes(q) ||
-          d.issuer.toLowerCase().includes(q) ||
-          d.id.toString().includes(q);
-        return matchesCat && matchesExpiry && matchesSearch;
+        const matchesTerm = matchesSearch(search, [
+          docTypeLabel(d.doc_type),
+          d.entityName,
+          d.issuer,
+          d.id,
+        ]);
+        return matchesCat && matchesExpiry && matchesTerm;
       });
   }, [docs, nameFor, activeCategory, expiryFilter, search]);
 

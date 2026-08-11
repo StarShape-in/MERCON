@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../index';
 import { getValidUuid } from '../utils/uuid';
+import { buildSearchAnd } from '../utils/search';
+
+const LOCATION_SEARCH_FIELDS = ['name', 'address'];
 
 /**
  * Lane endpoints — the shared list of places rate cards are priced between.
@@ -79,7 +82,8 @@ export const getLocations = async (req: Request, res: Response) => {
 
     const whereClause: any = { deletedAt: null };
     if (active_only === 'true') whereClause.is_active = true;
-    if (search) whereClause.name = { contains: search as string, mode: 'insensitive' };
+    const searchAnd = buildSearchAnd(search, LOCATION_SEARCH_FIELDS);
+    if (searchAnd.length > 0) whereClause.AND = searchAnd;
 
     // Usage counts come back with the list so the page can separate places that
     // are actually in use from typos and abandoned entries — which is the whole

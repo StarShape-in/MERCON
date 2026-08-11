@@ -196,7 +196,7 @@ export default function CreateTripModal({
         const isBusy = pickupTime ? isScheduledOnDate(d.trips, pickupTime) : false;
         return {
           value: d.id,
-          label: `${d.first_name} ${d.last_name}${isBusy ? ' — ⚠️ Scheduled on this date' : ''}`,
+          label: `${d.first_name} ${d.last_name}${isBusy ? ' — [Scheduled on this date]' : ''}`,
           keywords: `${d.first_name} ${d.last_name}`,
           disabled: isBusy,
         };
@@ -210,7 +210,7 @@ export default function CreateTripModal({
         const isBusy = pickupTime ? isScheduledOnDate(v.trips, pickupTime) : false;
         return {
           value: v.id,
-          label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — ⚠️ Scheduled on this date' : ''}`,
+          label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — [Scheduled on this date]' : ''}`,
           keywords: `${v.plate_number} ${v.asset_type}`,
           disabled: isBusy,
         };

@@ -21,7 +21,8 @@ import {
   FileSpreadsheet,
   ChevronDown,
   Layers,
-  UploadCloud
+  UploadCloud,
+  X
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -36,6 +37,7 @@ import AssignRateCardDialog from '@/components/rate-cards/AssignRateCardDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
+import { matchesSearch } from '@/lib/search';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -119,18 +121,19 @@ export default function RateCardListPage() {
   // Filtered rate cards
   const filteredData = useMemo(() => {
     return rateCards.filter((rc) => {
-      const matchesSearch = 
-        rc.name.toLowerCase().includes(search.toLowerCase()) || 
-        rc.id.toLowerCase().includes(search.toLowerCase()) ||
-        (rc.customer?.name || '').toLowerCase().includes(search.toLowerCase()) ||
-        rc.route_origin.toLowerCase().includes(search.toLowerCase()) ||
-        rc.route_destination.toLowerCase().includes(search.toLowerCase());
+      const matchesTerm = matchesSearch(search, [
+        rc.name,
+        rc.id,
+        rc.customer?.name,
+        rc.route_origin,
+        rc.route_destination,
+      ]);
 
       const matchesStatus =
         statusFilter === 'all' ? true :
         statusFilter === 'active' ? rc.is_active : !rc.is_active;
 
-      return matchesSearch && matchesStatus;
+      return matchesTerm && matchesStatus;
     });
   }, [rateCards, search, statusFilter]);
 
@@ -613,7 +616,7 @@ export default function RateCardListPage() {
               className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
             >
               <span>Show All Rates</span>
-              <span className="text-[10px]">✕</span>
+              <X className="w-3 h-3 shrink-0" />
             </button>
           </div>
         )}

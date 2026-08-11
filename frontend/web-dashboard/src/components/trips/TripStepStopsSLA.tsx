@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigation, Calendar } from 'lucide-react';
+import { Navigation, Calendar, AlertTriangle, Clock } from 'lucide-react';
 import TripStopCard from '@/components/trips/TripStopCard';
 import { Location } from '@/services/locationService';
 import { Card } from '@/components/ui/card';
@@ -188,7 +188,17 @@ export default function TripStepStopsSLA({
                     : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 border-emerald-300'
                 )}
               >
-                {transitInfo.isInvalid ? '⚠️ Invalid Schedule (Delivery before pickup)' : `⏱️ ${transitInfo.durationString}`}
+                {transitInfo.isInvalid ? (
+                  <span className="flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Invalid Schedule (Delivery before pickup)</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span>{transitInfo.durationString}</span>
+                  </span>
+                )}
               </Badge>
             </div>
           </div>

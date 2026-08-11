@@ -12,7 +12,7 @@ import {
   isTomorrow,
   formatDistanceToNow,
 } from 'date-fns';
-import { Calendar as CalendarIcon, Clock, Check, X, Sparkles, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Check, X, Sparkles, ChevronRight, Zap } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -279,9 +279,10 @@ export function DateTimePicker({
               <button
                 type="button"
                 onClick={() => applyPreset('now')}
-                className="text-[11px] px-2 py-1 rounded-lg font-medium bg-background hover:bg-muted text-foreground border border-border/70 hover:border-primary/50 transition-all"
+                className="text-[11px] px-2 py-1 rounded-lg font-medium bg-background hover:bg-muted text-foreground border border-border/70 hover:border-primary/50 transition-all flex items-center gap-1"
               >
-                ⚡ Now / ASAP
+                <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                <span>Now / ASAP</span>
               </button>
               <button
                 type="button"

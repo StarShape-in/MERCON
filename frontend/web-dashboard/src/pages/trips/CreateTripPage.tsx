@@ -210,7 +210,7 @@ export default function CreateTripPage() {
     const isBusy = pickupTime ? isScheduledOnDate(d.trips, pickupTime) : false;
     return {
       value: d.id,
-      label: `${d.first_name} ${d.last_name}${isBusy ? ' — ⚠️ Scheduled on this date' : ''}`,
+      label: `${d.first_name} ${d.last_name}${isBusy ? ' — [Scheduled on this date]' : ''}`,
       keywords: `${d.first_name} ${d.last_name}`,
       disabled: isBusy,
     };
@@ -220,7 +220,7 @@ export default function CreateTripPage() {
     const isBusy = pickupTime ? isScheduledOnDate(v.trips, pickupTime) : false;
     return {
       value: v.id,
-      label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — ⚠️ Scheduled on this date' : ''}`,
+      label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — [Scheduled on this date]' : ''}`,
       keywords: `${v.plate_number} ${v.asset_type}`,
       disabled: isBusy,
     };
@@ -942,7 +942,7 @@ export default function CreateTripPage() {
                   timeError={!!error && !pickupTime}
                   presets={[
                     {
-                      label: '⚡ Now',
+                      label: 'Now',
                       onClick: () => { setPickupTime(toLocalInput(new Date())); setError(null); },
                     },
                     {
@@ -1065,7 +1065,10 @@ export default function CreateTripPage() {
                           : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-700 dark:text-emerald-300'
                       )}
                     >
-                      ⏱️ {transitInfo.durationString} transit time
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 shrink-0" />
+                        <span>{transitInfo.durationString} transit time</span>
+                      </span>
                     </Badge>
                   </div>
 
@@ -1224,7 +1227,10 @@ export default function CreateTripPage() {
                       : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
                   )}
                 >
-                  ⏱️ {transitInfo.durationString} transit
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span>{transitInfo.durationString} transit</span>
+                  </span>
                 </Badge>
               )}
             </CardContent>

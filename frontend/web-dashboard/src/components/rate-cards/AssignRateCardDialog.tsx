@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { rateCardService, RateCard, AssignRateCardResult } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 interface AssignRateCardDialogProps {
   rateCard: RateCard | null;
@@ -71,7 +72,7 @@ export default function AssignRateCardDialog({ rateCard, onClose }: AssignRateCa
   );
 
   const customers = (customersRes?.data || []).filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+    matchesSearch(search, [c.name, c.contact_phone])
   );
 
   const assignMutation = useMutation({

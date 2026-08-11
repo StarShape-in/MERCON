@@ -5,6 +5,7 @@ import { ChevronDown, Wrench } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { maintenanceService, Workshop } from '@/services/maintenanceService';
+import { matchesSearch } from '@/lib/search';
 
 interface WorkshopFieldProps {
   value: string;
@@ -42,10 +43,7 @@ export default function WorkshopField({
   });
 
   const suggestions = useMemo(() => {
-    const typed = value.trim().toLowerCase();
-    const matches = typed
-      ? workshops.filter((w) => w.name.toLowerCase().includes(typed))
-      : workshops;
+    const matches = workshops.filter((w) => matchesSearch(value, [w.name]));
     return matches.slice(0, 8);
   }, [workshops, value]);
 

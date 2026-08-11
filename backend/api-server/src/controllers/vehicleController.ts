@@ -1,7 +1,22 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
+import { buildSearchAnd } from '../utils/search';
 import { AssetStatus, AssetType } from '@prisma/client';
+
+/** Fields the fleet ledger search bar looks at. */
+const VEHICLE_SEARCH_FIELDS = [
+  'plate_number',
+  'ref_id',
+  'trailer_number',
+  'gps_device_id',
+  'icces_device_id',
+  'assignedDriver.first_name',
+  'assignedDriver.last_name',
+  'assignedDriver.phone_primary',
+  'assignedDriver.license_number',
+  'assignedDriver.ref_id',
+];
 
 export const getVehicles = async (req: Request, res: Response) => {
   try {
@@ -15,35 +30,18 @@ export const getVehicles = async (req: Request, res: Response) => {
     if (status) {
       whereClause.status = status as AssetStatus;
     }
-    if (search) {
-      const q = (search as string).trim();
-      if (q) {
+    // Asset type is an enum column, so it can't be matched with `contains` —
+    // the typed word is resolved to the matching enum values instead.
+    const searchAnd = buildSearchAnd(search, VEHICLE_SEARCH_FIELDS, {
+      extraClausesForToken: (token) => {
         const matchingAssetTypes = Object.values(AssetType).filter((t) =>
-          t.toLowerCase().includes(q.toLowerCase())
+          t.toLowerCase().includes(token.toLowerCase())
         );
-
-        whereClause.OR = [
-          { plate_number: { contains: q, mode: 'insensitive' } },
-          { ref_id: { contains: q, mode: 'insensitive' } },
-          { trailer_number: { contains: q, mode: 'insensitive' } },
-          { gps_device_id: { contains: q, mode: 'insensitive' } },
-          { icces_device_id: { contains: q, mode: 'insensitive' } },
-          ...(matchingAssetTypes.length > 0
-            ? [{ asset_type: { in: matchingAssetTypes } }]
-            : []),
-          {
-            assignedDriver: {
-              OR: [
-                { first_name: { contains: q, mode: 'insensitive' } },
-                { last_name: { contains: q, mode: 'insensitive' } },
-                { phone_primary: { contains: q, mode: 'insensitive' } },
-                { license_number: { contains: q, mode: 'insensitive' } },
-                { ref_id: { contains: q, mode: 'insensitive' } },
-              ],
-            },
-          },
-        ];
-      }
+        return matchingAssetTypes.length > 0 ? [{ asset_type: { in: matchingAssetTypes } }] : [];
+      },
+    });
+    if (searchAnd.length > 0) {
+      whereClause.AND = searchAnd;
     }
 
     const now = new Date();

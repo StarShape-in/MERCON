@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 type NotificationType = 'alert' | 'trip' | 'document' | 'system';
 
@@ -105,12 +106,7 @@ export default function NotificationsPage() {
         activeTab === 'unread' ? !n.is_read :
         activeTab === type;
 
-      const q = search.toLowerCase();
-      const matchesSearch = 
-        (n.title || '').toLowerCase().includes(q) || 
-        (n.message || '').toLowerCase().includes(q);
-
-      return matchesTab && matchesSearch;
+      return matchesTab && matchesSearch(search, [n.title, n.message]);
     });
   }, [notifications, activeTab, search]);
 

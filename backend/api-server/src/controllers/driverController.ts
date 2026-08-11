@@ -1,8 +1,23 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
+import { buildSearchAnd } from '../utils/search';
 import { DriverStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
+
+/**
+ * Fields the driver roster search bar looks at. Full name has to work, so both
+ * name halves are listed — searching "john smith" matches first + last name.
+ */
+const DRIVER_SEARCH_FIELDS = [
+  'ref_id',
+  'first_name',
+  'last_name',
+  'phone_primary',
+  'license_number',
+  'assignedVehicle.plate_number',
+  'assignedVehicle.ref_id',
+];
 
 export const getDrivers = async (req: Request, res: Response) => {
   try {
@@ -16,8 +31,9 @@ export const getDrivers = async (req: Request, res: Response) => {
     if (status) {
       whereClause.status = status as DriverStatus;
     }
-    if (search) {
-      whereClause.first_name = { contains: search as string, mode: 'insensitive' };
+    const searchAnd = buildSearchAnd(search, DRIVER_SEARCH_FIELDS);
+    if (searchAnd.length > 0) {
+      whereClause.AND = searchAnd;
     }
 
     const [drivers, total] = await Promise.all([

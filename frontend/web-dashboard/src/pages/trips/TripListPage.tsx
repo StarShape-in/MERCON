@@ -23,7 +23,8 @@ import {
   Building2,
   FileText,
   FileSpreadsheet,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
@@ -1089,7 +1090,7 @@ export default function TripListPage() {
               className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
             >
               <span>Show All Operations</span>
-              <span className="text-[10px]">✕</span>
+              <X className="w-3 h-3 shrink-0" />
             </button>
           </div>
         )}

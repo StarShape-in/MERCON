@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -72,8 +73,7 @@ export function Combobox({
         <Command
           filter={(itemValue, search) => {
             const option = options.find((o) => o.value === itemValue);
-            const haystack = `${option?.label ?? ''} ${option?.keywords ?? ''}`.toLowerCase();
-            return haystack.includes(search.toLowerCase()) ? 1 : 0;
+            return matchesSearch(search, [option?.label, option?.keywords]) ? 1 : 0;
           }}
         >
           <CommandInput placeholder={searchPlaceholder} className="text-xs" />

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 interface TripStepCustomerProps {
   customerId: string;
@@ -164,8 +165,14 @@ export default function TripStepCustomer({
               filter={(itemValue, search) => {
                 const customer = customers.find((c) => c.id.toLowerCase() === itemValue.toLowerCase());
                 if (!customer) return 0;
-                const haystack = `${customer.name} ${customer.company_name || ''} ${customer.phone || ''} ${customer.contact_phone || ''} ${customer.tax_number || ''} ${customer.payment_terms || ''}`.toLowerCase();
-                return haystack.includes(search.toLowerCase()) ? 1 : 0;
+                return matchesSearch(search, [
+                  customer.name,
+                  customer.company_name,
+                  customer.phone,
+                  customer.contact_phone,
+                  customer.tax_number,
+                  customer.payment_terms,
+                ]) ? 1 : 0;
               }}
             >
               <CommandInput

@@ -11,6 +11,7 @@ import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens
 import { StatusBadge, SearchInput, FilterChip, Button } from '../../components';
 import { getApiErrorMessage } from '../../lib/api';
 import { operatorService, useOperatorInvoices, type OperatorInvoice } from '../../lib/operator';
+import { matchesSearch } from '../../lib/search';
 
 const FILTERS = ['All', 'Pending', 'Paid', 'Overdue', 'Draft', 'Cancelled'];
 
@@ -108,15 +109,9 @@ const InvoiceListScreen = () => {
   ];
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
     return invoices.filter((inv) => {
       if (statusFilter !== 'All' && inv.status !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        (inv.ref_id ?? '').toLowerCase().includes(q) ||
-        (inv.customer?.name ?? '').toLowerCase().includes(q) ||
-        (inv.trip?.ref_id ?? '').toLowerCase().includes(q)
-      );
+      return matchesSearch(search, [inv.ref_id, inv.customer?.name, inv.trip?.ref_id]);
     });
   }, [invoices, statusFilter, search]);
 

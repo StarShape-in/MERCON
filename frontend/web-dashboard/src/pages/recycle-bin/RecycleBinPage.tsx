@@ -11,6 +11,7 @@ import { trashService, TrashItem } from '@/services/trashService';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import DataTable from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -105,15 +106,7 @@ export default function RecycleBinPage() {
         }
 
         // Search Filter
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          const matchName = item.name.toLowerCase().includes(q);
-          const matchType = item.type.toLowerCase().includes(q);
-          const matchId = item.id.toLowerCase().includes(q);
-          return matchName || matchType || matchId;
-        }
-
-        return true;
+        return matchesSearch(searchQuery, [item.name, item.type, item.id]);
       })
       .sort((a, b) => {
         if (sortBy === 'newest') return new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime();
