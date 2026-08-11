@@ -243,26 +243,17 @@ export default function DashboardPage() {
 
   return (
     <TooltipProvider>
-      <DashboardLayout active="Dashboard" title="Dashboard" hideBackButton>
+      <DashboardLayout active="Dashboard" title="Dashboard">
         <div className="px-4 sm:px-6 lg:px-8 pb-8 h-full flex flex-col gap-5 animate-fade-in">
 
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1 pb-1 border-b border-black/[0.05]">
-            {/* Left: breadcrumb + title */}
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-black/[0.08] bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-2xs"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" /> Back
-              </button>
-              <span className="text-slate-300 text-sm">/</span>
-              <div className="flex items-center gap-2">
-                <h1 className="text-[17px] font-extrabold text-slate-900 tracking-tight">Admin Dashboard</h1>
-                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-[10px]">
-                  Operations Module
-                </Badge>
-              </div>
+            {/* Left: title */}
+            <div className="flex items-center gap-2">
+              <h1 className="text-[17px] font-extrabold text-slate-900 tracking-tight">Admin Dashboard</h1>
+              <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-[10px]">
+                Operations Module
+              </Badge>
             </div>
 
             {/* Right: actions */}
