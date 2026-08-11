@@ -367,7 +367,7 @@ export default function DashboardPage() {
   const paidLaborAmount = 8420 - pendingLaborAmount;
 
   return (
-    <DashboardLayout active="Dashboard" title="Logistics Control Center">
+    <DashboardLayout active="Dashboard" title="Dashboard">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-4 right-4 z-[999] bg-slate-900 border border-slate-800 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 fade-in duration-200">
@@ -398,8 +398,8 @@ export default function DashboardPage() {
               <h1 className="text-2xl font-extrabold text-slate-950 tracking-tight font-sans">
                 {getGreeting()}, {operatorName}
               </h1>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Here's what's happening across your logistics operations today.
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                Here's what's happening today across your operations.
               </p>
             </div>
           </div>
@@ -407,19 +407,13 @@ export default function DashboardPage() {
           {/* Sub-Header Actions */}
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => showToast('Manifest list exported to CSV', 'info')}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg shadow-2xs transition-colors"
-            >
-              <Download size={13} className="text-slate-500" />
-              <span>Export CSV</span>
-            </button>
-            <button 
               onClick={handleRefreshAll}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 rounded-lg shadow-2xs transition-colors"
+              className="inline-flex items-center gap-2 px-4.5 py-2 bg-[#EFF2FC] hover:bg-[#E4E9FC] border border-[#D5DEFB] text-xs font-extrabold text-[#2F54EB] rounded-full shadow-2xs transition-colors cursor-pointer shrink-0"
               title="Refresh all metrics (Alt+R)"
             >
-              <RefreshCw size={13} className="text-slate-500" />
-              <span>Refresh</span>
+              <RefreshCw size={12} className="text-[#2F54EB] animate-spin-slow" />
+              <span>Refresh Data</span>
+              <span className="text-[9px] font-mono bg-white text-[#2F54EB]/80 px-1.5 py-0.2 rounded border border-[#C5D3FA] font-bold">Alt+R</span>
             </button>
           </div>
         </div>
@@ -435,78 +429,121 @@ export default function DashboardPage() {
         )}
 
         {/* ==========================================
-            2. KPI SECTION
+            UNSETTLED BANNER - ACTION REQUIRED (Placed at top!)
+            ========================================== */}
+        {unsettledTrips.length > 0 && (
+          <div className="bg-[#FFF9EB] border border-[#FFE8B3] rounded-xl p-4 shadow-3xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#FFE8B3]/40 text-amber-700 flex items-center justify-center shrink-0 border border-[#FFE8B3]/60">
+                <Clock size={20} className="stroke-[2.5]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold text-[#B25E00] uppercase tracking-wider">Action Required</span>
+                  <span className="bg-[#FFE8B3] text-[#7F4200] text-[10px] font-black px-2 py-0.5 rounded-full">
+                    {unsettledTrips.length} Pending
+                  </span>
+                </div>
+                <h4 className="text-sm font-extrabold text-slate-900 mt-1">
+                  Post-Trip Waiting / Labor Charges Check Pending
+                </h4>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5 leading-relaxed">
+                  Trips have been completed. Please review if waiting time or labor charges need to be entered before final invoice settlement.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 shrink-0">
+              {unsettledTrips.slice(0, 3).map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedSettlementTrip(t)}
+                  className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-805 shadow-2xs flex items-center gap-1.5 transition-all hover:scale-[1.02] cursor-pointer"
+                >
+                  <DollarSign size={13} className="text-[#E8450F] stroke-[2.5]" />
+                  <span>#{t.ref_id || t.id.substring(0, 6)}</span>
+                  <span className="text-[10px] font-semibold text-slate-400">Review</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ==========================================
+            2. KPI SECTION (Premium Layouts)
             ========================================== */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           
           {/* KPI 1: MONTHLY REVENUE */}
-          <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between relative overflow-hidden group">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Monthly Revenue</span>
-                <span className="text-2xl font-black text-slate-900 mt-1 block">
-                  SAR {((kpis.revenue_this_month.value || 42000) / 1000).toFixed(1)}K
-                </span>
+                <div className="flex items-baseline mt-1">
+                  <span className="text-[#E8450F] font-black text-sm mr-1.5 select-none">SAR</span>
+                  <span className="text-3xl font-black text-slate-905 tracking-tight">
+                    {((kpis.revenue_this_month.value || 42000) / 1000).toFixed(1)}K
+                  </span>
+                </div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#E8450F] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[#FFEBE5] text-[#E8450F] flex items-center justify-center shrink-0 border border-[#FFD9CE]/65 group-hover:bg-[#E8450F] group-hover:text-white transition-all duration-350 shadow-3xs">
                 <DollarSign size={16} className="stroke-[2.5]" />
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-emerald-600 bg-emerald-50 text-[10px] font-extrabold px-1.5 py-0.5 rounded flex items-center">
-                ↑ {kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '+12.4%'}
+              <span className="text-rose-600 bg-rose-50 border border-rose-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                ↓ {kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '100%'}
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">vs last month</span>
+              <span className="text-[10px] text-slate-450 font-semibold">vs last month</span>
             </div>
 
-            {/* Target Progress Radial */}
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] text-slate-500 font-semibold">84% Monthly Target Reached</span>
-              <div className="relative w-6 h-6">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="#F1F5F9" strokeWidth="3" />
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="#E8450F" strokeWidth="3" strokeDasharray="100" strokeDashoffset="16" strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-[7px] font-black text-slate-800">84%</div>
+            {/* Target Progress Bar */}
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mb-1.5">
+                <span>SAR 420K Monthly Target</span>
+                <span className="text-slate-900 font-extrabold">84%</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div className="bg-[#E8450F] h-full rounded-full transition-all duration-500" style={{ width: '84%' }} />
               </div>
             </div>
 
             {/* Mini Sparkline Chart */}
-            <div className="h-6 w-full mt-3 -mx-5 -mb-5 opacity-40 group-hover:opacity-60 transition-opacity">
+            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={revenueSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="revSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#E8450F" stopOpacity={0.2} />
+                      <stop offset="0%" stopColor="#E8450F" stopOpacity={0.25} />
                       <stop offset="100%" stopColor="#E8450F" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <Area type="monotone" dataKey="value" stroke="#E8450F" strokeWidth={1} fill="url(#revSpark)" dot={false} />
+                  <Area type="monotone" dataKey="value" stroke="#E8450F" strokeWidth={1.5} fill="url(#revSpark)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* KPI 2: TOTAL TRIPS */}
-          <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between relative overflow-hidden group">
+          {/* KPI 2: TOTAL FREIGHT TRIPS */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Total Trips</span>
-                <span className="text-2xl font-black text-slate-900 mt-1 block">
-                  {kpis.total_trips.value || 128}
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Total Freight Trips</span>
+                <span className="text-3xl font-black text-slate-905 mt-1 block tracking-tight">
+                  {kpis.total_trips.value || 8}
                 </span>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-650 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100/70 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-350 shadow-3xs">
                 <Truck size={16} className="stroke-[2.5]" />
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-emerald-600 bg-emerald-50 text-[10px] font-extrabold px-1.5 py-0.5 rounded flex items-center">
-                ↑ {kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '+8.2%'}
+              <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                ↑ {kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '0%'}
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">vs last month</span>
+              <span className="text-[10px] text-slate-450 font-semibold">vs last month</span>
             </div>
 
             {/* Split breakdown */}
@@ -526,47 +563,47 @@ export default function DashboardPage() {
             </div>
 
             {/* Mini Sparkline Chart */}
-            <div className="h-6 w-full mt-3 -mx-5 -mb-5 opacity-40 group-hover:opacity-60 transition-opacity">
+            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={tripsSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="tripSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.2} />
+                      <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.25} />
                       <stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <Area type="monotone" dataKey="value" stroke="#4F46E5" strokeWidth={1} fill="url(#tripSpark)" dot={false} />
+                  <Area type="monotone" dataKey="value" stroke="#4F46E5" strokeWidth={1.5} fill="url(#tripSpark)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* KPI 3: ACTIVE FLEET */}
-          <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between relative overflow-hidden group">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Active Fleet</span>
-                <span className="text-2xl font-black text-slate-900 mt-1 block">
-                  {kpis.fleet_on_trip.value || 24} / {totalVehiclesCount} <span className="text-xs text-slate-400 font-bold">Vehicles</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Active Fleet (On Road)</span>
+                <span className="text-3xl font-black text-slate-905 mt-1 block tracking-tight">
+                  {kpis.fleet_on_trip.value || 2} <span className="text-xs text-slate-400 font-extrabold">/ {totalVehiclesCount} Units</span>
                 </span>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100/70 group-hover:bg-blue-600 group-hover:text-white transition-all duration-350 shadow-3xs">
                 <Car size={16} className="stroke-[2.5]" />
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-blue-600 bg-blue-50 text-[10px] font-extrabold px-1.5 py-0.5 rounded flex items-center">
-                75% Utilized
+              <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                ↑ 6%
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">{kpis.fleet_available.value || 8} Standby Units</span>
+              <span className="text-[10px] text-slate-450 font-semibold">capacity utilization</span>
             </div>
 
             {/* Capacity Progress Segment Bar */}
             <div className="mt-4 pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold mb-1">
-                <span>Active: 24</span>
-                <span>Standby: 8</span>
+              <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold mb-1.5">
+                <span>Active: {kpis.fleet_on_trip.value || 2}</span>
+                <span>Standby: {kpis.fleet_available.value || 8}</span>
                 <span>Maint: 3</span>
               </div>
               <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden flex">
@@ -577,59 +614,65 @@ export default function DashboardPage() {
             </div>
 
             {/* Mini Sparkline Chart */}
-            <div className="h-6 w-full mt-3 -mx-5 -mb-5 opacity-40 group-hover:opacity-60 transition-opacity">
+            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={fleetSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fleetSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#2563EB" stopOpacity={0.2} />
+                      <stop offset="0%" stopColor="#2563EB" stopOpacity={0.25} />
                       <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <Area type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={1} fill="url(#fleetSpark)" dot={false} />
+                  <Area type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={1.5} fill="url(#fleetSpark)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* KPI 4: COMPLIANCE */}
-          <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between relative overflow-hidden group">
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Compliance</span>
-                <span className="text-2xl font-black text-slate-900 mt-1 block">
-                  {kpis.docs_expiring_soon.value || 3} <span className="text-xs text-slate-400 font-bold">Issues</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Compliance Renewals</span>
+                <span className="text-3xl font-black text-slate-905 mt-1 block tracking-tight">
+                  {kpis.docs_expiring_soon.value || 0} <span className="text-xs text-slate-400 font-extrabold">Issues</span>
                 </span>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <AlertTriangle size={16} className="stroke-[2.5]" />
+              <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100/70 group-hover:bg-amber-500 group-hover:text-white transition-all duration-350 shadow-3xs">
+                <Calendar size={16} className="stroke-[2.5]" />
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 mt-2">
-              <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${kpis.docs_expiring_soon.value > 0 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                {kpis.docs_expiring_soon.value > 0 ? 'Action Required' : 'All Clear'}
+              <span className="text-slate-500 bg-slate-50 border border-slate-200/60 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                — All Clear
               </span>
-              <span className="text-[10px] text-slate-400 font-medium">expiring in 30d</span>
+              <span className="text-[10px] text-slate-450 font-semibold">documents up to date</span>
             </div>
 
             {/* Quick renewals details */}
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] text-slate-500 font-semibold">Next Exp: Vehicle Reg (18 Aug)</span>
-              <Calendar size={12} className="text-slate-400" />
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold mb-1.5">
+                <span>Due Soon: 0</span>
+                <span>Clear: {totalVehiclesCount + 5}</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden flex">
+                <div className="bg-amber-400 h-full" style={{ width: '0%' }} title="Due Soon" />
+                <div className="bg-slate-300 h-full flex-1" title="Clear Documents" />
+              </div>
             </div>
 
             {/* Mini Sparkline Chart */}
-            <div className="h-6 w-full mt-3 -mx-5 -mb-5 opacity-40 group-hover:opacity-60 transition-opacity">
+            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={complianceSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="compSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#D97706" stopOpacity={0.2} />
+                      <stop offset="0%" stopColor="#D97706" stopOpacity={0.25} />
                       <stop offset="100%" stopColor="#D97706" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <Area type="monotone" dataKey="value" stroke="#D97706" strokeWidth={1} fill="url(#compSpark)" dot={false} />
+                  <Area type="monotone" dataKey="value" stroke="#D97706" strokeWidth={1.5} fill="url(#compSpark)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
