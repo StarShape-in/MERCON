@@ -238,10 +238,7 @@ export default function DashboardPage() {
               {/* ━━━━ 2. Monthly Overview Financial Component ━━━━ */}
               <MonthlyOverview />
 
-              {/* ━━━━ 3. Rate Category & Vehicle Type Analytics ━━━━ */}
-              <RateCategoryVehicleTypeOverview />
-
-              {/* ── 4. Important Reminders ───────────────────────────── */}
+              {/* ── 3. Important Reminders ───────────────────────────── */}
               <ImportantReminders />
             </div>
 
@@ -551,6 +548,9 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+
+              {/* ━━━━ 5. Rate Category Breakdown (Clean & Minimal UI) ━━━━ */}
+              <RateCategoryVehicleTypeOverview />
 
             </div>
           </div>
