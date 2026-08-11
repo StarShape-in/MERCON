@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
  * enum settled on `In_Progress`, so both spellings count as open.
  */
 export const ACTIVE_MAINTENANCE_STATUSES = ['In_Progress', 'In Progress'];
+export const SCHEDULED_STATUS = 'Scheduled';
 
 /**
  * Re-derives `Vehicle.status` from that vehicle's service orders. This is the single
@@ -26,6 +27,7 @@ export const ACTIVE_MAINTENANCE_STATUSES = ['In_Progress', 'In Progress'];
  */
 export async function syncVehicleMaintenanceStatus(vehicleId: string): Promise<void> {
   try {
+    const now = new Date();
     const [vehicle, activeCount] = await Promise.all([
       prisma.vehicle.findFirst({
         where: { id: vehicleId, deletedAt: null },
@@ -35,7 +37,17 @@ export async function syncVehicleMaintenanceStatus(vehicleId: string): Promise<v
         where: {
           vehicleId,
           deletedAt: null,
-          status: { in: ACTIVE_MAINTENANCE_STATUSES },
+          OR: [
+            { status: { in: ACTIVE_MAINTENANCE_STATUSES } },
+            {
+              status: SCHEDULED_STATUS,
+              start_date: { lte: now },
+              OR: [
+                { end_date: null },
+                { end_date: { gte: now } },
+              ],
+            },
+          ],
         },
       }),
     ]);

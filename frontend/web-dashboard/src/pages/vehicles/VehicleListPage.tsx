@@ -453,24 +453,43 @@ export default function VehicleListPage() {
     },
     {
       header: 'Status',
-      className: 'w-[130px]',
-      headerClassName: 'w-[130px]',
+      className: 'w-[180px]',
+      headerClassName: 'w-[180px]',
       accessor: (row: Vehicle) => {
         const isMaintenance = row.status === 'Maintenance';
+        const maint = row.active_maintenance;
+        const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const dateRange = maint
+          ? maint.end_date
+            ? `${fmtDate(maint.start_date)} → ${fmtDate(maint.end_date)}`
+            : `From ${fmtDate(maint.start_date)}`
+          : null;
         return (
           <div onClick={(e) => e.stopPropagation()}>
             {isMaintenance ? (
               <button
                 type="button"
                 onClick={(e) => handleMaintenanceClick(e, row)}
-                className="group flex items-center gap-1 focus:outline-none rounded-full transition-transform hover:scale-105 cursor-pointer"
+                className="group flex flex-col items-start gap-0.5 focus:outline-none rounded-lg transition-all hover:bg-amber-50 dark:hover:bg-amber-950/30 px-1 py-0.5 cursor-pointer"
                 title="Click to view maintenance details"
               >
                 <StatusBadge status={row.status} />
+                {dateRange && (
+                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 ml-0.5 flex items-center gap-0.5">
+                    <Calendar className="w-2.5 h-2.5" />
+                    {dateRange}
+                  </span>
+                )}
               </button>
             ) : (
-              <div className="flex items-center gap-1">
+              <div className="flex flex-col items-start gap-0.5">
                 <StatusBadge status={row.status} />
+                {maint && maint.status === 'Scheduled' && (
+                  <span className="text-[10px] font-semibold text-amber-500 dark:text-amber-400 ml-0.5 flex items-center gap-0.5" title={`Scheduled maintenance: ${maint.workshop_name}`}>
+                    <Wrench className="w-2.5 h-2.5" />
+                    Maint. {fmtDate(maint.start_date)}
+                  </span>
+                )}
               </div>
             )}
           </div>

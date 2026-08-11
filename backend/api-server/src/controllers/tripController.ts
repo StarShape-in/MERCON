@@ -252,6 +252,26 @@ export const createTrip = async (req: Request, res: Response) => {
               throw new Error('VEHICLE_NOT_FOUND');
             }
 
+            // Block the trip if the vehicle has maintenance scheduled on the planned trip date
+            if (parsedPlannedStart) {
+              const maintenanceConflict = await tx.maintenanceRecord.findFirst({
+                where: {
+                  vehicleId: vehicle_id,
+                  deletedAt: null,
+                  status: { in: ['Scheduled', 'In_Progress', 'In Progress'] },
+                  start_date: { lte: parsedPlannedStart },
+                  OR: [
+                    { end_date: null },
+                    { end_date: { gte: parsedPlannedStart } },
+                  ],
+                },
+                select: { start_date: true, end_date: true, workshop_name: true },
+              });
+              if (maintenanceConflict) {
+                throw new Error('VEHICLE_ON_MAINTENANCE');
+              }
+            }
+
             // Only claim the vehicle to OnTrip if we are actively dispatching right now
             if (isDispatchingNow) {
               const vehicleClaim = await tx.vehicle.updateMany({
@@ -385,7 +405,8 @@ export const createTrip = async (req: Request, res: Response) => {
       error.message === 'DRIVER_NOT_FOUND' ||
       error.message === 'VEHICLE_NOT_FOUND' ||
       error.message === 'DRIVER_UNAVAILABLE' ||
-      error.message === 'VEHICLE_UNAVAILABLE'
+      error.message === 'VEHICLE_UNAVAILABLE' ||
+      error.message === 'VEHICLE_ON_MAINTENANCE'
     ) {
       return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
     }

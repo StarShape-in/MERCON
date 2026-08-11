@@ -432,7 +432,14 @@ export default function CreateTripPage() {
       navigate('/trips');
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error?.message || err.message || 'Could not create the trip.');
+      const serverMsg: string = err.response?.data?.error?.message || err.message || '';
+      if (serverMsg === 'VEHICLE_ON_MAINTENANCE') {
+        setError('This vehicle is scheduled for maintenance on the selected trip date. Please choose a different vehicle or a different pickup date.');
+      } else if (serverMsg === 'VEHICLE_UNAVAILABLE') {
+        setError('This vehicle is no longer available. It may have been dispatched on another trip. Please refresh and try again.');
+      } else {
+        setError(serverMsg || 'Could not create the trip.');
+      }
     }
   });
 
@@ -485,6 +492,19 @@ export default function CreateTripPage() {
     if (step === 2 && vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
       setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
       return;
+    }
+    // Block if vehicle has maintenance scheduled on the pickup date
+    if (step === 2 && vehicleId && selectedVehicle && selectedVehicle.active_maintenance && pickupTime) {
+      const maint = selectedVehicle.active_maintenance;
+      const tripDate = new Date(pickupTime);
+      const maintStart = new Date(maint.start_date);
+      const maintEnd = maint.end_date ? new Date(maint.end_date) : null;
+      if (tripDate >= maintStart && (!maintEnd || tripDate <= maintEnd)) {
+        const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const range = maint.end_date ? `${fmtDate(maint.start_date)} – ${fmtDate(maint.end_date)}` : `from ${fmtDate(maint.start_date)}`;
+        setError(`Vehicle ${selectedVehicle.plate_number} is scheduled for maintenance ${range}. Please choose a different vehicle or date.`);
+        return;
+      }
     }
     const next = (step < 3 ? step + 1 : 3) as 1 | 2 | 3;
     const params = new URLSearchParams(searchParams);

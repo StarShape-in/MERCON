@@ -2,6 +2,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, getApiErrorMessage } from './api';
 
+export interface ActiveMaintenance {
+  id: string;
+  status: string;
+  maintenance_type: string;
+  workshop_name: string;
+  start_date: string;
+  end_date: string | null;
+}
+
 export interface AssignedVehicle {
   id: string;
   ref_id: string | null;
@@ -13,6 +22,8 @@ export interface AssignedVehicle {
   trailer_number: string | null;
   trailer_type: string | null;
   trip_ref_id: string | null;
+  /** Active or upcoming maintenance window for this vehicle, if any. */
+  active_maintenance?: ActiveMaintenance | null;
 }
 
 export function useAssignedVehicle() {

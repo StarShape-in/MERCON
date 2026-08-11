@@ -4,6 +4,15 @@ import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 export type AssetStatus = 'Available' | 'OnTrip' | 'Maintenance' | 'Inactive';
 export type AssetType   = 'Flatbed' | 'Reefer' | 'Box' | 'Tanker';
 
+export interface ActiveMaintenance {
+  id: string;
+  status: string;
+  maintenance_type: string;
+  workshop_name: string;
+  start_date: string;
+  end_date: string | null;
+}
+
 export interface Vehicle {
   id: string;
   ref_id: string | null;
@@ -28,6 +37,7 @@ export interface Vehicle {
   documents?: import('./documentService').MerconDocument[];
   trips?: any[];
   assignedDriver?: any;
+  active_maintenance?: ActiveMaintenance | null;
 }
 
 export interface CreateVehiclePayload {

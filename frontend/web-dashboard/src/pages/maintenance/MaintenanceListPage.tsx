@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
-import ScheduleMaintenanceModal from '@/components/maintenance/ScheduleMaintenanceModal';
+import MaintenanceRecordModal from '@/components/maintenance/MaintenanceRecordModal';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MaintenanceWrench, CheckBadge, MoneyBills, CalendarAlert } from '@/components/ui/kpi-icons';
@@ -339,7 +339,7 @@ export default function MaintenanceListPage() {
               className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
             >
               <Plus className="h-4 w-4" />
-              Schedule Maintenance
+              Add Maintenance
             </Button>
 
             <Button
@@ -605,7 +605,7 @@ export default function MaintenanceListPage() {
                       </Button>
                     ) : !isFetching && records.length === 0 ? (
                       <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-[#E8450F] text-white h-9">
-                        + Schedule First Service
+                        + Add First Maintenance Record
                       </Button>
                     ) : undefined
                   }
@@ -696,7 +696,7 @@ export default function MaintenanceListPage() {
       </div>
 
       {/* ── 5. Create / Edit Maintenance Modal ─────────────────────────── */}
-      <ScheduleMaintenanceModal
+      <MaintenanceRecordModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         editingRecord={editingRecord}

@@ -46,6 +46,7 @@ export const getVehicles = async (req: Request, res: Response) => {
       }
     }
 
+    const now = new Date();
     const [vehicles, total] = await Promise.all([
       prisma.vehicle.findMany({
         where: whereClause,
@@ -67,15 +68,54 @@ export const getVehicles = async (req: Request, res: Response) => {
             orderBy: {
               planned_start: 'asc'
             }
-          }
+          },
+          maintenanceRecords: {
+            where: {
+              deletedAt: null,
+              OR: [
+                { status: { in: ['In_Progress', 'In Progress'] } },
+                {
+                  status: 'Scheduled',
+                  start_date: { lte: now },
+                  OR: [
+                    { end_date: null },
+                    { end_date: { gte: now } },
+                  ],
+                },
+                // Also include future Scheduled so UI can show upcoming notice
+                { status: 'Scheduled', start_date: { gt: now } },
+              ],
+            },
+            orderBy: { start_date: 'asc' },
+            select: {
+              id: true,
+              status: true,
+              maintenance_type: true,
+              workshop_name: true,
+              start_date: true,
+              end_date: true,
+            },
+          },
         }
       }),
       prisma.vehicle.count({ where: whereClause })
     ]);
 
+    // Attach active_maintenance as computed field: prefer In_Progress, then current Scheduled, then upcoming
+    const vehiclesWithMaintenance = vehicles.map((v: any) => {
+      const records: any[] = v.maintenanceRecords || [];
+      const active =
+        records.find((r: any) => r.status === 'In_Progress' || r.status === 'In Progress') ??
+        records.find((r: any) => r.status === 'Scheduled' && new Date(r.start_date) <= now && (!r.end_date || new Date(r.end_date) >= now)) ??
+        records.find((r: any) => r.status === 'Scheduled') ??
+        null;
+      const { maintenanceRecords: _mr, ...rest } = v;
+      return { ...rest, active_maintenance: active ?? null };
+    });
+
     res.json({
       success: true,
-      data: vehicles,
+      data: vehiclesWithMaintenance,
       meta: {
         page: pageNumber,
         per_page: limit,
@@ -90,6 +130,7 @@ export const getVehicles = async (req: Request, res: Response) => {
 
 export const getVehicleById = async (req: Request, res: Response) => {
   try {
+    const now = new Date();
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: req.params.id as string, deletedAt: null },
       include: {
@@ -109,7 +150,25 @@ export const getVehicleById = async (req: Request, res: Response) => {
           orderBy: {
             planned_start: 'asc'
           }
-        }
+        },
+        maintenanceRecords: {
+          where: {
+            deletedAt: null,
+            OR: [
+              { status: { in: ['In_Progress', 'In Progress'] } },
+              { status: 'Scheduled' },
+            ],
+          },
+          orderBy: { start_date: 'asc' },
+          select: {
+            id: true,
+            status: true,
+            maintenance_type: true,
+            workshop_name: true,
+            start_date: true,
+            end_date: true,
+          },
+        },
       }
     });
 
@@ -122,7 +181,15 @@ export const getVehicleById = async (req: Request, res: Response) => {
       where: { entity_type: 'Vehicle', entity_id: vehicle.id, deletedAt: null }
     });
 
-    res.json({ success: true, data: { ...vehicle, documents } });
+    const records: any[] = (vehicle as any).maintenanceRecords || [];
+    const active =
+      records.find((r: any) => r.status === 'In_Progress' || r.status === 'In Progress') ??
+      records.find((r: any) => r.status === 'Scheduled' && new Date(r.start_date) <= now && (!r.end_date || new Date(r.end_date) >= now)) ??
+      records.find((r: any) => r.status === 'Scheduled') ??
+      null;
+
+    const { maintenanceRecords: _mr, ...vehicleData } = vehicle as any;
+    res.json({ success: true, data: { ...vehicleData, documents, active_maintenance: active ?? null } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch vehicle' } });
   }

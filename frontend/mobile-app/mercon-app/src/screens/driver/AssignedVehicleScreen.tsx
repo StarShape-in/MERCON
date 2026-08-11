@@ -4,7 +4,7 @@ import {
   StatusBar, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Truck } from 'lucide-react-native';
+import { ArrowLeft, Truck, Wrench, Calendar } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { useAssignedVehicle } from '../../lib/vehicle';
 

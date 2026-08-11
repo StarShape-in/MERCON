@@ -94,7 +94,7 @@ export default function VehicleDetailsPage() {
   const maintenanceRecords = maintenanceRes?.data || [];
   const documents = docsRes?.data || [];
 
-  // Open Centered Log Maintenance Modal helper
+  // Open Add Maintenance Modal helper
   const openLogMaintModal = (initialData?: Partial<CreateMaintenancePayload>) => {
     const type = initialData?.maintenance_type || 'Routine';
     const standardTypes = ['Routine', 'Repair', 'Inspection', 'Renewal', 'Emergency', 'Tires', 'Oil_Change'];
@@ -308,7 +308,7 @@ export default function VehicleDetailsPage() {
               className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white shadow-2xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              Log Maintenance
+              Add Maintenance
             </Button>
 
             <Button
@@ -334,36 +334,93 @@ export default function VehicleDetailsPage() {
         </div>
 
         {/* Zero-friction Maintenance Banner */}
-        {vehicle.status === 'Maintenance' && (
-          <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                <Wrench className="w-5 h-5" />
+        {vehicle.status === 'Maintenance' && (() => {
+          const maint = vehicle.active_maintenance;
+          const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          const dateRange = maint
+            ? maint.end_date
+              ? `${fmtDate(maint.start_date)} → ${fmtDate(maint.end_date)}`
+              : `From ${fmtDate(maint.start_date)} (ongoing)`
+            : null;
+          return (
+            <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                    <span>Vehicle Currently In Maintenance</span>
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold">
+                      IN SHOP
+                    </Badge>
+                  </h4>
+                  {dateRange && (
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-300 mt-0.5 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 shrink-0" />
+                      {dateRange}
+                      {maint?.workshop_name && (
+                        <span className="font-normal opacity-75 ml-1">· {maint.workshop_name}</span>
+                      )}
+                    </p>
+                  )}
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    Repairs or servicing in progress. To return this vehicle to service, complete its service order on the Maintenance page.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-sm font-extrabold text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                  <span>Vehicle Currently In Maintenance</span>
-                  <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold">
-                    IN SHOP
-                  </Badge>
-                </h4>
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                  Repairs or servicing in progress. To return this vehicle to service, complete its service order on the Maintenance page.
-                </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(vehicle.plate_number)}`)}
+                  className="h-9 px-4 gap-2 text-xs font-extrabold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
+                >
+                  <Wrench className="w-4 h-4" />
+                  In Maintenance (View Details)
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+          );
+        })()}
+
+        {/* Upcoming Scheduled Maintenance Notice (vehicle Available but has a future maintenance window) */}
+        {vehicle.status !== 'Maintenance' && vehicle.active_maintenance && vehicle.active_maintenance.status === 'Scheduled' && (() => {
+          const maint = vehicle.active_maintenance!;
+          const fmtDate = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          const dateRange = maint.end_date
+            ? `${fmtDate(maint.start_date)} → ${fmtDate(maint.end_date)}`
+            : `From ${fmtDate(maint.start_date)}`;
+          return (
+            <div className="bg-yellow-50/80 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center text-yellow-600 dark:text-yellow-400 shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-yellow-900 dark:text-yellow-200">
+                    Scheduled Maintenance Upcoming
+                  </h4>
+                  <p className="text-xs font-bold text-yellow-700 dark:text-yellow-300 mt-0.5">
+                    {dateRange}
+                    {maint.workshop_name && <span className="font-normal opacity-75 ml-1">· {maint.workshop_name}</span>}
+                  </p>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-0.5">
+                    This vehicle cannot be assigned to trips on the above dates.
+                  </p>
+                </div>
+              </div>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(vehicle.plate_number)}`)}
-                className="h-9 px-4 gap-2 text-xs font-extrabold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
+                className="h-8 px-3 gap-1.5 text-xs font-bold border-yellow-300 text-yellow-800 hover:bg-yellow-100 shrink-0"
               >
-                <Wrench className="w-4 h-4" />
-                In Maintenance (View Details)
+                <Wrench className="w-3.5 h-3.5" />
+                View Schedule
               </Button>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── Visual Hero Command Panel ─────────────────────────────────── */}
         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl shadow-xs p-6 overflow-hidden">
@@ -688,7 +745,7 @@ export default function VehicleDetailsPage() {
                   onClick={() => openLogMaintModal()}
                   className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white gap-1"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Log Maintenance
+                  <Plus className="w-3.5 h-3.5" /> Add Maintenance
                 </Button>
               }
               columns={[
@@ -927,15 +984,15 @@ export default function VehicleDetailsPage() {
         }}
       />
 
-      {/* ── Smooth Centered Log Maintenance Dialog Modal ────────────── */}
+      {/* ── Add Maintenance Record Dialog Modal ─────────────────────── */}
       <Dialog open={isLogMaintModalOpen} onOpenChange={(open) => !open && setIsLogMaintModalOpen(false)}>
         <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 shrink-0">
             <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-[#E8450F]" /> Log Maintenance for {vehicle.plate_number}
+              <Wrench className="w-5 h-5 text-[#E8450F]" /> Maintenance Record for {vehicle.plate_number}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 mt-1">
-              Enter service details, dates when maintenance started and ended, cost expense, and work done description.
+              Log a past service, record an ongoing repair, or schedule a future maintenance for this vehicle.
             </DialogDescription>
           </DialogHeader>
 
@@ -1011,10 +1068,10 @@ export default function VehicleDetailsPage() {
                       <SelectValue placeholder="Select Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Scheduled">Scheduled</SelectItem>
-                      <SelectItem value="In_Progress">In Progress</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      <SelectItem value="Completed">✅ Completed (Past Log)</SelectItem>
+                      <SelectItem value="In_Progress">🔧 In Progress (Active)</SelectItem>
+                      <SelectItem value="Scheduled">📅 Scheduled (Future)</SelectItem>
+                      <SelectItem value="Cancelled">❌ Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1031,10 +1088,10 @@ export default function VehicleDetailsPage() {
                       <SelectValue placeholder="Select Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Scheduled">Scheduled</SelectItem>
-                      <SelectItem value="In_Progress">In Progress</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      <SelectItem value="Completed">✅ Completed (Past Log)</SelectItem>
+                      <SelectItem value="In_Progress">🔧 In Progress (Active)</SelectItem>
+                      <SelectItem value="Scheduled">📅 Scheduled (Future)</SelectItem>
+                      <SelectItem value="Cancelled">❌ Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
