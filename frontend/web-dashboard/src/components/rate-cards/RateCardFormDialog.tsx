@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
+import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 import { rateCardService, RateCard, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 
@@ -206,51 +207,14 @@ export default function RateCardFormDialog({
             </p>
           </div>
 
-          {/* Tier / booking type */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Vehicle type <span className="font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <Select
-                value={vehicleType || NONE_VALUE}
-                onValueChange={(v) => setVehicleType(v === NONE_VALUE ? '' : v)}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Any / not set" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>Any / not set</SelectItem>
-                  {VEHICLE_TYPES.map((v) => (
-                    <SelectItem key={v} value={v}>
-                      {v}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Rate category <span className="font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <Select
-                value={rateCategory || NONE_VALUE}
-                onValueChange={(v) => setRateCategory(v === NONE_VALUE ? '' : v)}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Any / not set" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>Any / not set</SelectItem>
-                  {RATE_CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          {/* Vehicle type & Rate category */}
+          <RateCategoryVehicleTypeForm
+            vehicleType={vehicleType}
+            onVehicleTypeChange={setVehicleType}
+            rateCategory={rateCategory}
+            onRateCategoryChange={setRateCategory}
+            showPreviewBar={true}
+          />
 
           {/* Price */}
           <div className="grid grid-cols-3 gap-2">

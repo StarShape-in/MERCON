@@ -1,7 +1,8 @@
 import React from 'react';
 import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check, Keyboard, Pencil } from 'lucide-react';
 import { Customer } from '@/services/customerService';
-import { RateCard, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
+import { RateCard } from '@/services/rateCardService';
+import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -238,45 +239,15 @@ export default function TripStepRatesBilling({
             </div>
 
             {/* Which tonnage/booking type this price is actually for. */}
-            <div className="grid grid-cols-2 gap-2 pl-6 pt-1">
-              <div className="space-y-1">
-                <Label className="text-[10px] font-semibold text-amber-900 dark:text-amber-200">
-                  Vehicle type
-                </Label>
-                <Select
-                  value={newRateVehicleType || '__none__'}
-                  onValueChange={(v) => onNewRateVehicleTypeChange(v === '__none__' ? '' : v)}
-                >
-                  <SelectTrigger className="h-8 text-[11px] bg-white dark:bg-slate-900">
-                    <SelectValue placeholder="Any / not set" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Any / not set</SelectItem>
-                    {VEHICLE_TYPES.map((v) => (
-                      <SelectItem key={v} value={v}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] font-semibold text-amber-900 dark:text-amber-200">
-                  Rate category
-                </Label>
-                <Select
-                  value={newRateCategory || '__none__'}
-                  onValueChange={(v) => onNewRateCategoryChange(v === '__none__' ? '' : v)}
-                >
-                  <SelectTrigger className="h-8 text-[11px] bg-white dark:bg-slate-900">
-                    <SelectValue placeholder="Any / not set" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Any / not set</SelectItem>
-                    {RATE_CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="pl-6 pt-1">
+              <RateCategoryVehicleTypeForm
+                vehicleType={newRateVehicleType}
+                onVehicleTypeChange={onNewRateVehicleTypeChange}
+                rateCategory={newRateCategory}
+                onRateCategoryChange={onNewRateCategoryChange}
+                size="sm"
+                showPreviewBar={false}
+              />
             </div>
           </div>
         )}
