@@ -347,11 +347,11 @@ export function TripScheduleSelector({
               />
             </div>
 
-            {/* Quick SLA Offsets for Delivery */}
+            {/* Quick Time Offsets for Delivery */}
             {onApplyOffset && (
               <div className="flex items-center gap-1">
                 <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-0.5">
-                  <Zap className="size-3 text-amber-500" /> SLA:
+                  <Zap className="size-3 text-amber-500" /> Quick Offsets:
                 </span>
                 <button
                   type="button"

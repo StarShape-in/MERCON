@@ -452,10 +452,10 @@ export default function TripStopCard({
 
         {warning}
 
-        {/* Scheduled Arrival / Delivery SLA Time */}
+        {/* Scheduled Arrival / Delivery Time */}
         <TripScheduleSelector
           tone={tone}
-          label={timeLabel || (isPickup ? 'Scheduled Pickup Time' : 'Scheduled Delivery SLA')}
+          label={timeLabel || (isPickup ? 'Scheduled Pickup Time' : 'Scheduled Delivery Time')}
           value={time}
           onChange={onTimeChange}
           placeholder={timePlaceholder}

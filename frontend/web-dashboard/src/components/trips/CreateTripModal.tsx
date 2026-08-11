@@ -792,7 +792,7 @@ export default function CreateTripModal({
                 )}
               >
                 <Navigation className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">3. Route &amp; SLA</span>
+                <span className="truncate">3. Route</span>
                 {!missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid && (
                   <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
                 )}

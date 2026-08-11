@@ -89,7 +89,7 @@ export default function TripStepStopsSLA({
     <div className="space-y-5 animate-in fade-in-50 duration-200">
       <div>
         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Navigation className="w-4 h-4 text-[#E8450F]" /> Route Stops &amp; SLA Schedule
+          <Navigation className="w-4 h-4 text-[#E8450F]" /> Route Stops &amp; Schedule
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Select origin and destination locations and set planned arrival delivery windows.
@@ -148,7 +148,7 @@ export default function TripStepStopsSLA({
           onCoordsChange={(lat, lng) => onDropoffCoordinatesChange(lat, lng)}
           time={dropoffTime}
           onTimeChange={onDropoffTimeChange}
-          timeLabel="Scheduled Delivery SLA"
+          timeLabel="Scheduled Delivery Time"
           timePlaceholder="Select target arrival date and time"
           presets={[]}
           name={dropoffName}
@@ -159,7 +159,7 @@ export default function TripStepStopsSLA({
         />
       </div>
 
-      {/* Transit SLA Timeline Summary Card */}
+      {/* Transit Timeline Summary Card */}
       {transitInfo && (
         <Card className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-linear-to-r from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-900 p-4 shadow-2xs">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
@@ -169,7 +169,7 @@ export default function TripStepStopsSLA({
               </div>
               <div>
                 <span className="font-extrabold text-slate-900 dark:text-slate-100 block">
-                  Transit SLA Timeline &amp; Duration
+                  Transit Timeline &amp; Duration
                 </span>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                   Calculated arrival window from origin pickup to destination delivery
