@@ -44,6 +44,8 @@ interface ExcelImportDialogProps {
   preferSheet: string;
   /** Public path to the matching template, offered when a file won't parse. */
   templateUrl: string;
+  /** What existing rows are matched on, shown in the preview footnote — e.g. "phone number", "customer + lane + vehicle type". Defaults to "plate number". */
+  matchLabel?: string;
   onImport: (rows: Record<string, string | number>[]) => Promise<ImportSummary>;
   /** Query keys to refresh after a successful import. */
   invalidateKeys: string[][];
@@ -60,7 +62,7 @@ interface ExcelImportDialogProps {
  */
 export default function ExcelImportDialog({
   isOpen, onClose, entityLabel, columns, requiredFields, preferSheet,
-  templateUrl, onImport, invalidateKeys,
+  templateUrl, matchLabel, onImport, invalidateKeys,
 }: ExcelImportDialogProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -355,7 +357,7 @@ export default function ExcelImportDialog({
 
                 <p className="text-[11px] text-slate-500">
                   Existing records are matched on{' '}
-                  <strong>{entityLabel === 'Drivers' ? 'phone number' : 'plate number'}</strong> and
+                  <strong>{matchLabel || (entityLabel === 'Drivers' ? 'phone number' : 'plate number')}</strong> and
                   updated — re-uploading a corrected file won't create duplicates.
                 </p>
               </div>

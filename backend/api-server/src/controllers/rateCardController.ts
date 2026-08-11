@@ -46,9 +46,20 @@ const resolveLane = async (tx: any, body: any, userId?: string | null) => {
   return { origin, destination };
 };
 
+// A lane's price is only ambiguous when everything that could distinguish two
+// quotes for it (vehicle type, rate category) also matches — a customer can
+// have both a "Trip" rate and a "Monthly" rate for the same origin/destination,
+// or a different price per vehicle tier, without one clashing with the other.
 const laneAlreadyPriced = async (
   tx: any,
-  params: { customerId: string | null; originLocationId: string; destinationLocationId: string; exceptId?: string }
+  params: {
+    customerId: string | null;
+    originLocationId: string;
+    destinationLocationId: string;
+    vehicleType?: string | null;
+    rateCategory?: string | null;
+    exceptId?: string;
+  }
 ) =>
   tx.rateCard.findFirst({
     where: {
@@ -56,6 +67,8 @@ const laneAlreadyPriced = async (
       customerId: params.customerId,
       originLocationId: params.originLocationId,
       destinationLocationId: params.destinationLocationId,
+      vehicle_type: params.vehicleType ?? null,
+      rate_category: params.rateCategory ?? null,
       ...(params.exceptId ? { id: { not: params.exceptId } } : {}),
     },
     include: rateCardInclude,
@@ -63,7 +76,7 @@ const laneAlreadyPriced = async (
 
 export const createRateCard = async (req: Request, res: Response) => {
   try {
-    const { name, base_price, currency, customerId, is_active } = req.body;
+    const { name, base_price, currency, customerId, is_active, vehicle_type, rate_category, via_location } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
     const price = Number(base_price);
@@ -81,11 +94,15 @@ export const createRateCard = async (req: Request, res: Response) => {
       }
 
       const normalisedCustomerId = getValidUuid(customerId);
+      const normalisedVehicleType = vehicle_type ? String(vehicle_type).trim() || null : null;
+      const normalisedRateCategory = rate_category ? String(rate_category).trim() || null : null;
 
       const clash = await laneAlreadyPriced(tx, {
         customerId: normalisedCustomerId,
         originLocationId: origin.id,
         destinationLocationId: destination.id,
+        vehicleType: normalisedVehicleType,
+        rateCategory: normalisedRateCategory,
       });
       if (clash) {
         const err: any = new Error('LANE_DUPLICATE');
@@ -106,6 +123,9 @@ export const createRateCard = async (req: Request, res: Response) => {
           currency: currency || 'SAR',
           customerId: normalisedCustomerId,
           is_active: is_active ?? true,
+          vehicle_type: normalisedVehicleType,
+          rate_category: normalisedRateCategory,
+          via_location: via_location ? String(via_location).trim() || null : null,
           created_by: userId,
         },
         include: rateCardInclude,
@@ -241,6 +261,8 @@ export const assignRateCardToCustomers = async (req: Request, res: Response) => 
           customerId,
           originLocationId: source.originLocationId!,
           destinationLocationId: source.destinationLocationId!,
+          vehicleType: source.vehicle_type,
+          rateCategory: source.rate_category,
         });
         if (existing) {
           skipped.push({ customerId, customerName: customer.name });
@@ -259,6 +281,9 @@ export const assignRateCardToCustomers = async (req: Request, res: Response) => 
               currency: source.currency,
               customerId,
               is_active: true,
+              vehicle_type: source.vehicle_type,
+              rate_category: source.rate_category,
+              via_location: source.via_location,
               created_by: userId,
             },
             include: rateCardInclude,
@@ -293,7 +318,7 @@ export const getRateCardById = async (req: Request, res: Response) => {
 export const updateRateCard = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, base_price, currency, customerId, is_active } = req.body;
+    const { name, base_price, currency, customerId, is_active, vehicle_type, rate_category, via_location } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
     if (base_price !== undefined) {
@@ -333,12 +358,16 @@ export const updateRateCard = async (req: Request, res: Response) => {
       }
 
       const normalisedCustomerId = customerId === undefined ? existing.customerId : customerId || null;
+      const normalisedVehicleType = vehicle_type === undefined ? existing.vehicle_type : (String(vehicle_type || '').trim() || null);
+      const normalisedRateCategory = rate_category === undefined ? existing.rate_category : (String(rate_category || '').trim() || null);
 
       if (originId && destinationId) {
         const clash = await laneAlreadyPriced(tx, {
           customerId: normalisedCustomerId,
           originLocationId: originId,
           destinationLocationId: destinationId,
+          vehicleType: normalisedVehicleType,
+          rateCategory: normalisedRateCategory,
           exceptId: existing.id,
         });
         if (clash) {
@@ -360,6 +389,9 @@ export const updateRateCard = async (req: Request, res: Response) => {
           ...(currency !== undefined ? { currency } : {}),
           ...(customerId !== undefined ? { customerId: normalisedCustomerId } : {}),
           ...(is_active !== undefined ? { is_active } : {}),
+          ...(vehicle_type !== undefined ? { vehicle_type: normalisedVehicleType } : {}),
+          ...(rate_category !== undefined ? { rate_category: normalisedRateCategory } : {}),
+          ...(via_location !== undefined ? { via_location: String(via_location || '').trim() || null } : {}),
           updated_by: userId,
           version: existing.version + 1,
         },
@@ -430,5 +462,154 @@ export const bulkDeleteRateCards = async (req: Request, res: Response) => {
     res.json({ success: true, data: { message: `Successfully deleted ${ids.length} ratecards` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete ratecards` } });
+  }
+};
+
+/**
+ * Import a flat rate sheet: one row per lane × vehicle-type combination,
+ * grouped by customer and rate category ("Trip/Round Trip", "Monthly",
+ * "Surcharge", ...). Mirrors bulkImportCustomers — parsed client-side, posted
+ * as JSON, one row failing doesn't stop the rest.
+ *
+ * The customer must already exist (matched by name, case-insensitive); rate
+ * cards don't have enough info to create one (Customer.contact_phone is
+ * required and isn't part of this sheet), so a missing customer fails that
+ * row with a message pointing at the Customers import instead of guessing.
+ *
+ * "Surcharge" rows (labour charge, per-stop fee, ...) aren't a lane — Origin
+ * carries the description instead, and no Location rows are resolved/created
+ * for them.
+ */
+export const bulkImportRateCards = async (req: Request, res: Response) => {
+  try {
+    const rows: Record<string, any>[] = req.body.rows || [];
+    const userId = getValidUuid((req as any).user?.id);
+    const results: any[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNumber = i + 1;
+
+      const customerName = String(row.customer_name || '').trim();
+      const originText = String(row.origin || '').trim();
+      const destinationText = String(row.destination || '').trim();
+      const viaText = String(row.via || '').trim();
+      const vehicleType = String(row.vehicle_type || '').trim();
+      const rateCategory = String(row.rate_category || '').trim();
+      const currency = String(row.currency || '').trim() || 'SAR';
+      const isSurcharge = rateCategory.toLowerCase() === 'surcharge';
+      const label = [customerName, rateCategory || null, originText, isSurcharge ? null : destinationText]
+        .filter(Boolean)
+        .join(' — ') || `Row ${rowNumber}`;
+
+      try {
+        if (!customerName) {
+          results.push({ row: rowNumber, success: false, label, error: 'Customer is missing' });
+          continue;
+        }
+        if (!originText) {
+          results.push({ row: rowNumber, success: false, label, error: isSurcharge ? 'Description is missing' : 'Origin is missing' });
+          continue;
+        }
+        if (!isSurcharge && !destinationText) {
+          results.push({ row: rowNumber, success: false, label, error: 'Destination is missing' });
+          continue;
+        }
+
+        const price = Number(row.price);
+        if (isNaN(price) || price <= 0) {
+          results.push({ row: rowNumber, success: false, label, error: 'Price is missing or not a number greater than 0' });
+          continue;
+        }
+
+        const customer = await prisma.customer.findFirst({
+          where: { deletedAt: null, name: { equals: customerName, mode: 'insensitive' } },
+        });
+        if (!customer) {
+          results.push({
+            row: rowNumber,
+            success: false,
+            label,
+            error: `Customer "${customerName}" doesn't exist yet — import it on the Customers page first.`,
+          });
+          continue;
+        }
+
+        const action = await prisma.$transaction(async (tx) => {
+          let originId: string | null = null;
+          let destinationId: string | null = null;
+          let routeOrigin = originText;
+          let routeDestination = destinationText;
+
+          if (!isSurcharge) {
+            const origin = await resolveLocation(tx, { name: originText }, userId);
+            const destination = await resolveLocation(tx, { name: destinationText }, userId);
+            if (!origin || !destination) throw new Error('LANE_INCOMPLETE');
+            if (origin.id === destination.id) throw new Error('LANE_SAME_ENDPOINTS');
+            originId = origin.id;
+            destinationId = destination.id;
+            routeOrigin = origin.name;
+            routeDestination = destination.name;
+          }
+
+          const data = {
+            name: isSurcharge
+              ? `${customer.name} — ${originText}`
+              : `${customer.name} — ${routeOrigin} → ${routeDestination}${vehicleType ? ` (${vehicleType})` : ''}`,
+            route_origin: routeOrigin,
+            route_destination: isSurcharge ? (destinationText || 'Surcharge') : routeDestination,
+            originLocationId: originId,
+            destinationLocationId: destinationId,
+            base_price: price,
+            currency,
+            customerId: customer.id,
+            is_active: true,
+            vehicle_type: vehicleType || null,
+            rate_category: rateCategory || null,
+            via_location: viaText || null,
+          };
+
+          const existing = await tx.rateCard.findFirst({
+            where: {
+              deletedAt: null,
+              customerId: customer.id,
+              originLocationId: originId,
+              destinationLocationId: destinationId,
+              vehicle_type: vehicleType || null,
+              rate_category: rateCategory || null,
+              ...(isSurcharge ? { route_origin: originText } : {}),
+            },
+          });
+
+          if (existing) {
+            await tx.rateCard.update({
+              where: { id: existing.id },
+              data: { ...data, updated_by: userId, version: existing.version + 1 },
+            });
+            return 'updated';
+          }
+
+          await tx.rateCard.create({ data: { ...data, created_by: userId } });
+          return 'created';
+        });
+
+        results.push({ row: rowNumber, success: true, label, action });
+      } catch (err: any) {
+        const message =
+          err.message === 'LANE_SAME_ENDPOINTS' ? 'Origin and destination must be different places' :
+          err.message === 'LANE_INCOMPLETE' ? 'Could not resolve the origin/destination' :
+          err.message || 'Could not import this rate';
+        results.push({ row: rowNumber, success: false, label, error: message });
+      }
+    }
+
+    const created = results.filter((r) => r.success && r.action === 'created').length;
+    const updated = results.filter((r) => r.success && r.action === 'updated').length;
+    const failed = results.filter((r) => !r.success).length;
+
+    res.json({ success: true, data: { total: rows.length, created, updated, failed, results } });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to import rate cards');
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to import rate cards' } });
   }
 };
