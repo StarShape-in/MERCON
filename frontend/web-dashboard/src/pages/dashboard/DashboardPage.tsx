@@ -7,7 +7,7 @@ import {
   Send, MessageSquare, Calendar, AlertCircle, MapPin, TrendingUp, 
   User, Download, Plus, Mail, ShieldAlert, BadgePercent, ChevronRight,
   Phone, Eye, Building2, X, Video, Search, Smile, Paperclip, CheckCheck,
-  Camera, MessageSquarePlus, MoreVertical, ChevronLeft
+  Camera, MessageSquarePlus, MoreVertical, ChevronLeft, Wrench
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -461,6 +461,13 @@ export default function DashboardPage() {
     markMessagesAsRead(driverName);
   };
 
+  // Segmented progress calculations for Total Trips card
+  const totalTripsCalculated = completedTripsCount + activeTripsCount + upcomingTripsCount;
+  const totalTripsDivisor = totalTripsCalculated || 1;
+  const pctCompleted = (completedTripsCount / totalTripsDivisor) * 100;
+  const pctActive = (activeTripsCount / totalTripsDivisor) * 100;
+  const pctUpcoming = (upcomingTripsCount / totalTripsDivisor) * 100;
+
   return (
     <DashboardLayout active="Dashboard" title="Dashboard">
       {/* Toast Notification */}
@@ -566,157 +573,116 @@ export default function DashboardPage() {
         )}
 
         {/* ==========================================
-            2. KPI SECTION (Premium Layouts)
+            2. KPI SECTION (Light-themed Dashboard Cards)
             ========================================== */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           
-          {/* KPI 1: MONTHLY REVENUE (Apple Theme - Popping Split-Card) */}
-          <div className="flex flex-col rounded-[28px] overflow-hidden shadow-lg border border-slate-200/50 hover:scale-[1.015] transition-all duration-300 bg-white">
-            {/* Top Dark Panel */}
-            <div className="bg-[#1C1C1E] p-6 flex flex-col justify-between h-[160px] relative overflow-hidden">
+          {/* Card 1: Total Trips */}
+          <div className="bg-white rounded-3xl p-5 border border-orange-500/30 shadow-orange-50/20 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
+            <div className="flex items-start justify-between">
               <div>
-                <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Monthly Revenue</span>
-                <div className="text-3xl font-black text-white mt-1 tracking-tight">
-                  SAR {((kpis.revenue_this_month.value || 42000) / 1000).toFixed(1)}K
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Trips</span>
+                <div className="text-2xl font-black text-[#E8450F] tracking-tight mt-1">
+                  {totalTripsCalculated} <span className="text-xs font-black uppercase text-[#E8450F]/80 ml-0.5">Trips</span>
                 </div>
               </div>
-              {/* Glowing Sparkline Chart */}
-              <div className="h-10 w-full -mx-6 -mb-2 relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="revGlow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#00F0FF" stopOpacity={0.25} />
-                        <stop offset="100%" stopColor="#00F0FF" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="#00F0FF" 
-                      strokeWidth={2} 
-                      fill="url(#revGlow)" 
-                      dot={false}
-                      style={{ filter: 'drop-shadow(0 0 3px rgba(0, 240, 255, 0.6))' }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            {/* Bottom Popping Panel */}
-            <div className="bg-gradient-to-r from-orange-500 to-[#E8450F] p-4.5 flex items-center justify-between text-white">
-              <div className="text-2xl font-black tracking-tight">84%</div>
-              <span className="text-[9px] font-extrabold uppercase bg-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-xs">Target Met</span>
-            </div>
-          </div>
-
-          {/* KPI 2: MONTHLY EXPENSE (Apple Theme - Glass & Vertical Bars) */}
-          <div className="bg-[#181113] border border-rose-500/20 rounded-[28px] p-6 h-[225px] flex flex-col justify-between relative overflow-hidden hover:scale-[1.015] transition-all duration-300 shadow-lg">
-            {/* Glow backdrop */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-600/10 rounded-full blur-3xl -mr-8 -mt-8" />
-            
-            <div>
-              <span className="text-[9px] font-black uppercase tracking-wider text-rose-300 block">Monthly Expense</span>
-              <div className="text-3xl font-black text-white mt-1 tracking-tight">
-                SAR {(((kpis.revenue_this_month.value || 42000) * 0.34) / 1000).toFixed(1)}K
+              <div className="bg-[#FEF1EC] text-[#E8450F] rounded-xl p-2 border border-orange-100/50 flex items-center justify-center shrink-0">
+                <Truck size={16} className="stroke-[2.5]" />
               </div>
             </div>
 
-            {/* Vertical Bar Sparkline */}
-            <div className="h-16 w-full -mx-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueSparkline.map(d => ({ name: d.name, value: Math.round(d.value * 0.34) }))}>
-                  <Bar 
-                    dataKey="value" 
-                    fill="#F43F5E" 
-                    radius={[4, 4, 0, 0]}
-                    opacity={0.85}
-                    style={{ filter: 'drop-shadow(0 0 4px rgba(244, 63, 94, 0.7))' }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+            {/* Segmented Progress Bar */}
+            <div className="h-2 w-full rounded-full bg-slate-100 flex overflow-hidden mt-2">
+              <div className="bg-emerald-500 h-full" style={{ width: `${pctCompleted}%` }} title="Completed" />
+              <div className="bg-blue-500 h-full" style={{ width: `${pctActive}%` }} title="In Transit" />
+              <div className="bg-orange-500 h-full" style={{ width: `${pctUpcoming}%` }} title="Open" />
             </div>
 
-            <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-400">
-              <span>71% Budget Limit</span>
-              <span className="text-rose-400">↑ 5.4% vs last month</span>
+            {/* Legend */}
+            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
+              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Completed: {completedTripsCount}</span>
+              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> In transit: {activeTripsCount}</span>
+              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Open: {upcomingTripsCount}</span>
             </div>
           </div>
 
-          {/* KPI 3: TOTAL FREIGHT TRIPS (Apple Theme - Concentric Rings Card) */}
-          <div className="bg-gradient-to-br from-indigo-750 via-purple-700 to-pink-600 rounded-[28px] p-6 h-[225px] flex flex-col justify-between relative overflow-hidden hover:scale-[1.015] transition-all duration-300 text-white shadow-lg">
-            <div className="absolute inset-0 bg-black/10 backdrop-blur-3xs" />
-            
-            <div className="relative z-10">
-              <span className="text-[9px] font-black uppercase tracking-wider text-indigo-200">Total Freight Trips</span>
-              <div className="text-3xl font-black mt-1 tracking-tight">{kpis.total_trips.value || 8}</div>
-            </div>
-
-            {/* Concentric Progress Rings SVG */}
-            <div className="relative z-10 flex justify-center items-center my-1">
-              <div className="relative w-24 h-24 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  {/* Outer Ring */}
-                  <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
-                  <circle cx="50" cy="50" r="38" fill="none" stroke="#FFFFFF" strokeWidth="5" strokeDasharray="238.7" strokeDashoffset={238.7 * (1 - completedTripsCount / (kpis.total_trips.value || 8))} strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' }} />
-
-                  {/* Middle Ring */}
-                  <circle cx="50" cy="50" r="29" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
-                  <circle cx="50" cy="50" r="29" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="5" strokeDasharray="182.2" strokeDashoffset={182.2 * (1 - activeTripsCount / (kpis.total_trips.value || 8))} strokeLinecap="round" />
-
-                  {/* Inner Ring */}
-                  <circle cx="50" cy="50" r="20" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
-                  <circle cx="50" cy="50" r="20" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="5" strokeDasharray="125.6" strokeDashoffset={125.6 * (1 - upcomingTripsCount / (kpis.total_trips.value || 8))} strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-base font-black tracking-tighter">75%</span>
-                  <span className="text-[6px] font-black uppercase text-indigo-200 tracking-wider">Done</span>
+          {/* Card 2: Drivers */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Drivers</span>
+                <div className="text-2xl font-black text-blue-600 tracking-tight mt-1">
+                  {kpis.active_drivers.value || 9} <span className="text-xs font-black uppercase text-blue-500 ml-0.5">On Road</span>
                 </div>
               </div>
+              <div className="bg-[#EEF2FE] text-blue-600 rounded-xl p-2 border border-blue-100/50 flex items-center justify-center shrink-0">
+                <User size={16} className="stroke-[2.5]" />
+              </div>
             </div>
 
-            <div className="relative z-10 flex items-center justify-between text-[8px] font-bold text-indigo-150">
-              <span>Active: {activeTripsCount}</span>
-              <span>Standby: {kpis.fleet_available.value || 8}</span>
-              <span>Sched: {upcomingTripsCount}</span>
+            {/* Single Blue Progress Bar */}
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-2">
+              <div className="bg-blue-500 h-full rounded-full" style={{ width: '97%' }} />
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
+              <span className="flex items-center gap-1.5 text-blue-600"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" /> 97% Rating</span>
+              <span className="text-slate-400 font-bold">Rating this month</span>
             </div>
           </div>
 
-          {/* KPI 4: COMPLIANCE RENEWALS (Apple Theme - Stacked Compact Pills) */}
-          <div className="bg-[#121214] border border-slate-800 rounded-[28px] p-5 h-[225px] flex flex-col justify-between hover:scale-[1.015] transition-all duration-300 shadow-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Compliance Status</span>
-              <Badge className="bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-400 border-none font-bold text-[8px] px-1.5 py-0.2 rounded-md">100% OK</Badge>
-            </div>
-
-            {/* Pill 1 */}
-            <div className="bg-[#1C1C1E] border border-white/5 rounded-2xl p-3 flex items-center gap-3 shadow-2xs">
-              <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(16,185,129,0.15)" strokeWidth="3" />
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="#10B981" strokeWidth="3" strokeDasharray="94.2" strokeDashoffset={0} strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 2px rgba(16,185,129,0.5))' }} />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-emerald-400">✓</div>
+          {/* Card 3: Available Vehicles */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Available Vehicles</span>
+                <div className="text-2xl font-black text-emerald-600 tracking-tight mt-1">
+                  {kpis.fleet_available.value || 24} <span className="text-xs font-black uppercase text-emerald-500 ml-0.5">Available</span>
+                </div>
               </div>
-              <div className="min-w-0">
-                <div className="text-xs font-black text-white leading-tight">All Clear</div>
-                <div className="text-[9px] font-bold text-slate-500">Driver Permits</div>
+              <div className="bg-[#ECFDF5] text-[#10B981] rounded-xl p-2 border border-emerald-100/50 flex items-center justify-center shrink-0">
+                <Car size={16} className="stroke-[2.5]" />
               </div>
             </div>
 
-            {/* Pill 2 */}
-            <div className="bg-[#1C1C1E] border border-white/5 rounded-2xl p-3 flex items-center gap-3 shadow-2xs">
-              <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(245,158,11,0.15)" strokeWidth="3" />
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="#F5A623" strokeWidth="3" strokeDasharray="94.2" strokeDashoffset={94.2 * (1 - 0.75)} strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 2px rgba(245,158,11,0.5))' }} />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-[#F5A623]">3d</div>
+            {/* Green Progress Bar */}
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-2">
+              <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${((kpis.fleet_available.value || 24) / (totalVehiclesCount || 24)) * 100}%` }} />
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
+              <span className="flex items-center gap-1.5 text-[#10B981]"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {kpis.fleet_available.value || 24} Active of {totalVehiclesCount || 24} Total</span>
+              <span className="text-slate-400 font-bold">Utilization ratio</span>
+            </div>
+          </div>
+
+          {/* Card 4: Vehicles under MP */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Vehicles under MP</span>
+                <div className="text-2xl font-black text-amber-600 tracking-tight mt-1">
+                  {kpis.docs_expiring_soon.value || 3} <span className="text-xs font-black uppercase text-amber-500 ml-0.5">Under MP</span>
+                </div>
               </div>
-              <div className="min-w-0">
-                <div className="text-xs font-black text-white leading-tight">3 Expiries</div>
-                <div className="text-[9px] font-bold text-slate-500">Vehicle Registrations</div>
+              <div className="bg-[#FFFBEB] text-[#D97706] rounded-xl p-2 border border-amber-100/50 flex items-center justify-center shrink-0">
+                <Wrench size={16} className="stroke-[2.5]" />
               </div>
+            </div>
+
+            {/* Gold Progress Bar */}
+            <div className="h-2 w-full rounded-full bg-slate-100 flex overflow-hidden mt-2">
+              <div className="bg-red-500 h-full" style={{ width: '33%' }} title="Due soon" />
+              <div className="bg-amber-500 h-full" style={{ width: '67%' }} title="Planned" />
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
+              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Due: {kpis.docs_expiring_soon.value || 1}</span>
+              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Plan: 2</span>
+              <span className="text-slate-400 font-bold">Maintenance state</span>
             </div>
           </div>
 
