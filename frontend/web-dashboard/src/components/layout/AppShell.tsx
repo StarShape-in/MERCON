@@ -1,64 +1,15 @@
 import { useEffect, useState, Suspense } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { useLayoutMeta } from '@/context/LayoutContext';
+import { LayoutProvider, useLayoutMeta } from '@/context/LayoutContext';
 
 const SIDEBAR_COLLAPSED_KEY = 'mercon.sidebarCollapsed';
 
-interface DashboardLayoutProps {
-  active: string;
-  title: string;
-  breadcrumb?: string;
-  pageTitle?: React.ReactNode;
-  pageSub?: string;
-  actions?: React.ReactNode;
-  children: React.ReactNode;
-}
-
-export default function DashboardLayout({
-  active,
-  title,
-  breadcrumb,
-  pageTitle,
-  pageSub,
-  actions,
-  children,
-}: DashboardLayoutProps) {
-  const { isInsideShell, setMeta } = useLayoutMeta();
-
-  // ── When inside AppShell: push metadata up and render only the content ──
-  // The shell already owns the sidebar, header, and scroll container.
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    if (isInsideShell) {
-      setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions });
-    }
-    // Re-run only when primitive values change (actions/pageTitle are JSX so
-    // excluding them from deps avoids infinite loops; they update via ref on
-    // each render in AppShell anyway).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isInsideShell, active, title, breadcrumb, pageSub]);
-
-  if (isInsideShell) {
-    // Shell is already rendering the sidebar/header — just return the content.
-    return <>{children}</>;
-  }
-
-  // ── Standalone mode (fallback): render the full shell inline ────────────
-  // This path is only taken on pages that are NOT inside the AppShell layout
-  // route, e.g. during local development of an isolated page.
-  return <StandaloneShell {...{ active, title, breadcrumb, pageTitle, pageSub, actions, children }} />;
-}
-
-/** Full standalone shell — only used when AppShell is not the parent route. */
-function StandaloneShell({
-  active,
-  title,
-  breadcrumb,
-  children,
-}: DashboardLayoutProps) {
+/** Inner shell — reads metadata from context set by each page's DashboardLayout */
+function ShellInner() {
   const location = useLocation();
+  const { meta } = useLayoutMeta();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
@@ -68,10 +19,12 @@ function StandaloneShell({
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
+  // Close mobile drawer on navigation
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  // Lock body scroll while mobile drawer is open
   useEffect(() => {
     if (!sidebarOpen) return;
     const previous = document.body.style.overflow;
@@ -79,6 +32,7 @@ function StandaloneShell({
     return () => { document.body.style.overflow = previous; };
   }, [sidebarOpen]);
 
+  // Escape closes the drawer
   useEffect(() => {
     if (!sidebarOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -90,20 +44,24 @@ function StandaloneShell({
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-white">
+      {/* Sidebar — stays mounted forever, never remounts on navigation */}
       <Sidebar
-        active={active}
+        active={meta.active}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}
       />
+
       <div className="flex flex-col flex-1 min-w-0 bg-white">
         <Header
-          title={title}
-          breadcrumb={breadcrumb}
+          title={meta.title}
+          breadcrumb={meta.breadcrumb}
           onMenuClick={() => setSidebarOpen(true)}
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
         />
+
+        {/* Content area — Suspense here means only content swaps, shell stays */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white">
           <Suspense fallback={
             <div className="flex items-center justify-center h-full min-h-[300px]">
@@ -117,10 +75,23 @@ function StandaloneShell({
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           }>
-            {children}
+            <Outlet />
           </Suspense>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * AppShell — a single persistent layout route that renders the sidebar and header
+ * shell exactly once. All protected pages are nested under this via React Router's
+ * layout routes. The sidebar never unmounts between navigations.
+ */
+export default function AppShell() {
+  return (
+    <LayoutProvider>
+      <ShellInner />
+    </LayoutProvider>
   );
 }
