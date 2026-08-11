@@ -482,6 +482,31 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
     const userId = getValidUuid((req as any).user?.id);
     const results: any[] = [];
 
+    // A real sheet repeats the same handful of customers and locations across
+    // hundreds of rows (this import was built for a 652-row workbook with 7
+    // customers) — looking each one up fresh every row turned a few thousand
+    // sequential DB round trips, which is what blew past the client's request
+    // timeout. Both are stable for the life of one import call.
+    const customerCache = new Map<string, any>();
+    const findCustomer = async (name: string) => {
+      const key = name.toLowerCase();
+      if (customerCache.has(key)) return customerCache.get(key);
+      const customer = await prisma.customer.findFirst({
+        where: { deletedAt: null, name: { equals: name, mode: 'insensitive' } },
+      });
+      customerCache.set(key, customer);
+      return customer;
+    };
+
+    const locationCache = new Map<string, any>();
+    const findOrCreateLocation = async (tx: any, name: string) => {
+      const key = name.trim().toLowerCase();
+      if (locationCache.has(key)) return locationCache.get(key);
+      const location = await resolveLocation(tx, { name }, userId);
+      locationCache.set(key, location);
+      return location;
+    };
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const rowNumber = i + 1;
@@ -518,9 +543,7 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
           continue;
         }
 
-        const customer = await prisma.customer.findFirst({
-          where: { deletedAt: null, name: { equals: customerName, mode: 'insensitive' } },
-        });
+        const customer = await findCustomer(customerName);
         if (!customer) {
           results.push({
             row: rowNumber,
@@ -538,8 +561,8 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
           let routeDestination = destinationText;
 
           if (!isSurcharge) {
-            const origin = await resolveLocation(tx, { name: originText }, userId);
-            const destination = await resolveLocation(tx, { name: destinationText }, userId);
+            const origin = await findOrCreateLocation(tx, originText);
+            const destination = await findOrCreateLocation(tx, destinationText);
             if (!origin || !destination) throw new Error('LANE_INCOMPLETE');
             if (origin.id === destination.id) throw new Error('LANE_SAME_ENDPOINTS');
             originId = origin.id;

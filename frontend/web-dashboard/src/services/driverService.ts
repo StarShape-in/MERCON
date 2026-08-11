@@ -77,7 +77,7 @@ export const driverService = {
    * fixes people instead of duplicating them.
    */
   async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
-    const res = await api.post<ApiResponse<ImportSummary>>('/drivers/import', { rows });
+    const res = await api.post<ApiResponse<ImportSummary>>('/drivers/import', { rows }, { timeout: 120_000 });
     return res.data.data;
   },
 };

@@ -187,7 +187,7 @@ export const vehicleService = {
    * fixes trucks instead of duplicating them.
    */
   async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
-    const res = await api.post<ApiResponse<ImportSummary>>('/vehicles/import', { rows });
+    const res = await api.post<ApiResponse<ImportSummary>>('/vehicles/import', { rows }, { timeout: 120_000 });
     return res.data.data;
   },
 };

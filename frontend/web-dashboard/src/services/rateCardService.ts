@@ -142,8 +142,11 @@ export const rateCardService = {
     await api.post('/rate-cards/bulk-delete', { ids });
   },
 
+  // A real sheet can be hundreds of rows, each needing a few DB round trips
+  // server-side — the client's default 15s timeout is for normal requests,
+  // not this. 120s matches nginx's proxy_read_timeout for /api.
   async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
-    const res = await api.post<ApiResponse<ImportSummary>>('/rate-cards/import', { rows });
+    const res = await api.post<ApiResponse<ImportSummary>>('/rate-cards/import', { rows }, { timeout: 120_000 });
     return res.data.data;
   },
 };

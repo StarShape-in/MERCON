@@ -61,8 +61,10 @@ export const customerService = {
     await api.delete(`/customers/${id}`);
   },
 
+  // 120s matches nginx's proxy_read_timeout for /api — a large sheet takes far
+  // longer server-side than the client's default 15s request timeout allows.
   async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
-    const res = await api.post<ApiResponse<ImportSummary>>('/customers/import', { rows });
+    const res = await api.post<ApiResponse<ImportSummary>>('/customers/import', { rows }, { timeout: 120_000 });
     return res.data.data;
   },
 };
