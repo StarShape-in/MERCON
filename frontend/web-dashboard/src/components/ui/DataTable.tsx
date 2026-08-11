@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, SlidersHorizontal, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, X, FileSearch } from 'lucide-react';
-import Btn from './Btn';
+import Btn, { BtnVariant } from './Btn';
 import { Button } from './button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 import { Input } from './input';
@@ -19,7 +19,7 @@ export interface Column<T> {
 export interface BulkAction<T> {
   label: string;
   icon?: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger';
+  variant?: BtnVariant;
   className?: string;
   onClick: (selectedRows: T[], clearSelection: () => void) => void | Promise<void>;
 }

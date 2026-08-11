@@ -421,6 +421,7 @@ export default function DriverListPage() {
     {
       label: 'Mark Available',
       icon: <CheckCircle size={13} />,
+      variant: 'success' as const,
       onClick: (selectedRows: Driver[]) => {
         setConfirmModal({
           isOpen: true,
@@ -439,7 +440,7 @@ export default function DriverListPage() {
     {
       label: 'Mark Off-Duty',
       icon: <XCircle size={13} />,
-      variant: 'secondary' as const,
+      variant: 'warning' as const,
       onClick: (selectedRows: Driver[]) => {
         setConfirmModal({
           isOpen: true,
@@ -456,11 +457,11 @@ export default function DriverListPage() {
       }
     },
     {
-      label: 'Log communication (not yet wired to SMS)',
+      label: 'Log Communication',
       icon: <Send size={13} />,
-      variant: 'secondary' as const,
+      variant: 'info' as const,
       onClick: async (selectedRows: Driver[]) => {
-        const msg = prompt('Enter message content to log for selected drivers (NOTE: not yet wired to real SMS provider):');
+        const msg = prompt('Enter message content to log for selected drivers (NOTE: SMS dispatch pending real provider integration):');
         if (!msg) return;
         try {
           await notificationService.sendBulkCommunication({
@@ -470,14 +471,14 @@ export default function DriverListPage() {
             subject: 'Dashboard Operational Notification',
             message: msg
           });
-          toast.success('Messages logged successfully (SMS dispatch pending real provider integration).');
+          toast.success('Messages logged successfully.');
         } catch (e) { toast.error('Failed to log messages'); }
       }
     },
     {
       label: 'Export Excel',
       icon: <Download size={13} />,
-      variant: 'secondary' as const,
+      variant: 'success' as const,
       onClick: (selectedRows: Driver[]) => {
         handleExportExcel(selectedRows);
       }
