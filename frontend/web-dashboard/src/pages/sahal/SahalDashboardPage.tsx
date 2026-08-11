@@ -219,9 +219,9 @@ export default function SahalDashboardPage() {
       {/* Modal for creating a new trip */}
       {isCreateTripOpen && (
         <CreateTripModal
-          open={isCreateTripOpen}
+          isOpen={isCreateTripOpen}
           onClose={() => setIsCreateTripOpen(false)}
-          onSuccess={() => {
+          onTripCreated={() => {
             setIsCreateTripOpen(false);
             toast.success('Trip created and queued in Sahal module!');
           }}
