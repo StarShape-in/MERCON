@@ -342,7 +342,8 @@ export default function InvoiceListPage() {
             title="COLLECTED REVENUE"
             value={
               <span>
-                SAR {totalCollectedAmount.toLocaleString()}
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {totalCollectedAmount.toLocaleString()}
               </span>
             }
             variant="emerald"

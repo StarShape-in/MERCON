@@ -13,11 +13,16 @@ import Btn from '@/components/ui/Btn';
 import { reportsService } from '@/services/reportsService';
 
 /** Compact SAR formatter: 333000 -> "SAR 333K", 2450 -> "SAR 2,450" */
-function sar(value: number): string {
-  if (Math.abs(value) >= 1000) {
-    return `SAR ${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
-  }
-  return `SAR ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+function sar(value: number): React.ReactNode {
+  const formatted = Math.abs(value) >= 1000
+    ? `${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`
+    : value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return (
+    <span>
+      <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+      {formatted}
+    </span>
+  );
 }
 
 import ReportsHeader from '@/components/reports/ReportsHeader';

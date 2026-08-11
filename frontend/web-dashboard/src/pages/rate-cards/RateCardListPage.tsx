@@ -549,7 +549,8 @@ export default function RateCardListPage() {
             title="AVERAGE TARIFF"
             value={
               <span>
-                SAR {kpis.avgPrice.toLocaleString()}
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {kpis.avgPrice.toLocaleString()}
               </span>
             }
             variant="brand"

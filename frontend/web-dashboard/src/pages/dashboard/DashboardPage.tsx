@@ -187,7 +187,12 @@ export default function DashboardPage() {
           {/* Card 1: Monthly Revenue — Donut Gauge (Strongest Emphasis / Brand Variant) */}
           <KpiCard
             title="MONTHLY REVENUE"
-            value={`SAR ${((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K`}
+            value={
+              <span>
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {((kpis.revenue_this_month.value || 0) / 1000).toFixed(1)}K
+              </span>
+            }
             variant="brand"
             trend={kpis.revenue_this_month.delta !== null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : 'up'}
             trendValue={kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '+14.8%'}
