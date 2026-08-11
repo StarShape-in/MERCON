@@ -10,6 +10,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ImportantReminders from '@/components/dashboard/ImportantReminders';
 import MonthlyOverview from '@/components/dashboard/MonthlyOverview';
+import RateCategoryVehicleTypeOverview from '@/components/dashboard/RateCategoryVehicleTypeOverview';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
@@ -237,7 +238,10 @@ export default function DashboardPage() {
               {/* ━━━━ 2. Monthly Overview Financial Component ━━━━ */}
               <MonthlyOverview />
 
-              {/* ── 3. Important Reminders ───────────────────────────── */}
+              {/* ━━━━ 3. Rate Category & Vehicle Type Analytics ━━━━ */}
+              <RateCategoryVehicleTypeOverview />
+
+              {/* ── 4. Important Reminders ───────────────────────────── */}
               <ImportantReminders />
             </div>
 
