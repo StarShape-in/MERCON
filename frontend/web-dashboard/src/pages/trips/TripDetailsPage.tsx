@@ -668,6 +668,22 @@ export default function TripDetailsPage() {
                       </span>
                     )}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setDocTab('rate-card')}
+                    className={cn(
+                      'flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors cursor-pointer',
+                      docTab === 'rate-card' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
+                    )}
+                  >
+                    <ReceiptText size={15} />
+                    Rate Card & Pricing
+                    {trip.rateCard && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
+                        Linked
+                      </span>
+                    )}
+                  </button>
                 </div>
 
                 {docTab === 'documents' && (
@@ -806,6 +822,95 @@ export default function TripDetailsPage() {
                         )}
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {docTab === 'rate-card' && (
+                <Card className="rounded-xl border border-black/[0.12] bg-white overflow-hidden">
+                  <CardHeader className="pb-3 border-b border-black/[0.06] dark:border-slate-800/80">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-bold text-[#111] dark:text-slate-100 flex items-center gap-2">
+                        <ReceiptText size={16} className="text-indigo-600" />
+                        Rate Card & Financial Breakdown
+                      </CardTitle>
+                      {trip.rateCard && (
+                        <Btn
+                          label="View Rate Card"
+                          variant="outline"
+                          size="sm"
+                          icon={<ExternalLink size={13} />}
+                          onClick={() => navigate(`/rate-cards/${trip.rateCard?.id}`)}
+                          className="rounded-xl border-black/[0.12] text-xs font-semibold cursor-pointer"
+                        />
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-5 space-y-4">
+                    {/* Rate Card Info Pill */}
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-[#9898A4]">Linked Rate Card</span>
+                          {trip.rateCard ? (
+                            <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold text-[10px]">
+                              Active Rule
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-semibold text-[10px]">
+                              Manual Pricing
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-base font-bold text-[#111] dark:text-slate-100 mt-1">
+                          {trip.rateCard?.name || 'Manual / Fixed Rate (No Linked Card)'}
+                        </p>
+                        {trip.rateCard && (
+                          <p className="text-xs text-[#6E6E80] mt-0.5">
+                            Lane: <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_origin}</span> ➔ <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_destination}</span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-semibold text-[#9898A4]">Base Price</p>
+                        <p className="text-lg font-bold text-[#E8450F] font-mono">
+                          {trip.rateCard?.currency || 'SAR'} {Number(trip.rateCard?.base_price ?? trip.trip_charges ?? trip.billing_amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Cost Breakdown Ledger */}
+                    <div className="rounded-xl border border-black/[0.08] dark:border-slate-800 overflow-hidden">
+                      <div className="bg-black/[0.02] dark:bg-slate-900/50 px-4 py-2.5 border-b border-black/[0.06] dark:border-slate-800">
+                        <p className="text-xs font-bold text-[#111] dark:text-slate-200">Trip Financial Breakdown</p>
+                      </div>
+                      <div className="divide-y divide-black/[0.06] dark:divide-slate-800 text-xs">
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <span className="text-[#6E6E80] font-medium">Base Freight Charges</span>
+                          <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
+                            SAR {Number(trip.trip_charges || trip.rateCard?.base_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <span className="text-[#6E6E80] font-medium">Waiting / Detention Charges</span>
+                          <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
+                            SAR {Number(trip.waiting_labor_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <span className="text-[#6E6E80] font-medium">Additional Stop Charges</span>
+                          <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
+                            SAR {Number(trip.additional_stop_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between px-4 py-3.5 bg-orange-50/50 dark:bg-orange-950/20 font-bold">
+                          <span className="text-[#111] dark:text-slate-100">Total Billing Amount</span>
+                          <span className="text-sm font-mono text-[#E8450F]">
+                            SAR {Number(trip.billing_amount ?? ((trip.trip_charges || trip.rateCard?.base_price || 0) + (trip.waiting_labor_charges || 0) + (trip.additional_stop_charges || 0))).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
