@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -6,7 +6,8 @@ import {
   Loader2, RefreshCw, Clock, CheckCircle2, LayoutDashboard, Layers,
   Send, MessageSquare, Calendar, AlertCircle, MapPin, TrendingUp, 
   User, Download, Plus, Mail, ShieldAlert, BadgePercent, ChevronRight,
-  Phone, Eye
+  Phone, Eye, Video, Search, Smile, Paperclip, CheckCheck, Camera, 
+  MessageSquarePlus, MoreVertical, ChevronLeft
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -54,6 +55,25 @@ export default function DashboardPage() {
   // Local state for interactive communication panel
   const [messages, setMessages] = useState<DriverMessage[]>(INITIAL_MESSAGES);
   const [selectedSettlementTrip, setSelectedSettlementTrip] = useState<Trip | null>(null);
+  
+  // WhatsApp States
+  const [activeChatDriverName, setActiveChatDriverName] = useState<string | null>(null);
+  const [chatInputText, setChatInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'chats' | 'updates' | 'calls'>('chats');
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    if (activeChatDriverName) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, activeChatDriverName]);
+
+  const markMessagesAsRead = (driverName: string) => {
+    setMessages(prev => prev.map(m => m.driverName === driverName ? { ...m, unread: false } : m));
+  };
   
   // Modal states
   const [isSendMessageOpen, setIsSendMessageOpen] = useState(false);
@@ -170,25 +190,80 @@ export default function DashboardPage() {
       sender: 'Operator',
       driverName: driverLabel,
       message: messageText,
-      time: 'Just now',
+      time: new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
       type: 'General',
       unread: false
     };
 
-    setMessages([newMsg, ...messages]);
+    setMessages(prev => [newMsg, ...prev]);
     setIsSendMessageOpen(false);
     setMessageText('');
-    showToast(`Message sent to ${driverLabel}`, 'success');
+    setActiveChatDriverName(driverLabel);
+    showToast(`Chat started with ${driverLabel}`, 'success');
+  };
+
+  const handleSendChatMessage = (text: string) => {
+    if (!text.trim() || !activeChatDriverName) return;
+    
+    // Add operator's message
+    const newMsg: DriverMessage = {
+      id: String(Date.now()),
+      sender: 'Operator',
+      driverName: activeChatDriverName,
+      message: text,
+      time: new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+      type: 'General',
+      unread: false
+    };
+    
+    setMessages(prev => [...prev, newMsg]);
+    setChatInputText('');
+    
+    // Simulate driver typing and reply after 2.5 seconds
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
+      const replyMsg: DriverMessage = {
+        id: String(Date.now() + 1),
+        sender: 'Driver',
+        driverName: activeChatDriverName,
+        message: getSimulatedReply(text),
+        time: new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+        type: 'General',
+        unread: false
+      };
+      setMessages(prev => [...prev, replyMsg]);
+    }, 2500);
+  };
+
+  const getSimulatedReply = (operatorText: string): string => {
+    const text = operatorText.toLowerCase();
+    if (text.includes('status') || text.includes('where') || text.includes('location')) {
+      return 'Currently in transit. On track for delivery within estimated time.';
+    }
+    if (text.includes('delay') || text.includes('late')) {
+      return 'Apologies for the delay. Traffic is heavy near the unloading zone. Moving slowly.';
+    }
+    if (text.includes('check') || text.includes('check-in') || text.includes('hello') || text.includes('hi')) {
+      return 'All clear here. Vehicle status is normal. Ready for next stop.';
+    }
+    if (text.includes('accident') || text.includes('damage') || text.includes('issue')) {
+      return 'Reported the issue in the mobile app. Waiting for vehicle maintenance clearance.';
+    }
+    return 'Understood. Proceeding as instructed.';
   };
 
   const openContactDriver = (driverName: string) => {
-    const matched = driversList.find(d => `${d.first_name} ${d.last_name}`.toLowerCase().includes(driverName.toLowerCase()));
-    if (matched) {
-      setSelectedDriverForMessage(matched.id);
-    } else if (driversList.length > 0) {
-      setSelectedDriverForMessage(driversList[0].id);
-    }
-    setIsSendMessageOpen(true);
+    // Find matching driver in message log or driver list
+    const matchedMessage = messages.find(m => m.driverName.toLowerCase().includes(driverName.toLowerCase()));
+    const finalDriverName = matchedMessage 
+      ? matchedMessage.driverName 
+      : (driversList.find(d => d.first_name.toLowerCase().includes(driverName.toLowerCase())) 
+          ? `${driversList.find(d => d.first_name.toLowerCase().includes(driverName.toLowerCase()))?.first_name} ${driversList.find(d => d.first_name.toLowerCase().includes(driverName.toLowerCase()))?.last_name}` 
+          : driverName);
+    
+    setActiveChatDriverName(finalDriverName);
+    markMessagesAsRead(finalDriverName);
   };
 
   // Process KPIs
@@ -366,6 +441,26 @@ export default function DashboardPage() {
   const pendingLaborAmount = unsettledTrips.reduce((acc, t) => acc + (t.waiting_labor_charges || 350), 0);
   const paidLaborAmount = 8420 - pendingLaborAmount;
 
+  // WhatsApp Chat Groups processing
+  const uniqueDrivers = Array.from(new Set(messages.map(m => m.driverName)));
+  const chatGroups = uniqueDrivers.map(dName => {
+    const msgs = messages.filter(m => m.driverName === dName);
+    const sorted = [...msgs].sort((a,b) => b.id.localeCompare(a.id));
+    const latest = sorted[0];
+    const unreadCount = sorted.filter(m => m.unread && m.sender === 'Driver').length;
+    return {
+      driverName: dName,
+      latestMessage: latest,
+      unreadCount
+    };
+  }).filter(group => group.driverName.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => b.latestMessage.id.localeCompare(a.latestMessage.id));
+
+  const openChatForDriver = (driverName: string) => {
+    setActiveChatDriverName(driverName);
+    markMessagesAsRead(driverName);
+  };
+
   return (
     <DashboardLayout active="Dashboard" title="Dashboard">
       {/* Toast Notification */}
@@ -474,207 +569,153 @@ export default function DashboardPage() {
             ========================================== */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           
-          {/* KPI 1: MONTHLY REVENUE */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
-            <div className="flex items-start justify-between">
+          {/* KPI 1: MONTHLY REVENUE (Apple Theme - Popping Split-Card) */}
+          <div className="flex flex-col rounded-[28px] overflow-hidden shadow-lg border border-slate-200/50 hover:scale-[1.015] transition-all duration-300 bg-white">
+            {/* Top Dark Panel */}
+            <div className="bg-[#1C1C1E] p-6 flex flex-col justify-between h-[160px] relative overflow-hidden">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Monthly Revenue</span>
-                <div className="flex items-baseline mt-1">
-                  <span className="text-[#E8450F] font-black text-sm mr-1.5 select-none">SAR</span>
-                  <span className="text-3xl font-black text-slate-905 tracking-tight">
-                    {((kpis.revenue_this_month.value || 42000) / 1000).toFixed(1)}K
-                  </span>
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Monthly Revenue</span>
+                <div className="text-3xl font-black text-white mt-1 tracking-tight">
+                  SAR {((kpis.revenue_this_month.value || 42000) / 1000).toFixed(1)}K
                 </div>
               </div>
-              <div className="w-9 h-9 rounded-lg bg-[#FFEBE5] text-[#E8450F] flex items-center justify-center shrink-0 border border-[#FFD9CE]/65 group-hover:bg-[#E8450F] group-hover:text-white transition-all duration-350 shadow-3xs">
-                <DollarSign size={16} className="stroke-[2.5]" />
+              {/* Glowing Sparkline Chart */}
+              <div className="h-10 w-full -mx-6 -mb-2 relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="revGlow" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#00F0FF" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#00F0FF" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#00F0FF" 
+                      strokeWidth={2} 
+                      fill="url(#revGlow)" 
+                      dot={false}
+                      style={{ filter: 'drop-shadow(0 0 3px rgba(0, 240, 255, 0.6))' }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
-
-            <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-rose-600 bg-rose-50 border border-rose-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                ↓ {kpis.revenue_this_month.delta !== null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : '100%'}
-              </span>
-              <span className="text-[10px] text-slate-450 font-semibold">vs last month</span>
-            </div>
-
-            {/* Target Progress Bar */}
-            <div className="mt-4 pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mb-1.5">
-                <span>SAR 420K Monthly Target</span>
-                <span className="text-slate-900 font-extrabold">84%</span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div className="bg-[#E8450F] h-full rounded-full transition-all duration-500" style={{ width: '84%' }} />
-              </div>
-            </div>
-
-            {/* Mini Sparkline Chart */}
-            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="revSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#E8450F" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#E8450F" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="value" stroke="#E8450F" strokeWidth={1.5} fill="url(#revSpark)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+            {/* Bottom Popping Panel */}
+            <div className="bg-gradient-to-r from-orange-500 to-[#E8450F] p-4.5 flex items-center justify-between text-white">
+              <div className="text-2xl font-black tracking-tight">84%</div>
+              <span className="text-[9px] font-extrabold uppercase bg-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-xs">Target Met</span>
             </div>
           </div>
 
-          {/* KPI 2: TOTAL FREIGHT TRIPS */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Total Freight Trips</span>
-                <span className="text-3xl font-black text-slate-905 mt-1 block tracking-tight">
-                  {kpis.total_trips.value || 8}
-                </span>
-              </div>
-              <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100/70 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-350 shadow-3xs">
-                <Truck size={16} className="stroke-[2.5]" />
+          {/* KPI 2: MONTHLY EXPENSE (Apple Theme - Glass & Vertical Bars) */}
+          <div className="bg-[#181113] border border-rose-500/20 rounded-[28px] p-6 h-[225px] flex flex-col justify-between relative overflow-hidden hover:scale-[1.015] transition-all duration-300 shadow-lg">
+            {/* Glow backdrop */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-600/10 rounded-full blur-3xl -mr-8 -mt-8" />
+            
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-wider text-rose-300 block">Monthly Expense</span>
+              <div className="text-3xl font-black text-white mt-1 tracking-tight">
+                SAR {(((kpis.revenue_this_month.value || 42000) * 0.34) / 1000).toFixed(1)}K
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ {kpis.total_trips.delta !== null ? `${Math.abs(kpis.total_trips.delta)}%` : '0%'}
-              </span>
-              <span className="text-[10px] text-slate-450 font-semibold">vs last month</span>
-            </div>
-
-            {/* Split breakdown */}
-            <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-1 text-center">
-              <div className="border-r border-slate-100 pr-1">
-                <span className="text-[9px] text-slate-400 block uppercase font-bold">Done</span>
-                <span className="text-xs font-black text-slate-800">{completedTripsCount}</span>
-              </div>
-              <div className="border-r border-slate-100 px-1">
-                <span className="text-[9px] text-slate-400 block uppercase font-bold">Active</span>
-                <span className="text-xs font-black text-slate-800">{activeTripsCount}</span>
-              </div>
-              <div className="pl-1">
-                <span className="text-[9px] text-slate-400 block uppercase font-bold">Sched</span>
-                <span className="text-xs font-black text-slate-800">{upcomingTripsCount}</span>
-              </div>
-            </div>
-
-            {/* Mini Sparkline Chart */}
-            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
+            {/* Vertical Bar Sparkline */}
+            <div className="h-16 w-full -mx-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={tripsSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="tripSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="value" stroke="#4F46E5" strokeWidth={1.5} fill="url(#tripSpark)" dot={false} />
-                </AreaChart>
+                <BarChart data={revenueSparkline.map(d => ({ name: d.name, value: Math.round(d.value * 0.34) }))}>
+                  <Bar 
+                    dataKey="value" 
+                    fill="#F43F5E" 
+                    radius={[4, 4, 0, 0]}
+                    opacity={0.85}
+                    style={{ filter: 'drop-shadow(0 0 4px rgba(244, 63, 94, 0.7))' }}
+                  />
+                </BarChart>
               </ResponsiveContainer>
+            </div>
+
+            <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-400">
+              <span>71% Budget Limit</span>
+              <span className="text-rose-400">↑ 5.4% vs last month</span>
             </div>
           </div>
 
-          {/* KPI 3: ACTIVE FLEET */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Active Fleet (On Road)</span>
-                <span className="text-3xl font-black text-slate-905 mt-1 block tracking-tight">
-                  {kpis.fleet_on_trip.value || 2} <span className="text-xs text-slate-400 font-extrabold">/ {totalVehiclesCount} Units</span>
-                </span>
-              </div>
-              <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100/70 group-hover:bg-blue-600 group-hover:text-white transition-all duration-350 shadow-3xs">
-                <Car size={16} className="stroke-[2.5]" />
+          {/* KPI 3: TOTAL FREIGHT TRIPS (Apple Theme - Concentric Rings Card) */}
+          <div className="bg-gradient-to-br from-indigo-750 via-purple-700 to-pink-600 rounded-[28px] p-6 h-[225px] flex flex-col justify-between relative overflow-hidden hover:scale-[1.015] transition-all duration-300 text-white shadow-lg">
+            <div className="absolute inset-0 bg-black/10 backdrop-blur-3xs" />
+            
+            <div className="relative z-10">
+              <span className="text-[9px] font-black uppercase tracking-wider text-indigo-200">Total Freight Trips</span>
+              <div className="text-3xl font-black mt-1 tracking-tight">{kpis.total_trips.value || 8}</div>
+            </div>
+
+            {/* Concentric Progress Rings SVG */}
+            <div className="relative z-10 flex justify-center items-center my-1">
+              <div className="relative w-24 h-24 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  {/* Outer Ring */}
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="#FFFFFF" strokeWidth="5" strokeDasharray="238.7" strokeDashoffset={238.7 * (1 - completedTripsCount / (kpis.total_trips.value || 8))} strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' }} />
+
+                  {/* Middle Ring */}
+                  <circle cx="50" cy="50" r="29" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
+                  <circle cx="50" cy="50" r="29" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="5" strokeDasharray="182.2" strokeDashoffset={182.2 * (1 - activeTripsCount / (kpis.total_trips.value || 8))} strokeLinecap="round" />
+
+                  {/* Inner Ring */}
+                  <circle cx="50" cy="50" r="20" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
+                  <circle cx="50" cy="50" r="20" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="5" strokeDasharray="125.6" strokeDashoffset={125.6 * (1 - upcomingTripsCount / (kpis.total_trips.value || 8))} strokeLinecap="round" />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-base font-black tracking-tighter">75%</span>
+                  <span className="text-[6px] font-black uppercase text-indigo-200 tracking-wider">Done</span>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 6%
-              </span>
-              <span className="text-[10px] text-slate-450 font-semibold">capacity utilization</span>
-            </div>
-
-            {/* Capacity Progress Segment Bar */}
-            <div className="mt-4 pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold mb-1.5">
-                <span>Active: {kpis.fleet_on_trip.value || 2}</span>
-                <span>Standby: {kpis.fleet_available.value || 8}</span>
-                <span>Maint: 3</span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden flex">
-                <div className="bg-blue-500 h-full" style={{ width: '70%' }} title="Active on Trip" />
-                <div className="bg-emerald-400 h-full" style={{ width: '22%' }} title="Standby Available" />
-                <div className="bg-amber-400 h-full" style={{ width: '8%' }} title="Under Maintenance" />
-              </div>
-            </div>
-
-            {/* Mini Sparkline Chart */}
-            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={fleetSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="fleetSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#2563EB" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={1.5} fill="url(#fleetSpark)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="relative z-10 flex items-center justify-between text-[8px] font-bold text-indigo-150">
+              <span>Active: {activeTripsCount}</span>
+              <span>Standby: {kpis.fleet_available.value || 8}</span>
+              <span>Sched: {upcomingTripsCount}</span>
             </div>
           </div>
 
-          {/* KPI 4: COMPLIANCE */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Compliance Renewals</span>
-                <span className="text-3xl font-black text-slate-905 mt-1 block tracking-tight">
-                  {kpis.docs_expiring_soon.value || 0} <span className="text-xs text-slate-400 font-extrabold">Issues</span>
-                </span>
+          {/* KPI 4: COMPLIANCE RENEWALS (Apple Theme - Stacked Compact Pills) */}
+          <div className="bg-[#121214] border border-slate-800 rounded-[28px] p-5 h-[225px] flex flex-col justify-between hover:scale-[1.015] transition-all duration-300 shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Compliance Status</span>
+              <Badge className="bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-400 border-none font-bold text-[8px] px-1.5 py-0.2 rounded-md">100% OK</Badge>
+            </div>
+
+            {/* Pill 1 */}
+            <div className="bg-[#1C1C1E] border border-white/5 rounded-2xl p-3 flex items-center gap-3 shadow-2xs">
+              <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(16,185,129,0.15)" strokeWidth="3" />
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#10B981" strokeWidth="3" strokeDasharray="94.2" strokeDashoffset={0} strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 2px rgba(16,185,129,0.5))' }} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-emerald-400">✓</div>
               </div>
-              <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100/70 group-hover:bg-amber-500 group-hover:text-white transition-all duration-350 shadow-3xs">
-                <Calendar size={16} className="stroke-[2.5]" />
+              <div className="min-w-0">
+                <div className="text-xs font-black text-white leading-tight">All Clear</div>
+                <div className="text-[9px] font-bold text-slate-500">Driver Permits</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-slate-500 bg-slate-50 border border-slate-200/60 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                — All Clear
-              </span>
-              <span className="text-[10px] text-slate-450 font-semibold">documents up to date</span>
-            </div>
-
-            {/* Quick renewals details */}
-            <div className="mt-4 pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold mb-1.5">
-                <span>Due Soon: 0</span>
-                <span>Clear: {totalVehiclesCount + 5}</span>
+            {/* Pill 2 */}
+            <div className="bg-[#1C1C1E] border border-white/5 rounded-2xl p-3 flex items-center gap-3 shadow-2xs">
+              <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(245,158,11,0.15)" strokeWidth="3" />
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#F5A623" strokeWidth="3" strokeDasharray="94.2" strokeDashoffset={94.2 * (1 - 0.75)} strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 2px rgba(245,158,11,0.5))' }} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-[#F5A623]">3d</div>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden flex">
-                <div className="bg-amber-400 h-full" style={{ width: '0%' }} title="Due Soon" />
-                <div className="bg-slate-300 h-full flex-1" title="Clear Documents" />
+              <div className="min-w-0">
+                <div className="text-xs font-black text-white leading-tight">3 Expiries</div>
+                <div className="text-[9px] font-bold text-slate-500">Vehicle Registrations</div>
               </div>
-            </div>
-
-            {/* Mini Sparkline Chart */}
-            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={complianceSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="compSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#D97706" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#D97706" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="value" stroke="#D97706" strokeWidth={1.5} fill="url(#compSpark)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
             </div>
           </div>
 
@@ -867,91 +908,341 @@ export default function DashboardPage() {
             ========================================== */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
 
-          {/* MESSAGES & UPDATES (6 Columns) */}
-          <Card className="lg:col-span-6 border-slate-200/60 shadow-sm rounded-xl bg-white flex flex-col justify-between">
-            <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                  <MessageSquare className="w-4 h-4 text-emerald-500" />
-                  <span>Driver & Ops Updates</span>
-                </CardTitle>
-                <CardDescription className="text-[10px] text-slate-400 mt-0.5">Real-time alerts sent from driver mobile application</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsSendMessageOpen(true)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#E8450F] hover:bg-[#C7380A] text-white text-[10px] font-black rounded-lg transition-colors cursor-pointer"
-                >
-                  <Send size={11} />
-                  <span>Send Message</span>
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 p-0 divide-y divide-slate-100 max-h-[360px] overflow-y-auto">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`p-4 hover:bg-slate-50/30 transition-colors flex items-start gap-3.5 relative ${msg.unread ? 'bg-emerald-50/20' : ''}`}>
-                  {msg.unread && (
-                    <div className="absolute top-4 left-3 w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  )}
-                  
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
-                    msg.sender === 'Operator' 
-                      ? 'bg-slate-100 text-slate-700' 
-                      : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                  }`}>
-                    {msg.sender === 'Operator' ? 'OP' : msg.driverName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap text-[10px]">
-                      <span className="font-extrabold text-slate-900">{msg.driverName}</span>
-                      <span className="text-slate-300 font-bold">•</span>
-                      <span className={`font-bold px-1.5 py-0.2 rounded-md ${
-                        msg.type === 'Damage' ? 'bg-red-50 text-red-600' :
-                        msg.type === 'Maintenance' ? 'bg-amber-50 text-amber-600' :
-                        msg.type === 'Delivery' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-500'
-                      }`}>
-                        {msg.type}
-                      </span>
-                      {msg.tripRef && (
-                        <>
-                          <span className="text-slate-300 font-bold">•</span>
-                          <span className="font-mono text-slate-500 font-bold">{msg.tripRef}</span>
-                        </>
-                      )}
-                      <span className="text-slate-400 text-[9px] font-medium ml-auto">{msg.time}</span>
+          {/* MESSAGES & UPDATES (WhatsApp Theme - 6 Columns) */}
+          <Card className="lg:col-span-6 border-slate-200/60 shadow-md rounded-[24px] bg-[#efeae2] flex flex-col justify-between overflow-hidden h-[450px] relative">
+            
+            {activeChatDriverName ? (
+              /* ==========================================
+                 ACTIVE CHAT WINDOW (WhatsApp Layout)
+                 ========================================== */
+              <div className="flex flex-col h-full w-full bg-[#efeae2]">
+                {/* Chat Header */}
+                <div className="bg-[#008069] text-white px-4 py-3 flex items-center justify-between shadow-xs shrink-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <button 
+                      onClick={() => { setActiveChatDriverName(null); }}
+                      className="p-1 -ml-1 rounded-full hover:bg-white/10 transition-colors text-white cursor-pointer"
+                    >
+                      <ChevronLeft size={20} className="stroke-[2.5]" />
+                    </button>
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-white/20 border border-white/10 flex items-center justify-center font-black text-xs shrink-0 select-none">
+                      {activeChatDriverName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
-
-                    <p className="text-xs text-slate-600 font-medium mt-1 leading-relaxed">
-                      {msg.message}
-                    </p>
-
-                    {msg.sender === 'Driver' && (
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={() => openContactDriver(msg.driverName)}
-                          className="inline-flex items-center gap-1 text-[9px] font-black text-slate-600 hover:text-[#E8450F] transition-colors"
-                        >
-                          <Mail size={10} />
-                          <span>Reply to Driver</span>
-                        </button>
-                      </div>
-                    )}
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-black truncate leading-tight">{activeChatDriverName}</h4>
+                      <p className="text-[9px] text-[#86e2d5] font-bold leading-tight mt-0.5">
+                        {isTyping ? 'typing...' : 'online'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3.5 text-white">
+                    <button className="hover:text-slate-200 transition-colors cursor-pointer"><Video size={14} /></button>
+                    <button className="hover:text-slate-200 transition-colors cursor-pointer"><Phone size={13} /></button>
+                    <button className="hover:text-slate-200 transition-colors cursor-pointer"><MoreVertical size={14} /></button>
                   </div>
                 </div>
-              ))}
-            </CardContent>
-            <div className="p-3 bg-slate-50/70 border-t border-slate-100 flex justify-end">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => showToast('Messaging window open', 'info')}
-                className="text-[11px] font-bold text-[#E8450F] hover:text-[#C7380A] p-0 h-auto hover:bg-transparent"
-              >
-                <span>View All Messages</span>
-                <ChevronRight size={12} className="ml-0.5" />
-              </Button>
-            </div>
+
+                {/* Chat Messages Body (Wallpaper Doodle Background) */}
+                <div 
+                  className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0"
+                  style={{
+                    backgroundColor: '#efeae2',
+                    backgroundImage: 'radial-gradient(circle, #e5ddd5 1px, transparent 1px)',
+                    backgroundSize: '16px 16px'
+                  }}
+                >
+                  {messages
+                    .filter(m => m.driverName === activeChatDriverName)
+                    .slice()
+                    .reverse()
+                    .map((msg) => {
+                      const isOperator = msg.sender === 'Operator';
+                      return (
+                        <div 
+                          key={msg.id} 
+                          className={`flex flex-col max-w-[80%] rounded-[18px] p-3 shadow-3xs text-xs relative leading-relaxed ${
+                            isOperator 
+                              ? 'bg-[#d9fdd3] text-slate-800 self-end rounded-tr-none' 
+                              : 'bg-white text-slate-800 self-start rounded-tl-none'
+                          }`}
+                        >
+                          <p className="font-medium pr-10">{msg.message}</p>
+                          <div className="absolute bottom-1 right-2.5 flex items-center gap-1">
+                            <span className="text-[8px] text-slate-400 font-bold select-none">{msg.time}</span>
+                            {isOperator && (
+                              <CheckCheck size={11} className="text-[#53bdeb] stroke-[2.5]" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {isTyping && (
+                    <div className="bg-white text-slate-800 self-start rounded-[18px] rounded-tl-none p-3 shadow-3xs text-xs max-w-[80%] italic font-medium text-slate-400 animate-pulse">
+                      typing...
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Chat Input Footer */}
+                <div className="bg-[#f0f2f5] p-2.5 flex items-center gap-2.5 border-t border-slate-200/60 shrink-0">
+                  <button className="text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"><Smile size={18} /></button>
+                  <button className="text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"><Paperclip size={16} /></button>
+                  <input
+                    value={chatInputText}
+                    onChange={(e) => setChatInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && chatInputText.trim()) {
+                        handleSendChatMessage(chatInputText);
+                      }
+                    }}
+                    placeholder="Type a message"
+                    className="flex-1 text-xs bg-white rounded-full px-4 py-2 border-none focus:outline-none focus:ring-1 focus:ring-[#00a884] text-slate-805"
+                  />
+                  <button
+                    onClick={() => {
+                      if (chatInputText.trim()) {
+                        handleSendChatMessage(chatInputText);
+                      }
+                    }}
+                    disabled={!chatInputText.trim()}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all shadow-3xs ${
+                      chatInputText.trim() 
+                        ? 'bg-[#00a884] hover:bg-[#008f72] active:scale-95 cursor-pointer' 
+                        : 'bg-slate-350 cursor-not-allowed'
+                    }`}
+                  >
+                    <Send size={12} className="ml-0.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ==========================================
+                 WHATSAPP HOME (Chats / Updates / Calls)
+                 ========================================== */
+              <div className="flex flex-col h-full w-full bg-white relative">
+                {/* Header Teal Panel */}
+                <div className="bg-[#008069] text-white pt-4 px-4 pb-2.5 flex flex-col gap-3 shadow-xs shrink-0 select-none">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-extrabold tracking-wide">Driver live dispatch chat</span>
+                    <div className="flex items-center gap-4 text-white">
+                      <Camera size={15} className="cursor-pointer" />
+                      <button 
+                        onClick={() => setIsSendMessageOpen(true)}
+                        className="hover:text-slate-200 transition-colors cursor-pointer"
+                        title="Start New Chat"
+                      >
+                        <MessageSquarePlus size={15} />
+                      </button>
+                      <MoreVertical size={15} className="cursor-pointer" />
+                    </div>
+                  </div>
+
+                  {/* Active Tabs Nav */}
+                  <div className="flex justify-around text-[10px] font-black uppercase tracking-wider text-[#a5d2ce] mt-1.5 border-b border-white/10">
+                    <button
+                      onClick={() => setActiveTab('chats')}
+                      className={`flex-1 text-center pb-2 transition-all ${
+                        activeTab === 'chats' ? 'text-white border-b-[3px] border-white' : 'hover:text-white'
+                      }`}
+                    >
+                      Chats
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('updates')}
+                      className={`flex-1 text-center pb-2 transition-all ${
+                        activeTab === 'updates' ? 'text-white border-b-[3px] border-white' : 'hover:text-white'
+                      }`}
+                    >
+                      Updates
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('calls')}
+                      className={`flex-1 text-center pb-2 transition-all ${
+                        activeTab === 'calls' ? 'text-white border-b-[3px] border-white' : 'hover:text-white'
+                      }`}
+                    >
+                      Calls
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tab Contents */}
+                {activeTab === 'chats' && (
+                  <div className="flex-1 flex flex-col min-h-0 bg-white">
+                    {/* Search chats */}
+                    <div className="p-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2 shrink-0">
+                      <div className="relative w-full">
+                        <Search size={12} className="absolute left-3 top-2.5 text-slate-450" />
+                        <input
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search or start new chat"
+                          className="w-full text-[11px] bg-white border border-slate-200 focus:border-slate-355 rounded-full pl-8 pr-4 py-2 outline-none text-slate-750 placeholder-slate-450"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Chat Rows */}
+                    <div className="flex-1 overflow-y-auto divide-y divide-slate-100 min-h-0">
+                      {chatGroups.length === 0 ? (
+                        <div className="p-8 text-center text-slate-450 flex flex-col items-center justify-center h-full">
+                          <MessageSquare size={32} className="text-slate-200 stroke-[1.5] mb-1.5" />
+                          <p className="text-xs font-bold">No active chats found</p>
+                        </div>
+                      ) : (
+                        chatGroups.map((group) => {
+                          const isOperator = group.latestMessage.sender === 'Operator';
+                          return (
+                            <div 
+                              key={group.driverName}
+                              onClick={() => openChatForDriver(group.driverName)}
+                              className="p-3.5 hover:bg-slate-50/70 transition-all flex items-start gap-3 cursor-pointer group"
+                            >
+                              {/* Avatar with unread indicator ring */}
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs shrink-0 select-none border-2 ${
+                                group.unreadCount > 0 
+                                  ? 'border-[#25D366] bg-emerald-50 text-[#008069]' 
+                                  : 'border-slate-205 bg-slate-100 text-slate-600 group-hover:bg-[#008069] group-hover:text-white group-hover:border-[#008069] transition-all'
+                              }`}>
+                                {group.driverName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="font-extrabold text-slate-900 truncate">{group.driverName}</span>
+                                  <span className={`text-[9px] font-medium ${group.unreadCount > 0 ? 'text-[#25D366] font-black' : 'text-slate-405'}`}>
+                                    {group.latestMessage.time}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between mt-1 text-[11px]">
+                                  <div className="text-slate-500 font-medium truncate flex items-center gap-1 min-w-0 flex-1">
+                                    {isOperator && (
+                                      <CheckCheck size={11} className="text-[#53bdeb] stroke-[2.5] shrink-0" />
+                                    )}
+                                    <span className="truncate text-slate-550">{group.latestMessage.message}</span>
+                                  </div>
+                                  {group.unreadCount > 0 && (
+                                    <span className="bg-[#25D366] text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shrink-0 shadow-3xs animate-bounce">
+                                      {group.unreadCount}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Floating Action Button */}
+                    <button
+                      onClick={() => setIsSendMessageOpen(true)}
+                      className="absolute bottom-4 right-4 bg-[#008069] hover:bg-[#006e5a] text-white w-11 h-11 rounded-full flex items-center justify-center shadow-md transition-all active:scale-[0.95] cursor-pointer hover:rotate-6 z-10"
+                      title="New Chat"
+                    >
+                      <MessageSquarePlus size={18} />
+                    </button>
+                  </div>
+                )}
+
+                {activeTab === 'updates' && (
+                  <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-white min-h-0">
+                    <div className="flex items-center gap-3.5 pb-2 border-b border-slate-100">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 text-xs border-2 border-slate-200">
+                          ME
+                        </div>
+                        <span className="absolute bottom-0 right-0 bg-[#00a884] border-2 border-white text-white text-[8px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-black select-none">+</span>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-800">My Status</h4>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">Tap to add status update</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-[9px] font-extrabold text-[#008069] uppercase tracking-wider mb-3">Recent Updates</h5>
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-3.5 cursor-pointer hover:bg-slate-50/50 p-1.5 rounded-xl transition-all" onClick={() => openChatForDriver('Mohammed Faizan')}>
+                          <div className="w-10 h-10 rounded-full border-2 border-emerald-500 bg-emerald-50 text-[#008069] flex items-center justify-center font-black text-xs shrink-0">
+                            MF
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-850">Mohammed Faizan</h4>
+                            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Tire pressure checklist completed • Today, 10:42 AM</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3.5 cursor-pointer hover:bg-slate-50/50 p-1.5 rounded-xl transition-all" onClick={() => openChatForDriver('Umar Farooq')}>
+                          <div className="w-10 h-10 rounded-full border-2 border-emerald-500 bg-emerald-50 text-[#008069] flex items-center justify-center font-black text-xs shrink-0">
+                            UF
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-855">Umar Farooq</h4>
+                            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Arrived at stop 1: Riyadh Warehouse • Today, 9:15 AM</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3.5 cursor-pointer hover:bg-slate-50/50 p-1.5 rounded-xl transition-all" onClick={() => openChatForDriver('Ali Al-Harbi')}>
+                          <div className="w-10 h-10 rounded-full border-2 border-slate-300 bg-slate-100 text-slate-650 flex items-center justify-center font-black text-xs shrink-0">
+                            AA
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-855">Ali Al-Harbi</h4>
+                            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Break stop complete near Qassim road • Yesterday, 11:20 PM</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'calls' && (
+                  <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-white min-h-0">
+                    <h5 className="text-[9px] font-extrabold text-[#008069] uppercase tracking-wider mb-1">Recent check-in call logs</h5>
+                    <div className="flex flex-col gap-3.5 divide-y divide-slate-50">
+                      
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-black text-xs select-none">MF</div>
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-800">Mohammed Faizan</h4>
+                            <p className="text-[10px] text-emerald-600 font-bold mt-0.5">Incoming Call • Today, 11:32 AM</p>
+                          </div>
+                        </div>
+                        <button className="p-2 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer"><Phone size={14} /></button>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2.5">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-black text-xs select-none">UF</div>
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-800">Umar Farooq</h4>
+                            <p className="text-[10px] text-slate-450 font-medium mt-0.5">Outgoing Video check • Yesterday, 4:18 PM</p>
+                          </div>
+                        </div>
+                        <button className="p-2 rounded-full hover:bg-slate-100 text-slate-550 cursor-pointer"><Video size={14} /></button>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2.5">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-black text-xs select-none">AA</div>
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-805">Ali Al-Harbi</h4>
+                            <p className="text-[10px] text-rose-500 font-bold mt-0.5">Missed Voice check • Aug 9, 2:40 PM</p>
+                          </div>
+                        </div>
+                        <button className="p-2 rounded-full hover:bg-slate-100 text-slate-555 cursor-pointer"><Phone size={14} /></button>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </Card>
 
           {/* LABOR CHARGES (6 Columns) */}
