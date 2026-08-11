@@ -246,7 +246,7 @@ export default function UserManagementPage() {
                 onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
               >
                 <Plus className="h-4 w-4" />
-                Invite User
+                Add User
               </Button>
             </div>
           )}
