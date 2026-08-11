@@ -345,8 +345,8 @@ export default function VehicleListPage() {
           </span>
           <span className="text-[10px] text-slate-400 font-mono">ID: {row.id.slice(0, 6)}</span>
           {row.status === 'Maintenance' && (
-            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-1.5 py-0 h-4 w-fit flex items-center gap-0.5 mt-0.5">
-              <Wrench size={9} className="text-amber-500" />
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[9px] font-bold px-1.5 py-0 h-4 w-fit flex items-center gap-0.5 mt-0.5">
+              <Wrench size={9} className="text-red-500" />
               IN SHOP
             </Badge>
           )}
@@ -526,9 +526,9 @@ export default function VehicleListPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(row.plate_number)}`)}
-              className="h-8 px-2 gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-[11px] font-bold"
-              title="View maintenance details and service order on Maintenance page"
+              onClick={(e) => handleMaintenanceClick(e, row)}
+              className="h-8 px-2 gap-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 text-[11px] font-bold"
+              title="Click to view maintenance details"
             >
               <Wrench size={14} />
               <span className="hidden xl:inline">In maintenance</span>
@@ -567,10 +567,10 @@ export default function VehicleListPage() {
               <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Status Control</DropdownMenuLabel>
               {row.status === 'Maintenance' ? (
                 <DropdownMenuItem
-                  onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(row.plate_number)}`)}
-                  className="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-100/80"
+                  onClick={(e) => handleMaintenanceClick(e as unknown as React.MouseEvent, row)}
+                  className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30 hover:bg-red-100/80"
                 >
-                  <Wrench size={13} className="mr-2 text-amber-500" /> In Maintenance
+                  <Wrench size={13} className="mr-2 text-red-500" /> In Maintenance
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem
@@ -1430,7 +1430,7 @@ export default function VehicleListPage() {
                               "font-bold text-[10px] uppercase border px-2 py-0.5",
                               v.status === 'Available' && "bg-emerald-50 text-emerald-700 border-emerald-200",
                               v.status === 'OnTrip' && "bg-blue-50 text-blue-700 border-blue-200",
-                              v.status === 'Maintenance' && "bg-amber-50 text-amber-700 border-amber-200",
+                              v.status === 'Maintenance' && "bg-red-50 text-red-700 border-red-200",
                               v.status === 'Inactive' && "bg-slate-100 text-slate-700 border-slate-200"
                             )}>
                               {v.status}

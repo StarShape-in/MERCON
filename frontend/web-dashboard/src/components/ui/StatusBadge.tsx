@@ -43,8 +43,8 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
     case 'inshop':
     case 'under_maintenance':
     case 'undermaintenance':
-      color = '#D97706';
-      bg = '#FFFBEB';
+      color = '#DC2626';
+      bg = '#FEF2F2';
       Icon = Wrench;
       break;
     case 'offduty':
@@ -74,7 +74,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
       variant="outline"
       className={cn(
         "gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full select-none border-transparent",
-        normalized === 'maintenance' && "dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800/40"
+        normalized === 'maintenance' && "dark:bg-red-950/50 dark:text-red-400 dark:border-red-800/40"
       )} 
       style={{ color, backgroundColor: bg }}
     >
