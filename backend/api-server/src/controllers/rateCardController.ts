@@ -91,12 +91,12 @@ export const createRateCard = async (req: Request, res: Response) => {
       const customer = await tx.customer.findFirst({ where: { id: normalisedCustomerId, deletedAt: null } });
       if (!customer) throw new Error('CUSTOMER_NOT_FOUND');
 
+      // Same origin/destination is a legitimate lane, not a mistake — carriers
+      // quote within-city local delivery ("INSIDE JEDDAH" → "INSIDE JEDDAH")
+      // as its own priced lane, same place on both ends.
       const { origin, destination } = await resolveLane(tx, req.body, userId);
       if (!origin || !destination) {
         throw new Error('LANE_INCOMPLETE');
-      }
-      if (origin.id === destination.id) {
-        throw new Error('LANE_SAME_ENDPOINTS');
       }
 
       const normalisedVehicleType = vehicle_type ? String(vehicle_type).trim() || null : null;
@@ -142,9 +142,6 @@ export const createRateCard = async (req: Request, res: Response) => {
     logger.error({ err: error }, 'Failed to create rate card');
     if (error.message === 'LANE_INCOMPLETE') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Pick both an origin and a destination' } });
-    }
-    if (error.message === 'LANE_SAME_ENDPOINTS') {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Origin and destination must be different places' } });
     }
     if (error.message === 'LANE_DUPLICATE') {
       const clash = error.clash;
@@ -344,7 +341,6 @@ export const updateRateCard = async (req: Request, res: Response) => {
       if (laneSent) {
         const { origin, destination } = await resolveLane(tx, req.body, userId);
         if (!origin || !destination) throw new Error('LANE_INCOMPLETE');
-        if (origin.id === destination.id) throw new Error('LANE_SAME_ENDPOINTS');
         originId = origin.id;
         destinationId = destination.id;
         originName = origin.name;
@@ -404,9 +400,6 @@ export const updateRateCard = async (req: Request, res: Response) => {
     }
     if (error.message === 'LANE_INCOMPLETE') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Pick both an origin and a destination' } });
-    }
-    if (error.message === 'LANE_SAME_ENDPOINTS') {
-      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Origin and destination must be different places' } });
     }
     if (error.message === 'LANE_DUPLICATE') {
       const clash = error.clash;
@@ -564,7 +557,6 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
             const origin = await findOrCreateLocation(tx, originText);
             const destination = await findOrCreateLocation(tx, destinationText);
             if (!origin || !destination) throw new Error('LANE_INCOMPLETE');
-            if (origin.id === destination.id) throw new Error('LANE_SAME_ENDPOINTS');
             originId = origin.id;
             destinationId = destination.id;
             routeOrigin = origin.name;
@@ -615,7 +607,6 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
         results.push({ row: rowNumber, success: true, label, action });
       } catch (err: any) {
         const message =
-          err.message === 'LANE_SAME_ENDPOINTS' ? 'Origin and destination must be different places' :
           err.message === 'LANE_INCOMPLETE' ? 'Could not resolve the origin/destination' :
           err.message || 'Could not import this rate';
         results.push({ row: rowNumber, success: false, label, error: message });

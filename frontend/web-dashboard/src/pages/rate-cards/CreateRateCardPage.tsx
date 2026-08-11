@@ -81,7 +81,7 @@ export default function CreateRateCardPage() {
 
   const numericPrice = parseFloat(basePrice || '');
   const hasPrice = !isNaN(numericPrice) && numericPrice > 0;
-  const laneComplete = !!originId && !!destinationId && originId !== destinationId;
+  const laneComplete = !!originId && !!destinationId;
   const isFormValid = laneComplete && hasPrice && !!customerId;
 
   const handleReset = () => {
@@ -116,10 +116,6 @@ export default function CreateRateCardPage() {
     }
     if (!originId || !destinationId) {
       setError('Pick both an origin and a destination for this lane.');
-      return;
-    }
-    if (originId === destinationId) {
-      setError('Origin and destination must be different places.');
       return;
     }
     if (!hasPrice) {
@@ -304,7 +300,6 @@ export default function CreateRateCardPage() {
                         setError(null);
                       }}
                       placeholder="From (e.g. Riyadh)"
-                      excludeLocationId={destinationId}
                     />
                   </div>
                   <ArrowRight className="w-4 h-4 shrink-0 text-[#E8450F]" />
@@ -317,13 +312,13 @@ export default function CreateRateCardPage() {
                         setError(null);
                       }}
                       placeholder="To (e.g. Jeddah)"
-                      excludeLocationId={originId}
                     />
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
                   <Info className="w-3 h-3 shrink-0" />
-                  Place not on the list? Type its name in the dropdown to add it — it becomes available everywhere.
+                  Place not on the list? Type its name in the dropdown to add it — it becomes available
+                  everywhere. Same place on both ends is fine for within-city local delivery.
                 </p>
               </div>
 

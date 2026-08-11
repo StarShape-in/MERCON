@@ -96,7 +96,6 @@ export default function RateCardFormDialog({
     !!effectiveCustomerId &&
     !!originId &&
     !!destinationId &&
-    originId !== destinationId &&
     !isNaN(numericPrice) &&
     numericPrice > 0;
 
@@ -129,7 +128,6 @@ export default function RateCardFormDialog({
     setError(null);
     if (!effectiveCustomerId) return setError('Choose which customer this rate is for.');
     if (!originId || !destinationId) return setError('Pick both an origin and a destination.');
-    if (originId === destinationId) return setError('Origin and destination must be different places.');
     if (isNaN(numericPrice) || numericPrice <= 0) return setError('Enter a price greater than 0.');
     saveMutation.mutate();
   };
@@ -180,7 +178,6 @@ export default function RateCardFormDialog({
                   value={originId}
                   onChange={(id) => setOriginId(id)}
                   placeholder="From..."
-                  excludeLocationId={destinationId}
                 />
               </div>
               <ArrowRight className="h-4 w-4 shrink-0 text-[#E8450F]" />
@@ -189,12 +186,12 @@ export default function RateCardFormDialog({
                   value={destinationId}
                   onChange={(id) => setDestinationId(id)}
                   placeholder="To..."
-                  excludeLocationId={originId}
                 />
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Not on the list? Type the name in the dropdown to add it.
+              Not on the list? Type the name in the dropdown to add it. Same place on both ends is
+              fine for within-city local delivery.
             </p>
           </div>
 

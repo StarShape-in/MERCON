@@ -52,7 +52,7 @@ export default function EditRateCardPage() {
 
   const numericPrice = parseFloat(basePrice || '');
   const hasPrice = !isNaN(numericPrice) && numericPrice > 0;
-  const laneComplete = !!originId && !!destinationId && originId !== destinationId;
+  const laneComplete = !!originId && !!destinationId;
   const isFormValid = laneComplete && hasPrice && !!customerId;
 
   // Cards created before lanes existed have text endpoints but no location
@@ -85,7 +85,7 @@ export default function EditRateCardPage() {
     e?.preventDefault();
     setError(null);
     if (!customerId) return setError('Choose which customer this rate is for.');
-    if (!laneComplete) return setError('Pick both an origin and a destination — they must be different places.');
+    if (!laneComplete) return setError('Pick both an origin and a destination.');
     if (!hasPrice) return setError('Enter a price greater than 0.');
     updateMutation.mutate();
   };
@@ -154,7 +154,6 @@ export default function EditRateCardPage() {
                         value={originId}
                         onChange={(locId) => { setOriginId(locId); setError(null); }}
                         placeholder="From..."
-                        excludeLocationId={destinationId}
                       />
                     </div>
                     <ArrowRight className="w-4 h-4 shrink-0 text-[#E8450F]" />
@@ -163,13 +162,13 @@ export default function EditRateCardPage() {
                         value={destinationId}
                         onChange={(locId) => { setDestinationId(locId); setError(null); }}
                         placeholder="To..."
-                        excludeLocationId={originId}
                       />
                     </div>
                   </div>
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                     <Info className="w-3 h-3 shrink-0" />
-                    Type a name in the dropdown to add a place that isn't listed.
+                    Type a name in the dropdown to add a place that isn't listed. Same place on both
+                    ends is fine for within-city local delivery.
                   </p>
                 </div>
 

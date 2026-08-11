@@ -261,7 +261,9 @@ export default function CreateTripPage() {
   // "Riyadh", so it fell through to "any card for this customer" and finally to
   // whichever card happened to be first in the list. The price shown was
   // frequently not the price for this route.
-  const laneReady = !!pickupLocationId && !!dropoffLocationId && pickupLocationId !== dropoffLocationId;
+  // Same pickup and dropoff is a real lane, not a mistake — within-city local
+  // delivery is priced that way (e.g. "INSIDE JEDDAH" → "INSIDE JEDDAH").
+  const laneReady = !!pickupLocationId && !!dropoffLocationId;
 
   // Every rate card priced for this lane for this customer. A lane can now
   // have several (imported tiers differ by vehicle_type/rate_category), so
@@ -541,14 +543,13 @@ export default function CreateTripPage() {
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
   const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
   const missingLane = !pickupLocationId || !dropoffLocationId;
-  const sameLaneEndpoints = !!pickupLocationId && pickupLocationId === dropoffLocationId;
   const missingSchedule = pickupTime === '' || dropoffTime === '';
   const isScheduleInvalid = pickupTime !== '' && dropoffTime !== '' && dropoffTime <= pickupTime;
   const isFormValid =
     customerId !== '' &&
     (assignDriverLater || driverId !== '') &&
     (assignVehicleLater || vehicleId !== '') &&
-    !missingLocation && !missingName && !missingLane && !sameLaneEndpoints &&
+    !missingLocation && !missingName && !missingLane &&
     !missingSchedule && !isScheduleInvalid;
 
   const handleSubmit = useCallback((dispatchNow: boolean = false) => {
@@ -568,10 +569,6 @@ export default function CreateTripPage() {
     }
     if (!pickupLocationId || !dropoffLocationId) {
       setError('Pick the origin and destination for both stops — that is what the rate is priced against.');
-      return;
-    }
-    if (pickupLocationId === dropoffLocationId) {
-      setError('Origin and destination must be different places.');
       return;
     }
     if (!pickupTime || !dropoffTime) {
@@ -927,7 +924,6 @@ export default function CreateTripPage() {
                     if (loc?.address && !pickupAddress.trim()) setPickupAddress(loc.address);
                     setError(null);
                   }}
-                  excludeLocationId={dropoffLocationId}
                   lat={pickupLat}
                   lng={pickupLng}
                   onCoordsChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); setError(null); }}
@@ -990,7 +986,6 @@ export default function CreateTripPage() {
                     if (loc?.address && !dropoffAddress.trim()) setDropoffAddress(loc.address);
                     setError(null);
                   }}
-                  excludeLocationId={pickupLocationId}
                   lat={dropoffLat}
                   lng={dropoffLng}
                   onCoordsChange={(lat, lng) => { setDropoffLat(lat); setDropoffLng(lng); setError(null); }}
