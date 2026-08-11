@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  MapPin, Plus, Search, RotateCw, Edit2, Trash2, MoreVertical,
-  AlertTriangle, Filter,
+  MapPin, Plus, RotateCw, Edit2, Trash2, MoreVertical,
+  AlertTriangle, Filter, Download, FileSpreadsheet, FileText,
+  Building2, Navigation, Layers, ChevronDown,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import DataTable from '@/components/ui/DataTable';
+import DataTable, { BulkAction } from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
@@ -14,9 +15,9 @@ import { RouteLine, CheckBadge, ClockIcon } from '@/components/ui/kpi-icons';
 import { locationService, Location } from '@/services/locationService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import {
-  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -29,29 +30,36 @@ const rateCardUses = (l: Location) =>
 
 const tripUses = (l: Location) => l._count?.tripStops ?? 0;
 
-/**
- * The shared list of places lanes are priced between.
- *
- * This page exists because places could only ever be created inline from a
- * dropdown — so nobody could see the whole list, fix a misspelling, fill in a
- * missing address, or retire an entry somebody typed by accident. Those
- * mistakes are invisible at the point of creation and permanent without this.
- *
- * The two things it makes answerable: which places are actually used (usage
- * counts), and which are incomplete or abandoned (no address, no coordinates,
- * zero uses).
- */
+const LOCATION_EXPORT_HEADERS = [
+  'Ref ID', 'Location Name', 'Address', 'Latitude', 'Longitude', 'Status', 'Rate Cards Count', 'Trip Stops Count'
+];
+
+const locationsToExportRows = (locs: Location[]) => locs.map((l) => [
+  `LOC-${l.id.slice(0, 6).toUpperCase()}`,
+  l.name,
+  l.address || 'No Address Provided',
+  l.lat != null ? l.lat.toFixed(6) : '',
+  l.lng != null ? l.lng.toFixed(6) : '',
+  l.is_active ? 'Active' : 'Inactive',
+  rateCardUses(l),
+  tripUses(l),
+]);
+
 export default function LocationListPage() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unused' | 'incomplete'>('all');
+  const [filter, setFilter] = useState<'all' | 'priced' | 'unused' | 'incomplete' | 'active' | 'inactive'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Location | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
+
+  const [bulkDeleteTargets, setBulkDeleteTargets] = useState<Location[] | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const { data: response, isLoading, isError, error } = useQuery({
     queryKey: ['locations'],
@@ -69,14 +77,18 @@ export default function LocationListPage() {
   const filteredData = useMemo(() => {
     const term = search.toLowerCase();
     return locations.filter((l) => {
+      const refId = `loc-${l.id.slice(0, 6)}`.toLowerCase();
       const matchesSearch =
         l.name.toLowerCase().includes(term) ||
-        (l.address || '').toLowerCase().includes(term);
+        (l.address || '').toLowerCase().includes(term) ||
+        refId.includes(term);
 
-      const matchesFilter =
-        filter === 'all' ? true :
-        filter === 'unused' ? rateCardUses(l) === 0 && tripUses(l) === 0 :
-        !l.address || l.lat == null;
+      let matchesFilter = true;
+      if (filter === 'priced') matchesFilter = rateCardUses(l) > 0;
+      else if (filter === 'unused') matchesFilter = rateCardUses(l) === 0 && tripUses(l) === 0;
+      else if (filter === 'incomplete') matchesFilter = !l.address || l.lat == null;
+      else if (filter === 'active') matchesFilter = l.is_active === true;
+      else if (filter === 'inactive') matchesFilter = l.is_active === false;
 
       return matchesSearch && matchesFilter;
     });
@@ -85,7 +97,7 @@ export default function LocationListPage() {
   const kpis = useMemo(() => {
     const total = locations.length;
     const unused = locations.filter((l) => rateCardUses(l) === 0 && tripUses(l) === 0).length;
-    const noAddress = locations.filter((l) => !l.address).length;
+    const noAddress = locations.filter((l) => !l.address || l.lat == null).length;
     const priced = locations.filter((l) => rateCardUses(l) > 0).length;
     return { total, unused, noAddress, priced };
   }, [locations]);
@@ -99,8 +111,6 @@ export default function LocationListPage() {
       queryClient.invalidateQueries({ queryKey: ['locations'] });
       setDeleteTarget(null);
     } catch (e: any) {
-      // The API refuses to delete a place a live rate card still prices, and
-      // says how many. Surfacing that verbatim beats a generic failure.
       setDeleteError(
         e.response?.data?.error?.message || 'Could not delete this location.'
       );
@@ -109,92 +119,201 @@ export default function LocationListPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!bulkDeleteTargets || bulkDeleteTargets.length === 0) return;
+    setIsBulkDeleting(true);
+
+    for (const target of bulkDeleteTargets) {
+      try {
+        await locationService.delete(target.id);
+      } catch {
+        // Silently skip locked locations
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['locations'] });
+    setIsBulkDeleting(false);
+    setBulkDeleteTargets(null);
+  };
+
+  const handleExportLocations = (dataToExport: Location[], filename = 'mercon_locations_registry') => {
+    const rows = locationsToExportRows(dataToExport);
+    exportExcelTable(filename, LOCATION_EXPORT_HEADERS, rows, 'Locations');
+  };
+
+  const handleExportPDFLocations = (dataToExport: Location[], filename = 'mercon_locations_registry') => {
+    const rows = locationsToExportRows(dataToExport);
+    exportPDFTable(filename, 'MERCON Logistics - Locations Registry', LOCATION_EXPORT_HEADERS, rows);
+  };
+
+  const bulkActions: BulkAction<Location>[] = [
+    {
+      label: 'Export Excel',
+      icon: <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />,
+      variant: 'secondary',
+      onClick: (selectedRows) => handleExportLocations(selectedRows, 'selected_locations'),
+    },
+    {
+      label: 'Export PDF',
+      icon: <FileText className="w-3.5 h-3.5 text-rose-600" />,
+      variant: 'secondary',
+      onClick: (selectedRows) => handleExportPDFLocations(selectedRows, 'selected_locations'),
+    },
+    {
+      label: 'Delete Selected',
+      icon: <Trash2 className="w-3.5 h-3.5" />,
+      variant: 'danger',
+      onClick: (selectedRows) => setBulkDeleteTargets(selectedRows),
+    },
+  ];
+
   const columns = [
     {
-      header: 'Location',
+      header: 'Location & Ref ID',
+      className: 'whitespace-nowrap min-w-[220px]',
       accessor: (row: Location) => (
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
-            <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs truncate">
-              {row.name}
-            </span>
-            {!row.is_active && (
-              <Badge variant="outline" className="text-[9px] font-bold uppercase text-slate-500 shrink-0">
-                Inactive
-              </Badge>
-            )}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0">
+            <MapPin className="w-4 h-4 text-[#E8450F]" />
           </div>
-          <div className="text-[11px] text-slate-500 truncate mt-0.5 pl-5">
-            {row.address || <span className="italic text-amber-600">No address</span>}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+                {row.name}
+              </span>
+              {!row.is_active && (
+                <Badge variant="outline" className="text-[9px] font-extrabold uppercase text-slate-500 bg-slate-100 dark:bg-slate-800 shrink-0">
+                  Inactive
+                </Badge>
+              )}
+            </div>
+            <span className="font-mono text-[10px] font-bold text-[#E8450F]">
+              LOC-{row.id.slice(0, 6).toUpperCase()}
+            </span>
           </div>
         </div>
       ),
     },
     {
-      header: 'Coordinates',
+      header: 'Street Address',
+      className: 'min-w-[240px]',
+      accessor: (row: Location) => (
+        <div className="flex items-center gap-2">
+          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          {row.address ? (
+            <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate" title={row.address}>
+              {row.address}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200/60 dark:border-amber-900/40">
+              <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
+              No address provided
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Geographic Coordinates',
+      className: 'whitespace-nowrap',
       accessor: (row: Location) =>
         row.lat != null && row.lng != null ? (
-          <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
-            {row.lat.toFixed(4)}, {row.lng.toFixed(4)}
-          </span>
+          <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700">
+            <Navigation className="w-3 h-3 text-indigo-500 shrink-0" />
+            <span>{row.lat.toFixed(4)}, {row.lng.toFixed(4)}</span>
+          </div>
         ) : (
-          <span className="text-[11px] italic text-slate-400">Not set</span>
+          <span className="text-xs italic text-slate-400 font-medium">Unmapped coordinates</span>
         ),
     },
     {
-      header: 'Used by',
+      header: 'Usage & Activity',
+      className: 'whitespace-nowrap',
       accessor: (row: Location) => {
         const rates = rateCardUses(row);
         const trips = tripUses(row);
         if (rates === 0 && trips === 0) {
-          return <span className="text-[11px] italic text-slate-400">Nothing yet</span>;
+          return (
+            <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800/50 text-slate-400 border-slate-200 dark:border-slate-700 text-[10px] font-semibold">
+              Unlinked (0 uses)
+            </Badge>
+          );
         }
         return (
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
+          <div className="flex items-center gap-1.5">
             {rates > 0 && (
-              <span className="text-indigo-700 dark:text-indigo-300">
-                {rates} rate{rates === 1 ? '' : 's'}
-              </span>
+              <Badge className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800 font-bold text-[11px] px-2 py-0.5">
+                {rates} Rate Card{rates === 1 ? '' : 's'}
+              </Badge>
             )}
-            {rates > 0 && trips > 0 && <span className="text-slate-300">•</span>}
             {trips > 0 && (
-              <span className="text-slate-600 dark:text-slate-400">
-                {trips} stop{trips === 1 ? '' : 's'}
-              </span>
+              <Badge className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800 font-bold text-[11px] px-2 py-0.5">
+                {trips} Trip Stop{trips === 1 ? '' : 's'}
+              </Badge>
             )}
           </div>
         );
       },
     },
     {
-      header: 'Actions',
+      header: 'Status',
+      className: 'whitespace-nowrap',
       accessor: (row: Location) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500">
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 rounded-xl p-1.5">
-            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Location Actions
-            </DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => setEditTarget(row)}
-              className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-            >
-              <Edit2 className="w-3.5 h-3.5 mr-2 text-indigo-600" /> Edit / rename
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1" />
-            <DropdownMenuItem
-              onClick={() => { setDeleteError(null); setDeleteTarget(row); }}
-              className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
-            >
-              <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        row.is_active ? (
+          <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800 font-bold text-xs px-2.5 py-0.5 flex items-center gap-1.5 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Active
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-bold text-xs px-2.5 py-0.5 flex items-center gap-1.5 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+            Inactive
+          </Badge>
+        )
+      ),
+    },
+    {
+      header: 'Actions',
+      className: 'whitespace-nowrap text-right',
+      headerClassName: 'text-right',
+      accessor: (row: Location) => (
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setEditTarget(row)}
+            className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+            title="Edit location"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 rounded-xl p-1.5 shadow-lg border border-slate-200 bg-white">
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                Location Options
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => setEditTarget(row)}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+              >
+                <Edit2 className="w-3.5 h-3.5 mr-2 text-indigo-600" /> Edit / Rename
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1" />
+              <DropdownMenuItem
+                onClick={() => { setDeleteError(null); setDeleteTarget(row); }}
+                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete Location
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       ),
     },
   ];
@@ -203,25 +322,59 @@ export default function LocationListPage() {
     <DashboardLayout active="Locations" title="Locations">
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
 
-        {/* Header */}
+        {/* Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
           <div className="flex items-center gap-3">
-            <MapPin className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
+            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50">
+              <MapPin className="w-6 h-6 text-[#E8450F] shrink-0" />
+            </div>
             <div className="flex flex-col">
-              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                Locations
-              </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                The places lanes are priced between, and that trip stops sit inside.
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Locations
+                </h1>
+                <Badge className="bg-orange-50 dark:bg-orange-950/50 text-[#E8450F] border-orange-200/80 dark:border-orange-900/50 font-bold text-xs px-2.5 py-0.5">
+                  Master Data Module
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                The physical & logistical nodes rate cards pricing and trip stops sit inside.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs font-bold border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50">
+                  <Download className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Export</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 ml-0.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl p-1.5 shadow-lg border border-slate-200 bg-white">
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  Export Registry
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => handleExportLocations(filteredData, 'locations_registry')}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Export Excel / CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportPDFLocations(filteredData, 'locations_registry')}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  <FileText className="w-3.5 h-3.5 mr-2 text-rose-600" /> Export PDF Document
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               size="sm"
               onClick={() => setIsAddOpen(true)}
-              className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-lg px-4"
             >
               <Plus className="w-4 h-4" /> Add Location
             </Button>
@@ -230,15 +383,15 @@ export default function LocationListPage() {
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              title="Refresh"
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs rounded-lg"
+              title="Refresh Locations Data"
             >
               <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {/* KPIs — all derived from the loaded rows */}
+        {/* Instrument-Panel KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
             title="TOTAL LOCATIONS"
@@ -277,9 +430,11 @@ export default function LocationListPage() {
               label: "Rate coverage",
               subtext: `${kpis.priced} of ${kpis.total} places`,
             }}
+            isActive={filter === 'priced'}
+            onClick={() => setFilter(prev => prev === 'priced' ? 'all' : 'priced')}
           />
           <KpiCard
-            title="MISSING ADDRESS"
+            title="MISSING ADDRESS / PIN"
             value={
               <span>
                 {kpis.noAddress}
@@ -287,7 +442,7 @@ export default function LocationListPage() {
               </span>
             }
             variant="amber"
-            description="Locations lacking street address"
+            description="Locations lacking address or coords"
             icon={ClockIcon}
             pipelineStages={[
               { name: "Incomplete", count: kpis.noAddress, color: "bg-amber-500" },
@@ -309,20 +464,25 @@ export default function LocationListPage() {
             icon={RouteLine}
             livePulseTrack={{
               statusText: kpis.unused > 0 ? "Needs Review" : "Clean Registry",
-              subText: kpis.unused > 0 ? "Stale nodes" : "0 unlinked",
+              subText: kpis.unused > 0 ? `${kpis.unused} unlinked places` : "0 unlinked",
             }}
             isActive={filter === 'unused'}
             onClick={() => setFilter(prev => prev === 'unused' ? 'all' : 'unused')}
           />
         </div>
 
-        {/* Active Filter Indicator Banner */}
+        {/* Active Filter Banner */}
         {filter !== 'all' && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
             <div className="flex items-center gap-2">
               <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
               <span>
-                Filtered by view: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{filter === 'unused' ? 'Unused Locations Only' : 'Missing Address or Pin'}</strong> ({filteredData.length} location{filteredData.length === 1 ? '' : 's'} matching)
+                Filtered view: <strong className="underline decoration-[#E8450F] font-bold text-slate-900 dark:text-slate-100">
+                  {filter === 'priced' ? 'Priced Locations Only' :
+                   filter === 'unused' ? 'Unused Locations Only' :
+                   filter === 'incomplete' ? 'Missing Address or Coords' :
+                   filter === 'active' ? 'Active Locations Only' : 'Inactive Locations Only'}
+                </strong> ({filteredData.length} location{filteredData.length === 1 ? '' : 's'})
               </span>
             </div>
             <button
@@ -335,86 +495,104 @@ export default function LocationListPage() {
           </div>
         )}
 
-        {/* Places with no address hand the driver a pin and nothing else */}
-        {kpis.noAddress > 0 && (
+        {/* Missing Address Banner */}
+        {kpis.noAddress > 0 && filter === 'all' && (
           <div className="shrink-0 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3">
             <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
             <div className="text-xs">
               <p className="font-bold text-amber-900 dark:text-amber-200">
-                {kpis.noAddress} location{kpis.noAddress === 1 ? ' has' : 's have'} no address
+                {kpis.noAddress} location{kpis.noAddress === 1 ? ' has' : 's have'} no street address or geographic coordinates
               </p>
               <p className="text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                A trip stop defaulting to one of these gives the driver coordinates and nothing
-                to read. Open each and add the address.
+                Trip stops assigned to incomplete locations give drivers empty details. Click edit on any flagged row to supply complete details.
               </p>
             </div>
           </div>
         )}
 
-        {/* Toolbar */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center justify-between gap-3 overflow-x-auto">
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="relative w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-                <Input
-                  placeholder="Search name or address..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-9 text-xs pl-8 rounded-lg font-medium"
-                />
-              </div>
-
-              <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
-                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                    <SelectValue placeholder="Show" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-52 p-1.5 rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      Show
-                    </SelectLabel>
-                    <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All locations</SelectItem>
-                    <SelectItem value="unused" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Unused only</SelectItem>
-                    <SelectItem value="incomplete" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Missing address or pin</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="text-xs font-semibold text-slate-500 shrink-0 ml-auto">
-              <span className="font-extrabold text-slate-900 dark:text-slate-100">{filteredData.length}</span>{' '}
-              location{filteredData.length === 1 ? '' : 's'}
-            </div>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="flex-1 min-h-0 flex flex-col">
+        {/* Full Ledger Data Table */}
+        <div className="w-full flex-1 flex flex-col min-h-0">
           <DataTable
             title={
               <span className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-orange-500" />
-                <span>Locations</span>
+                <Layers className="w-4 h-4 text-[#E8450F]" />
+                <span>Locations Ledger</span>
               </span>
             }
-            columns={columns}
             data={filteredData}
+            columns={columns}
+            enableSelection={true}
             compact={true}
-            enableSelection={false}
             isLoading={isLoading}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load locations.'}
-            searchPlaceholder="Search locations..."
+            searchPlaceholder="Search location name, address, ref ID..."
             searchValue={search}
             onSearchChange={setSearch}
+            filterElement={
+              <div className="flex items-center gap-2.5">
+                <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
+                  <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                      <SelectValue placeholder="Show Locations" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                        Filter View
+                      </SelectLabel>
+                      <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        All Locations
+                      </SelectItem>
+                      <SelectItem value="priced" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        Priced Locations Only
+                      </SelectItem>
+                      <SelectItem value="unused" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        Unused / Unlinked Only
+                      </SelectItem>
+                      <SelectItem value="incomplete" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        Missing Address / Coords
+                      </SelectItem>
+                    </SelectGroup>
+                    <SelectSeparator className="my-1 border-slate-100" />
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                        Status
+                      </SelectLabel>
+                      <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        Active Locations
+                      </SelectItem>
+                      <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        Inactive Locations
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            }
+            actionsElement={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExportLocations(filteredData, 'locations_ledger')}
+                className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs"
+              >
+                <Download className="h-3.5 w-3.5 text-slate-500" />
+                <span>Export CSV</span>
+              </Button>
+            }
+            bulkActions={bulkActions}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => setPageSize(size)}
             onRowClick={(row) => setEditTarget(row)}
+            emptyTitle="No Locations Found"
+            emptyMessage="There are no logistics locations matching your current search term or filter settings."
           />
         </div>
 
+        {/* Dialogs & Modals */}
         <LocationFormDialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
         <LocationFormDialog
           isOpen={!!editTarget}
@@ -425,7 +603,7 @@ export default function LocationListPage() {
         <ConfirmModal
           isOpen={!!deleteTarget}
           onClose={() => { setDeleteTarget(null); setDeleteError(null); }}
-          title="Delete location"
+          title="Delete Location"
           message={
             deleteError
               ? deleteError
@@ -440,6 +618,17 @@ export default function LocationListPage() {
             if (deleteError) { setDeleteTarget(null); setDeleteError(null); return; }
             handleDelete();
           }}
+        />
+
+        <ConfirmModal
+          isOpen={!!bulkDeleteTargets}
+          onClose={() => setBulkDeleteTargets(null)}
+          title="Delete Selected Locations"
+          message={`Are you sure you want to delete ${bulkDeleteTargets?.length ?? 0} selected locations? Locations tied to active rate cards will be preserved automatically.`}
+          confirmLabel="Yes, delete selected"
+          isDestructive={true}
+          isLoading={isBulkDeleting}
+          onConfirm={handleBulkDelete}
         />
 
       </div>
