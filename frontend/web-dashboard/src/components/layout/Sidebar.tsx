@@ -4,7 +4,7 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
   Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
-  ChevronLeft, ChevronRight
+  ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -127,11 +127,15 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       </div>
 
       {/*
-        Desktop rail toggle. Sits on the sidebar's own right edge, level with the logo
-        divider, so it stays in exactly the same place whether the rail is expanded or
-        collapsed — nothing in the header shifts when you use it.
+        Desktop rail toggle. Sits centred on the sidebar's own right edge, so it stays in
+        exactly the same place whether the rail is expanded or collapsed — nothing in the
+        header shifts when you use it. Double chevron rather than a single one: it reads as
+        "collapse this panel" instead of "go back".
 
-        It pokes 12px past the sidebar's edge, so the aside needs lg:z-30 (above the
+        The `before` pseudo-element widens the click target to 44px without making the
+        circle itself any bigger.
+
+        It pokes 14px past the sidebar's edge, so the aside needs lg:z-30 (above the
         content column) for the overhang to be visible — the width transition promotes
         the aside to its own stacking context, so a z-index on this button alone is
         trapped inside it and does nothing.
@@ -142,14 +146,18 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         aria-expanded={!collapsed}
         title={`${collapsed ? 'Expand' : 'Collapse'} sidebar (⌘B)`}
         className="
-          hidden lg:flex absolute -right-3 top-[76px] z-30 w-6 h-6 items-center justify-center
-          rounded-full bg-[#18181B] border border-white/15 text-white/70 shadow-md
+          group hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30
+          w-7 h-7 items-center justify-center rounded-full
+          bg-[#232326] border border-white/15 text-white/70 shadow-md shadow-black/20
+          before:absolute before:-inset-2 before:content-['']
           hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
-          transition-colors cursor-pointer
+          transition-colors duration-150 cursor-pointer
         "
       >
-        {collapsed ? <ChevronRight size={13} className="stroke-[2.5]" /> : <ChevronLeft size={13} className="stroke-[2.5]" />}
+        {collapsed
+          ? <ChevronsRight size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:translate-x-px" />
+          : <ChevronsLeft size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:-translate-x-px" />}
       </button>
 
       {/* Nav groups */}
