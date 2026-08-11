@@ -109,8 +109,9 @@ export function TripDateFilterPicker({
       </PopoverTrigger>
 
       <PopoverContent
-        align="start"
+        align="end"
         sideOffset={8}
+        collisionPadding={16}
         className="w-80 p-4 shadow-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl z-50"
       >
         {/* Header & Tabs */}
