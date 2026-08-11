@@ -91,6 +91,7 @@ export interface TripStopCardProps {
   minDate?: Date;
   timeError?: boolean;
   onApplyOffset?: (hours: number, setEod?: boolean) => void;
+  hideSchedule?: boolean;
 }
 
 export default function TripStopCard({
@@ -124,6 +125,7 @@ export default function TripStopCard({
   minDate,
   timeError,
   onApplyOffset,
+  hideSchedule = false,
 }: TripStopCardProps) {
   const isPickup = tone === 'pickup';
 
@@ -262,14 +264,13 @@ export default function TripStopCard({
         onAddressChange(resolved.address);
         updateCoords(resolved.lat, resolved.lng);
 
-        // Check for exact matching name/slug or hub within 35km
+        // Check for exact matching name/slug
         const searchSlug = placeName.trim().toLowerCase();
         const exactNameHub = locations.find((l) => l.name.trim().toLowerCase() === searchSlug);
-        const closestHub = exactNameHub || findClosestLocationHub(resolved.lat, resolved.lng, locations, 35);
 
-        if (closestHub) {
-          updateLocationId(closestHub.id, closestHub);
-          if (onLocationNameChange) onLocationNameChange(closestHub.name);
+        if (exactNameHub) {
+          updateLocationId(exactNameHub.id, exactNameHub);
+          if (onLocationNameChange) onLocationNameChange(exactNameHub.name);
         } else {
           // Auto-create a location hub for this place so rate cards match it directly
           try {
@@ -468,16 +469,18 @@ export default function TripStopCard({
         {warning}
 
         {/* Scheduled Arrival / Delivery Time */}
-        <TripScheduleSelector
-          tone={tone}
-          label={timeLabel || (isPickup ? 'Scheduled Pickup Time' : 'Scheduled Delivery Time')}
-          value={time}
-          onChange={onTimeChange}
-          placeholder={timePlaceholder}
-          minDate={minDate}
-          error={timeError}
-          onApplyOffset={!isPickup ? onApplyOffset : undefined}
-        />
+        {!hideSchedule && (
+          <TripScheduleSelector
+            tone={tone}
+            label={timeLabel || (isPickup ? 'Scheduled Pickup Time' : 'Scheduled Delivery Time')}
+            value={time}
+            onChange={onTimeChange}
+            placeholder={timePlaceholder}
+            minDate={minDate}
+            error={timeError}
+            onApplyOffset={!isPickup ? onApplyOffset : undefined}
+          />
+        )}
       </div>
     </Card>
   );

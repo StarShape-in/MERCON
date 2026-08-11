@@ -51,7 +51,7 @@ export default function TripStepRatesBilling({
     <div className="space-y-5 animate-in fade-in-50 duration-200">
       <div>
         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Receipt className="w-4 h-4 text-[#E8450F]" /> 4. Lane Rate Card &amp; Billing Calculation
+          <Receipt className="w-4 h-4 text-[#E8450F]" /> Lane Rate Card &amp; Billing Calculation
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Select from available contract rate cards or set custom pricing for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'}.

@@ -6,6 +6,7 @@ import { Prisma, TripStatus, StopType, PaymentStatus, DriverStatus, AssetStatus 
 import { logger } from '../utils/logger';
 import { isValidTransition, completeTripAndInvoice, stampStopTransition, type DelayDetection } from '../services/tripLifecycle';
 import { findRateForLane } from '../services/rateLookup';
+import { resolveLocation } from './locationController';
 import { parseOptionalFloat } from '../utils/uuid';
 
 const isUuid = (val: any): boolean =>
@@ -263,16 +264,38 @@ export const createTrip = async (req: Request, res: Response) => {
             }
           }
 
-          // The lane this trip runs, taken from the stops. This is what the rate
-          // is priced against — not the stop's free-text name, which is the
-          // specific yard ("Khamis Sorting Center") rather than the lane
-          // endpoint ("Riyadh").
-          const stopList: any[] = Array.isArray(stops) ? stops : [];
+          // The lane this trip runs, taken from the stops.
+          const rawStops: any[] = Array.isArray(stops) ? stops : [];
+          const resolvedStops = await Promise.all(
+            rawStops.map(async (stop: any) => {
+              const stopName = String(stop.location_name ?? '').trim();
+              let locId = stop.location_id || null;
+              if (!locId && stopName) {
+                try {
+                  const loc = await resolveLocation(
+                    tx,
+                    {
+                      name: stopName,
+                      address: String(stop.location_address ?? '').trim() || null,
+                      lat: parseOptionalFloat(stop.lat),
+                      lng: parseOptionalFloat(stop.lng),
+                    },
+                    createdBy
+                  );
+                  if (loc) locId = loc.id;
+                } catch (e) {
+                  logger.warn({ err: e }, 'Failed to resolve location for trip stop');
+                }
+              }
+              return { ...stop, location_id: locId };
+            })
+          );
+
           const originLocationId =
-            stopList.find((s) => s.stop_type === 'Pickup')?.location_id ?? stopList[0]?.location_id ?? null;
+            resolvedStops.find((s) => s.stop_type === 'Pickup')?.location_id ?? resolvedStops[0]?.location_id ?? null;
           const destinationLocationId =
-            [...stopList].reverse().find((s) => s.stop_type === 'Dropoff')?.location_id ??
-            stopList[stopList.length - 1]?.location_id ??
+            [...resolvedStops].reverse().find((s) => s.stop_type === 'Dropoff')?.location_id ??
+            resolvedStops[resolvedStops.length - 1]?.location_id ??
             null;
 
           // Prefer the card the dispatcher was actually shown; only fall back to
@@ -315,11 +338,11 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
               trip_charges: finalTripCharges,
               stops: {
-                create: (stops || []).map((stop: any, index: number) => ({
+                create: resolvedStops.map((stop: any, index: number) => ({
                   stop_sequence: index + 1,
                   stop_type: stop.stop_type as StopType,
-                  location_lat: parseOptionalFloat(stop.lat),
-                  location_lng: parseOptionalFloat(stop.lng),
+                  location_lat: parseOptionalFloat(stop.lat) ?? 0,
+                  location_lng: parseOptionalFloat(stop.lng) ?? 0,
                   // Empty string collapses to null so "unnamed" is one value in
                   // reports, not two that group separately.
                   location_name: String(stop.location_name ?? '').trim() || null,

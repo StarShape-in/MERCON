@@ -56,6 +56,7 @@ export default function LocationListPage() {
   const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectionResetKey, setSelectionResetKey] = useState(0);
   const [pageSize, setPageSize] = useState(25);
 
   const [bulkDeleteTargets, setBulkDeleteTargets] = useState<Location[] | null>(null);
@@ -71,6 +72,7 @@ export default function LocationListPage() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['locations'] });
+    setSelectionResetKey((prev) => prev + 1);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -109,6 +111,7 @@ export default function LocationListPage() {
     try {
       await locationService.delete(deleteTarget.id);
       queryClient.invalidateQueries({ queryKey: ['locations'] });
+      setSelectionResetKey((prev) => prev + 1);
       setDeleteTarget(null);
     } catch (e: any) {
       setDeleteError(
@@ -132,6 +135,7 @@ export default function LocationListPage() {
     }
 
     queryClient.invalidateQueries({ queryKey: ['locations'] });
+    setSelectionResetKey((prev) => prev + 1);
     setIsBulkDeleting(false);
     setBulkDeleteTargets(null);
   };
@@ -169,16 +173,27 @@ export default function LocationListPage() {
 
   const columns = [
     {
-      header: 'Location & Ref ID',
-      className: 'whitespace-nowrap min-w-[220px]',
+      header: 'Location Ref ID',
+      className: 'whitespace-nowrap',
       accessor: (row: Location) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0">
-            <MapPin className="w-4 h-4 text-[#E8450F]" />
+        <div className="flex flex-col gap-0.5">
+          <span className="font-mono text-xs font-bold text-[#E8450F]">
+            LOC-{row.id.slice(0, 6).toUpperCase()}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Location Name',
+      className: 'whitespace-nowrap min-w-[200px]',
+      accessor: (row: Location) => (
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0">
+            <MapPin className="w-3.5 h-3.5 text-[#E8450F]" />
           </div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+              <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={row.name}>
                 {row.name}
               </span>
               {!row.is_active && (
@@ -187,9 +202,6 @@ export default function LocationListPage() {
                 </Badge>
               )}
             </div>
-            <span className="font-mono text-[10px] font-bold text-[#E8450F]">
-              LOC-{row.id.slice(0, 6).toUpperCase()}
-            </span>
           </div>
         </div>
       ),
@@ -214,7 +226,7 @@ export default function LocationListPage() {
       ),
     },
     {
-      header: 'Geographic Coordinates',
+      header: 'Coordinates',
       className: 'whitespace-nowrap',
       accessor: (row: Location) =>
         row.lat != null && row.lng != null ? (
@@ -515,13 +527,14 @@ export default function LocationListPage() {
           <DataTable
             title={
               <span className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#E8450F]" />
+                <Layers className="w-4 h-4 text-indigo-500" />
                 <span>Locations Ledger</span>
               </span>
             }
             data={filteredData}
             columns={columns}
             enableSelection={true}
+            selectionResetKey={selectionResetKey}
             compact={true}
             isLoading={isLoading}
             isError={isError}
@@ -532,28 +545,40 @@ export default function LocationListPage() {
             filterElement={
               <div className="flex items-center gap-2.5">
                 <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
-                  <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                    <div className="flex items-center gap-2">
+                  <SelectTrigger className="h-9 px-3 w-auto min-w-[200px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
                       <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                      <SelectValue placeholder="Show Locations" />
+                      <SelectValue placeholder="All Locations" className="whitespace-nowrap" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectContent align="start" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
                     <SelectGroup>
                       <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                         Filter View
                       </SelectLabel>
                       <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        All Locations
+                        <span className="flex items-center gap-2 font-medium text-slate-700">
+                          <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                          All Locations
+                        </span>
                       </SelectItem>
                       <SelectItem value="priced" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        Priced Locations Only
+                        <span className="flex items-center gap-2 font-medium text-indigo-700">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                          Priced Locations Only
+                        </span>
                       </SelectItem>
                       <SelectItem value="unused" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        Unused / Unlinked Only
+                        <span className="flex items-center gap-2 font-medium text-blue-700">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                          Unused / Unlinked Only
+                        </span>
                       </SelectItem>
                       <SelectItem value="incomplete" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        Missing Address / Coords
+                        <span className="flex items-center gap-2 font-medium text-amber-700">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          Missing Address / Coords
+                        </span>
                       </SelectItem>
                     </SelectGroup>
                     <SelectSeparator className="my-1 border-slate-100" />
@@ -562,10 +587,16 @@ export default function LocationListPage() {
                         Status
                       </SelectLabel>
                       <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        Active Locations
+                        <span className="flex items-center gap-2 font-semibold text-emerald-700">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          Active Locations
+                        </span>
                       </SelectItem>
                       <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        Inactive Locations
+                        <span className="flex items-center gap-2 font-medium text-slate-600">
+                          <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                          Inactive Locations
+                        </span>
                       </SelectItem>
                     </SelectGroup>
                   </SelectContent>
