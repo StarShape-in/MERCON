@@ -108,8 +108,7 @@ export default function SendToWorkshopDialog({
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500 mt-1">
             This opens a service order on the Maintenance page and moves the{' '}
-            {single ? 'vehicle' : 'vehicles'} into Maintenance. Closing the order — or
-            "Return to service" — brings {single ? 'it' : 'them'} back to Available.
+            {single ? 'vehicle' : 'vehicles'} into Maintenance. Completing the service order on the Maintenance page brings {single ? 'it' : 'them'} back to Available.
           </DialogDescription>
         </DialogHeader>
 

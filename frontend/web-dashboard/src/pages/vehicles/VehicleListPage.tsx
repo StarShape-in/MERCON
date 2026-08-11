@@ -446,7 +446,10 @@ export default function VehicleListPage() {
           if (newStatus === row.status) return;
           // Maintenance is owned by the service order, not by a raw status write.
           if (newStatus === 'Maintenance') return sendToWorkshop([row]);
-          if (row.status === 'Maintenance' && newStatus === 'Available') return returnToService([row]);
+          if (row.status === 'Maintenance') {
+            toast.info(`Vehicle ${row.plate_number} is in maintenance. Please complete its service order on the Maintenance page to return it to service.`);
+            return navigate(`/maintenance?vehicle=${encodeURIComponent(row.plate_number)}`);
+          }
           try {
             await vehicleService.bulkUpdateStatus([row.id], newStatus);
             toast.success(`Vehicle ${row.plate_number} status updated to ${newStatus}`);
@@ -546,12 +549,12 @@ export default function VehicleListPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => returnToService([row])}
-              className="h-8 px-2 gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[11px] font-bold"
-              title="Close the open service order and put this vehicle back in service"
+              onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(row.plate_number)}`)}
+              className="h-8 px-2 gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-[11px] font-bold"
+              title="View maintenance details and service order on Maintenance page"
             >
-              <CheckCircle size={14} />
-              <span className="hidden xl:inline">Return to service</span>
+              <Wrench size={14} />
+              <span className="hidden xl:inline">In maintenance</span>
             </Button>
           ) : (
             <Button
@@ -587,10 +590,10 @@ export default function VehicleListPage() {
               <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Status Control</DropdownMenuLabel>
               {row.status === 'Maintenance' ? (
                 <DropdownMenuItem
-                  onClick={() => returnToService([row])}
-                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100/80"
+                  onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(row.plate_number)}`)}
+                  className="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-100/80"
                 >
-                  <CheckCircle size={13} className="mr-2 text-emerald-500" /> Return to Service
+                  <Wrench size={13} className="mr-2 text-amber-500" /> In Maintenance
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem
@@ -641,29 +644,7 @@ export default function VehicleListPage() {
         }
       }
     },
-    {
-      label: 'Return to Service',
-      icon: <CheckCircle size={13} />,
-      onClick: (selectedRows: Vehicle[]) => {
-        setConfirmModal({
-          isOpen: true,
-          title: 'Return Vehicles to Service',
-          message: `Close any open service order on ${selectedRows.length} vehicle(s) and mark them Available?`,
-          isDestructive: false,
-          onConfirm: async () => {
-            const inWorkshop = selectedRows.filter(r => r.status === 'Maintenance');
-            const rest = selectedRows.filter(r => r.status !== 'Maintenance');
-            try {
-              if (inWorkshop.length > 0) await returnToService(inWorkshop);
-              if (rest.length > 0) {
-                await vehicleService.bulkUpdateStatus(rest.map(r => r.id), 'Available');
-              }
-              refreshFleet();
-            } catch (e) { toast.error('Failed to update status'); }
-          }
-        });
-      }
-    },
+
     {
       label: 'Send to Workshop',
       icon: <Wrench size={13} />,

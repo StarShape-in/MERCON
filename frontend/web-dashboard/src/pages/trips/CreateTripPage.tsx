@@ -436,6 +436,14 @@ export default function CreateTripPage() {
       setError('Please assign a vehicle, or check "Assign vehicle later".');
       return;
     }
+    if (step === 2 && driverId && selectedDriver && pickupTime && isScheduledOnDate(selectedDriver.trips, pickupTime)) {
+      setError(`Driver ${selectedDriver.first_name} ${selectedDriver.last_name} is already assigned to a trip on this date.`);
+      return;
+    }
+    if (step === 2 && vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
+      setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
+      return;
+    }
     const next = (step < 3 ? step + 1 : 3) as 1 | 2 | 3;
     const params = new URLSearchParams(searchParams);
     params.set('step', String(next));

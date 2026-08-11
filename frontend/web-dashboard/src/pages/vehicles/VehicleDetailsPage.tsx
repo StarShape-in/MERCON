@@ -196,8 +196,9 @@ export default function VehicleDetailsPage() {
       openLogMaintModal({ status: 'In_Progress' });
       return;
     }
-    if (vehicle?.status === 'Maintenance' && newStatus === 'Available') {
-      return handleReturnToService();
+    if (vehicle?.status === 'Maintenance') {
+      toast.info(`Vehicle ${vehicle.plate_number} is in maintenance. Please complete its service order on the Maintenance page to return it to service.`);
+      return navigate(`/maintenance?vehicle=${encodeURIComponent(vehicle.plate_number)}`);
     }
     try {
       await vehicleService.bulkUpdateStatus([id], newStatus);
@@ -332,7 +333,7 @@ export default function VehicleDetailsPage() {
           </div>
         </div>
 
-        {/* Zero-friction Maintenance Return-to-Service Banner */}
+        {/* Zero-friction Maintenance Banner */}
         {vehicle.status === 'Maintenance' && (
           <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
             <div className="flex items-center gap-3">
@@ -347,18 +348,18 @@ export default function VehicleDetailsPage() {
                   </Badge>
                 </h4>
                 <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                  Repairs or servicing in progress. Closing this marks the open service order Completed on the Maintenance page and returns the vehicle to the active fleet.
+                  Repairs or servicing in progress. To return this vehicle to service, complete its service order on the Maintenance page.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 size="sm"
-                onClick={handleReturnToService}
-                className="h-9 px-4 gap-2 text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                onClick={() => navigate(`/maintenance?vehicle=${encodeURIComponent(vehicle.plate_number)}`)}
+                className="h-9 px-4 gap-2 text-xs font-extrabold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                Complete Service & Mark Available
+                <Wrench className="w-4 h-4" />
+                In Maintenance (View Details)
               </Button>
             </div>
           </div>
