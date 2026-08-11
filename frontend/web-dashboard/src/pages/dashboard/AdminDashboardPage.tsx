@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query';
+import { RefreshCw, AlertTriangle, LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import Btn from '@/components/ui/Btn';
 import KpiCard from '@/components/ui/KpiCard';
 import { KpiRouteFooter } from '@/components/ui/KpiRouteFooter';
 import { RouteLine, MoneyBills, FleetTruck, RevenueChart } from '@/components/ui/kpi-icons';
@@ -19,15 +18,39 @@ import { maintenanceService } from '@/services/maintenanceService';
 
 const ACTIVE_TRIP_STATUSES = 'Dispatched,AtPickup,InTransit,AtDelivery';
 
+/** "Just now" / "3m ago" / "2h ago" — small enough here that day-level granularity isn't needed. */
+function formatRelativeTime(from: number, now: number): string {
+  const seconds = Math.max(0, Math.round((now - from) / 1000));
+  if (seconds < 10) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  return `${hours}h ago`;
+}
+
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
   const [selectedSettlementTrip, setSelectedSettlementTrip] = useState<Trip | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   const showToast = (message: string) => {
     setToast(message);
     setTimeout(() => setToast(null), 3000);
   };
+
+  // Keep the "Updated Xm ago" label ticking without needing a refetch.
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isFetchingAny = useIsFetching({ queryKey: ['admin-dashboard'] }) > 0;
+  useEffect(() => {
+    if (!isFetchingAny) setLastUpdatedAt(Date.now());
+  }, [isFetchingAny]);
 
   const { data: activeTripsRes, isLoading: activeTripsLoading } = useQuery({
     queryKey: ['admin-dashboard', 'active-trips'],
@@ -70,21 +93,52 @@ export default function AdminDashboardPage() {
 
   return (
     <DashboardLayout active="Admin Dashboard" title="Admin Dashboard">
+      {/* Toast — fixed slide-in, matches the main Dashboard's own toast rather than
+          pushing the header down with an inline banner. */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-[999] bg-slate-900 border border-slate-800 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 fade-in duration-200">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+          <span>{toast}</span>
+        </div>
+      )}
+
       <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <div>
-            <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Admin Dashboard</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Fleet operations at a glance</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5 pt-1 mb-5">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-xl bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+              <LayoutDashboard className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl font-extrabold text-slate-950 dark:text-slate-100 tracking-tight">
+                  Admin Dashboard
+                </h1>
+                <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700 shrink-0">
+                  <ShieldCheck className="w-3 h-3" />
+                  Admin Only
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">
+                Live active trips, settlements, top customers and actions needed — in one place.
+              </p>
+            </div>
           </div>
-          <Btn label="Refresh All" variant="secondary" size="sm" icon={<RefreshCw size={13} />} onClick={handleRefreshAll} />
-        </div>
 
-        {toast && (
-          <div className="mb-4 px-4 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
-            {toast}
+          <div className="flex items-center gap-3 shrink-0 self-start md:self-center">
+            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 font-mono whitespace-nowrap">
+              Updated {formatRelativeTime(lastUpdatedAt, now)}
+            </span>
+            <button
+              onClick={handleRefreshAll}
+              className="inline-flex items-center gap-2 px-4.5 py-2 bg-[#EFF2FC] hover:bg-[#E4E9FC] dark:bg-indigo-950/50 dark:hover:bg-indigo-950/70 border border-[#D5DEFB] dark:border-indigo-900 text-xs font-extrabold text-[#2F54EB] dark:text-indigo-300 rounded-full shadow-2xs transition-colors cursor-pointer shrink-0"
+              title="Refresh all dashboard data"
+            >
+              <RefreshCw size={12} className={isFetchingAny ? 'animate-spin' : ''} />
+              <span>Refresh All</span>
+            </button>
           </div>
-        )}
+        </div>
 
         {/* KPI strip — matches the Vehicles page instrument panel styling */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
