@@ -297,9 +297,9 @@ export default function TripStopCard({
   };
 
   return (
-    <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs space-y-0">
+    <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-visible shadow-xs space-y-0 relative">
       {/* Header Bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span
             className={cn(
@@ -319,7 +319,7 @@ export default function TripStopCard({
 
       <div className="p-4 space-y-4">
         {/* SINGLE UNIFIED LOCATION SEARCH FIELD (Google Maps & Saved Rate Card Hubs) */}
-        <div className="space-y-1.5 relative" ref={containerRef}>
+        <div className={cn("space-y-1.5 relative", isDropdownOpen ? "z-40" : "z-10")} ref={containerRef}>
           <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <MapPin className={cn('w-3.5 h-3.5', isPickup ? 'text-emerald-600' : 'text-[#E8450F]')} />
