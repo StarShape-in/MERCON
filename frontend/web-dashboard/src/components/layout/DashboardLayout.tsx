@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -75,7 +75,20 @@ export default function DashboardLayout({
           onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
         />
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white">
-          {children}
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-full min-h-[300px]">
+              <div style={{
+                width: 32, height: 32,
+                border: '3px solid #F0F0F2',
+                borderTopColor: '#E8450F',
+                borderRadius: '50%',
+                animation: 'spin 0.7s linear infinite',
+              }} />
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          }>
+            {children}
+          </Suspense>
         </div>
       </div>
     </div>

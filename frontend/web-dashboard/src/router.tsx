@@ -88,88 +88,88 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export default function AppRouter() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<FullPageSpinner />}>
-        <Routes>
-          {/* ── Auth (public) ──────────────────────────────────── */}
-          <Route path="/login"           element={<LoginPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Routes>
+        {/* ── Auth (public) — full-page spinner while chunk loads ─── */}
+        <Route path="/login"           element={<Suspense fallback={<FullPageSpinner />}><LoginPage /></Suspense>} />
+        <Route path="/forgot-password" element={<Suspense fallback={<FullPageSpinner />}><ForgotPasswordPage /></Suspense>} />
 
-          {/* ── Protected ────────────────────────────────────── */}
-          <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+        {/* ── Protected ─────────────────────────────────────────────
+            No Suspense here — DashboardLayout owns the content-area
+            Suspense boundary so the sidebar/shell never unmounts. */}
+        <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
-          {/* Trips */}
-          <Route path="/trips"                    element={<ProtectedRoute><TripListPage /></ProtectedRoute>} />
-          <Route path="/trips/new"                element={<Navigate to="/trips?new=true" replace />} />
-          <Route path="/trips/:id"                element={<ProtectedRoute><TripDetailsPage /></ProtectedRoute>} />
-          <Route path="/trips/:id/edit"           element={<ProtectedRoute><EditTripPage /></ProtectedRoute>} />
-          <Route path="/trips/:id/track"          element={<ProtectedRoute><TripTrackingPage /></ProtectedRoute>} />
-          <Route path="/trips/:id/completion"     element={<ProtectedRoute><TripCompletionPage /></ProtectedRoute>} />
+        {/* Trips */}
+        <Route path="/trips"                    element={<ProtectedRoute><TripListPage /></ProtectedRoute>} />
+        <Route path="/trips/new"                element={<Navigate to="/trips?new=true" replace />} />
+        <Route path="/trips/:id"                element={<ProtectedRoute><TripDetailsPage /></ProtectedRoute>} />
+        <Route path="/trips/:id/edit"           element={<ProtectedRoute><EditTripPage /></ProtectedRoute>} />
+        <Route path="/trips/:id/track"          element={<ProtectedRoute><TripTrackingPage /></ProtectedRoute>} />
+        <Route path="/trips/:id/completion"     element={<ProtectedRoute><TripCompletionPage /></ProtectedRoute>} />
 
-          {/* Drivers */}
-          <Route path="/drivers"                  element={<ProtectedRoute><DriverListPage /></ProtectedRoute>} />
-          <Route path="/drivers/new"              element={<ProtectedRoute><AddDriverPage /></ProtectedRoute>} />
-          <Route path="/drivers/:id"              element={<ProtectedRoute><DriverDetailsPage /></ProtectedRoute>} />
-          <Route path="/drivers/:id/edit"         element={<ProtectedRoute><EditDriverPage /></ProtectedRoute>} />
-          <Route path="/drivers/:id/documents"    element={<ProtectedRoute><DriverDocumentsPage /></ProtectedRoute>} />
+        {/* Drivers */}
+        <Route path="/drivers"                  element={<ProtectedRoute><DriverListPage /></ProtectedRoute>} />
+        <Route path="/drivers/new"              element={<ProtectedRoute><AddDriverPage /></ProtectedRoute>} />
+        <Route path="/drivers/:id"              element={<ProtectedRoute><DriverDetailsPage /></ProtectedRoute>} />
+        <Route path="/drivers/:id/edit"         element={<ProtectedRoute><EditDriverPage /></ProtectedRoute>} />
+        <Route path="/drivers/:id/documents"    element={<ProtectedRoute><DriverDocumentsPage /></ProtectedRoute>} />
 
-          {/* Vehicles */}
-          <Route path="/vehicles"                 element={<ProtectedRoute><VehicleListPage /></ProtectedRoute>} />
-          <Route path="/vehicles/financials"      element={<ProtectedRoute><VehicleFinancialsPage /></ProtectedRoute>} />
-          <Route path="/vehicles/new"             element={<ProtectedRoute><AddVehiclePage /></ProtectedRoute>} />
-          <Route path="/vehicles/:id"             element={<ProtectedRoute><VehicleDetailsPage /></ProtectedRoute>} />
-          <Route path="/vehicles/:id/edit"        element={<ProtectedRoute><EditVehiclePage /></ProtectedRoute>} />
-          <Route path="/vehicles/:id/documents"   element={<ProtectedRoute><VehicleDocumentsPage /></ProtectedRoute>} />
-          <Route path="/vehicles/:id/financials"  element={<ProtectedRoute><VehicleFinancialsPage /></ProtectedRoute>} />
-          <Route path="/maintenance"              element={<ProtectedRoute><MaintenanceListPage /></ProtectedRoute>} />
-          <Route path="/maintenance/:id"          element={<ProtectedRoute><MaintenanceDetailsPage /></ProtectedRoute>} />
+        {/* Vehicles */}
+        <Route path="/vehicles"                 element={<ProtectedRoute><VehicleListPage /></ProtectedRoute>} />
+        <Route path="/vehicles/financials"      element={<ProtectedRoute><VehicleFinancialsPage /></ProtectedRoute>} />
+        <Route path="/vehicles/new"             element={<ProtectedRoute><AddVehiclePage /></ProtectedRoute>} />
+        <Route path="/vehicles/:id"             element={<ProtectedRoute><VehicleDetailsPage /></ProtectedRoute>} />
+        <Route path="/vehicles/:id/edit"        element={<ProtectedRoute><EditVehiclePage /></ProtectedRoute>} />
+        <Route path="/vehicles/:id/documents"   element={<ProtectedRoute><VehicleDocumentsPage /></ProtectedRoute>} />
+        <Route path="/vehicles/:id/financials"  element={<ProtectedRoute><VehicleFinancialsPage /></ProtectedRoute>} />
+        <Route path="/maintenance"              element={<ProtectedRoute><MaintenanceListPage /></ProtectedRoute>} />
+        <Route path="/maintenance/:id"          element={<ProtectedRoute><MaintenanceDetailsPage /></ProtectedRoute>} />
 
-          {/* Customers */}
-          <Route path="/customers"                element={<ProtectedRoute><CustomerListPage /></ProtectedRoute>} />
-          <Route path="/customers/new"            element={<ProtectedRoute><AddCustomerPage /></ProtectedRoute>} />
-          <Route path="/customers/:id"            element={<ProtectedRoute><CustomerDetailsPage /></ProtectedRoute>} />
-          <Route path="/customers/:id/edit"       element={<ProtectedRoute><EditCustomerPage /></ProtectedRoute>} />
-          <Route path="/customers/:id/contracts"  element={<ProtectedRoute><CustomerContractsPage /></ProtectedRoute>} />
+        {/* Customers */}
+        <Route path="/customers"                element={<ProtectedRoute><CustomerListPage /></ProtectedRoute>} />
+        <Route path="/customers/new"            element={<ProtectedRoute><AddCustomerPage /></ProtectedRoute>} />
+        <Route path="/customers/:id"            element={<ProtectedRoute><CustomerDetailsPage /></ProtectedRoute>} />
+        <Route path="/customers/:id/edit"       element={<ProtectedRoute><EditCustomerPage /></ProtectedRoute>} />
+        <Route path="/customers/:id/contracts"  element={<ProtectedRoute><CustomerContractsPage /></ProtectedRoute>} />
 
-          {/* Locations — the places rate card lanes are priced between */}
-          <Route path="/locations"                element={<ProtectedRoute><LocationListPage /></ProtectedRoute>} />
+        {/* Locations — the places rate card lanes are priced between */}
+        <Route path="/locations"                element={<ProtectedRoute><LocationListPage /></ProtectedRoute>} />
 
-          {/* Rate Cards */}
-          <Route path="/rate-cards"               element={<ProtectedRoute><RateCardListPage /></ProtectedRoute>} />
-          <Route path="/rate-cards/new"           element={<ProtectedRoute><CreateRateCardPage /></ProtectedRoute>} />
-          <Route path="/rate-cards/:id"            element={<ProtectedRoute><RateCardDetailsPage /></ProtectedRoute>} />
-          <Route path="/rate-cards/:id/edit"      element={<ProtectedRoute><EditRateCardPage /></ProtectedRoute>} />
-          <Route path="/rate-cards/:id/documents" element={<ProtectedRoute><RateCardDocsPage /></ProtectedRoute>} />
+        {/* Rate Cards */}
+        <Route path="/rate-cards"               element={<ProtectedRoute><RateCardListPage /></ProtectedRoute>} />
+        <Route path="/rate-cards/new"           element={<ProtectedRoute><CreateRateCardPage /></ProtectedRoute>} />
+        <Route path="/rate-cards/:id"            element={<ProtectedRoute><RateCardDetailsPage /></ProtectedRoute>} />
+        <Route path="/rate-cards/:id/edit"      element={<ProtectedRoute><EditRateCardPage /></ProtectedRoute>} />
+        <Route path="/rate-cards/:id/documents" element={<ProtectedRoute><RateCardDocsPage /></ProtectedRoute>} />
 
-          {/* Invoices */}
-          <Route path="/invoices"                 element={<ProtectedRoute><InvoiceListPage /></ProtectedRoute>} />
-          <Route path="/invoices/new"             element={<ProtectedRoute><CreateInvoicePage /></ProtectedRoute>} />
-          <Route path="/invoices/:id"             element={<ProtectedRoute><InvoiceDetailsPage /></ProtectedRoute>} />
-          <Route path="/invoices/:id/print"       element={<ProtectedRoute><InvoicePrintTemplate /></ProtectedRoute>} />
-          <Route path="/invoices/:id/payment"     element={<ProtectedRoute><PaymentStatusPage /></ProtectedRoute>} />
+        {/* Invoices */}
+        <Route path="/invoices"                 element={<ProtectedRoute><InvoiceListPage /></ProtectedRoute>} />
+        <Route path="/invoices/new"             element={<ProtectedRoute><CreateInvoicePage /></ProtectedRoute>} />
+        <Route path="/invoices/:id"             element={<ProtectedRoute><InvoiceDetailsPage /></ProtectedRoute>} />
+        <Route path="/invoices/:id/print"       element={<ProtectedRoute><InvoicePrintTemplate /></ProtectedRoute>} />
+        <Route path="/invoices/:id/payment"     element={<ProtectedRoute><PaymentStatusPage /></ProtectedRoute>} />
 
-          {/* Documents */}
-          <Route path="/documents"                element={<ProtectedRoute><DocumentsCenterPage /></ProtectedRoute>} />
-          <Route path="/documents/expiry"         element={<ProtectedRoute><ExpiryManagementPage /></ProtectedRoute>} />
+        {/* Documents */}
+        <Route path="/documents"                element={<ProtectedRoute><DocumentsCenterPage /></ProtectedRoute>} />
+        <Route path="/documents/expiry"         element={<ProtectedRoute><ExpiryManagementPage /></ProtectedRoute>} />
 
-          {/* Reports */}
-          <Route path="/reports"                  element={<ProtectedRoute><ReportsDashboardPage /></ProtectedRoute>} />
-          <Route path="/reports/custom"           element={<ProtectedRoute><CustomReportPage /></ProtectedRoute>} />
-          <Route path="/reports/fleet"            element={<ProtectedRoute><FleetPerformancePage /></ProtectedRoute>} />
-          <Route path="/reports/revenue"          element={<ProtectedRoute><RevenueReportsPage /></ProtectedRoute>} />
-          <Route path="/reports/drivers"          element={<ProtectedRoute><DriverPerformancePage /></ProtectedRoute>} />
-          <Route path="/reports/delays"           element={<ProtectedRoute><DelayReportPage /></ProtectedRoute>} />
+        {/* Reports */}
+        <Route path="/reports"                  element={<ProtectedRoute><ReportsDashboardPage /></ProtectedRoute>} />
+        <Route path="/reports/custom"           element={<ProtectedRoute><CustomReportPage /></ProtectedRoute>} />
+        <Route path="/reports/fleet"            element={<ProtectedRoute><FleetPerformancePage /></ProtectedRoute>} />
+        <Route path="/reports/revenue"          element={<ProtectedRoute><RevenueReportsPage /></ProtectedRoute>} />
+        <Route path="/reports/drivers"          element={<ProtectedRoute><DriverPerformancePage /></ProtectedRoute>} />
+        <Route path="/reports/delays"           element={<ProtectedRoute><DelayReportPage /></ProtectedRoute>} />
 
-          {/* Settings & Governance */}
-          <Route path="/settings"                 element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-          <Route path="/settings/profile"         element={<ProtectedRoute><OperatorProfilePage /></ProtectedRoute>} />
-          <Route path="/settings/users"           element={<ProtectedRoute><RequireRole roles={['Admin', 'Operator']}><UserManagementPage /></RequireRole></ProtectedRoute>} />
-          <Route path="/recycle-bin"              element={<ProtectedRoute><RecycleBinPage /></ProtectedRoute>} />
+        {/* Settings & Governance */}
+        <Route path="/settings"                 element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/settings/profile"         element={<ProtectedRoute><OperatorProfilePage /></ProtectedRoute>} />
+        <Route path="/settings/users"           element={<ProtectedRoute><RequireRole roles={['Admin', 'Operator']}><UserManagementPage /></RequireRole></ProtectedRoute>} />
+        <Route path="/recycle-bin"              element={<ProtectedRoute><RecycleBinPage /></ProtectedRoute>} />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }
