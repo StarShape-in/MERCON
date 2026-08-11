@@ -21,8 +21,8 @@ const STOPS_FROZEN_IN: TripStatus[] = ['Completed', 'Invoiced', 'Cancelled'];
 
 const STATUS_DESCRIPTIONS: Record<TripStatus, { title: string; description: string; color: string }> = {
   Draft: {
-    title: 'Draft (Preparing Shipment)',
-    description: 'The trip manifest is being created. Driver and vehicle details can still be attached before dispatch.',
+    title: 'Scheduled / Draft (Planned Shipment)',
+    description: 'The trip is scheduled and planned. Driver and vehicle details can be attached or updated before dispatch.',
     color: 'bg-slate-50 text-slate-700 border-slate-200',
   },
   Dispatched: {

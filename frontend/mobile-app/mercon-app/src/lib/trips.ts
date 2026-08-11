@@ -135,6 +135,7 @@ export const NEXT_STEP: Partial<Record<TripStatus, { to: TripStatus; label: stri
 /** Human-friendly label for a status. */
 export function statusLabel(s: TripStatus): string {
   switch (s) {
+    case 'Draft': return 'Scheduled';
     case 'AtPickup': return 'At Pickup';
     case 'InTransit': return 'In Transit';
     case 'AtDelivery': return 'At Delivery';

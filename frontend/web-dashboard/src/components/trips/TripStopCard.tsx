@@ -14,7 +14,7 @@ import {
   X
 } from 'lucide-react';
 import { TripScheduleSelector } from '@/components/trips/TripScheduleSelector';
-import LocationPickerMap from '@/components/trips/LocationPickerMap';
+import TripStopMap from '@/components/trips/TripStopMap';
 import { locationService, Location } from '@/services/locationService';
 import {
   createAddressSearchSession,
@@ -425,26 +425,28 @@ export default function TripStopCard({
             <button
               type="button"
               onClick={() => setIsMapExpanded(!isMapExpanded)}
-              className="ml-2 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-slate-300 shadow-2xs flex items-center gap-1.5 shrink-0 cursor-pointer"
+              className={cn(
+                "ml-2 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all shadow-2xs flex items-center gap-1.5 shrink-0 cursor-pointer",
+                isMapExpanded
+                  ? isPickup
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
+                    : "border-orange-300 bg-orange-50 text-[#E8450F] dark:bg-orange-950/40 dark:border-orange-800 dark:text-orange-300"
+                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              )}
             >
-              <MapIcon className="w-3.5 h-3.5 text-indigo-600" />
+              <MapPin className={cn("w-3.5 h-3.5", isMapExpanded ? (isPickup ? "text-emerald-600" : "text-[#E8450F]") : "text-slate-500")} />
               <span>{isMapExpanded ? 'Hide Map' : 'Map Pin'}</span>
             </button>
           </div>
 
-          {/* Interactive Map (Folded by default) */}
+          {/* Interactive Direct Map (1-click toggle, zero extra fields) */}
           {isMapExpanded && (
-            <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 animate-fade-in">
-              <LocationPickerMap
-                compact
-                label=""
+            <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 animate-in fade-in-50 duration-200">
+              <TripStopMap
+                tone={tone}
                 lat={lat}
                 lng={lng}
                 onChange={(la, ln) => updateCoords(la, ln)}
-                name={name}
-                onNameChange={onNameChange}
-                address={address}
-                onAddressChange={onAddressChange}
               />
             </div>
           )}

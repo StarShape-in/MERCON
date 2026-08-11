@@ -202,7 +202,9 @@ const HomeScreen = () => {
                   <Text style={styles.startBtnText}>{advancing ? 'Updating…' : next.label}</Text>
                 </TouchableOpacity>
               ) : trip.status === 'Draft' ? (
-                <Text style={styles.doneNote}>Awaiting dispatch — your operator will assign a vehicle and start this trip.</Text>
+                <Text style={styles.doneNote}>
+                  Scheduled trip {trip.planned_start ? `for ${shortWhen(trip.planned_start)}` : ''} — awaiting dispatch from operations.
+                </Text>
               ) : (
                 <Text style={styles.doneNote}>This trip is {statusLabel(trip.status).toLowerCase()}.</Text>
               )}

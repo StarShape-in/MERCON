@@ -176,7 +176,7 @@ type TripStatusFilter = TripStatus | 'All' | 'Completed,Invoiced';
 
 const STATUS_TABS: { label: string; value: TripStatusFilter }[] = [
   { label: 'All Operations', value: 'All' },
-  { label: 'Drafts', value: 'Draft' },
+  { label: 'Scheduled / Drafts', value: 'Draft' },
   { label: 'Dispatched', value: 'Dispatched' },
   { label: 'At Pickup', value: 'AtPickup' },
   { label: 'In Transit', value: 'InTransit' },
@@ -1203,13 +1203,13 @@ export default function TripListPage() {
                     
                     const ALLOWED_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
                       Draft: ['Dispatched', 'Cancelled'] as TripStatus[],
-                      Dispatched: ['AtPickup', 'Cancelled'] as TripStatus[],
+                      Dispatched: ['AtPickup', 'Draft', 'Cancelled'] as TripStatus[],
                       AtPickup: ['InTransit', 'Cancelled'] as TripStatus[],
                       InTransit: ['AtDelivery', 'Cancelled'] as TripStatus[],
                       AtDelivery: ['Completed', 'Cancelled'] as TripStatus[],
                       Completed: ['Invoiced'] as TripStatus[],
                       Invoiced: [] as TripStatus[],
-                      Cancelled: [] as TripStatus[],
+                      Cancelled: ['Draft'] as TripStatus[],
                     };
 
                     const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
@@ -1217,7 +1217,7 @@ export default function TripListPage() {
 
                     return (
                       <>
-                        <SelectItem value="Draft" disabled={!isValid('Draft')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Draft</SelectItem>
+                        <SelectItem value="Draft" disabled={!isValid('Draft')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Scheduled (Draft)</SelectItem>
                         <SelectItem value="Dispatched" disabled={!isValid('Dispatched')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Dispatched</SelectItem>
                         <SelectItem value="AtPickup" disabled={!isValid('AtPickup')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">At Pickup</SelectItem>
                         <SelectItem value="InTransit" disabled={!isValid('InTransit')} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">In Transit</SelectItem>
