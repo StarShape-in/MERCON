@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
-  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2
+  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -15,12 +16,13 @@ interface SidebarProps {
   onClose?: () => void;
   /**
    * Desktop-only rail mode — collapses to an icon strip at lg and above. Mobile drawer is
-   * unaffected. Toggled from the header, next to the Back button.
+   * unaffected. Toggled from the handle on the sidebar's own right edge.
    */
   collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export default function Sidebar({ active, open = false, onClose, collapsed = false }: SidebarProps) {
+export default function Sidebar({ active, open = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const user = authStore.getUser();
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
@@ -102,7 +104,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         className={`
           flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
           bg-[#18181B] border-r border-white/10
-          fixed inset-y-0 left-0 z-50 lg:relative lg:z-auto
+          fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
           transform transition-[transform,width] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${collapsed ? 'lg:w-[76px]' : 'lg:w-[220px]'}
@@ -123,6 +125,32 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           <X size={18} />
         </button>
       </div>
+
+      {/*
+        Desktop rail toggle. Sits on the sidebar's own right edge, level with the logo
+        divider, so it stays in exactly the same place whether the rail is expanded or
+        collapsed — nothing in the header shifts when you use it.
+
+        It pokes 12px past the sidebar's edge, so the aside needs lg:z-30 (above the
+        content column) for the overhang to be visible — the width transition promotes
+        the aside to its own stacking context, so a z-index on this button alone is
+        trapped inside it and does nothing.
+      */}
+      <button
+        onClick={onToggleCollapse}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-expanded={!collapsed}
+        title={`${collapsed ? 'Expand' : 'Collapse'} sidebar (⌘B)`}
+        className="
+          hidden lg:flex absolute -right-3 top-[76px] z-30 w-6 h-6 items-center justify-center
+          rounded-full bg-[#18181B] border border-white/15 text-white/70 shadow-md
+          hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
+          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
+          transition-colors cursor-pointer
+        "
+      >
+        {collapsed ? <ChevronRight size={13} className="stroke-[2.5]" /> : <ChevronLeft size={13} className="stroke-[2.5]" />}
+      </button>
 
       {/* Nav groups */}
       <div className={`flex-1 py-4 space-y-5 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>

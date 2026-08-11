@@ -48,6 +48,18 @@ export default function DashboardLayout({
     return () => { document.body.style.overflow = previous; };
   }, [sidebarOpen]);
 
+  // Cmd/Ctrl + B collapses or expands the desktop rail
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setSidebarCollapsed((c) => !c);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   // Escape closes the drawer
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -65,14 +77,13 @@ export default function DashboardLayout({
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       />
       <div className="flex flex-col flex-1 min-w-0 bg-white">
         <Header
           title={title}
           breadcrumb={breadcrumb}
           onMenuClick={() => setSidebarOpen(true)}
-          sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
         />
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative pt-4 sm:pt-6 bg-white">
           <Suspense fallback={
