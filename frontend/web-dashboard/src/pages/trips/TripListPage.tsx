@@ -96,7 +96,7 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 
 const TRIP_EXPORT_HEADERS = [
   'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
-  'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
+  'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
   'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
 ];
 
@@ -133,12 +133,13 @@ const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
     dropoff.name !== '—' ? (dropoff.address ? `${dropoff.name} (${dropoff.address})` : dropoff.name) : '—',
     t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned',
     t.vehicle?.plate_number || 'Unassigned',
+    t.rateCard?.name || 'Manual Rate',
     formatExportDate(t.planned_start),
     formatExportDate(t.actual_start),
     formatExportDate(t.planned_end),
     formatExportDate(t.actual_end),
     Number(t.trip_charges || 0),
-    Number(t.billing_amount || 0),
+    Number(t.billing_amount || t.rateCard?.base_price || 0),
     t.carrier_name || 'MERCON LOGISTICS',
   ];
 });
@@ -537,14 +538,14 @@ export default function TripListPage() {
     },
     {
       header: 'Customer',
-      className: 'whitespace-nowrap',
+      className: 'whitespace-nowrap max-w-[140px]',
       accessor: (row: Trip) => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-xs text-[#111] leading-snug truncate" title={row.customer?.name}>
+        <div className="flex flex-col max-w-[140px]">
+          <span className="font-semibold text-xs text-[#111] dark:text-slate-100 leading-snug truncate" title={row.customer?.name}>
             {row.customer?.name || '—'}
           </span>
           {row.customer?.contact_phone && (
-            <span className="text-[10px] text-muted-foreground font-mono truncate">
+            <span className="text-[10px] text-muted-foreground font-mono truncate" title={row.customer.contact_phone}>
               {row.customer.contact_phone}
             </span>
           )}
@@ -553,12 +554,12 @@ export default function TripListPage() {
     },
     {
       header: 'Pickup & Dropoff',
-      className: 'whitespace-nowrap',
+      className: 'whitespace-nowrap max-w-[150px]',
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         return (
-          <div className="flex flex-col gap-1 py-0.5 max-w-[260px]">
+          <div className="flex flex-col gap-0.5 py-0.5 max-w-[150px]">
             <div className="flex items-center gap-1.5 min-w-0" title={`Pickup: ${pickup.name}${pickup.address ? ` (${pickup.address})` : ''}`}>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
@@ -577,13 +578,13 @@ export default function TripListPage() {
     },
     {
       header: 'Driver',
-      className: 'whitespace-nowrap',
+      className: 'whitespace-nowrap max-w-[130px]',
       accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 max-w-[130px]">
           <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
             <User size={11} className="text-slate-500" />
           </div>
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 truncate">
             {row.driver ? (
               <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={`${row.driver.first_name} ${row.driver.last_name}`}>
                 {`${row.driver.first_name} ${row.driver.last_name}`}
@@ -614,6 +615,32 @@ export default function TripListPage() {
           )}
         </div>
       ),
+    },
+    {
+      header: 'Rate Card & Price',
+      className: 'whitespace-nowrap',
+      accessor: (row: Trip) => {
+        const price = row.billing_amount ?? row.trip_charges ?? row.rateCard?.base_price;
+        const currency = row.rateCard?.currency || 'SAR';
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-bold text-xs text-[#111] dark:text-slate-200 font-mono">
+              {price !== undefined && price !== null && price > 0
+                ? `${currency} ${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : '—'}
+            </span>
+            {row.rateCard ? (
+              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold truncate max-w-[130px]" title={row.rateCard.name}>
+                {row.rateCard.name}
+              </span>
+            ) : (
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">
+                Manual / Fixed Rate
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Status',

@@ -129,6 +129,7 @@ export const getTrips = async (req: Request, res: Response) => {
           driver: true,
           vehicle: true,
           customer: true,
+          rateCard: true,
           stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
         }
       }),

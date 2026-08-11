@@ -29,6 +29,15 @@ export interface Trip {
   vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null } | null;
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
+  rateCardId?: string | null;
+  rateCard?: {
+    id: string;
+    name: string;
+    route_origin: string;
+    route_destination: string;
+    base_price: number;
+    currency: string;
+  } | null;
 }
 
 export interface TripStop {

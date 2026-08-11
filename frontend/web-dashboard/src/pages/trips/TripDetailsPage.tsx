@@ -93,7 +93,7 @@ export default function TripDetailsPage() {
   const queryClient = useQueryClient();
   const users = useUserLookup();
 
-  const [docTab, setDocTab] = useState<'documents' | 'invoice'>('documents');
+  const [docTab, setDocTab] = useState<'documents' | 'invoice' | 'rate-card'>('documents');
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [nextStatus, setNextStatus] = useState<TripStatus>('Draft');
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -514,7 +514,7 @@ export default function TripDetailsPage() {
 
               <Separator className="my-5" />
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
                 <div className="flex items-start gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                     <Building2 size={15} />
@@ -578,6 +578,23 @@ export default function TripDetailsPage() {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Vehicle</p>
                     <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.vehicle?.plate_number || 'Unassigned'}</p>
                     {trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <ReceiptText size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Rate & Price</p>
+                    <p className="text-sm font-bold text-[#111] font-mono truncate mt-0.5">
+                      {(trip.billing_amount ?? trip.trip_charges ?? trip.rateCard?.base_price)
+                        ? `${trip.rateCard?.currency || 'SAR'} ${Number(trip.billing_amount ?? trip.trip_charges ?? trip.rateCard?.base_price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : '—'}
+                    </p>
+                    <p className="text-xs text-[#6E6E80] truncate" title={trip.rateCard?.name || 'Manual / Fixed Rate'}>
+                      {trip.rateCard?.name || 'Manual Rate'}
+                    </p>
                   </div>
                 </div>
 
