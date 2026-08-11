@@ -2,7 +2,22 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, Car, User, ArrowUpRight, Loader2, CheckCircle2
+  Bell,
+  Car,
+  User,
+  ArrowUpRight,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Search,
+  RotateCw,
+  Calendar,
+  ShieldAlert,
+  FileText,
+  Sparkles,
+  Check,
+  Building2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -91,12 +106,15 @@ export default function ImportantReminders() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<DisplayReminder | null>(null);
   const [newExpiryDate, setNewExpiryDate] = useState('');
+  const [renewalNotes, setRenewalNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Live Query from backend API services
-  const { data: docs = [], isLoading: isLoadingDocs } = useQuery({
+  const { data: docs = [], isLoading: isLoadingDocs, isFetching, refetch } = useQuery({
     queryKey: ['documents', 'reminders'],
     queryFn: async () => {
       try {
@@ -155,7 +173,9 @@ export default function ImportantReminders() {
           entityType: isVehicle ? ('Vehicle' as const) : ('Driver' as const),
           entityName,
           entitySub: isVehicle ? 'Fleet Unit' : 'Active Staff',
-          expiryDate: doc.expiry_date ? new Date(doc.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
+          expiryDate: doc.expiry_date
+            ? new Date(doc.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            : 'N/A',
           daysRemaining: dRem,
           category: cat,
           rawDoc: doc,
@@ -167,17 +187,32 @@ export default function ImportantReminders() {
     return apiReminders.length > 0 ? apiReminders : FALLBACK_REAL_DATA;
   }, [docs, drivers, vehicles]);
 
-  // Filtered List
+  // Counts breakdown
+  const expiredCount = useMemo(() => realItems.filter(r => r.daysRemaining <= 0).length, [realItems]);
+  const criticalCount = useMemo(() => realItems.filter(r => r.daysRemaining > 0 && r.daysRemaining <= 7).length, [realItems]);
+  const upcomingCount = useMemo(() => realItems.filter(r => r.daysRemaining > 7).length, [realItems]);
+  const vehicleRemindersCount = useMemo(() => realItems.filter(r => r.entityType === 'Vehicle').length, [realItems]);
+  const driverRemindersCount = useMemo(() => realItems.filter(r => r.entityType === 'Driver').length, [realItems]);
+
+  // Filtered & Searched List
   const filteredItems = useMemo(() => {
     return realItems.filter(item => {
-      if (activeFilter === 'critical') return item.daysRemaining <= 7;
-      if (activeFilter === 'vehicle') return item.entityType === 'Vehicle';
-      if (activeFilter === 'driver') return item.entityType === 'Driver';
+      // Category Filter
+      if (activeFilter === 'critical' && item.daysRemaining > 7) return false;
+      if (activeFilter === 'vehicle' && item.entityType !== 'Vehicle') return false;
+      if (activeFilter === 'driver' && item.entityType !== 'Driver') return false;
+
+      // Text Search
+      if (searchQuery.trim() !== '') {
+        const q = searchQuery.toLowerCase();
+        const matchName = item.entityName.toLowerCase().includes(q);
+        const matchSub = item.entitySub.toLowerCase().includes(q);
+        const matchDoc = item.docType.toLowerCase().includes(q);
+        return matchName || matchSub || matchDoc;
+      }
       return true;
     });
-  }, [realItems, activeFilter]);
-
-  const urgentCount = realItems.filter(r => r.daysRemaining <= 7).length;
+  }, [realItems, activeFilter, searchQuery]);
 
   const handleRenewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,152 +224,320 @@ export default function ImportantReminders() {
         await documentService.updateStatus(selectedItem.rawDoc.id, 'Verified', newExpiryDate);
         await queryClient.invalidateQueries({ queryKey: ['documents'] });
       }
+      setIsSuccess(true);
+      setTimeout(() => {
+        setIsSuccess(false);
+        setSelectedItem(null);
+      }, 1200);
     } catch {
       // Handled gracefully
     } finally {
       setIsUpdating(false);
-      setSelectedItem(null);
     }
   };
 
+  const handleAddPresetMonths = (months: number) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + months);
+    setNewExpiryDate(d.toISOString().split('T')[0]);
+  };
+
+  // Progress Bar Widths
+  const totalCount = realItems.length || 1;
+  const expiredPct = Math.round((expiredCount / totalCount) * 100);
+  const criticalPct = Math.round((criticalCount / totalCount) * 100);
+  const upcomingPct = 100 - (expiredPct + criticalPct);
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600">
-            <Bell className="w-3.5 h-3.5" />
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all duration-300 overflow-hidden flex flex-col">
+      {/* ── Top Header ─────────────────────────────────────────────── */}
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50/50 via-white to-amber-50/20">
+        <div className="flex items-center gap-3">
+          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/15 to-orange-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center shadow-2xs">
+            <Bell className="w-4 h-4" />
+            {(expiredCount > 0 || criticalCount > 0) && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold text-slate-900 tracking-tight">Important Reminders</h3>
-              {urgentCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                  {urgentCount} Action Needed
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">Important Reminders</h3>
+              {expiredCount > 0 ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200/80 flex items-center gap-1 shadow-2xs">
+                  <AlertTriangle className="w-3 h-3 text-rose-500" />
+                  {expiredCount} Expired
+                </span>
+              ) : criticalCount > 0 ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200/80 flex items-center gap-1 shadow-2xs">
+                  <Clock className="w-3 h-3 text-amber-500" />
+                  {criticalCount} Action Needed
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  All Up to Date
                 </span>
               )}
             </div>
+            <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+              Vehicle & driver compliance expirations
+            </p>
           </div>
         </div>
 
-        <button
-          onClick={() => navigate('/documents')}
-          className="text-xs font-bold text-slate-500 hover:text-[#E8450F] transition-colors flex items-center gap-1"
-        >
-          View All <ArrowUpRight className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => refetch()}
+            className="h-7 w-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition-colors"
+            title="Refresh reminders"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[#E8450F]' : ''}`} />
+          </Button>
+
+          <button
+            onClick={() => navigate('/documents')}
+            className="text-xs font-bold text-slate-600 hover:text-[#E8450F] transition-colors flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-orange-50/60"
+          >
+            View All <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      {/* Segmented Filter Bar */}
-      <div className="px-5 py-2.5 bg-slate-50/60 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto">
-        <button
-          onClick={() => setActiveFilter('all')}
-          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-            activeFilter === 'all'
-              ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          All ({realItems.length})
-        </button>
-        <button
-          onClick={() => setActiveFilter('critical')}
-          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-            activeFilter === 'critical'
-              ? 'bg-white text-rose-700 shadow-2xs border border-rose-200'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Critical ({urgentCount})
-        </button>
-        <button
-          onClick={() => setActiveFilter('vehicle')}
-          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-            activeFilter === 'vehicle'
-              ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Vehicles
-        </button>
-        <button
-          onClick={() => setActiveFilter('driver')}
-          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-            activeFilter === 'driver'
-              ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Drivers
-        </button>
+      {/* ── Summary & Urgency Progress Bar ─────────────────────────── */}
+      <div className="px-5 py-3 bg-slate-50/40 border-b border-slate-100 flex flex-col gap-2">
+        <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-rose-600 font-bold">
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              {expiredCount} Expired
+            </span>
+            <span className="flex items-center gap-1.5 text-amber-600 font-bold">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              {criticalCount} Critical (≤7d)
+            </span>
+            <span className="flex items-center gap-1.5 text-slate-500">
+              <span className="w-2 h-2 rounded-full bg-indigo-400" />
+              {upcomingCount} Upcoming
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            {realItems.length} Total Monitored
+          </span>
+        </div>
+
+        {/* Visual Urgency Bar */}
+        <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden flex">
+          {expiredPct > 0 && (
+            <div
+              style={{ width: `${expiredPct}%` }}
+              className="h-full bg-rose-500 transition-all duration-500"
+              title={`${expiredCount} Expired (${expiredPct}%)`}
+            />
+          )}
+          {criticalPct > 0 && (
+            <div
+              style={{ width: `${criticalPct}%` }}
+              className="h-full bg-amber-400 transition-all duration-500"
+              title={`${criticalCount} Critical (${criticalPct}%)`}
+            />
+          )}
+          {upcomingPct > 0 && (
+            <div
+              style={{ width: `${upcomingPct}%` }}
+              className="h-full bg-indigo-400/70 transition-all duration-500"
+              title={`${upcomingCount} Upcoming (${upcomingPct}%)`}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Item List */}
-      <div className="divide-y divide-slate-100 max-h-[380px] overflow-y-auto">
+      {/* ── Search & Filter Controls ──────────────────────────────── */}
+      <div className="px-5 py-2.5 bg-white border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setActiveFilter('all')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeFilter === 'all'
+                ? 'bg-slate-900 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            All ({realItems.length})
+          </button>
+          <button
+            onClick={() => setActiveFilter('critical')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
+              activeFilter === 'critical'
+                ? 'bg-rose-600 text-white shadow-2xs'
+                : 'text-rose-600 hover:bg-rose-50'
+            }`}
+          >
+            Urgent ({expiredCount + criticalCount})
+          </button>
+          <button
+            onClick={() => setActiveFilter('vehicle')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeFilter === 'vehicle'
+                ? 'bg-slate-900 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            Vehicles ({vehicleRemindersCount})
+          </button>
+          <button
+            onClick={() => setActiveFilter('driver')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeFilter === 'driver'
+                ? 'bg-slate-900 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            Drivers ({driverRemindersCount})
+          </button>
+        </div>
+
+        {/* Search Input */}
+        <div className="relative min-w-[150px] sm:w-[180px]">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input
+            type="text"
+            placeholder="Search reminders..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="h-7 text-[11px] pl-8 pr-2 bg-slate-50/70 border-slate-200 focus:bg-white transition-all rounded-lg"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-slate-600 font-bold"
+            >
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Reminders List ────────────────────────────────────────── */}
+      <div className="divide-y divide-slate-100 max-h-[380px] overflow-y-auto custom-scrollbar flex-1 bg-slate-50/20">
         {isLoadingDocs ? (
           <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-400">
-            <Loader2 className="w-5 h-5 animate-spin text-[#E8450F]" />
-            <span className="text-xs font-medium">Loading real compliance records...</span>
+            <Loader2 className="w-6 h-6 animate-spin text-[#E8450F]" />
+            <span className="text-xs font-semibold text-slate-600">Loading compliance records...</span>
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className="py-10 text-center text-xs text-slate-400 font-medium">
-            No pending reminders
+          <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            </div>
+            <p className="text-xs font-bold text-slate-700">No Reminders Found</p>
+            <p className="text-[11px] text-slate-400 max-w-[240px]">
+              {searchQuery
+                ? `No documents matching "${searchQuery}"`
+                : 'All documents in this category are fully up to date!'}
+            </p>
           </div>
         ) : (
           filteredItems.map(item => {
             const isExpired = item.daysRemaining <= 0;
             const isCritical = item.daysRemaining > 0 && item.daysRemaining <= 7;
 
-            let badgeStyle = 'bg-slate-100 text-slate-600 border-slate-200';
+            // Indicator styles
+            let leftBorderClass = 'border-l-4 border-l-transparent hover:bg-slate-50/80';
+            let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
             let labelText = `${item.daysRemaining}d remaining`;
 
             if (isExpired) {
-              badgeStyle = 'bg-rose-50 text-rose-700 border-rose-200 font-semibold';
+              leftBorderClass = 'border-l-4 border-l-rose-500 bg-rose-50/20 hover:bg-rose-50/40';
+              badgeStyle = 'bg-rose-100/80 text-rose-800 border-rose-300 font-bold';
               labelText = `Expired ${Math.abs(item.daysRemaining)}d ago`;
             } else if (isCritical) {
-              badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200 font-semibold';
+              leftBorderClass = 'border-l-4 border-l-amber-500 bg-amber-50/20 hover:bg-amber-50/40';
+              badgeStyle = 'bg-amber-100/80 text-amber-800 border-amber-300 font-bold';
               labelText = `Due in ${item.daysRemaining} days`;
             }
 
             return (
               <div
                 key={item.id}
-                className="px-5 py-3.5 hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-4 group"
+                className={`px-5 py-3.5 transition-all flex items-center justify-between gap-3 group ${leftBorderClass}`}
               >
-                {/* Left: Entity & Document info */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
-                    item.entityType === 'Vehicle'
-                      ? 'bg-slate-50 text-slate-700 border-slate-200'
-                      : 'bg-indigo-50/60 text-indigo-600 border-indigo-100'
-                  }`}>
-                    {item.entityType === 'Vehicle' ? <Car className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                {/* Left: Entity & Document Info */}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {/* Avatar Icon Pill */}
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs transition-transform group-hover:scale-105 ${
+                      item.entityType === 'Vehicle'
+                        ? 'bg-slate-100/80 text-slate-800 border-slate-200/80'
+                        : 'bg-indigo-50 text-indigo-700 border-indigo-200/70'
+                    }`}
+                  >
+                    {item.entityType === 'Vehicle' ? (
+                      <Car className="w-4 h-4 text-slate-700" />
+                    ) : (
+                      <User className="w-4 h-4 text-indigo-600" />
+                    )}
                   </div>
 
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-bold text-slate-900 truncate">{item.entityName}</p>
-                      <span className="text-[10px] font-medium text-slate-400 truncate">• {item.entitySub}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-xs font-bold text-slate-900 truncate tracking-tight">
+                        {item.entityName}
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] px-1.5 py-0 uppercase tracking-wider font-extrabold rounded-md ${
+                          item.entityType === 'Vehicle'
+                            ? 'bg-slate-100 text-slate-600 border-slate-200'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                        }`}
+                      >
+                        {item.entityType}
+                      </Badge>
                     </div>
-                    <p className="text-xs text-slate-500 font-medium truncate">{item.docType}</p>
+
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] font-semibold text-slate-700 truncate flex items-center gap-1">
+                        <FileText className="w-3 h-3 text-slate-400 shrink-0" />
+                        {item.docType}
+                      </span>
+                      <span className="text-[10px] text-slate-400 hidden sm:inline">•</span>
+                      <span className="text-[10px] text-slate-400 truncate hidden sm:inline">
+                        {item.entitySub}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Right: Expiry badge & Action */}
-                <div className="flex items-center gap-3 shrink-0">
-                  <Badge variant="outline" className={`text-[10px] px-2 py-0.5 rounded-md ${badgeStyle}`}>
-                    {labelText}
-                  </Badge>
+                {/* Right: Expiry badge & Renew Action */}
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs ${badgeStyle}`}
+                    >
+                      {isExpired && <AlertTriangle className="w-3 h-3 text-rose-600" />}
+                      {isCritical && <Clock className="w-3 h-3 text-amber-600" />}
+                      {labelText}
+                    </Badge>
+                    <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                      <Calendar className="w-2.5 h-2.5" />
+                      {item.expiryDate}
+                    </span>
+                  </div>
 
                   <Button
-                    variant="ghost"
                     size="sm"
-                    className="h-7 px-2.5 text-xs font-bold text-slate-600 hover:text-[#E8450F] hover:bg-orange-50/60 transition-colors"
+                    className="h-7 px-3 text-xs font-bold bg-orange-50 text-[#E8450F] hover:bg-[#E8450F] hover:text-white border border-orange-200/60 hover:border-[#E8450F] transition-all shadow-2xs rounded-lg flex items-center gap-1"
                     onClick={() => {
                       setSelectedItem(item);
+                      setIsSuccess(false);
                       const f = new Date();
                       f.setFullYear(f.getFullYear() + 1);
                       setNewExpiryDate(f.toISOString().split('T')[0]);
+                      setRenewalNotes('');
                     }}
                   >
                     Renew
@@ -346,51 +549,149 @@ export default function ImportantReminders() {
         )}
       </div>
 
-      {/* Renewal Dialog */}
+      {/* ── Renewal Modal Dialog ──────────────────────────────────── */}
       <Dialog open={!!selectedItem} onOpenChange={open => !open && setSelectedItem(null)}>
-        <DialogContent className="sm:max-w-sm bg-white rounded-2xl p-5">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-slate-900">
-              Renew {selectedItem?.docType}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Update validity period for {selectedItem?.entityName}
-            </DialogDescription>
+        <DialogContent className="sm:max-w-md bg-white rounded-2xl p-6 shadow-xl border border-slate-200/80">
+          <DialogHeader className="space-y-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#E8450F] border border-orange-200/60 flex items-center justify-center font-bold">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold text-slate-900">
+                  Renew Document
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500">
+                  Update compliance expiry for {selectedItem?.entityName}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           {selectedItem && (
-            <form onSubmit={handleRenewSubmit} className="space-y-4 pt-2">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">New Expiry Date</label>
-                <Input
-                  type="date"
-                  value={newExpiryDate}
-                  onChange={e => setNewExpiryDate(e.target.value)}
-                  className="text-xs"
-                  required
-                />
+            <div className="space-y-4 pt-2">
+              {/* Document Overview Box */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Document Type
+                  </span>
+                  <Badge variant="outline" className="text-xs font-bold bg-white text-slate-800">
+                    {selectedItem.docType}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Entity / Subject
+                  </span>
+                  <span className="text-xs font-bold text-slate-900">
+                    {selectedItem.entityName} ({selectedItem.entityType})
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-slate-200/60 pt-2 mt-1">
+                  <span className="text-[11px] font-semibold text-slate-500">Current Expiry</span>
+                  <span className="text-xs font-bold text-rose-600 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {selectedItem.expiryDate}
+                  </span>
+                </div>
               </div>
 
-              <DialogFooter className="pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedItem(null)}
-                  className="text-xs"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isUpdating}
-                  className="bg-[#E8450F] hover:bg-[#d03b0a] text-white text-xs font-bold"
-                >
-                  {isUpdating ? 'Updating...' : 'Update Expiry'}
-                </Button>
-              </DialogFooter>
-            </form>
+              <form onSubmit={handleRenewSubmit} className="space-y-4">
+                {/* Expiry Date Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span>New Expiry Date *</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Fast Presets:</span>
+                  </label>
+
+                  {/* Preset Duration Buttons */}
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAddPresetMonths(6)}
+                      className="py-1 px-2 text-[11px] font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-700 transition-colors"
+                    >
+                      + 6 Months
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddPresetMonths(12)}
+                      className="py-1 px-2 text-[11px] font-bold rounded-lg border border-orange-200 bg-orange-50/50 hover:bg-orange-100/60 text-[#E8450F] transition-colors"
+                    >
+                      + 1 Year
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddPresetMonths(24)}
+                      className="py-1 px-2 text-[11px] font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-700 transition-colors"
+                    >
+                      + 2 Years
+                    </button>
+                  </div>
+
+                  <Input
+                    type="date"
+                    value={newExpiryDate}
+                    onChange={e => setNewExpiryDate(e.target.value)}
+                    className="text-xs font-semibold h-9 border-slate-200 focus:border-[#E8450F]"
+                    required
+                  />
+                </div>
+
+                {/* Notes / Reference input */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">
+                    Renewal Receipt / Reference Ref (Optional)
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. MVPI-99420-SA"
+                    value={renewalNotes}
+                    onChange={e => setRenewalNotes(e.target.value)}
+                    className="text-xs h-8 border-slate-200"
+                  />
+                </div>
+
+                {isSuccess && (
+                  <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 animate-in fade-in">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    Expiry updated successfully!
+                  </div>
+                )}
+
+                <DialogFooter className="pt-2 flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedItem(null)}
+                    className="text-xs font-semibold text-slate-600"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isUpdating || isSuccess}
+                    className="bg-[#E8450F] hover:bg-[#d03b0a] text-white text-xs font-bold px-4 shadow-sm"
+                  >
+                    {isUpdating ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                        Updating...
+                      </>
+                    ) : isSuccess ? (
+                      'Saved!'
+                    ) : (
+                      'Confirm Renewal'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
           )}
         </DialogContent>
       </Dialog>
