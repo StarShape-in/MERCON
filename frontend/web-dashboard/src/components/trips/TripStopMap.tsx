@@ -80,6 +80,7 @@ export default function TripStopMap({
           center={center}
           zoom={hasPin ? 13 : 6}
           scrollWheelZoom
+          attributionControl={false}
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer

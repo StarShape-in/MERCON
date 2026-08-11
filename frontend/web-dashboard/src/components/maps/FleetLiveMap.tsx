@@ -236,6 +236,7 @@ export default function FleetLiveMap() {
                   center={[24.5000, 44.5000]}
                   zoom={6}
                   scrollWheelZoom={true}
+                  attributionControl={false}
                   style={{ height: '100%', width: '100%', zIndex: 0 }}
                 >
                   <TileLayer

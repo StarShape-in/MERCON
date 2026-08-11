@@ -236,6 +236,7 @@ export default function TripLiveMapCard({
             zoom={8}
             scrollWheelZoom={true}
             zoomControl={false}
+            attributionControl={false}
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
             <MapResizeTrigger isFullscreen={isFullscreen} />

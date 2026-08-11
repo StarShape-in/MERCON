@@ -14,6 +14,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ImportantReminders from '@/components/dashboard/ImportantReminders';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
@@ -515,40 +516,7 @@ export default function DashboardPage() {
               </div>
 
               {/* ── 3. Important Reminders ───────────────────────────── */}
-              <div className="bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/60">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center">
-                      <Bell className="w-3 h-3 text-amber-500" />
-                    </div>
-                    <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
-                      Important Reminders
-                    </span>
-                  </div>
-                  <button
-                    className="text-[10px] font-extrabold text-[#E8450F] hover:underline flex items-center gap-0.5"
-                    onClick={() => navigate('/documents')}
-                  >
-                    View All <ArrowUpRight className="w-3 h-3" />
-                  </button>
-                </div>
-
-                <div className="p-4 grid grid-cols-2 gap-3">
-                  {REMINDERS.map((r, i) => (
-                    <div
-                      key={i}
-                      className={`${r.bg} border ${r.border} rounded-xl p-3.5 flex flex-col gap-2 hover:shadow-sm transition-all cursor-pointer group`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <r.icon className={`w-4 h-4 ${r.iconColor}`} />
-                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">{r.period}</span>
-                      </div>
-                      <p className={`text-2xl font-extrabold ${r.color} leading-none`}>{r.count}</p>
-                      <p className="text-[10px] font-bold text-slate-700 leading-snug whitespace-pre-line">{r.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <ImportantReminders />
             </div>
 
             {/* ━━━━ RIGHT COLUMN (8/12) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
@@ -593,6 +561,7 @@ export default function DashboardPage() {
                     zoom={5}
                     scrollWheelZoom={true}
                     zoomControl={false}
+                    attributionControl={false}
                     style={{ height: '100%', width: '100%' }}
                   >
                     <TileLayer

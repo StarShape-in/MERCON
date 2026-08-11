@@ -221,7 +221,7 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
       className="rounded-xl overflow-hidden border relative z-0"
       style={{ height: compact ? mapHeight : 220 }}
     >
-      <MapContainer center={center} zoom={lat != null ? 14 : 6} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
+      <MapContainer center={center} zoom={lat != null ? 14 : 6} scrollWheelZoom attributionControl={false} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

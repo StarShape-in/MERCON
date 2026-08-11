@@ -171,6 +171,7 @@ export default function TripTrackingPage() {
             center={[latCenter, lngCenter]}
             zoom={8}
             scrollWheelZoom={true}
+            attributionControl={false}
             style={{ height: '100%', width: '100%', zIndex: 0 }}
           >
             <TileLayer
