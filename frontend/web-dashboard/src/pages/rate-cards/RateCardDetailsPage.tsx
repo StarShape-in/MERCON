@@ -121,7 +121,7 @@ export default function RateCardDetailsPage() {
     const exportRows = cardsToExport.map((c) => ({
       'Rate Card ID': c.id,
       'Rate Card Name': c.name,
-      'Customer': c.customer?.name || 'Standard/All Customers',
+      'Customer': c.customer?.name || 'Customer',
       'Route Origin': c.route_origin,
       'Route Destination': c.route_destination,
       'Via Location': c.via_location || '',
@@ -278,7 +278,7 @@ export default function RateCardDetailsPage() {
                     : `${delta > 0 ? '↑' : '↓'} ${currency} ${Math.abs(delta).toLocaleString()} vs lane average`}
                 </span>
               ) : (
-                <span className="text-[10px] text-slate-500">Standard negotiated rate</span>
+                <span className="text-[10px] text-slate-500">No other customer to compare against yet</span>
               )
             }
             chartData={sparklineData}
@@ -489,7 +489,7 @@ export default function RateCardDetailsPage() {
                             </Badge>
                           )}
                           {!other.rate_category && !other.vehicle_type && (
-                            <span className="text-[10px] text-slate-400 italic">Standard Tier</span>
+                            <span className="text-[10px] text-slate-400 italic">No tier set</span>
                           )}
                         </div>
                         <div className="text-right font-mono font-black text-slate-900 dark:text-slate-100 text-[13px]">
