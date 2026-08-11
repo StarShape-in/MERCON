@@ -47,7 +47,7 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{initialData ? 'Edit User' : 'Invite New User'}</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit User' : 'Add New User'}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <FormInput label="Full Name" name="name" value={name} onChange={(e) => setName(e.target.value)} />
