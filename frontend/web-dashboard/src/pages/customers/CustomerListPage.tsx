@@ -368,7 +368,8 @@ export default function CustomerListPage() {
               { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-[#E8450F]' },
               { label: `Commercial (${standardCreditCount})`, value: commercialTierPct, color: 'bg-blue-500' },
             ]}
-            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
+            isActive={selectedStatus === 'All' && creditTierFilter === 'All'}
+            onClick={() => { setSelectedStatus('All'); setCreditTierFilter('All'); setCurrentPage(1); }}
           />
 
           {/* Card 2: Active Clients — Donut Ratio Gauge */}
@@ -390,7 +391,8 @@ export default function CustomerListPage() {
               label: `${activePercentage}% Active Ratio`,
               subtext: `${activeCount} Active • ${inactiveCount} Inactive`
             }}
-            onClick={() => { setSelectedStatus('Active'); setCurrentPage(1); }}
+            isActive={selectedStatus === 'Active'}
+            onClick={() => { setSelectedStatus(selectedStatus === 'Active' ? 'All' : 'Active'); setCurrentPage(1); }}
           />
 
           {/* Card 3: Enterprise Accounts — Key Client Tier Metric */}
@@ -412,7 +414,8 @@ export default function CustomerListPage() {
               label: `${enterpriseTierPct}% Enterprise Tier`,
               subtext: `${highCreditCount} Enterprise • ${standardCreditCount} Commercial`
             }}
-            onClick={() => { setCreditTierFilter('High'); setCurrentPage(1); }}
+            isActive={creditTierFilter === 'High'}
+            onClick={() => { setCreditTierFilter(creditTierFilter === 'High' ? 'All' : 'High'); setCurrentPage(1); }}
           />
 
           {/* Card 4: Contract Renewals Due — Urgency Progress Bar */}
@@ -432,7 +435,42 @@ export default function CustomerListPage() {
             chartData={[3, 5, 2, 6, Math.ceil(totalCount * 0.15) || 4]}
           />
         </div>
- 
+
+        {/* Active Filter Indicator Banner */}
+        {(selectedStatus !== 'All' || creditTierFilter !== 'All') && (
+          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+              <span>
+                Filtered by:{' '}
+                {selectedStatus !== 'All' && (
+                  <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">
+                    {selectedStatus} Clients
+                  </strong>
+                )}
+                {selectedStatus !== 'All' && creditTierFilter !== 'All' && ' + '}
+                {creditTierFilter !== 'All' && (
+                  <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">
+                    {creditTierFilter === 'High' ? 'Enterprise' : 'Standard'} Tier
+                  </strong>
+                )}
+                {' '}({filteredCustomers.length} customer{filteredCustomers.length === 1 ? '' : 's'} matching)
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedStatus('All');
+                setCreditTierFilter('All');
+                setCurrentPage(1);
+              }}
+              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <span>Show All Customers</span>
+              <span className="text-[10px]">✕</span>
+            </button>
+          </div>
+        )}
+
         {/* Dynamic Table or Grid Render */}
         {viewMode === 'list' ? (
           <div className="w-full flex flex-col">
