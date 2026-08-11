@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Loader2,
   Receipt,
+  Clock,
+  Zap,
 } from 'lucide-react';
 import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes } from 'date-fns';
 
@@ -559,7 +561,7 @@ export default function CreateTripModal({
     !missingSchedule &&
     !isScheduleInvalid;
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback((dispatchNow: boolean = false) => {
     setError(null);
 
     if (pickupLat == null || pickupLng == null) {
@@ -592,6 +594,8 @@ export default function CreateTripModal({
     }
 
     const numericPrice = billingAmount && !isNaN(parseFloat(billingAmount)) ? parseFloat(billingAmount) : undefined;
+    const canDispatchImmediately = !assignDriverLater && !!driverId && !assignVehicleLater && !!vehicleId;
+    const willDispatchNow = dispatchNow && canDispatchImmediately;
 
     const payload: CreateTripPayload = {
       customer_id: customerId,
@@ -600,6 +604,8 @@ export default function CreateTripModal({
       planned_start: pickupTime || undefined,
       billing_amount: numericPrice,
       trip_charges: numericPrice,
+      status: willDispatchNow ? 'Dispatched' : 'Draft',
+      dispatch_now: willDispatchNow,
       stops: [
         {
           stop_type: 'Pickup',
@@ -969,7 +975,7 @@ export default function CreateTripModal({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {step < 4 ? (
                 <Button
                   type="button"
@@ -983,26 +989,43 @@ export default function CreateTripModal({
                   <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Alt+→</span>
                 </Button>
               ) : (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleSubmit}
-                  disabled={createMutation.isPending || !isFormValid}
-                  className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-6 disabled:opacity-50"
-                  title="Keyboard Shortcut: Ctrl + Enter or Alt + N"
-                >
-                  {createMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Dispatching...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Dispatch New Trip</span>
-                      <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
-                    </>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleSubmit(false)}
+                    disabled={createMutation.isPending || !isFormValid}
+                    className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-5 disabled:opacity-50"
+                    title="Keyboard Shortcut: Ctrl + Enter"
+                  >
+                    {createMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Scheduling...
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-4 h-4" />
+                        <span>Schedule Trip</span>
+                        <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Ctrl+↵</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {!assignDriverLater && driverId && !assignVehicleLater && vehicleId && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSubmit(true)}
+                      disabled={createMutation.isPending || !isFormValid}
+                      className="h-9 gap-1.5 text-xs font-extrabold border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-sm px-4 disabled:opacity-50"
+                      title="Dispatch Trip Immediately to Driver"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Dispatch Immediately</span>
+                    </Button>
                   )}
-                </Button>
+                </div>
               )}
             </div>
           </DialogFooter>
