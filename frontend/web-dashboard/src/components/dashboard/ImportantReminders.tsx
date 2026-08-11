@@ -147,12 +147,12 @@ export default function ImportantReminders() {
           : driverMap.get(doc.entity_id) || `Driver #${doc.entity_id}`;
 
         let cat: 'vehicle' | 'driver' | 'inspection' = isVehicle ? 'vehicle' : 'driver';
-        if (doc.docType === 'VehicleRegistration' || doc.docType === 'Insurance') cat = 'inspection';
+        if (doc.doc_type === 'VehicleRegistration' || doc.doc_type === 'Insurance') cat = 'inspection';
 
         return {
           id: doc.id,
           docType: docTypeLabel(doc.doc_type),
-          entityType: isVehicle ? 'Vehicle' : 'Driver',
+          entityType: isVehicle ? ('Vehicle' as const) : ('Driver' as const),
           entityName,
           entitySub: isVehicle ? 'Fleet Unit' : 'Active Staff',
           expiryDate: doc.expiry_date ? new Date(doc.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
