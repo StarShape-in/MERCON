@@ -20,8 +20,9 @@ import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes 
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import TripStepCustomer from '@/components/trips/TripStepCustomer';
+import TripStepRouteStops from '@/components/trips/TripStepRouteStops';
+import TripStepSchedule from '@/components/trips/TripStepSchedule';
 import TripStepAssignments from '@/components/trips/TripStepAssignments';
-import TripStepStopsSLA from '@/components/trips/TripStepStopsSLA';
 import TripStepRatesBilling from '@/components/trips/TripStepRatesBilling';
 
 import { tripService, CreateTripPayload, Trip } from '@/services/tripService';
@@ -74,7 +75,7 @@ export default function CreateTripModal({
 }: CreateTripModalProps) {
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [customerId, setCustomerId] = useState(initialCustomerId || '');
   const [driverId, setDriverId] = useState(initialDriverId || '');
   const [vehicleId, setVehicleId] = useState('');
@@ -509,6 +510,8 @@ export default function CreateTripModal({
         setError('Origin and destination must be different places.');
         return;
       }
+    }
+    if (step === 3) {
       if (!pickupTime || !dropoffTime) {
         setError('Set both planned arrival times.');
         return;
@@ -518,7 +521,7 @@ export default function CreateTripModal({
         return;
       }
     }
-    if (step === 3) {
+    if (step === 4) {
       if (!assignDriverLater && !driverId) {
         setError('Please assign a driver, or check "Assign driver later".');
         return;
@@ -537,7 +540,7 @@ export default function CreateTripModal({
       }
     }
 
-    setStep((prev) => (prev < 4 ? ((prev + 1) as 1 | 2 | 3 | 4) : 4));
+    setStep((prev) => (prev < 5 ? ((prev + 1) as 1 | 2 | 3 | 4 | 5) : 5));
   }, [
     step,
     customerId,
@@ -561,7 +564,7 @@ export default function CreateTripModal({
 
   const prevStep = useCallback(() => {
     setError(null);
-    setStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3 | 4) : 1));
+    setStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3 | 4 | 5) : 1));
   }, []);
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
@@ -691,9 +694,9 @@ export default function CreateTripModal({
         ((e.ctrlKey || e.metaKey) && e.key === 'Enter')
       ) {
         e.preventDefault();
-        if (step < 4) {
+        if (step < 5) {
           nextStep();
-        } else if (step === 4 && isFormValid && !createMutation.isPending) {
+        } else if (step === 5 && isFormValid && !createMutation.isPending) {
           handleSubmit();
         }
         return;
@@ -732,13 +735,14 @@ export default function CreateTripModal({
         <DialogContent className={cn(
           "transition-all duration-300 max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl",
           step === 1 ? "max-w-2xl sm:max-w-3xl w-[90vw]" :
-          step === 2 ? "max-w-3xl lg:max-w-4xl w-[92vw]" :
-          step === 3 ? "max-w-5xl lg:max-w-6xl w-[95vw]" :
+          step === 2 ? "max-w-4xl lg:max-w-5xl w-[92vw]" :
+          step === 3 ? "max-w-4xl lg:max-w-5xl w-[92vw]" :
+          step === 4 ? "max-w-3xl lg:max-w-4xl w-[92vw]" :
           "max-w-3xl lg:max-w-4xl w-[92vw]"
         )}>
           
           {/* Header */}
-          <DialogHeader className="px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80">
+          <DialogHeader className="px-6 pt-4 pb-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
@@ -760,13 +764,13 @@ export default function CreateTripModal({
               </Button>
             </div>
 
-            {/* Step Selector Tabs (4 Steps) */}
-            <div className="grid grid-cols-4 gap-2 mt-4 pt-1">
+            {/* Step Selector Tabs (5 Steps) */}
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2 mt-3 pt-0.5">
               <button
                 type="button"
                 onClick={() => setStep(1)}
                 className={cn(
-                  'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer',
+                  'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer',
                   step === 1
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
                     : selectedCustomer
@@ -786,17 +790,41 @@ export default function CreateTripModal({
                 }}
                 disabled={!customerId}
                 className={cn(
-                  'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+                  'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 2
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
-                    : !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid
+                    : !missingLocation && !missingName && !missingLane && !sameLaneEndpoints
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
                 )}
               >
                 <Navigation className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">2. Route &amp; Schedule</span>
-                {!missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid && (
+                <span className="truncate">2. Route Stops</span>
+                {!missingLocation && !missingName && !missingLane && !sameLaneEndpoints && (
+                  <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (customerId && !missingLocation && !missingName && !missingLane && !sameLaneEndpoints) {
+                    setStep(3);
+                  }
+                }}
+                disabled={!customerId || missingLocation || missingName || missingLane || sameLaneEndpoints}
+                className={cn(
+                  'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+                  step === 3
+                    ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
+                    : !missingSchedule && !isScheduleInvalid
+                    ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-500'
+                )}
+              >
+                <Clock className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">3. Schedule &amp; SLA</span>
+                {!missingSchedule && !isScheduleInvalid && (
                   <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
                 )}
               </button>
@@ -805,13 +833,13 @@ export default function CreateTripModal({
                 type="button"
                 onClick={() => {
                   if (customerId && !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid) {
-                    setStep(3);
+                    setStep(4);
                   }
                 }}
                 disabled={!customerId || missingLocation || missingName || missingLane || sameLaneEndpoints || missingSchedule || isScheduleInvalid}
                 className={cn(
-                  'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
-                  step === 3
+                  'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+                  step === 4
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
                     : (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
@@ -819,7 +847,7 @@ export default function CreateTripModal({
                 )}
               >
                 <Truck className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">3. Resource Assignments</span>
+                <span className="truncate">4. Assignments</span>
                 {((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) && (
                   <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
                 )}
@@ -829,13 +857,13 @@ export default function CreateTripModal({
                 type="button"
                 onClick={() => {
                   if (customerId && (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater) && !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid) {
-                    setStep(4);
+                    setStep(5);
                   }
                 }}
                 disabled={!isFormValid}
                 className={cn(
-                  'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
-                  step === 4
+                  'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+                  step === 5
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
                     : isFormValid && billingAmount
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
@@ -843,14 +871,14 @@ export default function CreateTripModal({
                 )}
               >
                 <Receipt className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">4. Rates &amp; Billing</span>
+                <span className="truncate">5. Billing</span>
                 {isFormValid && billingAmount && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />}
               </button>
             </div>
           </DialogHeader>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          <div className="flex-1 overflow-y-auto px-6 pt-3.5 pb-5 space-y-4">
             {error && (
               <Alert variant="destructive" className="rounded-xl border-destructive/30">
                 <AlertCircle className="size-4" />
@@ -869,7 +897,7 @@ export default function CreateTripModal({
             )}
 
             {step === 2 && (
-              <TripStepStopsSLA
+              <TripStepRouteStops
                 pickupLocationId={pickupLocationId}
                 pickupLocationName={pickupLocationName}
                 pickupLat={pickupLat}
@@ -887,9 +915,6 @@ export default function CreateTripModal({
                 locations={locations}
                 selectedPickupLocation={selectedPickupLocation}
                 selectedDropoffLocation={selectedDropoffLocation}
-                pickupDistanceKm={pickupDistanceKm}
-                dropoffDistanceKm={dropoffDistanceKm}
-                transitInfo={transitInfo}
                 onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
                 onPickupLocationNameChange={setPickupLocationName}
                 onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
@@ -902,11 +927,23 @@ export default function CreateTripModal({
                 onDropoffTimeChange={(t) => { setDropoffTime(t); setError(null); }}
                 onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
                 onDropoffAddressChange={setDropoffAddress}
-                onApplyDropoffOffset={applyDropoffOffset}
               />
             )}
 
             {step === 3 && (
+              <TripStepSchedule
+                pickupLocationName={pickupLocationName}
+                dropoffLocationName={dropoffLocationName}
+                pickupTime={pickupTime}
+                dropoffTime={dropoffTime}
+                onPickupTimeChange={(t) => { setPickupTime(t); setError(null); }}
+                onDropoffTimeChange={(t) => { setDropoffTime(t); setError(null); }}
+                onApplyDropoffOffset={applyDropoffOffset}
+                transitInfo={transitInfo}
+              />
+            )}
+
+            {step === 4 && (
               <TripStepAssignments
                 driverId={driverId}
                 vehicleId={vehicleId}
@@ -934,7 +971,7 @@ export default function CreateTripModal({
               />
             )}
 
-            {step === 4 && (
+            {step === 5 && (
               <TripStepRatesBilling
                 pickupLocationName={pickupLocationName}
                 dropoffLocationName={dropoffLocationName}
@@ -997,7 +1034,7 @@ export default function CreateTripModal({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {step < 4 ? (
+              {step < 5 ? (
                 <Button
                   type="button"
                   size="sm"
