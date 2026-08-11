@@ -202,6 +202,8 @@ export const createTrip = async (req: Request, res: Response) => {
       trip_charges,
       stops,
       rate_card_id,
+      vehicle_type,
+      rate_category,
       status: requestedStatus,
       dispatch_now,
     } = req.body;
@@ -343,9 +345,20 @@ export const createTrip = async (req: Request, res: Response) => {
               customerId: customer_id,
               originLocationId,
               destinationLocationId,
+              // Only sent when the caller picked a tonnage/trip-type — without
+              // it a lane with several tiers would otherwise still resolve to
+              // "whichever card was updated most recently".
+              ...(vehicle_type !== undefined ? { vehicleType: vehicle_type } : {}),
+              ...(rate_category !== undefined ? { rateCategory: rate_category } : {}),
             });
             appliedRateCard = rateCard;
           }
+
+          // Record on the trip itself what was actually applied — explicit
+          // body values win, otherwise fall back to whatever the matched rate
+          // card carries, so the tier survives even if that card is edited later.
+          const finalVehicleType = vehicle_type !== undefined ? vehicle_type : (appliedRateCard?.vehicle_type ?? null);
+          const finalRateCategory = rate_category !== undefined ? rate_category : (appliedRateCard?.rate_category ?? null);
 
           let defaultBilling: number | null = null;
           if (billing_amount !== undefined && billing_amount !== null && !isNaN(Number(billing_amount))) {
@@ -368,6 +381,8 @@ export const createTrip = async (req: Request, res: Response) => {
               status: targetStatus,
               ...(createdBy ? { created_by: createdBy } : {}),
               ...(appliedRateCard ? { rateCardId: appliedRateCard.id } : {}),
+              ...(finalVehicleType !== null ? { vehicle_type: finalVehicleType } : {}),
+              ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
               trip_charges: finalTripCharges,
               stops: {

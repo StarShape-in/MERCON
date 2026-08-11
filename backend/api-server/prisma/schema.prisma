@@ -263,6 +263,17 @@ model Trip {
   rateCardId String?   @db.Uuid
   rateCard   RateCard? @relation(fields: [rateCardId], references: [id])
 
+  // The tonnage tier / booking type the dispatcher actually selected at
+  // creation, copied from the RateCard chosen (or typed by hand if billed
+  // manually). Recorded here — not just implied by rateCardId — because a
+  // trip's own tier/category must survive even if the rate card is later
+  // edited or deleted, and because reporting ("how many 10-ton round trips
+  // this month") needs it on the trip, not buried in a joined table. Same
+  // free-text values as RateCard.vehicle_type / RateCard.rate_category; see
+  // VEHICLE_TYPES / RATE_CATEGORIES in @mercon/shared-types for the known list.
+  vehicle_type  String?
+  rate_category String?
+
   status           TripStatus @default(Draft)
   planned_distance Float?
 

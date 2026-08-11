@@ -1,6 +1,7 @@
 import { api, ApiResponse } from '@/lib/api';
 import { Location } from '@/services/locationService';
 import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
+export { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 
 /**
  * A rate card prices a lane (origin → destination) for exactly one customer —
@@ -101,12 +102,17 @@ export const rateCardService = {
     customer_id?: string | null;
     origin_location_id?: string | null;
     destination_location_id?: string | null;
+    /** Omit to match any tier for the lane; pass '' to match only tier-less cards. */
+    vehicle_type?: string | null;
+    rate_category?: string | null;
   }): Promise<RateLookupResult> {
     const res = await api.get<ApiResponse<RateLookupResult>>('/rate-cards/lookup', {
       params: {
         ...(params.customer_id ? { customer_id: params.customer_id } : {}),
         ...(params.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
         ...(params.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
+        ...(params.vehicle_type !== undefined ? { vehicle_type: params.vehicle_type ?? '' } : {}),
+        ...(params.rate_category !== undefined ? { rate_category: params.rate_category ?? '' } : {}),
       },
     });
     return res.data.data;

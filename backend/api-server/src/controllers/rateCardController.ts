@@ -4,6 +4,29 @@ import { resolveLocation } from './locationController';
 import { findRateForLane, rateCardInclude } from '../services/rateLookup';
 import { getValidUuid } from '../utils/uuid';
 import { logger } from '../utils/logger';
+import { vehicleTypeField, rateCategoryField } from '../schemas';
+
+/**
+ * Validates a submitted vehicle_type/rate_category pair against the known
+ * list (VEHICLE_TYPES/RATE_CATEGORIES in @mercon/shared-types). Throws
+ * VALIDATION_ERROR with a message naming the bad field so the form can show
+ * it, rather than silently storing a typo that then never matches a trip.
+ */
+const parseTierFields = (body: any) => {
+  const vehicleType = vehicleTypeField.safeParse(body.vehicle_type);
+  if (!vehicleType.success) {
+    const err: any = new Error(`"${body.vehicle_type}" isn't a known vehicle type`);
+    err.code = 'VALIDATION_ERROR';
+    throw err;
+  }
+  const rateCategory = rateCategoryField.safeParse(body.rate_category);
+  if (!rateCategory.success) {
+    const err: any = new Error(`"${body.rate_category}" isn't a known rate category`);
+    err.code = 'VALIDATION_ERROR';
+    throw err;
+  }
+  return { vehicleType: vehicleType.data ?? null, rateCategory: rateCategory.data ?? null };
+};
 
 /**
  * Rate cards price a lane (origin → destination) for exactly one customer —
@@ -74,7 +97,7 @@ const laneAlreadyPriced = async (
 
 export const createRateCard = async (req: Request, res: Response) => {
   try {
-    const { name, base_price, currency, customerId, is_active, vehicle_type, rate_category, via_location } = req.body;
+    const { name, base_price, currency, customerId, is_active, via_location } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
     const price = Number(base_price);
@@ -86,6 +109,8 @@ export const createRateCard = async (req: Request, res: Response) => {
     if (!normalisedCustomerId) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Choose which customer this rate is for' } });
     }
+
+    const { vehicleType, rateCategory } = parseTierFields(req.body);
 
     const rateCard = await prisma.$transaction(async (tx) => {
       const customer = await tx.customer.findFirst({ where: { id: normalisedCustomerId, deletedAt: null } });
@@ -99,8 +124,8 @@ export const createRateCard = async (req: Request, res: Response) => {
         throw new Error('LANE_INCOMPLETE');
       }
 
-      const normalisedVehicleType = vehicle_type ? String(vehicle_type).trim() || null : null;
-      const normalisedRateCategory = rate_category ? String(rate_category).trim() || null : null;
+      const normalisedVehicleType = vehicleType ?? null;
+      const normalisedRateCategory = rateCategory ?? null;
 
       const clash = await laneAlreadyPriced(tx, {
         customerId: normalisedCustomerId,
@@ -140,6 +165,9 @@ export const createRateCard = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: rateCard });
   } catch (error: any) {
     logger.error({ err: error }, 'Failed to create rate card');
+    if (error.code === 'VALIDATION_ERROR') {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: error.message } });
+    }
     if (error.message === 'LANE_INCOMPLETE') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Pick both an origin and a destination' } });
     }
@@ -196,12 +224,17 @@ export const getRateCards = async (req: Request, res: Response) => {
  */
 export const lookupRateCard = async (req: Request, res: Response) => {
   try {
-    const { customer_id, origin_location_id, destination_location_id } = req.query;
+    const { customer_id, origin_location_id, destination_location_id, vehicle_type, rate_category } = req.query;
 
     const { rateCard, source } = await findRateForLane(prisma, {
       customerId: (customer_id as string) || null,
       originLocationId: (origin_location_id as string) || null,
       destinationLocationId: (destination_location_id as string) || null,
+      // Only filter on tier/category when the caller actually sent one —
+      // omitted query params stay `undefined` here, which findRateForLane
+      // treats as "any tier", not "empty tier".
+      ...(vehicle_type !== undefined ? { vehicleType: (vehicle_type as string) || null } : {}),
+      ...(rate_category !== undefined ? { rateCategory: (rate_category as string) || null } : {}),
     });
 
     res.json({ success: true, data: { rate_card: rateCard, source } });
@@ -309,7 +342,7 @@ export const getRateCardById = async (req: Request, res: Response) => {
 export const updateRateCard = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, base_price, currency, customerId, is_active, vehicle_type, rate_category, via_location } = req.body;
+    const { name, base_price, currency, customerId, is_active, via_location } = req.body;
     const userId = getValidUuid((req as any).user?.id);
 
     if (base_price !== undefined) {
@@ -318,6 +351,10 @@ export const updateRateCard = async (req: Request, res: Response) => {
         return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a base price greater than 0' } });
       }
     }
+
+    // Only re-validate/apply when the caller actually sent the field — a
+    // partial update (e.g. just is_active) must not blank out an existing tier.
+    const { vehicleType: sentVehicleType, rateCategory: sentRateCategory } = parseTierFields(req.body);
 
     const updated = await prisma.$transaction(async (tx) => {
       const existing = await tx.rateCard.findFirst({ where: { id: id as string, deletedAt: null } });
@@ -349,8 +386,8 @@ export const updateRateCard = async (req: Request, res: Response) => {
 
       const normalisedCustomerId = customerId === undefined ? existing.customerId : getValidUuid(customerId);
       if (!normalisedCustomerId) throw new Error('CUSTOMER_REQUIRED');
-      const normalisedVehicleType = vehicle_type === undefined ? existing.vehicle_type : (String(vehicle_type || '').trim() || null);
-      const normalisedRateCategory = rate_category === undefined ? existing.rate_category : (String(rate_category || '').trim() || null);
+      const normalisedVehicleType = req.body.vehicle_type === undefined ? existing.vehicle_type : sentVehicleType;
+      const normalisedRateCategory = req.body.rate_category === undefined ? existing.rate_category : sentRateCategory;
 
       if (originId && destinationId) {
         const clash = await laneAlreadyPriced(tx, {
@@ -380,8 +417,8 @@ export const updateRateCard = async (req: Request, res: Response) => {
           ...(currency !== undefined ? { currency } : {}),
           ...(customerId !== undefined ? { customerId: normalisedCustomerId } : {}),
           ...(is_active !== undefined ? { is_active } : {}),
-          ...(vehicle_type !== undefined ? { vehicle_type: normalisedVehicleType } : {}),
-          ...(rate_category !== undefined ? { rate_category: normalisedRateCategory } : {}),
+          ...(req.body.vehicle_type !== undefined ? { vehicle_type: normalisedVehicleType } : {}),
+          ...(req.body.rate_category !== undefined ? { rate_category: normalisedRateCategory } : {}),
           ...(via_location !== undefined ? { via_location: String(via_location || '').trim() || null } : {}),
           updated_by: userId,
           version: existing.version + 1,
@@ -392,6 +429,9 @@ export const updateRateCard = async (req: Request, res: Response) => {
 
     res.json({ success: true, data: updated });
   } catch (error: any) {
+    if (error.code === 'VALIDATION_ERROR') {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: error.message } });
+    }
     if (error.message === 'NOT_FOUND') {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'RateCard not found' } });
     }
@@ -527,6 +567,15 @@ export const bulkImportRateCards = async (req: Request, res: Response) => {
         }
         if (!isSurcharge && !destinationText) {
           results.push({ row: rowNumber, success: false, label, error: 'Destination is missing' });
+          continue;
+        }
+
+        if (vehicleType && !vehicleTypeField.safeParse(vehicleType).success) {
+          results.push({ row: rowNumber, success: false, label, error: `"${vehicleType}" isn't a known vehicle type` });
+          continue;
+        }
+        if (rateCategory && !rateCategoryField.safeParse(rateCategory).success) {
+          results.push({ row: rowNumber, success: false, label, error: `"${rateCategory}" isn't a known rate category` });
           continue;
         }
 

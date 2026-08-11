@@ -10,7 +10,7 @@ import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { rateCardService } from '@/services/rateCardService';
+import { rateCardService, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 
 export default function EditRateCardPage() {
@@ -24,6 +24,8 @@ export default function EditRateCardPage() {
   const [basePrice, setBasePrice] = useState('');
   const [currency, setCurrency] = useState('SAR');
   const [name, setName] = useState('');
+  const [vehicleType, setVehicleType] = useState('');
+  const [rateCategory, setRateCategory] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +43,8 @@ export default function EditRateCardPage() {
     setBasePrice(rateCard.base_price?.toString() || '');
     setCurrency(rateCard.currency || 'SAR');
     setName(rateCard.name || '');
+    setVehicleType(rateCard.vehicle_type || '');
+    setRateCategory(rateCard.rate_category || '');
     setIsActive(rateCard.is_active);
   }, [rateCard]);
 
@@ -70,6 +74,8 @@ export default function EditRateCardPage() {
         base_price: numericPrice,
         currency,
         is_active: isActive,
+        vehicle_type: vehicleType || null,
+        rate_category: rateCategory || null,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
@@ -170,6 +176,47 @@ export default function EditRateCardPage() {
                     Type a name in the dropdown to add a place that isn't listed. Same place on both
                     ends is fine for within-city local delivery.
                   </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Vehicle type <span className="font-normal text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Select
+                      value={vehicleType || '__none__'}
+                      onValueChange={(v) => setVehicleType(v === '__none__' ? '' : v)}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="Any / not set" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Any / not set</SelectItem>
+                        {VEHICLE_TYPES.map((v) => (
+                          <SelectItem key={v} value={v}>{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">
+                      Rate category <span className="font-normal text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Select
+                      value={rateCategory || '__none__'}
+                      onValueChange={(v) => setRateCategory(v === '__none__' ? '' : v)}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="Any / not set" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Any / not set</SelectItem>
+                        {RATE_CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

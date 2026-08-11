@@ -173,6 +173,11 @@ export async function completeTripAndInvoice(
         originLocationId: stops.find((s) => s.stop_type === StopType.Pickup)?.locationId ?? null,
         destinationLocationId:
           [...stops].reverse().find((s) => s.stop_type === StopType.Dropoff)?.locationId ?? null,
+        // Only constrain by tier when this (older) trip actually recorded one —
+        // a null here means "never captured", not "no tier", so it must not
+        // narrow the match to tier-less cards only.
+        ...(trip.vehicle_type !== null ? { vehicleType: trip.vehicle_type } : {}),
+        ...(trip.rate_category !== null ? { rateCategory: trip.rate_category } : {}),
       });
       rateCard = matched.rateCard;
     }

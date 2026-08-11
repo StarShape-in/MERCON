@@ -73,6 +73,10 @@ export interface CreateTripPayload {
   dispatch_now?: boolean;
   /** The rate card the price came from, recorded so invoicing bills what was quoted. */
   rate_card_id?: string;
+  /** Tonnage tier / booking type — copied onto the trip so it survives the
+   *  rate card being edited later. Omit to inherit whatever rate_card_id carries. */
+  vehicle_type?: string | null;
+  rate_category?: string | null;
   stops: {
     stop_type: string;
     lat: number;

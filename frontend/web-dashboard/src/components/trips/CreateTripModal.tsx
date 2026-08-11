@@ -115,6 +115,9 @@ export default function CreateTripModal({
   const [isPriceCustomized, setIsPriceCustomized] = useState(false);
   const [saveRateAs, setSaveRateAs] = useState<'customer' | 'none'>('customer');
   const [rateSaveWarning, setRateSaveWarning] = useState<string | null>(null);
+  // Tier for a brand-new rate on a lane nobody has priced yet.
+  const [newRateVehicleType, setNewRateVehicleType] = useState('');
+  const [newRateCategory, setNewRateCategory] = useState('');
 
   // Reset or initialize state on modal open
   useEffect(() => {
@@ -143,6 +146,8 @@ export default function CreateTripModal({
       setIsPriceCustomized(false);
       setSaveRateAs('customer');
       setRateSaveWarning(null);
+      setNewRateVehicleType('');
+      setNewRateCategory('');
       setError(null);
     }
   }, [isOpen, initialCustomerId, initialDriverId]);
@@ -415,6 +420,8 @@ export default function CreateTripModal({
             origin_lng: pickupLng,
             destination_lat: dropoffLat,
             destination_lng: dropoffLng,
+            vehicle_type: newRateVehicleType || null,
+            rate_category: newRateCategory || null,
           });
           rateCardId = createdRate.id;
         } catch (e: any) {
@@ -426,7 +433,15 @@ export default function CreateTripModal({
         }
       }
 
-      return tripService.create({ ...payload, rate_card_id: rateCardId });
+      return tripService.create({
+        ...payload,
+        rate_card_id: rateCardId,
+        // Explicit only when there's no matched card to inherit it from —
+        // with one, the backend copies its own vehicle_type/rate_category
+        // onto the trip. Without one, this is the only place the tier the
+        // dispatcher picked for a one-off price gets recorded.
+        ...(!rateCardId ? { vehicle_type: newRateVehicleType || null, rate_category: newRateCategory || null } : {}),
+      });
     },
     onSuccess: async (createdTrip) => {
       if (customerId && pickupLat && pickupLng && dropoffLat && dropoffLng) {
@@ -1166,6 +1181,10 @@ export default function CreateTripModal({
                 selectedCustomer={selectedCustomer}
                 rateSaveWarning={rateSaveWarning}
                 billingAmount={billingAmount}
+                newRateVehicleType={newRateVehicleType}
+                newRateCategory={newRateCategory}
+                onNewRateVehicleTypeChange={setNewRateVehicleType}
+                onNewRateCategoryChange={setNewRateCategory}
                 onSelectRateCard={(card) => {
                   if (card) {
                     setSelectedRateCardId(card.id);

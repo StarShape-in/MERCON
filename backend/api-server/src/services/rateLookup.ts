@@ -31,9 +31,18 @@ export const findRateForLane = async (
     customerId?: string | null;
     originLocationId?: string | null;
     destinationLocationId?: string | null;
+    // Tonnage tier / booking-type filters. `undefined` means "caller doesn't
+    // know/care" — matches any card for the lane, same as before this field
+    // existed. `null` means "match only cards with no tier set" — the
+    // "applies regardless" case. A string filters to that exact tier. Passing
+    // these is what lets a lane with several tiers (6 TON vs 10 TON, one-way
+    // vs round trip) resolve to the *right* card instead of "whichever was
+    // updated most recently", which used to ignore both dimensions entirely.
+    vehicleType?: string | null;
+    rateCategory?: string | null;
   }
 ): Promise<{ rateCard: any | null; source: RateSource }> => {
-  const { customerId, originLocationId, destinationLocationId } = params;
+  const { customerId, originLocationId, destinationLocationId, vehicleType, rateCategory } = params;
 
   // A lane needs both ends and a customer to be priceable. Returning null here
   // is what makes the wizard show "no rate for this lane yet" instead of
@@ -49,6 +58,8 @@ export const findRateForLane = async (
       destinationLocationId,
       is_active: true,
       deletedAt: null,
+      ...(vehicleType !== undefined ? { vehicle_type: vehicleType } : {}),
+      ...(rateCategory !== undefined ? { rate_category: rateCategory } : {}),
     },
     include: rateCardInclude,
     orderBy: { updatedAt: 'desc' },

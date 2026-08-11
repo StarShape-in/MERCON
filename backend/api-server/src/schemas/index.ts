@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 
 /* ─── Shared building blocks ─────────────────────────────────────────────── */
 
@@ -50,6 +51,23 @@ const safeImportString = (schema: z.ZodTypeAny) =>
     return s;
   }, schema);
 
+/**
+ * Tonnage tier / trip-type category fields. Both are nullable free-text
+ * columns on RateCard and Trip (see schema.prisma comments — no shared list
+ * to validate a customer's own quotation wording against used to exist), but
+ * VEHICLE_TYPES/RATE_CATEGORIES in @mercon/shared-types now capture every
+ * value actually seen in the real import workbooks, so create/edit forms can
+ * be locked to a dropdown instead of free text. Empty string clears the field.
+ */
+export const vehicleTypeField = z.preprocess(
+  (val) => (val === '' ? null : val),
+  z.enum(VEHICLE_TYPES).nullable().optional()
+);
+export const rateCategoryField = z.preprocess(
+  (val) => (val === '' ? null : val),
+  z.enum(RATE_CATEGORIES).nullable().optional()
+);
+
 /** Route param `:id` must be a UUID. */
 export const idParam = z.object({ id: z.string().uuid('Invalid id') });
 
@@ -83,6 +101,11 @@ export const createTripBody = z.object({
   // The rate card the dispatcher was shown. Recorded on the trip so invoicing
   // bills what was quoted instead of re-deriving it later.
   rate_card_id: z.string().uuid('Invalid rate card').optional(),
+  // The tonnage tier / booking type the dispatcher selected — drives which
+  // rate card gets auto-matched when rate_card_id isn't sent, and is copied
+  // onto the trip regardless so it survives that rate card being edited later.
+  vehicle_type: vehicleTypeField,
+  rate_category: rateCategoryField,
   stops: z.array(z.object({
     stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']),
     // Client + controller use lat/lng (controller reads stop.lat/stop.lng), not location_*.

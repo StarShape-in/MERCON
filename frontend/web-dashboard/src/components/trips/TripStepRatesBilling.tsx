@@ -1,10 +1,11 @@
 import React from 'react';
 import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check, Keyboard, Pencil } from 'lucide-react';
 import { Customer } from '@/services/customerService';
-import { RateCard } from '@/services/rateCardService';
+import { RateCard, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface TripStepRatesBillingProps {
@@ -20,10 +21,15 @@ interface TripStepRatesBillingProps {
   selectedCustomer: Customer | null;
   rateSaveWarning: string | null;
   billingAmount: string;
+  /** Tier for a brand-new rate card — nothing existing to read it off. */
+  newRateVehicleType: string;
+  newRateCategory: string;
   onSelectRateCard: (card: RateCard | null) => void;
   onSaveRateAsChange: (val: 'customer' | 'none') => void;
   onBillingAmountChange: (val: string) => void;
   onAdjustPrice: (amount: number) => void;
+  onNewRateVehicleTypeChange: (val: string) => void;
+  onNewRateCategoryChange: (val: string) => void;
 }
 
 export default function TripStepRatesBilling({
@@ -39,10 +45,14 @@ export default function TripStepRatesBilling({
   selectedCustomer,
   rateSaveWarning,
   billingAmount,
+  newRateVehicleType,
+  newRateCategory,
   onSelectRateCard,
   onSaveRateAsChange,
   onBillingAmountChange,
   onAdjustPrice,
+  onNewRateVehicleTypeChange,
+  onNewRateCategoryChange,
 }: TripStepRatesBillingProps) {
   const hasAvailableCards = availableRateCards.length > 0;
 
@@ -225,6 +235,48 @@ export default function TripStepRatesBilling({
                   </div>
                 </label>
               ))}
+            </div>
+
+            {/* Which tonnage/booking type this price is actually for. */}
+            <div className="grid grid-cols-2 gap-2 pl-6 pt-1">
+              <div className="space-y-1">
+                <Label className="text-[10px] font-semibold text-amber-900 dark:text-amber-200">
+                  Vehicle type
+                </Label>
+                <Select
+                  value={newRateVehicleType || '__none__'}
+                  onValueChange={(v) => onNewRateVehicleTypeChange(v === '__none__' ? '' : v)}
+                >
+                  <SelectTrigger className="h-8 text-[11px] bg-white dark:bg-slate-900">
+                    <SelectValue placeholder="Any / not set" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Any / not set</SelectItem>
+                    {VEHICLE_TYPES.map((v) => (
+                      <SelectItem key={v} value={v}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] font-semibold text-amber-900 dark:text-amber-200">
+                  Rate category
+                </Label>
+                <Select
+                  value={newRateCategory || '__none__'}
+                  onValueChange={(v) => onNewRateCategoryChange(v === '__none__' ? '' : v)}
+                >
+                  <SelectTrigger className="h-8 text-[11px] bg-white dark:bg-slate-900">
+                    <SelectValue placeholder="Any / not set" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Any / not set</SelectItem>
+                    {RATE_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         )}

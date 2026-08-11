@@ -16,7 +16,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
-import { rateCardService, CreateRateCardPayload } from '@/services/rateCardService';
+import { rateCardService, CreateRateCardPayload, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
 import { locationService } from '@/services/locationService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -51,6 +51,8 @@ export default function CreateRateCardPage() {
   const [basePrice, setBasePrice] = useState(presetPrice);
   const [currency, setCurrency] = useState('SAR');
   const [name, setName] = useState('');
+  const [vehicleType, setVehicleType] = useState('');
+  const [rateCategory, setRateCategory] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const { data: customersResponse } = useQuery({
@@ -93,6 +95,8 @@ export default function CreateRateCardPage() {
     setBasePrice('');
     setCurrency('SAR');
     setName('');
+    setVehicleType('');
+    setRateCategory('');
     setError(null);
   };
 
@@ -130,8 +134,10 @@ export default function CreateRateCardPage() {
       destination_location_id: destinationId,
       base_price: numericPrice,
       currency,
+      vehicle_type: vehicleType || null,
+      rate_category: rateCategory || null,
     });
-  }, [originId, destinationId, customerId, hasPrice, name, numericPrice, currency, createMutation]);
+  }, [originId, destinationId, customerId, hasPrice, name, numericPrice, currency, vehicleType, rateCategory, createMutation]);
 
   // Ctrl/Cmd+Enter saves from anywhere on the page.
   useEffect(() => {
@@ -320,6 +326,52 @@ export default function CreateRateCardPage() {
                   Place not on the list? Type its name in the dropdown to add it — it becomes available
                   everywhere. Same place on both ends is fine for within-city local delivery.
                 </p>
+              </div>
+
+              {/* Tier / booking type */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Vehicle type <span className="font-normal text-slate-400">(optional)</span>
+                  </Label>
+                  <Select
+                    value={vehicleType || '__none__'}
+                    onValueChange={(v) => setVehicleType(v === '__none__' ? '' : v)}
+                  >
+                    <SelectTrigger className="h-9 text-xs border-slate-200 bg-white">
+                      <SelectValue placeholder="Any / not set" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Any / not set</SelectItem>
+                      {VEHICLE_TYPES.map((v) => (
+                        <SelectItem key={v} value={v}>
+                          {v}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Rate category <span className="font-normal text-slate-400">(optional)</span>
+                  </Label>
+                  <Select
+                    value={rateCategory || '__none__'}
+                    onValueChange={(v) => setRateCategory(v === '__none__' ? '' : v)}
+                  >
+                    <SelectTrigger className="h-9 text-xs border-slate-200 bg-white">
+                      <SelectValue placeholder="Any / not set" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Any / not set</SelectItem>
+                      {RATE_CATEGORIES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Price */}

@@ -15,8 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
-import { rateCardService, RateCard } from '@/services/rateCardService';
+import { rateCardService, RateCard, VEHICLE_TYPES, RATE_CATEGORIES } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
+
+/** Renders as "No tier" in dropdowns — the DB stores this selection as null. */
+const NONE_VALUE = '__none__';
 
 interface RateCardFormDialogProps {
   isOpen: boolean;
@@ -59,6 +62,8 @@ export default function RateCardFormDialog({
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState('SAR');
   const [name, setName] = useState('');
+  const [vehicleType, setVehicleType] = useState('');
+  const [rateCategory, setRateCategory] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const { data: customersRes } = useQuery({
@@ -80,6 +85,8 @@ export default function RateCardFormDialog({
       setPrice(String(rateCard.base_price ?? ''));
       setCurrency(rateCard.currency || 'SAR');
       setName(rateCard.name || '');
+      setVehicleType(rateCard.vehicle_type || '');
+      setRateCategory(rateCard.rate_category || '');
     } else {
       setCustomerId(lockedCustomerId || '');
       setOriginId(defaultOriginLocationId || '');
@@ -87,6 +94,8 @@ export default function RateCardFormDialog({
       setPrice(defaultPrice || '');
       setCurrency('SAR');
       setName('');
+      setVehicleType('');
+      setRateCategory('');
     }
   }, [isOpen, rateCard, lockedCustomerId, defaultOriginLocationId, defaultDestinationLocationId, defaultPrice]);
 
@@ -108,6 +117,8 @@ export default function RateCardFormDialog({
         customerId: effectiveCustomerId,
         origin_location_id: originId,
         destination_location_id: destinationId,
+        vehicle_type: vehicleType || null,
+        rate_category: rateCategory || null,
       };
       return rateCard
         ? rateCardService.update(rateCard.id, payload)
@@ -193,6 +204,52 @@ export default function RateCardFormDialog({
               Not on the list? Type the name in the dropdown to add it. Same place on both ends is
               fine for within-city local delivery.
             </p>
+          </div>
+
+          {/* Tier / booking type */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Vehicle type <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Select
+                value={vehicleType || NONE_VALUE}
+                onValueChange={(v) => setVehicleType(v === NONE_VALUE ? '' : v)}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Any / not set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>Any / not set</SelectItem>
+                  {VEHICLE_TYPES.map((v) => (
+                    <SelectItem key={v} value={v}>
+                      {v}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">
+                Rate category <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Select
+                value={rateCategory || NONE_VALUE}
+                onValueChange={(v) => setRateCategory(v === NONE_VALUE ? '' : v)}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Any / not set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_VALUE}>Any / not set</SelectItem>
+                  {RATE_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Price */}
