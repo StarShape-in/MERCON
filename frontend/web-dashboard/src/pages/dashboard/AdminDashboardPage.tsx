@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient, useIsFetching } from '@tanstack/react-query';
-import { RefreshCw, AlertTriangle, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { RefreshCw, LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
@@ -90,6 +90,29 @@ export default function AdminDashboardPage() {
   };
 
   const kpis = summary?.kpis;
+
+  // How long each pending trip has been waiting for its labor charges to be
+  // entered — real distribution, not decoration, so the queue's staleness is
+  // visible at a glance rather than just its size.
+  const settlementAgingSegments = useMemo(() => {
+    const buckets = [
+      { label: '≤1d', color: '#FCD34D', count: 0 },
+      { label: '2-3d', color: '#F59E0B', count: 0 },
+      { label: '4d+', color: '#DC2626', count: 0 },
+    ];
+    const nowMs = Date.now();
+    unsettledTrips.forEach((t) => {
+      const completedAtMs = t.actual_end ? new Date(t.actual_end).getTime() : nowMs;
+      const daysWaiting = Math.max(0, Math.floor((nowMs - completedAtMs) / (1000 * 60 * 60 * 24)));
+      if (daysWaiting <= 1) buckets[0].count++;
+      else if (daysWaiting <= 3) buckets[1].count++;
+      else buckets[2].count++;
+    });
+    return buckets.map((b) => ({ label: b.label, value: b.count, color: b.color }));
+  }, [unsettledTrips]);
+
+  // Real 6-month revenue trend for the Revenue card's sparkline.
+  const revenueChartData = (summary?.monthly_revenue_chart || []).map((m) => m.revenue);
 
   return (
     <DashboardLayout active="Admin Dashboard" title="Admin Dashboard">
@@ -182,21 +205,9 @@ export default function AdminDashboardPage() {
             variant="amber"
             trend={unsettledTrips.length > 0 ? 'up' : 'down'}
             trendValue={unsettledTrips.length > 0 ? 'Needs Review' : 'All Clear'}
-            description="Completed trips awaiting labor charges"
+            description="Completed trips awaiting labor charges, by days pending"
             icon={MoneyBills}
-            customFooter={
-              <KpiRouteFooter
-                id="settlement-queue"
-                accentHex="#D97706"
-                bgLightClass="bg-[#FFFBEB]"
-                bgDarkClass="dark:bg-[#D97706]/10"
-                borderClass="border-amber-500/10"
-                networkHex="#FDE68A"
-                truckFilter="hue-rotate(20deg) saturate(1.4) brightness(1)"
-                pulseClass="bg-amber-500/25 animate-ping"
-                badge={unsettledTrips.length > 0 ? { icon: <AlertTriangle className="w-2.5 h-2.5 shrink-0" />, text: 'PENDING' } : undefined}
-              />
-            }
+            progressSegments={settlementAgingSegments}
           />
 
           {/* Card 3: Fleet Available */}
@@ -238,20 +249,9 @@ export default function AdminDashboardPage() {
             variant="brand"
             trend={kpis?.revenue_this_month.delta != null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : undefined}
             trendValue={kpis?.revenue_this_month.delta != null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : undefined}
-            description="Completed freight payments this month"
+            description="Completed freight payments — 6-month trend"
             icon={RevenueChart}
-            customFooter={
-              <KpiRouteFooter
-                id="revenue"
-                accentHex="#E8450F"
-                bgLightClass="bg-[#FFF8F6]"
-                bgDarkClass="dark:bg-[#E8450F]/10"
-                borderClass="border-[#E8450F]/10"
-                networkHex="#FDBA74"
-                truckFilter="none"
-                pulseClass="bg-orange-500/25 animate-ping"
-              />
-            }
+            chartData={revenueChartData.length > 0 ? revenueChartData : undefined}
           />
         </div>
 
