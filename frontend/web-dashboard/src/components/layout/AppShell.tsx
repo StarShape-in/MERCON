@@ -57,8 +57,6 @@ function ShellInner() {
           title={meta.title}
           breadcrumb={meta.breadcrumb}
           onMenuClick={() => setSidebarOpen(true)}
-          sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
         />
 
         {/* Content area — Suspense here means only content swaps, shell stays */}
