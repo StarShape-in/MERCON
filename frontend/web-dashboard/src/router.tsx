@@ -109,7 +109,7 @@ export default function AppRouter() {
           }
         >
           <Route path="/"            element={<DashboardPage />} />
-          <Route path="/admin-dashboard" element={<RequireRole roles={['Admin']}><AdminDashboardPage /></RequireRole>} />
+          <Route path="/Ilan" element={<RequireRole roles={['Admin']}><AdminDashboardPage /></RequireRole>} />
           <Route path="/notifications" element={<NotificationsPage />} />
 
           {/* Trips */}

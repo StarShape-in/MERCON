@@ -4,7 +4,7 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
   Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
-  ChevronsLeft, ChevronsRight, LayoutDashboard
+  ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -45,7 +45,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'OVERVIEW',
       items: [
         { icon: Home, label: 'Dashboard', path: '/' },
-        ...(user?.role === 'Admin' ? [{ icon: LayoutDashboard, label: 'Admin Dashboard', path: '/admin-dashboard' }] : []),
         { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
       ],
     },

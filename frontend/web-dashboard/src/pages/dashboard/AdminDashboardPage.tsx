@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Car, DollarSign, Gauge } from 'lucide-react';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Btn from '@/components/ui/Btn';
 import KpiCard from '@/components/ui/KpiCard';
-import { DispatchTelemetryRadarKpi, VehicleTelematicsKpi } from '@/components/ui/CustomKpiWidgets';
+import { KpiRouteFooter } from '@/components/ui/KpiRouteFooter';
+import { RouteLine, MoneyBills, FleetTruck, RevenueChart } from '@/components/ui/kpi-icons';
 import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
 import ActiveTripsWidget from '@/components/dashboard/ActiveTripsWidget';
 import LaborChargeQueueWidget from '@/components/dashboard/LaborChargeQueueWidget';
@@ -66,7 +67,6 @@ export default function AdminDashboardPage() {
   };
 
   const kpis = summary?.kpis;
-  const revenueChartData = (summary?.monthly_revenue_chart || []).map((m) => ({ value: m.revenue }));
 
   return (
     <DashboardLayout active="Admin Dashboard" title="Admin Dashboard">
@@ -86,49 +86,118 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* KPI strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        {/* KPI strip — matches the Vehicles page instrument panel styling */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
+          {/* Card 1: Active Trips */}
           <KpiCard
-            title="Active Trips"
-            value={activeTripsLoading ? '—' : activeTripsTotal}
-            icon={<Gauge />}
+            title="ACTIVE TRIPS"
+            value={
+              <span>
+                {activeTripsLoading ? '—' : activeTripsTotal}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">In-Flight</span>
+              </span>
+            }
             variant="blue"
+            trend={activeTripsTotal > 0 ? 'up' : 'neutral'}
+            trendValue={`${activeTripsTotal} In-Flight`}
+            description="Dispatched, at pickup, in transit or at delivery"
+            icon={RouteLine}
             customFooter={
-              <div className="mt-4">
-                <DispatchTelemetryRadarKpi activeCount={activeTripsTotal} totalCount={activeTripsTotal} label="In-Flight" />
-              </div>
+              <KpiRouteFooter
+                id="active-trips"
+                accentHex="#3B82F6"
+                bgLightClass="bg-[#F0F6FF]"
+                bgDarkClass="dark:bg-[#1E3A8A]/10"
+                borderClass="border-blue-500/10"
+                networkHex="#93C5FD"
+                truckFilter="hue-rotate(200deg) saturate(1.2) brightness(0.95)"
+                pulseClass="bg-blue-500/30 animate-ping"
+              />
             }
           />
+
+          {/* Card 2: Settlement Queue */}
           <KpiCard
-            title="Settlement Queue"
-            value={unsettledLoading ? '—' : unsettledTrips.length}
-            icon={<DollarSign />}
+            title="SETTLEMENT QUEUE"
+            value={
+              <span>
+                {unsettledLoading ? '—' : unsettledTrips.length}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Pending</span>
+              </span>
+            }
             variant="amber"
+            trend={unsettledTrips.length > 0 ? 'up' : 'down'}
+            trendValue={unsettledTrips.length > 0 ? 'Needs Review' : 'All Clear'}
             description="Completed trips awaiting labor charges"
-          />
-          <KpiCard
-            title="Fleet Snapshot"
-            value={summaryLoading ? '—' : kpis?.fleet_available.value ?? 0}
-            icon={<Car />}
-            variant="emerald"
-            description="Available vehicles"
+            icon={MoneyBills}
             customFooter={
-              <div className="mt-4">
-                <VehicleTelematicsKpi
-                  activeCount={kpis?.fleet_on_trip.value ?? 0}
-                  maintenanceCount={0}
-                />
-              </div>
+              <KpiRouteFooter
+                id="settlement-queue"
+                accentHex="#D97706"
+                bgLightClass="bg-[#FFFBEB]"
+                bgDarkClass="dark:bg-[#D97706]/10"
+                borderClass="border-amber-500/10"
+                networkHex="#FDE68A"
+                truckFilter="hue-rotate(20deg) saturate(1.4) brightness(1)"
+                pulseClass="bg-amber-500/25 animate-ping"
+                badge={unsettledTrips.length > 0 ? { icon: <AlertTriangle className="w-2.5 h-2.5 shrink-0" />, text: 'PENDING' } : undefined}
+              />
             }
           />
+
+          {/* Card 3: Fleet Available */}
           <KpiCard
-            title="Revenue This Month"
-            value={summaryLoading ? '—' : `SAR ${(kpis?.revenue_this_month.value ?? 0).toLocaleString()}`}
-            icon={<DollarSign />}
+            title="FLEET AVAILABLE"
+            value={
+              <span>
+                {summaryLoading ? '—' : kpis?.fleet_available.value ?? 0}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Ready</span>
+              </span>
+            }
+            variant="emerald"
+            trend="up"
+            trendValue={`${kpis?.fleet_on_trip.value ?? 0} On Trip`}
+            description="Ready for dispatch right now"
+            icon={FleetTruck}
+            customFooter={
+              <KpiRouteFooter
+                id="fleet-available"
+                accentHex="#10B981"
+                bgLightClass="bg-[#E8F5E9]"
+                bgDarkClass="dark:bg-[#1B5E20]/15"
+                borderClass="border-emerald-500/10"
+                networkHex="#A7F3D0"
+                truckFilter="hue-rotate(100deg) saturate(1.3) brightness(0.95)"
+                pulseClass="bg-emerald-500/20 animate-ping"
+              />
+            }
+          />
+
+          {/* Card 4: Revenue This Month */}
+          <KpiCard
+            title="REVENUE THIS MONTH"
+            value={
+              <span>
+                {summaryLoading ? '—' : `SAR ${(kpis?.revenue_this_month.value ?? 0).toLocaleString()}`}
+              </span>
+            }
             variant="brand"
             trend={kpis?.revenue_this_month.delta != null ? (kpis.revenue_this_month.delta >= 0 ? 'up' : 'down') : undefined}
             trendValue={kpis?.revenue_this_month.delta != null ? `${Math.abs(kpis.revenue_this_month.delta)}%` : undefined}
-            chartData={revenueChartData.length > 0 ? revenueChartData : undefined}
+            description="Completed freight payments this month"
+            icon={RevenueChart}
+            customFooter={
+              <KpiRouteFooter
+                id="revenue"
+                accentHex="#E8450F"
+                bgLightClass="bg-[#FFF8F6]"
+                bgDarkClass="dark:bg-[#E8450F]/10"
+                borderClass="border-[#E8450F]/10"
+                networkHex="#FDBA74"
+                truckFilter="none"
+                pulseClass="bg-orange-500/25 animate-ping"
+              />
+            }
           />
         </div>
 
