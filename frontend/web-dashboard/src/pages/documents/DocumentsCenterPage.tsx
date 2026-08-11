@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, Search, FolderOpen, Shield, Car, User as UserIcon, Eye, Download, 
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
-  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -513,10 +513,10 @@ export default function DocumentsCenterPage() {
             </div>
           </div>
         ) : viewMode === 'list' ? (
-          <DataTable
+          <DataTable<EnrichedDocument>
             title={
               <span className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-indigo-500" />
+                <FileSpreadsheet className="w-4 h-4 text-indigo-500" />
                 <span>Compliance Document Repository</span>
               </span>
             }
@@ -631,7 +631,7 @@ export default function DocumentsCenterPage() {
                 label: 'Export CSV',
                 icon: <Download size={13} />,
                 variant: 'secondary' as const,
-                onClick: (selectedRows: MerconDocument[]) => {
+                onClick: (selectedRows: EnrichedDocument[]) => {
                   downloadCSV(selectedRows, 'documents_export.csv');
                 }
               }

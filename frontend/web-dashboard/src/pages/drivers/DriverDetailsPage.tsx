@@ -5,7 +5,7 @@ import {
   ArrowLeft, Edit2, FileText, Phone, MapPin, AlertTriangle,
   Eye, Trash2, Truck, ShieldCheck, User, IdCard,
   Plus, AlertCircle, FileCheck, Download,
-  RotateCw, Award, Calendar, Gauge
+  RotateCw, Calendar
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -89,7 +89,6 @@ export default function DriverDetailsPage() {
       ['Duty Status', driver.status],
       ['License Number', driver.license_number || 'N/A'],
       ['License Expiry', driver.license_expiry ? new Date(driver.license_expiry).toLocaleDateString('en-GB') : 'N/A'],
-      ['AI Safety Score', `${driver.ai_risk_score != null ? Math.max(0, 100 - driver.ai_risk_score) : 'N/A'}/100`],
       ['Assigned Vehicle', driver.assignedVehicle?.plate_number || 'Unassigned'],
       ['Total Dispatch Trips', `${driver.trips?.length || 0}`]
     ];
@@ -142,7 +141,6 @@ export default function DriverDetailsPage() {
   const initials = `${driver.first_name?.[0] || ''}${driver.last_name?.[0] || ''}`.toUpperCase() || 'DR';
   const completedTripsCount = driver.trips?.filter(t => t.status === 'Completed').length || 0;
   const totalTripsCount = driver.trips?.length || 0;
-  const safetyScore = driver.ai_risk_score != null ? Math.max(0, 100 - driver.ai_risk_score) : null;
   const assignedVehicle = driver.assignedVehicle;
 
   const getDocStatusBadge = (status: string) => {
@@ -272,6 +270,13 @@ export default function DriverDetailsPage() {
         {/* ── KPI ROW ───────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
+            title="Duty Status"
+            value={driver.status}
+            icon={User}
+            variant={driver.status === 'Available' ? 'emerald' : driver.status === 'OnTrip' ? 'blue' : 'amber'}
+            subtitle={driver.status === 'Available' ? 'Ready for dispatch' : driver.status === 'OnTrip' ? 'Active on trip' : 'Off-duty / Inactive'}
+          />
+          <KpiCard
             title="License Expiry"
             value={isLicenseExpired ? 'Expired' : daysUntilExpiry != null ? `${daysUntilExpiry}d` : 'N/A'}
             icon={Calendar}
@@ -284,13 +289,6 @@ export default function DriverDetailsPage() {
             icon={MapPin}
             variant="brand"
             subtitle="Completed / Total"
-          />
-          <KpiCard
-            title="AI Safety Score"
-            value={safetyScore != null ? `${safetyScore}/100` : 'N/A'}
-            icon={Gauge}
-            variant="purple"
-            subtitle="Telemetry-derived risk score"
           />
           <KpiCard
             title="Assigned Vehicle"
@@ -480,20 +478,6 @@ export default function DriverDetailsPage() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Overall Safety Score</div>
-                  <div className="text-xl font-black text-indigo-600 font-mono">
-                    {safetyScore != null ? `${safetyScore}/100` : 'N/A'}
-                  </div>
-                </div>
               </CardContent>
             </Card>
 

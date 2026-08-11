@@ -5,6 +5,7 @@ import { Button } from './button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 import { Input } from './input';
 import { Badge } from './badge';
+import BulkActionBar from './BulkActionBar';
 import { cn } from '@/lib/utils';
 
 export interface Column<T> {
@@ -20,7 +21,7 @@ export interface BulkAction<T> {
   icon?: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger';
   className?: string;
-  onClick: (selectedRows: T[]) => void | Promise<void>;
+  onClick: (selectedRows: T[], clearSelection: () => void) => void | Promise<void>;
 }
 
 export interface DataTableProps<T> {
@@ -47,7 +48,10 @@ export interface DataTableProps<T> {
   totalRecords?: number;
   // Selection
   enableSelection?: boolean;
+  selectedIndices?: number[];
   onSelectionChange?: (selectedIndices: number[]) => void;
+  getRowId?: (row: T, index: number) => string | number;
+  selectionResetKey?: any;
   // Row Click
   onRowClick?: (row: T) => void;
   // Bulk Actions
@@ -86,7 +90,10 @@ export default function DataTable<T>({
   pageSizeOptions = [10, 25, 50, 100],
   totalRecords,
   enableSelection = true,
+  selectedIndices: controlledIndices,
   onSelectionChange,
+  getRowId,
+  selectionResetKey,
   onRowClick,
   bulkActions = [],
   emptyTitle = 'No Records Found',
@@ -97,8 +104,52 @@ export default function DataTable<T>({
   // Internal state for client-side pagination when onPageChange is not passed
   const [internalPage, setInternalPage] = useState(1);
   const [internalPageSize, setInternalPageSize] = useState(pageSize || 10);
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [selectedKeys, setSelectedKeys] = useState<Set<string | number>>(new Set());
   const [internalSearch, setInternalSearch] = useState('');
+
+  const getRowKey = React.useCallback((row: T, index: number): string | number => {
+    if (getRowId) return getRowId(row, index);
+    if (row && typeof row === 'object') {
+      if ('id' in row && (row as any).id != null) return String((row as any).id);
+      if ('_id' in row && (row as any)._id != null) return String((row as any)._id);
+      if ('ref_id' in row && (row as any).ref_id != null) return String((row as any).ref_id);
+    }
+    return index;
+  }, [getRowId]);
+
+  const clearSelection = React.useCallback(() => {
+    setSelectedKeys(new Set());
+    onSelectionChange?.([]);
+  }, [onSelectionChange]);
+
+  // Reset selection if selectionResetKey changes
+  useEffect(() => {
+    if (selectionResetKey !== undefined) {
+      clearSelection();
+    }
+  }, [selectionResetKey, clearSelection]);
+
+  // Prune any selected keys that no longer exist in data (e.g. after deletion/refetch)
+  useEffect(() => {
+    setSelectedKeys((prevKeys) => {
+      if (prevKeys.size === 0) return prevKeys;
+      const validKeySet = new Set(data.map((row, idx) => getRowKey(row, idx)));
+      const nextKeys = new Set<string | number>();
+      for (const key of prevKeys) {
+        if (validKeySet.has(key)) {
+          nextKeys.add(key);
+        }
+      }
+      if (nextKeys.size !== prevKeys.size) {
+        const nextIndices = data
+          .map((row, idx) => (nextKeys.has(getRowKey(row, idx)) ? idx : -1))
+          .filter(idx => idx !== -1);
+        onSelectionChange?.(nextIndices);
+        return nextKeys;
+      }
+      return prevKeys;
+    });
+  }, [data, getRowKey, onSelectionChange]);
 
   const activeSearchValue = searchValue !== undefined ? searchValue : internalSearch;
 
@@ -132,8 +183,7 @@ export default function DataTable<T>({
     const validPage = Math.max(1, Math.min(newPage, computedTotalPages));
     if (isServerPaginated) {
       onPageChange?.(validPage);
-      setSelectedIndices(new Set());
-      onSelectionChange?.([]);
+      clearSelection();
     } else {
       setInternalPage(validPage);
     }
@@ -149,35 +199,31 @@ export default function DataTable<T>({
     if (isServerPaginated && onPageChange) {
       onPageChange(1);
     }
-    setSelectedIndices(new Set());
-    onSelectionChange?.([]);
+    clearSelection();
   };
 
   const handleSelectAll = () => {
-    if (selectedIndices.size === data.length && data.length > 0) {
-      setSelectedIndices(new Set());
-      onSelectionChange?.([]);
+    if (selectedKeys.size === data.length && data.length > 0) {
+      clearSelection();
     } else {
-      const newSet = new Set(data.map((_, i) => i));
-      setSelectedIndices(newSet);
-      onSelectionChange?.(Array.from(newSet));
+      const newSet = new Set(data.map((row, i) => getRowKey(row, i)));
+      setSelectedKeys(newSet);
+      onSelectionChange?.(data.map((_, i) => i));
     }
   };
 
-  const clearSelection = () => {
-    setSelectedIndices(new Set());
-    onSelectionChange?.([]);
-  };
-
-  const handleSelectRow = (index: number) => {
-    const newSet = new Set(selectedIndices);
-    if (newSet.has(index)) {
-      newSet.delete(index);
+  const handleSelectRow = (key: string | number) => {
+    const newSet = new Set(selectedKeys);
+    if (newSet.has(key)) {
+      newSet.delete(key);
     } else {
-      newSet.add(index);
+      newSet.add(key);
     }
-    setSelectedIndices(newSet);
-    onSelectionChange?.(Array.from(newSet));
+    setSelectedKeys(newSet);
+    const nextIndices = data
+      .map((row, idx) => (newSet.has(getRowKey(row, idx)) ? idx : -1))
+      .filter(idx => idx !== -1);
+    onSelectionChange?.(nextIndices);
   };
 
   const fromIndex = totalCount === 0 ? 0 : (activePage - 1) * activePageSize + 1;
@@ -194,102 +240,70 @@ export default function DataTable<T>({
       {/* Table Toolbar Header */}
       {showToolbar && (
         <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-col gap-2.5 sm:gap-3">
-          {selectedIndices.size > 0 ? (
-            <div className="flex items-center flex-wrap gap-2 sm:gap-3 w-full bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/80 p-2 rounded-lg transition-all" role="alert">
-              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 px-2">
-                {selectedIndices.size} row{selectedIndices.size > 1 ? 's' : ''} selected
-              </span>
-              <div className="h-4 w-[1px] bg-indigo-200 dark:bg-indigo-800 hidden sm:block" />
-              <div className="flex items-center gap-2 flex-1 flex-wrap">
-                {bulkActions.map((action, i) => (
-                  <Btn
-                    key={i}
-                    label={action.label}
-                    icon={action.icon}
-                    variant={action.variant || 'secondary'}
-                    size="sm"
-                    className={action.className}
-                    onClick={() => {
-                      const selectedRows = Array.from(selectedIndices).map(idx => data[idx]).filter(Boolean);
-                      action.onClick(selectedRows);
-                    }}
-                  />
-                ))}
-              </div>
-              <Btn
-                label="Clear"
-                variant="ghost"
-                size="sm"
-                onClick={clearSelection}
-                className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100/60 text-xs font-bold"
-              />
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 w-full">
-              {/* Left Side: Title & Search Bar */}
-              <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
-                {title && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                      {title}
-                    </h3>
-                    <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
-                      {totalCount} {totalCount === 1 ? 'record' : 'records'}
-                    </Badge>
-                  </div>
-                )}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 w-full">
+            {/* Left Side: Title & Search Bar */}
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
+              {title && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                    {title}
+                  </h3>
+                  <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                    {totalCount} {totalCount === 1 ? 'record' : 'records'}
+                  </Badge>
+                </div>
+              )}
 
-                {onSearchChange !== undefined && (
-                  <div className="relative w-full sm:w-64 md:w-72 shrink-0">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      type="text"
-                      placeholder={searchPlaceholder}
-                      value={activeSearchValue}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
-                      aria-label="Search Table"
-                    />
-                    {activeSearchValue && (
-                      <button
-                        onClick={() => handleSearchChange('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                        aria-label="Clear search"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Right Side: Filters, Select All, Actions & Export */}
-              <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
-                {filterElement}
-                {enableSelection && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAll}
-                    className="h-9 text-xs font-semibold px-3 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 transition-colors"
-                  >
-                    <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>{selectedIndices.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}</span>
-                  </Button>
-                )}
-                {actionsElement}
-                {onExport && (
-                  <Btn
-                    label="Export"
-                    variant="secondary"
-                    size="sm"
-                    icon={<Download size={13} />}
-                    onClick={onExport}
+              {onSearchChange !== undefined && (
+                <div className="relative w-full sm:w-64 md:w-72 shrink-0">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="text"
+                    placeholder={searchPlaceholder}
+                    value={activeSearchValue}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
+                    aria-label="Search Table"
                   />
-                )}
-              </div>
+                  {activeSearchValue && (
+                    <button
+                      onClick={() => handleSearchChange('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                      aria-label="Clear search"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Right Side: Filters, Select All, Actions & Export */}
+            <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
+              {filterElement}
+              {enableSelection && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="h-9 text-xs font-semibold px-3 shadow-2xs gap-1.5 border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 transition-colors"
+                >
+                  <CheckSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>{selectedKeys.size === data.length && data.length > 0 ? "Deselect All" : "Select All"}</span>
+                </Button>
+              )}
+              {actionsElement}
+              {onExport && (
+                <Btn
+                  label="Export"
+                  variant="secondary"
+                  size="sm"
+                  icon={<Download size={13} />}
+                  onClick={onExport}
+                />
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -303,15 +317,15 @@ export default function DataTable<T>({
                   <input
                     type="checkbox"
                     className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                    checked={data.length > 0 && selectedIndices.size === data.length}
+                    checked={data.length > 0 && selectedKeys.size === data.length}
                     ref={(input) => {
                       if (input) {
-                        input.indeterminate = selectedIndices.size > 0 && selectedIndices.size < data.length;
+                        input.indeterminate = selectedKeys.size > 0 && selectedKeys.size < data.length;
                       }
                     }}
                     onChange={handleSelectAll}
                     aria-label="Select all rows"
-                    title={selectedIndices.size === data.length ? "Deselect All" : "Select All"}
+                    title={selectedKeys.size === data.length ? "Deselect All" : "Select All"}
                   />
                 </TableHead>
               )}
@@ -369,10 +383,11 @@ export default function DataTable<T>({
               // Data Rows
               displayData.map((row, rowIndex) => {
                 const actualIndex = isServerPaginated ? rowIndex : (activePage - 1) * activePageSize + rowIndex;
-                const isSelected = selectedIndices.has(actualIndex);
+                const rowKey = getRowKey(row, actualIndex);
+                const isSelected = selectedKeys.has(rowKey);
                 return (
                   <TableRow
-                    key={rowIndex}
+                    key={String(rowKey)}
                     className={cn(
                       "animate-fade-in transition-colors border-b border-slate-100 dark:border-slate-800/60 focus-visible:bg-slate-50 dark:focus-visible:bg-slate-800/80 outline-none",
                       isSelected 
@@ -410,7 +425,7 @@ export default function DataTable<T>({
                           type="checkbox"
                           className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                           checked={isSelected}
-                          onChange={() => handleSelectRow(actualIndex)}
+                          onChange={() => handleSelectRow(rowKey)}
                           aria-label={`Select row ${rowIndex + 1}`}
                         />
                       </TableCell>
@@ -503,6 +518,29 @@ export default function DataTable<T>({
           </button>
         </div>
       </div>
+
+      {/* Modern Floating Bottom Bulk Action Bar */}
+      {bulkActions.length > 0 && (
+        <BulkActionBar
+          selectedCount={selectedKeys.size}
+          onClear={clearSelection}
+        >
+          {bulkActions.map((action, i) => (
+            <Btn
+              key={i}
+              label={action.label}
+              icon={action.icon}
+              variant={action.variant || 'secondary'}
+              size="sm"
+              className={action.className}
+              onClick={async () => {
+                const selectedRows = data.filter((row, idx) => selectedKeys.has(getRowKey(row, idx)));
+                await action.onClick(selectedRows, clearSelection);
+              }}
+            />
+          ))}
+        </BulkActionBar>
+      )}
     </div>
   );
 }

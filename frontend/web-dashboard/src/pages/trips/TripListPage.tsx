@@ -246,8 +246,8 @@ export default function TripListPage() {
   const exportDrivers = exportDriversRes?.data || [];
   const exportVehicles = exportVehiclesRes?.data || [];
 
-  // Import Dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [selectionResetKey, setSelectionResetKey] = useState(0);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -337,7 +337,9 @@ export default function TripListPage() {
       await tripService.updateStatus(statusDialogTrip.id, newStatus);
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+      setSelectionResetKey(k => k + 1);
       setStatusDialogTrip(null);
+      toast.success('Trip status updated successfully');
     } catch (e) {
       toast.error('Failed to update trip status');
     } finally {
@@ -684,9 +686,15 @@ export default function TripListPage() {
                 title: 'Delete Trip Draft',
                 message: `Are you sure you want to delete trip ${row.ref_id || 'Draft'}? This action cannot be undone.`,
                 onConfirm: async () => {
-                  await tripService.bulkDelete([row.id]);
-                  queryClient.invalidateQueries({ queryKey: ['trips'] });
-                  queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                  try {
+                    await tripService.bulkDelete([row.id]);
+                    queryClient.invalidateQueries({ queryKey: ['trips'] });
+                    queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                    setSelectionResetKey(k => k + 1);
+                    toast.success('Trip deleted successfully');
+                  } catch (e) {
+                    toast.error('Failed to delete trip');
+                  }
                 }
               });
             }}
@@ -746,17 +754,22 @@ export default function TripListPage() {
       label: 'Delete Selected',
       icon: <Trash2 size={13} />,
       variant: 'danger' as const,
-      onClick: (selectedRows: Trip[]) => {
+      onClick: (selectedRows: Trip[], clearSelection?: () => void) => {
         setConfirmModal({
           isOpen: true,
           title: 'Delete Selected Trips',
-          message: `Are you sure you want to delete ${selectedRows.length} selected trips? This action cannot be undone.`,
+          message: `Are you sure you want to delete ${selectedRows.length} selected trip${selectedRows.length > 1 ? 's' : ''}? This action cannot be undone.`,
           onConfirm: async () => {
             try {
               await tripService.bulkDelete(selectedRows.map(r => r.id));
               queryClient.invalidateQueries({ queryKey: ['trips'] });
               queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-            } catch (e) { toast.error('Failed to delete trips'); }
+              clearSelection?.();
+              setSelectionResetKey(k => k + 1);
+              toast.success(`Successfully deleted ${selectedRows.length} trip${selectedRows.length > 1 ? 's' : ''}`);
+            } catch (e) {
+              toast.error('Failed to delete trips');
+            }
           }
         });
       }
@@ -1064,6 +1077,7 @@ export default function TripListPage() {
             data={trips}
             columns={columns}
             enableSelection={true}
+            selectionResetKey={selectionResetKey}
             compact={true}
             isLoading={isLoading}
             isError={isError}
