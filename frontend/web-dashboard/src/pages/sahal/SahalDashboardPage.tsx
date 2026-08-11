@@ -47,6 +47,7 @@ export default function SahalDashboardPage() {
     <DashboardLayout
       active="/sahal"
       title="Sahal Dashboard"
+      hideBackButton
       pageTitle={
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">

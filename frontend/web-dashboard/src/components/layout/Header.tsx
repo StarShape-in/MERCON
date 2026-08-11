@@ -30,11 +30,12 @@ import CreateTripModal from '@/components/trips/CreateTripModal';
 interface HeaderProps {
   title?: string;
   breadcrumb?: string;
+  hideBackButton?: boolean;
   /** Opens the off-canvas sidebar — only rendered below lg */
   onMenuClick?: () => void;
 }
 
-export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) {
+export default function Header({ title, breadcrumb, hideBackButton, onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const user = authStore.getUser();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -87,13 +88,15 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
         >
           <Menu size={20} />
         </button>
-        <button
-          onClick={() => navigate(-1)}
-          className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-          title="Go Back"
-        >
-          <ArrowLeft size={18} />
-        </button>
+        {!hideBackButton && (
+          <button
+            onClick={() => navigate(-1)}
+            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+            title="Go Back"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
         <div className="min-w-0">
           <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate leading-tight">
             {title || 'MERCON'}
@@ -106,17 +109,19 @@ export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) 
 
       {/* Desktop Left: Back button & Page Title — the sidebar rail toggle lives on the sidebar edge */}
       <div className="hidden lg:flex items-center gap-3 min-w-0">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
-          title="Go Back"
-        >
-          <ArrowLeft size={14} className="text-slate-500 dark:text-slate-400" />
-          <span>Back</span>
-        </button>
+        {!hideBackButton && (
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
+            title="Go Back"
+          >
+            <ArrowLeft size={14} className="text-slate-500 dark:text-slate-400" />
+            <span>Back</span>
+          </button>
+        )}
         {title && (
           <div className="flex items-center gap-2">
-            <span className="text-slate-300 dark:text-slate-600 font-light">/</span>
+            {!hideBackButton && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
             <span className="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate max-w-[260px]">{title}</span>
           </div>
         )}

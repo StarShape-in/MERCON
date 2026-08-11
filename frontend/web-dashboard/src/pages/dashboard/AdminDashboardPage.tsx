@@ -151,7 +151,7 @@ export default function AdminDashboardPage() {
   const revenueChartData = (summary?.monthly_revenue_chart || []).map((m) => m.revenue);
 
   return (
-    <DashboardLayout active="Admin Dashboard" title="Admin Dashboard">
+    <DashboardLayout active="Admin Dashboard" title="Admin Dashboard" hideBackButton>
       {/* Toast — fixed slide-in, matches the main Dashboard's own toast rather than
           pushing the header down with an inline banner. */}
       {toast && (

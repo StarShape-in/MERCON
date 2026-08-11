@@ -242,7 +242,7 @@ export default function DashboardPage() {
 
   return (
     <TooltipProvider>
-      <DashboardLayout active="Dashboard" title="Dashboard">
+      <DashboardLayout active="Dashboard" title="Dashboard" hideBackButton>
         <div className="px-4 sm:px-6 lg:px-8 pb-8 h-full flex flex-col gap-5 animate-fade-in">
 
           {/* ── Header ──────────────────────────────────────────────────── */}

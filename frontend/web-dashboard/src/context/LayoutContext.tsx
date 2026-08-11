@@ -7,6 +7,7 @@ export interface LayoutMeta {
   pageTitle?: ReactNode;
   pageSub?: string;
   actions?: ReactNode;
+  hideBackButton?: boolean;
 }
 
 interface LayoutContextValue {
