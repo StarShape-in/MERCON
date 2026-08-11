@@ -332,9 +332,9 @@ export function TripScheduleSelector({
           </div>
 
           {/* Custom Time Input & Quick SLA Offset Bar */}
-          <div className="flex items-center justify-between gap-2 pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-border/40">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-muted-foreground">Exact Time:</span>
+              <span className="text-[11px] font-bold text-muted-foreground whitespace-nowrap">Exact Time:</span>
               <input
                 type="time"
                 value={dateObj ? format(dateObj, 'HH:mm') : ''}
@@ -349,38 +349,40 @@ export function TripScheduleSelector({
 
             {/* Quick Time Offsets for Delivery */}
             {onApplyOffset && (
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-0.5">
-                  <Zap className="size-3 text-amber-500" /> Quick Offsets:
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-0.5 whitespace-nowrap">
+                  <Zap className="size-3 text-amber-500 shrink-0" /> Quick Offsets:
                 </span>
-                <button
-                  type="button"
-                  onClick={() => onApplyOffset(4)}
-                  className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-900 dark:text-amber-200 border border-amber-200/80 cursor-pointer"
-                >
-                  +4h
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onApplyOffset(8)}
-                  className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-900 dark:text-amber-200 border border-amber-200/80 cursor-pointer"
-                >
-                  +8h
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onApplyOffset(24)}
-                  className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-900 dark:text-amber-200 border border-amber-200/80 cursor-pointer"
-                >
-                  +24h
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onApplyOffset(0, true)}
-                  className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-900 dark:text-indigo-200 border border-indigo-200/80 cursor-pointer"
-                >
-                  EOD
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onApplyOffset(4)}
+                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-900 dark:text-amber-200 border border-amber-200/80 cursor-pointer transition-colors"
+                  >
+                    +4h
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onApplyOffset(8)}
+                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-900 dark:text-amber-200 border border-amber-200/80 cursor-pointer transition-colors"
+                  >
+                    +8h
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onApplyOffset(24)}
+                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-900 dark:text-amber-200 border border-amber-200/80 cursor-pointer transition-colors"
+                  >
+                    +24h
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onApplyOffset(0, true)}
+                    className="px-2 py-1 rounded-md text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 text-indigo-900 dark:text-indigo-200 border border-indigo-200/80 cursor-pointer transition-colors"
+                  >
+                    EOD
+                  </button>
+                </div>
               </div>
             )}
           </div>

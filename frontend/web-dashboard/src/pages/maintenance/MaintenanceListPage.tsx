@@ -381,6 +381,8 @@ export default function MaintenanceListPage() {
     }
   ];
 
+  const totalMaintenanceCount = kpis.active_count + kpis.scheduled_count + kpis.completed_count;
+
   return (
     <DashboardLayout active="Vehicles" title="Vehicle Maintenance">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
@@ -467,12 +469,17 @@ export default function MaintenanceListPage() {
               </span>
             }
             variant="brand"
-            description={`${records.length} service records`}
+            description={`${totalMaintenanceCount || records.length} total service records`}
             icon={MoneyBills}
             progressSegments={[
               { label: `Active (${kpis.active_count})`, value: kpis.active_count > 0 ? 50 : 0, color: 'bg-[#E8450F]' },
               { label: `Completed (${kpis.completed_count})`, value: kpis.completed_count > 0 ? 50 : 100, color: 'bg-emerald-500' },
             ]}
+            isActive={statusFilter === 'all'}
+            onClick={() => {
+              setStatusFilter('all');
+              setPage(1);
+            }}
           />
 
           <KpiCard
@@ -489,9 +496,14 @@ export default function MaintenanceListPage() {
             description="Currently in workshop repair"
             icon={MaintenanceWrench}
             completionGauge={{
-              percentage: records.length > 0 ? Math.round((kpis.active_count / records.length) * 100) : 0,
+              percentage: totalMaintenanceCount > 0 ? Math.round((kpis.active_count / totalMaintenanceCount) * 100) : 0,
               label: `${kpis.active_count} In Repair`,
               subtext: 'Workshop Occupancy'
+            }}
+            isActive={statusFilter === 'In_Progress'}
+            onClick={() => {
+              setStatusFilter(statusFilter === 'In_Progress' ? 'all' : 'In_Progress');
+              setPage(1);
             }}
           />
 
@@ -509,6 +521,11 @@ export default function MaintenanceListPage() {
             description={`Renewal SAR ${kpis.renewal_cost.toLocaleString()}`}
             icon={CalendarAlert}
             chartData={[2, 3, 5, 4, kpis.scheduled_count || 6]}
+            isActive={statusFilter === 'Scheduled'}
+            onClick={() => {
+              setStatusFilter(statusFilter === 'Scheduled' ? 'all' : 'Scheduled');
+              setPage(1);
+            }}
           />
 
           <KpiCard
@@ -525,9 +542,14 @@ export default function MaintenanceListPage() {
             description="Fully serviced & verified"
             icon={CheckBadge}
             completionGauge={{
-              percentage: records.length > 0 ? Math.round((kpis.completed_count / records.length) * 100) : 100,
+              percentage: totalMaintenanceCount > 0 ? Math.round((kpis.completed_count / totalMaintenanceCount) * 100) : 100,
               label: `${kpis.completed_count} Resolved`,
               subtext: 'Serviced Clear'
+            }}
+            isActive={statusFilter === 'Completed'}
+            onClick={() => {
+              setStatusFilter(statusFilter === 'Completed' ? 'all' : 'Completed');
+              setPage(1);
             }}
           />
 
@@ -549,9 +571,25 @@ export default function MaintenanceListPage() {
                 <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4">
                   There are no service, repair, or renewal logs matching your search filter criteria.
                 </p>
-                <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-[#E8450F] text-white">
-                  + Schedule First Service
-                </Button>
+                <div className="flex items-center gap-2">
+                  {(statusFilter !== 'all' || typeFilter !== 'all' || search) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setStatusFilter('all');
+                        setTypeFilter('all');
+                        setSearch('');
+                      }}
+                      className="text-xs font-semibold"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                  <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-[#E8450F] text-white">
+                    + Schedule First Service
+                  </Button>
+                </div>
               </div>
             ) : viewMode === 'list' ? (
               <div className="w-full flex flex-col">

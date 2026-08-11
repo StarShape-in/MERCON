@@ -178,12 +178,35 @@ export const getTripById = async (req: Request, res: Response) => {
 
 export const createTrip = async (req: Request, res: Response) => {
   try {
-    const { customer_id, driver_id, vehicle_id, planned_start, billing_amount, trip_charges, stops, rate_card_id } = req.body;
+    const {
+      customer_id,
+      driver_id,
+      vehicle_id,
+      planned_start,
+      billing_amount,
+      trip_charges,
+      stops,
+      rate_card_id,
+      status: requestedStatus,
+      dispatch_now,
+    } = req.body;
 
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
     const parsedPlannedStart = (planned_start && !isNaN(Date.parse(planned_start)))
       ? new Date(planned_start)
       : null;
+
+    // Determine target status:
+    // If explicitly requested as 'Dispatched' or dispatch_now is true (and both driver+vehicle present):
+    //   Sets status = TripStatus.Dispatched, claims driver & vehicle to OnTrip.
+    // Otherwise:
+    //   Creates in TripStatus.Draft (Scheduled). Driver/vehicle assignments are recorded on the trip manifest
+    //   without locking driver/vehicle to OnTrip until actively dispatched.
+    const isDispatchingNow =
+      (requestedStatus === TripStatus.Dispatched || dispatch_now === true) &&
+      !!driver_id &&
+      !!vehicle_id;
+    const targetStatus = isDispatchingNow ? TripStatus.Dispatched : TripStatus.Draft;
 
     let trip;
     let attempts = 0;
@@ -209,17 +232,15 @@ export const createTrip = async (req: Request, res: Response) => {
               throw new Error('DRIVER_NOT_FOUND');
             }
 
-            // Atomically claim the driver: the UPDATE only matches (and
-            // locks) the row if it's still Available, so two concurrent
-            // requests racing for the same driver can't both win — the
-            // loser's WHERE clause re-evaluates against the winner's
-            // committed status and matches zero rows.
-            const driverClaim = await tx.driver.updateMany({
-              where: { id: driver_id, status: 'Available' },
-              data: { status: 'OnTrip' },
-            });
-            if (driverClaim.count === 0) {
-              throw new Error('DRIVER_UNAVAILABLE');
+            // Only claim the driver to OnTrip if we are actively dispatching right now
+            if (isDispatchingNow) {
+              const driverClaim = await tx.driver.updateMany({
+                where: { id: driver_id, status: 'Available' },
+                data: { status: 'OnTrip' },
+              });
+              if (driverClaim.count === 0) {
+                throw new Error('DRIVER_UNAVAILABLE');
+              }
             }
           }
 
@@ -229,12 +250,15 @@ export const createTrip = async (req: Request, res: Response) => {
               throw new Error('VEHICLE_NOT_FOUND');
             }
 
-            const vehicleClaim = await tx.vehicle.updateMany({
-              where: { id: vehicle_id, status: 'Available' },
-              data: { status: 'OnTrip' },
-            });
-            if (vehicleClaim.count === 0) {
-              throw new Error('VEHICLE_UNAVAILABLE');
+            // Only claim the vehicle to OnTrip if we are actively dispatching right now
+            if (isDispatchingNow) {
+              const vehicleClaim = await tx.vehicle.updateMany({
+                where: { id: vehicle_id, status: 'Available' },
+                data: { status: 'OnTrip' },
+              });
+              if (vehicleClaim.count === 0) {
+                throw new Error('VEHICLE_UNAVAILABLE');
+              }
             }
           }
 
@@ -284,7 +308,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(driver_id ? { driverId: driver_id } : {}),
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
               planned_start: parsedPlannedStart,
-              status: (driver_id && vehicle_id) ? TripStatus.Dispatched : TripStatus.Draft,
+              status: targetStatus,
               ...(createdBy ? { created_by: createdBy } : {}),
               ...(appliedRateCard ? { rateCardId: appliedRateCard.id } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
@@ -324,8 +348,10 @@ export const createTrip = async (req: Request, res: Response) => {
       throw new Error('FAILED_TO_CREATE_TRIP');
     }
 
-    // Notify driver asynchronously without throwing
-    if (driver_id) await notifyDriverAssigned(driver_id, trip);
+    // Notify driver asynchronously only if actively dispatched now
+    if (driver_id && isDispatchingNow) {
+      await notifyDriverAssigned(driver_id, trip);
+    }
 
     res.status(201).json({ success: true, data: trip });
   } catch (error: any) {
@@ -456,16 +482,49 @@ export const updateTripStatus = async (req: Request, res: Response) => {
     }
 
     let delay: DelayDetection | null = null;
+    let shouldNotifyDriver = false;
+    let driverToNotify: string | null = null;
 
     const trip = await prisma.$transaction(async (tx) => {
       const current = await tx.trip.findUnique({ where: { id: tripId } });
       if (!current) throw new Error('NOT_FOUND');
       if (!isValidTransition(current.status, status)) throw new Error('INVALID_TRANSITION');
-      // Draft trips can be created with "assign later" — don't let a status
-      // update dispatch a trip that still has no driver/vehicle (that must
-      // go through dispatchTrip, which claims them).
-      if (status === TripStatus.Dispatched && (!current.driverId || !current.vehicleId)) {
-        throw new Error('MISSING_ASSIGNMENT');
+
+      // Moving from Draft to Dispatched: requires both driver and vehicle, and atomically claims them to OnTrip
+      if (status === TripStatus.Dispatched && current.status === TripStatus.Draft) {
+        if (!current.driverId || !current.vehicleId) {
+          throw new Error('MISSING_ASSIGNMENT');
+        }
+
+        const driverClaim = await tx.driver.updateMany({
+          where: { id: current.driverId, status: 'Available' },
+          data: { status: 'OnTrip' },
+        });
+        if (driverClaim.count === 0) {
+          throw new Error('DRIVER_UNAVAILABLE');
+        }
+
+        const vehicleClaim = await tx.vehicle.updateMany({
+          where: { id: current.vehicleId, status: 'Available' },
+          data: { status: 'OnTrip' },
+        });
+        if (vehicleClaim.count === 0) {
+          throw new Error('VEHICLE_UNAVAILABLE');
+        }
+
+        shouldNotifyDriver = true;
+        driverToNotify = current.driverId;
+      }
+
+      // Moving from Dispatched back to Draft (un-dispatching / rescheduling):
+      // releases driver and vehicle back to Available
+      if (status === TripStatus.Draft && current.status === TripStatus.Dispatched) {
+        if (current.driverId) {
+          await tx.driver.update({ where: { id: current.driverId }, data: { status: DriverStatus.Available } });
+        }
+        if (current.vehicleId) {
+          await tx.vehicle.update({ where: { id: current.vehicleId }, data: { status: AssetStatus.Available } });
+        }
       }
 
       // Completing a trip always goes through the shared helper so every
@@ -496,6 +555,11 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       return updated;
     });
 
+    // Notify driver if trip was dispatched
+    if (shouldNotifyDriver && driverToNotify) {
+      await notifyDriverAssigned(driverToNotify, trip);
+    }
+
     // Alerted only once the transaction has committed, so operators are never
     // told about a delay on a trip update that then rolled back.
     if (delay) await notifyOperatorsOfDelay(delay);
@@ -510,6 +574,9 @@ export const updateTripStatus = async (req: Request, res: Response) => {
     }
     if (error.message === 'MISSING_ASSIGNMENT') {
       return res.status(400).json({ success: false, error: { code: 'MISSING_ASSIGNMENT', message: 'Assign a driver and vehicle before dispatching this trip' } });
+    }
+    if (error.message === 'DRIVER_UNAVAILABLE' || error.message === 'VEHICLE_UNAVAILABLE') {
+      return res.status(400).json({ success: false, error: { code: 'CONFLICT', message: error.message } });
     }
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update trip status' } });
   }

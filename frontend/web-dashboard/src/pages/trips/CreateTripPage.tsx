@@ -19,6 +19,8 @@ import {
   Receipt,
   Tag,
   DollarSign,
+  Clock,
+  Zap,
 } from 'lucide-react';
 import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes, format } from 'date-fns';
 
@@ -444,7 +446,7 @@ export default function CreateTripPage() {
     !missingLocation && !missingName && !missingLane && !sameLaneEndpoints &&
     !missingSchedule && !isScheduleInvalid;
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback((dispatchNow: boolean = false) => {
     setError(null);
 
     if (pickupLat == null || pickupLng == null) {
@@ -478,17 +480,18 @@ export default function CreateTripPage() {
     }
 
     const numericPrice = billingAmount && !isNaN(parseFloat(billingAmount)) ? parseFloat(billingAmount) : undefined;
+    const canDispatchImmediately = !assignDriverLater && !!driverId && !assignVehicleLater && !!vehicleId;
+    const willDispatchNow = dispatchNow && canDispatchImmediately;
 
     const payload: CreateTripPayload = {
       customer_id: customerId,
       driver_id: assignDriverLater ? undefined : driverId,
       vehicle_id: assignVehicleLater ? undefined : vehicleId,
-      // The trip starts when it's due at the pickup dock. This used to be a
-      // separate optional field in step 1, which meant the same moment was
-      // entered twice and the two could silently disagree.
       planned_start: pickupTime || undefined,
       billing_amount: numericPrice,
       trip_charges: numericPrice,
+      status: willDispatchNow ? 'Dispatched' : 'Draft',
+      dispatch_now: willDispatchNow,
       stops: [
         {
           stop_type: 'Pickup',
@@ -512,9 +515,6 @@ export default function CreateTripPage() {
     };
 
     createMutation.mutate(payload);
-    // pickupAddress / dropoffAddress are read in the payload above and so must
-    // be listed: without them, editing only the address left this callback
-    // closed over the previous value and submitted it.
   }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, pickupTime, dropoffTime, pickupName, dropoffName, pickupAddress, dropoffAddress, billingAmount, createMutation]);
 
   return (
@@ -1013,24 +1013,42 @@ export default function CreateTripPage() {
               )}
 
             </CardContent>
-            <CardFooter className="justify-between rounded-b-xl border-t bg-muted/10">
+            <CardFooter className="flex flex-wrap items-center justify-between gap-2.5 rounded-b-xl border-t bg-muted/10 p-3 sm:p-4">
               <Btn
                 variant="outline"
                 onClick={prevStep}
                 size="sm"
-                className="h-9 px-5 text-xs"
+                className="h-9 px-4 text-xs"
                 label="Back"
                 icon={<ChevronLeft className="w-3.5 h-3.5" />}
                 shortcut={{ key: 'Escape' }}
               />
-              <Btn
-                onClick={handleSubmit}
-                disabled={createMutation.isPending || !isFormValid}
-                size="sm"
-                className="h-9 px-6 text-xs"
-                label={createMutation.isPending ? 'Dispatching...' : 'Dispatch Trip'}
-                shortcut={{ key: 'Enter', metaOrControl: true }}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  onClick={() => handleSubmit(false)}
+                  disabled={createMutation.isPending || !isFormValid}
+                  size="sm"
+                  className="h-9 px-4 text-xs font-bold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-xs gap-1.5"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{createMutation.isPending ? 'Scheduling...' : 'Schedule Trip'}</span>
+                </Button>
+
+                {!assignDriverLater && driverId && !assignVehicleLater && vehicleId && (
+                  <Button
+                    type="button"
+                    onClick={() => handleSubmit(true)}
+                    disabled={createMutation.isPending || !isFormValid}
+                    size="sm"
+                    variant="outline"
+                    className="h-9 px-4 text-xs font-bold border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-xs gap-1.5"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Dispatch Now</span>
+                  </Button>
+                )}
+              </div>
             </CardFooter>
           </Card>
         )}

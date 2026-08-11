@@ -60,6 +60,8 @@ export interface CreateTripPayload {
   planned_start?: string;
   billing_amount?: number;
   trip_charges?: number;
+  status?: TripStatus;
+  dispatch_now?: boolean;
   /** The rate card the price came from, recorded so invoicing bills what was quoted. */
   rate_card_id?: string;
   stops: {

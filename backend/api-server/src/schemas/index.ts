@@ -78,6 +78,8 @@ export const createTripBody = z.object({
   planned_start: z.coerce.date().optional(),
   billing_amount: z.coerce.number().optional(),
   trip_charges: z.coerce.number().optional(),
+  status: z.enum(['Draft', 'Dispatched']).optional(),
+  dispatch_now: z.boolean().optional(),
   // The rate card the dispatcher was shown. Recorded on the trip so invoicing
   // bills what was quoted instead of re-deriving it later.
   rate_card_id: z.string().uuid('Invalid rate card').optional(),

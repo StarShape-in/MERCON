@@ -10,13 +10,13 @@ import { findRateForLane } from './rateLookup';
  */
 export const ALLOWED_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
   [TripStatus.Draft]: [TripStatus.Dispatched, TripStatus.Cancelled],
-  [TripStatus.Dispatched]: [TripStatus.AtPickup, TripStatus.Cancelled],
+  [TripStatus.Dispatched]: [TripStatus.AtPickup, TripStatus.Draft, TripStatus.Cancelled],
   [TripStatus.AtPickup]: [TripStatus.InTransit, TripStatus.Cancelled],
   [TripStatus.InTransit]: [TripStatus.AtDelivery, TripStatus.Cancelled],
   [TripStatus.AtDelivery]: [TripStatus.Completed, TripStatus.Cancelled],
   [TripStatus.Completed]: [TripStatus.Invoiced],
   [TripStatus.Invoiced]: [],
-  [TripStatus.Cancelled]: [],
+  [TripStatus.Cancelled]: [TripStatus.Draft],
 };
 
 export function isValidTransition(from: TripStatus, to: TripStatus): boolean {
