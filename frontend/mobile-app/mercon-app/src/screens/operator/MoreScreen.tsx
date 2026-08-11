@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, StatusBar, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Users, Truck, FileText, CalendarClock, User, LogOut, ChevronRight, type LucideIcon,
@@ -16,7 +17,7 @@ const OPERATIONS_ROWS: { Icon: LucideIcon; label: string; desc: string; route: s
 
 const MoreScreen = () => {
   const router = useRouter();
-  const { profile, signOut } = useAuth();
+  const { profile, role, signOut } = useAuth();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.gray100 }}>
@@ -32,7 +33,7 @@ const MoreScreen = () => {
           </View>
           <View>
             <Text style={styles.profileName}>{profile?.name ?? 'Operator'}</Text>
-            <Text style={styles.profileRole}>Operator</Text>
+            <Text style={styles.profileRole}>{role ?? 'Operator'}</Text>
           </View>
         </View>
 

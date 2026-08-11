@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView,
+  View, Text, ScrollView, StyleSheet,
   StatusBar, FlatList, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   FileText, Hourglass, Siren, Wallet, Truck, Calendar, Clock, type LucideIcon,
 } from 'lucide-react-native';
@@ -196,6 +197,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
+    alignItems: 'center',
   },
   statCard: {
     backgroundColor: Colors.white,
@@ -226,6 +228,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     gap: Spacing.xs,
+    alignItems: 'center',
   },
   list: {
     padding: Spacing.lg,
