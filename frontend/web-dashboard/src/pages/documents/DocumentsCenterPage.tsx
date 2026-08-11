@@ -516,7 +516,7 @@ export default function DocumentsCenterPage() {
           <DataTable<EnrichedDocument>
             title={
               <span className="flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-indigo-500" />
+                <FolderOpen className="w-4 h-4 text-indigo-500" />
                 <span>Compliance Document Repository</span>
               </span>
             }

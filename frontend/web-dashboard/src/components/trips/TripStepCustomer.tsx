@@ -1,9 +1,19 @@
-import { Building2, Check, Sparkles, Phone, CreditCard, ShieldCheck, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Building2, Check, Sparkles, Phone, CreditCard, ShieldCheck, Search, ChevronsUpDown } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 interface TripStepCustomerProps {
@@ -19,6 +29,7 @@ export default function TripStepCustomer({
   selectedCustomer,
   onSelectCustomer,
 }: TripStepCustomerProps) {
+  const [open, setOpen] = useState(false);
   const custPhone = selectedCustomer ? (selectedCustomer.phone || selectedCustomer.contact_phone || 'N/A') : 'N/A';
   const custCompany = selectedCustomer ? (selectedCustomer.company_name || 'Commercial Shipper') : 'Commercial Shipper';
   const custPayment = selectedCustomer ? (selectedCustomer.payment_terms || 'Net 30') : 'Net 30';
@@ -85,23 +96,113 @@ export default function TripStepCustomer({
         <Label htmlFor="customer_id" className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
           <Search className="w-3.5 h-3.5 text-slate-400" /> Search All Accounts <span className="text-rose-500">*</span>
         </Label>
-        <Select value={customerId} onValueChange={onSelectCustomer}>
-          <SelectTrigger id="customer_id" className="h-11 rounded-xl font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <SelectValue placeholder="-- Search or select customer account --" />
-          </SelectTrigger>
-          <SelectContent className="max-h-64">
-            {customers.map((c) => (
-              <SelectItem key={c.id} value={c.id} className="py-2 cursor-pointer">
-                <div className="flex items-center justify-between gap-4 w-full">
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{c.name}</span>
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    {c.company_name || 'Commercial'} • {c.payment_terms || 'Standard'}
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              id="customer_id"
+              type="button"
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className={cn(
+                "w-full h-11 justify-between rounded-xl font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left px-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 shadow-2xs",
+                !selectedCustomer && "text-slate-400 dark:text-slate-500 font-normal"
+              )}
+            >
+              {selectedCustomer ? (
+                <div className="flex items-center gap-2.5 min-w-0 truncate">
+                  <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-[#E8450F] font-bold text-[10px] shrink-0 border border-orange-200 dark:border-orange-900/60">
+                    {selectedCustomer.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <span className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">
+                    {selectedCustomer.name}
+                  </span>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-normal truncate hidden sm:inline">
+                    • {selectedCustomer.company_name || 'Commercial Shipper'}
                   </span>
                 </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              ) : (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  -- Search or select customer account --
+                </span>
+              )}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-xl shadow-lg border-slate-200 dark:border-slate-800" align="start">
+            <Command
+              filter={(itemValue, search) => {
+                const customer = customers.find((c) => c.id.toLowerCase() === itemValue.toLowerCase());
+                if (!customer) return 0;
+                const haystack = `${customer.name} ${customer.company_name || ''} ${customer.phone || ''} ${customer.contact_phone || ''} ${customer.tax_number || ''} ${customer.payment_terms || ''}`.toLowerCase();
+                return haystack.includes(search.toLowerCase()) ? 1 : 0;
+              }}
+            >
+              <CommandInput
+                placeholder="Search by customer name, company, or phone..."
+                className="h-10 text-xs"
+              />
+              <CommandList className="max-h-64 p-1">
+                <CommandEmpty className="py-6 text-center text-xs text-slate-500">
+                  No customer account found.
+                </CommandEmpty>
+                <CommandGroup>
+                  {customers.map((c) => {
+                    const isSelected = c.id === customerId;
+                    return (
+                      <CommandItem
+                        key={c.id}
+                        value={c.id}
+                        onSelect={() => {
+                          onSelectCustomer(c.id);
+                          setOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors text-xs",
+                          isSelected
+                            ? "bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] font-bold"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={cn(
+                            "w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] shrink-0",
+                            isSelected
+                              ? "bg-[#E8450F] text-white"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                          )}>
+                            {c.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-900 dark:text-slate-100 truncate text-xs">
+                              {c.name}
+                            </p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              {c.company_name || 'Commercial'} • {c.phone || c.contact_phone || 'No Phone'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {c.payment_terms && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal border-slate-200 dark:border-slate-700">
+                              {c.payment_terms}
+                            </Badge>
+                          )}
+                          <Check
+                            className={cn(
+                              "h-4 w-4 text-[#E8450F]",
+                              isSelected ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Active Customer Account Detail Card */}

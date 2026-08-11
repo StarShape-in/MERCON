@@ -194,6 +194,14 @@ export default function CreateTripPage() {
     );
   }, [dropoffLat, dropoffLng, selectedDropoffLocation]);
 
+  const customerOptions = useMemo(() => {
+    return customers.map((c) => ({
+      value: c.id,
+      label: `${c.name}${c.company_name ? ` (${c.company_name})` : ''} ${c.contact_phone || (c as any).phone ? `• ${c.contact_phone || (c as any).phone}` : ''}`,
+      keywords: `${c.name} ${c.company_name || ''} ${c.contact_phone || ''} ${(c as any).phone || ''} ${(c as any).email || ''}`,
+    }));
+  }, [customers]);
+
   const driverOptions = drivers.map((d) => ({
     value: d.id,
     label: `${d.first_name} ${d.last_name}`,
@@ -621,24 +629,18 @@ export default function CreateTripPage() {
                 <Label htmlFor="customer_id" className="text-xs font-semibold">
                   Select Customer Organization <span className="text-destructive">*</span>
                 </Label>
-                <Select
+                <Combobox
+                  id="customer_id"
                   value={customerId}
-                  onValueChange={(val) => {
+                  onChange={(val) => {
                     setCustomerId(val);
                     setError(null);
                   }}
-                >
-                  <SelectTrigger id="customer_id" className="w-full h-10 rounded-xl">
-                    <SelectValue placeholder="Choose customer organization..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {customers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name} ({c.contact_phone || 'No Phone'})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={customerOptions}
+                  placeholder="Choose customer organization..."
+                  searchPlaceholder="Search customer by name, company, or phone..."
+                  emptyText="No customer accounts found."
+                />
               </div>
 
             </CardContent>
