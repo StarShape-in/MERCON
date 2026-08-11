@@ -69,6 +69,44 @@ const AssignedVehicleScreen = () => {
           </View>
         ) : (
           <View style={styles.section}>
+            {/* Maintenance Warning Card */}
+            {vehicle.active_maintenance && (() => {
+              const maint = vehicle.active_maintenance!;
+              const fmtDate = (d: string) =>
+                new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+              const dateRange = maint.end_date
+                ? `${fmtDate(maint.start_date)} – ${fmtDate(maint.end_date)}`
+                : `From ${fmtDate(maint.start_date)}`;
+              const isActive = maint.status === 'In_Progress' || maint.status === 'In Progress';
+              return (
+                <View style={styles.maintenanceCard}>
+                  <View style={styles.maintenanceIconRow}>
+                    <View style={[styles.maintenanceIcon, isActive ? styles.maintenanceIconActive : styles.maintenanceIconScheduled]}>
+                      {isActive ? (
+                        <Wrench size={18} color="#FFFFFF" strokeWidth={2} />
+                      ) : (
+                        <Calendar size={18} color="#FFFFFF" strokeWidth={2} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.maintenanceTitle}>
+                        {isActive ? 'Vehicle In Maintenance' : 'Scheduled Maintenance'}
+                      </Text>
+                      <Text style={styles.maintenanceDates}>{dateRange}</Text>
+                      {maint.workshop_name ? (
+                        <Text style={styles.maintenanceWorkshop}>{maint.workshop_name}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                  {!isActive && (
+                    <Text style={styles.maintenanceNote}>
+                      This vehicle cannot be dispatched on maintenance days.
+                    </Text>
+                  )}
+                </View>
+              );
+            })()}
+
             <Text style={styles.sectionTitle}>Vehicle Details</Text>
             <View style={styles.specsGrid}>
               {specs.map((spec, i) => (
@@ -220,6 +258,60 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.gray500,
     textAlign: 'center',
+  },
+  maintenanceCard: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
+  },
+  maintenanceIconRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  maintenanceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    flexShrink: 0,
+  },
+  maintenanceIconActive: {
+    backgroundColor: '#D97706',
+  },
+  maintenanceIconScheduled: {
+    backgroundColor: '#F59E0B',
+  },
+  maintenanceTitle: {
+    fontSize: Typography.sm,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  maintenanceDates: {
+    fontSize: Typography.xs,
+    fontWeight: '700',
+    color: '#B45309',
+    marginTop: 2,
+  },
+  maintenanceWorkshop: {
+    fontSize: Typography.xs,
+    color: '#B45309',
+    opacity: 0.8,
+    marginTop: 1,
+  },
+  maintenanceNote: {
+    fontSize: Typography.xs,
+    color: '#92400E',
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#FED7AA',
   },
 });
 
