@@ -45,12 +45,6 @@ export default function MapThemeSelector({ currentThemeId, onThemeChange, classN
                 <span>Midnight Cyber</span>
               </div>
             </SelectItem>
-            <SelectItem value="slate">
-              <div className="flex items-center gap-2">
-                <Moon size={12} className="text-purple-400" />
-                <span>Stadia Dark Slate</span>
-              </div>
-            </SelectItem>
           </SelectGroup>
 
           <SelectGroup>

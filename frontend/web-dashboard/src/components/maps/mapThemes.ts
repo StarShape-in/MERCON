@@ -50,16 +50,6 @@ export const MAP_THEMES: Record<string, MapTileTheme> = {
     isDark: true,
     previewColor: '#0B1A12',
   },
-  slate: {
-    id: 'slate',
-    name: 'Stadia Dark Slate',
-    category: 'Dark',
-    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>',
-    badgeColor: 'border-purple-800 bg-purple-950 text-purple-300',
-    isDark: true,
-    previewColor: '#181825',
-  },
   topo: {
     id: 'topo',
     name: 'Esri Topo Terrain',
