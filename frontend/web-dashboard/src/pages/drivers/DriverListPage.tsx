@@ -605,11 +605,10 @@ export default function DriverListPage() {
               label: `${Math.round((availableCount / (totalCount || 1)) * 100)}% Available`,
               subtext: `${availableCount} Ready • ${onTripCount} Dispatched`
             }}
-            isActive={activeKpiModal === 'available'}
-            onClick={(e) => {
-              setSelectedStatus('Available');
+            isActive={selectedStatus === 'Available'}
+            onClick={() => {
+              setSelectedStatus(selectedStatus === 'Available' ? 'All' : 'Available');
               setCurrentPage(1);
-              openKpiModal(e, 'available');
             }}
           />
 
@@ -1055,74 +1054,7 @@ export default function DriverListPage() {
           </div>
         </KpiModal>
 
-        {/* Origin-Animated KPI Modal 2: Available Drivers */}
-        <KpiModal
-          isOpen={activeKpiModal === 'available'}
-          onClose={() => setActiveKpiModal(null)}
-          originRect={originRect}
-          title="Drivers Ready for Dispatch"
-          subtitle="Drivers currently on-call and ready to be assigned to active cargo trips."
-          badge={
-            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-              {availableCount} Available
-            </Badge>
-          }
-        >
-          <div className="space-y-3 text-xs">
-            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-              {drivers.filter(d => d.status === 'Available').length === 0 ? (
-                <div className="py-8 text-center text-slate-400">No drivers currently available.</div>
-              ) : (
-                drivers.filter(d => d.status === 'Available').map(d => (
-                  <div key={d.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
-                        {`${d.first_name?.[0] || ''}${d.last_name?.[0] || ''}`.toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-900 dark:text-slate-100">{d.first_name} {d.last_name}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{d.phone_primary} • License Exp: {new Date(d.license_expiry).toLocaleDateString()}</div>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-[11px] font-bold text-emerald-700 border-emerald-200 bg-white hover:bg-emerald-50"
-                      onClick={() => {
-                        setActiveKpiModal(null);
-                        navigate(`/drivers/${d.id}`);
-                      }}
-                    >
-                      View Profile
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs font-semibold"
-                onClick={() => {
-                  setSelectedStatus('Available');
-                  setActiveKpiModal(null);
-                }}
-              >
-                Filter Table by Available
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-xs font-semibold text-slate-500"
-                onClick={() => setActiveKpiModal(null)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </KpiModal>
 
         {/* Origin-Animated KPI Modal 3: Active On Road Drivers */}
         <KpiModal

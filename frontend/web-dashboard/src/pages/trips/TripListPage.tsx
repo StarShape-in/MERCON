@@ -272,7 +272,7 @@ export default function TripListPage() {
   const { data: tripsRes, isLoading, isError, error } = useQuery({
     queryKey: ['trips', selectedStatus, dateFilter, debouncedSearch],
     queryFn: () => tripService.getAll({
-      status: selectedStatus === 'All' ? undefined : selectedStatus,
+      status: selectedStatus === 'All' ? undefined : (selectedStatus as any),
       date_filter: dateFilter === 'All' ? undefined : dateFilter,
       search: debouncedSearch || undefined,
       per_page: 1000,
