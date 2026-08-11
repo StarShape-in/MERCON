@@ -186,7 +186,7 @@ export default function MaintenanceRecordModal({
 
   return (
     <Dialog open={open} onOpenChange={(val) => !isSaving && onOpenChange(val)}>
-      <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
         
         <DialogHeader className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 shrink-0">
           <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -279,8 +279,8 @@ export default function MaintenanceRecordModal({
                   <SelectItem value="Cancelled">❌ Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-              {statusHint[formData.status] && (
-                <p className="text-[10px] text-slate-400 mt-0.5">{statusHint[formData.status]}</p>
+              {statusHint[formData.status as string] && (
+                <p className="text-[10px] text-slate-400 mt-0.5">{statusHint[formData.status as string]}</p>
               )}
             </div>
 
