@@ -42,7 +42,15 @@ export const getTrips = async (req: Request, res: Response) => {
     const skip = (pageNumber - 1) * limit;
 
     const whereClause: Prisma.TripWhereInput = { deletedAt: null };
-    if (status) whereClause.status = status as TripStatus;
+    if (status) {
+      if (typeof status === 'string' && status.includes(',')) {
+        whereClause.status = { in: status.split(',') as TripStatus[] };
+      } else if (Array.isArray(status)) {
+        whereClause.status = { in: status as TripStatus[] };
+      } else {
+        whereClause.status = status as TripStatus;
+      }
+    }
     if (driver_id) whereClause.driverId = driver_id as string;
     if (vehicle_id) whereClause.vehicleId = vehicle_id as string;
     if (customer_id) whereClause.customerId = customer_id as string;

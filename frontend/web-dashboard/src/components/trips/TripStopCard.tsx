@@ -13,7 +13,7 @@ import {
   Navigation,
   X
 } from 'lucide-react';
-import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { TripScheduleSelector } from '@/components/trips/TripScheduleSelector';
 import LocationPickerMap from '@/components/trips/LocationPickerMap';
 import { locationService, Location } from '@/services/locationService';
 import {
@@ -90,6 +90,7 @@ export interface TripStopCardProps {
   excludeLocationId?: string;
   minDate?: Date;
   timeError?: boolean;
+  onApplyOffset?: (hours: number, setEod?: boolean) => void;
 }
 
 export default function TripStopCard({
@@ -122,6 +123,7 @@ export default function TripStopCard({
   excludeLocationId,
   minDate,
   timeError,
+  onApplyOffset,
 }: TripStopCardProps) {
   const isPickup = tone === 'pickup';
 
@@ -451,36 +453,16 @@ export default function TripStopCard({
         {warning}
 
         {/* Scheduled Arrival / Delivery SLA Time */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-            <Clock className={cn('w-3.5 h-3.5', isPickup ? 'text-emerald-600' : 'text-[#E8450F]')} />
-            {timeLabel || (isPickup ? 'Scheduled Pickup Time' : 'Scheduled Delivery SLA')} <span className="text-rose-500">*</span>
-          </Label>
-
-          <DateTimePicker
-            value={time}
-            onChange={onTimeChange}
-            placeholder={timePlaceholder || 'Select target arrival date and time'}
-            label={timeLabel || 'Arrival Time'}
-            minDate={minDate}
-            error={timeError}
-          />
-
-          {presets && presets.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1 pt-1">
-              {presets.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={preset.onClick}
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <TripScheduleSelector
+          tone={tone}
+          label={timeLabel || (isPickup ? 'Scheduled Pickup Time' : 'Scheduled Delivery SLA')}
+          value={time}
+          onChange={onTimeChange}
+          placeholder={timePlaceholder}
+          minDate={minDate}
+          error={timeError}
+          onApplyOffset={!isPickup ? onApplyOffset : undefined}
+        />
       </div>
     </Card>
   );

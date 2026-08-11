@@ -20,6 +20,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
     case 'available':
     case 'active':
     case 'completed':
+    case 'invoiced':
     case 'paid':
     case 'verified':
     case 'ontime':

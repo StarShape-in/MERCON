@@ -143,7 +143,7 @@ export default function LocationListPage() {
 
   const handleExportPDFLocations = (dataToExport: Location[], filename = 'mercon_locations_registry') => {
     const rows = locationsToExportRows(dataToExport);
-    exportPDFTable(filename, 'MERCON Logistics - Locations Registry', LOCATION_EXPORT_HEADERS, rows);
+    exportPDFTable('MERCON Logistics - Locations Registry', LOCATION_EXPORT_HEADERS, rows, filename);
   };
 
   const bulkActions: BulkAction<Location>[] = [

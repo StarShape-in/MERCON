@@ -155,69 +155,45 @@ export default function TripStepStopsSLA({
           onNameChange={onDropoffNameChange}
           address={dropoffAddress}
           onAddressChange={onDropoffAddressChange}
+          onApplyOffset={onApplyDropoffOffset}
         />
       </div>
 
-      {/* Schedule SLA Presets Card */}
-      <Card className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-indigo-600" />
-            <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
-              Dropoff SLA Delivery Presets
-            </span>
-          </div>
+      {/* Transit SLA Timeline Summary Card */}
+      {transitInfo && (
+        <Card className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-linear-to-r from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-900 p-4 shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800 flex items-center justify-center text-indigo-600 shrink-0">
+                <Navigation className="size-4" />
+              </div>
+              <div>
+                <span className="font-extrabold text-slate-900 dark:text-slate-100 block">
+                  Transit SLA Timeline &amp; Duration
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                  Calculated arrival window from origin pickup to destination delivery
+                </span>
+              </div>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => onApplyDropoffOffset(4)}
-              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 shadow-2xs cursor-pointer"
-            >
-              +4 Hours SLA
-            </button>
-            <button
-              type="button"
-              onClick={() => onApplyDropoffOffset(8)}
-              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 shadow-2xs cursor-pointer"
-            >
-              +8 Hours SLA
-            </button>
-            <button
-              type="button"
-              onClick={() => onApplyDropoffOffset(24)}
-              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 shadow-2xs cursor-pointer"
-            >
-              +24 Hours (Next Day)
-            </button>
-            <button
-              type="button"
-              onClick={() => onApplyDropoffOffset(0, true)}
-              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-300 shadow-2xs cursor-pointer"
-            >
-              End of Day (23:59)
-            </button>
+            <div className="flex items-center gap-2">
+              <Badge
+                className={cn(
+                  'font-extrabold text-xs px-3 py-1.5 rounded-xl border shadow-2xs',
+                  transitInfo.isInvalid
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200 border-rose-300'
+                    : transitInfo.isTight
+                    ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border-amber-300'
+                    : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 border-emerald-300'
+                )}
+              >
+                {transitInfo.isInvalid ? '⚠️ Invalid Schedule (Delivery before pickup)' : `⏱️ ${transitInfo.durationString}`}
+              </Badge>
+            </div>
           </div>
-        </div>
-
-        {transitInfo && (
-          <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-semibold">Calculated Transit Window:</span>
-            <Badge
-              className={cn(
-                'font-extrabold text-xs',
-                transitInfo.isInvalid
-                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-200'
-                  : transitInfo.isTight
-                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200'
-                  : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-200'
-              )}
-            >
-              {transitInfo.isInvalid ? 'Invalid Schedule (Delivery before pickup)' : transitInfo.durationString}
-            </Badge>
-          </div>
-        )}
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }

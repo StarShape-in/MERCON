@@ -169,14 +169,18 @@ function downloadImportTemplate() {
   document.body.removeChild(link);
 }
 
-const STATUS_TABS: { label: string; value: TripStatus | 'All' }[] = [
+type TripStatusFilter = TripStatus | 'All' | 'Completed,Invoiced';
+
+const STATUS_TABS: { label: string; value: TripStatusFilter }[] = [
   { label: 'All Operations', value: 'All' },
   { label: 'Drafts', value: 'Draft' },
   { label: 'Dispatched', value: 'Dispatched' },
   { label: 'At Pickup', value: 'AtPickup' },
   { label: 'In Transit', value: 'InTransit' },
   { label: 'At Delivery', value: 'AtDelivery' },
-  { label: 'Completed', value: 'Completed' },
+  { label: 'Delivered & Completed (All)', value: 'Completed,Invoiced' },
+  { label: 'Delivered (Uninvoiced)', value: 'Completed' },
+  { label: 'Completed (Invoiced)', value: 'Invoiced' },
   { label: 'Cancelled', value: 'Cancelled' },
 ];
 
@@ -204,7 +208,7 @@ export default function TripListPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [selectedStatus, setSelectedStatus] = useState<TripStatus | 'All'>('All');
+  const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [dateFilter, setDateFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -290,6 +294,12 @@ export default function TripListPage() {
 
   const inTransitTrips = kpiTrips.filter(t => t.status === 'InTransit');
   const inTransitCount = inTransitTrips.length;
+
+  const deliveredPendingInvoiceTrips = kpiTrips.filter(t => t.status === 'Completed');
+  const deliveredPendingInvoiceCount = deliveredPendingInvoiceTrips.length;
+
+  const invoicedTrips = kpiTrips.filter(t => t.status === 'Invoiced');
+  const invoicedCount = invoicedTrips.length;
 
   const completedTrips = kpiTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced');
   const completedCount = completedTrips.length;
@@ -968,20 +978,21 @@ export default function TripListPage() {
             value={
               <span>
                 {completedCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Delivered</span>
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
               </span>
             }
             variant="emerald"
-            description="POD verified & delivered"
+            description={`Delivered: ${deliveredPendingInvoiceCount} | Invoiced: ${invoicedCount}`}
             icon={CheckBadge}
-            completionGauge={{
-              percentage: completedPercentage || 100,
-              label: "Delivered",
-              subtext: "Completion rate"
+            semiCircleGauge={{
+              segments: [
+                { label: "Delivered (Uninvoiced)", count: deliveredPendingInvoiceCount, color: "#34D399" },
+                { label: "Completed (Invoiced)", count: invoicedCount, color: "#059669" },
+              ]
             }}
-            isActive={selectedStatus === 'Completed'}
+            isActive={selectedStatus === 'Completed,Invoiced' || selectedStatus === 'Completed' || selectedStatus === 'Invoiced'}
             onClick={() => {
-              setSelectedStatus('Completed');
+              setSelectedStatus('Completed,Invoiced');
               setCurrentPage(1);
             }}
           />
@@ -1053,18 +1064,18 @@ export default function TripListPage() {
                   value={selectedStatus}
                   onValueChange={(val) => {
                     if (val) {
-                      setSelectedStatus(val as TripStatus | 'All');
+                      setSelectedStatus(val as TripStatusFilter);
                       setCurrentPage(1);
                     }
                   }}
                 >
-                  <SelectTrigger className="h-9 px-3 w-auto min-w-[170px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                  <SelectTrigger className="h-9 px-3 w-auto min-w-[200px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
                     <div className="flex items-center gap-2 whitespace-nowrap">
                       <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                       <SelectValue placeholder="All Operations" className="whitespace-nowrap" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectContent align="start" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
                     <SelectGroup>
                       <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
                         Filter Status
@@ -1108,10 +1119,22 @@ export default function TripListPage() {
                           At Delivery
                         </span>
                       </SelectItem>
+                      <SelectItem value="Completed,Invoiced" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-semibold text-emerald-700">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                          Delivered & Completed (All)
+                        </span>
+                      </SelectItem>
                       <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-emerald-700">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                          Completed
+                        <span className="flex items-center gap-2 font-medium text-emerald-600 pl-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          Delivered (Uninvoiced)
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="Invoiced" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                        <span className="flex items-center gap-2 font-medium text-teal-700 pl-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
+                          Completed (Invoiced)
                         </span>
                       </SelectItem>
                       <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
