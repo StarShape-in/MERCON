@@ -60,6 +60,22 @@ export default function Header({ title, breadcrumb, onMenuClick, sidebarCollapse
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Global Keyboard Shortcut: Alt + T or Alt + N opens Create New Trip Modal from any page
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const key = e.key.toLowerCase();
+        if (key === 't' || key === 'n' || e.code === 'KeyT' || e.code === 'KeyN') {
+          e.preventDefault();
+          setIsCreateTripOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   const handleLogout = () => {
     authStore.clearSession();
     navigate('/login');

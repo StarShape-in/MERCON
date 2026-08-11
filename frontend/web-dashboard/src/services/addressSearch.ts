@@ -275,14 +275,15 @@ function createGoogleSession(key: string): AddressSearchSession {
       const { place } = await prediction.toPlace().fetchFields({
         fields: ['displayName', 'formattedAddress', 'location'],
       });
+      const p = place as any;
 
-      const lat = place.location?.lat();
-      const lng = place.location?.lng();
+      const lat = p.location?.lat();
+      const lng = p.location?.lng();
       if (lat == null || lng == null) return null;
 
-      const address = place.formattedAddress ?? '';
+      const address = p.formattedAddress ?? '';
       return {
-        name: place.displayName ?? placeNameFrom(address),
+        name: p.displayName ?? placeNameFrom(address),
         address,
         lat,
         lng,

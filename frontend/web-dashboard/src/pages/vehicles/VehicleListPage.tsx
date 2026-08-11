@@ -157,6 +157,20 @@ export default function VehicleListPage() {
    */
   const sendToWorkshop = (vehicles: Vehicle[]) => setWorkshopVehicles(vehicles);
 
+  const handleMaintenanceClick = async (e: React.MouseEvent, vehicle: Vehicle) => {
+    e.stopPropagation();
+    try {
+      const res = await maintenanceService.getAll({ vehicle_id: vehicle.id, per_page: 1 });
+      if (res.data && res.data.length > 0) {
+        navigate(`/maintenance/${res.data[0].id}`);
+      } else {
+        navigate(`/maintenance?vehicle=${encodeURIComponent(vehicle.plate_number)}`);
+      }
+    } catch {
+      navigate(`/maintenance?vehicle=${encodeURIComponent(vehicle.plate_number)}`);
+    }
+  };
+
   /** Closes the vehicles' open service orders, which releases them back to Available. */
   const returnToService = async (vehicles: Vehicle[]) => {
     try {
@@ -442,60 +456,23 @@ export default function VehicleListPage() {
       className: 'w-[130px]',
       headerClassName: 'w-[130px]',
       accessor: (row: Vehicle) => {
-        const handleQuickStatusChange = async (newStatus: AssetStatus) => {
-          if (newStatus === row.status) return;
-          // Maintenance is owned by the service order, not by a raw status write.
-          if (newStatus === 'Maintenance') return sendToWorkshop([row]);
-          if (row.status === 'Maintenance') {
-            toast.info(`Vehicle ${row.plate_number} is in maintenance. Please complete its service order on the Maintenance page to return it to service.`);
-            return navigate(`/maintenance?vehicle=${encodeURIComponent(row.plate_number)}`);
-          }
-          try {
-            await vehicleService.bulkUpdateStatus([row.id], newStatus);
-            toast.success(`Vehicle ${row.plate_number} status updated to ${newStatus}`);
-            queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-          } catch {
-            toast.error(`Failed to update status for ${row.plate_number}`);
-          }
-        };
-
+        const isMaintenance = row.status === 'Maintenance';
         return (
           <div onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button 
-                  className="group flex items-center gap-1 focus:outline-none rounded-full transition-transform hover:scale-105"
-                  title="Click to quick-change vehicle status"
-                >
-                  <StatusBadge status={row.status} />
-                  <ChevronDown size={11} className="text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-44 p-1">
-                <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">Quick Status Change</DropdownMenuLabel>
-                <DropdownMenuItem 
-                  onClick={() => handleQuickStatusChange('Available')}
-                  className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", row.status === 'Available' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  Available (Active)
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleQuickStatusChange('Maintenance')}
-                  className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", row.status === 'Maintenance' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                  Maintenance (In Shop)
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleQuickStatusChange('Inactive')}
-                  className={cn("text-xs font-semibold gap-2 py-1.5 cursor-pointer", row.status === 'Inactive' && "bg-slate-100 dark:bg-slate-800 font-bold")}
-                >
-                  <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-                  Inactive (Off Duty)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isMaintenance ? (
+              <button
+                type="button"
+                onClick={(e) => handleMaintenanceClick(e, row)}
+                className="group flex items-center gap-1 focus:outline-none rounded-full transition-transform hover:scale-105 cursor-pointer"
+                title="Click to view maintenance details"
+              >
+                <StatusBadge status={row.status} />
+              </button>
+            ) : (
+              <div className="flex items-center gap-1">
+                <StatusBadge status={row.status} />
+              </div>
+            )}
           </div>
         );
       },
@@ -1349,7 +1326,18 @@ export default function VehicleListPage() {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <Truck className="w-5 h-5 text-orange-500 dark:text-orange-400 shrink-0" />
-                    <StatusBadge status={v.status} />
+                    {v.status === 'Maintenance' ? (
+                      <button
+                        type="button"
+                        onClick={(e) => handleMaintenanceClick(e, v)}
+                        className="cursor-pointer transition-transform hover:scale-105"
+                        title="Click to view maintenance details"
+                      >
+                        <StatusBadge status={v.status} />
+                      </button>
+                    ) : (
+                      <StatusBadge status={v.status} />
+                    )}
                   </div>
 
                   <div>

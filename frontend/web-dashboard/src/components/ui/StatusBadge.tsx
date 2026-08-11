@@ -1,4 +1,4 @@
-import { Check, Clock, AlertTriangle, XCircle } from 'lucide-react';
+import { Check, Clock, AlertTriangle, XCircle, Wrench } from 'lucide-react';
 import { Badge } from './badge';
 import { cn } from '@/lib/utils';
 
@@ -35,15 +35,22 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
     case 'atdelivery':
     case 'pending':
     case 'pendingreview':
-      color = 'var(--color-warning)';
-      bg = 'var(--color-warning-bg)';
+      color = 'var(--color-info)';
+      bg = 'var(--color-info-bg)';
       Icon = Clock;
       break;
     case 'maintenance':
+    case 'inshop':
+    case 'under_maintenance':
+    case 'undermaintenance':
+      color = '#D97706';
+      bg = '#FFFBEB';
+      Icon = Wrench;
+      break;
     case 'offduty':
     case 'draft':
-      color = 'var(--color-info)';
-      bg = 'var(--color-info-bg)';
+      color = 'var(--color-subtle)';
+      bg = 'var(--color-border-soft)';
       Icon = Clock;
       break;
     case 'overdue':
@@ -65,7 +72,10 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <Badge 
       variant="outline"
-      className={cn("gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full select-none border-transparent")} 
+      className={cn(
+        "gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full select-none border-transparent",
+        normalized === 'maintenance' && "dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800/40"
+      )} 
       style={{ color, backgroundColor: bg }}
     >
       <Icon size={12} className="stroke-[2.5]" />

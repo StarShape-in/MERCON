@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
+import ScheduleMaintenanceModal from '@/components/maintenance/ScheduleMaintenanceModal';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MaintenanceWrench, CheckBadge, MoneyBills, CalendarAlert } from '@/components/ui/kpi-icons';
@@ -76,23 +77,6 @@ export default function MaintenanceListPage() {
     onConfirm: () => {},
   });
 
-  // Form states
-  const [formData, setFormData] = useState<CreateMaintenancePayload>({
-    vehicle_id: '',
-    workshop_name: '',
-    workshop_contact: '',
-    maintenance_type: 'Routine',
-    status: 'Completed',
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: new Date().toISOString().split('T')[0],
-    work_done: '',
-    odometer_reading: 0,
-    cost: 0,
-    invoice_number: '',
-    remarks: '',
-  });
-  const [formError, setFormError] = useState('');
-
   // Queries
   const { data: maintenanceRes, isLoading, refetch } = useQuery({
     queryKey: ['maintenance', debouncedSearch, statusFilter, typeFilter, page, pageSize],
@@ -131,31 +115,6 @@ export default function MaintenanceListPage() {
     queryClient.invalidateQueries({ queryKey: ['workshops'] });
   };
 
-  // Mutations
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateMaintenancePayload) => maintenanceService.create(payload),
-    onSuccess: () => {
-      invalidateMaintenanceAndVehicles();
-      setIsModalOpen(false);
-      resetForm();
-    },
-    onError: (err: any) => {
-      setFormError(err.response?.data?.error?.message || 'Failed to save maintenance record.');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: any }) => maintenanceService.update(id, payload),
-    onSuccess: () => {
-      invalidateMaintenanceAndVehicles();
-      setIsModalOpen(false);
-      resetForm();
-    },
-    onError: (err: any) => {
-      setFormError(err.response?.data?.error?.message || 'Failed to update maintenance record.');
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => maintenanceService.delete(id),
     onSuccess: () => {
@@ -164,79 +123,14 @@ export default function MaintenanceListPage() {
     },
   });
 
-  const resetForm = () => {
-    setEditingRecord(null);
-    setFormData({
-      vehicle_id: vehicles[0]?.id || '',
-      workshop_name: '',
-      workshop_contact: '',
-      maintenance_type: 'Routine',
-      status: 'Completed',
-      start_date: new Date().toISOString().split('T')[0],
-      end_date: new Date().toISOString().split('T')[0],
-      work_done: '',
-      odometer_reading: 0,
-      cost: 0,
-      invoice_number: '',
-      remarks: '',
-    });
-    setFormError('');
-  };
-
   const handleOpenCreateModal = () => {
-    resetForm();
-    if (vehicles.length > 0) {
-      setFormData(prev => ({ ...prev, vehicle_id: vehicles[0].id }));
-    }
+    setEditingRecord(null);
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (rec: MaintenanceRecord) => {
     setEditingRecord(rec);
-    setFormData({
-      vehicle_id: rec.vehicleId,
-      workshop_name: rec.workshop_name,
-      workshop_contact: rec.workshop_contact || '',
-      maintenance_type: rec.maintenance_type,
-      status: rec.status,
-      start_date: rec.start_date ? rec.start_date.split('T')[0] : '',
-      end_date: rec.end_date ? rec.end_date.split('T')[0] : '',
-      work_done: rec.work_done || '',
-      odometer_reading: rec.odometer_reading || 0,
-      cost: rec.cost || 0,
-      invoice_number: rec.invoice_number || '',
-      remarks: rec.remarks || '',
-    });
-    setFormError('');
     setIsModalOpen(true);
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.vehicle_id) {
-      setFormError('Please select a vehicle.');
-      return;
-    }
-    if (!formData.workshop_name.trim()) {
-      setFormError('Workshop name is required.');
-      return;
-    }
-    // A new service order is logged today or scheduled forward — never back-dated.
-    // Editing keeps whatever dates the record already has.
-    if (!editingRecord && formData.start_date && formData.start_date < TODAY_ISO) {
-      setFormError('Start date cannot be in the past — pick today or a later date.');
-      return;
-    }
-    if (formData.end_date && formData.start_date && formData.end_date < formData.start_date) {
-      setFormError('End date cannot be before the start date.');
-      return;
-    }
-
-    if (editingRecord) {
-      updateMutation.mutate({ id: editingRecord.id, payload: formData });
-    } else {
-      createMutation.mutate(formData);
-    }
   };
 
   const handleExport = () => {
@@ -812,230 +706,12 @@ export default function MaintenanceListPage() {
       </div>
 
       {/* ── 5. Create / Edit Maintenance Modal ─────────────────────────── */}
-      <Dialog open={isModalOpen} onOpenChange={(open) => !open && setIsModalOpen(false)}>
-        <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
-          
-          <DialogHeader className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 shrink-0">
-            <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-[#E8450F]" />
-              {editingRecord ? 'Edit Maintenance Record' : 'Schedule New Maintenance'}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 mt-0.5">
-              Enter vehicle maintenance details, dates, costs, workshop information, and scope of work.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-5 space-y-3.5 text-xs">
-            
-            {formError && (
-              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
-                <span>{formError}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              
-              {/* Vehicle Selection */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Vehicle Asset *</Label>
-                <Select
-                  value={formData.vehicle_id}
-                  onValueChange={(val) => setFormData(prev => ({ ...prev, vehicle_id: val }))}
-                >
-                  <SelectTrigger className="h-8.5 text-xs">
-                    <SelectValue placeholder="Select Vehicle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.plate_number} ({v.ref_id || 'Ref N/A'})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Maintenance Type */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Maintenance Type *</Label>
-                <Select
-                  value={formData.maintenance_type}
-                  onValueChange={(val: MaintenanceType) => setFormData(prev => ({ ...prev, maintenance_type: val }))}
-                >
-                  <SelectTrigger className="h-8.5 text-xs">
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Routine">Routine Service</SelectItem>
-                    <SelectItem value="Repair">Repair</SelectItem>
-                    <SelectItem value="Inspection">Inspection</SelectItem>
-                    <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-                    <SelectItem value="Emergency">Emergency</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Status */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Maintenance Status *</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(val: MaintenanceStatus) => setFormData(prev => ({ ...prev, status: val }))}
-                >
-                  <SelectTrigger className="h-8.5 text-xs">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Scheduled">Scheduled</SelectItem>
-                    <SelectItem value="In_Progress">In Progress</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Start Date */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Start Date ("When Put") *</Label>
-                <Input
-                  type="date"
-                  value={formData.start_date}
-                  min={editingRecord ? undefined : TODAY_ISO}
-                  onChange={(e) => {
-                    const start_date = e.target.value;
-                    setFormData(prev => ({
-                      ...prev,
-                      start_date,
-                      end_date: prev.end_date && prev.end_date < start_date ? start_date : prev.end_date,
-                    }));
-                  }}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              {/* End Date */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">End Date ("When Ends")</Label>
-                <Input
-                  type="date"
-                  value={formData.end_date || ''}
-                  min={formData.start_date || (editingRecord ? undefined : TODAY_ISO)}
-                  onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              {/* Expense Cost */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Cost / Renewal Expense (SAR) *</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.cost}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
-                  placeholder="0.00"
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              {/* Workshop Name */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Workshop / Service Center *</Label>
-                <WorkshopField
-                  value={formData.workshop_name}
-                  onChange={(name) => setFormData(prev => ({ ...prev, workshop_name: name }))}
-                  onPick={(w) => setFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
-                  placeholder="e.g. Al-Riyadh Heavy Fleet Service"
-                  className="h-8.5"
-                />
-              </div>
-
-              {/* Workshop Contact */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Workshop Contact Phone</Label>
-                <Input
-                  value={formData.workshop_contact || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
-                  placeholder="+966 5x xxx xxxx"
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              {/* Odometer Reading */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Odometer Reading (km)</Label>
-                <Input
-                  type="number"
-                  value={formData.odometer_reading}
-                  onChange={(e) => setFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
-                  placeholder="184500"
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              {/* Invoice Number */}
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Invoice Ref Number</Label>
-                <Input
-                  value={formData.invoice_number || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                  placeholder="INV-9921"
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-            </div>
-
-            {/* Bottom section: Work details and remarks in 2 columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Work Done Details *</Label>
-                <textarea
-                  value={formData.work_done || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, work_done: e.target.value }))}
-                  placeholder="Specify all repairs, replaced parts, engine oil specs, brake pad renewals..."
-                  rows={2.5 as any}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Additional Remarks / Notes</Label>
-                <textarea
-                  value={formData.remarks || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
-                  placeholder="Internal notes or next service recommendations"
-                  rows={2.5 as any}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsModalOpen(false)}
-                className="text-xs h-8.5"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={createMutation.isPending || updateMutation.isPending}
-                className="text-xs h-8.5 bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
-              >
-                {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editingRecord ? 'Update Record' : 'Save Maintenance'}
-              </Button>
-            </DialogFooter>
-
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ScheduleMaintenanceModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        editingRecord={editingRecord}
+        onSuccess={() => refetch()}
+      />
 
       {/* ── 6. Delete Confirmation Modal ───────────────────────────────── */}
       <Dialog open={!!recordToDelete} onOpenChange={(open) => !open && setRecordToDelete(null)}>

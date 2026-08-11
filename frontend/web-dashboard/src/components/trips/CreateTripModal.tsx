@@ -1339,7 +1339,7 @@ export default function CreateTripModal({
             <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
               <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 5 &amp; Navigation</h4>
               <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
-                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1 - 3</kbd> Rate Cards</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Alt + T</kbd> Open Modal</div>
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Enter</kbd> Next / Schedule</div>
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Alt + 1..5</kbd> Jump Tab</div>
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Esc</kbd> Close Dialog</div>
