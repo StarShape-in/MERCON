@@ -276,13 +276,10 @@ export default function AddVehiclePage() {
               )}
             </CardContent>
 
-            <CardFooter className="justify-between rounded-b-xl">
+            <CardFooter className="rounded-b-xl">
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Keyboard className="w-3.5 h-3.5" /> Press Ctrl + Enter to submit
               </span>
-              <Button type="button" variant="outline" size="sm" onClick={handleReset} className="h-8 text-xs">
-                Reset form
-              </Button>
             </CardFooter>
           </Card>
 
