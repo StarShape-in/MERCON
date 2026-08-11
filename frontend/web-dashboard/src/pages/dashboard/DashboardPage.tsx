@@ -525,7 +525,58 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KPI 2: TOTAL FREIGHT TRIPS */}
+          {/* KPI 2: MONTHLY EXPENSE */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Monthly Expense</span>
+                <div className="flex items-baseline mt-1">
+                  <span className="text-rose-600 font-black text-sm mr-1.5 select-none font-sans">SAR</span>
+                  <span className="text-3xl font-black text-slate-905 tracking-tight">
+                    {(((kpis.revenue_this_month.value || 42000) * 0.34) / 1000).toFixed(1)}K
+                  </span>
+                </div>
+              </div>
+              <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100/70 group-hover:bg-rose-650 group-hover:text-white transition-all duration-350 shadow-3xs">
+                <TrendingUp size={16} className="stroke-[2.5]" />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="text-amber-600 bg-amber-50 border border-amber-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                ↑ 5.4%
+              </span>
+              <span className="text-[10px] text-slate-450 font-semibold">vs last month</span>
+            </div>
+
+            {/* Expense Budget progress bar */}
+            <div className="mt-4 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mb-1.5">
+                <span>SAR 20K Budget Limit</span>
+                <span className="text-slate-900 font-extrabold">71%</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: '71%' }} />
+              </div>
+            </div>
+
+            {/* Mini Sparkline Chart */}
+            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueSparkline.map(d => ({ name: d.name, value: Math.round(d.value * 0.34) }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="expSpark" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#E11D48" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#E11D48" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="value" stroke="#E11D48" strokeWidth={1.5} fill="url(#expSpark)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* KPI 3: TOTAL FREIGHT TRIPS */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
             <div className="flex items-start justify-between">
               <div>
@@ -573,57 +624,6 @@ export default function DashboardPage() {
                     </linearGradient>
                   </defs>
                   <Area type="monotone" dataKey="value" stroke="#4F46E5" strokeWidth={1.5} fill="url(#tripSpark)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* KPI 3: ACTIVE FLEET */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Active Fleet (On Road)</span>
-                <span className="text-3xl font-black text-slate-905 mt-1 block tracking-tight">
-                  {kpis.fleet_on_trip.value || 2} <span className="text-xs text-slate-400 font-extrabold">/ {totalVehiclesCount} Units</span>
-                </span>
-              </div>
-              <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100/70 group-hover:bg-blue-600 group-hover:text-white transition-all duration-350 shadow-3xs">
-                <Car size={16} className="stroke-[2.5]" />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                ↑ 6%
-              </span>
-              <span className="text-[10px] text-slate-450 font-semibold">capacity utilization</span>
-            </div>
-
-            {/* Capacity Progress Segment Bar */}
-            <div className="mt-4 pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold mb-1.5">
-                <span>Active: {kpis.fleet_on_trip.value || 2}</span>
-                <span>Standby: {kpis.fleet_available.value || 8}</span>
-                <span>Maint: 3</span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden flex">
-                <div className="bg-blue-500 h-full" style={{ width: '70%' }} title="Active on Trip" />
-                <div className="bg-emerald-400 h-full" style={{ width: '22%' }} title="Standby Available" />
-                <div className="bg-amber-400 h-full" style={{ width: '8%' }} title="Under Maintenance" />
-              </div>
-            </div>
-
-            {/* Mini Sparkline Chart */}
-            <div className="h-8 w-full mt-3 -mx-6 -mb-6 opacity-30 group-hover:opacity-50 transition-opacity duration-300">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={fleetSparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="fleetSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#2563EB" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={1.5} fill="url(#fleetSpark)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
