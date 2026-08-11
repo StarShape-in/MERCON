@@ -12,11 +12,9 @@ import {
   Receipt,
   Menu,
   FilePlus,
-  ArrowLeft,
-  PanelLeftClose,
-  PanelLeftOpen
+  ArrowLeft
 } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 
 import {
@@ -34,14 +32,10 @@ interface HeaderProps {
   breadcrumb?: string;
   /** Opens the off-canvas sidebar — only rendered below lg */
   onMenuClick?: () => void;
-  /** Desktop sidebar rail state — the toggle sits next to the Back button */
-  sidebarCollapsed?: boolean;
-  onToggleSidebar?: () => void;
 }
 
-export default function Header({ title, breadcrumb, onMenuClick, sidebarCollapsed = false, onToggleSidebar }: HeaderProps) {
+export default function Header({ title, breadcrumb, onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
-  const location = useLocation();
   const user = authStore.getUser();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
@@ -110,18 +104,8 @@ export default function Header({ title, breadcrumb, onMenuClick, sidebarCollapse
         </div>
       </div>
 
-      {/* Desktop Left: Sidebar toggle, Back button & Page Title */}
+      {/* Desktop Left: Back button & Page Title — the sidebar rail toggle lives on the sidebar edge */}
       <div className="hidden lg:flex items-center gap-3 min-w-0">
-        <button
-          onClick={onToggleSidebar}
-          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-expanded={!sidebarCollapsed}
-          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#E8450F] hover:bg-[#C7380A] transition-all cursor-pointer border border-[#E8450F] shadow-2xs active:scale-[0.98]"
-        >
-          {sidebarCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
-          <span>Menu</span>
-        </button>
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"

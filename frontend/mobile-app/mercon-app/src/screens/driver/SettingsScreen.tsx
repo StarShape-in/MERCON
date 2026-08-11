@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, StatusBar, FlatList, Image,
+  StyleSheet, StatusBar, FlatList, Image,
   Dimensions, Switch, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Bell, ScanFace, MapPin, Volume2, Moon, Globe, SignalHigh, Info, ShieldCheck,

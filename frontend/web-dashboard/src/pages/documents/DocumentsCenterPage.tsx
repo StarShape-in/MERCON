@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { 
-  UploadCloud, FileText, Search, FolderOpen, Shield, Car, User as UserIcon, Eye, Download, 
+  UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
   ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet
@@ -22,7 +22,6 @@ import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
@@ -414,64 +413,9 @@ export default function DocumentsCenterPage() {
           </div>
         </div>
 
-        {/* ── Control Toolbar & Filters ───────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3 shrink-0">
-          
-          <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-sm">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Search by file name, driver, vehicle plate, or issuer..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
-              />
-            </div>
-
-            {/* Expiry Dropdown Filter */}
-            <div className="w-44">
-              <Select value={expiryFilter} onValueChange={(v) => setExpiryFilter(v as any)}>
-                <SelectTrigger className="h-9 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20">
-                  <div className="flex items-center gap-1.5">
-                    <Filter className="w-3.5 h-3.5 text-slate-400" />
-                    <SelectValue placeholder="Expiry Status" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
-                  <SelectItem value="expired" className="text-xs text-rose-600 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
-                      <span>Expired</span>
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="critical" className="text-xs text-rose-500 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      <span>Critical (&lt;7d)</span>
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="warning" className="text-xs text-amber-600 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                      <span>Due Soon (&lt;30d)</span>
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="valid" className="text-xs text-emerald-600 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Valid</span>
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Bulk Action Controls */}
-          <div className="flex items-center gap-2">
+        {/* ── Control Toolbar (Grid Mode Bulk Actions) ─────────────────────── */}
+        {viewMode === 'grid' && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-2xs flex flex-wrap items-center justify-end gap-3 shrink-0">
             {selectedDocIds.length > 0 && (
               <Button
                 variant="outline"
@@ -489,7 +433,7 @@ export default function DocumentsCenterPage() {
               Showing {filteredDocs.length} of {totalDocsCount} files
             </Badge>
           </div>
-        </div>
+        )}
 
         {/* ── Document Vault Area (List vs Grid View) ──────────────────────── */}
         {isLoading ? (
@@ -638,9 +582,46 @@ export default function DocumentsCenterPage() {
             ]}
             enableSelection={true}
             isLoading={isLoading}
-            searchPlaceholder="Search document name or entity..."
+            searchPlaceholder="Search by file name, driver, vehicle plate, or issuer..."
             searchValue={search}
             onSearchChange={setSearch}
+            filterElement={
+              <Select value={expiryFilter} onValueChange={(v) => setExpiryFilter(v as any)}>
+                <SelectTrigger className="h-9 w-44 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20">
+                  <div className="flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <SelectValue placeholder="Expiry Status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
+                  <SelectItem value="expired" className="text-xs text-rose-600 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
+                      <span>Expired</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="critical" className="text-xs text-rose-500 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <span>Critical (&lt;7d)</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="warning" className="text-xs text-amber-600 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                      <span>Due Soon (&lt;30d)</span>
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="valid" className="text-xs text-emerald-600 font-semibold">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Valid</span>
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            }
             onRowClick={(row) => setPreviewDoc(row)}
           />
         ) : (

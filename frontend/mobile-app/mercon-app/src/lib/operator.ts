@@ -410,20 +410,24 @@ export function useOperatorVehicleRenewals() {
       ]);
       const vehicleById = new Map(vehicles.map((v) => [v.id, v]));
       const now = Date.now();
-      const joined = documents.map((doc): VehicleRenewal => {
-        const vehicle = vehicleById.get(doc.entity_id);
-        const daysLeft = doc.expiry_date
-          ? Math.ceil((new Date(doc.expiry_date).getTime() - now) / (1000 * 60 * 60 * 24))
-          : null;
-        return {
-          documentId: doc.id,
-          vehiclePlate: vehicle?.plate_number ?? 'Unknown Vehicle',
-          docType: doc.doc_type,
-          status: doc.status,
-          expiryDate: doc.expiry_date,
-          daysLeft,
-        };
-      });
+      // Documents whose vehicle no longer exists (e.g. deleted from the fleet)
+      // are dropped — there's nothing to renew for a vehicle that's gone.
+      const joined = documents
+        .filter((doc) => vehicleById.has(doc.entity_id))
+        .map((doc): VehicleRenewal => {
+          const vehicle = vehicleById.get(doc.entity_id)!;
+          const daysLeft = doc.expiry_date
+            ? Math.ceil((new Date(doc.expiry_date).getTime() - now) / (1000 * 60 * 60 * 24))
+            : null;
+          return {
+            documentId: doc.id,
+            vehiclePlate: vehicle.plate_number,
+            docType: doc.doc_type,
+            status: doc.status,
+            expiryDate: doc.expiry_date,
+            daysLeft,
+          };
+        });
       setRenewals(joined);
     } catch (e) {
       setError(getApiErrorMessage(e));
