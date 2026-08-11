@@ -40,13 +40,65 @@ interface ActionsNeededWidgetProps {
   onLogDelayReason: (row: DelayLogRow) => void;
 }
 
-const CATEGORY_META: Record<ActionCategory, { label: string; icon: LucideIcon; text: string; bg: string; border: string }> = {
-  document: { label: 'Documents', icon: FileWarning, text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200/80 dark:border-amber-800/60' },
-  maintenance: { label: 'Maintenance', icon: Wrench, text: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200/80 dark:border-blue-800/60' },
-  delay: { label: 'Delays', icon: Clock, text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40', border: 'border-rose-200/80 dark:border-rose-800/60' },
-  invoice: { label: 'Invoices', icon: Receipt, text: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-purple-200/80 dark:border-purple-800/60' },
-  ratecard: { label: 'Rate Cards', icon: CreditCard, text: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40', border: 'border-indigo-200/80 dark:border-indigo-800/60' },
-  location: { label: 'Locations', icon: MapPin, text: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-800', border: 'border-slate-200/80 dark:border-slate-700' },
+interface CategoryMeta {
+  label: string;
+  icon: LucideIcon;
+  /** Icon-chip text/bg/border. */
+  text: string;
+  bg: string;
+  border: string;
+  /** Subtle full-row wash so a category reads by color, not just its icon. */
+  rowBg: string;
+  /** Left accent stripe on each row. */
+  accent: string;
+  /** Active filter-chip tint. */
+  chipActiveBg: string;
+  chipActiveBorder: string;
+}
+
+const CATEGORY_META: Record<ActionCategory, CategoryMeta> = {
+  document: {
+    label: 'Documents', icon: FileWarning,
+    text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200/80 dark:border-amber-800/60',
+    rowBg: 'bg-amber-50/60 dark:bg-amber-950/10 hover:bg-amber-50 dark:hover:bg-amber-950/20',
+    accent: 'border-l-amber-400 dark:border-l-amber-600',
+    chipActiveBg: 'bg-amber-50 dark:bg-amber-950/50', chipActiveBorder: 'border-amber-300 dark:border-amber-700',
+  },
+  maintenance: {
+    label: 'Maintenance', icon: Wrench,
+    text: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40', border: 'border-blue-200/80 dark:border-blue-800/60',
+    rowBg: 'bg-blue-50/60 dark:bg-blue-950/10 hover:bg-blue-50 dark:hover:bg-blue-950/20',
+    accent: 'border-l-blue-400 dark:border-l-blue-600',
+    chipActiveBg: 'bg-blue-50 dark:bg-blue-950/50', chipActiveBorder: 'border-blue-300 dark:border-blue-700',
+  },
+  delay: {
+    label: 'Delays', icon: Clock,
+    text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40', border: 'border-rose-200/80 dark:border-rose-800/60',
+    rowBg: 'bg-rose-50/60 dark:bg-rose-950/10 hover:bg-rose-50 dark:hover:bg-rose-950/20',
+    accent: 'border-l-rose-400 dark:border-l-rose-600',
+    chipActiveBg: 'bg-rose-50 dark:bg-rose-950/50', chipActiveBorder: 'border-rose-300 dark:border-rose-700',
+  },
+  invoice: {
+    label: 'Invoices', icon: Receipt,
+    text: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-purple-200/80 dark:border-purple-800/60',
+    rowBg: 'bg-purple-50/60 dark:bg-purple-950/10 hover:bg-purple-50 dark:hover:bg-purple-950/20',
+    accent: 'border-l-purple-400 dark:border-l-purple-600',
+    chipActiveBg: 'bg-purple-50 dark:bg-purple-950/50', chipActiveBorder: 'border-purple-300 dark:border-purple-700',
+  },
+  ratecard: {
+    label: 'Rate Cards', icon: CreditCard,
+    text: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/40', border: 'border-indigo-200/80 dark:border-indigo-800/60',
+    rowBg: 'bg-indigo-50/60 dark:bg-indigo-950/10 hover:bg-indigo-50 dark:hover:bg-indigo-950/20',
+    accent: 'border-l-indigo-400 dark:border-l-indigo-600',
+    chipActiveBg: 'bg-indigo-50 dark:bg-indigo-950/50', chipActiveBorder: 'border-indigo-300 dark:border-indigo-700',
+  },
+  location: {
+    label: 'Locations', icon: MapPin,
+    text: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-950/40', border: 'border-teal-200/80 dark:border-teal-800/60',
+    rowBg: 'bg-teal-50/60 dark:bg-teal-950/10 hover:bg-teal-50 dark:hover:bg-teal-950/20',
+    accent: 'border-l-teal-400 dark:border-l-teal-600',
+    chipActiveBg: 'bg-teal-50 dark:bg-teal-950/50', chipActiveBorder: 'border-teal-300 dark:border-teal-700',
+  },
 };
 
 const SEVERITY_STYLES: Record<ActionSeverity, string> = {
@@ -240,15 +292,17 @@ export default function ActionsNeededWidget({
                   key={cat}
                   onClick={() => { setActiveCategory(cat); setShowAll(false); }}
                   className={cn(
-                    'shrink-0 px-2.5 py-1.5 rounded-md transition-all text-[11px] flex items-center gap-1.5 font-semibold whitespace-nowrap',
+                    'shrink-0 px-2.5 py-1.5 rounded-md transition-all text-[11px] flex items-center gap-1.5 font-semibold whitespace-nowrap border',
                     isActive
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                      ? cat === 'all'
+                        ? 'bg-[#FFF1EA] dark:bg-[#E8450F]/15 border-[#F8C9AF] dark:border-[#E8450F]/40 text-[#E8450F] shadow-2xs'
+                        : cn(meta!.chipActiveBg, meta!.chipActiveBorder, 'shadow-2xs')
+                      : 'bg-transparent border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                   )}
                 >
-                  {Icon && <Icon className={cn('w-3 h-3', isActive ? meta!.text : '')} />}
-                  <span>{cat === 'all' ? 'All' : meta!.label}</span>
-                  <span className={cn('font-mono', isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400')}>{count}</span>
+                  {Icon && <Icon className={cn('w-3 h-3', isActive ? meta!.text : 'text-slate-400 dark:text-slate-500')} />}
+                  <span className={isActive && cat !== 'all' ? 'text-slate-900 dark:text-slate-100' : ''}>{cat === 'all' ? 'All' : meta!.label}</span>
+                  <span className={cn('font-mono', isActive ? (cat === 'all' ? 'text-[#E8450F]' : 'text-slate-900 dark:text-slate-100') : 'text-slate-400')}>{count}</span>
                 </button>
               );
             })}
@@ -277,7 +331,10 @@ export default function ActionsNeededWidget({
                 <button
                   key={item.id}
                   onClick={item.onResolve}
-                  className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 text-left animate-fade-in transition-colors"
+                  className={cn(
+                    'w-full flex items-center gap-3 pl-2.5 pr-2.5 py-2 rounded-lg border-l-4 text-left animate-fade-in transition-colors',
+                    meta.rowBg, meta.accent
+                  )}
                   style={{ animationDelay: `${idx * 0.02}s` }}
                 >
                   <span className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border', meta.bg, meta.border, meta.text)}>
