@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, ArrowRight, Edit2, Trash2, MapPin, Building2, Globe2,
+  ArrowLeft, ArrowRight, Edit2, Trash2, MapPin, Building2,
   FileText, AlertTriangle, FileCheck, RefreshCw, Users, Plus,
 } from 'lucide-react';
 
@@ -41,9 +41,8 @@ export default function RateCardDetailsPage() {
     enabled: !!id,
   });
 
-  // Every other rate on the same lane — the standard one plus any customer
-  // overrides. This is what makes "is this customer paying more than usual?"
-  // answerable without leaving the page.
+  // Every other customer's rate on the same lane — what makes "is this
+  // customer paying more than others?" answerable without leaving the page.
   const { data: laneCardsRes } = useQuery({
     queryKey: ['rate-cards', 'lane', card?.originLocationId, card?.destinationLocationId],
     queryFn: () =>
@@ -95,20 +94,18 @@ export default function RateCardDetailsPage() {
 
   const currency = card.currency || 'SAR';
   const isActive = card.is_active ?? true;
-  const isStandard = !card.customerId;
   const laneLinked = !!card.originLocationId && !!card.destinationLocationId;
 
   const laneCards = laneCardsRes?.data || [];
-  const standardOnLane = laneCards.find((c) => !c.customerId) || null;
-  const customerCardsOnLane = laneCards.filter((c) => !!c.customerId);
-  const otherCustomerCards = customerCardsOnLane.filter((c) => c.id !== card.id);
+  const otherCards = laneCards.filter((c) => c.id !== card.id);
 
-  // How this card compares to the lane's standard price — only meaningful for a
-  // customer override, and only when a standard exists to compare against.
-  const delta =
-    !isStandard && standardOnLane
-      ? Number(card.base_price) - Number(standardOnLane.base_price)
+  // How this card compares to what other customers pay on the same lane —
+  // only meaningful when at least one other customer has a rate for it.
+  const otherAvg =
+    otherCards.length > 0
+      ? otherCards.reduce((sum, c) => sum + Number(c.base_price), 0) / otherCards.length
       : null;
+  const delta = otherAvg !== null ? Number(card.base_price) - otherAvg : null;
 
   return (
     <DashboardLayout active="RateCards" title={card.name}>
@@ -221,8 +218,8 @@ export default function RateCardDetailsPage() {
                 delta > 0 ? 'text-amber-600' : delta < 0 ? 'text-emerald-600' : 'text-slate-400'
               )}>
                 {delta === 0
-                  ? 'Same as the standard rate'
-                  : `${delta > 0 ? '+' : '−'}${currency} ${Math.abs(delta).toLocaleString()} vs standard`}
+                  ? "Same as other customers' average"
+                  : `${delta > 0 ? '+' : '−'}${currency} ${Math.abs(delta).toLocaleString()} vs other customers' average`}
               </span>
             )}
           </Card>
@@ -258,7 +255,7 @@ export default function RateCardDetailsPage() {
 
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs p-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Applies to</span>
+              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Customer</span>
               {card.customer?.id && (
                 <span
                   onClick={() => navigate(`/customers/${card.customer?.id}`)}
@@ -269,14 +266,10 @@ export default function RateCardDetailsPage() {
               )}
             </div>
             <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 truncate mt-1 flex items-center gap-1.5">
-              {isStandard ? (
-                <><Globe2 className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" /> All customers</>
-              ) : (
-                <><Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-600" /> {card.customer?.name || 'Customer'}</>
-              )}
+              <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-600" /> {card.customer?.name || 'Customer'}
             </div>
             <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-              {isStandard ? 'Standard rate for this lane' : 'Overrides the standard rate'}
+              Negotiated rate for this customer
             </span>
           </Card>
 
@@ -316,54 +309,32 @@ export default function RateCardDetailsPage() {
               <p className="py-6 text-center text-xs text-slate-500">
                 Link this rate to a lane to see how it compares.
               </p>
-            ) : laneCards.length <= 1 ? (
+            ) : otherCards.length === 0 ? (
               <p className="py-6 text-center text-xs text-slate-500">
-                This is the only rate on this lane.
-                {isStandard && ' Every customer uses it.'}
+                No other customer has a rate for this lane yet.
               </p>
             ) : (
               <div className="space-y-1.5">
-                {[standardOnLane, ...otherCustomerCards]
-                  .filter((c): c is RateCard => !!c)
-                  .map((other) => {
-                    const isThisCard = other.id === card.id;
-                    return (
-                      <div
-                        key={other.id}
-                        onClick={() => !isThisCard && navigate(`/rate-cards/${other.id}`)}
-                        className={cn(
-                          'flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs transition-colors',
-                          isThisCard
-                            ? 'border-[#E8450F]/40 bg-[#E8450F]/5'
-                            : 'border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer'
-                        )}
-                      >
-                        <span className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200 min-w-0">
-                          {other.customerId ? (
-                            <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-600" />
-                          ) : (
-                            <Globe2 className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
-                          )}
-                          <span className="truncate">
-                            {other.customerId ? other.customer?.name || 'Customer' : 'Standard — all customers'}
-                          </span>
-                          {isThisCard && (
-                            <Badge variant="outline" className="shrink-0 text-[9px] font-bold uppercase">
-                              This one
-                            </Badge>
-                          )}
-                          {!other.is_active && (
-                            <Badge variant="outline" className="shrink-0 text-[9px] font-bold uppercase text-slate-500">
-                              Inactive
-                            </Badge>
-                          )}
-                        </span>
-                        <span className="shrink-0 font-mono font-extrabold text-slate-900 dark:text-slate-100">
-                          {other.currency || 'SAR'} {Number(other.base_price).toLocaleString()}
-                        </span>
-                      </div>
-                    );
-                  })}
+                {otherCards.map((other) => (
+                  <div
+                    key={other.id}
+                    onClick={() => navigate(`/rate-cards/${other.id}`)}
+                    className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs transition-colors border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200 min-w-0">
+                      <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-600" />
+                      <span className="truncate">{other.customer?.name || 'Customer'}</span>
+                      {!other.is_active && (
+                        <Badge variant="outline" className="shrink-0 text-[9px] font-bold uppercase text-slate-500">
+                          Inactive
+                        </Badge>
+                      )}
+                    </span>
+                    <span className="shrink-0 font-mono font-extrabold text-slate-900 dark:text-slate-100">
+                      {other.currency || 'SAR'} {Number(other.base_price).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

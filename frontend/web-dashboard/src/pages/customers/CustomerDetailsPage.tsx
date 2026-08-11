@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye, 
-  DollarSign, Plus, RefreshCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar, 
+import {
+  ArrowLeft, Edit2, FileText, Building2, MapPin, Activity, AlertTriangle, Eye,
+  DollarSign, Plus, RefreshCw, Receipt, ShieldCheck, CheckCircle2, Truck, Calendar,
   ChevronRight, TrendingUp, Sparkles, CreditCard, ArrowRight, Package, Layers, Phone, Mail,
-  Globe2
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -29,7 +28,6 @@ export default function CustomerDetailsPage() {
 
   const [isAddRateOpen, setIsAddRateOpen] = useState(false);
   const [editRateTarget, setEditRateTarget] = useState<RateCard | null>(null);
-  const [overrideLane, setOverrideLane] = useState<RateCard | null>(null);
   const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
 
   // Fetch Customer details
@@ -46,11 +44,10 @@ export default function CustomerDetailsPage() {
     enabled: !!id,
   });
 
-  // This customer's effective price list: their own rates plus the standard
-  // lanes they fall back to when they have no rate of their own.
+  // This customer's negotiated price list.
   const { data: rateCardsResponse } = useQuery({
     queryKey: ['rate-cards', 'customer', id],
-    queryFn: () => rateCardService.getAll({ customerId: id!, include_standard: true }),
+    queryFn: () => rateCardService.getAll({ customerId: id! }),
     enabled: !!id,
   });
 
@@ -89,18 +86,7 @@ export default function CustomerDetailsPage() {
     : (invoicesResponse as any)?.data || [];
   const customerInvoices = allInvoices.filter((inv: any) => inv.customer?.id === id || inv.customer_id === id);
 
-  // Filter rate cards for this customer
-  const allRateCards = rateCardsResponse?.data || [];
-  const customerRateCards = allRateCards.filter((rc) => rc.customerId === id);
-
-  // A standard lane only applies to this customer if they haven't overridden
-  // it — otherwise both would be listed and it would be unclear which one bills.
-  const overriddenLanes = new Set(
-    customerRateCards.map((rc) => `${rc.originLocationId}|${rc.destinationLocationId}`)
-  );
-  const inheritedRateCards = allRateCards.filter(
-    (rc) => !rc.customerId && !overriddenLanes.has(`${rc.originLocationId}|${rc.destinationLocationId}`)
-  );
+  const customerRateCards = rateCardsResponse?.data || [];
 
   // Calculations for Financial Exposure
   const totalBilledInvoices = customerInvoices.reduce((acc: number, inv: any) => acc + Number(inv.total_amount || 0), 0);
@@ -277,22 +263,15 @@ export default function CustomerDetailsPage() {
             title="CONTRACT & RATE CARDS"
             value={
               <span>
-                {customerRateCards.length + inheritedRateCards.length}
+                {customerRateCards.length}
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Lanes</span>
               </span>
             }
             icon={Layers}
             variant="blue"
             trend="neutral"
-            trendValue={`${customerRateCards.length} Custom`}
+            trendValue={`${customerRateCards.length} Negotiated`}
             description="Configured location rates"
-            completionGauge={{
-              percentage: (customerRateCards.length + inheritedRateCards.length) > 0 
-                ? Math.round((customerRateCards.length / (customerRateCards.length + inheritedRateCards.length)) * 100) 
-                : 100,
-              label: `${customerRateCards.length} Negotiated Overrides`,
-              subtext: `${inheritedRateCards.length} Standard Location Rates`
-            }}
           />
           <KpiCard
             title="ACTIVE FREIGHT DISPATCHES"
@@ -523,7 +502,7 @@ export default function CustomerDetailsPage() {
                     <Layers className="w-4 h-4 text-indigo-600" /> Rates
                   </CardTitle>
                   <CardDescription className="text-[11px] mt-0.5">
-                    Their own prices, plus the standard ones they fall back to.
+                    Prices negotiated for this customer.
                   </CardDescription>
                 </div>
                 <Button
@@ -537,15 +516,14 @@ export default function CustomerDetailsPage() {
 
               <CardContent className="p-4 space-y-4 text-xs">
 
-                {/* Own rates — these override the standard price */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <Building2 className="w-3 h-3" /> Own rates ({customerRateCards.length})
+                    <Building2 className="w-3 h-3" /> Rates ({customerRateCards.length})
                   </div>
 
                   {customerRateCards.length === 0 ? (
                     <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
-                      No negotiated prices — this customer pays the standard rates below.
+                      No rates negotiated for this customer yet.
                     </p>
                   ) : (
                     customerRateCards.map((rc) => (
@@ -571,45 +549,6 @@ export default function CustomerDetailsPage() {
                           </Badge>
                         )}
                       </button>
-                    ))
-                  )}
-                </div>
-
-                {/* Standard lanes they inherit */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <Globe2 className="w-3 h-3" /> Standard rates used ({inheritedRateCards.length})
-                  </div>
-
-                  {inheritedRateCards.length === 0 ? (
-                    <p className="px-3 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-slate-500">
-                      No standard lanes priced yet.
-                    </p>
-                  ) : (
-                    inheritedRateCards.map((rc) => (
-                      <div
-                        key={rc.id}
-                        className="flex items-center justify-between gap-2 p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-700"
-                      >
-                        <span className="flex items-center gap-1 min-w-0 font-semibold text-slate-700 dark:text-slate-300">
-                          <span className="truncate">{rc.route_origin}</span>
-                          <ArrowRight className="w-3 h-3 shrink-0 text-slate-400" />
-                          <span className="truncate">{rc.route_destination}</span>
-                        </span>
-                        <span className="flex items-center gap-2 shrink-0">
-                          <span className="font-mono font-bold text-slate-600 dark:text-slate-400">
-                            {rc.currency || 'SAR'} {Number(rc.base_price || 0).toLocaleString()}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setOverrideLane(rc)}
-                            className="text-[10px] font-bold text-[#E8450F] hover:underline"
-                            title="Give this customer their own price for this lane"
-                          >
-                            Override
-                          </button>
-                        </span>
-                      </div>
                     ))
                   )}
                 </div>
@@ -644,16 +583,6 @@ export default function CustomerDetailsPage() {
         onClose={() => setEditRateTarget(null)}
         lockedCustomerId={id}
         lockedCustomerName={customer?.name}
-      />
-
-      <RateCardFormDialog
-        isOpen={!!overrideLane}
-        onClose={() => setOverrideLane(null)}
-        lockedCustomerId={id}
-        lockedCustomerName={customer?.name}
-        defaultOriginLocationId={overrideLane?.originLocationId || undefined}
-        defaultDestinationLocationId={overrideLane?.destinationLocationId || undefined}
-        defaultPrice={overrideLane ? String(overrideLane.base_price) : undefined}
       />
 
       <CreateTripModal

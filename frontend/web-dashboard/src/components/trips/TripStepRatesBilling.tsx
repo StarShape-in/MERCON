@@ -3,7 +3,6 @@ import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check, Ke
 import { Customer } from '@/services/customerService';
 import { RateCard } from '@/services/rateCardService';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -15,14 +14,14 @@ interface TripStepRatesBillingProps {
   availableRateCards: RateCard[];
   selectedRateCardId: string;
   matchedRateCard: RateCard | null;
-  rateSource: 'customer' | 'standard' | null;
+  rateSource: 'customer' | null;
   laneHasNoRate: boolean;
-  saveRateAs: 'standard' | 'customer' | 'none';
+  saveRateAs: 'customer' | 'none';
   selectedCustomer: Customer | null;
   rateSaveWarning: string | null;
   billingAmount: string;
   onSelectRateCard: (card: RateCard | null) => void;
-  onSaveRateAsChange: (val: 'standard' | 'customer' | 'none') => void;
+  onSaveRateAsChange: (val: 'customer' | 'none') => void;
   onBillingAmountChange: (val: string) => void;
   onAdjustPrice: (amount: number) => void;
 }
@@ -117,7 +116,6 @@ export default function TripStepRatesBilling({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {availableRateCards.map((rc, idx) => {
                 const isSelected = selectedRateCardId === rc.id;
-                const isCustomerCard = !!rc.customerId;
                 return (
                   <div
                     key={rc.id}
@@ -157,9 +155,6 @@ export default function TripStepRatesBilling({
                           </span>
                         )}
                       </div>
-                      <Badge className={cn("text-[9px] uppercase tracking-wider font-extrabold shrink-0 px-2 py-0.5", isCustomerCard ? "bg-indigo-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300")}>
-                        {isCustomerCard ? 'Customer Override' : 'Standard Rate'}
-                      </Badge>
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
@@ -210,8 +205,7 @@ export default function TripStepRatesBilling({
 
             <div className="space-y-1.5 pl-6 pt-1">
               {([
-                { key: 'standard', label: 'Save as Standard Rate Card', hint: 'Applies to all customers on this lane' },
-                { key: 'customer', label: `Save for ${selectedCustomer?.name || 'this customer'} only`, hint: 'Overrides standard rate for customer' },
+                { key: 'customer', label: `Save for ${selectedCustomer?.name || 'this customer'}`, hint: 'Reused on their future trips for this lane' },
                 { key: 'none', label: 'One-off price (Do not save rate card)', hint: 'Applies to this trip only' },
               ] as const).map((opt) => (
                 <label key={opt.key} className="flex items-start gap-2 cursor-pointer text-xs">

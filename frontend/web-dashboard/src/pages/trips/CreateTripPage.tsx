@@ -117,7 +117,7 @@ export default function CreateTripPage() {
   const [billingAmount, setBillingAmount] = useState<string>('');
   const [isPriceCustomized, setIsPriceCustomized] = useState(false);
   // What to do with a price typed for a lane nobody has priced yet.
-  const [saveRateAs, setSaveRateAs] = useState<'standard' | 'customer' | 'none'>('standard');
+  const [saveRateAs, setSaveRateAs] = useState<'customer' | 'none'>('customer');
   // Which of possibly several rate cards for this lane (imported tiers differ
   // by vehicle_type/rate_category) the dispatcher picked.
   const [selectedRateCardId, setSelectedRateCardId] = useState('');
@@ -252,9 +252,9 @@ export default function CreateTripPage() {
     }
   }, [selectedCustomer]);
 
-  // What this lane costs this customer. Asked of the server, which applies the
-  // one rule (customer's rate for the lane → standard rate for the lane →
-  // nothing) that invoicing uses too.
+  // What this lane costs this customer. Every rate card belongs to exactly one
+  // customer — there is no all-customers "standard" rate to fall back to — so
+  // a lane simply has no price yet until this customer has a card for it.
   //
   // This replaces a client-side guess that matched rate cards by substring
   // against the stop's free-text name — "Khamis Sorting Center" never contains
@@ -263,17 +263,15 @@ export default function CreateTripPage() {
   // frequently not the price for this route.
   const laneReady = !!pickupLocationId && !!dropoffLocationId && pickupLocationId !== dropoffLocationId;
 
-  // Every rate card priced for this lane — the customer's own overrides plus
-  // the standard ones they fall back to. A lane can now have several (imported
-  // tiers differ by vehicle_type/rate_category), so this can't just take
-  // "whichever card was updated most recently" the way a single /lookup call
-  // would — the dispatcher picks the right one below.
+  // Every rate card priced for this lane for this customer. A lane can now
+  // have several (imported tiers differ by vehicle_type/rate_category), so
+  // this can't just take "whichever card was updated most recently" the way a
+  // single /lookup call would — the dispatcher picks the right one below.
   const { data: availableRateCardsRes, isFetching: isLookingUpRate } = useQuery({
     queryKey: ['available-rate-cards-lane', customerId, pickupLocationId, dropoffLocationId],
     queryFn: async () => {
       const res = await rateCardService.getAll({
         customerId: customerId || undefined,
-        include_standard: true,
         origin_location_id: pickupLocationId,
         destination_location_id: dropoffLocationId,
         active_only: true,
@@ -285,11 +283,11 @@ export default function CreateTripPage() {
 
   const availableRateCards = availableRateCardsRes || [];
   const matchedRateCard = availableRateCards.find((rc) => rc.id === selectedRateCardId) ?? null;
-  const rateSource = matchedRateCard ? (matchedRateCard.customerId ? 'customer' : 'standard') : null;
+  const rateSource = matchedRateCard ? ('customer' as const) : null;
   const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && availableRateCards.length === 0;
 
-  // Auto-select the customer's own card if they have one, else the standard
-  // one, whenever the lane's cards load or change — but leave the dispatcher's
+  // Auto-select the customer's card, whenever the lane's cards load or
+  // change — but leave the dispatcher's
   // own pick alone.
   useEffect(() => {
     if (availableRateCards.length === 0) return;
@@ -409,12 +407,12 @@ export default function CreateTripPage() {
 
       let rateCardId = matchedRateCard?.id;
 
-      if (!matchedRateCard && laneHasNoRate && saveRateAs !== 'none' && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
+      if (!matchedRateCard && laneHasNoRate && saveRateAs !== 'none' && customerId && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
         try {
           const created = await rateCardService.create({
             base_price: payload.billing_amount,
             currency: 'SAR',
-            customerId: saveRateAs === 'customer' ? customerId : null,
+            customerId,
             origin_location_id: finalPickupLocId,
             destination_location_id: finalDropoffLocId,
           });
@@ -486,7 +484,7 @@ export default function CreateTripPage() {
     setDropoffAddress('');
     setBillingAmount('');
     setIsPriceCustomized(false);
-    setSaveRateAs('standard');
+    setSaveRateAs('customer');
     setRateSaveWarning(null);
     setError(null);
   };
@@ -1246,7 +1244,7 @@ export default function CreateTripPage() {
                 ) : matchedRateCard ? (
                   <Badge variant="outline" className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 border-indigo-200 shrink-0">
                     <Tag className="w-3 h-3 mr-1" />
-                    {rateSource === 'customer' ? 'Customer rate' : 'Standard rate'}
+                    Customer rate
                   </Badge>
                 ) : laneHasNoRate ? (
                   <Badge variant="outline" className="text-[11px] font-semibold bg-amber-50 text-amber-700 border-amber-200 shrink-0">
@@ -1298,7 +1296,7 @@ export default function CreateTripPage() {
                         {(rc.rate_category || rc.vehicle_type) ? (
                           <span>{[rc.rate_category, rc.vehicle_type].filter(Boolean).join(' · ')}</span>
                         ) : (
-                          <span>{rc.customerId ? 'Customer rate' : 'Standard rate'}</span>
+                          <span>Customer rate</span>
                         )}
                         <span className="block font-mono font-bold">
                           {rc.currency || 'SAR'} {Number(rc.base_price).toLocaleString()}
@@ -1322,9 +1320,7 @@ export default function CreateTripPage() {
                       </span>
                     </div>
                     <p className="text-[11px] text-indigo-700 dark:text-indigo-300">
-                      {rateSource === 'customer'
-                        ? `${selectedCustomer?.name || 'This customer'}'s own rate: `
-                        : 'Standard rate for this lane: '}
+                      {`${selectedCustomer?.name || 'This customer'}'s rate: `}
                       <strong className="font-mono font-bold">
                         {matchedRateCard.currency || 'SAR'} {Number(matchedRateCard.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </strong>
@@ -1366,8 +1362,7 @@ export default function CreateTripPage() {
 
                   <div className="space-y-1 pl-5.5">
                     {([
-                      { key: 'standard', label: 'Save as the standard rate', hint: 'Every customer uses it' },
-                      { key: 'customer', label: `Save for ${selectedCustomer?.name || 'this customer'} only`, hint: 'Overrides the standard rate' },
+                      { key: 'customer', label: `Save for ${selectedCustomer?.name || 'this customer'}`, hint: 'Reused on their future trips for this lane' },
                       { key: 'none', label: "Don't save", hint: 'One-off price for this trip' },
                     ] as const).map((option) => (
                       <label

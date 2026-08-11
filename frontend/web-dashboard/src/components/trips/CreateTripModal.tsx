@@ -113,7 +113,7 @@ export default function CreateTripModal({
   // Pricing
   const [billingAmount, setBillingAmount] = useState<string>('');
   const [isPriceCustomized, setIsPriceCustomized] = useState(false);
-  const [saveRateAs, setSaveRateAs] = useState<'standard' | 'customer' | 'none'>('standard');
+  const [saveRateAs, setSaveRateAs] = useState<'customer' | 'none'>('customer');
   const [rateSaveWarning, setRateSaveWarning] = useState<string | null>(null);
 
   // Reset or initialize state on modal open
@@ -141,7 +141,7 @@ export default function CreateTripModal({
       setDropoffAddress('');
       setBillingAmount('');
       setIsPriceCustomized(false);
-      setSaveRateAs('standard');
+      setSaveRateAs('customer');
       setRateSaveWarning(null);
       setError(null);
     }
@@ -281,7 +281,6 @@ export default function CreateTripModal({
     queryFn: async () => {
       const res = await rateCardService.getAll({
         customerId: customerId || undefined,
-        include_standard: true,
         origin_location_id: pickupLocationId,
         destination_location_id: dropoffLocationId,
         active_only: true,
@@ -292,20 +291,8 @@ export default function CreateTripModal({
   });
 
   const availableRateCards = availableRateCardsRes || [];
-
-  const { data: rateLookup } = useQuery({
-    queryKey: ['rate-card-lookup', customerId, pickupLocationId, dropoffLocationId],
-    queryFn: () =>
-      rateCardService.lookup({
-        customer_id: customerId,
-        origin_location_id: pickupLocationId,
-        destination_location_id: dropoffLocationId,
-      }),
-    enabled: isOpen && !!customerId && laneReady,
-  });
-
-  const matchedRateCard = rateLookup?.rate_card ?? null;
-  const rateSource = rateLookup?.source ?? null;
+  const matchedRateCard = availableRateCards.find((rc) => rc.id === selectedRateCardId) ?? null;
+  const rateSource = matchedRateCard ? 'customer' as const : null;
   const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && availableRateCards.length === 0;
 
   // Auto-select best matching rate card when availableRateCards loads
@@ -411,13 +398,13 @@ export default function CreateTripModal({
       // 3. Save Rate Card if requested
       let rateCardId = selectedRateCardId || matchedRateCard?.id;
 
-      if (!selectedRateCardId && saveRateAs !== 'none' && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
+      if (!selectedRateCardId && saveRateAs !== 'none' && customerId && payload.billing_amount && finalPickupLocId && finalDropoffLocId) {
         try {
           const createdRate = await rateCardService.create({
             name: `${pickupName.trim()} → ${dropoffName.trim()}`,
             base_price: payload.billing_amount,
             currency: 'SAR',
-            customerId: saveRateAs === 'customer' ? customerId : null,
+            customerId,
             origin_location_id: finalPickupLocId,
             destination_location_id: finalDropoffLocId,
             origin_name: pickupName.trim(),
@@ -489,7 +476,7 @@ export default function CreateTripModal({
     setDropoffAddress('');
     setBillingAmount('');
     setIsPriceCustomized(false);
-    setSaveRateAs('standard');
+    setSaveRateAs('customer');
     setRateSaveWarning(null);
     setError(null);
   };

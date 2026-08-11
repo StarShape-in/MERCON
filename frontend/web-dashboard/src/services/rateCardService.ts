@@ -3,13 +3,8 @@ import { Location } from '@/services/locationService';
 import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 
 /**
- * A rate card prices a lane (origin → destination).
- *
- * `customerId: null` is the STANDARD price for that lane — it applies to every
- * customer. A card WITH a customer overrides the standard one for that customer
- * only. So the price for a trip is: the customer's card for the lane → the
- * standard card for the lane → nothing. `lookup()` is that rule; never
- * re-implement it in a component.
+ * A rate card prices a lane (origin → destination) for exactly one customer —
+ * every quote is customer-specific, there is no all-customers "standard" rate.
  *
  * route_origin/route_destination are a denormalised copy of the two location
  * names, kept so older cards and CSV exports still render. The location ids are
@@ -22,7 +17,7 @@ export interface RateCard {
   route_destination: string;
   base_price: number;
   currency: string;
-  customerId: string | null;
+  customerId: string;
   originLocationId: string | null;
   destinationLocationId: string | null;
   /** Free text, not a fixed list — each customer's quote names its own tiers. */
@@ -43,8 +38,7 @@ export interface CreateRateCardPayload {
   name?: string;
   base_price: number;
   currency?: string;
-  /** Omit or null for the standard lane rate that applies to every customer. */
-  customerId?: string | null;
+  customerId: string;
   is_active?: boolean;
   vehicle_type?: string | null;
   rate_category?: string | null;
@@ -63,16 +57,12 @@ export interface CreateRateCardPayload {
 export interface RateCardListParams {
   customerId?: string;
   active_only?: boolean;
-  /** 'standard' returns only the lanes with no customer attached. */
-  scope?: 'standard';
-  /** With customerId: also return the standard lanes that customer falls back to. */
-  include_standard?: boolean;
   origin_location_id?: string;
   destination_location_id?: string;
 }
 
-/** Which tier the price came from — lets the UI say why, not just how much. */
-export type RateSource = 'customer' | 'standard' | null;
+/** Where the matched price came from — always the customer's own rate. */
+export type RateSource = 'customer' | null;
 
 export interface RateLookupResult {
   rate_card: RateCard | null;
@@ -90,8 +80,6 @@ export const rateCardService = {
       params: {
         ...(params?.customerId ? { customerId: params.customerId } : {}),
         ...(params?.active_only ? { active_only: 'true' } : {}),
-        ...(params?.scope ? { scope: params.scope } : {}),
-        ...(params?.include_standard ? { include_standard: 'true' } : {}),
         ...(params?.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
         ...(params?.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
       },

@@ -58,7 +58,7 @@ export interface RawCustomerRateCard {
   route_destination: string;
   base_price: number;
   currency: string;
-  customerId: string | null;
+  customerId: string;
   is_active: boolean;
 }
 

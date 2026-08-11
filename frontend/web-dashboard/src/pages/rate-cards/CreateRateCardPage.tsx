@@ -11,7 +11,6 @@ import {
   MapPin,
   CreditCard,
   ArrowRight,
-  Globe2,
   Info,
 } from 'lucide-react';
 
@@ -27,15 +26,11 @@ import Btn from '@/components/ui/Btn';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 
 /**
- * Create one priced lane.
- *
- * The scope choice at the top is the important one: most lanes cost the same
- * for everybody, so the default is a standard rate that every customer picks up
- * automatically, and a customer-specific card is the exception you add when
- * someone negotiated a different number.
+ * Create one priced lane for one customer. Every rate card belongs to exactly
+ * one customer — there is no all-customers "standard" rate, since every quote
+ * these carriers give is customer-specific.
  */
 export default function CreateRateCardPage() {
   const navigate = useNavigate();
@@ -48,7 +43,6 @@ export default function CreateRateCardPage() {
   const presetDestinationId = searchParams.get('destination') || '';
   const presetPrice = searchParams.get('price') || '';
 
-  const [scope, setScope] = useState<'standard' | 'customer'>(presetCustomerId ? 'customer' : 'standard');
   const [customerId, setCustomerId] = useState(presetCustomerId);
   const [originId, setOriginId] = useState(presetOriginId);
   const [originName, setOriginName] = useState('');
@@ -87,12 +81,10 @@ export default function CreateRateCardPage() {
 
   const numericPrice = parseFloat(basePrice || '');
   const hasPrice = !isNaN(numericPrice) && numericPrice > 0;
-  const effectiveCustomerId = scope === 'customer' ? customerId : null;
   const laneComplete = !!originId && !!destinationId && originId !== destinationId;
-  const isFormValid = laneComplete && hasPrice && (scope === 'standard' || !!customerId);
+  const isFormValid = laneComplete && hasPrice && !!customerId;
 
   const handleReset = () => {
-    setScope('standard');
     setCustomerId('');
     setOriginId('');
     setOriginName('');
@@ -118,16 +110,16 @@ export default function CreateRateCardPage() {
   const handleSubmit = useCallback(() => {
     setError(null);
 
+    if (!customerId) {
+      setError('Choose which customer this rate is for.');
+      return;
+    }
     if (!originId || !destinationId) {
       setError('Pick both an origin and a destination for this lane.');
       return;
     }
     if (originId === destinationId) {
       setError('Origin and destination must be different places.');
-      return;
-    }
-    if (scope === 'customer' && !customerId) {
-      setError('Choose which customer this rate is for, or make it a standard rate.');
       return;
     }
     if (!hasPrice) {
@@ -137,13 +129,13 @@ export default function CreateRateCardPage() {
 
     createMutation.mutate({
       name: name.trim() || undefined,
-      customerId: effectiveCustomerId,
+      customerId,
       origin_location_id: originId,
       destination_location_id: destinationId,
       base_price: numericPrice,
       currency,
     });
-  }, [originId, destinationId, scope, customerId, hasPrice, name, effectiveCustomerId, numericPrice, currency, createMutation]);
+  }, [originId, destinationId, customerId, hasPrice, name, numericPrice, currency, createMutation]);
 
   // Ctrl/Cmd+Enter saves from anywhere on the page.
   useEffect(() => {
@@ -226,19 +218,15 @@ export default function CreateRateCardPage() {
 
             <div className="flex-1 p-4 flex items-center gap-3 w-full">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 shrink-0">
-                {scope === 'standard' ? <Globe2 className="w-4.5 h-4.5" /> : <Building2 className="w-4.5 h-4.5" />}
+                <Building2 className="w-4.5 h-4.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Applies to</span>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Customer</span>
                 <p className="text-sm font-bold truncate mt-0.5 text-slate-900 dark:text-slate-100">
-                  {scope === 'standard'
-                    ? 'Every customer'
-                    : selectedCustomer
-                    ? `${selectedCustomer.name} only`
-                    : 'Pick a customer'}
+                  {selectedCustomer ? selectedCustomer.name : 'Pick a customer'}
                 </p>
               </div>
-              {(scope === 'standard' || !!customerId) && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+              {!!customerId && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
             </div>
 
             <div className="flex-1 p-4 flex items-center gap-3 w-full">
@@ -276,73 +264,29 @@ export default function CreateRateCardPage() {
                 <FileText className="w-4.5 h-4.5 text-indigo-600" /> Rate Setup
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                One price for one lane. Trips on this lane pick it up automatically.
+                One price for one lane, for one customer.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="pt-5 space-y-6">
 
-              {/* Scope */}
+              {/* Customer */}
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Who does this price apply to? <span className="text-rose-500">*</span>
+                  Customer <span className="text-rose-500">*</span>
                 </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setScope('standard')}
-                    className={cn(
-                      'flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all',
-                      scope === 'standard'
-                        ? 'border-[#E8450F] bg-[#E8450F]/5 shadow-2xs'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                    )}
-                  >
-                    <Globe2 className="mt-0.5 w-4 h-4 shrink-0 text-[#E8450F]" />
-                    <span>
-                      <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">Standard rate</span>
-                      <span className="block text-[11px] text-slate-500 mt-0.5">
-                        Used by every customer on this lane. Start here — most lanes cost the same for everyone.
-                      </span>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setScope('customer')}
-                    className={cn(
-                      'flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all',
-                      scope === 'customer'
-                        ? 'border-[#E8450F] bg-[#E8450F]/5 shadow-2xs'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                    )}
-                  >
-                    <Building2 className="mt-0.5 w-4 h-4 shrink-0 text-indigo-600" />
-                    <span>
-                      <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">One customer</span>
-                      <span className="block text-[11px] text-slate-500 mt-0.5">
-                        Overrides the standard rate for that customer only.
-                      </span>
-                    </span>
-                  </button>
-                </div>
-
-                {scope === 'customer' && (
-                  <div className="pt-1">
-                    <Select value={customerId} onValueChange={setCustomerId}>
-                      <SelectTrigger className="h-9 text-xs border-slate-200 bg-white">
-                        <SelectValue placeholder="Choose customer organization..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} ({c.contact_phone || 'No Phone'})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <Select value={customerId} onValueChange={setCustomerId}>
+                  <SelectTrigger className="h-9 text-xs border-slate-200 bg-white">
+                    <SelectValue placeholder="Choose customer organization..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} ({c.contact_phone || 'No Phone'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Lane */}

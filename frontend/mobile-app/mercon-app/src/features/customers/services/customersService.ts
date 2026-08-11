@@ -96,12 +96,10 @@ export function toCustomerRateCard(raw: RawCustomerRateCard): CustomerRateCard {
   };
 }
 
-/** Rate cards with a null customerId are the standard/default cards, not a customer's own. */
 export function aggregateRateCards(rateCards: RawCustomerRateCard[]): Map<string, CustomerRateCard[]> {
   const byCustomer = new Map<string, CustomerRateCard[]>();
 
   for (const raw of rateCards) {
-    if (!raw.customerId) continue;
     const list = byCustomer.get(raw.customerId) ?? [];
     list.push(toCustomerRateCard(raw));
     byCustomer.set(raw.customerId, list);

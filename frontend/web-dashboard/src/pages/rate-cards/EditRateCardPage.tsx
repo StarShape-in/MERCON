@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Save, ArrowLeft, ArrowRight, Building2, Globe2, Info } from 'lucide-react';
+import { Save, ArrowLeft, ArrowRight, Info } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import FormSection from '@/components/ui/FormSection';
@@ -12,14 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { rateCardService } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
-import { cn } from '@/lib/utils';
 
 export default function EditRateCardPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [scope, setScope] = useState<'standard' | 'customer'>('standard');
   const [customerId, setCustomerId] = useState('');
   const [originId, setOriginId] = useState('');
   const [destinationId, setDestinationId] = useState('');
@@ -37,7 +35,6 @@ export default function EditRateCardPage() {
 
   useEffect(() => {
     if (!rateCard) return;
-    setScope(rateCard.customerId ? 'customer' : 'standard');
     setCustomerId(rateCard.customerId || '');
     setOriginId(rateCard.originLocationId || '');
     setDestinationId(rateCard.destinationLocationId || '');
@@ -56,7 +53,7 @@ export default function EditRateCardPage() {
   const numericPrice = parseFloat(basePrice || '');
   const hasPrice = !isNaN(numericPrice) && numericPrice > 0;
   const laneComplete = !!originId && !!destinationId && originId !== destinationId;
-  const isFormValid = laneComplete && hasPrice && (scope === 'standard' || !!customerId);
+  const isFormValid = laneComplete && hasPrice && !!customerId;
 
   // Cards created before lanes existed have text endpoints but no location
   // links, so their rate never matches on a trip. Say so rather than letting
@@ -67,7 +64,7 @@ export default function EditRateCardPage() {
     mutationFn: () =>
       rateCardService.update(id!, {
         name: name.trim() || undefined,
-        customerId: scope === 'customer' ? customerId : null,
+        customerId,
         origin_location_id: originId,
         destination_location_id: destinationId,
         base_price: numericPrice,
@@ -87,8 +84,8 @@ export default function EditRateCardPage() {
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
+    if (!customerId) return setError('Choose which customer this rate is for.');
     if (!laneComplete) return setError('Pick both an origin and a destination — they must be different places.');
-    if (scope === 'customer' && !customerId) return setError('Choose which customer this rate is for.');
     if (!hasPrice) return setError('Enter a price greater than 0.');
     updateMutation.mutate();
   };
@@ -132,59 +129,19 @@ export default function EditRateCardPage() {
               </div>
             )}
 
-            <FormSection title="Applies to" description="A standard rate is used by every customer. A customer rate overrides it for that customer only.">
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setScope('standard')}
-                    className={cn(
-                      'flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all',
-                      scope === 'standard'
-                        ? 'border-[#E8450F] bg-[#E8450F]/5'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                    )}
-                  >
-                    <Globe2 className="mt-0.5 w-4 h-4 shrink-0 text-[#E8450F]" />
-                    <span>
-                      <span className="block text-xs font-bold">Standard rate</span>
-                      <span className="block text-[11px] text-muted-foreground mt-0.5">Every customer</span>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setScope('customer')}
-                    className={cn(
-                      'flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all',
-                      scope === 'customer'
-                        ? 'border-[#E8450F] bg-[#E8450F]/5'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                    )}
-                  >
-                    <Building2 className="mt-0.5 w-4 h-4 shrink-0 text-indigo-600" />
-                    <span>
-                      <span className="block text-xs font-bold">One customer</span>
-                      <span className="block text-[11px] text-muted-foreground mt-0.5">Overrides standard</span>
-                    </span>
-                  </button>
-                </div>
-
-                {scope === 'customer' && (
-                  <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="Choose customer..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+            <FormSection title="Customer" description="Every rate card belongs to exactly one customer.">
+              <Select value={customerId} onValueChange={setCustomerId}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Choose customer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormSection>
 
             <FormSection title="Lane & pricing" description="The origin and destination this price covers.">

@@ -54,7 +54,7 @@ export interface CustomerListItem {
    */
   defaultLocationCount: number;
 
-  /** The customer's active rate card, or null when they are on standard rates. */
+  /** The customer's active rate card, or null when they have none negotiated yet. */
   rateCard: CustomerRateCard | null;
   rateCardCount: number;
 

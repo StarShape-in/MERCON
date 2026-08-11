@@ -12,11 +12,10 @@ import {
   Filter,
   Search,
   ArrowRight,
-  Building2, 
-  MapPin, 
+  Building2,
+  MapPin,
   LayoutGrid,
   List,
-  Globe2,
   Users,
   AlertTriangle,
   FileSpreadsheet,
@@ -67,7 +66,7 @@ const RATE_CARD_EXPORT_HEADERS = [
 const rateCardsToExportRows = (cards: RateCard[]) => cards.map(rc => [
   `#${rc.id.slice(0, 8).toUpperCase()}`,
   rc.name,
-  rc.customerId ? (rc.customer?.name || 'Customer') : 'All Customers (Standard)',
+  rc.customer?.name || 'Customer',
   rc.route_origin,
   rc.route_destination,
   Number(rc.base_price || 0),
@@ -81,7 +80,6 @@ export default function RateCardListPage() {
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [scopeFilter, setScopeFilter] = useState<'all' | 'standard' | 'customer'>('all');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
   const [pageSize, setPageSize] = useState(10);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -132,13 +130,9 @@ export default function RateCardListPage() {
         statusFilter === 'all' ? true :
         statusFilter === 'active' ? rc.is_active : !rc.is_active;
 
-      const matchesScope =
-        scopeFilter === 'all' ? true :
-        scopeFilter === 'standard' ? !rc.customerId : !!rc.customerId;
-
-      return matchesSearch && matchesStatus && matchesScope;
+      return matchesSearch && matchesStatus;
     });
-  }, [rateCards, search, statusFilter, scopeFilter]);
+  }, [rateCards, search, statusFilter]);
 
   // Calculated KPIs
   const kpis = useMemo(() => {
@@ -150,8 +144,6 @@ export default function RateCardListPage() {
     const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
 
     const laneKeys = new Set(rateCards.map(rc => `${rc.originLocationId}|${rc.destinationLocationId}`));
-    const standardCount = rateCards.filter(rc => !rc.customerId).length;
-    const customerCount = total - standardCount;
     const uniqueCustomers = new Set(rateCards.map(rc => rc.customerId).filter(Boolean)).size;
 
     const unlinkedCount = rateCards.filter(rc => !rc.originLocationId || !rc.destinationLocationId).length;
@@ -178,8 +170,6 @@ export default function RateCardListPage() {
       avgPrice,
       uniqueCustomers,
       laneCount: laneKeys.size,
-      standardCount,
-      customerCount,
       unlinkedCount,
       topRoute,
       topRouteCount,
@@ -188,12 +178,10 @@ export default function RateCardListPage() {
     };
   }, [rateCards]);
 
-  const handleExport = (format: 'excel' | 'pdf', filterType: 'all' | 'active' | 'standard') => {
+  const handleExport = (format: 'excel' | 'pdf', filterType: 'all' | 'active') => {
     let dataToExport = filteredData;
     if (filterType === 'active') {
       dataToExport = rateCards.filter(rc => rc.is_active);
-    } else if (filterType === 'standard') {
-      dataToExport = rateCards.filter(rc => !rc.customerId);
     }
 
     if (!dataToExport.length) {
@@ -227,20 +215,13 @@ export default function RateCardListPage() {
       ),
     },
     {
-      header: 'Applies to',
+      header: 'Customer',
       accessor: (row: RateCard) => (
         <div className="flex flex-col min-w-[160px]">
-          {row.customerId ? (
-            <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
-              <span>{row.customer?.name || 'Customer'}</span>
-            </div>
-          ) : (
-            <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-              <Globe2 className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
-              <span>All customers (Standard)</span>
-            </div>
-          )}
+          <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
+            <span>{row.customer?.name || 'Customer'}</span>
+          </div>
         </div>
       ),
     },
@@ -497,16 +478,6 @@ export default function RateCardListPage() {
                     : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
                   Active Rates Only
                 </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  onClick={() => handleExport(exportFormat, 'standard')}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
-                >
-                  {exportFormat === 'excel'
-                    ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-                    : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
-                  Standard Rates Only
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -609,52 +580,36 @@ export default function RateCardListPage() {
             onClick={() => kpis.topRouteOrigin && setSearch(prev => prev === kpis.topRouteOrigin ? '' : kpis.topRouteOrigin!)}
           />
 
-          {/* Card 4: Standard vs customer-specific split */}
+          {/* Card 4: Customers with a negotiated rate */}
           <KpiCard
-            title="RATE AGREEMENTS"
+            title="CUSTOMERS PRICED"
             value={
               <span>
-                {kpis.standardCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Standard</span>
+                {kpis.uniqueCustomers}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Customers</span>
               </span>
             }
             variant="amber"
-            description={`Default rates vs customer rates`}
+            description="Customers with at least one rate card"
             icon={CustomerBuilding}
-            pipelineStages={[
-              { name: "Standard", count: kpis.standardCount, color: "bg-amber-500" },
-              { name: "Customer", count: kpis.customerCount, color: "bg-indigo-500" },
-            ]}
-            isActive={scopeFilter === 'standard'}
-            onClick={() => setScopeFilter(prev => prev === 'standard' ? 'all' : 'standard')}
           />
         </div>
 
         {/* Active Filter Indicator Banner */}
-        {(statusFilter !== 'all' || scopeFilter !== 'all') && (
+        {statusFilter !== 'all' && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
             <div className="flex items-center gap-2">
               <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
               <span>
                 Filtered by:{' '}
-                {statusFilter !== 'all' && (
-                  <span className="mr-2">
-                    Status: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
-                  </span>
-                )}
-                {scopeFilter !== 'all' && (
-                  <span>
-                    Scope: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{scopeFilter === 'standard' ? 'Standard (All Customers)' : 'Customer-Specific'}</strong>
-                  </span>
-                )}
-                {' '}({filteredData.length} agreement{filteredData.length === 1 ? '' : 's'} matching)
+                <span className="mr-2">
+                  Status: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
+                </span>
+                ({filteredData.length} agreement{filteredData.length === 1 ? '' : 's'} matching)
               </span>
             </div>
             <button
-              onClick={() => {
-                setStatusFilter('all');
-                setScopeFilter('all');
-              }}
+              onClick={() => setStatusFilter('all')}
               className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
             >
               <span>Show All Rates</span>
@@ -735,35 +690,6 @@ export default function RateCardListPage() {
                       </SelectGroup>
                     </SelectContent>
                   </Select>
-
-                  <Select value={scopeFilter} onValueChange={(val: any) => setScopeFilter(val)}>
-                    <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                      <div className="flex items-center gap-2">
-                        <Globe2 className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
-                        <SelectValue placeholder="Applies to" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent align="start" className="w-56 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      <SelectGroup>
-                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                          Applies To
-                        </SelectLabel>
-                        <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Rates</SelectItem>
-                        <SelectItem value="standard" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-[#E8450F]">
-                            <Globe2 className="w-3 h-3 text-[#E8450F]" />
-                            Standard (all customers)
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="customer" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-indigo-700">
-                            <Building2 className="w-3 h-3 text-indigo-600" />
-                            Customer-specific
-                          </span>
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
                 </div>
               }
               pageSize={pageSize}
@@ -825,11 +751,7 @@ export default function RateCardListPage() {
                     {rc.name}
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500 flex items-center gap-1">
-                    {rc.customerId ? (
-                      <><Building2 className="w-3 h-3 text-slate-400" /> {rc.customer?.name || 'Customer'}</>
-                    ) : (
-                      <><Globe2 className="w-3 h-3 text-[#E8450F]" /> All customers</>
-                    )}
+                    <Building2 className="w-3 h-3 text-slate-400" /> {rc.customer?.name || 'Customer'}
                   </CardDescription>
                 </CardHeader>
 

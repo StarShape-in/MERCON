@@ -6,12 +6,10 @@ import { getValidUuid } from '../utils/uuid';
 import { logger } from '../utils/logger';
 
 /**
- * Rate cards price a lane (origin → destination).
- *
- * A card with no customer is the STANDARD price for that lane and applies to
- * everyone. A card WITH a customer overrides the standard one for that customer
- * only. The matching rule itself lives in services/rateLookup.ts because trip
- * creation and invoicing need the same one.
+ * Rate cards price a lane (origin → destination) for exactly one customer —
+ * every quote in these carriers' contracts is customer-specific, so there is
+ * no all-customers "standard" rate. The matching rule itself lives in
+ * services/rateLookup.ts because trip creation and invoicing need the same one.
  */
 
 /**
@@ -53,7 +51,7 @@ const resolveLane = async (tx: any, body: any, userId?: string | null) => {
 const laneAlreadyPriced = async (
   tx: any,
   params: {
-    customerId: string | null;
+    customerId: string;
     originLocationId: string;
     destinationLocationId: string;
     vehicleType?: string | null;
@@ -84,7 +82,15 @@ export const createRateCard = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Enter a base price greater than 0' } });
     }
 
+    const normalisedCustomerId = getValidUuid(customerId);
+    if (!normalisedCustomerId) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Choose which customer this rate is for' } });
+    }
+
     const rateCard = await prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.findFirst({ where: { id: normalisedCustomerId, deletedAt: null } });
+      if (!customer) throw new Error('CUSTOMER_NOT_FOUND');
+
       const { origin, destination } = await resolveLane(tx, req.body, userId);
       if (!origin || !destination) {
         throw new Error('LANE_INCOMPLETE');
@@ -93,7 +99,6 @@ export const createRateCard = async (req: Request, res: Response) => {
         throw new Error('LANE_SAME_ENDPOINTS');
       }
 
-      const normalisedCustomerId = getValidUuid(customerId);
       const normalisedVehicleType = vehicle_type ? String(vehicle_type).trim() || null : null;
       const normalisedRateCategory = rate_category ? String(rate_category).trim() || null : null;
 
@@ -147,14 +152,15 @@ export const createRateCard = async (req: Request, res: Response) => {
         success: false,
         error: {
           code: 'DUPLICATE',
-          message: clash?.customerId
-            ? `${clash.customer?.name || 'This customer'} already has a rate for ${clash.route_origin} → ${clash.route_destination}. Edit that one instead.`
-            : `A standard rate for ${clash?.route_origin} → ${clash?.route_destination} already exists. Edit that one instead.`,
+          message: `${clash?.customer?.name || 'This customer'} already has a rate for ${clash?.route_origin} → ${clash?.route_destination}. Edit that one instead.`,
         },
       });
     }
     if (error.message === 'LOCATION_NOT_FOUND') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'That location no longer exists' } });
+    }
+    if (error.message === 'CUSTOMER_NOT_FOUND') {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'That customer no longer exists' } });
     }
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message || 'Failed to create rate card' } });
   }
@@ -165,8 +171,6 @@ export const getRateCards = async (req: Request, res: Response) => {
     const {
       customerId,
       active_only,
-      scope,
-      include_standard,
       origin_location_id,
       destination_location_id,
     } = req.query;
@@ -175,17 +179,7 @@ export const getRateCards = async (req: Request, res: Response) => {
     if (active_only === 'true') whereClause.is_active = true;
     if (origin_location_id) whereClause.originLocationId = origin_location_id as string;
     if (destination_location_id) whereClause.destinationLocationId = destination_location_id as string;
-
-    if (scope === 'standard') {
-      whereClause.customerId = null;
-    } else if (customerId) {
-      // A customer's effective price list is their own overrides plus the
-      // standard lanes they fall back to, so the customer page asks for both.
-      whereClause[include_standard === 'true' ? 'OR' : 'customerId'] =
-        include_standard === 'true'
-          ? [{ customerId: customerId as string }, { customerId: null }]
-          : (customerId as string);
-    }
+    if (customerId) whereClause.customerId = customerId as string;
 
     const rateCards = await prisma.rateCard.findMany({
       where: whereClause,
@@ -357,7 +351,8 @@ export const updateRateCard = async (req: Request, res: Response) => {
         destinationName = destination.name;
       }
 
-      const normalisedCustomerId = customerId === undefined ? existing.customerId : customerId || null;
+      const normalisedCustomerId = customerId === undefined ? existing.customerId : getValidUuid(customerId);
+      if (!normalisedCustomerId) throw new Error('CUSTOMER_REQUIRED');
       const normalisedVehicleType = vehicle_type === undefined ? existing.vehicle_type : (String(vehicle_type || '').trim() || null);
       const normalisedRateCategory = rate_category === undefined ? existing.rate_category : (String(rate_category || '').trim() || null);
 
@@ -404,6 +399,9 @@ export const updateRateCard = async (req: Request, res: Response) => {
     if (error.message === 'NOT_FOUND') {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'RateCard not found' } });
     }
+    if (error.message === 'CUSTOMER_REQUIRED') {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Choose which customer this rate is for' } });
+    }
     if (error.message === 'LANE_INCOMPLETE') {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Pick both an origin and a destination' } });
     }
@@ -416,9 +414,7 @@ export const updateRateCard = async (req: Request, res: Response) => {
         success: false,
         error: {
           code: 'DUPLICATE',
-          message: clash?.customerId
-            ? `${clash.customer?.name || 'This customer'} already has a rate for ${clash.route_origin} → ${clash.route_destination}.`
-            : `A standard rate for ${clash?.route_origin} → ${clash?.route_destination} already exists.`,
+          message: `${clash?.customer?.name || 'This customer'} already has a rate for ${clash?.route_origin} → ${clash?.route_destination}.`,
         },
       });
     }

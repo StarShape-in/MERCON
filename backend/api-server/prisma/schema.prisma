@@ -489,10 +489,12 @@ model RateCard {
   destinationLocationId String?   @db.Uuid
   destinationLocation   Location? @relation("RateCardDestination", fields: [destinationLocationId], references: [id])
 
-  // Null customer = the standard price for this lane, used by every customer.
-  // A row with a customer overrides the standard one for that customer only.
-  customerId String?   @db.Uuid
-  customer   Customer? @relation(fields: [customerId], references: [id])
+  // Every rate card is one customer's negotiated price — there is no
+  // all-customers "standard" rate. (There used to be one; it was removed
+  // because it doesn't match how these carriers are actually quoted — every
+  // quotation in the source workbooks is customer-specific.)
+  customerId String   @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id])
 
   trips Trip[]
 

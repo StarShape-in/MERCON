@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Building2, Globe2, Loader2 } from 'lucide-react';
+import { ArrowRight, Building2, Loader2 } from 'lucide-react';
 
 import {
   Dialog,
@@ -17,7 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { customerService } from '@/services/customerService';
-import { cn } from '@/lib/utils';
 
 interface RateCardFormDialogProps {
   isOpen: boolean;
@@ -35,10 +34,10 @@ interface RateCardFormDialogProps {
 }
 
 /**
- * Add or edit one priced lane. Used from the rate cards list, the customer
- * page and the trip wizard's "save this rate" flow, so the scope choice
- * (standard for everyone vs. this customer only) is asked the same way
- * everywhere instead of each screen inventing its own.
+ * Add or edit one priced lane for one customer. Used from the rate cards list,
+ * the customer page and the trip wizard's "save this rate" flow. Every rate
+ * card belongs to exactly one customer — there is no all-customers "standard"
+ * rate, since every quote these carriers give is customer-specific.
  */
 export default function RateCardFormDialog({
   isOpen,
@@ -54,7 +53,6 @@ export default function RateCardFormDialog({
   const queryClient = useQueryClient();
   const isEditing = !!rateCard;
 
-  const [scope, setScope] = useState<'standard' | 'customer'>('standard');
   const [customerId, setCustomerId] = useState('');
   const [originId, setOriginId] = useState('');
   const [destinationId, setDestinationId] = useState('');
@@ -76,7 +74,6 @@ export default function RateCardFormDialog({
     if (!isOpen) return;
     setError(null);
     if (rateCard) {
-      setScope(rateCard.customerId ? 'customer' : 'standard');
       setCustomerId(rateCard.customerId || '');
       setOriginId(rateCard.originLocationId || '');
       setDestinationId(rateCard.destinationLocationId || '');
@@ -84,7 +81,6 @@ export default function RateCardFormDialog({
       setCurrency(rateCard.currency || 'SAR');
       setName(rateCard.name || '');
     } else {
-      setScope(lockedCustomerId ? 'customer' : 'standard');
       setCustomerId(lockedCustomerId || '');
       setOriginId(defaultOriginLocationId || '');
       setDestinationId(defaultDestinationLocationId || '');
@@ -95,14 +91,14 @@ export default function RateCardFormDialog({
   }, [isOpen, rateCard, lockedCustomerId, defaultOriginLocationId, defaultDestinationLocationId, defaultPrice]);
 
   const numericPrice = parseFloat(price || '');
-  const effectiveCustomerId = scope === 'customer' ? lockedCustomerId || customerId : null;
+  const effectiveCustomerId = lockedCustomerId || customerId;
   const isValid =
+    !!effectiveCustomerId &&
     !!originId &&
     !!destinationId &&
     originId !== destinationId &&
     !isNaN(numericPrice) &&
-    numericPrice > 0 &&
-    (scope === 'standard' || !!effectiveCustomerId);
+    numericPrice > 0;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -131,10 +127,10 @@ export default function RateCardFormDialog({
 
   const handleSubmit = () => {
     setError(null);
+    if (!effectiveCustomerId) return setError('Choose which customer this rate is for.');
     if (!originId || !destinationId) return setError('Pick both an origin and a destination.');
     if (originId === destinationId) return setError('Origin and destination must be different places.');
     if (isNaN(numericPrice) || numericPrice <= 0) return setError('Enter a price greater than 0.');
-    if (scope === 'customer' && !effectiveCustomerId) return setError('Choose which customer this rate is for.');
     saveMutation.mutate();
   };
 
@@ -146,73 +142,32 @@ export default function RateCardFormDialog({
             {isEditing ? 'Edit rate' : 'Add rate'}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            One price for one lane. A standard rate is used by every customer until that
-            customer has their own.
+            One price for one lane, for one customer.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
-          {/* Scope — standard lane vs one customer */}
+          {/* Customer */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Applies to</Label>
+            <Label className="text-xs font-semibold">Customer</Label>
             {lockedCustomerId ? (
               <div className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-xs font-semibold">
                 <Building2 className="h-3.5 w-3.5 text-indigo-600" />
-                {lockedCustomerName || 'This customer'} only
+                {lockedCustomerName || 'This customer'}
               </div>
             ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setScope('standard')}
-                    className={cn(
-                      'flex items-start gap-2 rounded-lg border p-2.5 text-left transition-all',
-                      scope === 'standard'
-                        ? 'border-[#E8450F] bg-[#E8450F]/5'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                    )}
-                  >
-                    <Globe2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#E8450F]" />
-                    <span>
-                      <span className="block text-xs font-bold">Standard rate</span>
-                      <span className="block text-[11px] text-muted-foreground">Every customer</span>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setScope('customer')}
-                    className={cn(
-                      'flex items-start gap-2 rounded-lg border p-2.5 text-left transition-all',
-                      scope === 'customer'
-                        ? 'border-[#E8450F] bg-[#E8450F]/5'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                    )}
-                  >
-                    <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-600" />
-                    <span>
-                      <span className="block text-xs font-bold">One customer</span>
-                      <span className="block text-[11px] text-muted-foreground">Overrides standard</span>
-                    </span>
-                  </button>
-                </div>
-
-                {scope === 'customer' && (
-                  <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="Choose customer..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </>
+              <Select value={customerId} onValueChange={setCustomerId}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Choose customer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 
