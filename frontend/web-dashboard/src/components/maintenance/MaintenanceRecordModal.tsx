@@ -217,193 +217,206 @@ export default function MaintenanceRecordModal({
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            
-            {/* Vehicle Selection */}
-            {!isBulk && (
+          {/* Section: What & When */}
+          <div className="space-y-2.5">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">What &amp; When</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+
+              {/* Vehicle Selection */}
+              {!isBulk && (
+                <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                  <Label className="text-xs font-bold">Vehicle Asset *</Label>
+                  <Select
+                    value={formData.vehicle_id}
+                    onValueChange={handleVehicleChange}
+                    disabled={!!editingRecord}
+                  >
+                    <SelectTrigger className="h-8.5 text-xs">
+                      <SelectValue placeholder="Select Vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.plate_number} ({v.ref_id || 'Ref N/A'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Maintenance Type */}
               <div className="space-y-1">
-                <Label className="text-xs font-bold">Vehicle Asset *</Label>
+                <Label className="text-xs font-bold">Maintenance Type *</Label>
                 <Select
-                  value={formData.vehicle_id}
-                  onValueChange={handleVehicleChange}
-                  disabled={!!editingRecord}
+                  value={formData.maintenance_type}
+                  onValueChange={(val: MaintenanceType) => setFormData(prev => ({ ...prev, maintenance_type: val }))}
                 >
                   <SelectTrigger className="h-8.5 text-xs">
-                    <SelectValue placeholder="Select Vehicle" />
+                    <SelectValue placeholder="Select Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.plate_number} ({v.ref_id || 'Ref N/A'})
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="Routine">Routine Service</SelectItem>
+                    <SelectItem value="Repair">Repair</SelectItem>
+                    <SelectItem value="Inspection">Inspection</SelectItem>
+                    <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
+                    <SelectItem value="Emergency">Emergency</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            )}
 
-            {/* Maintenance Type */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Maintenance Type *</Label>
-              <Select
-                value={formData.maintenance_type}
-                onValueChange={(val: MaintenanceType) => setFormData(prev => ({ ...prev, maintenance_type: val }))}
-              >
-                <SelectTrigger className="h-8.5 text-xs">
-                  <SelectValue placeholder="Select Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Routine">Routine Service</SelectItem>
-                  <SelectItem value="Repair">Repair</SelectItem>
-                  <SelectItem value="Inspection">Inspection</SelectItem>
-                  <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-                  <SelectItem value="Emergency">Emergency</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Status */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Status *</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(val: MaintenanceStatus) => setFormData(prev => ({ ...prev, status: val }))}
-              >
-                <SelectTrigger className="h-8.5 text-xs">
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Completed">✅ Completed (Past Log)</SelectItem>
-                  <SelectItem value="In_Progress">🔧 In Progress (Active)</SelectItem>
-                  <SelectItem value="Scheduled">📅 Scheduled (Future)</SelectItem>
-                  <SelectItem value="Cancelled">❌ Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              {statusHint[formData.status as string] && (
-                <p className="text-[10px] text-slate-400 mt-0.5">{statusHint[formData.status as string]}</p>
-              )}
-            </div>
-
-            {/* Start Date */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">
-                {formData.status === 'Scheduled' ? 'Scheduled Date *' : 'Service / Start Date *'}
-              </Label>
-              <Input
-                type="date"
-                value={formData.start_date}
-                onChange={(e) => {
-                  const start_date = e.target.value;
-                  setFormData(prev => ({
-                    ...prev,
-                    start_date,
-                    end_date: prev.end_date && prev.end_date < start_date ? start_date : prev.end_date,
-                  }));
-                }}
-                className="h-8.5 text-xs"
-              />
-            </div>
-
-            {/* End Date */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">
-                {formData.status === 'Scheduled' ? 'Expected Completion Date' : 'End / Completion Date'}
-              </Label>
-              <Input
-                type="date"
-                value={formData.end_date || ''}
-                min={formData.start_date || undefined}
-                onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                className="h-8.5 text-xs"
-              />
-            </div>
-
-            {/* Expense Cost */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Cost / Renewal Expense (SAR)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.cost}
-                onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
-                placeholder="0.00"
-                className="h-8.5 text-xs"
-              />
-            </div>
-
-            {/* Workshop Name */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Workshop / Service Center *</Label>
-              <WorkshopField
-                value={formData.workshop_name}
-                onChange={(name) => setFormData(prev => ({ ...prev, workshop_name: name }))}
-                onPick={(w) => setFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
-                placeholder="e.g. Al-Riyadh Heavy Fleet Service"
-                className="h-8.5"
-              />
-            </div>
-
-            {/* Workshop Contact */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Workshop Contact Phone</Label>
-              <Input
-                value={formData.workshop_contact || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
-                placeholder="+966 5x xxx xxxx"
-                className="h-8.5 text-xs"
-              />
-            </div>
-
-            {/* Odometer Reading */}
-            {!isBulk && (
+              {/* Status */}
               <div className="space-y-1">
-                <Label className="text-xs font-bold">Odometer Reading (km)</Label>
+                <Label className="text-xs font-bold">Status *</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(val: MaintenanceStatus) => setFormData(prev => ({ ...prev, status: val }))}
+                >
+                  <SelectTrigger className="h-8.5 text-xs">
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Completed">✅ Completed (Past Log)</SelectItem>
+                    <SelectItem value="In_Progress">🔧 In Progress (Active)</SelectItem>
+                    <SelectItem value="Scheduled">📅 Scheduled (Future)</SelectItem>
+                    <SelectItem value="Cancelled">❌ Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                {statusHint[formData.status as string] && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">{statusHint[formData.status as string]}</p>
+                )}
+              </div>
+
+              {/* Start Date */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">
+                  {formData.status === 'Scheduled' ? 'Scheduled Date *' : 'Service / Start Date *'}
+                </Label>
                 <Input
-                  type="number"
-                  value={formData.odometer_reading}
-                  onChange={(e) => setFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
-                  placeholder="184500"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => {
+                    const start_date = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      start_date,
+                      end_date: prev.end_date && prev.end_date < start_date ? start_date : prev.end_date,
+                    }));
+                  }}
                   className="h-8.5 text-xs"
                 />
               </div>
-            )}
 
-            {/* Invoice Number */}
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Invoice Ref Number</Label>
-              <Input
-                value={formData.invoice_number || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                placeholder="INV-9921"
-                className="h-8.5 text-xs"
-              />
+              {/* End Date */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">
+                  {formData.status === 'Scheduled' ? 'Expected Completion Date' : 'End / Completion Date'}
+                </Label>
+                <Input
+                  type="date"
+                  value={formData.end_date || ''}
+                  min={formData.start_date || undefined}
+                  onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                  className="h-8.5 text-xs"
+                />
+              </div>
+
+              {/* Odometer Reading */}
+              {!isBulk && (
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold">Odometer Reading (km)</Label>
+                  <Input
+                    type="number"
+                    value={formData.odometer_reading}
+                    onChange={(e) => setFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
+                    placeholder="184500"
+                    className="h-8.5 text-xs"
+                  />
+                </div>
+              )}
             </div>
-
           </div>
 
-          {/* Bottom section: Work details and remarks in 2 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Work Done / Service Details</Label>
-              <textarea
-                value={formData.work_done || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, work_done: e.target.value }))}
-                placeholder="Specify all repairs, replaced parts, engine oil specs, brake pad renewals..."
-                rows={2.5 as any}
-                className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
-              />
-            </div>
+          {/* Section: Workshop & Cost */}
+          <div className="space-y-2.5 pt-1">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Workshop &amp; Cost</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
 
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Additional Remarks / Notes</Label>
-              <textarea
-                value={formData.remarks || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
-                placeholder="Internal notes, next service recommendations, or spare parts ordered..."
-                rows={2.5 as any}
-                className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
-              />
+              {/* Workshop Name */}
+              <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+                <Label className="text-xs font-bold">Workshop / Service Center *</Label>
+                <WorkshopField
+                  value={formData.workshop_name}
+                  onChange={(name) => setFormData(prev => ({ ...prev, workshop_name: name }))}
+                  onPick={(w) => setFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
+                  placeholder="e.g. Al-Riyadh Heavy Fleet Service"
+                  className="h-8.5"
+                />
+              </div>
+
+              {/* Workshop Contact */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Workshop Contact Phone</Label>
+                <Input
+                  value={formData.workshop_contact || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
+                  placeholder="+966 5x xxx xxxx"
+                  className="h-8.5 text-xs"
+                />
+              </div>
+
+              {/* Expense Cost */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Cost / Renewal Expense (SAR)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.cost}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
+                  placeholder="0.00"
+                  className="h-8.5 text-xs"
+                />
+              </div>
+
+              {/* Invoice Number */}
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Invoice Ref Number</Label>
+                <Input
+                  value={formData.invoice_number || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
+                  placeholder="INV-9921"
+                  className="h-8.5 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Notes */}
+          <div className="space-y-2.5 pt-1">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Notes</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Work Done / Service Details</Label>
+                <textarea
+                  value={formData.work_done || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, work_done: e.target.value }))}
+                  placeholder="Specify all repairs, replaced parts, engine oil specs, brake pad renewals..."
+                  rows={2.5 as any}
+                  className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold">Additional Remarks / Notes</Label>
+                <textarea
+                  value={formData.remarks || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
+                  placeholder="Internal notes, next service recommendations, or spare parts ordered..."
+                  rows={2.5 as any}
+                  className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
+                />
+              </div>
             </div>
           </div>
 
