@@ -5,8 +5,10 @@ import {
   Upload,
   ChevronRight,
   FileCheck2,
+  Lock,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -51,9 +53,9 @@ const DOC_ITEMS: DocItem[] = [
   },
   {
     id: 'doc-4',
-    name: 'Comprehensive Fleet Insurance',
+    name: 'Comprehensive Goods-in-Transit',
     category: 'Insurance',
-    holder: 'Tawuniya Policy #99218',
+    holder: 'Tawuniya Fleet #99218',
     status: 'valid',
     expiryDate: '15 Jan 2027',
     daysRemaining: 157,
@@ -63,113 +65,126 @@ const DOC_ITEMS: DocItem[] = [
 export default function SahalDocumentsCard() {
   const [docs, setDocs] = useState<DocItem[]>(DOC_ITEMS);
 
-  const handleRenew = (docId: string, name: string) => {
-    toast.success(`Renewal initiated for ${name}`);
+  const handleRenew = (name: string) => {
+    toast.success(`Renewal upload trigger dispatched for ${name}`);
   };
 
-  const validCount = docs.filter(d => d.status === 'valid').length + 42; // +42 historical valid docs
-  const expiringCount = docs.filter(d => d.status === 'expiring').length;
-  const expiredCount = docs.filter(d => d.status === 'expired').length;
+  const validCount = 44;
+  const expiringCount = 3;
+  const expiredCount = 1;
   const totalCount = validCount + expiringCount + expiredCount;
-  const complianceRate = Math.round((validCount / totalCount) * 100);
+  const score = Math.round((validCount / totalCount) * 100);
 
   return (
-    <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm rounded-2xl overflow-hidden backdrop-blur-sm flex flex-col">
-      <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
+    <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-white via-slate-50/50 to-white dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 right-0 w-60 h-60 bg-teal-500/5 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Header bar */}
+      <div className="relative z-10">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500/15 to-teal-500/15 dark:from-emerald-500/25 dark:to-teal-500/25 flex items-center justify-center border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck size={18} className="stroke-[2.2]" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-400 text-white flex items-center justify-center shadow-md shadow-teal-500/20">
+              <Lock size={20} className="stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  Documents & Compliance
-                </CardTitle>
-                <Badge variant="outline" className="text-[10px] uppercase font-bold bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
-                  {complianceRate}% Health
+                <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                  Compliance Vault
+                </h2>
+                <Badge className="bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 font-bold text-[10px] px-2 py-0.5">
+                  {score}% Verified
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Driver licenses, Istimara, insurance & safety permits
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Driver licenses, Istimara & regulatory permits
               </p>
             </div>
           </div>
 
           <Link
             to="/documents"
-            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 shrink-0"
+            className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 shrink-0"
           >
-            Docs Center <ChevronRight size={13} />
+            Vault <ChevronRight size={14} />
           </Link>
         </div>
 
-        {/* Health bar */}
-        <div className="mt-3 space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-700 dark:text-slate-300">
-              Fleet Compliance Score
-            </span>
-            <span className="font-bold text-emerald-600 dark:text-emerald-400">
-              {validCount} of {totalCount} Active
-            </span>
+        {/* Circular Compliance Meter & Status Cards */}
+        <div className="my-4 p-3.5 rounded-2xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            {/* SVG Circular Progress Gauge */}
+            <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path
+                  className="text-slate-200 dark:text-slate-700"
+                  strokeWidth="3.5"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="text-teal-500"
+                  strokeDasharray={`${score}, 100`}
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+              <span className="absolute text-xs font-black text-slate-900 dark:text-white font-mono">
+                {score}%
+              </span>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
+                Regulatory Clearance
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {validCount} active legal documents safe
+              </p>
+            </div>
           </div>
-          <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
-            <div
-              className="bg-emerald-500 h-full transition-all"
-              style={{ width: `${complianceRate}%` }}
-              title="Valid Documents"
-            />
-            <div
-              className="bg-amber-400 h-full transition-all"
-              style={{ width: `${(expiringCount / totalCount) * 100}%` }}
-              title="Expiring soon"
-            />
-            <div
-              className="bg-rose-500 h-full transition-all"
-              style={{ width: `${(expiredCount / totalCount) * 100}%` }}
-              title="Expired"
-            />
-          </div>
-          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-0.5">
-            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {validCount} Valid
+
+          <div className="flex flex-col gap-1 text-[11px] text-right">
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+              ✓ {validCount} Active
             </span>
-            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {expiringCount} Expiring (30d)
+            <span className="text-amber-500 font-bold">
+              ⚠ {expiringCount} Due (14d)
             </span>
-            <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> {expiredCount} Expired
+            <span className="text-rose-500 font-bold">
+              ✕ {expiredCount} Blocked
             </span>
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="p-3 flex-1 overflow-y-auto max-h-[260px] space-y-2">
+      {/* Actionable Document Rows */}
+      <div className="space-y-2 flex-1 overflow-y-auto max-h-[220px] relative z-10">
         {docs.map(doc => (
           <div
             key={doc.id}
-            className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3 hover:border-slate-200 dark:hover:border-slate-700 transition-colors"
+            className="p-2.5 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white/60 dark:bg-slate-800/30 flex items-center justify-between gap-3 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-2xs"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`p-2 rounded-lg shrink-0 ${
-                doc.status === 'expired'
-                  ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
-                  : doc.status === 'expiring'
-                  ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400'
-                  : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                  doc.status === 'expired'
+                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                    : doc.status === 'expiring'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                    : 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20'
+                }`}
+              >
                 {doc.status === 'valid' ? <FileCheck2 size={15} /> : <AlertCircle size={15} />}
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                    {doc.name}
-                  </p>
-                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-slate-200 dark:border-slate-700 text-slate-500">
-                    {doc.category}
-                  </Badge>
-                </div>
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                  {doc.name}
+                </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                   {doc.holder}
                 </p>
@@ -177,29 +192,29 @@ export default function SahalDocumentsCard() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <div className="text-right">
-                <span className={`text-[10px] font-bold block ${
-                  doc.status === 'expired'
-                    ? 'text-rose-600 dark:text-rose-400'
-                    : doc.status === 'expiring'
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-emerald-600 dark:text-emerald-400'
-                }`}>
+              <div className="text-right text-[10px]">
+                <span
+                  className={`font-black block ${
+                    doc.status === 'expired'
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : doc.status === 'expiring'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-teal-600 dark:text-teal-400'
+                  }`}
+                >
                   {doc.status === 'expired'
                     ? 'Expired'
                     : doc.status === 'expiring'
-                    ? `${doc.daysRemaining}d left`
-                    : 'Verified'}
+                    ? `${doc.daysRemaining}d grace`
+                    : 'Compliant'}
                 </span>
-                <span className="text-[9px] text-slate-400 font-mono">
-                  {doc.expiryDate}
-                </span>
+                <span className="text-slate-400 font-mono">{doc.expiryDate}</span>
               </div>
               {doc.status !== 'valid' && (
                 <button
-                  onClick={() => handleRenew(doc.id, doc.name)}
-                  className="p-1.5 rounded-lg bg-slate-900 dark:bg-slate-700 text-white hover:bg-[#E8450F] dark:hover:bg-[#E8450F] transition-colors cursor-pointer"
-                  title="Upload / Renew"
+                  onClick={() => handleRenew(doc.name)}
+                  className="p-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-[#E8450F] dark:hover:bg-[#E8450F] dark:hover:text-white transition-all shadow-xs cursor-pointer"
+                  title="Upload Document"
                 >
                   <Upload size={12} />
                 </button>
@@ -207,7 +222,7 @@ export default function SahalDocumentsCard() {
             </div>
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -12,43 +12,41 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
+  DollarSign,
+  PieChart,
+  Sparkles,
+  Layers,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-// Mock high-resolution financial timeseries for Sahal Dashboard
 const MOCK_FINANCIAL_DATA_7D = [
-  { time: 'Mon', revenue: 42000, expense: 26000, profit: 16000, margin: 38.1 },
-  { time: 'Tue', revenue: 58000, expense: 33000, profit: 25000, margin: 43.1 },
-  { time: 'Wed', revenue: 51000, expense: 29000, profit: 22000, margin: 43.1 },
-  { time: 'Thu', revenue: 67000, expense: 38000, profit: 29000, margin: 43.3 },
-  { time: 'Fri', revenue: 84000, expense: 46000, profit: 38000, margin: 45.2 },
-  { time: 'Sat', revenue: 92000, expense: 51000, profit: 41000, margin: 44.6 },
-  { time: 'Sun', revenue: 78000, expense: 42000, profit: 36000, margin: 46.2 },
+  { time: 'Mon', revenue: 48000, expense: 29000, profit: 19000 },
+  { time: 'Tue', revenue: 62000, expense: 35000, profit: 27000 },
+  { time: 'Wed', revenue: 54000, expense: 31000, profit: 23000 },
+  { time: 'Thu', revenue: 73000, expense: 41000, profit: 32000 },
+  { time: 'Fri', revenue: 89000, expense: 48000, profit: 41000 },
+  { time: 'Sat', revenue: 98000, expense: 53000, profit: 45000 },
+  { time: 'Sun', revenue: 82000, expense: 44000, profit: 38000 },
 ];
 
 const MOCK_FINANCIAL_DATA_30D = [
-  { time: 'Week 1', revenue: 260000, expense: 155000, profit: 105000, margin: 40.4 },
-  { time: 'Week 2', revenue: 310000, expense: 178000, profit: 132000, margin: 42.6 },
-  { time: 'Week 3', revenue: 345000, expense: 192000, profit: 153000, margin: 44.3 },
-  { time: 'Week 4', revenue: 390000, expense: 215000, profit: 175000, margin: 44.9 },
+  { time: 'W1', revenue: 290000, expense: 165000, profit: 125000 },
+  { time: 'W2', revenue: 340000, expense: 190000, profit: 150000 },
+  { time: 'W3', revenue: 380000, expense: 205000, profit: 175000 },
+  { time: 'W4', revenue: 430000, expense: 230000, profit: 200000 },
 ];
 
 const MOCK_FINANCIAL_DATA_6M = [
-  { time: 'Mar', revenue: 1120000, expense: 670000, profit: 450000, margin: 40.2 },
-  { time: 'Apr', revenue: 1280000, expense: 740000, profit: 540000, margin: 42.2 },
-  { time: 'May', revenue: 1350000, expense: 780000, profit: 570000, margin: 42.2 },
-  { time: 'Jun', revenue: 1490000, expense: 830000, profit: 660000, margin: 44.3 },
-  { time: 'Jul', revenue: 1620000, expense: 890000, profit: 730000, margin: 45.1 },
-  { time: 'Aug', revenue: 1780000, expense: 950000, profit: 830000, margin: 46.6 },
+  { time: 'Mar', revenue: 1180000, expense: 690000, profit: 490000 },
+  { time: 'Apr', revenue: 1320000, expense: 760000, profit: 560000 },
+  { time: 'May', revenue: 1420000, expense: 810000, profit: 610000 },
+  { time: 'Jun', revenue: 1560000, expense: 870000, profit: 690000 },
+  { time: 'Jul', revenue: 1690000, expense: 920000, profit: 770000 },
+  { time: 'Aug', revenue: 1850000, expense: 980000, profit: 870000 },
 ];
 
-interface SahalFinancialChartProps {
-  timeframe?: '7d' | '30d' | '6m';
-}
-
-export default function SahalFinancialChart({ timeframe = '7d' }: SahalFinancialChartProps) {
-  const [selectedRange, setSelectedRange] = useState<'7d' | '30d' | '6m'>(timeframe);
+export default function SahalFinancialChart() {
+  const [selectedRange, setSelectedRange] = useState<'7d' | '30d' | '6m'>('7d');
   const [activeSeries, setActiveSeries] = useState<{
     revenue: boolean;
     expense: boolean;
@@ -91,240 +89,233 @@ export default function SahalFinancialChart({ timeframe = '7d' }: SahalFinancial
   };
 
   return (
-    <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm rounded-2xl overflow-hidden backdrop-blur-sm">
-      <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500/15 to-emerald-500/15 dark:from-indigo-500/25 dark:to-emerald-500/25 flex items-center justify-center border border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
-              <TrendingUp size={18} className="stroke-[2.2]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  Financial Analytics
-                </CardTitle>
-                <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-bold bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
-                  P&L Metrics
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Revenue, operating expenses & net profit margins
-              </p>
-            </div>
-          </div>
+    <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-white via-slate-50/50 to-white dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 p-5 shadow-sm relative overflow-hidden">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-60 h-60 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Time range pills */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/70 dark:border-slate-700/60 text-xs">
-            <button
-              onClick={() => setSelectedRange('7d')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-                selectedRange === '7d'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              7 Days
-            </button>
-            <button
-              onClick={() => setSelectedRange('30d')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-                selectedRange === '30d'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              30 Days
-            </button>
-            <button
-              onClick={() => setSelectedRange('6m')}
-              className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-                selectedRange === '6m'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              6 Months
-            </button>
+      {/* Header bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+            <TrendingUp size={20} className="stroke-[2.5]" />
           </div>
-        </div>
-
-        {/* 3 Metric Pills with toggles */}
-        <div className="grid grid-cols-3 gap-2.5 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-          {/* Revenue Pill */}
-          <div
-            onClick={() => setActiveSeries(prev => ({ ...prev, revenue: !prev.revenue }))}
-            className={`cursor-pointer select-none p-2.5 rounded-xl border transition-all ${
-              activeSeries.revenue
-                ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 ring-1 ring-emerald-500/20'
-                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                Revenue
-              </span>
-              <ArrowUpRight size={14} className="text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-1">
-              {formatSAR(totals.revenue)}
-            </p>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-              +14.8% vs prior period
-            </span>
-          </div>
-
-          {/* Expense Pill */}
-          <div
-            onClick={() => setActiveSeries(prev => ({ ...prev, expense: !prev.expense }))}
-            className={`cursor-pointer select-none p-2.5 rounded-xl border transition-all ${
-              activeSeries.expense
-                ? 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/60 ring-1 ring-rose-500/20'
-                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
-                Expenses
-              </span>
-              <ArrowDownRight size={14} className="text-rose-600 dark:text-rose-400" />
-            </div>
-            <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-1">
-              {formatSAR(totals.expense)}
-            </p>
-            <span className="text-[10px] text-rose-600 dark:text-rose-400 font-medium">
-              56.2% fuel & tolls
-            </span>
-          </div>
-
-          {/* Net Profit Pill */}
-          <div
-            onClick={() => setActiveSeries(prev => ({ ...prev, profit: !prev.profit }))}
-            className={`cursor-pointer select-none p-2.5 rounded-xl border transition-all ${
-              activeSeries.profit
-                ? 'bg-indigo-50/60 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/60 ring-1 ring-indigo-500/20'
-                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />
-                Net Profit
-              </span>
-              <Badge variant="outline" className="text-[9px] px-1 py-0 bg-indigo-100 text-indigo-800 border-none font-bold">
-                {totals.margin}% margin
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                Financial Cockpit
+              </h2>
+              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-[10px] px-2 py-0.5">
+                {totals.margin}% Net Margin
               </Badge>
             </div>
-            <p className="text-sm sm:text-base font-bold text-indigo-950 dark:text-indigo-200 mt-1">
-              {formatSAR(totals.profit)}
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              High-yield P&L breakdown & revenue curves
             </p>
-            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
-              +18.4% Net Yield
-            </span>
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="pt-4 pb-2 px-2 sm:px-4">
-        <div className="h-[240px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                {/* Revenue Gradient */}
-                <linearGradient id="sahalRevGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
-                </linearGradient>
-                {/* Expense Gradient */}
-                <linearGradient id="sahalExpGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.0} />
-                </linearGradient>
-                {/* Net Profit Gradient */}
-                <linearGradient id="sahalProfGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.45} />
-                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200/70 dark:text-slate-800" />
-              <XAxis
-                dataKey="time"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'currentColor', fontSize: 11 }}
-                className="text-slate-500 dark:text-slate-400 font-medium"
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={val => (val >= 1000 ? `${val / 1000}k` : val)}
-                tick={{ fill: 'currentColor', fontSize: 11 }}
-                className="text-slate-500 dark:text-slate-400 font-medium"
-              />
-              <Tooltip
-                content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  return (
-                    <div className="bg-slate-900/95 text-white p-3 rounded-xl shadow-xl border border-slate-700/80 backdrop-blur-md text-xs min-w-[170px]">
-                      <p className="font-bold text-slate-300 pb-1.5 border-b border-slate-700 mb-2 flex items-center justify-between">
-                        <span>{label}</span>
-                        <span className="text-[10px] text-emerald-400">Verified</span>
-                      </p>
-                      {payload.map((entry: any) => (
-                        <div key={entry.dataKey} className="flex items-center justify-between py-0.5">
-                          <span className="flex items-center gap-1.5 text-slate-300 capitalize">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                            {entry.name}:
-                          </span>
-                          <span className="font-semibold text-white">
-                            SAR {entry.value?.toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                }}
-              />
-
-              {activeSeries.revenue && (
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  name="Revenue"
-                  stroke="#10B981"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#sahalRevGrad)"
-                />
-              )}
-              {activeSeries.expense && (
-                <Area
-                  type="monotone"
-                  dataKey="expense"
-                  name="Expenses"
-                  stroke="#F43F5E"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#sahalExpGrad)"
-                />
-              )}
-              {activeSeries.profit && (
-                <Area
-                  type="monotone"
-                  dataKey="profit"
-                  name="Net Profit"
-                  stroke="#6366F1"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#sahalProfGrad)"
-                />
-              )}
-            </AreaChart>
-          </ResponsiveContainer>
+        {/* Time switch */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 text-xs font-semibold">
+          {(['7d', '30d', '6m'] as const).map(range => (
+            <button
+              key={range}
+              onClick={() => setSelectedRange(range)}
+              className={`px-3 py-1.5 rounded-xl transition-all ${
+                selectedRange === range
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '6 Months'}
+            </button>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Interactive Metric Cards Strip */}
+      <div className="grid grid-cols-3 gap-3 my-4 relative z-10">
+        {/* Revenue */}
+        <div
+          onClick={() => setActiveSeries(p => ({ ...p, revenue: !p.revenue }))}
+          className={`p-3 rounded-2xl border transition-all cursor-pointer select-none ${
+            activeSeries.revenue
+              ? 'bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-950/30 dark:border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-xs'
+              : 'bg-slate-100/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60'
+          }`}
+        >
+          <div className="flex items-center justify-between text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="flex items-center gap-1.5 uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Revenue
+            </span>
+            <ArrowUpRight size={14} />
+          </div>
+          <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-1">
+            {formatSAR(totals.revenue)}
+          </p>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+            +16.4% YoY
+          </span>
+        </div>
+
+        {/* Expenses */}
+        <div
+          onClick={() => setActiveSeries(p => ({ ...p, expense: !p.expense }))}
+          className={`p-3 rounded-2xl border transition-all cursor-pointer select-none ${
+            activeSeries.expense
+              ? 'bg-rose-500/10 border-rose-500/30 dark:bg-rose-950/30 dark:border-rose-500/30 ring-1 ring-rose-500/20 shadow-xs'
+              : 'bg-slate-100/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60'
+          }`}
+        >
+          <div className="flex items-center justify-between text-[11px] font-bold text-rose-600 dark:text-rose-400">
+            <span className="flex items-center gap-1.5 uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-rose-500" /> Expenses
+            </span>
+            <ArrowDownRight size={14} />
+          </div>
+          <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-1">
+            {formatSAR(totals.expense)}
+          </p>
+          <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold">
+            Fuel & Tolls (54%)
+          </span>
+        </div>
+
+        {/* Net Profit */}
+        <div
+          onClick={() => setActiveSeries(p => ({ ...p, profit: !p.profit }))}
+          className={`p-3 rounded-2xl border transition-all cursor-pointer select-none ${
+            activeSeries.profit
+              ? 'bg-indigo-500/10 border-indigo-500/30 dark:bg-indigo-950/30 dark:border-indigo-500/30 ring-1 ring-indigo-500/20 shadow-xs'
+              : 'bg-slate-100/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60'
+          }`}
+        >
+          <div className="flex items-center justify-between text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+            <span className="flex items-center gap-1.5 uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-indigo-500" /> Net Profit
+            </span>
+            <Sparkles size={13} />
+          </div>
+          <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-1">
+            {formatSAR(totals.profit)}
+          </p>
+          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+            {totals.margin}% yield
+          </span>
+        </div>
+      </div>
+
+      {/* Chart Canvas */}
+      <div className="h-[220px] w-full relative z-10">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="sahalRevGradV2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10B981" stopOpacity={0.45} />
+                <stop offset="100%" stopColor="#10B981" stopOpacity={0.0} />
+              </linearGradient>
+              <linearGradient id="sahalExpGradV2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.0} />
+              </linearGradient>
+              <linearGradient id="sahalProfGradV2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6366F1" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#6366F1" stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
+
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200/60 dark:text-slate-800" />
+            <XAxis
+              dataKey="time"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'currentColor', fontSize: 11 }}
+              className="text-slate-400 font-semibold"
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={val => (val >= 1000 ? `${val / 1000}k` : val)}
+              tick={{ fill: 'currentColor', fontSize: 11 }}
+              className="text-slate-400 font-semibold"
+            />
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div className="bg-slate-950/95 text-white p-3 rounded-2xl shadow-2xl border border-slate-700/80 backdrop-blur-xl text-xs min-w-[170px]">
+                    <p className="font-bold text-slate-300 pb-1.5 border-b border-slate-800 mb-2 flex items-center justify-between">
+                      <span>{label}</span>
+                      <span className="text-[10px] text-emerald-400 font-mono">SAHAL AUDITED</span>
+                    </p>
+                    {payload.map((entry: any) => (
+                      <div key={entry.dataKey} className="flex items-center justify-between py-0.5">
+                        <span className="flex items-center gap-1.5 text-slate-300 capitalize">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                          {entry.name}:
+                        </span>
+                        <span className="font-bold text-white font-mono">
+                          SAR {entry.value?.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }}
+            />
+
+            {activeSeries.revenue && (
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                name="Revenue"
+                stroke="#10B981"
+                strokeWidth={2.5}
+                fillOpacity={1}
+                fill="url(#sahalRevGradV2)"
+              />
+            )}
+            {activeSeries.expense && (
+              <Area
+                type="monotone"
+                dataKey="expense"
+                name="Expenses"
+                stroke="#F43F5E"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#sahalExpGradV2)"
+              />
+            )}
+            {activeSeries.profit && (
+              <Area
+                type="monotone"
+                dataKey="profit"
+                name="Net Profit"
+                stroke="#6366F1"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#sahalProfGradV2)"
+              />
+            )}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Expense Allocation Mini Bar */}
+      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <span className="font-semibold text-slate-700 dark:text-slate-300">Cost Structure:</span>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Fuel 44%
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Driver/Labor 28%
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" /> Tolls & Maint 28%
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

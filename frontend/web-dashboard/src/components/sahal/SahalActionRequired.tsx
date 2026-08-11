@@ -6,8 +6,11 @@ import {
   Wrench,
   DollarSign,
   Flame,
+  Zap,
+  Sparkles,
+  ArrowRight,
+  ShieldAlert,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -63,186 +66,175 @@ const INITIAL_ACTIONS: ActionItem[] = [
     actionLabel: 'Re-route',
     targetRef: 'TRP-9044',
   },
-  {
-    id: 'act-5',
-    category: 'compliance',
-    priority: 'medium',
-    title: 'Dangerous Goods (ADR) Permit Renewal',
-    subtitle: 'Trailer TRL-08 permit expires in 5 calendar days',
-    dueText: '5 days left',
-    actionLabel: 'Renew',
-    targetRef: 'TRL-08',
-  },
 ];
 
 export default function SahalActionRequired() {
   const [actions, setActions] = useState<ActionItem[]>(INITIAL_ACTIONS);
-  const [filter, setFilter] = useState<'all' | 'critical' | 'compliance' | 'fleet'>('all');
+  const [filter, setFilter] = useState<'all' | 'critical' | 'compliance'>('all');
 
   const handleAction = (item: ActionItem) => {
     toast.success(`Action resolved: ${item.title}`);
     setActions(prev => prev.filter(a => a.id !== item.id));
   };
 
+  const handleResolveAll = () => {
+    toast.success(`Batch acknowledged ${actions.length} action items`);
+    setActions([]);
+  };
+
   const filteredActions = actions.filter(item => {
     if (filter === 'critical') return item.priority === 'critical' || item.priority === 'high';
     if (filter === 'compliance') return item.category === 'compliance';
-    if (filter === 'fleet') return item.category === 'maintenance' || item.category === 'operations';
     return true;
   });
 
-  const getPriorityStyle = (priority: ActionItem['priority']) => {
+  const getPriorityBadge = (priority: ActionItem['priority']) => {
     switch (priority) {
       case 'critical':
-        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800';
+        return (
+          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white flex items-center gap-1 shadow-xs animate-pulse">
+            <Flame size={10} /> Critical
+          </span>
+        );
       case 'high':
-        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800';
+        return (
+          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+            High
+          </span>
+        );
       case 'medium':
-        return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800';
-    }
-  };
-
-  const getCategoryIcon = (category: ActionItem['category']) => {
-    switch (category) {
-      case 'compliance':
-        return <FileWarning size={14} className="text-rose-500" />;
-      case 'maintenance':
-        return <Wrench size={14} className="text-amber-500" />;
-      case 'financial':
-        return <DollarSign size={14} className="text-emerald-500" />;
-      case 'operations':
-        return <Clock size={14} className="text-blue-500" />;
+        return (
+          <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+            Medium
+          </span>
+        );
     }
   };
 
   return (
-    <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm rounded-2xl overflow-hidden backdrop-blur-sm flex flex-col">
-      <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
+    <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-white via-slate-50/50 to-white dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 right-0 w-60 h-60 bg-rose-500/5 dark:bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Header bar */}
+      <div className="relative z-10">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500/15 to-amber-500/15 dark:from-rose-500/25 dark:to-amber-500/25 flex items-center justify-center border border-rose-500/20 text-rose-600 dark:text-rose-400">
-              <Flame size={18} className="stroke-[2.2]" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 to-amber-500 text-white flex items-center justify-center shadow-md shadow-rose-500/20">
+              <ShieldAlert size={20} className="stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  Action Required
-                </CardTitle>
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white shadow-xs animate-pulse">
+                <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                  Priority Dispatch Queue
+                </h2>
+                <Badge className="bg-rose-500 text-white font-black text-[10px] px-2 py-0.5 shadow-xs">
                   {actions.length} Urgent
-                </span>
+                </Badge>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Tasks demanding immediate operator intervention
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Direct operator interventions & compliance blocks
               </p>
             </div>
           </div>
+
+          {actions.length > 0 && (
+            <button
+              onClick={handleResolveAll}
+              className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              Clear All
+            </button>
+          )}
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 overflow-x-auto text-xs pb-0.5">
+        {/* Filter Switcher */}
+        <div className="flex items-center gap-1.5 my-3.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-xs font-semibold">
           <button
             onClick={() => setFilter('all')}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+            className={`px-3 py-1 rounded-xl transition-all ${
               filter === 'all'
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            All ({actions.length})
+            All Items ({actions.length})
           </button>
           <button
             onClick={() => setFilter('critical')}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+            className={`px-3 py-1 rounded-xl transition-all ${
               filter === 'critical'
                 ? 'bg-rose-600 text-white shadow-xs'
                 : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
             }`}
           >
-            High Priority
+            High Risk
           </button>
           <button
             onClick={() => setFilter('compliance')}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+            className={`px-3 py-1 rounded-xl transition-all ${
               filter === 'compliance'
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             Compliance
           </button>
-          <button
-            onClick={() => setFilter('fleet')}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
-              filter === 'fleet'
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            Fleet & Trips
-          </button>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="p-3 flex-1 overflow-y-auto max-h-[300px] space-y-2.5 divide-y divide-slate-100 dark:divide-slate-800/60">
+      {/* Action Items List */}
+      <div className="space-y-2.5 flex-1 overflow-y-auto max-h-[260px] relative z-10 pr-1">
         {filteredActions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <CheckCircle2 size={36} className="text-emerald-500 mb-2" />
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-              All Actions Resolved
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-2">
+              <CheckCircle2 size={24} />
+            </div>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              Clear Deck — No Blockers
             </p>
-            <p className="text-xs text-slate-500">
-              No outstanding emergency tasks at this time.
+            <p className="text-xs text-slate-400 mt-0.5">
+              All urgent compliance and operational tickets resolved.
             </p>
           </div>
         ) : (
-          filteredActions.map((item, idx) => (
+          filteredActions.map(item => (
             <div
               key={item.id}
-              className={`pt-2.5 first:pt-0 flex items-start justify-between gap-3 group transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40 p-2 rounded-xl`}
+              className="p-3 rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-800/40 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs flex items-center justify-between gap-3 group"
             >
-              <div className="flex items-start gap-2.5 min-w-0">
-                <div className="mt-0.5 p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0">
-                  {getCategoryIcon(item.category)}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getPriorityBadge(item.priority)}
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {item.title}
+                  </h4>
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {item.title}
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
+                  {item.subtitle}
+                </p>
+                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-400">
+                  <span className="font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                    <Clock size={10} /> {item.dueText}
+                  </span>
+                  {item.targetRef && (
+                    <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300">
+                      #{item.targetRef}
                     </span>
-                    <Badge variant="outline" className={`text-[9px] px-1.5 py-0 font-semibold uppercase tracking-wider ${getPriorityStyle(item.priority)}`}>
-                      {item.priority}
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
-                    {item.subtitle}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                      <Clock size={10} />
-                      {item.dueText}
-                    </span>
-                    {item.targetRef && (
-                      <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                        #{item.targetRef}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 shrink-0 pt-0.5">
-                <button
-                  onClick={() => handleAction(item)}
-                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-[#E8450F] dark:hover:bg-[#E8450F] dark:hover:text-white transition-all shadow-xs cursor-pointer"
-                >
-                  {item.actionLabel}
-                </button>
-              </div>
+              <button
+                onClick={() => handleAction(item)}
+                className="shrink-0 px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:bg-[#E8450F] dark:hover:bg-[#E8450F] dark:hover:text-white transition-all shadow-xs cursor-pointer"
+              >
+                {item.actionLabel}
+              </button>
             </div>
           ))
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
