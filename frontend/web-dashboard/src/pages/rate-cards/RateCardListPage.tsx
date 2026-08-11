@@ -526,69 +526,76 @@ export default function RateCardListPage() {
           {/* Card 1: Active Rate Cards */}
           <KpiCard
             title="ACTIVE RATES"
-            value={kpis.activeCount}
+            value={
+              <span>
+                {kpis.activeCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Active</span>
+              </span>
+            }
             variant="emerald"
-            trend="neutral"
-            trendValue={`${kpis.activePct}% Active`}
             description="Rates applied to new trips"
             icon={CheckBadge}
-            isActive={statusFilter === 'active'}
             completionGauge={{
               percentage: kpis.activePct,
-              label: `${kpis.activePct}% Active`,
+              label: "Active rate share",
               subtext: `${kpis.activeCount} Active • ${kpis.total - kpis.activeCount} Inactive`
             }}
+            isActive={statusFilter === 'active'}
             onClick={() => setStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
           />
 
           {/* Card 2: Avg Base Tariff Rate */}
           <KpiCard
-            title="AVERAGE PRICE"
-            value={`SAR ${kpis.avgPrice.toLocaleString()}`}
+            title="AVERAGE TARIFF"
+            value={
+              <span>
+                SAR {kpis.avgPrice.toLocaleString()}
+              </span>
+            }
             variant="brand"
-            trend="neutral"
-            trendValue={`${kpis.total} rate${kpis.total === 1 ? '' : 's'}`}
             description="Mean price across all rates"
             icon={RevenueChart}
+            chartData={[1200, 1800, 1500, 2100, 2400, kpis.avgPrice || 2500]}
             onClick={() => setShowTariffModal(true)}
           />
 
           {/* Card 3: Most-priced lane */}
           <KpiCard
-            title="MOST-PRICED LANE"
-            value={kpis.topRoute || 'No lanes yet'}
+            title="PRICED ROUTE LANES"
+            value={
+              <span>
+                {kpis.laneCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Lanes</span>
+              </span>
+            }
             variant="blue"
-            trend="neutral"
-            trendValue={kpis.topRoute ? `${kpis.topRouteCount} rate${kpis.topRouteCount === 1 ? '' : 's'}` : 'Add a rate'}
-            description={`${kpis.laneCount} distinct lane${kpis.laneCount === 1 ? '' : 's'} priced`}
+            description={kpis.topRoute ? `Top: ${kpis.topRoute}` : `${kpis.laneCount} distinct lanes`}
             icon={RouteLine}
+            livePulseTrack={{
+              statusText: kpis.topRoute ? `Top: ${kpis.topRouteOrigin} → ${kpis.topRouteDestination}` : "Corridors active",
+              subText: `${kpis.topRouteCount} agreement${kpis.topRouteCount === 1 ? '' : 's'}`,
+            }}
             isActive={!!search && kpis.topRouteOrigin !== null && search === kpis.topRouteOrigin}
             onClick={() => kpis.topRouteOrigin && setSearch(prev => prev === kpis.topRouteOrigin ? '' : kpis.topRouteOrigin!)}
-          >
-            {kpis.topRouteOrigin && kpis.topRouteDestination && (
-              <RouteCorridorKpi
-                origin={kpis.topRouteOrigin}
-                destination={kpis.topRouteDestination}
-                tripCount={kpis.topRouteCount}
-              />
-            )}
-          </KpiCard>
+          />
 
           {/* Card 4: Standard vs customer-specific split */}
           <KpiCard
-            title="STANDARD RATES"
-            value={kpis.standardCount}
+            title="RATE AGREEMENTS"
+            value={
+              <span>
+                {kpis.standardCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Standard</span>
+              </span>
+            }
             variant="amber"
-            trend="neutral"
-            trendValue={`${kpis.customerCount} customer-specific`}
-            description={`Used by all customers • ${kpis.uniqueCustomers} with own rates`}
+            description={`Default rates vs customer rates`}
             icon={CustomerBuilding}
+            pipelineStages={[
+              { name: "Standard", count: kpis.standardCount, color: "bg-amber-500" },
+              { name: "Customer", count: kpis.customerCount, color: "bg-indigo-500" },
+            ]}
             isActive={scopeFilter === 'standard'}
-            completionGauge={{
-              percentage: kpis.total > 0 ? Math.round((kpis.standardCount / kpis.total) * 100) : 0,
-              label: 'Share that are standard',
-              subtext: `${kpis.standardCount} standard • ${kpis.customerCount} customer`
-            }}
             onClick={() => setScopeFilter(prev => prev === 'standard' ? 'all' : 'standard')}
           />
         </div>

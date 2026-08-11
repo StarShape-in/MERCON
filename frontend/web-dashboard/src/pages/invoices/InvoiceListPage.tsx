@@ -314,66 +314,106 @@ export default function InvoiceListPage() {
         {/* 4-Card Instrument Panel KPI Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           
-          {/* Card 1: Total Invoices — Billing Ratio Donut Gauge */}
+          {/* Card 1: Total Invoices */}
           <KpiCard
             title="TOTAL INVOICES"
-            value={totalCount}
+            value={
+              <span>
+                {totalCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Invoices</span>
+              </span>
+            }
             variant="blue"
-            trend="neutral"
-            trendValue={`${paidRatioPct}% Paid`}
             description="Total billing records"
             icon={InvoiceDoc}
-            completionGauge={{
-              percentage: paidRatioPct || 70,
-              label: `${paidRatioPct}% Settled`,
-              subtext: `${paidCount} Paid • ${pendingCount} Pending`
+            semiCircleGauge={{
+              segments: [
+                { label: "Paid", count: paidCount, color: "#16A34A" },
+                { label: "Pending", count: pendingCount, color: "#D97706" },
+                { label: "Overdue", count: overdueCount, color: "#DC2626" },
+              ]
             }}
+            isActive={selectedStatus === 'All'}
             onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
 
           {/* Card 2: Total Revenue Collected — Financial Area Sparkline */}
           <KpiCard
             title="COLLECTED REVENUE"
-            value={`SAR ${totalCollectedAmount.toLocaleString()}`}
+            value={
+              <span>
+                SAR {totalCollectedAmount.toLocaleString()}
+              </span>
+            }
             variant="emerald"
-            trend="up"
-            trendValue="+14.8%"
             description="Revenue settlement summary"
             icon={RevenueChart}
-            chartData={[15000, 22000, 19000, 28000, 31000, 42000]}
+            chartData={[15000, 22000, 19000, 28000, 31000, totalCollectedAmount > 0 ? totalCollectedAmount : 42000]}
             onClick={() => setShowRevenueModal(true)}
           />
 
-          {/* Card 3: Pending Receivables — Progress Segment Bar */}
+          {/* Card 3: Pending Receivables */}
           <KpiCard
             title="PENDING RECEIVABLES"
-            value={pendingCount}
-            variant="brand"
-            trend="neutral"
-            trendValue="In Progress"
-            description="Pending invoices overview"
+            value={
+              <span>
+                {pendingCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Pending</span>
+              </span>
+            }
+            variant="amber"
+            description="Awaiting customer payment"
             icon={ClockIcon}
+            pipelineStages={[
+              { name: "Pending", count: pendingCount, color: "bg-amber-500" },
+              { name: "Overdue", count: overdueCount, color: "bg-rose-500" },
+            ]}
+            isActive={selectedStatus === 'Pending'}
             onClick={() => { setSelectedStatus('Pending'); setCurrentPage(1); }}
-          >
-            <InvoiceAgingKpi pendingCount={pendingCount} overdueCount={overdueCount} paidCount={paidCount} />
-          </KpiCard>
+          />
 
-          {/* Card 4: Overdue & Risk — Urgency Bar */}
+          {/* Card 4: Overdue & Risk */}
           <KpiCard
             title="OVERDUE & AT-RISK"
-            value={overdueCount}
+            value={
+              <span>
+                {overdueCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Overdue</span>
+              </span>
+            }
             variant="rose"
-            trend={overdueCount > 0 ? 'down' : 'neutral'}
-            trendValue={overdueCount > 0 ? 'Overdue Action' : 'All Clear'}
-            description="Overdue invoice risk warning"
+            description="Past payment due date"
             icon={RiskAlert}
-            progressSegments={[
-              { label: `${overdueCount} Overdue`, value: overdueCount > 0 ? 80 : 0, color: 'bg-rose-600' },
-              { label: 'Clear', value: overdueCount > 0 ? 20 : 100, color: 'bg-slate-300' },
-            ]}
+            livePulseTrack={{
+              statusText: overdueCount > 0 ? `${overdueCount} Overdue` : "All Payments Clear",
+              subText: overdueCount > 0 ? "Action required" : "0 overdue",
+            }}
+            isActive={selectedStatus === 'Overdue'}
             onClick={() => { setSelectedStatus('Overdue'); setCurrentPage(1); }}
           />
         </div>
+
+        {/* Active Filter Indicator Banner */}
+        {selectedStatus !== 'All' && (
+          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+              <span>
+                Filtered by status: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{selectedStatus}</strong> ({invoices.length} invoice{invoices.length === 1 ? '' : 's'} matching)
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedStatus('All');
+                setCurrentPage(1);
+              }}
+              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Show All Invoices</span>
+              <span className="text-[10px]">✕</span>
+            </button>
+          </div>
+        )}
 
         {/* Toolbar Control Bar Section (Strictly Horizontal) */}
         <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">

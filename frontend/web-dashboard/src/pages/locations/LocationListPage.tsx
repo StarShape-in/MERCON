@@ -10,7 +10,7 @@ import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
-import { RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
+import { RouteLine, CheckBadge, ClockIcon } from '@/components/ui/kpi-icons';
 import { locationService, Location } from '@/services/locationService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -241,49 +241,99 @@ export default function LocationListPage() {
         {/* KPIs — all derived from the loaded rows */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
-            title="LOCATIONS"
-            value={kpis.total}
+            title="TOTAL LOCATIONS"
+            value={
+              <span>
+                {kpis.total}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Places</span>
+              </span>
+            }
             variant="brand"
-            trend="neutral"
-            trendValue={`${kpis.priced} on a rate`}
-            description="Places available to pick"
+            description="All logistics nodes & stops"
             icon={RouteLine}
+            semiCircleGauge={{
+              segments: [
+                { label: "Priced", count: kpis.priced, color: "#16A34A" },
+                { label: "Unused", count: kpis.unused, color: "#2563EB" },
+                { label: "Incomplete", count: kpis.noAddress, color: "#D97706" },
+              ]
+            }}
+            isActive={filter === 'all'}
+            onClick={() => setFilter('all')}
           />
           <KpiCard
-            title="PRICED"
-            value={kpis.priced}
+            title="PRICED LOCATIONS"
+            value={
+              <span>
+                {kpis.priced}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Priced</span>
+              </span>
+            }
             variant="emerald"
-            trend="neutral"
-            trendValue={`${kpis.total - kpis.priced} not on any rate`}
-            description="Used by at least one rate card"
+            description="Linked to active rate cards"
             icon={CheckBadge}
             completionGauge={{
               percentage: kpis.total > 0 ? Math.round((kpis.priced / kpis.total) * 100) : 0,
-              label: 'Share on a rate card',
-              subtext: `${kpis.priced} of ${kpis.total}`,
+              label: "Rate coverage",
+              subtext: `${kpis.priced} of ${kpis.total} places`,
             }}
           />
           <KpiCard
             title="MISSING ADDRESS"
-            value={kpis.noAddress}
+            value={
+              <span>
+                {kpis.noAddress}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Incomplete</span>
+              </span>
+            }
             variant="amber"
-            trend="neutral"
-            trendValue={kpis.noAddress > 0 ? 'Drivers see no address' : 'All complete'}
-            description="Add one so stops inherit it"
-            icon={RouteLine}
-            onClick={() => setFilter('incomplete')}
+            description="Locations lacking street address"
+            icon={ClockIcon}
+            pipelineStages={[
+              { name: "Incomplete", count: kpis.noAddress, color: "bg-amber-500" },
+              { name: "Complete", count: Math.max(0, kpis.total - kpis.noAddress), color: "bg-emerald-500" },
+            ]}
+            isActive={filter === 'incomplete'}
+            onClick={() => setFilter(prev => prev === 'incomplete' ? 'all' : 'incomplete')}
           />
           <KpiCard
-            title="UNUSED"
-            value={kpis.unused}
+            title="UNUSED LOCATIONS"
+            value={
+              <span>
+                {kpis.unused}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Unused</span>
+              </span>
+            }
             variant="blue"
-            trend="neutral"
-            trendValue={kpis.unused > 0 ? 'Check for typos' : 'Nothing stale'}
-            description="No rate card, no trip stop"
+            description="No rate card or trip stops"
             icon={RouteLine}
-            onClick={() => setFilter('unused')}
+            livePulseTrack={{
+              statusText: kpis.unused > 0 ? "Needs Review" : "Clean Registry",
+              subText: kpis.unused > 0 ? "Stale nodes" : "0 unlinked",
+            }}
+            isActive={filter === 'unused'}
+            onClick={() => setFilter(prev => prev === 'unused' ? 'all' : 'unused')}
           />
         </div>
+
+        {/* Active Filter Indicator Banner */}
+        {filter !== 'all' && (
+          <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+              <span>
+                Filtered by view: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{filter === 'unused' ? 'Unused Locations Only' : 'Missing Address or Pin'}</strong> ({filteredData.length} location{filteredData.length === 1 ? '' : 's'} matching)
+              </span>
+            </div>
+            <button
+              onClick={() => setFilter('all')}
+              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Show All Locations</span>
+              <span className="text-[10px]">✕</span>
+            </button>
+          </div>
+        )}
 
         {/* Places with no address hand the driver a pin and nothing else */}
         {kpis.noAddress > 0 && (
