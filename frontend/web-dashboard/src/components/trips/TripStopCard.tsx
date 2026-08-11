@@ -273,7 +273,7 @@ export default function TripStopCard({
       if (resolved) {
         setQuery(resolved.name);
         onNameChange(resolved.name);
-        onAddressChange(resolved.formattedAddress || resolved.name);
+        onAddressChange(resolved.address || resolved.name);
         updateCoords(resolved.lat, resolved.lng);
 
         // Auto-match closest saved location hub

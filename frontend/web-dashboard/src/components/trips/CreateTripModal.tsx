@@ -686,16 +686,51 @@ export default function CreateTripModal({
   useEffect(() => {
     if (!isOpen || isAddDriverOpen || isAddVehicleOpen) return;
 
+    const isInputFocused = () => {
+      const activeEl = document.activeElement;
+      if (!activeEl) return false;
+      const tagName = activeEl.tagName.toLowerCase();
+      return (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select' ||
+        activeEl.getAttribute('contenteditable') === 'true'
+      );
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape -> Cancel / Close
+      // Toggle Keyboard Shortcuts Cheat Sheet (? or Ctrl+/)
+      if ((e.key === '?' && !isInputFocused()) || (e.ctrlKey && e.key === '/')) {
+        e.preventDefault();
+        setIsShortcutsHelpOpen((prev) => !prev);
+        return;
+      }
+
+      // Escape -> Cancel / Close Help / Close Modal
       if (e.key === 'Escape') {
+        if (isShortcutsHelpOpen) {
+          setIsShortcutsHelpOpen(false);
+          return;
+        }
         if (!createMutation.isPending) {
           onClose();
         }
         return;
       }
 
-      // Next Step / Dispatch Submit
+      // Direct step jump with Alt + 1..5
+      if (e.altKey && ['1', '2', '3', '4', '5'].includes(e.key)) {
+        e.preventDefault();
+        const targetStep = parseInt(e.key, 10) as 1 | 2 | 3 | 4 | 5;
+        if (targetStep === 1) setStep(1);
+        if (targetStep === 2 && customerId) setStep(2);
+        if (targetStep === 3 && customerId && !missingLocation && !missingName && !missingLane && !sameLaneEndpoints) setStep(3);
+        if (targetStep === 4 && customerId && !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid) setStep(4);
+        if (targetStep === 5 && isFormValid) setStep(5);
+        return;
+      }
+
+      // Next Step (Alt + RightArrow, Alt + N, Ctrl + Enter)
       if (
         (e.altKey && (e.key === 'ArrowRight' || e.key.toLowerCase() === 'n')) ||
         ((e.ctrlKey || e.metaKey) && e.key === 'Enter')
@@ -719,6 +754,130 @@ export default function CreateTripModal({
         }
         return;
       }
+
+      // Enter Key Behavior (when not in search dropdown list):
+      if (e.key === 'Enter' && !e.shiftKey && !e.altKey && !e.ctrlKey) {
+        const activeEl = document.activeElement;
+        const isInCommandItem = activeEl?.getAttribute('cmdk-item') !== null || activeEl?.closest('[cmdk-list]');
+        if (isInCommandItem) return;
+
+        if (step === 1 && customerId && !isSearchAccountsOpen) {
+          e.preventDefault();
+          nextStep();
+          return;
+        }
+        if (step === 2 && !missingLocation && !missingName && !missingLane && !sameLaneEndpoints) {
+          e.preventDefault();
+          nextStep();
+          return;
+        }
+        if (step === 3 && !missingSchedule && !isScheduleInvalid) {
+          e.preventDefault();
+          nextStep();
+          return;
+        }
+        if (step === 4 && ((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater))) {
+          e.preventDefault();
+          nextStep();
+          return;
+        }
+        if (step === 5 && isFormValid && !createMutation.isPending) {
+          e.preventDefault();
+          handleSubmit();
+          return;
+        }
+      }
+
+      // STEP 1 SHORTCUTS
+      if (step === 1) {
+        // Shift alone or Shift+S -> Open Search All Accounts
+        if (e.key === 'Shift' || (e.shiftKey && e.key.toLowerCase() === 's')) {
+          if (!isInputFocused()) {
+            e.preventDefault();
+            setIsSearchAccountsOpen(true);
+            return;
+          }
+        }
+        // 1, 2, 3, 4 -> Select Frequent Shipper 1..4
+        if (!isInputFocused() && ['1', '2', '3', '4'].includes(e.key)) {
+          const quickSelect = customers.slice(0, 4);
+          const idx = parseInt(e.key, 10) - 1;
+          if (quickSelect[idx]) {
+            e.preventDefault();
+            setCustomerId(quickSelect[idx].id);
+            setError(null);
+          }
+          return;
+        }
+      }
+
+      // STEP 2 SHORTCUTS
+      if (step === 2) {
+        // \ -> Pickup, Shift + \ -> Dropoff
+        if (e.key === '\\') {
+          e.preventDefault();
+          if (e.shiftKey || pickupLocationId) {
+            setFocusDropoffSearch(true);
+            setTimeout(() => setFocusDropoffSearch(false), 300);
+          } else {
+            setFocusPickupSearch(true);
+            setTimeout(() => setFocusPickupSearch(false), 300);
+          }
+          return;
+        }
+      }
+
+      // STEP 3 SHORTCUTS
+      if (step === 3) {
+        if (!isInputFocused() && ['1', '2', '3', '4'].includes(e.key)) {
+          e.preventDefault();
+          if (e.key === '1') applyDropoffOffset(4);
+          if (e.key === '2') applyDropoffOffset(8);
+          if (e.key === '3') applyDropoffOffset(24);
+          if (e.key === '4') applyDropoffOffset(0, true);
+          return;
+        }
+      }
+
+      // STEP 4 SHORTCUTS
+      if (step === 4) {
+        if (!isInputFocused()) {
+          if (e.key.toLowerCase() === 'd') {
+            e.preventDefault();
+            const driverComboboxBtn = document.querySelector('[aria-haspopup="dialog"], [role="combobox"]') as HTMLButtonElement;
+            driverComboboxBtn?.click();
+            return;
+          }
+          if (e.key.toLowerCase() === 'l') {
+            e.preventDefault();
+            setAssignDriverLater(!assignDriverLater);
+            setAssignVehicleLater(!assignVehicleLater);
+            return;
+          }
+          if (['1', '2', '3', '4'].includes(e.key)) {
+            const idx = parseInt(e.key, 10) - 1;
+            if (driverOptions[idx]) {
+              e.preventDefault();
+              setDriverId(driverOptions[idx].value);
+            }
+            return;
+          }
+        }
+      }
+
+      // STEP 5 SHORTCUTS
+      if (step === 5) {
+        if (!isInputFocused() && ['1', '2', '3'].includes(e.key)) {
+          const idx = parseInt(e.key, 10) - 1;
+          if (availableRateCards[idx]) {
+            e.preventDefault();
+            setSelectedRateCardId(availableRateCards[idx].id);
+            setBillingAmount(String(availableRateCards[idx].base_price));
+            setIsPriceCustomized(false);
+          }
+          return;
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -727,13 +886,31 @@ export default function CreateTripModal({
     isOpen,
     isAddDriverOpen,
     isAddVehicleOpen,
+    isShortcutsHelpOpen,
     step,
+    customerId,
+    customers,
+    driverOptions,
+    availableRateCards,
+    isSearchAccountsOpen,
+    assignDriverLater,
+    assignVehicleLater,
+    missingLocation,
+    missingName,
+    missingLane,
+    sameLaneEndpoints,
+    missingSchedule,
+    isScheduleInvalid,
+    selectedDriver,
+    selectedVehicle,
     isFormValid,
     createMutation.isPending,
     nextStep,
     prevStep,
     handleSubmit,
     onClose,
+    applyDropoffOffset,
+    pickupLocationId,
   ]);
 
   return (
@@ -760,15 +937,30 @@ export default function CreateTripModal({
                 </Badge>
               </div>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-              >
-                <RotateCcw className="w-3.5 h-3.5" /> Reset Form
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsShortcutsHelpOpen(true)}
+                  className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  title="Keyboard Shortcuts Cheat Sheet (Press ?)"
+                >
+                  <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+                  <span>Shortcuts</span>
+                  <span className="font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500">?</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReset}
+                  className="h-8 text-xs gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Reset Form
+                </Button>
+              </div>
             </div>
 
             {/* Step Selector Tabs (5 Steps) */}
@@ -900,6 +1092,8 @@ export default function CreateTripModal({
                 customers={customers}
                 selectedCustomer={selectedCustomer}
                 onSelectCustomer={(id) => { setCustomerId(id); setError(null); }}
+                openSearch={isSearchAccountsOpen}
+                onOpenSearchChange={setIsSearchAccountsOpen}
               />
             )}
 
@@ -934,6 +1128,8 @@ export default function CreateTripModal({
                 onDropoffTimeChange={(t) => { setDropoffTime(t); setError(null); }}
                 onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
                 onDropoffAddressChange={setDropoffAddress}
+                focusPickupSearch={focusPickupSearch}
+                focusDropoffSearch={focusDropoffSearch}
               />
             )}
 
@@ -1047,11 +1243,11 @@ export default function CreateTripModal({
                   size="sm"
                   onClick={nextStep}
                   className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-5"
-                  title="Keyboard Shortcut: Alt + RightArrow or Alt + N"
+                  title="Keyboard Shortcut: Enter or Alt + RightArrow"
                 >
                   <span>Next Step</span>
                   <ChevronRight className="w-4 h-4" />
-                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">Alt+→</span>
+                  <span className="ml-1 text-[10px] font-mono bg-black/20 text-white/90 px-1.5 py-0.2 rounded">↵</span>
                 </Button>
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
@@ -1097,6 +1293,62 @@ export default function CreateTripModal({
         </DialogContent>
       </Dialog>
 
+      {/* Keyboard Shortcuts Cheat Sheet Dialog */}
+      <Dialog open={isShortcutsHelpOpen} onOpenChange={setIsShortcutsHelpOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-5 space-y-4">
+          <DialogHeader>
+            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
+              <Keyboard className="w-5 h-5 text-[#E8450F]" />
+              New Trip Keyboard Shortcuts
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 text-xs">
+            <div className="space-y-1.5">
+              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 1 — Customer</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Shift</kbd> Search Accounts</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1 - 4</kbd> Frequent Shippers</div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 2 — Route Stops</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">\</kbd> Pickup Location</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Shift + \</kbd> Dropoff Location</div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 3 — Schedule</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1 / 2</kbd> +4h / +8h Offset</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">3 / 4</kbd> +24h / EOD Target</div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 4 — Assignments</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">D</kbd> Select Driver</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">L</kbd> Defer Assignment</div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 5 &amp; Navigation</h4>
+              <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1 - 3</kbd> Rate Cards</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Enter</kbd> Next / Schedule</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Alt + 1..5</kbd> Jump Tab</div>
+                <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Esc</kbd> Close Dialog</div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Quick Add Modals */}
       <CreateDriverModal
         isOpen={isAddDriverOpen}
@@ -1111,3 +1363,4 @@ export default function CreateTripModal({
     </>
   );
 }
+
