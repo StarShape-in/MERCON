@@ -1,5 +1,6 @@
 import { api, ApiResponse } from '@/lib/api';
 import { Location } from '@/services/locationService';
+import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 
 /**
  * A rate card prices a lane (origin → destination).
@@ -24,6 +25,12 @@ export interface RateCard {
   customerId: string | null;
   originLocationId: string | null;
   destinationLocationId: string | null;
+  /** Free text, not a fixed list — each customer's quote names its own tiers. */
+  vehicle_type: string | null;
+  /** e.g. "Trip/Round Trip", "Monthly", "Daily Local", "Surcharge". */
+  rate_category: string | null;
+  /** Optional connecting stop between origin and destination. */
+  via_location: string | null;
   is_active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -39,6 +46,9 @@ export interface CreateRateCardPayload {
   /** Omit or null for the standard lane rate that applies to every customer. */
   customerId?: string | null;
   is_active?: boolean;
+  vehicle_type?: string | null;
+  rate_category?: string | null;
+  via_location?: string | null;
   /** Pick an existing place by id, or name a new one — the API creates it. */
   origin_location_id?: string | null;
   destination_location_id?: string | null;
@@ -142,5 +152,10 @@ export const rateCardService = {
 
   async bulkDelete(ids: string[]): Promise<void> {
     await api.post('/rate-cards/bulk-delete', { ids });
+  },
+
+  async importRows(rows: Record<string, string | number>[]): Promise<ImportSummary> {
+    const res = await api.post<ApiResponse<ImportSummary>>('/rate-cards/import', { rows });
+    return res.data.data;
   },
 };

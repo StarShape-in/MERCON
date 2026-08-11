@@ -118,6 +118,9 @@ export default function CreateTripPage() {
   const [isPriceCustomized, setIsPriceCustomized] = useState(false);
   // What to do with a price typed for a lane nobody has priced yet.
   const [saveRateAs, setSaveRateAs] = useState<'standard' | 'customer' | 'none'>('standard');
+  // Which of possibly several rate cards for this lane (imported tiers differ
+  // by vehicle_type/rate_category) the dispatcher picked.
+  const [selectedRateCardId, setSelectedRateCardId] = useState('');
 
   // Fetch Customers, Drivers, Vehicles, and Locations
   const { data: customersRes } = useQuery({
@@ -260,28 +263,45 @@ export default function CreateTripPage() {
   // frequently not the price for this route.
   const laneReady = !!pickupLocationId && !!dropoffLocationId && pickupLocationId !== dropoffLocationId;
 
-  const { data: rateLookup, isFetching: isLookingUpRate } = useQuery({
-    queryKey: ['rate-card-lookup', customerId, pickupLocationId, dropoffLocationId],
-    queryFn: () =>
-      rateCardService.lookup({
-        customer_id: customerId,
+  // Every rate card priced for this lane — the customer's own overrides plus
+  // the standard ones they fall back to. A lane can now have several (imported
+  // tiers differ by vehicle_type/rate_category), so this can't just take
+  // "whichever card was updated most recently" the way a single /lookup call
+  // would — the dispatcher picks the right one below.
+  const { data: availableRateCardsRes, isFetching: isLookingUpRate } = useQuery({
+    queryKey: ['available-rate-cards-lane', customerId, pickupLocationId, dropoffLocationId],
+    queryFn: async () => {
+      const res = await rateCardService.getAll({
+        customerId: customerId || undefined,
+        include_standard: true,
         origin_location_id: pickupLocationId,
         destination_location_id: dropoffLocationId,
-      }),
+        active_only: true,
+      });
+      return res.data || [];
+    },
     enabled: !!customerId && laneReady,
   });
 
-  const matchedRateCard = rateLookup?.rate_card ?? null;
-  const rateSource = rateLookup?.source ?? null;
-  const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && !matchedRateCard;
+  const availableRateCards = availableRateCardsRes || [];
+  const matchedRateCard = availableRateCards.find((rc) => rc.id === selectedRateCardId) ?? null;
+  const rateSource = matchedRateCard ? (matchedRateCard.customerId ? 'customer' : 'standard') : null;
+  const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && availableRateCards.length === 0;
 
-  // Auto-fill the price from the matched rate, unless the dispatcher has typed
-  // their own for this trip.
+  // Auto-select the customer's own card if they have one, else the standard
+  // one, whenever the lane's cards load or change — but leave the dispatcher's
+  // own pick alone.
   useEffect(() => {
-    if (matchedRateCard && !isPriceCustomized) {
-      setBillingAmount(String(matchedRateCard.base_price));
+    if (availableRateCards.length === 0) return;
+    if (selectedRateCardId && availableRateCards.some((rc) => rc.id === selectedRateCardId)) return;
+    const customerCard = availableRateCards.find((rc) => rc.customerId === customerId);
+    const target = customerCard || availableRateCards[0];
+    if (target) {
+      setSelectedRateCardId(target.id);
+      if (!isPriceCustomized) setBillingAmount(String(target.base_price));
     }
-  }, [matchedRateCard, isPriceCustomized]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableRateCards, customerId]);
 
   // Transit Duration & SLA Buffer Calculation
   const transitInfo = useMemo(() => {
@@ -1249,6 +1269,44 @@ export default function CreateTripPage() {
                 <p className="text-[11px] text-muted-foreground rounded-lg border border-dashed border-border p-3">
                   Choose an origin and destination in step 3 to see the price for this lane.
                 </p>
+              )}
+
+              {/* More than one card prices this lane — imported tiers differ by
+                  vehicle type/rate category, so the dispatcher picks which one applies. */}
+              {availableRateCards.length > 1 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold text-muted-foreground">
+                    {availableRateCards.length} rates for this lane — pick the right one:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableRateCards.map((rc) => (
+                      <button
+                        key={rc.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedRateCardId(rc.id);
+                          setBillingAmount(String(rc.base_price));
+                          setIsPriceCustomized(false);
+                        }}
+                        className={cn(
+                          'text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border text-left transition-colors',
+                          rc.id === selectedRateCardId
+                            ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-200'
+                            : 'border-border bg-background hover:bg-muted/60 text-foreground/80'
+                        )}
+                      >
+                        {(rc.rate_category || rc.vehicle_type) ? (
+                          <span>{[rc.rate_category, rc.vehicle_type].filter(Boolean).join(' · ')}</span>
+                        ) : (
+                          <span>{rc.customerId ? 'Customer rate' : 'Standard rate'}</span>
+                        )}
+                        <span className="block font-mono font-bold">
+                          {rc.currency || 'SAR'} {Number(rc.base_price).toLocaleString()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Matched rate */}

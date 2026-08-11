@@ -21,7 +21,8 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   ChevronDown,
-  Layers
+  Layers,
+  UploadCloud
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -33,6 +34,8 @@ import { RevenueChart, CustomerBuilding, RouteLine, CheckBadge } from '@/compone
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import AssignRateCardDialog from '@/components/rate-cards/AssignRateCardDialog';
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -86,6 +89,7 @@ export default function RateCardListPage() {
   const [assignTarget, setAssignTarget] = useState<RateCard | null>(null);
   const [editTarget, setEditTarget] = useState<RateCard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
 
@@ -243,19 +247,35 @@ export default function RateCardListPage() {
     {
       header: 'Route Lane',
       accessor: (row: RateCard) => (
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 min-w-[200px]">
-          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>{row.route_origin}</span>
-          <ArrowRight className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
-          <span>{row.route_destination}</span>
-          {(!row.originLocationId || !row.destinationLocationId) && (
-            <Badge
-              variant="outline"
-              className="ml-1 text-[9px] font-bold uppercase bg-amber-50 text-amber-700 border-amber-200"
-              title="This lane is still free text, so trips never pick this rate up. Edit it and choose both places."
-            >
-              Not linked
-            </Badge>
+        <div className="flex flex-col gap-1 min-w-[200px]">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>{row.route_origin}</span>
+            <ArrowRight className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
+            <span>{row.route_destination}</span>
+            {(!row.originLocationId || !row.destinationLocationId) && (
+              <Badge
+                variant="outline"
+                className="ml-1 text-[9px] font-bold uppercase bg-amber-50 text-amber-700 border-amber-200"
+                title="This lane is still free text, so trips never pick this rate up. Edit it and choose both places."
+              >
+                Not linked
+              </Badge>
+            )}
+          </div>
+          {(row.rate_category || row.vehicle_type) && (
+            <div className="flex flex-wrap items-center gap-1">
+              {row.rate_category && (
+                <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-indigo-50 text-indigo-700 border-indigo-200">
+                  {row.rate_category}
+                </Badge>
+              )}
+              {row.vehicle_type && (
+                <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200">
+                  {row.vehicle_type}
+                </Badge>
+              )}
+            </div>
           )}
         </div>
       ),
@@ -497,6 +517,15 @@ export default function RateCardListPage() {
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
             >
               <FileText className="w-3.5 h-3.5" /> Full form
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportDialogOpen(true)}
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-emerald-600" /> Import Excel
             </Button>
 
             <Button
@@ -830,6 +859,19 @@ export default function RateCardListPage() {
           onClose={() => setEditTarget(null)}
         />
         <AssignRateCardDialog rateCard={assignTarget} onClose={() => setAssignTarget(null)} />
+
+        <ExcelImportDialog
+          isOpen={importDialogOpen}
+          onClose={() => setImportDialogOpen(false)}
+          entityLabel="Rate Cards"
+          columns={RATE_CARD_COLUMNS}
+          requiredFields={['customer_name', 'origin', 'price']}
+          preferSheet="rate"
+          templateUrl="/templates/MERCON_RateCards_Import_Template.xlsx"
+          matchLabel="customer + lane + vehicle type + rate category"
+          onImport={(rows) => rateCardService.importRows(rows)}
+          invalidateKeys={[['rate-cards']]}
+        />
 
         {/* Tariff Market Benchmark Modal */}
         <Dialog open={showTariffModal} onOpenChange={setShowTariffModal}>

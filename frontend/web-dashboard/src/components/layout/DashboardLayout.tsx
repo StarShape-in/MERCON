@@ -2,6 +2,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { useLayoutMeta } from '@/context/LayoutContext';
 
 const SIDEBAR_COLLAPSED_KEY = 'mercon.sidebarCollapsed';
 
@@ -24,9 +25,41 @@ export default function DashboardLayout({
   actions,
   children,
 }: DashboardLayoutProps) {
+  const { isInsideShell, setMeta } = useLayoutMeta();
+
+  // ── When inside AppShell: push metadata up and render only the content ──
+  // The shell already owns the sidebar, header, and scroll container.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (isInsideShell) {
+      setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions });
+    }
+    // Re-run only when primitive values change (actions/pageTitle are JSX so
+    // excluding them from deps avoids infinite loops; they update via ref on
+    // each render in AppShell anyway).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInsideShell, active, title, breadcrumb, pageSub]);
+
+  if (isInsideShell) {
+    // Shell is already rendering the sidebar/header — just return the content.
+    return <>{children}</>;
+  }
+
+  // ── Standalone mode (fallback): render the full shell inline ────────────
+  // This path is only taken on pages that are NOT inside the AppShell layout
+  // route, e.g. during local development of an isolated page.
+  return <StandaloneShell {...{ active, title, breadcrumb, pageTitle, pageSub, actions, children }} />;
+}
+
+/** Full standalone shell — only used when AppShell is not the parent route. */
+function StandaloneShell({
+  active,
+  title,
+  breadcrumb,
+  children,
+}: DashboardLayoutProps) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Desktop rail preference — persisted so it survives navigation and reloads
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
   );
@@ -35,12 +68,10 @@ export default function DashboardLayout({
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  // Close the mobile drawer whenever the route changes
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  // Lock body scroll while the mobile drawer is open
   useEffect(() => {
     if (!sidebarOpen) return;
     const previous = document.body.style.overflow;

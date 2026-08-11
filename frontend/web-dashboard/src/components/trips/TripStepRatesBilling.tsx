@@ -142,6 +142,20 @@ export default function TripStepRatesBilling({
                         <span className="text-[10px] text-slate-500 block truncate pl-6">
                           {rc.route_origin} → {rc.route_destination}
                         </span>
+                        {(rc.rate_category || rc.vehicle_type) && (
+                          <span className="flex flex-wrap items-center gap-1 pl-6 pt-0.5">
+                            {rc.rate_category && (
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
+                                {rc.rate_category}
+                              </span>
+                            )}
+                            {rc.vehicle_type && (
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
+                                {rc.vehicle_type}
+                              </span>
+                            )}
+                          </span>
+                        )}
                       </div>
                       <Badge className={cn("text-[9px] uppercase tracking-wider font-extrabold shrink-0 px-2 py-0.5", isCustomerCard ? "bg-indigo-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300")}>
                         {isCustomerCard ? 'Customer Override' : 'Standard Rate'}

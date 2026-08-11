@@ -231,12 +231,29 @@ export default function RateCardDetailsPage() {
             <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Lane</span>
             <div className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 mt-1 min-w-0">
               <span className="truncate">{card.route_origin}</span>
+              {card.via_location && (
+                <span className="shrink-0 text-[10px] font-semibold text-slate-400">via {card.via_location}</span>
+              )}
               <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
               <span className="truncate">{card.route_destination}</span>
             </div>
             <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
               {laneLinked ? 'Linked to both locations' : 'Free text — not linked'}
             </span>
+            {(card.rate_category || card.vehicle_type) && (
+              <div className="flex flex-wrap items-center gap-1 mt-2">
+                {card.rate_category && (
+                  <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40">
+                    {card.rate_category}
+                  </Badge>
+                )}
+                {card.vehicle_type && (
+                  <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40">
+                    {card.vehicle_type}
+                  </Badge>
+                )}
+              </div>
+            )}
           </Card>
 
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs p-4">
