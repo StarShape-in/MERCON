@@ -7,14 +7,18 @@ import KpiCard from '@/components/ui/KpiCard';
 import { KpiRouteFooter } from '@/components/ui/KpiRouteFooter';
 import { RouteLine, MoneyBills, FleetTruck, RevenueChart } from '@/components/ui/kpi-icons';
 import PostTripSettlementModal from '@/components/trips/PostTripSettlementModal';
+import LogDelayReasonModal from '@/components/trips/LogDelayReasonModal';
 import ActiveTripsWidget from '@/components/dashboard/ActiveTripsWidget';
 import LaborChargeQueueWidget from '@/components/dashboard/LaborChargeQueueWidget';
 import TopCustomersWidget from '@/components/dashboard/TopCustomersWidget';
 import ActionsNeededWidget from '@/components/dashboard/ActionsNeededWidget';
-import { reportsService } from '@/services/reportsService';
+import { reportsService, DelayLogRow } from '@/services/reportsService';
 import { tripService, Trip } from '@/services/tripService';
 import { documentService } from '@/services/documentService';
 import { maintenanceService } from '@/services/maintenanceService';
+import { invoiceService } from '@/services/invoiceService';
+import { rateCardService } from '@/services/rateCardService';
+import { locationService } from '@/services/locationService';
 
 const ACTIVE_TRIP_STATUSES = 'Dispatched,AtPickup,InTransit,AtDelivery';
 
@@ -32,6 +36,7 @@ function formatRelativeTime(from: number, now: number): string {
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
   const [selectedSettlementTrip, setSelectedSettlementTrip] = useState<Trip | null>(null);
+  const [selectedDelayStop, setSelectedDelayStop] = useState<DelayLogRow | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
@@ -77,6 +82,26 @@ export default function AdminDashboardPage() {
   const { data: maintenanceRes, isLoading: maintenanceLoading } = useQuery({
     queryKey: ['admin-dashboard', 'maintenance'],
     queryFn: () => maintenanceService.getAll({ per_page: 100 }),
+  });
+
+  const { data: delayLogRes, isLoading: delayLoading } = useQuery({
+    queryKey: ['admin-dashboard', 'delay-log'],
+    queryFn: () => reportsService.getDelayLog({ needs_reason: 'true', per_page: 50 }),
+  });
+
+  const { data: invoicesRes, isLoading: invoicesLoading } = useQuery({
+    queryKey: ['admin-dashboard', 'invoices'],
+    queryFn: () => invoiceService.getAll({ per_page: 200 }),
+  });
+
+  const { data: rateCardsRes, isLoading: rateCardsLoading } = useQuery({
+    queryKey: ['admin-dashboard', 'rate-cards'],
+    queryFn: () => rateCardService.getAll(),
+  });
+
+  const { data: locationsRes, isLoading: locationsLoading } = useQuery({
+    queryKey: ['admin-dashboard', 'locations'],
+    queryFn: () => locationService.getAll(),
   });
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
@@ -269,18 +294,23 @@ export default function AdminDashboardPage() {
           />
         </div>
 
-        {/* Top customers + Actions needed */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-5">
-          <div className="lg:col-span-5">
-            <TopCustomersWidget customers={revenueReport?.top_customers || []} isLoading={revenueLoading} />
-          </div>
-          <div className="lg:col-span-7">
-            <ActionsNeededWidget
-              expiringDocs={expiringDocsRes?.data || []}
-              dueMaintenance={maintenanceRes?.data || []}
-              isLoading={docsLoading || maintenanceLoading}
-            />
-          </div>
+        {/* Top customers */}
+        <div className="mb-5">
+          <TopCustomersWidget customers={revenueReport?.top_customers || []} isLoading={revenueLoading} />
+        </div>
+
+        {/* Actions needed — the dashboard's action center */}
+        <div className="mb-5">
+          <ActionsNeededWidget
+            expiringDocs={expiringDocsRes?.data || []}
+            dueMaintenance={maintenanceRes?.data || []}
+            delaysNeedingReason={delayLogRes?.data || []}
+            invoices={invoicesRes?.data || []}
+            rateCards={rateCardsRes?.data || []}
+            locations={locationsRes?.data || []}
+            isLoading={docsLoading || maintenanceLoading || delayLoading || invoicesLoading || rateCardsLoading || locationsLoading}
+            onLogDelayReason={(row) => setSelectedDelayStop(row)}
+          />
         </div>
 
         <PostTripSettlementModal
@@ -291,6 +321,16 @@ export default function AdminDashboardPage() {
             queryClient.invalidateQueries({ queryKey: ['admin-dashboard', 'unsettled-trips'] });
             queryClient.invalidateQueries({ queryKey: ['admin-dashboard', 'active-trips'] });
             showToast('Trip settled successfully');
+          }}
+        />
+
+        <LogDelayReasonModal
+          isOpen={!!selectedDelayStop}
+          stop={selectedDelayStop}
+          onClose={() => setSelectedDelayStop(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['admin-dashboard', 'delay-log'] });
+            showToast('Delay reason logged');
           }}
         />
       </div>
