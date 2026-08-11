@@ -485,17 +485,7 @@ export default function DashboardPage() {
             ========================================== */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5 pt-1">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center flex-wrap gap-2.5">
-              {/* Context Selector Pill */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-full text-xs font-extrabold text-slate-700 shadow-2xs cursor-pointer select-none transition-all">
-                <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                <span>MERCON Logistics</span>
-                <span className="text-slate-400 text-[9px]">↕</span>
-              </div>
-              <Badge className="bg-indigo-50/70 hover:bg-indigo-100/50 text-indigo-600 border border-indigo-200 font-semibold px-2.5 py-0.5 text-[10px] rounded-md transition-colors">
-                Operations Module
-              </Badge>
-            </div>
+
             
             <div className="mt-1">
               <h1 className="text-2xl font-extrabold text-slate-950 tracking-tight font-sans">
