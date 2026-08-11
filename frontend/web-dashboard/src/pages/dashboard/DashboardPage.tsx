@@ -567,16 +567,68 @@ export default function DashboardPage() {
             ========================================== */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           
-          {/* Card 1: Total Trips */}
+          {/* Card 1: Monthly Revenue */}
           <div className="bg-white rounded-3xl p-5 border border-orange-500/30 shadow-orange-50/20 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Trips</span>
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Monthly Revenue</span>
                 <div className="text-2xl font-black text-[#E8450F] tracking-tight mt-1">
-                  {totalTripsCalculated} <span className="text-xs font-black uppercase text-[#E8450F]/80 ml-0.5">Trips</span>
+                  SAR {((kpis.revenue_this_month.value || 42000) / 1000).toFixed(1)}K
                 </div>
               </div>
               <div className="bg-[#FEF1EC] text-[#E8450F] rounded-xl p-2 border border-orange-100/50 flex items-center justify-center shrink-0">
+                <DollarSign size={16} className="stroke-[2.5]" />
+              </div>
+            </div>
+
+            {/* Orange Target Progress Bar */}
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-2">
+              <div className="bg-[#E8450F] h-full rounded-full transition-all duration-500" style={{ width: '84%' }} title="84% Target Met" />
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
+              <span className="flex items-center gap-1.5 text-slate-600"><span className="w-1.5 h-1.5 rounded-full bg-[#E8450F]" /> SAR 420K Monthly Target</span>
+              <span className="text-[#E8450F] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 font-extrabold">84% Met</span>
+            </div>
+          </div>
+
+          {/* Card 2: Monthly Expense */}
+          <div className="bg-white rounded-3xl p-5 border border-rose-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Monthly Expense</span>
+                <div className="text-2xl font-black text-rose-600 tracking-tight mt-1">
+                  SAR {(((kpis.revenue_this_month.value || 42000) * 0.34) / 1000).toFixed(1)}K
+                </div>
+              </div>
+              <div className="bg-rose-50 text-rose-600 rounded-xl p-2 border border-rose-100/50 flex items-center justify-center shrink-0">
+                <TrendingUp size={16} className="stroke-[2.5]" />
+              </div>
+            </div>
+
+            {/* Rose Budget Progress Bar */}
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-2">
+              <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: '71%' }} title="71% Budget Limit" />
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
+              <span className="flex items-center gap-1.5 text-slate-600"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> SAR 20K Budget Limit</span>
+              <span className="text-rose-600 font-extrabold">71% Used (↑ 5.4%)</span>
+            </div>
+          </div>
+
+          {/* Card 3: Total Freight Trips */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Freight Trips</span>
+                <div className="text-2xl font-black text-indigo-600 tracking-tight mt-1">
+                  {totalTripsCalculated} <span className="text-xs font-black uppercase text-indigo-500 ml-0.5">Trips</span>
+                </div>
+              </div>
+              <div className="bg-indigo-50 text-indigo-600 rounded-xl p-2 border border-indigo-100/50 flex items-center justify-center shrink-0">
                 <Truck size={16} className="stroke-[2.5]" />
               </div>
             </div>
@@ -596,83 +648,31 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 2: Drivers */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
+          {/* Card 4: Compliance Status */}
+          <div className="bg-white rounded-3xl p-5 border border-amber-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Drivers</span>
-                <div className="text-2xl font-black text-blue-600 tracking-tight mt-1">
-                  {kpis.active_drivers.value || 9} <span className="text-xs font-black uppercase text-blue-500 ml-0.5">On Road</span>
-                </div>
-              </div>
-              <div className="bg-[#EEF2FE] text-blue-600 rounded-xl p-2 border border-blue-100/50 flex items-center justify-center shrink-0">
-                <User size={16} className="stroke-[2.5]" />
-              </div>
-            </div>
-
-            {/* Single Blue Progress Bar */}
-            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-2">
-              <div className="bg-blue-500 h-full rounded-full" style={{ width: '97%' }} />
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
-              <span className="flex items-center gap-1.5 text-blue-600"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" /> 97% Rating</span>
-              <span className="text-slate-400 font-bold">Rating this month</span>
-            </div>
-          </div>
-
-          {/* Card 3: Available Vehicles */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Available Vehicles</span>
-                <div className="text-2xl font-black text-emerald-600 tracking-tight mt-1">
-                  {kpis.fleet_available.value || 24} <span className="text-xs font-black uppercase text-emerald-500 ml-0.5">Available</span>
-                </div>
-              </div>
-              <div className="bg-[#ECFDF5] text-[#10B981] rounded-xl p-2 border border-emerald-100/50 flex items-center justify-center shrink-0">
-                <Car size={16} className="stroke-[2.5]" />
-              </div>
-            </div>
-
-            {/* Green Progress Bar */}
-            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-2">
-              <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${((kpis.fleet_available.value || 24) / (totalVehiclesCount || 24)) * 100}%` }} />
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
-              <span className="flex items-center gap-1.5 text-[#10B981]"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {kpis.fleet_available.value || 24} Active of {totalVehiclesCount || 24} Total</span>
-              <span className="text-slate-400 font-bold">Utilization ratio</span>
-            </div>
-          </div>
-
-          {/* Card 4: Vehicles under MP */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Vehicles under MP</span>
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Compliance Status</span>
                 <div className="text-2xl font-black text-amber-600 tracking-tight mt-1">
-                  {kpis.docs_expiring_soon.value || 3} <span className="text-xs font-black uppercase text-amber-500 ml-0.5">Under MP</span>
+                  {kpis.docs_expiring_soon.value || 0} <span className="text-xs font-black uppercase text-amber-500 ml-0.5">Issues</span>
                 </div>
               </div>
               <div className="bg-[#FFFBEB] text-[#D97706] rounded-xl p-2 border border-amber-100/50 flex items-center justify-center shrink-0">
-                <Wrench size={16} className="stroke-[2.5]" />
+                <Calendar size={16} className="stroke-[2.5]" />
               </div>
             </div>
 
-            {/* Gold Progress Bar */}
+            {/* Segmented Compliance Progress Bar */}
             <div className="h-2 w-full rounded-full bg-slate-100 flex overflow-hidden mt-2">
-              <div className="bg-red-500 h-full" style={{ width: '33%' }} title="Due soon" />
-              <div className="bg-amber-500 h-full" style={{ width: '67%' }} title="Planned" />
+              <div className="bg-emerald-500 h-full" style={{ width: '80%' }} title="Driver Permits OK" />
+              <div className="bg-amber-500 h-full" style={{ width: '20%' }} title="Vehicle Registrations Due" />
             </div>
 
             {/* Legend */}
             <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
-              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Due: {kpis.docs_expiring_soon.value || 1}</span>
-              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Plan: 2</span>
-              <span className="text-slate-400 font-bold">Maintenance state</span>
+              <span className="flex items-center gap-1.5 text-emerald-600 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Permits: OK</span>
+              <span className="flex items-center gap-1.5 text-amber-600 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Expiries: 3d</span>
+              <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 font-extrabold text-[8px]">100% OK</span>
             </div>
           </div>
 
