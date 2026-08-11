@@ -19,6 +19,7 @@ import { maintenanceService } from '@/services/maintenanceService';
 import { invoiceService } from '@/services/invoiceService';
 import { rateCardService } from '@/services/rateCardService';
 import { locationService } from '@/services/locationService';
+import { customerService, Customer } from '@/services/customerService';
 
 const ACTIVE_TRIP_STATUSES = 'Dispatched,AtPickup,InTransit,AtDelivery';
 
@@ -72,6 +73,16 @@ export default function AdminDashboardPage() {
   const { data: revenueReport, isLoading: revenueLoading } = useQuery({
     queryKey: ['admin-dashboard', 'revenue-report'],
     queryFn: () => reportsService.getRevenueReport(6),
+  });
+  const topCustomerIds = (revenueReport?.top_customers || []).map((c) => c.id);
+
+  const { data: topCustomerDetails = {} } = useQuery({
+    queryKey: ['admin-dashboard', 'top-customer-details', topCustomerIds.join(',')],
+    queryFn: async () => {
+      const details = await Promise.all(topCustomerIds.map((id) => customerService.getById(id)));
+      return details.reduce<Record<string, Customer>>((acc, c) => { acc[c.id] = c; return acc; }, {});
+    },
+    enabled: topCustomerIds.length > 0,
   });
 
   const { data: expiringDocsRes, isLoading: docsLoading } = useQuery({
@@ -296,7 +307,12 @@ export default function AdminDashboardPage() {
 
         {/* Top customers */}
         <div className="mb-5">
-          <TopCustomersWidget customers={revenueReport?.top_customers || []} isLoading={revenueLoading} />
+          <TopCustomersWidget
+            customers={revenueReport?.top_customers || []}
+            customerDetails={topCustomerDetails}
+            invoices={invoicesRes?.data || []}
+            isLoading={revenueLoading}
+          />
         </div>
 
         {/* Actions needed — the dashboard's action center */}

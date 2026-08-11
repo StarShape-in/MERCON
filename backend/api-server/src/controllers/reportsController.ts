@@ -277,6 +277,7 @@ export const getRevenueReport = async (req: Request, res: Response) => {
     });
     const nameById = new Map(customers.map((c) => [c.id, c.name]));
     const top_customers = grouped.map((g) => ({
+      id: g.customerId,
       name: nameById.get(g.customerId) ?? 'Unknown',
       value: g._sum.total_amount ?? 0
     }));

@@ -19,7 +19,7 @@ export interface RevenueReport {
   outstanding_total: number;
   paid_invoice_count: number;
   avg_per_invoice: number;
-  top_customers: { name: string; value: number }[];
+  top_customers: { id: string; name: string; value: number }[];
 }
 
 export interface FleetPerfRow {
