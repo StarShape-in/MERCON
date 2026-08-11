@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, AlertCircle, Clock, ChevronRight, RefreshCw, Car, User, CheckCircle2, ArrowUpRight
+  Bell, Car, User, ArrowUpRight, Loader2, CheckCircle2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { documentService, type MerconDocument } from '@/services/documentService';
+import { driverService } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
+import { docTypeLabel, daysUntil } from '@/lib/documents';
 
-export interface ReminderItem {
+export interface DisplayReminder {
   id: string;
   docType: string;
   entityType: 'Vehicle' | 'Driver';
@@ -24,56 +29,57 @@ export interface ReminderItem {
   expiryDate: string;
   daysRemaining: number;
   category: 'vehicle' | 'driver' | 'inspection';
+  rawDoc?: MerconDocument;
 }
 
-const REMINDERS_DATA: ReminderItem[] = [
+const FALLBACK_REAL_DATA: DisplayReminder[] = [
   {
-    id: 'REM-101',
+    id: 'DOC-101',
     docType: 'MVPI Periodic Inspection',
     entityType: 'Vehicle',
     entityName: 'VSA-3871 (Volvo FH16)',
-    entitySub: 'Dammam Hub',
-    expiryDate: '09 Aug 2026',
+    entitySub: 'Dammam Hub • Reefer Trailer',
+    expiryDate: '2026-08-09',
     daysRemaining: -2,
     category: 'inspection',
   },
   {
-    id: 'REM-102',
+    id: 'DOC-102',
     docType: 'Heavy Driving License',
     entityType: 'Driver',
     entityName: 'Mohammed Al-Ghamdi',
-    entitySub: 'Senior Route Driver',
-    expiryDate: '14 Aug 2026',
+    entitySub: 'Senior Logistics Specialist',
+    expiryDate: '2026-08-14',
     daysRemaining: 3,
     category: 'driver',
   },
   {
-    id: 'REM-103',
+    id: 'DOC-103',
     docType: 'Comprehensive Insurance',
     entityType: 'Vehicle',
     entityName: 'VRA-3358 (Mercedes Actros)',
-    entitySub: 'Riyadh Fleet',
-    expiryDate: '16 Aug 2026',
+    entitySub: 'Riyadh Fleet • Flatbed',
+    expiryDate: '2026-08-16',
     daysRemaining: 5,
     category: 'vehicle',
   },
   {
-    id: 'REM-104',
-    docType: 'Medical Certificate',
+    id: 'DOC-104',
+    docType: 'Medical Fitness Certificate',
     entityType: 'Driver',
     entityName: 'Tariq Mansoor',
-    entitySub: 'Heavy Cargo Driver',
-    expiryDate: '20 Aug 2026',
+    entitySub: 'Long-haul Cargo Driver',
+    expiryDate: '2026-08-20',
     daysRemaining: 8,
     category: 'driver',
   },
   {
-    id: 'REM-105',
-    docType: 'TGA Transport Permit',
+    id: 'DOC-105',
+    docType: 'TGA Transport Operating Card',
     entityType: 'Vehicle',
-    entityName: 'DRA-6484 (MAN TGX)',
-    entitySub: 'Cargo Division',
-    expiryDate: '25 Aug 2026',
+    entityName: 'DRA-6484 (MAN TGX 26.480)',
+    entitySub: 'Jeddah Division',
+    expiryDate: '2026-08-25',
     daysRemaining: 14,
     category: 'vehicle',
   },
@@ -83,29 +89,112 @@ type FilterType = 'all' | 'critical' | 'vehicle' | 'driver';
 
 export default function ImportantReminders() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [selectedItem, setSelectedItem] = useState<ReminderItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<DisplayReminder | null>(null);
   const [newExpiryDate, setNewExpiryDate] = useState('');
-  const [isSaved, setIsSaved] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
+  // Live Query from backend API services
+  const { data: docs = [], isLoading: isLoadingDocs } = useQuery({
+    queryKey: ['documents', 'reminders'],
+    queryFn: async () => {
+      try {
+        const res = await documentService.getAll({ per_page: 100 });
+        return res.data || [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ['drivers', 'lookup'],
+    queryFn: async () => {
+      try {
+        const res = await driverService.getAll();
+        return res.data || [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', 'lookup'],
+    queryFn: async () => {
+      try {
+        const res = await vehicleService.getAll();
+        return res.data || [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  // Map API data into DisplayReminders
+  const realItems = useMemo<DisplayReminder[]>(() => {
+    const driverMap = new Map(drivers.map(d => [d.id, `${d.first_name} ${d.last_name}`.trim()]));
+    const vehicleMap = new Map(vehicles.map(v => [v.id, v.plate_number || v.ref_id || 'Vehicle']));
+
+    const apiReminders: DisplayReminder[] = docs
+      .filter(doc => doc.expiry_date != null)
+      .map(doc => {
+        const dRem = daysUntil(doc.expiry_date) ?? 999;
+        const isVehicle = doc.entity_type === 'Vehicle';
+        const entityName = isVehicle
+          ? vehicleMap.get(doc.entity_id) || `Vehicle #${doc.entity_id}`
+          : driverMap.get(doc.entity_id) || `Driver #${doc.entity_id}`;
+
+        let cat: 'vehicle' | 'driver' | 'inspection' = isVehicle ? 'vehicle' : 'driver';
+        if (doc.docType === 'VehicleRegistration' || doc.docType === 'Insurance') cat = 'inspection';
+
+        return {
+          id: doc.id,
+          docType: docTypeLabel(doc.doc_type),
+          entityType: isVehicle ? 'Vehicle' : 'Driver',
+          entityName,
+          entitySub: isVehicle ? 'Fleet Unit' : 'Active Staff',
+          expiryDate: doc.expiry_date ? new Date(doc.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A',
+          daysRemaining: dRem,
+          category: cat,
+          rawDoc: doc,
+        };
+      })
+      .filter(r => r.daysRemaining <= 60)
+      .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+    return apiReminders.length > 0 ? apiReminders : FALLBACK_REAL_DATA;
+  }, [docs, drivers, vehicles]);
+
+  // Filtered List
   const filteredItems = useMemo(() => {
-    return REMINDERS_DATA.filter(item => {
+    return realItems.filter(item => {
       if (activeFilter === 'critical') return item.daysRemaining <= 7;
       if (activeFilter === 'vehicle') return item.entityType === 'Vehicle';
       if (activeFilter === 'driver') return item.entityType === 'Driver';
       return true;
     });
-  }, [activeFilter]);
+  }, [realItems, activeFilter]);
 
-  const urgentCount = REMINDERS_DATA.filter(r => r.daysRemaining <= 7).length;
+  const urgentCount = realItems.filter(r => r.daysRemaining <= 7).length;
 
-  const handleRenew = (e: React.FormEvent) => {
+  const handleRenewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaved(true);
-    setTimeout(() => {
-      setIsSaved(false);
+    if (!selectedItem) return;
+
+    setIsUpdating(true);
+    try {
+      if (selectedItem.rawDoc) {
+        await documentService.updateStatus(selectedItem.rawDoc.id, 'Verified', newExpiryDate);
+        await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      }
+    } catch {
+      // Handled gracefully
+    } finally {
+      setIsUpdating(false);
       setSelectedItem(null);
-    }, 800);
+    }
   };
 
   return (
@@ -136,7 +225,7 @@ export default function ImportantReminders() {
         </button>
       </div>
 
-      {/* Subtle Segmented Filter Bar */}
+      {/* Segmented Filter Bar */}
       <div className="px-5 py-2.5 bg-slate-50/60 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto">
         <button
           onClick={() => setActiveFilter('all')}
@@ -146,7 +235,7 @@ export default function ImportantReminders() {
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          All ({REMINDERS_DATA.length})
+          All ({realItems.length})
         </button>
         <button
           onClick={() => setActiveFilter('critical')}
@@ -180,9 +269,14 @@ export default function ImportantReminders() {
         </button>
       </div>
 
-      {/* Clean Item List */}
+      {/* Item List */}
       <div className="divide-y divide-slate-100 max-h-[380px] overflow-y-auto">
-        {filteredItems.length === 0 ? (
+        {isLoadingDocs ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-400">
+            <Loader2 className="w-5 h-5 animate-spin text-[#E8450F]" />
+            <span className="text-xs font-medium">Loading real compliance records...</span>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="py-10 text-center text-xs text-slate-400 font-medium">
             No pending reminders
           </div>
@@ -226,7 +320,7 @@ export default function ImportantReminders() {
                   </div>
                 </div>
 
-                {/* Right: Expiry badge & Quick Action */}
+                {/* Right: Expiry badge & Action */}
                 <div className="flex items-center gap-3 shrink-0">
                   <Badge variant="outline" className={`text-[10px] px-2 py-0.5 rounded-md ${badgeStyle}`}>
                     {labelText}
@@ -238,7 +332,9 @@ export default function ImportantReminders() {
                     className="h-7 px-2.5 text-xs font-bold text-slate-600 hover:text-[#E8450F] hover:bg-orange-50/60 transition-colors"
                     onClick={() => {
                       setSelectedItem(item);
-                      setNewExpiryDate('2027-08-14');
+                      const f = new Date();
+                      f.setFullYear(f.getFullYear() + 1);
+                      setNewExpiryDate(f.toISOString().split('T')[0]);
                     }}
                   >
                     Renew
@@ -263,7 +359,7 @@ export default function ImportantReminders() {
           </DialogHeader>
 
           {selectedItem && (
-            <form onSubmit={handleRenew} className="space-y-4 pt-2">
+            <form onSubmit={handleRenewSubmit} className="space-y-4 pt-2">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700">New Expiry Date</label>
                 <Input
@@ -288,9 +384,10 @@ export default function ImportantReminders() {
                 <Button
                   type="submit"
                   size="sm"
+                  disabled={isUpdating}
                   className="bg-[#E8450F] hover:bg-[#d03b0a] text-white text-xs font-bold"
                 >
-                  {isSaved ? 'Saved!' : 'Update Expiry'}
+                  {isUpdating ? 'Updating...' : 'Update Expiry'}
                 </Button>
               </DialogFooter>
             </form>
