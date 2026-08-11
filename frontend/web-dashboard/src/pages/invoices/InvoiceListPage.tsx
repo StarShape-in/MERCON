@@ -3,8 +3,8 @@ import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, DollarSign, Download, Trash2, CheckCircle, RotateCw, FileText, 
-  Search, Filter, MoreVertical, ExternalLink, Receipt
+  Plus, DollarSign, Download, Trash2, CheckCircle, RotateCw, FileText,
+  Filter, MoreVertical, ExternalLink, Receipt
 } from 'lucide-react';
 import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge, RevenueChart } from '@/components/ui/kpi-icons';
 
@@ -18,7 +18,6 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -416,27 +415,29 @@ export default function InvoiceListPage() {
           </div>
         )}
 
-        {/* Toolbar Control Bar Section (Strictly Horizontal) */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center justify-between gap-3 overflow-x-auto">
-            
-            {/* Left: Search Bar + Status Filter Dropdown */}
-            <div className="flex items-center gap-3 shrink-0">
-              
-              {/* Search Bar */}
-              <div className="relative w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-                <Input
-                  placeholder="Search invoice ID, customer..."
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                  className="h-9 text-xs pl-8 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F] rounded-lg font-medium"
-                />
-              </div>
-
-              {/* Status Filter Dropdown */}
-              <Select 
-                value={selectedStatus} 
+        {/* Content Workspace: Ledger Data Table */}
+        <div className="flex-1 min-h-0 flex flex-col">
+          <DataTable
+            title={
+              <span className="flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-amber-500" />
+                <span>Invoices Ledger</span>
+              </span>
+            }
+            columns={columns}
+            data={invoices}
+            bulkActions={bulkActions}
+            enableSelection={true}
+            compact={true}
+            isLoading={isLoading}
+            isError={isError}
+            errorMessage={(error as Error)?.message || 'Failed to load invoices.'}
+            searchPlaceholder="Search invoice ID, customer..."
+            searchValue={search}
+            onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
+            filterElement={
+              <Select
+                value={selectedStatus}
                 onValueChange={(val: any) => { setSelectedStatus(val); setCurrentPage(1); }}
               >
                 <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus-visible:ring-[#E8450F]/20">
@@ -459,39 +460,7 @@ export default function InvoiceListPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-
-            </div>
-
-            {/* Right: Record Ledger Counter */}
-            <div className="flex items-center gap-3 shrink-0 ml-auto">
-              <div className="text-xs font-semibold text-slate-500">
-                Showing <span className="font-extrabold text-slate-900 dark:text-slate-100">{invoices.length}</span> of <span className="font-extrabold text-slate-900 dark:text-slate-100">{totalCount}</span> invoices
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Content Workspace: Ledger Data Table */}
-        <div className="flex-1 min-h-0 flex flex-col">
-          <DataTable
-            title={
-              <span className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-amber-500" />
-                <span>Invoices Ledger</span>
-              </span>
             }
-            columns={columns}
-            data={invoices}
-            bulkActions={bulkActions}
-            enableSelection={true}
-            compact={true}
-            isLoading={isLoading}
-            isError={isError}
-            errorMessage={(error as Error)?.message || 'Failed to load invoices.'}
-            searchPlaceholder="Search invoices..."
-            searchValue={search}
-            onSearchChange={setSearch}
             currentPage={currentPage}
             totalPages={totalPages}
             pageSize={pageSize}
