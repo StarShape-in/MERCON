@@ -45,7 +45,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'OVERVIEW',
       items: [
         { icon: Home, label: 'Dashboard', path: '/' },
-        { icon: Sparkles, label: 'Sahal', path: '/sahal' },
         { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
       ],
     },
