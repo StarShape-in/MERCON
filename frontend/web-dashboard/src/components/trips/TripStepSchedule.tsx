@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, MapPin, Keyboard } from 'lucide-react';
+import { Clock, MapPin, Keyboard, AlertTriangle } from 'lucide-react';
 import { TripScheduleSelector } from '@/components/trips/TripScheduleSelector';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -132,7 +132,17 @@ export default function TripStepSchedule({
                     : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 border-emerald-300'
                 )}
               >
-                {transitInfo.isInvalid ? '⚠️ Invalid Schedule (Delivery before pickup)' : `⏱️ ${transitInfo.durationString}`}
+                {transitInfo.isInvalid ? (
+                  <span className="flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Invalid Schedule (Delivery before pickup)</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span>{transitInfo.durationString}</span>
+                  </span>
+                )}
               </Badge>
             </div>
           </div>

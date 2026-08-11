@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { locationService, Location } from '@/services/locationService';
+import { matchesSearch } from '@/lib/search';
 
 interface LocationComboboxProps {
   id?: string;
@@ -104,7 +105,7 @@ export default function LocationCombobox({
           filter={(itemValue, searchTerm) => {
             const option = locations.find((l) => l.id === itemValue);
             if (!option) return 0;
-            return option.name.toLowerCase().includes(searchTerm.toLowerCase()) ? 1 : 0;
+            return matchesSearch(searchTerm, [option.name, option.address]) ? 1 : 0;
           }}
         >
           <CommandInput

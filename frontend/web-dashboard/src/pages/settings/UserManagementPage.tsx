@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Shield, Download, Users, Truck, Eye } from 'lucide
 import { toast } from 'sonner';
 
 import { downloadCSV } from '@/utils/exportUtils';
+import { matchesSearch } from '@/lib/search';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
@@ -121,10 +122,7 @@ export default function UserManagementPage() {
     }
   };
 
-  const filteredRows = rows.filter(r =>
-    r.name?.toLowerCase().includes(search.toLowerCase()) ||
-    r.contact?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredRows = rows.filter(r => matchesSearch(search, [r.name, r.contact, r.role]));
 
   const columns = [
     {

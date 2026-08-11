@@ -4,6 +4,18 @@ import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
 import { logger } from '../utils/logger';
 import { syncVehicleMaintenanceStatus, ACTIVE_MAINTENANCE_STATUSES } from '../utils/vehicleMaintenanceStatus';
+import { buildSearchAnd } from '../utils/search';
+
+/** Fields the maintenance ledger search bar looks at. */
+const MAINTENANCE_SEARCH_FIELDS = [
+  'ref_id',
+  'workshop_name',
+  'invoice_number',
+  'remarks',
+  'work_done',
+  'vehicle.plate_number',
+  'vehicle.ref_id',
+];
 
 /** Service orders are numbered MNT-001, MNT-002, … and gaps are refilled on delete. */
 const MAINTENANCE_REF_PREFIX = 'MNT';
@@ -59,17 +71,9 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
       whereClause.maintenance_type = maintenance_type as string;
     }
 
-    if (search) {
-      const searchStr = (search as string).trim();
-      whereClause.OR = [
-        { ref_id: { contains: searchStr, mode: 'insensitive' } },
-        { workshop_name: { contains: searchStr, mode: 'insensitive' } },
-        { invoice_number: { contains: searchStr, mode: 'insensitive' } },
-        { remarks: { contains: searchStr, mode: 'insensitive' } },
-        { work_done: { contains: searchStr, mode: 'insensitive' } },
-        { vehicle: { plate_number: { contains: searchStr, mode: 'insensitive' } } },
-        { vehicle: { ref_id: { contains: searchStr, mode: 'insensitive' } } },
-      ];
+    const searchAnd = buildSearchAnd(search, MAINTENANCE_SEARCH_FIELDS);
+    if (searchAnd.length > 0) {
+      whereClause.AND = searchAnd;
     }
 
     const [records, total, allRecordsForKpi] = await Promise.all([

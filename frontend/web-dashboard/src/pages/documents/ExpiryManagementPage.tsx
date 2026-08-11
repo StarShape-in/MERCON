@@ -12,6 +12,7 @@ import { downloadCSV } from '@/utils/exportUtils';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { docTypeLabel, daysUntil } from '@/lib/documents';
+import { matchesSearch } from '@/lib/search';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,10 +71,9 @@ export default function ExpiryManagementPage() {
   const upcomingCount = items.filter((i) => i.daysRemaining > 7 && i.daysRemaining <= 30).length;
   const totalRadarCount = items.length;
 
-  const filteredItems = items.filter((i) => {
-    const q = search.toLowerCase();
-    return i.entityName.toLowerCase().includes(q) || docTypeLabel(i.doc_type).toLowerCase().includes(q);
-  });
+  const filteredItems = items.filter((i) =>
+    matchesSearch(search, [i.entityName, docTypeLabel(i.doc_type), i.entity_type]),
+  );
 
   const entityDocsLink = (row: MerconDocument): string | null => {
     if (row.entity_type === 'Driver') return `/drivers/${row.entity_id}/documents`;

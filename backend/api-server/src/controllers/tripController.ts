@@ -8,6 +8,20 @@ import { isValidTransition, completeTripAndInvoice, stampStopTransition, type De
 import { findRateForLane } from '../services/rateLookup';
 import { resolveLocation } from './locationController';
 import { parseOptionalFloat } from '../utils/uuid';
+import { buildSearchAnd } from '../utils/search';
+
+/** Fields the trip ledger search bar looks at. */
+const TRIP_SEARCH_FIELDS = [
+  'ref_id',
+  'customer.name',
+  'driver.first_name',
+  'driver.last_name',
+  'driver.ref_id',
+  'vehicle.plate_number',
+  'vehicle.ref_id',
+  'stops[].location_name',
+  'stops[].location_address',
+];
 
 const isUuid = (val: any): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -55,17 +69,7 @@ export const getTrips = async (req: Request, res: Response) => {
     if (driver_id) whereClause.driverId = driver_id as string;
     if (vehicle_id) whereClause.vehicleId = vehicle_id as string;
     if (customer_id) whereClause.customerId = customer_id as string;
-    if (search) {
-      whereClause.OR = [
-        { ref_id: { contains: search as string, mode: 'insensitive' } },
-        { customer: { name: { contains: search as string, mode: 'insensitive' } } },
-        { driver: { first_name: { contains: search as string, mode: 'insensitive' } } },
-        { driver: { last_name: { contains: search as string, mode: 'insensitive' } } },
-        { vehicle: { plate_number: { contains: search as string, mode: 'insensitive' } } },
-        { stops: { some: { location_name: { contains: search as string, mode: 'insensitive' } } } },
-        { stops: { some: { location_address: { contains: search as string, mode: 'insensitive' } } } },
-      ];
-    }
+    const searchAnd = buildSearchAnd(search, TRIP_SEARCH_FIELDS) as Prisma.TripWhereInput[];
 
     let startDateObj: Date | undefined;
     let endDateObj: Date | undefined;
@@ -118,6 +122,15 @@ export const getTrips = async (req: Request, res: Response) => {
       if (dateConditions.length > 0) {
         whereClause.AND = dateConditions;
       }
+    }
+
+    // Search conditions live in AND alongside the date window — one entry per
+    // typed word, so every word has to match something on the trip.
+    if (searchAnd.length > 0) {
+      whereClause.AND = [
+        ...(Array.isArray(whereClause.AND) ? whereClause.AND : whereClause.AND ? [whereClause.AND] : []),
+        ...searchAnd,
+      ];
     }
 
     const [trips, total] = await Promise.all([

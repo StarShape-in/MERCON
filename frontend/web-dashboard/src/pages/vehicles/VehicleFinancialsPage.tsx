@@ -30,6 +30,7 @@ import DataTable from '@/components/ui/DataTable';
 import type { Column } from '@/components/ui/DataTable';
 import { exportExcelTable } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
 
@@ -350,11 +351,8 @@ export default function VehicleFinancialsPage() {
 
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
-    const q = tableSearch.trim().toLowerCase();
-    const filtered = q
-      ? fleetRows.filter((r) =>
-          `${r.plate_number} ${r.ref_id ?? ''} ${r.asset_type}`.toLowerCase().includes(q))
-      : fleetRows;
+    const filtered = fleetRows.filter((r) =>
+      matchesSearch(tableSearch, [r.plate_number, r.ref_id, r.asset_type]));
     return [...filtered].sort((a, b) => {
       const av = a[sort.field];
       const bv = b[sort.field];
@@ -835,7 +833,7 @@ export default function VehicleFinancialsPage() {
                     </CardHeader>
                     <CardContent className="p-0 divide-y divide-slate-100 dark:divide-slate-800">
                       {lossMakers.length === 0 ? (
-                        <NoData message="No vehicle is running at a loss. 🎉" />
+                        <NoData message="No vehicle is running at a loss." />
                       ) : (
                         lossMakers.map((row, i) => (
                           <RankRow key={row.vehicle_id} rank={i + 1} row={row} max={maxAbsProfit} onSelect={openVehicle} />

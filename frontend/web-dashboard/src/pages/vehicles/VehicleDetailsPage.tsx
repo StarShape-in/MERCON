@@ -6,7 +6,7 @@ import {
   ArrowLeft, Edit2, FileText, Truck, MapPin, AlertTriangle, Trash2, 
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
-  CheckCircle2, ChevronDown, Calendar
+  CheckCircle2, ChevronDown, Calendar, XCircle
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
@@ -1068,10 +1068,30 @@ export default function VehicleDetailsPage() {
                       <SelectValue placeholder="Select Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Completed">✅ Completed (Past Log)</SelectItem>
-                      <SelectItem value="In_Progress">🔧 In Progress (Active)</SelectItem>
-                      <SelectItem value="Scheduled">📅 Scheduled (Future)</SelectItem>
-                      <SelectItem value="Cancelled">❌ Cancelled</SelectItem>
+                      <SelectItem value="Completed">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <span>Completed (Past Log)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="In_Progress">
+                        <div className="flex items-center gap-1.5">
+                          <Wrench className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <span>In Progress (Active)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Scheduled">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                          <span>Scheduled (Future)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Cancelled">
+                        <div className="flex items-center gap-1.5">
+                          <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                          <span>Cancelled</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1088,10 +1108,30 @@ export default function VehicleDetailsPage() {
                       <SelectValue placeholder="Select Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Completed">✅ Completed (Past Log)</SelectItem>
-                      <SelectItem value="In_Progress">🔧 In Progress (Active)</SelectItem>
-                      <SelectItem value="Scheduled">📅 Scheduled (Future)</SelectItem>
-                      <SelectItem value="Cancelled">❌ Cancelled</SelectItem>
+                      <SelectItem value="Completed">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <span>Completed (Past Log)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="In_Progress">
+                        <div className="flex items-center gap-1.5">
+                          <Wrench className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <span>In Progress (Active)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Scheduled">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                          <span>Scheduled (Future)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Cancelled">
+                        <div className="flex items-center gap-1.5">
+                          <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                          <span>Cancelled</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

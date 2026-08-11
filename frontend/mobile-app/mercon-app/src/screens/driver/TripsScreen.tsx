@@ -11,6 +11,7 @@ import { DriverBottomNav } from '../../navigation/DriverBottomNav';
 import { useCurrentTrip } from '../../lib/use-current-trip';
 import { useTripHistory } from '../../lib/use-trip-history';
 import { statusLabel, stopLabel, type MobileTrip, type TripStatus } from '../../lib/trips';
+import { matchesSearch } from '../../lib/search';
 
 const TABS = ['Active', 'Upcoming', 'Completed'] as const;
 type Tab = typeof TABS[number];
@@ -97,15 +98,9 @@ const TripsScreen = ({ navigation }: any) => {
     } else {
       source = history;
     }
-    const q = search.trim().toLowerCase();
     return source
       .map(toCard)
-      .filter(
-        (c) =>
-          !q ||
-          c.displayId.toLowerCase().includes(q) ||
-          c.title.toLowerCase().includes(q)
-      );
+      .filter((c) => matchesSearch(search, [c.displayId, c.title]));
   }, [selectedTab, current, history, search]);
 
   const onRefresh = () => {

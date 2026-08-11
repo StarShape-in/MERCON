@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { matchesSearch } from '@/lib/search';
 
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -196,8 +197,7 @@ export default function TripStopCard({
   // Filtered saved Rate Card Locations matching query
   const matchingSavedLocations = useMemo(() => {
     if (!query.trim()) return locations.slice(0, 5);
-    const q = query.toLowerCase();
-    return locations.filter((l) => l.name.toLowerCase().includes(q) || (l.address && l.address.toLowerCase().includes(q)));
+    return locations.filter((l) => matchesSearch(query, [l.name, l.address]));
   }, [locations, query]);
 
   // Handle typing search

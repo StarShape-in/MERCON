@@ -9,6 +9,7 @@ import { Truck, Weight, Gauge } from 'lucide-react-native';
 import { Colors, Spacing, Radius, Typography, Shadows } from '../../theme/tokens';
 import { StatusBadge, SearchInput, FilterChip } from '../../components';
 import { useOperatorVehicles, type OperatorVehicle } from '../../lib/operator';
+import { matchesSearch } from '../../lib/search';
 
 const FILTERS: { label: string; status: string | null }[] = [
   { label: 'All', status: null },
@@ -66,15 +67,9 @@ const VehicleListScreen = () => {
 
   const filtered = useMemo(() => {
     const active = FILTERS.find((f) => f.label === statusFilter) ?? FILTERS[0];
-    const q = search.trim().toLowerCase();
     return vehicles.filter((v) => {
       if (active.status && v.status !== active.status) return false;
-      if (!q) return true;
-      return (
-        v.plate_number.toLowerCase().includes(q) ||
-        (v.ref_id ?? '').toLowerCase().includes(q) ||
-        v.asset_type.toLowerCase().includes(q)
-      );
+      return matchesSearch(search, [v.plate_number, v.ref_id, v.asset_type]);
     });
   }, [vehicles, statusFilter, search]);
 

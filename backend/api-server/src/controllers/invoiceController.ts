@@ -1,7 +1,15 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
+import { buildSearchAnd } from '../utils/search';
 import { InvoiceStatus } from '@prisma/client';
+
+const INVOICE_SEARCH_FIELDS = [
+  'ref_id',
+  'customer.name',
+  'customer.contact_phone',
+  'trip.ref_id',
+];
 
 export const getInvoices = async (req: Request, res: Response) => {
   try {
@@ -14,12 +22,8 @@ export const getInvoices = async (req: Request, res: Response) => {
     const whereClause: any = { deletedAt: null };
     if (status) whereClause.status = status as InvoiceStatus;
     if (customer_id) whereClause.customerId = customer_id as string;
-    if (search) {
-      whereClause.OR = [
-        { ref_id: { contains: search as string, mode: 'insensitive' } },
-        { customer: { name: { contains: search as string, mode: 'insensitive' } } },
-      ];
-    }
+    const searchAnd = buildSearchAnd(search, INVOICE_SEARCH_FIELDS);
+    if (searchAnd.length > 0) whereClause.AND = searchAnd;
 
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({

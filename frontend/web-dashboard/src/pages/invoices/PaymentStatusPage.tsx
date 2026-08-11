@@ -5,6 +5,7 @@ import { Download, FileText, CheckCircle2, Clock, AlertTriangle, Search, RotateC
 import { useNavigate } from 'react-router-dom';
 
 import { downloadCSV } from '@/utils/exportUtils';
+import { matchesSearch } from '@/lib/search';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { ClockIcon, RiskAlert, CheckBadge, InvoiceDoc } from '@/components/ui/kpi-icons';
@@ -68,13 +69,9 @@ export default function PaymentStatusPage() {
   }, [invoices]);
 
   const filteredInvoices = useMemo(() => {
-    const q = search.toLowerCase();
     return invoices.filter((i) => {
-      const client = i.customer?.name ?? '';
-      const ref = i.ref_id ?? i.id;
-      const matchesSearch = client.toLowerCase().includes(q) || ref.toLowerCase().includes(q);
       const matchesTab = activeTab === 'All' || i.status === activeTab;
-      return matchesSearch && matchesTab;
+      return matchesTab && matchesSearch(search, [i.customer?.name, i.ref_id ?? i.id]);
     });
   }, [invoices, search, activeTab]);
 

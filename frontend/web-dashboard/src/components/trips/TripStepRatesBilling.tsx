@@ -1,5 +1,5 @@
 import React from 'react';
-import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check, Keyboard } from 'lucide-react';
+import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check, Keyboard, Pencil } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { RateCard } from '@/services/rateCardService';
 import { Card } from '@/components/ui/card';
@@ -182,7 +182,10 @@ export default function TripStepRatesBilling({
                   : "border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400"
               )}
             >
-              <span>✏️ Custom Billing Amount / Enter Manual Rate</span>
+              <span className="flex items-center gap-1.5">
+                <Pencil className="w-3.5 h-3.5 text-slate-500" />
+                <span>Custom Billing Amount / Enter Manual Rate</span>
+              </span>
               {!selectedRateCardId && <span className="text-[10px] font-bold px-2 py-0.5 bg-[#E8450F] text-white rounded-md">Custom Mode</span>}
             </button>
           </div>

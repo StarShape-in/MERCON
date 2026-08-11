@@ -114,8 +114,9 @@ export default function TripStopMap({
           Click map or drag marker to set exact location
         </span>
         {hasPin && (
-          <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-            📍 {lat.toFixed(5)}, {lng.toFixed(5)}
+          <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 flex items-center">
+            <MapPin className="w-3 h-3 text-rose-500 fill-rose-500/20 mr-0.5 shrink-0" />
+            <span>{lat.toFixed(5)}, {lng.toFixed(5)}</span>
           </Badge>
         )}
       </div>

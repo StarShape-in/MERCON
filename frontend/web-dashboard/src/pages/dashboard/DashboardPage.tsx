@@ -6,8 +6,8 @@ import {
   Loader2, RefreshCw, Clock, CheckCircle2, LayoutDashboard, Layers,
   Send, MessageSquare, Calendar, AlertCircle, MapPin, TrendingUp, 
   User, Download, Plus, Mail, ShieldAlert, BadgePercent, ChevronRight,
-  Phone, Eye, Video, Search, Smile, Paperclip, CheckCheck, Camera, 
-  MessageSquarePlus, MoreVertical, ChevronLeft
+  Phone, Eye, Building2, X, Video, Search, Smile, Paperclip, CheckCheck,
+  Camera, MessageSquarePlus, MoreVertical, ChevronLeft
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -481,7 +481,8 @@ export default function DashboardPage() {
             <div className="flex items-center flex-wrap gap-2.5">
               {/* Context Selector Pill */}
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-full text-xs font-extrabold text-slate-700 shadow-2xs cursor-pointer select-none transition-all">
-                <span>🏢 MERCON Logistics</span>
+                <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <span>MERCON Logistics</span>
                 <span className="text-slate-400 text-[9px]">↕</span>
               </div>
               <Badge className="bg-indigo-50/70 hover:bg-indigo-100/50 text-indigo-600 border border-indigo-200 font-semibold px-2.5 py-0.5 text-[10px] rounded-md transition-colors">
@@ -1705,7 +1706,7 @@ export default function DashboardPage() {
             title={
               <span className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-500" />
-                <span>🥞 Recent Trips Ledger</span>
+                <span>Recent Trips Ledger</span>
               </span>
             }
             columns={[
@@ -1811,7 +1812,7 @@ export default function DashboardPage() {
                   onClick={() => setIsSendMessageOpen(false)}
                   className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
               <form onSubmit={handleSendMessageSubmit} className="p-5 flex flex-col gap-4">

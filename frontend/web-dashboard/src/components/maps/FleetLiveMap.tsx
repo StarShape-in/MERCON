@@ -25,6 +25,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { Progress } from '@/components/ui/progress';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { matchesSearch } from '@/lib/search';
 
 // High-Tech Vehicle Marker Generator
 function createNeonTruckDivIcon(truck: SimulatedTruckTelemetry, isDarkTheme: boolean) {
@@ -89,15 +90,12 @@ export default function FleetLiveMap() {
 
   // Filter fleet based on user input
   const filteredFleet = fleet.filter((truck) => {
-    const matchesSearch =
-      truck.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      truck.driverName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      truck.refId.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTerm = matchesSearch(searchQuery, [truck.plateNumber, truck.driverName, truck.refId]);
 
     const matchesStatus =
       statusFilter === 'ALL' || truck.status.toUpperCase() === statusFilter.toUpperCase();
 
-    return matchesSearch && matchesStatus;
+    return matchesTerm && matchesStatus;
   });
 
   return (

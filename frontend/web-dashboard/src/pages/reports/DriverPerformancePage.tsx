@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Users, AlertTriangle, CheckCircle2, Route } from 'lucide-react';
+import { Download, Users, AlertTriangle, CheckCircle2, Route, Trophy } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ScatterChart, Scatter, ZAxis,
@@ -206,7 +206,12 @@ export default function DriverPerformancePage() {
 
         {/* Top Drivers Table */}
         <DataTable
-          title="🏆 Top Drivers by Completed Trips"
+          title={
+            <span className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>Top Drivers by Completed Trips</span>
+            </span>
+          }
           columns={[
             {
               header: 'Driver',

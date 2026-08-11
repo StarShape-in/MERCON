@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Wrench, AlertTriangle, AlertCircle, ClipboardList } from 'lucide-react';
+import { Wrench, AlertTriangle, AlertCircle, ClipboardList, CheckCircle2, XCircle, CalendarDays } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
 import { Button } from '@/components/ui/button';
@@ -276,10 +276,30 @@ export default function MaintenanceRecordModal({
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Completed">✅ Completed (Past Log)</SelectItem>
-                    <SelectItem value="In_Progress">🔧 In Progress (Active)</SelectItem>
-                    <SelectItem value="Scheduled">📅 Scheduled (Future)</SelectItem>
-                    <SelectItem value="Cancelled">❌ Cancelled</SelectItem>
+                    <SelectItem value="Completed">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        <span>Completed (Past Log)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="In_Progress">
+                      <div className="flex items-center gap-1.5">
+                        <Wrench className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <span>In Progress (Active)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Scheduled">
+                      <div className="flex items-center gap-1.5">
+                        <CalendarDays className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                        <span>Scheduled (Future)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Cancelled">
+                      <div className="flex items-center gap-1.5">
+                        <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                        <span>Cancelled</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 {statusHint[formData.status as string] && (
