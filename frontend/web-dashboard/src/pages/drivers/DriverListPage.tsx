@@ -579,11 +579,10 @@ export default function DriverListPage() {
                 { label: "Off Duty", count: Math.max(0, totalCount - availableCount - onTripCount), color: "#D97706" },
               ]
             }}
-            isActive={activeKpiModal === 'total'}
-            onClick={(e) => {
+            isActive={selectedStatus === 'All'}
+            onClick={() => {
               setSelectedStatus('All');
               setCurrentPage(1);
-              openKpiModal(e, 'total');
             }}
           />
 
@@ -626,11 +625,10 @@ export default function DriverListPage() {
             description="Active en-route drivers"
             icon={TruckMotion}
             chartData={[4, 6, 8, 7, 10, 9, onTripCount || 12]}
-            isActive={activeKpiModal === 'onTrip'}
-            onClick={(e) => {
-              setSelectedStatus('OnTrip');
+            isActive={selectedStatus === 'OnTrip'}
+            onClick={() => {
+              setSelectedStatus(selectedStatus === 'OnTrip' ? 'All' : 'OnTrip');
               setCurrentPage(1);
-              openKpiModal(e, 'onTrip');
             }}
           />
 
@@ -961,175 +959,7 @@ export default function DriverListPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Origin-Animated KPI Modal 1: Total Registered Drivers Overview */}
-        <KpiModal
-          isOpen={activeKpiModal === 'total'}
-          onClose={() => setActiveKpiModal(null)}
-          originRect={originRect}
-          title="Total Registered Drivers Overview"
-          subtitle="Complete fleet driver breakdown, availability metrics, and roster management."
-          badge={
-            <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold">
-              {totalCount} Total Drivers
-            </Badge>
-          }
-        >
-          <div className="space-y-4 text-xs">
-            <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Available</span>
-                <span className="text-lg font-extrabold text-emerald-600 font-mono">{availableCount}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">On Trip</span>
-                <span className="text-lg font-extrabold text-blue-600 font-mono">{onTripCount}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Expired Licenses</span>
-                <span className="text-lg font-extrabold text-amber-600 font-mono">{expiredLicenseCount}</span>
-              </div>
-            </div>
 
-            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
-              <div className="font-bold text-slate-800 dark:text-slate-200 text-xs">Quick Roster Filter</div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs font-semibold"
-                  onClick={() => {
-                    setSelectedStatus('All');
-                    setActiveKpiModal(null);
-                  }}
-                >
-                  Show All Drivers ({totalCount})
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs font-semibold text-emerald-700 border-emerald-200 bg-emerald-50/50"
-                  onClick={() => {
-                    setSelectedStatus('Available');
-                    setActiveKpiModal(null);
-                  }}
-                >
-                  Show Available Only ({availableCount})
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs font-semibold text-blue-700 border-blue-200 bg-blue-50/50"
-                  onClick={() => {
-                    setSelectedStatus('OnTrip');
-                    setActiveKpiModal(null);
-                  }}
-                >
-                  Show On Trip ({onTripCount})
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs font-semibold border-slate-200"
-                onClick={() => handleExportExcel(filteredDrivers)}
-              >
-                <Download className="h-3.5 w-3.5 mr-1.5 text-slate-600" />
-                Export Full Roster Excel
-              </Button>
-              <Button
-                size="sm"
-                className="text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white"
-                onClick={() => {
-                  setActiveKpiModal(null);
-                  navigate('/drivers/new');
-                }}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add New Driver
-              </Button>
-            </div>
-          </div>
-        </KpiModal>
-
-
-
-        {/* Origin-Animated KPI Modal 3: Active On Road Drivers */}
-        <KpiModal
-          isOpen={activeKpiModal === 'onTrip'}
-          onClose={() => setActiveKpiModal(null)}
-          originRect={originRect}
-          title="Active En-Route Drivers"
-          subtitle="Drivers currently assigned to active dispatched trips across Saudi network."
-          badge={
-            <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] font-bold">
-              {onTripCount} Active En-Route
-            </Badge>
-          }
-        >
-          <div className="space-y-3 text-xs">
-            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-              {drivers.filter(d => d.status === 'OnTrip').length === 0 ? (
-                <div className="py-8 text-center text-slate-400">No active drivers currently en-route.</div>
-              ) : (
-                drivers.filter(d => d.status === 'OnTrip').map(d => {
-                  const activeTrip = d.trips?.[0];
-                  return (
-                    <div key={d.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
-                          {`${d.first_name?.[0] || ''}${d.last_name?.[0] || ''}`.toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-900 dark:text-slate-100">{d.first_name} {d.last_name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            Vehicle: {activeTrip?.vehicle?.plate_number || 'Assigned'} • Trip #{activeTrip?.ref_id || 'Active'}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-[11px] font-bold text-blue-700 border-blue-200 bg-white hover:bg-blue-50"
-                        onClick={() => {
-                          setActiveKpiModal(null);
-                          if (activeTrip) navigate(`/trips/${activeTrip.id}`);
-                          else navigate(`/drivers/${d.id}`);
-                        }}
-                      >
-                        View Trip
-                      </Button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs font-semibold"
-                onClick={() => {
-                  setSelectedStatus('OnTrip');
-                  setActiveKpiModal(null);
-                }}
-              >
-                Filter Table by Active On Road
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-xs font-semibold text-slate-500"
-                onClick={() => setActiveKpiModal(null)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </KpiModal>
 
         {/* Origin-Animated KPI Modal 4: Saudi MOT & MOMRAH Compliance Status */}
         <KpiModal
