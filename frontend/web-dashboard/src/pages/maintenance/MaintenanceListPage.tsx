@@ -78,7 +78,7 @@ export default function MaintenanceListPage() {
   });
 
   // Queries
-  const { data: maintenanceRes, isLoading, refetch } = useQuery({
+  const { data: maintenanceRes, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['maintenance', debouncedSearch, statusFilter, typeFilter, page, pageSize],
     queryFn: () => maintenanceService.getAll({
       search: debouncedSearch || undefined,
@@ -87,6 +87,9 @@ export default function MaintenanceListPage() {
       page,
       per_page: pageSize,
     }),
+    // Keep previous data visible while the new search query is loading so the DataTable
+    // is never unmounted mid-search (which caused focus loss and the "full page reload" UX bug).
+    placeholderData: (prev) => prev,
   });
 
   const { data: vehiclesRes } = useQuery({
@@ -450,42 +453,7 @@ export default function MaintenanceListPage() {
         </div>
 
         {/* ── 3. Data Table Ledger & Empty States ─────────────────────────── */}
-        {isLoading ? (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center text-slate-400 animate-pulse text-xs font-semibold shadow-2xs">
-            Loading maintenance service records...
-          </div>
-            ) : records.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-16 flex flex-col items-center justify-center text-center shadow-2xs">
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
-                  <FileText className="w-8 h-8" />
-                </div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                  No Maintenance Records Found
-                </h3>
-                <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4">
-                  There are no service, repair, or renewal logs matching your search filter criteria.
-                </p>
-                <div className="flex items-center gap-2">
-                  {(statusFilter !== 'all' || typeFilter !== 'all' || search) && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setStatusFilter('all');
-                        setTypeFilter('all');
-                        setSearch('');
-                      }}
-                      className="text-xs font-semibold"
-                    >
-                      Clear Filters
-                    </Button>
-                  )}
-                  <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-[#E8450F] text-white">
-                    + Schedule First Service
-                  </Button>
-                </div>
-              </div>
-            ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
               <div className="w-full flex flex-col">
                 <DataTable
                   title={
@@ -615,10 +583,32 @@ export default function MaintenanceListPage() {
                   enableSelection={true}
                   bulkActions={bulkActions}
                   compact={true}
-                  isLoading={isLoading}
                   searchPlaceholder="Search vehicle plate, workshop, invoice, or work done..."
                   searchValue={search}
                   onSearchChange={setSearch}
+                  isLoading={isFetching}
+                  emptyTitle="No Maintenance Records Found"
+                  emptyMessage="There are no service, repair, or renewal logs matching your search or filter criteria."
+                  actionsElement={
+                    !isFetching && records.length === 0 && (statusFilter !== 'all' || typeFilter !== 'all' || search) ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setStatusFilter('all');
+                          setTypeFilter('all');
+                          setSearch('');
+                        }}
+                        className="text-xs font-semibold h-9"
+                      >
+                        Clear Filters
+                      </Button>
+                    ) : !isFetching && records.length === 0 ? (
+                      <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-[#E8450F] text-white h-9">
+                        + Schedule First Service
+                      </Button>
+                    ) : undefined
+                  }
                   filterElement={
                     <div className="flex items-center gap-3">
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
