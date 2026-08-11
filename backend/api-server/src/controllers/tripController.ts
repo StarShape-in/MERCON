@@ -82,8 +82,18 @@ export const getTrips = async (req: Request, res: Response) => {
       startDateObj = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
       endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     } else {
-      if (start_date) startDateObj = new Date(start_date as string);
-      if (end_date) endDateObj = new Date(end_date as string);
+      if (start_date) {
+        startDateObj = new Date(start_date as string);
+        if (typeof start_date === 'string' && start_date.length <= 10) {
+          startDateObj.setHours(0, 0, 0, 0);
+        }
+      }
+      if (end_date) {
+        endDateObj = new Date(end_date as string);
+        if (typeof end_date === 'string' && end_date.length <= 10) {
+          endDateObj.setHours(23, 59, 59, 999);
+        }
+      }
     }
 
     if (startDateObj || endDateObj) {

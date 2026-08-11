@@ -27,11 +27,14 @@ import {
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
+import { format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
 import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { TripDateFilterPicker, DateFilterType } from '@/components/trips/TripDateFilterPicker';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
@@ -209,7 +212,8 @@ export default function TripListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
-  const [dateFilter, setDateFilter] = useState('All');
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -268,12 +272,21 @@ export default function TripListPage() {
   const [whatsappCustomPhone, setWhatsappCustomPhone] = useState('');
   const [whatsappMessageText, setWhatsappMessageText] = useState('');
 
+  const startDateStr = dateFilter === 'Custom' && customDateRange?.from
+    ? format(customDateRange.from, 'yyyy-MM-dd')
+    : undefined;
+  const endDateStr = dateFilter === 'Custom' && customDateRange?.to
+    ? format(customDateRange.to, 'yyyy-MM-dd')
+    : (dateFilter === 'Custom' && customDateRange?.from ? format(customDateRange.from, 'yyyy-MM-dd') : undefined);
+
   // Fetch trips using React Query
   const { data: tripsRes, isLoading, isError, error } = useQuery({
-    queryKey: ['trips', selectedStatus, dateFilter, debouncedSearch],
+    queryKey: ['trips', selectedStatus, dateFilter, startDateStr, endDateStr, debouncedSearch],
     queryFn: () => tripService.getAll({
       status: selectedStatus === 'All' ? undefined : (selectedStatus as any),
-      date_filter: dateFilter === 'All' ? undefined : dateFilter,
+      date_filter: dateFilter === 'All' || dateFilter === 'Custom' ? undefined : dateFilter,
+      start_date: startDateStr,
+      end_date: endDateStr,
       search: debouncedSearch || undefined,
       per_page: 1000,
     }),
@@ -1147,33 +1160,13 @@ export default function TripListPage() {
                   </SelectContent>
                 </Select>
 
-                <Select
-                  value={dateFilter}
-                  onValueChange={(val) => {
-                    if (val) {
-                      setDateFilter(val);
-                      setCurrentPage(1);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-9 px-3 w-36 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                      <SelectValue placeholder="All Dates" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent align="start" className="w-44 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                    <SelectGroup>
-                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Date Horizon
-                      </SelectLabel>
-                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Dates</SelectItem>
-                      <SelectItem value="Today" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">Today</SelectItem>
-                      <SelectItem value="ThisWeek" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Week</SelectItem>
-                      <SelectItem value="ThisMonth" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">This Month</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <TripDateFilterPicker
+                  dateFilter={dateFilter}
+                  setDateFilter={setDateFilter}
+                  customDateRange={customDateRange}
+                  setCustomDateRange={setCustomDateRange}
+                  onFilterChange={() => setCurrentPage(1)}
+                />
               </div>
             }
             bulkActions={bulkActions}
