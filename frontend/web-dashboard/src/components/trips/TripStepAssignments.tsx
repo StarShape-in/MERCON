@@ -1,4 +1,4 @@
-import { Truck, User, Plus } from 'lucide-react';
+import { Truck, User, Plus, Keyboard } from 'lucide-react';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import { Label } from '@/components/ui/label';
@@ -49,13 +49,20 @@ export default function TripStepAssignments({
 }: TripStepAssignmentsProps) {
   return (
     <div className="space-y-5 animate-fade-in">
-      <div>
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Truck className="w-4 h-4 text-[#E8450F]" /> Assign Fleet Resources
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Assign an available driver and vehicle to dispatch this trip immediately, or defer assignment.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Truck className="w-4 h-4 text-[#E8450F]" /> Assign Fleet Resources
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Assign an available driver and vehicle to dispatch this trip immediately, or defer assignment.
+          </p>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+          <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+          <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">D</kbd> Driver, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">V</kbd> Vehicle, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">L</kbd> Defer, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">↵</kbd> Next</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -64,6 +71,7 @@ export default function TripStepAssignments({
           <div className="flex items-center justify-between">
             <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-indigo-600" /> Driver Assignment
+              <kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500 font-semibold ml-1">D</kbd>
             </Label>
             <button
               type="button"
@@ -91,8 +99,9 @@ export default function TripStepAssignments({
               checked={assignDriverLater}
               onCheckedChange={(c) => onToggleAssignDriverLater(!!c)}
             />
-            <Label htmlFor="assign_driver_later" className="text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
-              Assign driver later (Unassigned dispatch pool)
+            <Label htmlFor="assign_driver_later" className="text-xs text-slate-600 dark:text-slate-400 cursor-pointer flex items-center gap-1.5">
+              <span>Assign driver later (Unassigned dispatch pool)</span>
+              <kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[9px] text-slate-400">L</kbd>
             </Label>
           </div>
 
@@ -113,6 +122,7 @@ export default function TripStepAssignments({
           <div className="flex items-center justify-between">
             <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5 text-indigo-600" /> Vehicle Assignment
+              <kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500 font-semibold ml-1">V</kbd>
             </Label>
             <button
               type="button"
@@ -140,8 +150,9 @@ export default function TripStepAssignments({
               checked={assignVehicleLater}
               onCheckedChange={(c) => onToggleAssignVehicleLater(!!c)}
             />
-            <Label htmlFor="assign_vehicle_later" className="text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
-              Assign vehicle later
+            <Label htmlFor="assign_vehicle_later" className="text-xs text-slate-600 dark:text-slate-400 cursor-pointer flex items-center gap-1.5">
+              <span>Assign vehicle later</span>
+              <kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded text-[9px] text-slate-400">L</kbd>
             </Label>
           </div>
 
@@ -163,3 +174,4 @@ export default function TripStepAssignments({
     </div>
   );
 }
+

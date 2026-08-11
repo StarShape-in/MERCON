@@ -23,7 +23,13 @@
  * the platform is not. If ICCES is unreachable, or the credentials are wrong,
  * or the response changes shape, this logs and the rest of MERCON carries on.
  */
-import { prisma, io } from '../../index';
+function getPrisma() {
+  return require('../../index').prisma;
+}
+function getIo() {
+  return require('../../index').io;
+}
+
 import { logger } from '../../utils/logger';
 import { env, iccesConfigured } from '../../config/env';
 import { IccesSession, IccesAuthError } from './iccesSession';
@@ -58,8 +64,9 @@ let inFlight = false;
  */
 export async function persist(
   telemetry: IccesTelemetry[],
-  client: any = prisma,
+  client: any = null,
 ): Promise<{ matched: number; unmatched: string[] }> {
+  const db = client || getPrisma();
   const unmatched: string[] = [];
   let matched = 0;
 
@@ -70,7 +77,7 @@ export async function persist(
     // Guard against stale / out-of-order tracker updates:
     // Only overwrite vehicle position if this reading is strictly newer than the
     // currently stored `last_seen_at` (or if `last_seen_at` is null).
-    const res = await client.vehicle.updateMany({
+    const res = await db.vehicle.updateMany({
       where: {
         icces_device_id: t.deviceId,
         deletedAt: null,
@@ -93,7 +100,7 @@ export async function persist(
       matched += res.count;
     } else {
       // Check if the vehicle exists in MERCON to distinguish unlinked devices from stale updates
-      const exists = await client.vehicle.count({
+      const exists = await db.vehicle.count({
         where: { icces_device_id: t.deviceId, deletedAt: null },
       });
       if (exists > 0) {
@@ -120,7 +127,7 @@ async function broadcastToActiveTrips(telemetry: IccesTelemetry[]): Promise<numb
   const deviceIds = telemetry.map((t) => t.deviceId);
   if (deviceIds.length === 0) return 0;
 
-  const trips = await prisma.trip.findMany({
+  const trips = await getPrisma().trip.findMany({
     where: {
       deletedAt: null,
       status: { in: ACTIVE_TRIP_STATUSES as unknown as any[] },
@@ -138,7 +145,7 @@ async function broadcastToActiveTrips(telemetry: IccesTelemetry[]): Promise<numb
     const t = byDevice.get(deviceId);
     if (!t) continue;
 
-    io.to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, trackerLocationUpdate(t));
+    getIo().to(`trip:${trip.id}`).emit(`trip:location_update:${trip.id}`, trackerLocationUpdate(t));
     sent += 1;
   }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check } from 'lucide-react';
+import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check, Keyboard } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { RateCard } from '@/services/rateCardService';
 import { Card } from '@/components/ui/card';
@@ -49,13 +49,20 @@ export default function TripStepRatesBilling({
 
   return (
     <div className="space-y-5 animate-in fade-in-50 duration-200">
-      <div>
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Receipt className="w-4 h-4 text-[#E8450F]" /> Lane Rate Card &amp; Billing Calculation
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Select from available contract rate cards or set custom pricing for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'}.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Receipt className="w-4 h-4 text-[#E8450F]" /> Lane Rate Card &amp; Billing Calculation
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Select from available contract rate cards or set custom pricing for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'}.
+          </p>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+          <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+          <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">1-3</kbd> for Rate Card, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">Ctrl+↵</kbd> Schedule</span>
+        </div>
       </div>
 
       {/* Hero Route Banner */}
@@ -104,11 +111,11 @@ export default function TripStepRatesBilling({
                 <Tag className="w-3.5 h-3.5 text-indigo-600" />
                 Available Rate Cards ({availableRateCards.length})
               </span>
-              <span className="text-[10px] text-slate-400 font-semibold">Click to select rate</span>
+              <span className="text-[10px] text-slate-400 font-semibold">Click or press 1-3</span>
             </Label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {availableRateCards.map((rc) => {
+              {availableRateCards.map((rc, idx) => {
                 const isSelected = selectedRateCardId === rc.id;
                 const isCustomerCard = !!rc.customerId;
                 return (
@@ -116,7 +123,7 @@ export default function TripStepRatesBilling({
                     key={rc.id}
                     onClick={() => onSelectRateCard(rc)}
                     className={cn(
-                      "p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 text-xs",
+                      "p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 text-xs relative overflow-hidden",
                       isSelected
                         ? "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs"
                         : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
@@ -124,10 +131,15 @@ export default function TripStepRatesBilling({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-0.5 min-w-0 flex-1">
-                        <span className="font-bold text-slate-900 dark:text-slate-100 block truncate">
-                          {rc.name}
-                        </span>
-                        <span className="text-[10px] text-slate-500 block truncate">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500 font-bold">
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold text-slate-900 dark:text-slate-100 block truncate">
+                            {rc.name}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block truncate pl-6">
                           {rc.route_origin} → {rc.route_destination}
                         </span>
                       </div>

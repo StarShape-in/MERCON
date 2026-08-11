@@ -14,6 +14,7 @@ import {
   Receipt,
   Clock,
   Zap,
+  Keyboard,
 } from 'lucide-react';
 import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes } from 'date-fns';
 
@@ -85,6 +86,12 @@ export default function CreateTripModal({
 
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+
+  // Shortcut triggers
+  const [isSearchAccountsOpen, setIsSearchAccountsOpen] = useState(false);
+  const [focusPickupSearch, setFocusPickupSearch] = useState(false);
+  const [focusDropoffSearch, setFocusDropoffSearch] = useState(false);
+  const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
 
   // Stop Details
   const [pickupLocationId, setPickupLocationId] = useState('');

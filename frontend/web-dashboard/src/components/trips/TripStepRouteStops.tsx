@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigation } from 'lucide-react';
+import { Navigation, Keyboard } from 'lucide-react';
 import TripStopCard from '@/components/trips/TripStopCard';
 import { Location } from '@/services/locationService';
 
@@ -33,6 +33,8 @@ interface TripStepRouteStopsProps {
   onDropoffTimeChange: (time: string) => void;
   onDropoffNameChange: (name: string) => void;
   onDropoffAddressChange: (address: string) => void;
+  focusPickupSearch?: boolean;
+  focusDropoffSearch?: boolean;
 }
 
 export default function TripStepRouteStops({
@@ -65,16 +67,25 @@ export default function TripStepRouteStops({
   onDropoffTimeChange,
   onDropoffNameChange,
   onDropoffAddressChange,
+  focusPickupSearch,
+  focusDropoffSearch,
 }: TripStepRouteStopsProps) {
   return (
     <div className="space-y-3.5 animate-in fade-in-50 duration-200">
-      <div>
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Navigation className="w-4 h-4 text-[#E8450F]" /> Route Stops (Origin &amp; Destination)
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Select origin pickup and destination dropoff locations for this trip route.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Navigation className="w-4 h-4 text-[#E8450F]" /> Route Stops (Origin &amp; Destination)
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Select origin pickup and destination dropoff locations for this trip route.
+          </p>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+          <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+          <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">\</kbd> for Pickup, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">Shift+\</kbd> for Dropoff</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -104,6 +115,8 @@ export default function TripStepRouteStops({
           address={pickupAddress}
           onAddressChange={onPickupAddressChange}
           hideSchedule={true}
+          autoFocusSearch={focusPickupSearch}
+          shortcutBadge="\"
         />
 
         {/* Dropoff Stop Card */}
@@ -132,8 +145,11 @@ export default function TripStepRouteStops({
           address={dropoffAddress}
           onAddressChange={onDropoffAddressChange}
           hideSchedule={true}
+          autoFocusSearch={focusDropoffSearch}
+          shortcutBadge="Shift+\"
         />
       </div>
     </div>
   );
 }
+

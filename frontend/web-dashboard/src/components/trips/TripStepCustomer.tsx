@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Building2, Check, Sparkles, Phone, CreditCard, ShieldCheck, Search, ChevronsUpDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Building2, Check, Sparkles, Phone, CreditCard, ShieldCheck, Search, ChevronsUpDown, Keyboard } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,8 @@ interface TripStepCustomerProps {
   customers: Customer[];
   selectedCustomer: Customer | null;
   onSelectCustomer: (id: string) => void;
+  openSearch?: boolean;
+  onOpenSearchChange?: (open: boolean) => void;
 }
 
 export default function TripStepCustomer({
@@ -28,8 +30,16 @@ export default function TripStepCustomer({
   customers,
   selectedCustomer,
   onSelectCustomer,
+  openSearch,
+  onOpenSearchChange,
 }: TripStepCustomerProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openSearch !== undefined ? openSearch : internalOpen;
+  const setOpen = (val: boolean) => {
+    setInternalOpen(val);
+    if (onOpenSearchChange) onOpenSearchChange(val);
+  };
+
   const custPhone = selectedCustomer ? (selectedCustomer.phone || selectedCustomer.contact_phone || 'N/A') : 'N/A';
   const custCompany = selectedCustomer ? (selectedCustomer.company_name || 'Commercial Shipper') : 'Commercial Shipper';
   const custPayment = selectedCustomer ? (selectedCustomer.payment_terms || 'Net 30') : 'Net 30';
@@ -39,23 +49,33 @@ export default function TripStepCustomer({
 
   return (
     <div className="space-y-5 animate-in fade-in-50 duration-200">
-      <div>
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-[#E8450F]" /> Select Customer Account
-        </h3>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Pick the client responsible for freight billing and contracted lane rates.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-[#E8450F]" /> Select Customer Account
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Pick the client responsible for freight billing and contracted lane rates.
+          </p>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+          <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+          <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">Shift</kbd> to search, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">1-4</kbd> for quick select, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">↵</kbd> for Next</span>
+        </div>
       </div>
 
       {/* Quick Select Frequent Customer Cards */}
       {quickSelectCustomers.length > 0 && (
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-amber-500" /> Frequent Shippers
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-500" /> Frequent Shippers
+            </Label>
+            <span className="text-[10px] text-slate-400 font-mono">Keys 1-4</span>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            {quickSelectCustomers.map((c) => {
+            {quickSelectCustomers.map((c, index) => {
               const isSelected = c.id === customerId;
               return (
                 <button
@@ -76,7 +96,12 @@ export default function TripStepCustomer({
                     )}>
                       {c.name.substring(0, 2).toUpperCase()}
                     </div>
-                    {isSelected && <Check className="w-4 h-4 text-[#E8450F]" />}
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">
+                        {index + 1}
+                      </span>
+                      {isSelected && <Check className="w-4 h-4 text-[#E8450F]" />}
+                    </div>
                   </div>
                   <span className="font-extrabold text-xs block truncate text-slate-900 dark:text-slate-100">
                     {c.name}
@@ -93,9 +118,14 @@ export default function TripStepCustomer({
 
       {/* Customer Account Search Dropdown */}
       <div className="space-y-1.5">
-        <Label htmlFor="customer_id" className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-          <Search className="w-3.5 h-3.5 text-slate-400" /> Search All Accounts <span className="text-rose-500">*</span>
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="customer_id" className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-slate-400" /> Search All Accounts <span className="text-rose-500">*</span>
+          </Label>
+          <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded">
+            Shift
+          </span>
+        </div>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -253,3 +283,4 @@ export default function TripStepCustomer({
     </div>
   );
 }
+

@@ -36,7 +36,7 @@ export const getVehicles = async (req: Request, res: Response) => {
               OR: [
                 { first_name: { contains: q, mode: 'insensitive' } },
                 { last_name: { contains: q, mode: 'insensitive' } },
-                { phone: { contains: q, mode: 'insensitive' } },
+                { phone_primary: { contains: q, mode: 'insensitive' } },
                 { license_number: { contains: q, mode: 'insensitive' } },
                 { ref_id: { contains: q, mode: 'insensitive' } },
               ],

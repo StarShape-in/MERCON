@@ -92,6 +92,8 @@ export interface TripStopCardProps {
   timeError?: boolean;
   onApplyOffset?: (hours: number, setEod?: boolean) => void;
   hideSchedule?: boolean;
+  autoFocusSearch?: boolean;
+  shortcutBadge?: string;
 }
 
 export default function TripStopCard({
@@ -126,6 +128,8 @@ export default function TripStopCard({
   timeError,
   onApplyOffset,
   hideSchedule = false,
+  autoFocusSearch,
+  shortcutBadge,
 }: TripStopCardProps) {
   const isPickup = tone === 'pickup';
 
@@ -154,7 +158,16 @@ export default function TripStopCard({
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isInitialMount = useRef(true);
+
+  // Auto focus input when requested via keyboard shortcut
+  useEffect(() => {
+    if (autoFocusSearch) {
+      inputRef.current?.focus();
+      setIsDropdownOpen(true);
+    }
+  }, [autoFocusSearch]);
 
   // Initialize and sync query display with prop name
   useEffect(() => {
@@ -258,38 +271,22 @@ export default function TripStopCard({
       searchSessionRef.current = null; // Single use token
 
       if (resolved) {
-        const placeName = resolved.name || suggestion.label;
-        setQuery(placeName);
-        onNameChange(placeName);
-        onAddressChange(resolved.address);
+        setQuery(resolved.name);
+        onNameChange(resolved.name);
+        onAddressChange(resolved.formattedAddress || resolved.name);
         updateCoords(resolved.lat, resolved.lng);
 
-        // Check for exact matching name/slug
-        const searchSlug = placeName.trim().toLowerCase();
-        const exactNameHub = locations.find((l) => l.name.trim().toLowerCase() === searchSlug);
-
-        if (exactNameHub) {
-          updateLocationId(exactNameHub.id, exactNameHub);
-          if (onLocationNameChange) onLocationNameChange(exactNameHub.name);
+        // Auto-match closest saved location hub
+        const closestHub = findClosestLocationHub(resolved.lat, resolved.lng, locations);
+        if (closestHub) {
+          updateLocationId(closestHub.id, closestHub);
+          if (onLocationNameChange) onLocationNameChange(closestHub.name);
         } else {
-          // Auto-create a location hub for this place so rate cards match it directly
-          try {
-            const newLoc = await locationService.create({
-              name: placeName,
-              address: resolved.address,
-              lat: resolved.lat,
-              lng: resolved.lng,
-            });
-            updateLocationId(newLoc.id, newLoc);
-            if (onLocationNameChange) onLocationNameChange(newLoc.name);
-          } catch (err) {
-            console.error('Failed to auto-create location hub for Google place', err);
-            updateLocationId('', null);
-          }
+          updateLocationId('', null);
         }
       }
     } catch (e) {
-      console.error('Failed to resolve Google Maps place', e);
+      console.error('Failed to resolve place', e);
     } finally {
       setIsResolvingPlace(false);
       setIsDropdownOpen(false);
@@ -310,11 +307,18 @@ export default function TripStopCard({
           <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">{title}</span>
         </div>
 
-        {activeSelectedLocation && (
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 text-[10px] font-extrabold">
-            Rate Hub: {activeSelectedLocation.name}
-          </Badge>
-        )}
+        <div className="flex items-center gap-1.5">
+          {shortcutBadge && (
+            <kbd className="font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500 font-semibold shadow-2xs">
+              {shortcutBadge}
+            </kbd>
+          )}
+          {activeSelectedLocation && (
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 text-[10px] font-extrabold">
+              Rate Hub: {activeSelectedLocation.name}
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div className="p-4 space-y-4">
@@ -331,6 +335,7 @@ export default function TripStopCard({
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <Input
+              ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
