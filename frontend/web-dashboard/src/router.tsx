@@ -12,6 +12,7 @@ import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 /* ─── Protected pages (lazy) ────────────────────────────────────────────── */
 const DashboardPage           = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const AdminDashboardPage      = lazy(() => import('@/pages/dashboard/AdminDashboardPage'));
+const SahalPage                = lazy(() => import('@/pages/sahal/SahalPage'));
 const NotificationsPage       = lazy(() => import('@/pages/notifications/NotificationsPage'));
 
 // Trips
@@ -110,6 +111,7 @@ export default function AppRouter() {
         >
           <Route path="/"            element={<DashboardPage />} />
           <Route path="/Ilan" element={<RequireRole roles={['Admin']}><AdminDashboardPage /></RequireRole>} />
+          <Route path="/sahal"           element={<SahalPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
 
           {/* Trips */}

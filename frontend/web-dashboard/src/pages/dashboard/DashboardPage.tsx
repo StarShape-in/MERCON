@@ -6,11 +6,11 @@ import {
   Loader2, RefreshCw, Clock, CheckCircle2, LayoutDashboard, Layers,
   Calendar, AlertCircle, MapPin, TrendingUp,
   User, Download, Plus, Mail, ShieldAlert, BadgePercent, ChevronRight,
-  Phone, Eye, Building2, Wrench
+  Phone, Eye, Building2, Wrench, Disc, FileText, Gauge
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
-  CartesianGrid, Tooltip, BarChart, Bar, Cell
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
+  CartesianGrid, Tooltip, BarChart, Bar, Cell, LineChart, Line, Legend
 } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -21,6 +21,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import DataTable from '@/components/ui/DataTable';
+import KpiModal from '@/components/ui/KpiModal';
 import { reportsService } from '@/services/reportsService';
 import { tripService, Trip, TripStatus } from '@/services/tripService';
 import { authStore } from '@/store/authStore';
@@ -32,6 +33,20 @@ export default function DashboardPage() {
 
   const [selectedSettlementTrip, setSelectedSettlementTrip] = useState<Trip | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+
+  // Origin-aware overview card modal state (Revenue/Expense, Action Required, Tires, Doc, Fleet Efficiency, Upcoming)
+  const [originRect, setOriginRect] = useState<DOMRect | null>(null);
+  const [activeOverviewModal, setActiveOverviewModal] = useState<
+    'finance' | 'action' | 'tires' | 'doc' | 'fleet' | 'upcoming' | null
+  >(null);
+
+  const openOverviewModal = (
+    e: React.MouseEvent<HTMLDivElement>,
+    modalType: 'finance' | 'action' | 'tires' | 'doc' | 'fleet' | 'upcoming'
+  ) => {
+    setOriginRect(e.currentTarget.getBoundingClientRect());
+    setActiveOverviewModal(modalType);
+  };
 
   // Period/Filter states for specific analytics widgets
   const [customerPeriod, setCustomerPeriod] = useState<'month' | 'last_month' | 'quarter' | 'year'>('month');
@@ -301,6 +316,32 @@ export default function DashboardPage() {
   const pctActive = (activeTripsCount / totalTripsDivisor) * 100;
   const pctUpcoming = (upcomingTripsCount / totalTripsDivisor) * 100;
 
+  // Revenue / Expense / Net Profit monthly breakdown (expense derived at the same 34% ratio used above)
+  const monthlyFinance = (summary?.monthly_revenue_chart || [
+    { month: 'Mar', revenue: 35000 },
+    { month: 'Apr', revenue: 38200 },
+    { month: 'May', revenue: 42000 },
+    { month: 'Jun', revenue: 40500 },
+    { month: 'Jul', revenue: 41900 },
+    { month: 'Aug', revenue: 48200 },
+  ]).map((m) => {
+    const expense = Math.round(m.revenue * 0.34);
+    return { month: m.month, revenue: m.revenue, expense, netProfit: m.revenue - expense };
+  });
+  const currentMonthFinance = monthlyFinance[monthlyFinance.length - 1] || { revenue: 0, expense: 0, netProfit: 0 };
+
+  // Tire condition alerts (reuses the same tire-damage report already surfaced in Action Required)
+  const tireAlerts = [
+    {
+      id: 'tire-vsa-3071',
+      vehicle: 'VSA-3071',
+      issue: 'Minor tire damage reported after unloading',
+      reportedBy: 'Mohammed Faizan',
+      time: 'Reported 2 hours ago',
+      severity: 'Critical' as const,
+    },
+  ];
+
   return (
     <DashboardLayout active="Dashboard" title="Dashboard">
       {/* Toast Notification */}
@@ -396,299 +437,168 @@ export default function DashboardPage() {
         )}
 
         {/* ==========================================
-            2. KPI SECTION (Light-themed Dashboard Cards)
+            2. OVERVIEW CARDS — Revenue/Expense/Net Profit, Action Required, Tires,
+               Doc, Fleet Efficiency, Upcoming. Every card (and, in the shared right-
+               column card, each sub-section) is clickable and opens a details modal.
             ========================================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          
-          {/* Card 1: Monthly Revenue */}
-          <div className="bg-white rounded-3xl p-5 border border-orange-500/30 shadow-orange-50/20 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Monthly Revenue</span>
-                <div className="text-2xl font-black text-[#E8450F] tracking-tight mt-1">
-                  SAR {((kpis.revenue_this_month.value || 42000) / 1000).toFixed(1)}K
-                </div>
-              </div>
-              <div className="bg-[#FEF1EC] text-[#E8450F] rounded-xl p-2 border border-orange-100/50 flex items-center justify-center shrink-0">
-                <DollarSign size={16} className="stroke-[2.5]" />
-              </div>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-6 items-stretch">
 
-            {/* Orange Target Progress Bar */}
-            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-2">
-              <div className="bg-[#E8450F] h-full rounded-full transition-all duration-500" style={{ width: '84%' }} title="84% Target Met" />
-            </div>
+          {/* REVENUE / EXPENSE / NET PROFIT */}
+          <Card
+            onClick={(e) => openOverviewModal(e, 'finance')}
+            className="lg:col-start-1 lg:row-start-1 border-slate-200/60 shadow-sm rounded-xl bg-white flex flex-col cursor-pointer hover:border-slate-300 transition-colors"
+          >
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-[#E8450F]" />
+                <span>Revenue / Expense / Net Profit</span>
+              </CardTitle>
+              <CardDescription className="text-[10px] text-slate-400 mt-0.5">
+                SAR {(currentMonthFinance.revenue / 1000).toFixed(1)}K revenue this month
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-[180px] p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyFinance} margin={{ top: 10, right: 15, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 9, fill: '#94A3B8', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: '#94A3B8', fontWeight: 600 }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val / 1000}K`} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 8, fontSize: 10, border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', fontFamily: 'inherit' }}
+                    formatter={(value: any) => [`SAR ${value.toLocaleString()}`]}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 9, fontWeight: 700 }} />
+                  <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#E8450F" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="expense" name="Expense" stroke="#DC2626" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" dataKey="netProfit" name="Net Profit" stroke="#16A34A" strokeWidth={2.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-            {/* Legend */}
-            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
-              <span className="flex items-center gap-1.5 text-slate-600"><span className="w-1.5 h-1.5 rounded-full bg-[#E8450F]" /> SAR 420K Monthly Target</span>
-              <span className="text-[#E8450F] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 font-extrabold">84% Met</span>
-            </div>
-          </div>
-
-          {/* Card 2: Monthly Expense */}
-          <div className="bg-white rounded-3xl p-5 border border-rose-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Monthly Expense</span>
-                <div className="text-2xl font-black text-rose-600 tracking-tight mt-1">
-                  SAR {(((kpis.revenue_this_month.value || 42000) * 0.34) / 1000).toFixed(1)}K
-                </div>
-              </div>
-              <div className="bg-rose-50 text-rose-600 rounded-xl p-2 border border-rose-100/50 flex items-center justify-center shrink-0">
-                <TrendingUp size={16} className="stroke-[2.5]" />
-              </div>
-            </div>
-
-            {/* Rose Budget Progress Bar */}
-            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden mt-2">
-              <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: '71%' }} title="71% Budget Limit" />
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
-              <span className="flex items-center gap-1.5 text-slate-600"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> SAR 20K Budget Limit</span>
-              <span className="text-rose-600 font-extrabold">71% Used (↑ 5.4%)</span>
-            </div>
-          </div>
-
-          {/* Card 3: Total Freight Trips */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Freight Trips</span>
-                <div className="text-2xl font-black text-indigo-600 tracking-tight mt-1">
-                  {totalTripsCalculated} <span className="text-xs font-black uppercase text-indigo-500 ml-0.5">Trips</span>
-                </div>
-              </div>
-              <div className="bg-indigo-50 text-indigo-600 rounded-xl p-2 border border-indigo-100/50 flex items-center justify-center shrink-0">
-                <Truck size={16} className="stroke-[2.5]" />
-              </div>
-            </div>
-
-            {/* Segmented Progress Bar */}
-            <div className="h-2 w-full rounded-full bg-slate-100 flex overflow-hidden mt-2">
-              <div className="bg-emerald-500 h-full" style={{ width: `${pctCompleted}%` }} title="Completed" />
-              <div className="bg-blue-500 h-full" style={{ width: `${pctActive}%` }} title="In Transit" />
-              <div className="bg-orange-500 h-full" style={{ width: `${pctUpcoming}%` }} title="Open" />
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
-              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Completed: {completedTripsCount}</span>
-              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> In transit: {activeTripsCount}</span>
-              <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> Open: {upcomingTripsCount}</span>
-            </div>
-          </div>
-
-          {/* Card 4: Compliance Status */}
-          <div className="bg-white rounded-3xl p-5 border border-amber-200/80 shadow-xs hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col justify-between h-[155px]">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Compliance Status</span>
-                <div className="text-2xl font-black text-amber-600 tracking-tight mt-1">
-                  {kpis.docs_expiring_soon.value || 0} <span className="text-xs font-black uppercase text-amber-500 ml-0.5">Issues</span>
-                </div>
-              </div>
-              <div className="bg-[#FFFBEB] text-[#D97706] rounded-xl p-2 border border-amber-100/50 flex items-center justify-center shrink-0">
-                <Calendar size={16} className="stroke-[2.5]" />
-              </div>
-            </div>
-
-            {/* Segmented Compliance Progress Bar */}
-            <div className="h-2 w-full rounded-full bg-slate-100 flex overflow-hidden mt-2">
-              <div className="bg-emerald-500 h-full" style={{ width: '80%' }} title="Driver Permits OK" />
-              <div className="bg-amber-500 h-full" style={{ width: '20%' }} title="Vehicle Registrations Due" />
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-between text-[9px] font-black text-slate-500 mt-1.5 pt-2.5 border-t border-slate-100/70">
-              <span className="flex items-center gap-1.5 text-emerald-600 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Permits: OK</span>
-              <span className="flex items-center gap-1.5 text-amber-600 font-extrabold"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Expiries: 3d</span>
-              <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 font-extrabold text-[8px]">100% OK</span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* ==========================================
-            3. ACTION REQUIRED & 4. UPCOMING TRIPS
-            ========================================== */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          
-          {/* ACTION REQUIRED — HIGH PRIORITY (6 Columns) */}
-          <Card className="lg:col-span-6 border-slate-200/60 shadow-sm rounded-xl bg-white flex flex-col justify-between">
+          {/* ACTION REQUIRED */}
+          <Card
+            onClick={(e) => openOverviewModal(e, 'action')}
+            className="lg:col-start-2 lg:row-start-1 border-slate-200/60 shadow-sm rounded-xl bg-white flex flex-col cursor-pointer hover:border-slate-300 transition-colors"
+          >
             <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
                   <ShieldAlert className="w-4 h-4 text-red-500 animate-pulse" />
                   <span>Action Required</span>
                 </CardTitle>
-                <CardDescription className="text-[10px] text-slate-400 mt-0.5">Critical operations alerts needing immediate checkout</CardDescription>
+                <CardDescription className="text-[10px] text-slate-400 mt-0.5">Critical alerts needing checkout</CardDescription>
               </div>
               <span className="bg-red-50 text-red-700 text-[10px] font-black px-2.5 py-0.5 rounded-full">
                 {actionRequiredItems.length} Urgent
               </span>
             </CardHeader>
             <CardContent className="flex-1 p-0 divide-y divide-slate-100">
-              {actionRequiredItems.map((item) => {
-                let badgeColor = 'bg-slate-50 text-slate-700 border-slate-200';
-                if (item.priority === 'Critical') badgeColor = 'bg-red-50 text-red-700 border-red-200/80';
-                if (item.priority === 'High') badgeColor = 'bg-amber-50 text-amber-700 border-amber-200/80';
-                if (item.priority === 'Medium') badgeColor = 'bg-yellow-50 text-yellow-700 border-yellow-200/80';
-
-                return (
-                  <div key={item.id} className="p-4 flex items-start gap-3.5 hover:bg-slate-50/50 transition-colors group">
-                    <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${
-                      item.priority === 'Critical' ? 'bg-red-500 animate-ping' : 
-                      item.priority === 'High' ? 'bg-orange-500' : 'bg-amber-400'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-wide">{item.category}</span>
-                        <Badge variant="outline" className={`text-[8px] font-extrabold px-1.5 py-0.2 rounded-md ${badgeColor}`}>
-                          {item.priority}
-                        </Badge>
-                        <span className="text-[9px] text-slate-400 font-mono ml-auto">{item.metadata}</span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-900 mt-1 truncate group-hover:text-[#E8450F] transition-colors">
-                        {item.title}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
-                    <button
-                      onClick={item.onClick}
-                      className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-md text-[10px] font-black transition-all shrink-0 hover:scale-[1.02] cursor-pointer align-self-center"
-                    >
-                      {item.actionLabel}
-                    </button>
+              {actionRequiredItems.slice(0, 2).map((item) => (
+                <div key={item.id} className="p-4 flex items-start gap-3">
+                  <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${
+                    item.priority === 'Critical' ? 'bg-red-500 animate-ping' :
+                    item.priority === 'High' ? 'bg-orange-500' : 'bg-amber-400'
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wide">{item.category}</span>
+                    <h4 className="text-xs font-bold text-slate-900 mt-0.5 truncate">{item.title}</h4>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </CardContent>
             <div className="p-3 bg-slate-50/70 border-t border-slate-100 flex justify-end">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/notifications')}
-                className="text-[11px] font-bold text-[#E8450F] hover:text-[#C7380A] p-0 h-auto hover:bg-transparent"
-              >
-                <span>View all actions</span>
-                <ChevronRight size={12} className="ml-0.5" />
-              </Button>
+              <span className="text-[11px] font-bold text-[#E8450F] flex items-center">
+                View all actions <ChevronRight size={12} className="ml-0.5" />
+              </span>
             </div>
           </Card>
 
-          {/* UPCOMING TRIPS (6 Columns) */}
-          <Card className="lg:col-span-6 border-slate-200/60 shadow-sm rounded-xl bg-white flex flex-col justify-between">
-            <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-indigo-500" />
-                  <span>Upcoming Trips</span>
-                </CardTitle>
-                <CardDescription className="text-[10px] text-slate-400 mt-0.5">Chronologically ordered next dispatches</CardDescription>
+          {/* TIRES + UPCOMING — shared right-hand column, each half independently clickable */}
+          <Card className="lg:col-start-3 lg:row-start-1 lg:row-span-2 border-slate-200/60 shadow-sm rounded-xl bg-white flex flex-col divide-y divide-slate-100 overflow-hidden p-0">
+            <div
+              onClick={(e) => openOverviewModal(e, 'tires')}
+              className="p-4 cursor-pointer hover:bg-slate-50/50 transition-colors flex flex-col gap-2"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <Disc className="w-4 h-4 text-slate-500" />
+                  <span>Tires</span>
+                </span>
+                <span className="bg-red-50 text-red-700 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {tireAlerts.length} Alert
+                </span>
               </div>
-              <span className="bg-indigo-50 text-indigo-700 text-[10px] font-black px-2.5 py-0.5 rounded-full">
-                {upcomingTripsList.length} Scheduled
-              </span>
-            </CardHeader>
-            <CardContent className="flex-1 p-0 divide-y divide-slate-100 max-h-[352px] overflow-y-auto">
-              {upcomingTripsList.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 flex flex-col items-center justify-center h-full">
-                  <Clock size={32} className="text-slate-300 stroke-[1.5] mb-2" />
-                  <p className="text-xs font-bold">No upcoming trips scheduled</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Click 'Create New Trip' to get started.</p>
+              {tireAlerts.map((t) => (
+                <div key={t.id} className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                  <span className="font-mono font-extrabold text-slate-900">{t.vehicle}</span> — {t.issue}
                 </div>
-              ) : (
-                upcomingTripsList.slice(0, 3).map((trip) => {
-                  const countdownStr = getCountdown(trip.planned_start);
-                  const isSoon = countdownStr.includes('m') || countdownStr.includes('h') && !countdownStr.includes('d');
-
-                  return (
-                    <div key={trip.id} className="p-4 hover:bg-slate-50/50 transition-colors flex flex-col gap-2.5">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-black text-[#E8450F]">
-                            {trip.ref_id || 'Draft'}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-bold">•</span>
-                          <span className="text-[10px] text-slate-500 font-bold">
-                            {trip.planned_start ? new Date(trip.planned_start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '—'}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-bold">•</span>
-                          <span className="text-[10px] text-slate-500 font-medium">
-                            {trip.planned_start ? new Date(trip.planned_start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '—'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {/* Countdown Badge */}
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
-                            isSoon 
-                              ? 'bg-orange-50 text-orange-700 border-orange-200/80 animate-pulse' 
-                              : 'bg-slate-50 text-slate-600 border-slate-200'
-                          }`}>
-                            {countdownStr}
-                          </span>
-                          <Badge className="bg-indigo-50/50 text-indigo-700 border border-indigo-100 font-bold text-[9px] rounded px-1.5 py-0.2">
-                            Scheduled
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* Route Details */}
-                      <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-2.5 rounded-lg border border-slate-100">
-                        <div className="flex flex-col">
-                          <span className="text-[9px] uppercase font-bold text-slate-400">Pickup</span>
-                          <span className="text-xs font-bold text-slate-800 truncate">{trip.stops?.[0]?.location_name || 'Riyadh Warehouse'}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[9px] uppercase font-bold text-slate-400">Delivery</span>
-                          <span className="text-xs font-bold text-slate-800 truncate">{trip.stops?.[trip.stops.length - 1]?.location_name || 'Jeddah Warehouse'}</span>
-                        </div>
-                      </div>
-
-                      {/* Fleet Resources & Actions */}
-                      <div className="flex items-center justify-between text-xs mt-0.5">
-                        <div className="flex items-center gap-4 flex-wrap text-slate-500 font-semibold text-[11px]">
-                          <span className="flex items-center gap-1">
-                            <User size={12} className="text-slate-400" />
-                            {trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name.charAt(0)}.` : <span className="italic font-normal text-slate-400">Unassigned</span>}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Car size={12} className="text-slate-400" />
-                            {trip.vehicle ? trip.vehicle.plate_number : <span className="italic font-normal text-slate-400">Unassigned</span>}
-                          </span>
-                          <span className="text-slate-400 font-normal">
-                            ~{trip.planned_distance || 950} km
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => navigate(`/trips/${trip.id}`)}
-                          className="text-[10px] font-black text-[#E8450F] hover:text-[#C7380A] flex items-center gap-0.5"
-                        >
-                          <span>View Trip</span>
-                          <ArrowRight size={11} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </CardContent>
-            <div className="p-3 bg-slate-50/70 border-t border-slate-100 flex justify-end">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/trips')}
-                className="text-[11px] font-bold text-[#E8450F] hover:text-[#C7380A] p-0 h-auto hover:bg-transparent"
-              >
-                <span>View All Upcoming Trips</span>
-                <ChevronRight size={12} className="ml-0.5" />
-              </Button>
+              ))}
             </div>
+            <div
+              onClick={(e) => openOverviewModal(e, 'upcoming')}
+              className="p-4 flex-1 cursor-pointer hover:bg-slate-50/50 transition-colors flex flex-col gap-2"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-indigo-500" />
+                  <span>Upcoming</span>
+                </span>
+                <span className="bg-indigo-50 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {upcomingTripsList.length}
+                </span>
+              </div>
+              {upcomingTripsList.slice(0, 3).map((trip) => (
+                <div key={trip.id} className="text-[11px] text-slate-600 font-medium flex items-center justify-between gap-2">
+                  <span className="font-mono font-bold text-[#E8450F] shrink-0">{trip.ref_id || 'Draft'}</span>
+                  <span className="truncate">{trip.stops?.[0]?.location_name || 'Riyadh'} → {trip.stops?.[trip.stops.length - 1]?.location_name || 'Jeddah'}</span>
+                </div>
+              ))}
+              {upcomingTripsList.length === 0 && (
+                <p className="text-[11px] text-slate-400 font-semibold">No upcoming trips scheduled</p>
+              )}
+            </div>
+          </Card>
+
+          {/* DOC */}
+          <Card
+            onClick={(e) => openOverviewModal(e, 'doc')}
+            className="lg:col-start-1 lg:row-start-2 border-slate-200/60 shadow-sm rounded-xl bg-white flex flex-col cursor-pointer hover:border-slate-300 transition-colors"
+          >
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-amber-600" />
+                <span>Doc</span>
+              </CardTitle>
+              <CardDescription className="text-[10px] text-slate-400 mt-0.5">Compliance document expiry</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 p-4 flex flex-col justify-center items-center text-center">
+              <div className="text-2xl font-black text-amber-600 tracking-tight">
+                {kpis.docs_expiring_soon.value || 0} <span className="text-xs font-black uppercase text-amber-500 ml-0.5">Expiring Soon</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* FLEET EFFICIENCY */}
+          <Card
+            onClick={(e) => openOverviewModal(e, 'fleet')}
+            className="lg:col-start-2 lg:row-start-2 border-slate-200/60 shadow-sm rounded-xl bg-white flex flex-col cursor-pointer hover:border-slate-300 transition-colors"
+          >
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <Gauge className="w-4 h-4 text-blue-600" />
+                <span>Fleet Efficiency</span>
+              </CardTitle>
+              <CardDescription className="text-[10px] text-slate-400 mt-0.5">Vehicle utilization overview</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 p-4 flex flex-col justify-center gap-2">
+              {sortedUtilization.slice(0, 3).map((veh) => (
+                <div key={veh.id || veh.plateNumber} className="flex items-center justify-between text-[11px]">
+                  <span className="font-mono font-extrabold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">{veh.plateNumber}</span>
+                  <span className="font-bold text-slate-600">{veh.utilization}%</span>
+                </div>
+              ))}
+            </CardContent>
           </Card>
 
         </div>
@@ -1245,6 +1155,191 @@ export default function DashboardPage() {
             showToast('Trip waiting time settled successfully', 'success');
           }}
         />
+
+        {/* Revenue / Expense / Net Profit detail modal */}
+        <KpiModal
+          isOpen={activeOverviewModal === 'finance'}
+          onClose={() => setActiveOverviewModal(null)}
+          originRect={originRect}
+          title="Revenue / Expense / Net Profit"
+          subtitle="Monthly breakdown"
+        >
+          <div className="divide-y divide-slate-100">
+            <div className="grid grid-cols-4 gap-2 py-2 text-[10px] font-black uppercase text-slate-400">
+              <span>Month</span>
+              <span className="text-right">Revenue</span>
+              <span className="text-right">Expense</span>
+              <span className="text-right">Net Profit</span>
+            </div>
+            {monthlyFinance.map((m) => (
+              <div key={m.month} className="grid grid-cols-4 gap-2 py-2 text-xs">
+                <span className="font-bold text-slate-800">{m.month}</span>
+                <span className="text-right font-extrabold text-[#E8450F]">SAR {m.revenue.toLocaleString()}</span>
+                <span className="text-right font-extrabold text-rose-600">SAR {m.expense.toLocaleString()}</span>
+                <span className="text-right font-extrabold text-emerald-600">SAR {m.netProfit.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </KpiModal>
+
+        {/* Action Required detail modal */}
+        <KpiModal
+          isOpen={activeOverviewModal === 'action'}
+          onClose={() => setActiveOverviewModal(null)}
+          originRect={originRect}
+          title="Action Required"
+          subtitle="All critical operations alerts"
+        >
+          <div className="divide-y divide-slate-100 -mx-6">
+            {actionRequiredItems.map((item) => {
+              let badgeColor = 'bg-slate-50 text-slate-700 border-slate-200';
+              if (item.priority === 'Critical') badgeColor = 'bg-red-50 text-red-700 border-red-200/80';
+              if (item.priority === 'High') badgeColor = 'bg-amber-50 text-amber-700 border-amber-200/80';
+              if (item.priority === 'Medium') badgeColor = 'bg-yellow-50 text-yellow-700 border-yellow-200/80';
+              return (
+                <div key={item.id} className="px-6 py-3.5 flex items-start gap-3.5">
+                  <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${
+                    item.priority === 'Critical' ? 'bg-red-500' : item.priority === 'High' ? 'bg-orange-500' : 'bg-amber-400'
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wide">{item.category}</span>
+                      <Badge variant="outline" className={`text-[8px] font-extrabold px-1.5 py-0.2 rounded-md ${badgeColor}`}>{item.priority}</Badge>
+                      <span className="text-[9px] text-slate-400 font-mono ml-auto">{item.metadata}</span>
+                    </div>
+                    <h4 className="text-xs font-bold text-slate-900 mt-1">{item.title}</h4>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">{item.description}</p>
+                  </div>
+                  <button
+                    onClick={() => { item.onClick(); setActiveOverviewModal(null); }}
+                    className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[10px] font-black transition-all shrink-0"
+                  >
+                    {item.actionLabel}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </KpiModal>
+
+        {/* Tires detail modal */}
+        <KpiModal
+          isOpen={activeOverviewModal === 'tires'}
+          onClose={() => setActiveOverviewModal(null)}
+          originRect={originRect}
+          title="Tires"
+          subtitle="Reported tire condition alerts"
+        >
+          <div className="divide-y divide-slate-100 -mx-6">
+            {tireAlerts.map((t) => (
+              <div key={t.id} className="px-6 py-3.5 flex items-start gap-3.5">
+                <div className="mt-0.5 w-2 h-2 rounded-full shrink-0 bg-red-500" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-black text-slate-900">{t.vehicle}</span>
+                    <Badge variant="outline" className="text-[8px] font-extrabold px-1.5 py-0.2 rounded-md bg-red-50 text-red-700 border-red-200/80">{t.severity}</Badge>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 mt-1">{t.issue}</h4>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">Reported by {t.reportedBy} • {t.time}</p>
+                </div>
+                <button
+                  onClick={() => { navigate('/maintenance'); setActiveOverviewModal(null); }}
+                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[10px] font-black transition-all shrink-0"
+                >
+                  Review
+                </button>
+              </div>
+            ))}
+          </div>
+        </KpiModal>
+
+        {/* Doc detail modal */}
+        <KpiModal
+          isOpen={activeOverviewModal === 'doc'}
+          onClose={() => setActiveOverviewModal(null)}
+          originRect={originRect}
+          title="Doc"
+          subtitle="Compliance document expiry"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="text-2xl font-black text-amber-600">
+              {kpis.docs_expiring_soon.value || 0} <span className="text-xs font-black uppercase text-amber-500 ml-0.5">Documents Expiring Soon</span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              Vehicle Registration and Driver Permits require immediate renewal to avoid roadside compliance fines.
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { navigate('/documents'); setActiveOverviewModal(null); }}
+              className="text-[11px] font-bold text-[#E8450F] hover:text-[#C7380A] p-0 h-auto hover:bg-transparent self-start"
+            >
+              <span>Review Documents</span>
+              <ChevronRight size={12} className="ml-0.5" />
+            </Button>
+          </div>
+        </KpiModal>
+
+        {/* Fleet Efficiency detail modal */}
+        <KpiModal
+          isOpen={activeOverviewModal === 'fleet'}
+          onClose={() => setActiveOverviewModal(null)}
+          originRect={originRect}
+          title="Fleet Efficiency"
+          subtitle="Vehicle utilization breakdown"
+        >
+          <div className="divide-y divide-slate-100 -mx-6">
+            {processedUtilization.length === 0 ? (
+              <p className="px-6 py-4 text-xs text-slate-400 font-semibold">No vehicle performance logs found</p>
+            ) : (
+              processedUtilization.map((veh) => (
+                <div key={veh.id || veh.plateNumber} className="px-6 py-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-extrabold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded">{veh.plateNumber}</span>
+                    <span className="text-[10px] text-slate-400 font-semibold">{veh.tripsCompleted} trips</span>
+                  </div>
+                  <span className="font-black text-slate-800">{veh.utilization}% • ~{veh.distanceTraveled.toLocaleString()} km</span>
+                </div>
+              ))
+            )}
+          </div>
+        </KpiModal>
+
+        {/* Upcoming trips detail modal */}
+        <KpiModal
+          isOpen={activeOverviewModal === 'upcoming'}
+          onClose={() => setActiveOverviewModal(null)}
+          originRect={originRect}
+          title="Upcoming Trips"
+          subtitle="Chronologically ordered next dispatches"
+        >
+          <div className="divide-y divide-slate-100 -mx-6">
+            {upcomingTripsList.length === 0 ? (
+              <p className="px-6 py-4 text-xs text-slate-400 font-semibold">No upcoming trips scheduled</p>
+            ) : (
+              upcomingTripsList.map((trip) => (
+                <div key={trip.id} className="px-6 py-3.5 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-black text-[#E8450F]">{trip.ref_id || 'Draft'}</span>
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      {trip.planned_start ? new Date(trip.planned_start).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-600 font-semibold">
+                    {trip.stops?.[0]?.location_name || 'Riyadh Warehouse'} → {trip.stops?.[trip.stops.length - 1]?.location_name || 'Jeddah Warehouse'}
+                  </div>
+                  <button
+                    onClick={() => { navigate(`/trips/${trip.id}`); setActiveOverviewModal(null); }}
+                    className="text-[10px] font-black text-[#E8450F] hover:text-[#C7380A] flex items-center gap-0.5 self-start"
+                  >
+                    <span>View Trip</span>
+                    <ArrowRight size={11} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </KpiModal>
 
       </div>
     </DashboardLayout>
