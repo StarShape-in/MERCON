@@ -17,6 +17,7 @@ export interface ComboboxOption {
   value: string;
   label: string;
   keywords?: string;
+  disabled?: boolean;
 }
 
 interface ComboboxProps {
@@ -83,8 +84,10 @@ export function Combobox({
                 <CommandItem
                   key={option.value}
                   value={option.value}
-                  className="text-xs"
+                  disabled={option.disabled}
+                  className={cn("text-xs", option.disabled && "opacity-50 cursor-not-allowed")}
                   onSelect={(currentValue) => {
+                    if (option.disabled) return;
                     onChange(currentValue === value ? value : currentValue);
                     setOpen(false);
                   }}

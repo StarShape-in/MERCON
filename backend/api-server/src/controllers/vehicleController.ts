@@ -58,13 +58,15 @@ export const getVehicles = async (req: Request, res: Response) => {
             where: {
               deletedAt: null,
               status: {
-                in: ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
+                in: ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
               }
             },
             include: {
               driver: true
             },
-            take: 1
+            orderBy: {
+              planned_start: 'asc'
+            }
           }
         }
       }),
@@ -96,13 +98,17 @@ export const getVehicleById = async (req: Request, res: Response) => {
           where: {
             deletedAt: null,
             status: {
-              in: ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
+              notIn: ['Cancelled']
             }
           },
           include: {
-            driver: true
+            driver: true,
+            customer: true,
+            stops: true
           },
-          take: 1
+          orderBy: {
+            planned_start: 'asc'
+          }
         }
       }
     });

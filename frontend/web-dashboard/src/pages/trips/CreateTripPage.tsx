@@ -34,6 +34,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { rateCardService } from '@/services/rateCardService';
 import { locationService } from '@/services/locationService';
+import { isScheduledOnDate } from '@/utils/scheduleUtils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -202,17 +203,25 @@ export default function CreateTripPage() {
     }));
   }, [customers]);
 
-  const driverOptions = drivers.map((d) => ({
-    value: d.id,
-    label: `${d.first_name} ${d.last_name}`,
-    keywords: `${d.first_name} ${d.last_name}`,
-  }));
+  const driverOptions = drivers.map((d) => {
+    const isBusy = pickupTime ? isScheduledOnDate(d.trips, pickupTime) : false;
+    return {
+      value: d.id,
+      label: `${d.first_name} ${d.last_name}${isBusy ? ' — ⚠️ Scheduled on this date' : ''}`,
+      keywords: `${d.first_name} ${d.last_name}`,
+      disabled: isBusy,
+    };
+  });
 
-  const vehicleOptions = vehicles.map((v) => ({
-    value: v.id,
-    label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
-    keywords: `${v.plate_number} ${v.asset_type}`,
-  }));
+  const vehicleOptions = vehicles.map((v) => {
+    const isBusy = pickupTime ? isScheduledOnDate(v.trips, pickupTime) : false;
+    return {
+      value: v.id,
+      label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — ⚠️ Scheduled on this date' : ''}`,
+      keywords: `${v.plate_number} ${v.asset_type}`,
+      disabled: isBusy,
+    };
+  });
 
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedDriver = drivers.find(d => d.id === driverId);

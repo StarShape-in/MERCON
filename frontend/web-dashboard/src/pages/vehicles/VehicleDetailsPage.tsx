@@ -6,7 +6,7 @@ import {
   ArrowLeft, Edit2, FileText, Truck, MapPin, AlertTriangle, Trash2, 
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
-  CheckCircle2, ChevronDown
+  CheckCircle2, ChevronDown, Calendar
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
@@ -16,6 +16,7 @@ import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { vehicleService, AssetStatus } from '@/services/vehicleService';
 import { maintenanceService, CreateMaintenancePayload } from '@/services/maintenanceService';
 import { documentService, DocType, MerconDocument } from '@/services/documentService';
+import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -525,6 +526,54 @@ export default function VehicleDetailsPage() {
 
         {/* ── Main Dashboard 2-Column Grid ───────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Scheduled Trip Days Section */}
+          <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-indigo-600" /> Scheduled Trip Days & Availability
+              </CardTitle>
+              <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold text-xs">
+                {getUpcomingScheduledDates(vehicle.trips).length} Scheduled Days
+              </Badge>
+            </CardHeader>
+            <CardContent className="p-4">
+              {getUpcomingScheduledDates(vehicle.trips).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-2">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No Scheduled Trips</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">This vehicle has no active or upcoming trips assigned.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {getUpcomingScheduledDates(vehicle.trips).map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 rounded-xl border border-indigo-100 bg-indigo-50/40 dark:bg-indigo-950/20 dark:border-indigo-900/40 hover:border-indigo-300 transition-all cursor-pointer"
+                      onClick={() => item.tripRef && navigate(`/trips/${item.tripRef}`)}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                          <Calendar className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+                            {item.formattedDate}
+                          </span>
+                          <span className="text-[10px] font-mono text-indigo-600 font-bold truncate">
+                            {item.tripRef ? `Trip ${item.tripRef}` : 'Assigned Trip'}
+                          </span>
+                        </div>
+                      </div>
+                      {item.status && <StatusBadge status={item.status as any} />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Left Column (Financial P&L Summary & Maintenance Service Ledger) */}
           <div className="lg:col-span-2 space-y-6">

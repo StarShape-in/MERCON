@@ -31,13 +31,15 @@ export const getDrivers = async (req: Request, res: Response) => {
             where: {
               deletedAt: null,
               status: {
-                in: ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
+                in: ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery']
               }
             },
             include: {
               vehicle: true
             },
-            take: 1
+            orderBy: {
+              planned_start: 'asc'
+            }
           },
           assignedVehicle: true
         }
@@ -66,7 +68,14 @@ export const getDriverById = async (req: Request, res: Response) => {
   try {
     const driver = await prisma.driver.findUnique({
       where: { id: req.params.id as string, deletedAt: null },
-      include: { trips: { take: 5, orderBy: { createdAt: 'desc' } }, assignedVehicle: true }
+      include: {
+        trips: {
+          where: { deletedAt: null, status: { notIn: ['Cancelled'] } },
+          orderBy: { planned_start: 'asc' },
+          include: { vehicle: true, customer: true, stops: true }
+        },
+        assignedVehicle: true
+      }
     });
 
     if (!driver) {

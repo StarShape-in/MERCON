@@ -27,6 +27,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { vehicleService, Vehicle, AssetStatus } from '@/services/vehicleService';
+import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 import KpiCard from '@/components/ui/KpiCard';
@@ -492,6 +493,35 @@ export default function VehicleListPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Scheduled Days',
+      accessor: (row: Vehicle) => {
+        const scheduledDates = getUpcomingScheduledDates(row.trips);
+        if (scheduledDates.length === 0) {
+          return <span className="text-xs text-slate-400 font-medium italic">None</span>;
+        }
+        return (
+          <div className="flex items-center gap-1 flex-wrap max-w-[200px]">
+            {scheduledDates.slice(0, 3).map((item, idx) => (
+              <Badge
+                key={idx}
+                variant="outline"
+                className="bg-indigo-50/80 text-indigo-700 border-indigo-200/80 text-[10px] font-semibold py-0.5 px-1.5 gap-1 shrink-0"
+                title={`Trip ${item.tripRef || ''}`}
+              >
+                <Calendar className="w-2.5 h-2.5 text-indigo-500" />
+                {item.formattedDate}
+              </Badge>
+            ))}
+            {scheduledDates.length > 3 && (
+              <Badge variant="outline" className="bg-slate-100 text-slate-600 text-[10px] font-medium py-0.5 px-1">
+                +{scheduledDates.length - 3}
+              </Badge>
+            )}
           </div>
         );
       },

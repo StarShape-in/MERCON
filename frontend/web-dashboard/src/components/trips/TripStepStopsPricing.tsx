@@ -138,7 +138,7 @@ export default function TripStepStopsPricing({
           locationId={pickupLocationId}
           onLocationChange={(locId, loc) => {
             onPickupLocationIdChange(locId);
-            if (loc) onPickupLocationNameChange(loc.name);
+            onPickupLocationNameChange(loc?.name || '');
             if (loc?.lat != null && loc?.lng != null && !pickupAddress.trim()) {
               onPickupCoordinatesChange(loc.lat, loc.lng);
             }
@@ -168,7 +168,7 @@ export default function TripStepStopsPricing({
           locationId={dropoffLocationId}
           onLocationChange={(locId, loc) => {
             onDropoffLocationIdChange(locId);
-            if (loc) onDropoffLocationNameChange(loc.name);
+            onDropoffLocationNameChange(loc?.name || '');
             if (loc?.lat != null && loc?.lng != null && !dropoffAddress.trim()) {
               onDropoffCoordinatesChange(loc.lat, loc.lng);
             }

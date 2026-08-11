@@ -30,6 +30,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { rateCardService } from '@/services/rateCardService';
 import { locationService } from '@/services/locationService';
+import { isScheduledOnDate } from '@/utils/scheduleUtils';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -183,22 +184,30 @@ export default function CreateTripModal({
 
   const driverOptions = useMemo(
     () =>
-      drivers.map((d) => ({
-        value: d.id,
-        label: `${d.first_name} ${d.last_name}`,
-        keywords: `${d.first_name} ${d.last_name}`,
-      })),
-    [drivers]
+      drivers.map((d) => {
+        const isBusy = pickupTime ? isScheduledOnDate(d.trips, pickupTime) : false;
+        return {
+          value: d.id,
+          label: `${d.first_name} ${d.last_name}${isBusy ? ' — ⚠️ Scheduled on this date' : ''}`,
+          keywords: `${d.first_name} ${d.last_name}`,
+          disabled: isBusy,
+        };
+      }),
+    [drivers, pickupTime]
   );
 
   const vehicleOptions = useMemo(
     () =>
-      vehicles.map((v) => ({
-        value: v.id,
-        label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
-        keywords: `${v.plate_number} ${v.asset_type}`,
-      })),
-    [vehicles]
+      vehicles.map((v) => {
+        const isBusy = pickupTime ? isScheduledOnDate(v.trips, pickupTime) : false;
+        return {
+          value: v.id,
+          label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg ? v.capacity_kg.toLocaleString() : '24000'} kg)${isBusy ? ' — ⚠️ Scheduled on this date' : ''}`,
+          keywords: `${v.plate_number} ${v.asset_type}`,
+          disabled: isBusy,
+        };
+      }),
+    [vehicles, pickupTime]
   );
 
   const vehicleAutoAssigned = !!selectedDriver?.assignedVehicleId && selectedDriver.assignedVehicleId === vehicleId;
@@ -483,15 +492,7 @@ export default function CreateTripModal({
       setError('Please select a customer before proceeding.');
       return;
     }
-    if (step === 2 && !assignDriverLater && !driverId) {
-      setError('Please assign a driver, or check "Assign driver later".');
-      return;
-    }
-    if (step === 2 && !assignVehicleLater && !vehicleId) {
-      setError('Please assign a vehicle, or check "Assign vehicle later".');
-      return;
-    }
-    if (step === 3) {
+    if (step === 2) {
       if (pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null) {
         setError('Please select both pickup and dropoff locations.');
         return;
@@ -517,6 +518,24 @@ export default function CreateTripModal({
         return;
       }
     }
+    if (step === 3) {
+      if (!assignDriverLater && !driverId) {
+        setError('Please assign a driver, or check "Assign driver later".');
+        return;
+      }
+      if (!assignVehicleLater && !vehicleId) {
+        setError('Please assign a vehicle, or check "Assign vehicle later".');
+        return;
+      }
+      if (driverId && selectedDriver && pickupTime && isScheduledOnDate(selectedDriver.trips, pickupTime)) {
+        setError(`Driver ${selectedDriver.first_name} ${selectedDriver.last_name} is already assigned to a trip on this date.`);
+        return;
+      }
+      if (vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
+        setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
+        return;
+      }
+    }
 
     setStep((prev) => (prev < 4 ? ((prev + 1) as 1 | 2 | 3 | 4) : 4));
   }, [
@@ -524,8 +543,10 @@ export default function CreateTripModal({
     customerId,
     assignDriverLater,
     driverId,
+    selectedDriver,
     assignVehicleLater,
     vehicleId,
+    selectedVehicle,
     pickupLat,
     pickupLng,
     dropoffLat,
@@ -768,14 +789,14 @@ export default function CreateTripModal({
                   'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 2
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
-                    : (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)
+                    : !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
                 )}
               >
-                <Truck className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">2. Assignments</span>
-                {((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) && (
+                <Navigation className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">2. Route &amp; Schedule</span>
+                {!missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid && (
                   <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
                 )}
               </button>
@@ -783,23 +804,23 @@ export default function CreateTripModal({
               <button
                 type="button"
                 onClick={() => {
-                  if (customerId && (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) {
+                  if (customerId && !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid) {
                     setStep(3);
                   }
                 }}
-                disabled={!customerId || (!assignDriverLater && !driverId) || (!assignVehicleLater && !vehicleId)}
+                disabled={!customerId || missingLocation || missingName || missingLane || sameLaneEndpoints || missingSchedule || isScheduleInvalid}
                 className={cn(
                   'flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 3
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
-                    : !missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid
+                    : (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
                 )}
               >
-                <Navigation className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">3. Route</span>
-                {!missingLocation && !missingName && !missingLane && !sameLaneEndpoints && !missingSchedule && !isScheduleInvalid && (
+                <Truck className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">3. Resource Assignments</span>
+                {((selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)) && (
                   <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
                 )}
               </button>
@@ -848,34 +869,6 @@ export default function CreateTripModal({
             )}
 
             {step === 2 && (
-              <TripStepAssignments
-                driverId={driverId}
-                vehicleId={vehicleId}
-                assignDriverLater={assignDriverLater}
-                assignVehicleLater={assignVehicleLater}
-                driverOptions={driverOptions}
-                vehicleOptions={vehicleOptions}
-                selectedDriver={selectedDriver}
-                selectedVehicle={selectedVehicle}
-                vehicleAutoAssigned={vehicleAutoAssigned}
-                onSelectDriver={(id) => { setDriverId(id); setError(null); }}
-                onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
-                onToggleAssignDriverLater={(val) => {
-                  setAssignDriverLater(val);
-                  if (val) setDriverId('');
-                  setError(null);
-                }}
-                onToggleAssignVehicleLater={(val) => {
-                  setAssignVehicleLater(val);
-                  if (val) setVehicleId('');
-                  setError(null);
-                }}
-                onOpenAddDriver={() => setIsAddDriverOpen(true)}
-                onOpenAddVehicle={() => setIsAddVehicleOpen(true)}
-              />
-            )}
-
-            {step === 3 && (
               <TripStepStopsSLA
                 pickupLocationId={pickupLocationId}
                 pickupLocationName={pickupLocationName}
@@ -910,6 +903,34 @@ export default function CreateTripModal({
                 onDropoffNameChange={(n) => { setDropoffName(n); setError(null); }}
                 onDropoffAddressChange={setDropoffAddress}
                 onApplyDropoffOffset={applyDropoffOffset}
+              />
+            )}
+
+            {step === 3 && (
+              <TripStepAssignments
+                driverId={driverId}
+                vehicleId={vehicleId}
+                assignDriverLater={assignDriverLater}
+                assignVehicleLater={assignVehicleLater}
+                driverOptions={driverOptions}
+                vehicleOptions={vehicleOptions}
+                selectedDriver={selectedDriver}
+                selectedVehicle={selectedVehicle}
+                vehicleAutoAssigned={vehicleAutoAssigned}
+                onSelectDriver={(id) => { setDriverId(id); setError(null); }}
+                onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
+                onToggleAssignDriverLater={(val) => {
+                  setAssignDriverLater(val);
+                  if (val) setDriverId('');
+                  setError(null);
+                }}
+                onToggleAssignVehicleLater={(val) => {
+                  setAssignVehicleLater(val);
+                  if (val) setVehicleId('');
+                  setError(null);
+                }}
+                onOpenAddDriver={() => setIsAddDriverOpen(true)}
+                onOpenAddVehicle={() => setIsAddVehicleOpen(true)}
               />
             )}
 

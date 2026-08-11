@@ -152,15 +152,20 @@ export default function TripStopCard({
   const searchSessionRef = useRef<AddressSearchSession | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
 
-  // Initialize query display from selected location / name
+  // Initialize and sync query display with prop name
   useEffect(() => {
-    if (name) {
-      setQuery(name);
-    } else if (activeSelectedLocation) {
-      setQuery(activeSelectedLocation.name);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      if (!name && activeSelectedLocation) {
+        setQuery(activeSelectedLocation.name);
+        onNameChange(activeSelectedLocation.name);
+        return;
+      }
     }
-  }, [name, activeSelectedLocation]);
+    setQuery(name || '');
+  }, [name]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -186,8 +191,16 @@ export default function TripStopCard({
     onNameChange(val);
     setIsDropdownOpen(true);
 
+    if (!val.trim()) {
+      onAddressChange('');
+      updateLocationId('', null);
+      setGoogleSuggestions([]);
+      setIsSearchingGoogle(false);
+      return;
+    }
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!val.trim() || val.length < 2) {
+    if (val.length < 2) {
       setGoogleSuggestions([]);
       setIsSearchingGoogle(false);
       return;
