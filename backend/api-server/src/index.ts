@@ -73,7 +73,11 @@ app.use(helmet.hsts({
   preload: true
 }));
 
-app.use(express.json());
+// Default 100kb is too small for bulk-import bodies — a few hundred imported
+// rate card / customer / driver / vehicle rows posted as JSON easily exceeds
+// it and fails with "request entity too large" before the row-by-row import
+// logic ever runs.
+app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static('uploads')); // Serve uploaded files statically
 
 // Routes

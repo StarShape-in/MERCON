@@ -250,6 +250,16 @@ export default function ExcelImportDialog({
               />
             </div>
 
+            {!file && (
+              <a
+                href={templateUrl}
+                download
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#E8450F] hover:underline"
+              >
+                <Download className="w-3.5 h-3.5" /> Download the {entityLabel} template
+              </a>
+            )}
+
             {isParsing && (
               <p className="flex items-center gap-2 text-xs text-slate-500">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> Reading the file...

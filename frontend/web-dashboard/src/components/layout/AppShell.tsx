@@ -50,6 +50,7 @@ function ShellInner() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       />
 
       <div className="flex flex-col flex-1 min-w-0 bg-white">
@@ -57,8 +58,6 @@ function ShellInner() {
           title={meta.title}
           breadcrumb={meta.breadcrumb}
           onMenuClick={() => setSidebarOpen(true)}
-          sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
         />
 
         {/* Content area — Suspense here means only content swaps, shell stays */}
