@@ -16,7 +16,6 @@ import {
   MapPin,
   LayoutGrid,
   List,
-  Users,
   AlertTriangle,
   FileSpreadsheet,
   ChevronDown,
@@ -34,7 +33,6 @@ import { RevenueChart, CustomerBuilding, RouteLine, CheckBadge } from '@/compone
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
-import AssignRateCardDialog from '@/components/rate-cards/AssignRateCardDialog';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import { RATE_CARD_COLUMNS } from '@/utils/importUtils';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
@@ -128,7 +126,6 @@ export default function RateCardListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showPriceSummaryModal, setShowPriceSummaryModal] = useState(false);
-  const [assignTarget, setAssignTarget] = useState<RateCard | null>(null);
   const [editTarget, setEditTarget] = useState<RateCard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -345,20 +342,7 @@ export default function RateCardListPage() {
       header: 'Actions',
       headerClassName: 'text-right',
       accessor: (row: RateCard) => (
-        <div className="flex items-center justify-end gap-1 min-w-[130px]" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => setAssignTarget(row)}
-            disabled={!row.originLocationId || !row.destinationLocationId}
-            title={
-              !row.originLocationId || !row.destinationLocationId
-                ? 'Cannot assign unlinked lane to customers'
-                : 'Apply rate card to customers'
-            }
-            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
-          >
-            <Users className="h-3.5 w-3.5" />
-          </button>
-
+        <div className="flex items-center justify-end gap-1 min-w-[90px]" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => setEditTarget(row)}
             title="Quick Edit Price"
@@ -536,15 +520,6 @@ export default function RateCardListPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/rate-cards/new')}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-            >
-              <FileText className="w-3.5 h-3.5" /> Full form
-            </Button>
 
             <Button
               variant="outline"
@@ -895,7 +870,6 @@ export default function RateCardListPage() {
           rateCard={editTarget}
           onClose={() => setEditTarget(null)}
         />
-        <AssignRateCardDialog rateCard={assignTarget} onClose={() => setAssignTarget(null)} />
 
         <ExcelImportDialog
           isOpen={importDialogOpen}

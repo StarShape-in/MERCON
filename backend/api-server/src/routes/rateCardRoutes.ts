@@ -6,7 +6,6 @@ import {
   updateRateCard,
   deleteRateCard,
   lookupRateCard,
-  assignRateCardToCustomers,
   bulkDeleteRateCards,
   bulkImportRateCards
 } from '../controllers/rateCardController';
@@ -29,6 +28,5 @@ router.get('/', getRateCards);
 router.get('/:id', getRateCardById);
 router.put('/:id', updateRateCard);
 router.delete('/:id', deleteRateCard);
-router.post('/:id/assign', assignRateCardToCustomers);
 
 export default router;

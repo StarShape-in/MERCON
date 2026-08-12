@@ -47,7 +47,6 @@ const CustomerContractsPage   = lazy(() => import('@/pages/customers/CustomerCon
 
 const LocationListPage        = lazy(() => import('@/pages/locations/LocationListPage'));
 const RateCardListPage        = lazy(() => import('@/pages/rate-cards/RateCardListPage'));
-const CreateRateCardPage      = lazy(() => import('@/pages/rate-cards/CreateRateCardPage'));
 const RateCardDetailsPage     = lazy(() => import('@/pages/rate-cards/RateCardDetailsPage'));
 const EditRateCardPage        = lazy(() => import('@/pages/rate-cards/EditRateCardPage'));
 const RateCardDocsPage        = lazy(() => import('@/pages/rate-cards/RateCardDocsPage'));
@@ -148,7 +147,6 @@ export default function AppRouter() {
 
           {/* Rate Cards */}
           <Route path="/rate-cards"               element={<RateCardListPage />} />
-          <Route path="/rate-cards/new"           element={<CreateRateCardPage />} />
           <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />
           <Route path="/rate-cards/:id/edit"      element={<EditRateCardPage />} />
           <Route path="/rate-cards/:id/documents" element={<RateCardDocsPage />} />

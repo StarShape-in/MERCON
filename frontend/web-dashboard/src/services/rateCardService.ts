@@ -76,10 +76,6 @@ export interface RateLookupResult {
   source: RateSource;
 }
 
-export interface AssignRateCardResult {
-  created: RateCard[];
-  skipped: { customerId: string; customerName: string }[];
-}
 
 export const rateCardService = {
   async getAll(params?: RateCardListParams): Promise<ApiResponse<RateCard[]>> {
@@ -140,17 +136,6 @@ export const rateCardService = {
     return res.data.data;
   },
 
-  /**
-   * Copy this lane's price onto other customers as their own rate. Customers
-   * that already have a rate for the lane come back in `skipped` untouched —
-   * a negotiated price is never silently overwritten.
-   */
-  async assignToCustomers(id: string, customerIds: string[]): Promise<AssignRateCardResult> {
-    const res = await api.post<ApiResponse<AssignRateCardResult>>(`/rate-cards/${id}/assign`, {
-      customer_ids: customerIds,
-    });
-    return res.data.data;
-  },
 
   async delete(id: string): Promise<void> {
     await api.delete(`/rate-cards/${id}`);

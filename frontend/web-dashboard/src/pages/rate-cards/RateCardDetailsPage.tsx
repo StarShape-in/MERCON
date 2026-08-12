@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, ArrowRight, Edit2, Trash2, MapPin, Building2,
-  FileCheck, RefreshCw, Users, Plus,
+  FileCheck, RefreshCw, Plus,
   Layers, Download, AlertTriangle, DollarSign,
   Truck, Tag, Search, ExternalLink
 } from 'lucide-react';
@@ -11,7 +11,6 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
-import AssignRateCardDialog from '@/components/rate-cards/AssignRateCardDialog';
 import KpiCard from '@/components/ui/KpiCard';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import { tripService, TripStatus } from '@/services/tripService';
@@ -31,7 +30,6 @@ export default function RateCardDetailsPage() {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [assignTarget, setAssignTarget] = useState<RateCard | null>(null);
 
   // Trip filters state inside the Associated Trips tab
   const [tripSearch, setTripSearch] = useState('');
@@ -248,17 +246,6 @@ export default function RateCardDetailsPage() {
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
             >
               <FileCheck className="w-3.5 h-3.5 text-indigo-500" /> Documents
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!laneLinked}
-              onClick={() => setAssignTarget(card)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
-              title={laneLinked ? 'Apply this price to another customer' : 'Link a lane first'}
-            >
-              <Users className="w-3.5 h-3.5 text-emerald-600" /> Apply to Customers
             </Button>
 
             <Button
@@ -588,17 +575,6 @@ export default function RateCardDetailsPage() {
                     </p>
                   </div>
                 </div>
-
-                {laneLinked && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAssignTarget(card)}
-                    className="h-8 text-xs font-bold text-[#E8450F] hover:text-white hover:bg-[#E8450F] border-[#E8450F]/20 hover:border-[#E8450F] bg-white dark:bg-slate-900 shadow-2xs gap-1.5 transition-all"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add for a customer
-                  </Button>
-                )}
               </CardHeader>
 
               <CardContent className="p-0">
@@ -629,14 +605,6 @@ export default function RateCardDetailsPage() {
                     <p className="text-xs text-slate-500 max-w-sm mt-1">
                       No other customer currently has a rate card on the {card.route_origin} → {card.route_destination} lane.
                     </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAssignTarget(card)}
-                      className="mt-4 h-8 text-xs font-bold text-[#E8450F] border-[#E8450F]/20 bg-white hover:bg-orange-50"
-                    >
-                      Apply Rate to Customer
-                    </Button>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -766,8 +734,6 @@ export default function RateCardDetailsPage() {
         onClose={() => setIsEditOpen(false)}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ['rate-card', id] })}
       />
-
-      <AssignRateCardDialog rateCard={assignTarget} onClose={() => setAssignTarget(null)} />
 
       <ConfirmModal
         isOpen={isDeleteModalOpen}

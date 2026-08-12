@@ -176,7 +176,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
               <Users className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Onboard Driver
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1 bg-slate-200/50 dark:bg-slate-800" />
-            <DropdownMenuItem onClick={() => navigate('/rate-cards/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
+            <DropdownMenuItem onClick={() => navigate('/rate-cards')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
               <FileText className="w-3.5 h-3.5 mr-2 text-[#E8450F]" /> Create Rate Card
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/invoices/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
