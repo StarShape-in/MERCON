@@ -270,9 +270,9 @@ export default function MonthlyTripsPage() {
 
         {/* ── Companies ──────────────────────────────────────────────── */}
         {isLoading ? (
-          <div className="flex flex-col gap-4">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-64 w-full rounded-2xl" />
             ))}
           </div>
         ) : companies.length === 0 ? (
@@ -307,7 +307,10 @@ export default function MonthlyTripsPage() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          // Cards sit side by side, wrapping into a new row as the screen
+          // allows — cuts the up-down scrolling a single full-width column
+          // forced once there were more than a couple of companies.
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             {companies.map((company) => (
               <MonthlyCompanyCard key={company.customer.id} company={company} />
             ))}
