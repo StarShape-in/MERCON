@@ -243,25 +243,33 @@ export default function DocumentsCenterPage() {
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
 
         {/* ── Page Header ─────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <FolderOpen className="w-6 h-6 text-orange-500 dark:text-orange-400 shrink-0" />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Documents Center
-                </h1>
-                <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                  Compliance Repository
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Centralized vault — driver licenses, Istimara permits, waybills, and compliance filings
-              </p>
+            <div className="w-10 h-10 rounded-xl bg-[#FFF0EB] dark:bg-[#E8450F]/10 flex items-center justify-center text-[#E8450F] shrink-0 border border-[#E8450F]/20">
+              <FolderOpen className="w-5 h-5" />
+            </div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                Documents Center
+              </h1>
+              <Badge variant="outline" className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/20 text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5">
+                Compliance Module
+              </Badge>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Export CSV Action */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+              onClick={() => downloadCSV(filteredDocs, 'documents_export.csv')}
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export CSV
+            </Button>
+
             {/* Expiry Radar Trigger */}
             <Button
               variant="outline"
@@ -272,34 +280,6 @@ export default function DocumentsCenterPage() {
               <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
               Expiry Radar {expiringCount > 0 && <span className="ml-0.5 bg-rose-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">{expiringCount}</span>}
             </Button>
-
-            {/* View Mode Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-              <button
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="List View"
-              >
-                <List size={14} />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={cn(
-                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold',
-                  viewMode === 'grid'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
-                )}
-                title="Grid View"
-              >
-                <LayoutGrid size={14} />
-              </button>
-            </div>
 
             {/* Upload Button */}
             <Button
@@ -324,117 +304,155 @@ export default function DocumentsCenterPage() {
           </div>
         </div>
 
+        {/* ── Instrument-Panel KPI Cards ───────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+          <KpiCard
+            title="TOTAL VAULT DOCUMENTS"
+            value={totalDocsCount}
+            variant="brand"
+            icon={<FolderOpen className="w-4 h-4 text-[#E8450F]" />}
+            trend="neutral"
+            trendValue={`${totalDocsCount} active records`}
+            chartData={[12, 16, 14, 20, 24, 28, Math.max(10, totalDocsCount)]}
+            isActive={activeCategory === 'All'}
+            onClick={() => setActiveCategory('All')}
+          />
 
+          <KpiCard
+            title="COMPLIANT & VALID"
+            value={safeCount}
+            variant="emerald"
+            icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+            trend="up"
+            trendValue={`${compliancePct}% compliance rate`}
+            chartData={[80, 84, 88, 90, 92, 94, Math.max(10, safeCount)]}
+            isActive={expiryFilter === 'valid'}
+            onClick={() => setExpiryFilter(expiryFilter === 'valid' ? 'all' : 'valid')}
+          />
 
-        {/* ── Folder Explorer & Breadcrumb ─────────────────────────────────── */}
-        <div className="shrink-0 space-y-3">
-          {/* Path Breadcrumb */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <FolderOpen className="w-4 h-4 text-indigo-500" />
-              <span>Vault Root</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-              <span className="text-slate-900 dark:text-slate-100 font-bold">{activeCategory} Category</span>
-              {expiryFilter !== 'all' && (
-                <>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                  <Badge variant="outline" className="text-[10px] font-bold capitalize bg-amber-50 text-amber-700 border-amber-200">
-                    {expiryFilter} Expiry Filter
-                  </Badge>
-                </>
-              )}
-            </div>
+          <KpiCard
+            title="EXPIRING SOON (<30D)"
+            value={expiringCount}
+            variant="amber"
+            icon={<Clock className="w-4 h-4 text-amber-600" />}
+            trend={expiringCount > 0 ? 'down' : 'up'}
+            trendValue={expiringCount > 0 ? `${expiringCount} files due renewal` : 'All docs valid'}
+            chartData={[4, 6, 5, 8, 7, 9, Math.max(1, expiringCount)]}
+            isActive={expiryFilter === 'warning' || expiryFilter === 'critical'}
+            onClick={() => setExpiryFilter(expiryFilter === 'warning' ? 'all' : 'warning')}
+          />
 
-            {/* Folder Tabs Switcher */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/60 dark:border-slate-700">
-              {CATEGORY_TABS.map((cat) => (
+          <KpiCard
+            title="EXPIRED / OVERDUE"
+            value={expiredCount}
+            variant="rose"
+            icon={<AlertTriangle className="w-4 h-4 text-rose-600" />}
+            trend={expiredCount > 0 ? 'down' : 'neutral'}
+            trendValue={expiredCount > 0 ? `${expiredCount} immediate action` : '0 expired files'}
+            chartData={[1, 3, 2, 4, 2, 3, Math.max(1, expiredCount)]}
+            isActive={expiryFilter === 'expired'}
+            onClick={() => setExpiryFilter(expiryFilter === 'expired' ? 'all' : 'expired')}
+          />
+        </div>
+
+        {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+            {CATEGORY_TABS.map((cat) => {
+              const count = cat === 'All' ? docs.length : (foldersByCategory[cat]?.count || 0);
+              const isActive = activeCategory === cat;
+              return (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={cn(
-                    'px-3 py-1.5 text-[11px] font-bold rounded-md transition-all whitespace-nowrap',
-                    activeCategory === cat
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                    'px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap',
+                    isActive
+                      ? 'bg-[#E8450F] text-white shadow-2xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/70 border border-slate-200/70 dark:border-slate-700'
                   )}
                 >
-                  {cat}
+                  <span>{cat} Category</span>
+                  <span className={cn(
+                    'text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold',
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                  )}>
+                    {count}
+                  </span>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 4 Category Folder Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {(['Drivers', 'Vehicles', 'Operations', 'Company'] as DocCategory[]).map((cat) => {
-              const cfg = CATEGORY_CONFIG[cat];
-              const Icon = cfg.icon;
-              const catData = foldersByCategory[cat];
-              const isActive = activeCategory === cat;
-
-              return (
-                <Card
-                  key={cat}
-                  onClick={() => setActiveCategory(isActive ? 'All' : cat)}
-                  className={cn(
-                    'group border rounded-2xl overflow-hidden cursor-pointer transition-all duration-150 hover:shadow-xs hover:-translate-y-0.5 bg-white dark:bg-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30',
-                    isActive ? `border-2 ${cfg.borderColor} shadow-xs` : 'border-slate-200 dark:border-slate-800 hover:border-[#E8450F]/45'
-                  )}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${cfg.label} folder, ${catData.count} files`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setActiveCategory(isActive ? 'All' : cat);
-                    }
-                  }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105', cfg.iconBg)}>
-                        <Icon className={cn('w-4 h-4', cfg.color)} />
-                      </div>
-                      <Badge variant="outline" className="text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                        {catData.count} files
-                      </Badge>
-                    </div>
-
-                    <h4 className={cn('font-extrabold text-sm mb-0.5 transition-colors group-hover:text-slate-900 dark:group-hover:text-white', cfg.color)}>{cfg.label}</h4>
-                    <p className="text-[10px] text-slate-400 font-medium mb-3">{cfg.description}</p>
-
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                      <span>{catData.docTypes.length} Document Types</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
-                    </div>
-                  </CardContent>
-                </Card>
               );
             })}
           </div>
-        </div>
 
-        {/* ── Control Toolbar (Grid Mode Bulk Actions) ─────────────────────── */}
-        {viewMode === 'grid' && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-2xs flex flex-wrap items-center justify-end gap-3 shrink-0">
-            {selectedDocIds.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
-                onClick={handleBulkDownload}
-                disabled={isDownloadingZip}
+          {/* Search, Status Filters & View Mode Switcher */}
+          <div className="flex items-center gap-2.5">
+            {/* Expiry Filter Select */}
+            <Select value={expiryFilter} onValueChange={(v) => setExpiryFilter(v as any)}>
+              <SelectTrigger className="h-9 w-40 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xs">
+                <div className="flex items-center gap-1.5">
+                  <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <SelectValue placeholder="Expiry Status" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
+                <SelectItem value="expired" className="text-xs text-rose-600 font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
+                    <span>Expired</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="critical" className="text-xs text-rose-500 font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>Critical (&lt;7d)</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="warning" className="text-xs text-amber-600 font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <span>Due Soon (&lt;30d)</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="valid" className="text-xs text-emerald-600 font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Valid</span>
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'p-1.5 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'list'
+                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="List View"
               >
-                <Download className="w-3.5 h-3.5" />
-                {isDownloadingZip ? 'Preparing…' : `Bulk Download (${selectedDocIds.length})`}
-              </Button>
-            )}
-
-            <Badge variant="outline" className="text-[11px] font-mono font-bold text-slate-500 px-3 py-1 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-              Showing {filteredDocs.length} of {totalDocsCount} files
-            </Badge>
+                <List size={14} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'p-1.5 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
+                  viewMode === 'grid'
+                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Grid View"
+              >
+                <LayoutGrid size={14} />
+              </button>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* ── Document Vault Area (List vs Grid View) ──────────────────────── */}
         {isLoading ? (
@@ -461,8 +479,8 @@ export default function DocumentsCenterPage() {
           <DataTable<EnrichedDocument>
             title={
               <span className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-indigo-500" />
-                <span>Compliance Document Repository</span>
+                <FolderOpen className="w-4 h-4 text-[#E8450F]" />
+                <span>Document Vault Ledger</span>
               </span>
             }
             columns={[
