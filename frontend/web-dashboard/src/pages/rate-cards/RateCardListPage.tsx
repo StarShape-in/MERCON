@@ -65,7 +65,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 const RATE_CARD_EXPORT_HEADERS = [
   'Rate Card ID', 'Contract Name', 'Applies To', 'Route Origin', 'Route Destination',
-  'Price per Trip (SAR)', 'Status', 'Linked Lane'
+  'Vehicle Type', 'Rate Category', 'Price per Trip (SAR)', 'Status', 'Linked Lane'
 ];
 
 const rateCardsToExportRows = (cards: RateCard[]) => cards.map((rc, idx) => [
@@ -74,10 +74,46 @@ const rateCardsToExportRows = (cards: RateCard[]) => cards.map((rc, idx) => [
   rc.customer?.name || 'Customer',
   rc.route_origin,
   rc.route_destination,
+  rc.vehicle_type || 'All Vehicles',
+  rc.rate_category || 'Standard',
   Number(rc.base_price || 0),
   rc.is_active ? 'Active' : 'Inactive',
   (rc.originLocationId && rc.destinationLocationId) ? 'Linked' : 'Not Linked'
 ]);
+
+function getVehicleTypeChipColor(type: string): string {
+  const t = type.toUpperCase();
+  if (t.includes('DYNA') || t.includes('3 TON') || t.includes('3TON')) {
+    return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50';
+  }
+  if (t.includes('5 TON') || t.includes('5TON')) {
+    return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50';
+  }
+  if (t.includes('10 TON') || t.includes('10TON') || t.includes('HEAVY')) {
+    return 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-900/50';
+  }
+  if (t.includes('TRAILER') || t.includes('FLATBED') || t.includes('20TON') || t.includes('13.5M')) {
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50';
+  }
+  return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-900/50';
+}
+
+function getRateCategoryChipColor(category: string): string {
+  const c = category.toUpperCase();
+  if (c.includes('MONTHLY')) {
+    return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50';
+  }
+  if (c.includes('DAILY') || c.includes('LOCAL')) {
+    return 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-900/50';
+  }
+  if (c.includes('SURCHARGE') || c.includes('FLAT') || c.includes('FEE')) {
+    return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/50';
+  }
+  if (c.includes('TRIP') || c.includes('ROUND')) {
+    return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50';
+  }
+  return 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900/50';
+}
 
 export default function RateCardListPage() {
   const navigate = useNavigate();
@@ -244,7 +280,7 @@ export default function RateCardListPage() {
     {
       header: 'Route Lane',
       accessor: (row: RateCard) => (
-        <div className="flex flex-col gap-1 min-w-[200px]">
+        <div className="flex flex-col gap-1 min-w-[180px]">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span>{row.route_origin}</span>
@@ -253,29 +289,49 @@ export default function RateCardListPage() {
             {(!row.originLocationId || !row.destinationLocationId) && (
               <Badge
                 variant="outline"
-                className="ml-1 text-[9px] font-bold uppercase bg-amber-50 text-amber-700 border-amber-200"
+                className="ml-1 text-[9px] font-bold uppercase bg-amber-50 text-amber-700 border-amber-200 shrink-0"
                 title="This lane is still free text, so trips never pick this rate up. Edit it and choose both places."
               >
                 Not linked
               </Badge>
             )}
           </div>
-          {(row.rate_category || row.vehicle_type) && (
-            <div className="flex flex-wrap items-center gap-1">
-              {row.rate_category && (
-                <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-indigo-50 text-indigo-700 border-indigo-200">
-                  {row.rate_category}
-                </Badge>
-              )}
-              {row.vehicle_type && (
-                <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200">
-                  {row.vehicle_type}
-                </Badge>
-              )}
-            </div>
-          )}
         </div>
       ),
+    },
+    {
+      header: 'Vehicle Type',
+      accessor: (row: RateCard) => {
+        if (!row.vehicle_type) {
+          return (
+            <Badge variant="outline" className="text-[10px] font-medium text-slate-400 border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+              All Vehicles
+            </Badge>
+          );
+        }
+        return (
+          <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${getVehicleTypeChipColor(row.vehicle_type)}`}>
+            {row.vehicle_type}
+          </Badge>
+        );
+      },
+    },
+    {
+      header: 'Rate Category',
+      accessor: (row: RateCard) => {
+        if (!row.rate_category) {
+          return (
+            <Badge variant="outline" className="text-[10px] font-medium text-slate-400 border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+              Standard Rate
+            </Badge>
+          );
+        }
+        return (
+          <Badge variant="outline" className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${getRateCategoryChipColor(row.rate_category)}`}>
+            {row.rate_category}
+          </Badge>
+        );
+      },
     },
     {
       header: 'Price per Trip',
