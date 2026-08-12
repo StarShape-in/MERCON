@@ -516,7 +516,7 @@ export default function VehicleFinancialsPage() {
   }));
 
   return (
-    <DashboardLayout active="Vehicles" title="Vehicle Profit & Loss (P&L) Report">
+    <DashboardLayout active="Vehicle P&L" title="Vehicle Profit & Loss (P&L) Report">
       <div className="px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1500px] mx-auto w-full">
 
         {/* ── Header ────────────────────────────────────────────────────── */}
