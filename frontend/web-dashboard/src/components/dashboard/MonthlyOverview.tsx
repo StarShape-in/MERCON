@@ -63,7 +63,7 @@ const chartConfig = {
     color: '#10B981',
   },
   expense: {
-    label: 'Expense',
+    label: 'Vehicle Expense',
     color: '#EF4444',
   },
 } satisfies ChartConfig;
@@ -203,24 +203,16 @@ export default function MonthlyOverview() {
             </p>
           </div>
 
-          {/* Sub-Cards: Net Profit & Total Expense */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-100/90">
-              <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Net Profit</p>
-              <p className="text-[16px] font-extrabold text-emerald-600 leading-tight">{kpiStats.net}</p>
-              <div className="flex items-center gap-0.5 mt-1 text-emerald-600">
-                <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
-                <span className="text-[9px] font-extrabold">{kpiStats.netPct}</span>
-                <span className="text-[9px] text-slate-400 font-medium ml-1">vs prior</span>
+          {/* Sub-Cards: Total Vehicle Expense */}
+          <div className="grid grid-cols-1 gap-3">
+            <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-100/90 flex items-center justify-between">
+              <div>
+                <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Total Vehicle Expense</p>
+                <p className="text-[18px] font-extrabold text-rose-500 leading-tight">{kpiStats.exp}</p>
               </div>
-            </div>
-
-            <div className="bg-[#F8FAFC] rounded-xl p-3.5 border border-slate-100/90">
-              <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Total Expense</p>
-              <p className="text-[16px] font-extrabold text-rose-500 leading-tight">{kpiStats.exp}</p>
-              <div className="flex items-center gap-0.5 mt-1 text-rose-500">
-                <TrendingDown className="w-3 h-3 stroke-[2.5]" />
-                <span className="text-[9px] font-extrabold">{kpiStats.expPct}</span>
+              <div className="flex items-center gap-0.5 text-rose-500 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">
+                <TrendingDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span className="text-[10px] font-extrabold">{kpiStats.expPct}</span>
                 <span className="text-[9px] text-slate-400 font-medium ml-1">vs prior</span>
               </div>
             </div>
@@ -240,7 +232,7 @@ export default function MonthlyOverview() {
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-[#EF4444]" />
-                <span className="text-[9px] font-bold text-slate-500">Expense</span>
+                <span className="text-[9px] font-bold text-slate-500">Vehicle Expense</span>
               </div>
             </div>
           </div>

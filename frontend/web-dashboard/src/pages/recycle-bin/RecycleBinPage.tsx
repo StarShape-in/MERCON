@@ -10,6 +10,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { trashService, TrashItem } from '@/services/trashService';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import DataTable from '@/components/ui/DataTable';
+import KpiCard from '@/components/ui/KpiCard';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
@@ -404,89 +405,52 @@ export default function RecycleBinPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           
           {/* Card 1: Total Soft-Deleted Items */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900 relative overflow-hidden">
-            <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Total Soft-Deleted
-              </span>
-              <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-800/60">
-                <Trash2 className="w-4 h-4" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-2xl font-black text-slate-900 dark:text-slate-100 font-mono">
-                {counts.all}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-1 flex items-center gap-1">
-                <span className="text-rose-600 font-bold">→</span> Queued for recovery or purge
-              </p>
-              {/* Bottom Sparkline Graphic Accent */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-600 opacity-80" />
-            </CardContent>
-          </Card>
+          <KpiCard
+            title="TOTAL SOFT-DELETED"
+            value={counts.all}
+            icon={Trash2}
+            variant="rose"
+            subtitle="Queued for recovery or purge"
+            trend="neutral"
+            trendValue="In Trash"
+            chartData={[3, 5, 8, 12, 10, counts.all]}
+          />
 
           {/* Card 2: Operations (Trips & Vehicles) */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900 relative overflow-hidden">
-            <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Operations (Trips & Vehicles)
-              </span>
-              <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/60">
-                <Truck className="w-4 h-4" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
-                {counts.operations}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-1 flex items-center gap-1">
-                <span className="text-amber-600 font-bold">↑</span> {counts.trip} Trips, {counts.vehicle} Vehicles
-              </p>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-amber-600 opacity-80" />
-            </CardContent>
-          </Card>
+          <KpiCard
+            title="OPERATIONS (TRIPS & VEHICLES)"
+            value={counts.operations}
+            icon={Truck}
+            variant="amber"
+            subtitle={`${counts.trip} Trips, ${counts.vehicle} Vehicles`}
+            trend="up"
+            trendValue="Operations"
+            chartData={[2, 4, 6, 8, counts.operations]}
+          />
 
-          {/* Card 3: Fleet & Clients (Drivers & Customers) */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900 relative overflow-hidden">
-            <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                People & Accounts
-              </span>
-              <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-200/60 dark:border-teal-800/60">
-                <Users className="w-4 h-4" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-2xl font-black text-teal-600 dark:text-teal-400 font-mono">
-                {counts.people}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-1 flex items-center gap-1">
-                <span className="text-teal-600 font-bold">↑</span> {counts.driver} Drivers, {counts.customer} Customers
-              </p>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-400 to-indigo-500 opacity-80" />
-            </CardContent>
-          </Card>
+          {/* Card 3: People & Accounts (Drivers & Customers) */}
+          <KpiCard
+            title="PEOPLE & ACCOUNTS"
+            value={counts.people}
+            icon={Users}
+            variant="emerald"
+            subtitle={`${counts.driver} Drivers, ${counts.customer} Customers`}
+            trend="up"
+            trendValue="Accounts"
+            chartData={[1, 3, 5, 7, counts.people]}
+          />
 
           {/* Card 4: Service & Financials (Maintenance & Billing) */}
-          <Card className="border border-slate-200/80 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900 relative overflow-hidden">
-            <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Service & Financials
-              </span>
-              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60">
-                <Wrench className="w-4 h-4" />
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono">
-                {counts.serviceAndFinance}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-1 flex items-center gap-1">
-                <span className="text-indigo-600 font-bold">→</span> {counts.maintenance} Maintenance, {counts.financials} Finance
-              </p>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 opacity-80" />
-            </CardContent>
-          </Card>
+          <KpiCard
+            title="SERVICE & FINANCIALS"
+            value={counts.serviceAndFinance}
+            icon={Wrench}
+            variant="purple"
+            subtitle={`${counts.maintenance} Maintenance, ${counts.financials} Finance`}
+            trend="neutral"
+            trendValue="Service & Invoices"
+            chartData={[0, 2, 4, counts.serviceAndFinance]}
+          />
         </div>
 
         {/* Toolbar & Category Control Bar */}
