@@ -6,21 +6,33 @@ import {
   ArrowUpRight,
   TrendingDown,
   RefreshCw,
+  AreaChart as AreaChartIcon,
+  BarChart3 as BarChartIcon,
+  LineChart as LineChartIcon,
 } from 'lucide-react';
 import {
-  ResponsiveContainer,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
   XAxis,
   CartesianGrid,
-  Tooltip as RechartsTooltip,
 } from 'recharts';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { reportsService } from '@/services/reportsService';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
 
 export type PeriodType = 'monthly' | '6months' | 'yearly';
+export type ChartVariant = 'area' | 'bar' | 'line';
 
 const FALLBACK_DATASETS = {
   monthly: [
@@ -53,8 +65,20 @@ const PERIOD_KPI_FALLBACK = {
   yearly:   { rev: 'SAR 540,000', net: 'SAR 365,000', exp: 'SAR 175,000', revPct: '+22.4%', netPct: '+16.8%', expPct: '-3.8%', margin: '67.6%' },
 };
 
+const chartConfig = {
+  revenue: {
+    label: 'Revenue',
+    color: '#10B981',
+  },
+  expense: {
+    label: 'Expense',
+    color: '#EF4444',
+  },
+} satisfies ChartConfig;
+
 export default function MonthlyOverview() {
   const [chartPeriod, setChartPeriod] = useState<PeriodType>('monthly');
+  const [chartVariant, setChartVariant] = useState<ChartVariant>('area');
 
   // Live Query integration from backend reports summary
   const { data: summaryData, refetch, isFetching } = useQuery({
@@ -112,14 +136,14 @@ export default function MonthlyOverview() {
     <TooltipProvider>
       <div className="bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden flex flex-col h-full">
         
-        {/* ── Top Bar: Title + Live Badge + Period Switcher ── */}
+        {/* ── Top Bar: Title + Live Badge + Chart Controls ── */}
         <div className="px-5 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-[#FFF0EB] flex items-center justify-center border border-[#FFE2D6]">
               <DollarSign className="w-3.5 h-3.5 text-[#E8450F]" />
             </div>
             <span className="text-[10px] font-extrabold text-slate-800 uppercase tracking-widest">
-              Monthly Overview
+              Financial Overview
             </span>
             <Badge variant="outline" className="bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0] text-[9px] font-extrabold px-2 py-0 h-4 rounded-full flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
@@ -127,7 +151,7 @@ export default function MonthlyOverview() {
             </Badge>
           </div>
 
-          {/* Period Selector & Refresh */}
+          {/* Period & Chart Variety Controls */}
           <div className="flex items-center gap-1.5">
             <Tooltip>
               <TooltipTrigger
@@ -139,6 +163,36 @@ export default function MonthlyOverview() {
               <TooltipContent className="text-[10px] font-bold">Refresh Overview</TooltipContent>
             </Tooltip>
 
+            {/* Variety Selector (Area / Bar / Line) */}
+            <ToggleGroup
+              value={[chartVariant]}
+              onValueChange={(v) => v[0] && setChartVariant(v[0] as ChartVariant)}
+              className="border border-slate-200 bg-slate-100 p-0.5 rounded-lg"
+            >
+              <ToggleGroupItem
+                value="area"
+                title="Area Chart"
+                className="h-5 w-6 p-0 rounded-md text-slate-600 data-[state=on]:!bg-[#18181B] data-[state=on]:!text-white"
+              >
+                <AreaChartIcon className="w-3 h-3" />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="bar"
+                title="Bar Chart"
+                className="h-5 w-6 p-0 rounded-md text-slate-600 data-[state=on]:!bg-[#18181B] data-[state=on]:!text-white"
+              >
+                <BarChartIcon className="w-3 h-3" />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="line"
+                title="Line Chart"
+                className="h-5 w-6 p-0 rounded-md text-slate-600 data-[state=on]:!bg-[#18181B] data-[state=on]:!text-white"
+              >
+                <LineChartIcon className="w-3 h-3" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+
+            {/* Period Selector (1M / 6M / 1Y) */}
             <ToggleGroup
               value={[chartPeriod]}
               onValueChange={(v) => v[0] && setChartPeriod(v[0] as PeriodType)}
@@ -211,11 +265,11 @@ export default function MonthlyOverview() {
           </div>
         </div>
 
-        {/* ── 7-Month Trend Graph ── */}
+        {/* ── Dynamic Shadcn Chart Variety ── */}
         <div className="px-5 pt-2 pb-4 flex-1 flex flex-col justify-end">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">
-              {chartPeriod === 'monthly' ? '4-Week' : chartPeriod === '6months' ? '6-Month' : '6-Year'} Trend
+              {chartPeriod === 'monthly' ? '4-Week' : chartPeriod === '6months' ? '6-Month' : '6-Year'} Trend ({chartVariant.toUpperCase()})
             </p>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
@@ -229,66 +283,107 @@ export default function MonthlyOverview() {
             </div>
           </div>
 
-          <div className="h-[120px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="fillRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity={0.01} />
-                  </linearGradient>
-                  <linearGradient id="fillExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#EF4444" stopOpacity={0.18} />
-                    <stop offset="100%" stopColor="#EF4444" stopOpacity={0.01} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} stroke="#F1F5F9" strokeDasharray="3 6" />
-                <XAxis
-                  dataKey="period"
-                  tick={{ fontSize: 9, fontWeight: 700, fill: '#94A3B8' }}
-                  tickLine={false}
-                  axisLine={false}
-                  padding={{ left: 10, right: 10 }}
-                />
-                <RechartsTooltip
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-slate-900 text-white rounded-lg p-2 shadow-lg text-[10px] font-sans border border-slate-800">
-                          <p className="font-bold text-slate-300 mb-1">{label}</p>
-                          <div className="space-y-0.5">
-                            <p className="text-emerald-400 font-bold">
-                              Revenue: SAR {Number(payload[0]?.value || 0).toLocaleString()}
-                            </p>
-                            <p className="text-rose-400 font-bold">
-                              Expense: SAR {Number(payload[1]?.value || 0).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      );
+          <div className="h-[130px] w-full">
+            <ChartContainer config={chartConfig} className="h-full w-full aspect-auto">
+              {chartVariant === 'area' ? (
+                <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="fillRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="fillExp" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#EF4444" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="#EF4444" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} stroke="#F1F5F9" strokeDasharray="3 6" />
+                  <XAxis
+                    dataKey="period"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: '#94A3B8' }}
+                    tickLine={false}
+                    axisLine={false}
+                    padding={{ left: 10, right: 10 }}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(val) => `SAR ${Number(val).toLocaleString()}`}
+                      />
                     }
-                    return null;
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#10B981"
-                  strokeWidth={2.5}
-                  fill="url(#fillRev)"
-                  dot={{ r: 2.5, fill: '#10B981', stroke: '#fff', strokeWidth: 1.5 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expense"
-                  stroke="#EF4444"
-                  strokeWidth={2}
-                  strokeDasharray="4 3"
-                  fill="url(#fillExp)"
-                  dot={{ r: 2, fill: '#EF4444', stroke: '#fff', strokeWidth: 1.5 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#10B981"
+                    strokeWidth={2.5}
+                    fill="url(#fillRev)"
+                    dot={{ r: 2.5, fill: '#10B981', stroke: '#fff', strokeWidth: 1.5 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="expense"
+                    stroke="#EF4444"
+                    strokeWidth={2}
+                    strokeDasharray="4 3"
+                    fill="url(#fillExp)"
+                    dot={{ r: 2, fill: '#EF4444', stroke: '#fff', strokeWidth: 1.5 }}
+                  />
+                </AreaChart>
+              ) : chartVariant === 'bar' ? (
+                <BarChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="#F1F5F9" strokeDasharray="3 6" />
+                  <XAxis
+                    dataKey="period"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: '#94A3B8' }}
+                    tickLine={false}
+                    axisLine={false}
+                    padding={{ left: 10, right: 10 }}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(val) => `SAR ${Number(val).toLocaleString()}`}
+                      />
+                    }
+                  />
+                  <Bar dataKey="revenue" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  <Bar dataKey="expense" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                </BarChart>
+              ) : (
+                <LineChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="#F1F5F9" strokeDasharray="3 6" />
+                  <XAxis
+                    dataKey="period"
+                    tick={{ fontSize: 9, fontWeight: 700, fill: '#94A3B8' }}
+                    tickLine={false}
+                    axisLine={false}
+                    padding={{ left: 10, right: 10 }}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(val) => `SAR ${Number(val).toLocaleString()}`}
+                      />
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#10B981"
+                    strokeWidth={2.5}
+                    dot={{ r: 3.5, fill: '#10B981', stroke: '#fff', strokeWidth: 2 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="expense"
+                    stroke="#EF4444"
+                    strokeWidth={2.5}
+                    dot={{ r: 3.5, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              )}
+            </ChartContainer>
           </div>
         </div>
 
@@ -296,3 +391,4 @@ export default function MonthlyOverview() {
     </TooltipProvider>
   );
 }
+
