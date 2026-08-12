@@ -10,7 +10,6 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ImportantReminders from '@/components/dashboard/ImportantReminders';
 import MonthlyOverview from '@/components/dashboard/MonthlyOverview';
-import RateCategoryVehicleTypeOverview from '@/components/dashboard/RateCategoryVehicleTypeOverview';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
@@ -548,9 +547,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-
-              {/* ━━━━ 5. Rate Category Breakdown (Clean & Minimal UI) ━━━━ */}
-              <RateCategoryVehicleTypeOverview />
 
             </div>
           </div>
