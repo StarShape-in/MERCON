@@ -413,7 +413,16 @@ export default function RecycleBinPage() {
             subtitle="Queued for recovery or purge"
             trend="neutral"
             trendValue="In Trash"
-            chartData={[3, 5, 8, 12, 10, counts.all]}
+            livePulseTrack={{
+              statusText: 'RETENTION POLICY',
+              subText: 'Auto-Purge 30 Days',
+              pulseColor: 'bg-rose-500',
+            }}
+            progressSegments={[
+              { label: 'Ops', value: counts.operations || 1, count: counts.operations, color: '#F59E0B' },
+              { label: 'People', value: counts.people || 1, count: counts.people, color: '#10B981' },
+              { label: 'Service', value: counts.serviceAndFinance || 1, count: counts.serviceAndFinance, color: '#8B5CF6' },
+            ]}
           />
 
           {/* Card 2: Operations (Trips & Vehicles) */}
@@ -425,7 +434,10 @@ export default function RecycleBinPage() {
             subtitle={`${counts.trip} Trips, ${counts.vehicle} Vehicles`}
             trend="up"
             trendValue="Operations"
-            chartData={[2, 4, 6, 8, counts.operations]}
+            progressSegments={[
+              { label: 'Trips', value: counts.trip || 1, count: counts.trip, color: '#F59E0B' },
+              { label: 'Vehicles', value: counts.vehicle || 1, count: counts.vehicle, color: '#3B82F6' },
+            ]}
           />
 
           {/* Card 3: People & Accounts (Drivers & Customers) */}
@@ -437,7 +449,10 @@ export default function RecycleBinPage() {
             subtitle={`${counts.driver} Drivers, ${counts.customer} Customers`}
             trend="up"
             trendValue="Accounts"
-            chartData={[1, 3, 5, 7, counts.people]}
+            progressSegments={[
+              { label: 'Drivers', value: counts.driver || 1, count: counts.driver, color: '#10B981' },
+              { label: 'Customers', value: counts.customer || 1, count: counts.customer, color: '#6366F1' },
+            ]}
           />
 
           {/* Card 4: Service & Financials (Maintenance & Billing) */}
@@ -449,7 +464,10 @@ export default function RecycleBinPage() {
             subtitle={`${counts.maintenance} Maintenance, ${counts.financials} Finance`}
             trend="neutral"
             trendValue="Service & Invoices"
-            chartData={[0, 2, 4, counts.serviceAndFinance]}
+            progressSegments={[
+              { label: 'Maintenance', value: counts.maintenance || 1, count: counts.maintenance, color: '#EC4899' },
+              { label: 'Invoices', value: counts.financials || 1, count: counts.financials, color: '#8B5CF6' },
+            ]}
           />
         </div>
 

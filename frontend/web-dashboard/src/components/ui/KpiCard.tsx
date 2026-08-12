@@ -9,6 +9,7 @@ export interface UrgencySegment {
   label?: string
   value: number
   color: string
+  count?: number
 }
 
 export interface LivePulseTrack {
