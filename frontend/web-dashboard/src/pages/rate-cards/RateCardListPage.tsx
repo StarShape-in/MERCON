@@ -281,22 +281,6 @@ export default function RateCardListPage() {
       ),
     },
     {
-      header: 'Status',
-      accessor: (row: RateCard) => (
-        <Badge 
-          variant="outline" 
-          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 flex items-center gap-1.5 w-fit ${
-            row.is_active 
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' 
-              : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
-          }`}
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${row.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-          {row.is_active ? 'Active' : 'Inactive'}
-        </Badge>
-      ),
-    },
-    {
       header: 'Actions',
       headerClassName: 'text-right',
       accessor: (row: RateCard) => (
