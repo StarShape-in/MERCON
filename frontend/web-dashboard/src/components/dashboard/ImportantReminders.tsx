@@ -4,6 +4,7 @@ import {
   Bell,
   ChevronsLeft,
   ChevronsRight,
+  ChevronRight,
   ArrowUpRight,
   AlertTriangle,
   Info,
@@ -95,67 +96,186 @@ export default function ImportantReminders({
     ? REMINDERS_DATA 
     : REMINDERS_DATA.filter(r => r.category === selectedFilter);
 
-  // If collapsed in grid, render the compact vertical strip
+  // Count by category
+  const expiredCount = REMINDERS_DATA.filter(r => r.category === 'expired').length;
+  const criticalCount = REMINDERS_DATA.filter(r => r.category === 'critical').length;
+  const warningCount = REMINDERS_DATA.filter(r => r.category === 'warning').length;
+  const totalCount = REMINDERS_DATA.length;
+
+  // ── If Collapsed / Shrunk: Render the exact requested design on pure clean white ─────────────
   if (isCollapsed) {
     return (
-      <div
-        onClick={toggleCollapse}
-        className="bg-white rounded-[18px] border border-black/[0.06] shadow-sm hover:border-[#E8450F]/40 hover:shadow-md transition-all cursor-pointer flex flex-col items-center justify-between py-3.5 px-1.5 h-full min-h-[300px] group select-none"
-        title="Click to expand Important Reminders"
-      >
-        {/* Top: Bell icon & expand button */}
-        <div className="flex flex-col items-center gap-2.5">
-          <Tooltip>
-            <TooltipTrigger
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleCollapse();
-              }}
-              className="p-1 rounded-lg text-slate-400 group-hover:text-[#E8450F] hover:bg-slate-100 transition-colors"
-            >
-              <ChevronsLeft className="w-4 h-4 text-[#E8450F]" />
-            </TooltipTrigger>
-            <TooltipContent side="left"><p className="text-xs">Expand Reminders</p></TooltipContent>
-          </Tooltip>
+      <div className="bg-white rounded-[22px] border border-black/[0.06] shadow-sm p-3.5 flex flex-col justify-between h-full transition-all duration-300 select-none overflow-hidden">
+        
+        {/* Top chevron toggle */}
+        <div className="flex justify-center -mt-0.5">
+          <button
+            onClick={toggleCollapse}
+            title="Restore Reminders Panel"
+            className="p-0.5 rounded-full text-[#E8450F] hover:bg-slate-100 transition-all cursor-pointer group"
+          >
+            <ChevronsLeft className="w-3.5 h-3.5 stroke-[2.5] group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+        </div>
 
-          <div className="relative">
-            <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center">
-              <Bell className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+        {/* Bell Icon with red count badge & Title */}
+        <div className="flex flex-col items-center text-center -mt-1">
+          <div className="relative mb-1">
+            <div className="w-10 h-10 rounded-full bg-orange-50/80 border border-orange-100 flex items-center justify-center shadow-2xs">
+              <Bell className="w-4.5 h-4.5 text-[#E8450F] fill-[#E8450F]" />
             </div>
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse" />
-          </div>
-        </div>
-
-        {/* Middle: Badge counters & Vertical title */}
-        <div className="flex flex-col items-center gap-2.5 my-auto py-2">
-          <div className="flex flex-col items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-red-50 border border-red-200 text-red-600 text-[9px] font-black flex items-center justify-center shadow-2xs" title="1 Expired">
-              1
-            </span>
-            <span className="w-5 h-5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-[9px] font-black flex items-center justify-center shadow-2xs" title="2 Critical">
-              2
-            </span>
-            <span className="w-5 h-5 rounded-full bg-blue-50 border border-blue-200 text-blue-600 text-[9px] font-black flex items-center justify-center shadow-2xs" title="2 Warning">
-              2
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#EF4444] text-white text-[9px] font-black flex items-center justify-center ring-1.5 ring-white shadow-xs">
+              {totalCount}
             </span>
           </div>
 
-          <div className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-extrabold tracking-widest uppercase text-slate-400 group-hover:text-[#E8450F] transition-colors mt-2">
-            Reminders (5)
+          <h2 className="text-[13px] font-extrabold text-[#111827] leading-tight tracking-tight">
+            Important Reminders
+          </h2>
+          <p className="text-[9px] text-slate-500 font-medium leading-tight mt-0.5 max-w-[190px]">
+            Stay on top of critical updates and actions.
+          </p>
+        </div>
+
+        {/* Priority Action Cards (3 Cards from Design) */}
+        <div className="w-full space-y-1.5 my-1">
+          {/* High Priority */}
+          <div
+            onClick={() => navigate('/documents')}
+            className="w-full bg-[#FFF5F5] hover:bg-[#FFEBEB] border border-[#FED7D7] rounded-xl px-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer shadow-2xs group"
+          >
+            <div className="w-6 h-6 rounded-full bg-white border border-[#FEB2B2] text-[#E53E3E] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+              {expiredCount}
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-[10.5px] font-extrabold text-[#1F2937] leading-tight group-hover:text-[#E53E3E] transition-colors">
+                High Priority
+              </p>
+              <p className="text-[8.5px] text-slate-500 font-medium leading-tight">
+                Action needed
+              </p>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-[#E53E3E] shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+
+          {/* Medium Priority */}
+          <div
+            onClick={() => navigate('/documents')}
+            className="w-full bg-[#FFFDF0] hover:bg-[#FFF9DB] border border-[#FEEBC8] rounded-xl px-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer shadow-2xs group"
+          >
+            <div className="w-6 h-6 rounded-full bg-white border border-[#FBD38D] text-[#DD6B20] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+              {criticalCount}
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-[10.5px] font-extrabold text-[#1F2937] leading-tight group-hover:text-[#DD6B20] transition-colors">
+                Medium Priority
+              </p>
+              <p className="text-[8.5px] text-slate-500 font-medium leading-tight">
+                Attention required
+              </p>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-[#DD6B20] shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+
+          {/* Low Priority */}
+          <div
+            onClick={() => navigate('/documents')}
+            className="w-full bg-[#F0F7FF] hover:bg-[#E1EFFF] border border-[#BEE3F8] rounded-xl px-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer shadow-2xs group"
+          >
+            <div className="w-6 h-6 rounded-full bg-white border border-[#90CDF4] text-[#3182CE] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+              {warningCount}
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-[10.5px] font-extrabold text-[#1F2937] leading-tight group-hover:text-[#3182CE] transition-colors">
+                Low Priority
+              </p>
+              <p className="text-[8.5px] text-slate-500 font-medium leading-tight">
+                For your info
+              </p>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-[#3182CE] shrink-0 group-hover:translate-x-0.5 transition-transform" />
           </div>
         </div>
 
-        {/* Bottom: Mini expand indicator */}
-        <div className="pt-2 text-[9px] font-extrabold text-[#E8450F] flex items-center justify-center">
-          <ChevronsLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+        {/* Clipboard Checklist & Total Count Row */}
+        <div className="flex items-center justify-center gap-3 text-center my-0.5">
+          {/* Clipboard SVG */}
+          <div className="relative">
+            <svg width="32" height="32" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="12" y="8" width="32" height="42" rx="7" fill="#F8FAFC" stroke="#E2E8F0" strokeWidth="1.8"/>
+              <rect x="21" y="4" width="14" height="7" rx="2.5" fill="#EEF2F6" stroke="#CBD5E1" strokeWidth="1.8"/>
+              <circle cx="28" cy="7.5" r="1.5" fill="#E8450F"/>
+              
+              <rect x="17" y="17" width="5" height="5" rx="1" stroke="#FF8A65" strokeWidth="1.5"/>
+              <path d="M18.5 19.5L19.8 21L23 18" stroke="#FF8A65" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="25" y1="19.5" x2="38" y2="19.5" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round"/>
+
+              <rect x="17" y="26" width="5" height="5" rx="1" stroke="#FF8A65" strokeWidth="1.5"/>
+              <path d="M18.5 28.5L19.8 30L23 27" stroke="#FF8A65" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="25" y1="28.5" x2="38" y2="28.5" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round"/>
+
+              <rect x="17" y="35" width="5" height="5" rx="1" stroke="#FF8A65" strokeWidth="1.5"/>
+              <path d="M18.5 37.5L19.8 39L23 36" stroke="#FF8A65" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="25" y1="37.5" x2="34" y2="37.5" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round"/>
+
+              <circle cx="41" cy="41" r="7.5" fill="#FF8A65" stroke="#FFFFFF" strokeWidth="2"/>
+              <text x="41" y="44.5" textAnchor="middle" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="system-ui, sans-serif">!</text>
+            </svg>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <p className="text-[8px] font-bold text-slate-400 tracking-wider uppercase">
+              Total Reminders
+            </p>
+
+            {/* Big Number 5 with radiating dash sparks */}
+            <div className="flex items-center justify-center gap-1.5 mt-0.5">
+              <svg width="9" height="14" viewBox="0 0 12 20" fill="none" className="text-[#FF8A65]">
+                <line x1="10" y1="5" x2="2" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <line x1="10" y1="10" x2="0" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <line x1="10" y1="15" x2="2" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              
+              <span className="text-lg font-black text-[#E8450F] tracking-tight leading-none">
+                {totalCount}
+              </span>
+
+              <svg width="9" height="14" viewBox="0 0 12 20" fill="none" className="text-[#FF8A65]">
+                <line x1="2" y1="5" x2="10" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <line x1="2" y1="10" x2="12" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <line x1="2" y1="15" x2="10" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+          </div>
         </div>
+
+        {/* View All Reminders button & bottom chevron */}
+        <div className="w-full pt-1 flex flex-col items-center">
+          <button
+            onClick={() => navigate('/documents')}
+            className="w-full py-1.5 px-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-[#E8450F] border border-slate-200/80 font-extrabold text-[10px] flex items-center justify-center gap-1 transition-all shadow-2xs hover:shadow-xs cursor-pointer group"
+          >
+            <span>View All Reminders</span>
+            <ChevronRight className="w-3 h-3 stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          <button
+            onClick={toggleCollapse}
+            title="Restore Reminders Panel"
+            className="p-0.5 mt-0.5 rounded-full text-[#E8450F] hover:bg-slate-100 transition-all cursor-pointer group"
+          >
+            <ChevronsLeft className="w-3.5 h-3.5 stroke-[2.5] group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+
       </div>
     );
   }
 
+  // ── Default / Full View ──────────────────────────────────────────────────
   return (
     <div className="bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden flex flex-col h-full transition-all duration-300">
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="px-4 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
         <div className="flex items-center gap-2">
           <Bell className="w-4 h-4 text-amber-500 fill-amber-500/20" />
@@ -170,39 +290,39 @@ export default function ImportantReminders({
           >
             <ChevronsRight className="w-3.5 h-3.5" />
           </TooltipTrigger>
-          <TooltipContent side="left"><p className="text-xs">Collapse reminders</p></TooltipContent>
+          <TooltipContent side="left"><p className="text-xs">Shrink to compact view</p></TooltipContent>
         </Tooltip>
       </div>
 
-      {/* ── Status counter row ── */}
+      {/* Status counter row */}
       <div className="px-4 py-2 border-b border-slate-100/80 flex items-center justify-between text-[9px] font-bold bg-white">
         <button
           onClick={() => setSelectedFilter(selectedFilter === 'expired' ? 'all' : 'expired')}
           className={`flex items-center gap-1.5 transition-colors cursor-pointer ${selectedFilter === 'expired' ? 'text-red-700 font-extrabold underline' : 'text-red-600 hover:text-red-700'}`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-          1 Expired
+          {expiredCount} Expired
         </button>
         <button
           onClick={() => setSelectedFilter(selectedFilter === 'critical' ? 'all' : 'critical')}
           className={`flex items-center gap-1.5 transition-colors cursor-pointer ${selectedFilter === 'critical' ? 'text-amber-700 font-extrabold underline' : 'text-amber-600 hover:text-amber-700'}`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-          2 Critical
+          {criticalCount} Critical
         </button>
         <button
           onClick={() => setSelectedFilter(selectedFilter === 'warning' ? 'all' : 'warning')}
           className={`flex items-center gap-1.5 transition-colors cursor-pointer ${selectedFilter === 'warning' ? 'text-blue-700 font-extrabold underline' : 'text-blue-600 hover:text-blue-700'}`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-          2 Warning
+          {warningCount} Warning
         </button>
         <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">
-          5 MONITORED
+          {totalCount} MONITORED
         </span>
       </div>
 
-      {/* ── Reminder items list ── */}
+      {/* Reminder items list */}
       <div className="divide-y divide-slate-100 flex-1 overflow-y-auto">
         {filteredReminders.map((item) => {
           const Icon = item.badgeIcon;
@@ -232,7 +352,7 @@ export default function ImportantReminders({
         })}
       </div>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <div className="px-4 py-2.5 border-t border-slate-100/80 bg-slate-50/40 flex items-center justify-between text-[10px]">
         <div className="flex items-center gap-1.5 text-slate-500 font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

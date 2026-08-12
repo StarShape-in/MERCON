@@ -253,8 +253,8 @@ export default function DashboardPage() {
               <MonthlyOverview />
             </div>
 
-            {/* 2. Active Trips Live Map (Expands to 7 cols when reminders is collapsed, otherwise 5 cols) */}
-            <div className={`${isRemindersCollapsed ? 'lg:col-span-7' : 'lg:col-span-5'} flex flex-col bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300`}>
+            {/* 2. Active Trips Live Map (Expands to 6 cols when reminders is collapsed, otherwise 5 cols) */}
+            <div className={`${isRemindersCollapsed ? 'lg:col-span-6' : 'lg:col-span-5'} flex flex-col bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300`}>
               {/* Map Header */}
               <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
                 <div className="flex items-center gap-2">
@@ -354,8 +354,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 3. Important Reminders (Shrinks to 1 col when collapsed, otherwise 3 cols) */}
-            <div className={`${isRemindersCollapsed ? 'lg:col-span-1' : 'lg:col-span-3'} flex flex-col transition-all duration-300`}>
+            {/* 3. Important Reminders (Shrinks to 2 cols in compact card design, otherwise 3 cols) */}
+            <div className={`${isRemindersCollapsed ? 'lg:col-span-2' : 'lg:col-span-3'} flex flex-col transition-all duration-300`}>
               <ImportantReminders
                 collapsed={isRemindersCollapsed}
                 onToggleCollapse={() => setIsRemindersCollapsed(!isRemindersCollapsed)}

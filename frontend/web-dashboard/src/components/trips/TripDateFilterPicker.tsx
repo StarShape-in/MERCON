@@ -90,7 +90,7 @@ export function TripDateFilterPicker({
               : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200"
           )}
         >
-          <CalendarIcon className={cn("h-3.5 w-3.5 shrink-0", dateFilter !== 'All' ? "text-[#E8450F]" : "text-slate-500")} />
+          <CalendarIcon className={cn("h-3.5 w-3.5 shrink-0", dateFilter !== 'All' ? "text-white dark:text-slate-900" : "text-indigo-600")} />
           <span className="truncate max-w-[150px]">{getLabel()}</span>
           {dateFilter !== 'All' ? (
             <span

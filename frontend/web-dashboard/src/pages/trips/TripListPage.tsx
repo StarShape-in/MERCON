@@ -24,7 +24,8 @@ import {
   FileText,
   FileSpreadsheet,
   ChevronDown,
-  X
+  X,
+  MoreHorizontal
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
@@ -523,52 +524,51 @@ export default function TripListPage() {
     setWhatsappDialogOpen(false);
   };
 
+  const getDriverInitials = (driver?: { first_name?: string; last_name?: string } | null) => {
+    if (!driver) return '—';
+    const f = driver.first_name?.[0] || '';
+    const l = driver.last_name?.[0] || '';
+    return (f + l).toUpperCase() || 'DR';
+  };
+
   const columns = [
     {
-      header: 'Trip Ref ID',
+      header: 'TRIP ID',
       className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5">
-            <span className="font-mono text-xs font-bold text-[#E8450F]">
-              {row.ref_id || 'Draft'}
-            </span>
-          </div>
-        </div>
+        <span className="font-mono text-xs font-bold text-[#E8450F]">
+          {row.ref_id || 'Draft'}
+        </span>
       ),
     },
     {
-      header: 'Customer',
-      className: 'whitespace-nowrap max-w-[140px]',
+      header: 'CUSTOMER',
+      className: 'whitespace-nowrap max-w-[180px]',
       accessor: (row: Trip) => (
-        <div className="flex flex-col max-w-[140px]">
-          <span className="font-semibold text-xs text-[#111] dark:text-slate-100 leading-snug truncate" title={row.customer?.name}>
+        <div className="flex items-center min-w-0 max-w-[180px]">
+          <span className="font-bold text-xs text-slate-900 dark:text-slate-100 leading-snug truncate" title={row.customer?.name}>
             {row.customer?.name || '—'}
           </span>
-          {row.customer?.contact_phone && (
-            <span className="text-[10px] text-muted-foreground font-mono truncate" title={row.customer.contact_phone}>
-              {row.customer.contact_phone}
-            </span>
-          )}
         </div>
       ),
     },
     {
-      header: 'Pickup & Dropoff',
-      className: 'whitespace-nowrap max-w-[150px]',
+      header: 'ROUTE',
+      className: 'whitespace-nowrap min-w-[150px]',
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         return (
-          <div className="flex flex-col gap-0.5 py-0.5 max-w-[150px]">
-            <div className="flex items-center gap-1.5 min-w-0" title={`Pickup: ${pickup.name}${pickup.address ? ` (${pickup.address})` : ''}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <div className="flex flex-col gap-0.5 py-0.5 min-w-[130px]">
+            <div className="flex items-center gap-2 min-w-0" title={`Pickup: ${pickup.name}${pickup.address ? ` (${pickup.address})` : ''}`}>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {pickup.name}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 min-w-0" title={`Dropoff: ${dropoff.name}${dropoff.address ? ` (${dropoff.address})` : ''}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#E8450F] shrink-0" />
+            <div className="ml-[3px] w-0 h-1.5 border-l-2 border-dotted border-slate-300 dark:border-slate-600 my-0.5" />
+            <div className="flex items-center gap-2 min-w-0" title={`Dropoff: ${dropoff.name}${dropoff.address ? ` (${dropoff.address})` : ''}`}>
+              <span className="w-2 h-2 rounded-full bg-[#E8450F] shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {dropoff.name}
               </span>
@@ -578,29 +578,33 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Driver',
-      className: 'whitespace-nowrap max-w-[130px]',
-      accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5 max-w-[130px]">
-          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-            <User size={11} className="text-slate-500" />
+      header: 'DRIVER',
+      className: 'whitespace-nowrap max-w-[180px]',
+      accessor: (row: Trip) => {
+        const initials = getDriverInitials(row.driver);
+        const fullName = row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : null;
+        return (
+          <div className="flex items-center gap-2 max-w-[180px]">
+            <div className="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 font-bold text-[11px] flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/50">
+              {initials}
+            </div>
+            <div className="flex flex-col min-w-0 truncate">
+              {fullName ? (
+                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate" title={fullName}>
+                  {fullName}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400 dark:text-slate-500 italic">
+                  Unassigned
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col min-w-0 truncate">
-            {row.driver ? (
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={`${row.driver.first_name} ${row.driver.last_name}`}>
-                {`${row.driver.first_name} ${row.driver.last_name}`}
-              </span>
-            ) : (
-              <span className="text-xs text-slate-400 dark:text-slate-500 italic">
-                Unassigned
-              </span>
-            )}
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-      header: 'Vehicle',
+      header: 'VEHICLE',
       className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
         <div className="flex items-center gap-1.5">
@@ -618,25 +622,25 @@ export default function TripListPage() {
       ),
     },
     {
-      header: 'Rate Card & Price',
+      header: 'RATE (SAR)',
       className: 'whitespace-nowrap',
       accessor: (row: Trip) => {
         const price = row.billing_amount ?? row.trip_charges ?? row.rateCard?.base_price;
         const currency = row.rateCard?.currency || 'SAR';
+        const hasPrice = price !== undefined && price !== null && Number(price) > 0;
+        const formattedPrice = hasPrice
+          ? `${currency} ${Number(price).toLocaleString('en-US')}`
+          : '—';
+        const rateType = row.rateCard?.name || (hasPrice ? 'Fixed' : null);
+
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="font-bold text-xs text-[#111] dark:text-slate-200 font-mono">
-              {price !== undefined && price !== null && price > 0
-                ? `${currency} ${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : '—'}
+            <span className="font-bold text-xs text-slate-900 dark:text-slate-100 font-mono">
+              {formattedPrice}
             </span>
-            {row.rateCard ? (
-              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold truncate max-w-[130px]" title={row.rateCard.name}>
-                {row.rateCard.name}
-              </span>
-            ) : (
+            {rateType && (
               <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">
-                Manual / Fixed Rate
+                {rateType}
               </span>
             )}
           </div>
@@ -644,93 +648,108 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'Status',
+      header: 'STATUS',
       className: 'whitespace-nowrap',
       accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5">
-          <StatusBadge status={row.status} />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setStatusDialogTrip(row);
-              setNewStatus(row.status);
-            }}
-            className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors shrink-0"
-            title="Quick Status Change"
-          >
-            <RefreshCw size={11} />
-          </button>
+        <StatusBadge status={row.status} />
+      ),
+    },
+    {
+      header: 'PLANNED START',
+      className: 'whitespace-nowrap',
+      accessor: (row: Trip) => (
+        <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
+          <CalendarIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span>
+            {row.planned_start ? format(new Date(row.planned_start), 'd MMM yyyy') : '—'}
+          </span>
         </div>
       ),
     },
     {
-      header: 'Planned Start',
-      className: 'whitespace-nowrap',
-      accessor: (row: Trip) => (
-        <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
-          {row.planned_start ? new Date(row.planned_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-        </span>
-      ),
-    },
-    {
-      header: 'Actions',
+      header: 'ACTIONS',
       className: 'whitespace-nowrap text-right',
       headerClassName: 'text-right',
       accessor: (row: Trip) => (
-        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          {row.status === 'InTransit' && (
-            <button
-              onClick={() => navigate(`/trips/${row.id}/track`)}
-              title="Live GPS Track"
-              className="p-1.5 rounded-lg text-[#E8450F] hover:bg-orange-50 transition-colors"
-            >
-              <Navigation className="h-3.5 w-3.5" />
-            </button>
-          )}
+        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400 transition-colors focus:outline-none cursor-pointer"
+                title="Trip Actions"
+                aria-label="Trip Actions"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+              {row.status === 'InTransit' && (
+                <DropdownMenuItem
+                  onClick={() => navigate(`/trips/${row.id}/track`)}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                >
+                  <Navigation className="mr-2 h-3.5 w-3.5" />
+                  Live GPS Track
+                </DropdownMenuItem>
+              )}
 
-          <button
-            onClick={() => {
-              setStatusDialogTrip(row);
-              setNewStatus(row.status);
-            }}
-            title="Quick Status Update"
-            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
+              <DropdownMenuItem
+                onClick={() => {
+                  setStatusDialogTrip(row);
+                  setNewStatus(row.status);
+                }}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+              >
+                <RefreshCw className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                Quick Status Change
+              </DropdownMenuItem>
 
-          <button
-            onClick={() => navigate(`/trips/${row.id}/edit`)}
-            title="Edit Trip Manifest (Update status, driver, or vehicle)"
-            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-          >
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
+              <DropdownMenuItem
+                onClick={() => navigate(`/trips/${row.id}/edit`)}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+              >
+                <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600" />
+                Edit Trip Manifest
+              </DropdownMenuItem>
 
-          <button
-            onClick={() => {
-              setConfirmModal({
-                isOpen: true,
-                title: 'Delete Trip Draft',
-                message: `Are you sure you want to delete trip ${row.ref_id || 'Draft'}? This action cannot be undone.`,
-                onConfirm: async () => {
-                  try {
-                    await tripService.bulkDelete([row.id]);
-                    queryClient.invalidateQueries({ queryKey: ['trips'] });
-                    queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
-                    setSelectionResetKey(k => k + 1);
-                    toast.success('Trip deleted successfully');
-                  } catch (e) {
-                    toast.error('Failed to delete trip');
-                  }
-                }
-              });
-            }}
-            title="Delete Trip Draft"
-            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+              <DropdownMenuItem
+                onClick={() => openWhatsappShare([row])}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+              >
+                <svg className="mr-2 h-3.5 w-3.5 text-emerald-600 fill-current" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
+                </svg>
+                Share to WhatsApp
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
+
+              <DropdownMenuItem
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: 'Delete Trip Draft',
+                    message: `Are you sure you want to delete trip ${row.ref_id || 'Draft'}? This action cannot be undone.`,
+                    onConfirm: async () => {
+                      try {
+                        await tripService.bulkDelete([row.id]);
+                        queryClient.invalidateQueries({ queryKey: ['trips'] });
+                        queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] });
+                        setSelectionResetKey(k => k + 1);
+                        toast.success('Trip deleted successfully');
+                      } catch (e) {
+                        toast.error('Failed to delete trip');
+                      }
+                    }
+                  });
+                }}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+              >
+                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                Delete Trip
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ),
     },
