@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Plus, Download, RotateCw, Filter, MoreVertical, Receipt, X, 
   Building2, CheckCircle2, Clock, FileText, Check, Search, 
-  LayoutGrid, List, ExternalLink, ShieldCheck, Tag
+  ExternalLink, ShieldCheck, Tag
 } from 'lucide-react';
 import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge, RevenueChart } from '@/components/ui/kpi-icons';
 
@@ -58,7 +58,6 @@ export default function InvoiceListPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Mark Trip Invoiced Modal State
   const [showMarkModal, setShowMarkModal] = useState(false);
@@ -348,14 +347,11 @@ export default function InvoiceListPage() {
         {/* MERCON Dashboard Top Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            {/* Page Title & Soft Pastel Category Badge */}
+            {/* Page Title */}
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Trip Invoicing & Settlement
               </h1>
-              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold text-xs px-2.5 py-0.5">
-                Finance & Billing Module
-              </Badge>
             </div>
           </div>
 
@@ -518,48 +514,28 @@ export default function InvoiceListPage() {
             searchValue={search}
             onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
             filterElement={
-              <div className="flex items-center gap-2">
-                <Select
-                  value={selectedStatus}
-                  onValueChange={(val: any) => { setSelectedStatus(val); setCurrentPage(1); }}
-                >
-                  <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus-visible:ring-indigo-500">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      <SelectValue placeholder="Invoicing Status" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                    <SelectGroup>
-                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Status Filter
-                      </SelectLabel>
-                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Statuses</SelectItem>
-                      <SelectItem value="Paid" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700">Invoiced / Paid</SelectItem>
-                      <SelectItem value="Pending" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-amber-700">Pending Invoicing</SelectItem>
-                      <SelectItem value="Overdue" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-700">Overdue Only</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-
-                {/* View Switcher: Segmented Control */}
-                <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1 rounded-md text-xs font-medium transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'}`}
-                    title="List View"
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1 rounded-md text-xs font-medium transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-900'}`}
-                    title="Grid View"
-                  >
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+              <Select
+                value={selectedStatus}
+                onValueChange={(val: any) => { setSelectedStatus(val); setCurrentPage(1); }}
+              >
+                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus-visible:ring-indigo-500">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <SelectValue placeholder="Invoicing Status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                      Status Filter
+                    </SelectLabel>
+                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Statuses</SelectItem>
+                    <SelectItem value="Paid" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700">Invoiced / Paid</SelectItem>
+                    <SelectItem value="Pending" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-amber-700">Pending Invoicing</SelectItem>
+                    <SelectItem value="Overdue" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-700">Overdue Only</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             }
             currentPage={currentPage}
             totalPages={totalPages}

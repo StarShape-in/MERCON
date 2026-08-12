@@ -734,46 +734,6 @@ export default function RateCardListPage() {
               filterElement={
                 <div className="flex items-center gap-3">
                   <Select
-                    value={statusFilter}
-                    onValueChange={(val: any) => {
-                      setStatusFilter(val);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                      <div className="flex items-center gap-2">
-                        <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                        <SelectValue placeholder="Status" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                      <SelectGroup>
-                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                          Status Filter
-                        </SelectLabel>
-                        <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700">
-                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                            All Statuses
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-emerald-700">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            Active Only
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-500">
-                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                            Inactive Only
-                          </span>
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
                     value={vehicleTypeFilter || 'all'}
                     onValueChange={(val: string) => {
                       setVehicleTypeFilter(val === 'all' ? '' : val);
