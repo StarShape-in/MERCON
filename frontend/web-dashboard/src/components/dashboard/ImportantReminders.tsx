@@ -104,7 +104,7 @@ export default function ImportantReminders({
           >
             {/* Top: Bell Header Icon with Count Badge */}
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger>
                 <div className="relative flex flex-col items-center mt-0.5 z-10 cursor-pointer">
                   <div className="relative">
                     <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />
@@ -131,7 +131,7 @@ export default function ImportantReminders({
                 const ItemIcon = item.icon;
                 return (
                   <Tooltip key={item.id}>
-                    <TooltipTrigger asChild>
+                    <TooltipTrigger>
                       <div className="flex flex-col items-center gap-1 group/icon cursor-pointer w-full">
                         <div className="relative">
                           <div className={`w-9 h-9 rounded-2xl ${item.iconBg} border flex items-center justify-center shadow-2xs transition-all duration-200 group-hover/icon:scale-110 group-hover/icon:shadow-md`}>
@@ -161,7 +161,7 @@ export default function ImportantReminders({
 
             {/* Bottom: Expand Cue Icon */}
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger>
                 <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center z-10
                   group-hover:bg-[#E8450F] group-hover:border-[#E8450F] transition-colors duration-200">
                   <ChevronsRight className="w-3.5 h-3.5 text-[#E8450F] group-hover:text-white transition-colors duration-200 stroke-[2.5]" />
