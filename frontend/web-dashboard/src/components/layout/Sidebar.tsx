@@ -1,10 +1,10 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Home, Bell, Truck, Users, Building2,
-  ReceiptText, FileText, BarChart3,
-  Settings, LogOut, X, DollarSign,
-  ChevronsLeft, ChevronsRight, GitFork, ChevronDown
+  Home, Bell, Truck, Users, Car, Building2,
+  CreditCard, ReceiptText, FileText, BarChart3,
+  Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
+  ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -26,6 +26,21 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
+  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
+
+  const isItemActive = (itemPath: string, itemEnd?: boolean) => {
+    const currentPath = location.pathname;
+    if (itemPath === '/vehicles') {
+      return currentPath.startsWith('/vehicles') && !currentPath.includes('/financials');
+    }
+    if (itemPath === '/vehicles/financials') {
+      return currentPath.includes('/financials');
+    }
+    if (itemEnd || itemPath === '/') {
+      return currentPath === itemPath;
+    }
+    return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
+  };
 
   const handleLogout = () => {
     authStore.clearSession();
@@ -38,20 +53,53 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     refetchInterval: 60000, // Poll every minute
   });
 
-  const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 8;
+  const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 0;
 
-  const navItems = [
-    { icon: Home, label: 'Dashboard', path: '/' },
-    { icon: GitFork, label: 'Trips', path: '/trips' },
-    { icon: Truck, label: 'Fleet', path: '/vehicles' },
-    { icon: Users, label: 'Drivers', path: '/drivers' },
-    { icon: Building2, label: 'Customers', path: '/customers' },
-    { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
-    { icon: FileText, label: 'Documents', path: '/documents' },
-    { icon: BarChart3, label: 'Reports', path: '/reports' },
-    { icon: DollarSign, label: 'Finance', path: '/rate-cards' },
-    { icon: Bell, label: 'Alerts', path: '/notifications', badge: unreadCount },
-    { icon: Settings, label: 'Settings', path: '/settings', end: true },
+  const groups = [
+    {
+      label: 'OVERVIEW',
+      items: [
+        { icon: Home, label: 'Dashboard', path: '/' },
+        { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
+      ],
+    },
+    {
+      label: 'OPERATIONS',
+      items: [
+        { icon: Truck, label: 'Trips', path: '/trips' },
+        { icon: Users, label: 'Drivers', path: '/drivers' },
+        { icon: Car, label: 'Vehicles', path: '/vehicles' },
+        { icon: Wrench, label: 'Maintenance', path: '/maintenance' },
+        { icon: Building2, label: 'Customers', path: '/customers' },
+      ],
+    },
+    {
+      label: 'FINANCE',
+      items: [
+        { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards' },
+        // Sits with Rate Cards rather than Operations: a location exists to be
+        // one end of a priced lane, and that's where you go to fix one.
+        { icon: MapPin, label: 'Locations', path: '/locations' },
+        { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
+        { icon: DollarSign, label: 'Vehicle P&L', path: '/vehicles/financials' },
+      ],
+    },
+    {
+      label: 'COMPLIANCE',
+      items: [
+        { icon: FileText, label: 'Documents', path: '/documents' },
+        { icon: BarChart3, label: 'Reports', path: '/reports' },
+      ],
+    },
+    {
+      label: 'ACCOUNT',
+      items: [
+        { icon: Settings, label: 'Settings', path: '/settings', end: true },
+        { icon: User, label: 'Profile', path: '/settings/profile' },
+        ...(user?.role === 'Admin' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
+        { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
+      ],
+    },
   ];
 
   return (
@@ -93,7 +141,20 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </button>
       </div>
 
-      {/* Desktop rail toggle */}
+      {/*
+        Desktop rail toggle. Sits centred on the sidebar's own right edge, so it stays in
+        exactly the same place whether the rail is expanded or collapsed — nothing in the
+        header shifts when you use it. Double chevron rather than a single one: it reads as
+        "collapse this panel" instead of "go back".
+
+        The `before` pseudo-element widens the click target to 44px without making the
+        circle itself any bigger.
+
+        It pokes 14px past the sidebar's edge, so the aside needs lg:z-30 (above the
+        content column) for the overhang to be visible — the width transition promotes
+        the aside to its own stacking context, so a z-index on this button alone is
+        trapped inside it and does nothing.
+      */}
       <button
         onClick={onToggleCollapse}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -114,64 +175,76 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           : <ChevronsLeft size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:-translate-x-px" />}
       </button>
 
-      {/* Nav items list */}
-      <div className={`flex-1 py-4 space-y-1 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
-        {navItems.map((item: any) => (
-          <NavLink
-            key={item.label}
-            to={item.path}
-            end={item.end ?? item.path === '/'}
-            onClick={onClose}
-            title={collapsed ? item.label : undefined}
-            className={({ isActive }) => `
-              relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-150 group
-              ${collapsed ? 'lg:justify-center lg:px-0' : ''}
-              ${isActive
-                ? 'bg-[#E8450F] text-white shadow-sm font-bold'
-                : 'text-slate-300/80 hover:bg-white/5 hover:text-white font-medium'
-              }
-            `}
-          >
-            {({ isActive }) => (
-              <>
-                <item.icon
-                  size={17}
-                  className={`shrink-0 transition-transform duration-150 group-hover:scale-105 ${isActive ? 'stroke-[2.2] text-white' : 'stroke-[1.8] text-slate-400'}`}
-                />
-                <span className={`text-[13px] flex-1 whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>
-                  {item.label}
-                </span>
-                {item.badge !== undefined && item.badge > 0 && !isActive && (
-                  <>
-                    <span className={`w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-extrabold flex items-center justify-center shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
-                      {item.badge > 9 ? '8' : item.badge}
+      {/* Nav groups */}
+      <div className={`flex-1 py-4 space-y-5 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
+        {groups.map((g) => (
+          <div key={g.label}>
+            <p className={`text-[9px] font-bold text-white/50 uppercase tracking-widest px-3 mb-2 whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>
+              {g.label}
+            </p>
+            {collapsed && <div aria-hidden="true" className="hidden lg:block h-px bg-white/10 mx-2 mb-2" />}
+            <div className="space-y-0.5">
+              {g.items.map((item: any) => {
+                const isActive = isItemActive(item.path, item.end);
+                return (
+                  <NavLink
+                    key={item.label}
+                    to={item.path}
+                    onClick={onClose}
+                    title={collapsed ? item.label : undefined}
+                    className={`
+                      relative flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group
+                      ${collapsed ? 'lg:justify-center lg:px-0' : ''}
+                      ${isActive
+                        ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15'
+                        : 'text-white/60 hover:bg-white/5 hover:text-white'
+                      }
+                    `}
+                  >
+                    <item.icon
+                      size={16}
+                      className={`shrink-0 transition-transform duration-150 group-hover:scale-105 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`}
+                    />
+                    <span className={`text-xs font-semibold flex-1 whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>
+                      {item.label}
                     </span>
-                    {collapsed && (
-                      <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-3 w-2 h-2 rounded-full bg-[#E8450F]" />
+                    {item.badge !== undefined && item.badge > 0 && !isActive && (
+                      <>
+                        <span className={`w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                        {collapsed && (
+                          <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-3 w-2 h-2 rounded-full bg-[#E8450F] animate-pulse" />
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-              </>
-            )}
-          </NavLink>
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
         ))}
       </div>
 
       {/* User footer */}
-      <div className={`px-4 py-3.5 border-t border-white/10 flex items-center gap-3 bg-black/20 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+      <div className={`px-4 py-3.5 border-t border-white/10 flex items-center gap-2.5 bg-black/20 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
         <div
-          title={collapsed ? user?.name || 'Mercon Operator' : undefined}
-          className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm select-none"
+          title={collapsed ? user?.name || 'Mohammed Al-Harbi' : undefined}
+          className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none"
         >
-          MA
+          {initials}
         </div>
         <div className={`flex-1 min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
-          <p className="text-xs font-bold text-white truncate leading-tight">Mercon</p>
-          <p className="text-[10px] text-slate-400 truncate leading-tight">Operator</p>
+          <p className="text-xs font-semibold text-white truncate">{user?.name || 'Mohammed Al-Harbi'}</p>
+          <p className="text-[9px] text-white/50 truncate">{user?.email || 'operator@mercon.sa'}</p>
         </div>
-        <div className={`text-slate-400 hover:text-white p-1 rounded transition-colors shrink-0 cursor-pointer ${collapsed ? 'lg:hidden' : ''}`}>
-          <ChevronDown size={14} />
-        </div>
+        <button
+          onClick={handleLogout}
+          className="text-white/50 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+          title="Logout"
+        >
+          <LogOut size={14} />
+        </button>
       </div>
       </aside>
     </>
