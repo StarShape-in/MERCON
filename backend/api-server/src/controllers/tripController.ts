@@ -50,7 +50,7 @@ async function notifyDriverAssigned(
 
 export const getTrips = async (req: Request, res: Response) => {
   try {
-    const { status, driver_id, vehicle_id, customer_id, search, date_filter, start_date, end_date, page = '1', per_page = '20' } = req.query;
+    const { status, driver_id, vehicle_id, customer_id, rate_card_id, search, date_filter, start_date, end_date, page = '1', per_page = '20' } = req.query;
 
     const pageNumber = parseInt(page as string);
     const limit = parseInt(per_page as string);
@@ -69,6 +69,7 @@ export const getTrips = async (req: Request, res: Response) => {
     if (driver_id) whereClause.driverId = driver_id as string;
     if (vehicle_id) whereClause.vehicleId = vehicle_id as string;
     if (customer_id) whereClause.customerId = customer_id as string;
+    if (rate_card_id) whereClause.rateCardId = rate_card_id as string;
     const searchAnd = buildSearchAnd(search, TRIP_SEARCH_FIELDS) as Prisma.TripWhereInput[];
 
     let startDateObj: Date | undefined;

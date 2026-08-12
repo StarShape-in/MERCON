@@ -155,7 +155,7 @@ export default function AppRouter() {
 
           {/* Invoices */}
           <Route path="/invoices"                 element={<InvoiceListPage />} />
-          <Route path="/invoices/new"             element={<CreateInvoicePage />} />
+          <Route path="/invoices/new"             element={<Navigate to="/invoices?action=mark" replace />} />
           <Route path="/invoices/:id"             element={<InvoiceDetailsPage />} />
           <Route path="/invoices/:id/print"       element={<InvoicePrintTemplate />} />
           <Route path="/invoices/:id/payment"     element={<PaymentStatusPage />} />

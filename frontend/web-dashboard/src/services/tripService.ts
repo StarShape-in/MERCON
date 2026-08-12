@@ -126,6 +126,7 @@ export interface TripFilters {
   driver_id?: string;
   vehicle_id?: string;
   customer_id?: string;
+  rate_card_id?: string;
   search?: string;
   date_filter?: string;
   start_date?: string;
