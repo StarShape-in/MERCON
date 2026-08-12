@@ -561,12 +561,12 @@ export default function TripListPage() {
     },
     {
       header: 'Route',
-      className: 'max-w-[170px] truncate',
+      className: 'max-w-[155px] truncate',
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         return (
-          <div className="flex flex-col gap-0 py-0.5 max-w-[170px] truncate" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
+          <div className="flex flex-col gap-0 py-0.5 max-w-[155px] truncate" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
@@ -586,9 +586,9 @@ export default function TripListPage() {
     },
     {
       header: 'Driver',
-      className: 'max-w-[120px] truncate',
+      className: 'max-w-[165px]',
       accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5 max-w-[120px] truncate">
+        <div className="flex items-center gap-1.5 max-w-[165px]">
           <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
             {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
           </div>
