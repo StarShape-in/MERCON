@@ -198,10 +198,11 @@ export default function InvoiceListPage() {
 
   const columns = [
     {
-      header: 'Trip Reference',
+      header: 'Trip Ref ID',
+      className: 'whitespace-nowrap',
       accessor: (row: Invoice) => (
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
+          <span className="font-mono text-xs font-bold text-[#E8450F]">
             {row.trip?.ref_id || row.ref_id || row.id.split('-')[0].toUpperCase()}
           </span>
           {row.ref_id && (
@@ -213,98 +214,106 @@ export default function InvoiceListPage() {
       ),
     },
     {
-      header: 'Customer & Account',
+      header: 'Customer',
+      className: 'whitespace-nowrap max-w-[140px]',
       accessor: (row: Invoice) => (
-        <div>
-          <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+        <div className="flex flex-col max-w-[140px]">
+          <span className="font-semibold text-xs text-[#111] dark:text-slate-100 leading-snug truncate" title={row.customer?.name || 'Standard Account'}>
             {row.customer?.name || 'Standard Account'}
-          </div>
-          <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-1">
-            <Building2 className="w-3 h-3 text-slate-400 inline" /> MERCON Billed Customer
-          </div>
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono truncate">
+            Billed Customer
+          </span>
         </div>
       ),
     },
     {
       header: 'Billing Amount',
+      className: 'whitespace-nowrap',
       accessor: (row: Invoice) => (
-        <span className="text-xs text-slate-950 dark:text-slate-50 font-black font-mono tabular-nums">
-          {row.currency || 'SAR'} {Number(row.total_amount || row.subtotal || 0).toLocaleString()}
+        <span className="font-bold text-xs text-[#111] dark:text-slate-200 font-mono tabular-nums">
+          {row.currency || 'SAR'} {Number(row.total_amount || row.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       ),
     },
     {
       header: 'Invoicing Date',
+      className: 'whitespace-nowrap',
       accessor: (row: Invoice) => (
-        <span className="text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
-          {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : new Date(row.due_date).toLocaleDateString()}
+        <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+          {row.createdAt ? new Date(row.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : new Date(row.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
         </span>
       ),
     },
     {
       header: 'Invoicing Status',
+      className: 'whitespace-nowrap',
       accessor: (row: Invoice) => getStatusBadge(row.status),
     },
     {
       header: 'Actions',
+      className: 'whitespace-nowrap text-right',
+      headerClassName: 'text-right',
       accessor: (row: Invoice) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-md"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-1.5">
-            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-              Invoicing Ledger Actions
-            </DropdownMenuLabel>
-            
-            <DropdownMenuItem 
-              onClick={() => {
-                if (row.status !== 'Paid') {
-                  invoiceService.updateStatus(row.id, 'Paid').then(() => {
-                    toast.success('Marked invoice as Paid / Invoiced');
-                    queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                  });
-                } else {
-                  toast.info('Invoice is already marked as Paid.');
-                }
-              }}
-              className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-600 focus:bg-emerald-50"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Confirm Invoiced / Paid
-            </DropdownMenuItem>
-
-            {row.trip?.id && (
-              <DropdownMenuItem 
-                onClick={() => navigate(`/trips/${row.trip?.id}`)}
-                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-md"
               >
-                <ExternalLink className="w-3.5 h-3.5 mr-2 text-indigo-600" /> View Linked Trip
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-1.5">
+              <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                Invoicing Ledger Actions
+              </DropdownMenuLabel>
+              
+              <DropdownMenuItem 
+                onClick={() => {
+                  if (row.status !== 'Paid') {
+                    invoiceService.updateStatus(row.id, 'Paid').then(() => {
+                      toast.success('Marked invoice as Paid / Invoiced');
+                      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                    });
+                  } else {
+                    toast.info('Invoice is already marked as Paid.');
+                  }
+                }}
+                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-600 focus:bg-emerald-50"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Confirm Invoiced / Paid
               </DropdownMenuItem>
-            )}
 
-            <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+              {row.trip?.id && (
+                <DropdownMenuItem 
+                  onClick={() => navigate(`/trips/${row.trip?.id}`)}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 mr-2 text-indigo-600" /> View Linked Trip
+                </DropdownMenuItem>
+              )}
 
-            <DropdownMenuItem 
-              onClick={() => {
-                if (confirm('Remove invoicing status log for this trip?')) {
-                  invoiceService.bulkDelete([row.id]).then(() => {
-                    toast.success('Invoicing status log removed.');
-                    queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                  });
-                }
-              }}
-              className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
-            >
-              <X className="w-3.5 h-3.5 mr-2 text-rose-600" /> Delete Invoicing Record
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+
+              <DropdownMenuItem 
+                onClick={() => {
+                  if (confirm('Remove invoicing status log for this trip?')) {
+                    invoiceService.bulkDelete([row.id]).then(() => {
+                      toast.success('Invoicing status log removed.');
+                      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                    });
+                  }
+                }}
+                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
+              >
+                <X className="w-3.5 h-3.5 mr-2 text-rose-600" /> Delete Invoicing Record
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       ),
     },
   ];
@@ -336,17 +345,9 @@ export default function InvoiceListPage() {
     <DashboardLayout active="Invoices" title="Trip Invoicing">
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
         
-        {/* MERCON Dashboard Top Bar & Scope Selector Specification */}
+        {/* MERCON Dashboard Top Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            
-            {/* Top-left Scope Selector Pill */}
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-              <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-              <span>🏢 MERCON Logistics</span>
-              <span className="text-slate-400">↕</span>
-            </div>
-
             {/* Page Title & Soft Pastel Category Badge */}
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -356,7 +357,6 @@ export default function InvoiceListPage() {
                 Finance & Billing Module
               </Badge>
             </div>
-
           </div>
 
           {/* Top Bar Actions Group */}
@@ -377,7 +377,7 @@ export default function InvoiceListPage() {
               onClick={() => handleOpenMarkModal()}
             >
               <Plus className="h-4 w-4" />
-              + Mark Trip Invoiced
+              Mark Trip Invoiced
             </Button>
 
             <Button
@@ -389,16 +389,6 @@ export default function InvoiceListPage() {
             >
               <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
-          </div>
-        </div>
-
-        {/* Note Banner: External ZATCA Software Integration */}
-        <div className="bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-900/40 p-3 rounded-xl flex items-center justify-between gap-3 text-xs text-indigo-950 dark:text-indigo-200 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span>
-              <strong>External ZATCA Workflow Active:</strong> Invoice generation & official tax reporting are processed via your primary ERP/accounting software. In MERCON, mark trips as <strong>Invoiced</strong> to maintain clear fleet billing status.
-            </span>
           </div>
         </div>
 
@@ -455,7 +445,7 @@ export default function InvoiceListPage() {
               </span>
             }
             variant="amber"
-            description="Trips awaiting ZATCA log"
+            description="Trips awaiting invoice log"
             icon={ClockIcon}
             pipelineStages={[
               { name: "Pending", count: pendingCount, color: "bg-amber-500" },
@@ -524,7 +514,7 @@ export default function InvoiceListPage() {
             isLoading={isLoadingInvoices}
             isError={isError}
             errorMessage={(error as Error)?.message || 'Failed to load trip invoicing records.'}
-            searchPlaceholder="Search trip ref ID, customer, ZATCA ref..."
+            searchPlaceholder="Search trip ref ID, customer..."
             searchValue={search}
             onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
             filterElement={
@@ -594,7 +584,7 @@ export default function InvoiceListPage() {
                 Mark Trip as Invoiced
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Confirm invoice completion status for completed fleet trips. Generation is handled in external ZATCA software.
+                Confirm invoice completion status for completed fleet trips.
               </DialogDescription>
             </DialogHeader>
 
@@ -610,7 +600,7 @@ export default function InvoiceListPage() {
                   onValueChange={(val) => {
                     const found = allTrips.find((t: any) => t.id === val);
                     setSelectedTripForModal(found || null);
-                    if (found?.ref_id) setZatcaRefInput(`ZATCA-${found.ref_id}`);
+                    if (found?.ref_id) setZatcaRefInput(`INV-${found.ref_id}`);
                   }}
                 >
                   <SelectTrigger className="h-9 text-xs border-slate-200 bg-white">
@@ -626,21 +616,21 @@ export default function InvoiceListPage() {
                 </Select>
               </div>
 
-              {/* External ZATCA / Software Ref # */}
+              {/* External Invoice Ref # */}
               <div className="space-y-1.5">
                 <Label htmlFor="zatcaRef" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  External ZATCA / Invoice Ref # (Optional)
+                  Invoice / External Ref # (Optional)
                 </Label>
                 <Input
                   id="zatcaRef"
                   type="text"
-                  placeholder="e.g. INV-ZATCA-2026-092"
+                  placeholder="e.g. INV-2026-092"
                   value={zatcaRefInput}
                   onChange={(e) => setZatcaRefInput(e.target.value)}
                   className="h-9 text-xs font-mono font-semibold border-slate-200"
                 />
                 <p className="text-[10px] text-slate-500">
-                  Optional invoice number or tax serial generated by your primary ZATCA software.
+                  Optional invoice number or tax serial generated by your primary accounting software.
                 </p>
               </div>
 
