@@ -14,7 +14,7 @@ import {
   FilePlus,
   ArrowLeft
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 
 import {
@@ -37,11 +37,13 @@ interface HeaderProps {
 
 export default function Header({ title, breadcrumb, hideBackButton, onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = authStore.getUser();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const isDashboard = location.pathname === '/' || title === 'Dashboard' || !!hideBackButton;
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
   const firstName = user?.name ? user.name.split(' ')[0] : 'Operator';
 
@@ -88,7 +90,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         >
           <Menu size={20} />
         </button>
-        {!hideBackButton && (
+        {!isDashboard && (
           <button
             onClick={() => navigate(-1)}
             className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
@@ -109,7 +111,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
 
       {/* Desktop Left: Back button & Page Title — the sidebar rail toggle lives on the sidebar edge */}
       <div className="hidden lg:flex items-center gap-3 min-w-0">
-        {!hideBackButton && (
+        {!isDashboard && (
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700 shadow-2xs"
@@ -121,7 +123,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         )}
         {title && (
           <div className="flex items-center gap-2">
-            {!hideBackButton && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
+            {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
             <span className="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate max-w-[260px]">{title}</span>
           </div>
         )}

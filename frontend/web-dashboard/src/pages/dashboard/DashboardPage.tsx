@@ -171,16 +171,23 @@ export default function DashboardPage() {
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
+  const user = authStore.getUser();
+  const userName = user?.name ? user.name.split(' ')[0] : 'Operator';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
   return (
     <TooltipProvider>
-      <DashboardLayout active="Dashboard" title="Dashboard">
+      <DashboardLayout active="Dashboard" title="Dashboard" hideBackButton>
         <div className="px-4 sm:px-6 lg:px-8 pb-8 h-full flex flex-col gap-5 animate-fade-in">
 
           {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1 pb-1 border-b border-black/[0.05]">
             {/* Left: title */}
             <div className="flex items-center gap-2">
-              <h1 className="text-[17px] font-extrabold text-slate-900 tracking-tight">Admin Dashboard</h1>
+              <h1 className="text-[17px] font-extrabold text-slate-900 tracking-tight">
+                {greeting}, <span className="text-[#E8450F]">{userName}</span> 👋
+              </h1>
               <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-[10px]">
                 Operations Module
               </Badge>
