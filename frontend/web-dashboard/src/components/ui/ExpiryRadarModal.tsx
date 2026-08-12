@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Clock, Search, ShieldAlert, ArrowLeft, RotateCw, Download } from 'lucide-react';
+import { AlertTriangle, Clock, ShieldAlert, RotateCw, Download } from 'lucide-react';
 
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import { RiskAlert, CalendarAlert, CheckBadge } from '@/components/ui/kpi-icons';
@@ -16,14 +15,19 @@ import { matchesSearch } from '@/lib/search';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface ExpiryRow extends MerconDocument {
   entityName: string;
   daysRemaining: number;
 }
 
-export default function ExpiryManagementPage() {
+interface ExpiryRadarModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -32,14 +36,17 @@ export default function ExpiryManagementPage() {
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', 'all'],
     queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
+    enabled: isOpen,
   });
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers', 'lookup'],
     queryFn: async () => (await driverService.getAll()).data,
+    enabled: isOpen,
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', 'lookup'],
     queryFn: async () => (await vehicleService.getAll()).data,
+    enabled: isOpen,
   });
 
   const handleRefresh = async () => {
@@ -79,6 +86,11 @@ export default function ExpiryManagementPage() {
     if (row.entity_type === 'Driver') return `/drivers/${row.entity_id}/documents`;
     if (row.entity_type === 'Vehicle') return `/vehicles/${row.entity_id}/documents`;
     return null;
+  };
+
+  const handleActionClick = (link: string) => {
+    onClose();
+    navigate(link);
   };
 
   const columns = [
@@ -137,7 +149,7 @@ export default function ExpiryManagementPage() {
         return link ? (
           <Button
             size="sm"
-            onClick={() => navigate(link)}
+            onClick={() => handleActionClick(link)}
             className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white px-3 shadow-2xs rounded-md"
           >
             Update Permit
@@ -150,57 +162,36 @@ export default function ExpiryManagementPage() {
   ];
 
   return (
-    <DashboardLayout
-      active="Documents"
-      title="Expiry Management"
-    >
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
-
-        {/* Page Content Header Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/documents')}
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Document Expiry Radar
-                </h1>
-                <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-bold text-[10px] uppercase px-2 py-0.5">
-                  Compliance Action
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Radar: Active monitoring for licenses and permits expiring within 30 days
-              </p>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto p-6 gap-6">
+        <DialogHeader className="flex flex-row items-center justify-between border-b pb-4 border-slate-200 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <DialogTitle className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                Document Expiry Radar
+              </DialogTitle>
+              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-bold text-[10px] uppercase px-2 py-0.5">
+                Compliance Action
+              </Badge>
             </div>
+            <DialogDescription className="text-xs text-slate-500 font-medium mt-1">
+              Active monitoring for licenses and permits expiring within 30 days
+            </DialogDescription>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-            >
-              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh Radar
-            </Button>
-          </div>
-        </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-8 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs mr-6"
+          >
+            <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </DialogHeader>
 
         {/* 4-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          
-          {/* Card 1: Expired Files — Urgency Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             title="ALREADY EXPIRED"
             value={expiredCount}
@@ -213,8 +204,6 @@ export default function ExpiryManagementPage() {
               { label: 'Expired', value: expiredCount > 0 ? 100 : 0, color: 'bg-rose-600' },
             ]}
           />
-
-          {/* Card 2: Critical Expiry (<=7d) — Urgency Bar */}
           <KpiCard
             title="CRITICAL (<=7 DAYS)"
             value={criticalCount}
@@ -227,8 +216,6 @@ export default function ExpiryManagementPage() {
               { label: 'Critical (<7d)', value: criticalCount > 0 ? 100 : 0, color: 'bg-amber-500' },
             ]}
           />
-
-          {/* Card 3: Upcoming Horizon (30d) — Progress Bar */}
           <KpiCard
             title="UPCOMING (30 DAYS)"
             value={upcomingCount}
@@ -241,8 +228,6 @@ export default function ExpiryManagementPage() {
               { label: 'Upcoming (30d)', value: upcomingCount > 0 ? 100 : 0, color: 'bg-indigo-600' },
             ]}
           />
-
-          {/* Card 4: Total Radar Items — Gauge */}
           <KpiCard
             title="TOTAL RADAR ITEMS"
             value={totalRadarCount}
@@ -261,7 +246,9 @@ export default function ExpiryManagementPage() {
 
         {/* Content Workspace: Data Table */}
         {isError ? (
-          <div className="p-12 text-center text-rose-600 text-xs font-bold bg-white rounded-xl border border-slate-200">Failed to load radar documents.</div>
+          <div className="p-8 text-center text-rose-600 text-xs font-bold bg-white rounded-xl border border-slate-200">
+            Failed to load radar documents.
+          </div>
         ) : (
           <DataTable
             title={
@@ -290,8 +277,7 @@ export default function ExpiryManagementPage() {
             onSearchChange={setSearch}
           />
         )}
-
-      </div>
-    </DashboardLayout>
+      </DialogContent>
+    </Dialog>
   );
 }

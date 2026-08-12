@@ -715,8 +715,8 @@ export default function RateCardListPage() {
                       setCurrentPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                      <div className="flex items-center gap-2">
+                    <SelectTrigger className="h-9 px-3 w-[200px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
+                      <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
                         <Filter className="h-3.5 w-3.5 text-amber-600 shrink-0" />
                         <SelectValue placeholder="Vehicle Type" />
                       </div>
@@ -727,8 +727,8 @@ export default function RateCardListPage() {
                           Vehicle Type
                         </SelectLabel>
                         <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700">
-                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                          <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
+                            <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
                             All Vehicle Types
                           </span>
                         </SelectItem>
@@ -748,8 +748,8 @@ export default function RateCardListPage() {
                       setCurrentPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                      <div className="flex items-center gap-2">
+                    <SelectTrigger className="h-9 px-3 w-[220px] shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold whitespace-nowrap">
+                      <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
                         <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                         <SelectValue placeholder="Rate Category" />
                       </div>
@@ -760,8 +760,8 @@ export default function RateCardListPage() {
                           Rate Category
                         </SelectLabel>
                         <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                          <span className="flex items-center gap-2 font-medium text-slate-700">
-                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                          <span className="flex items-center gap-2 font-medium text-slate-700 whitespace-nowrap">
+                            <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
                             All Rate Categories
                           </span>
                         </SelectItem>

@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
+import ExpiryRadarModal from '@/components/ui/ExpiryRadarModal';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
@@ -114,6 +115,7 @@ export default function DocumentsCenterPage() {
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isExpiryModalOpen, setIsExpiryModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
@@ -305,7 +307,7 @@ export default function DocumentsCenterPage() {
               variant="outline"
               size="sm"
               className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-rose-50 shadow-2xs text-rose-600 hover:text-rose-700 dark:bg-slate-900 dark:border-slate-800"
-              onClick={() => navigate('/documents/expiry')}
+              onClick={() => setIsExpiryModalOpen(true)}
             >
               <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
               Expiry Radar {expiringCount > 0 && <span className="ml-0.5 bg-rose-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">{expiringCount}</span>}
@@ -850,6 +852,12 @@ export default function DocumentsCenterPage() {
         entityType="Driver"
         entityId={drivers[0]?.id || '1'}
         onUploadSuccess={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}
+      />
+
+      {/* ── Expiry Radar Modal ───────────────────────────────────────────── */}
+      <ExpiryRadarModal
+        isOpen={isExpiryModalOpen}
+        onClose={() => setIsExpiryModalOpen(false)}
       />
 
       {/* ── Confirm Delete Modal ─────────────────────────────────────────── */}

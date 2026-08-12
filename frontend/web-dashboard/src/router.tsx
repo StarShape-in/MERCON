@@ -60,7 +60,6 @@ const PaymentStatusPage       = lazy(() => import('@/pages/invoices/PaymentStatu
 
 // Documents
 const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCenterPage'));
-const ExpiryManagementPage    = lazy(() => import('@/pages/documents/ExpiryManagementPage'));
 
 // Reports
 const ReportsDashboardPage    = lazy(() => import('@/pages/reports/ReportsDashboardPage'));
@@ -160,7 +159,7 @@ export default function AppRouter() {
 
           {/* Documents */}
           <Route path="/documents"                element={<DocumentsCenterPage />} />
-          <Route path="/documents/expiry"         element={<ExpiryManagementPage />} />
+          <Route path="/documents/expiry"         element={<Navigate to="/documents" replace />} />
 
           {/* Reports */}
           <Route path="/reports"                  element={<ReportsDashboardPage />} />
