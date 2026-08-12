@@ -551,11 +551,6 @@ export default function TripListPage() {
           <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 leading-tight truncate" title={row.customer?.name}>
             {row.customer?.name || '—'}
           </span>
-          {row.customer?.contact_phone && (
-            <span className="text-[10px] text-slate-400 font-mono truncate" title={row.customer.contact_phone}>
-              {row.customer.contact_phone}
-            </span>
-          )}
         </div>
       ),
     },
@@ -620,14 +615,11 @@ export default function TripListPage() {
       accessor: (row: Trip) => {
         const price = row.billing_amount ?? row.trip_charges ?? row.rateCard?.base_price;
         return (
-          <div className="flex flex-col font-mono text-xs">
+          <div className="flex items-center font-mono text-xs">
             <span className="font-extrabold text-slate-900 dark:text-slate-200">
               {price !== undefined && price !== null && price > 0
                 ? `SAR ${Number(price).toLocaleString('en-US')}`
                 : '—'}
-            </span>
-            <span className="text-[9px] text-slate-400">
-              {row.rateCard ? 'Fixed' : 'Manual'}
             </span>
           </div>
         );
