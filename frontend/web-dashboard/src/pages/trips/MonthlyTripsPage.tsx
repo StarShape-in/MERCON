@@ -3,15 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   CalendarRange, ChevronLeft, ChevronRight, RotateCw, FileSpreadsheet,
-  Plus, Search, X, Filter, Building2, AlertTriangle, Truck, Users,
-  Wallet, CalendarDays, Info,
+  Plus, Search, X, Filter, Info,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
-import {
-  currentMonthKey, formatMoney, monthLabel, shiftMonth,
-} from '@/components/trips/monthly/monthlyBoardUtils';
+import { currentMonthKey, monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -82,10 +79,6 @@ export default function MonthlyTripsPage() {
     setVehicleType('');
     setStatus('');
   };
-
-  // One company on screen is a plan being read, not a list being scanned —
-  // open it straight away rather than making the operator click again.
-  const expandFirst = companies.length === 1 || !!customerId;
 
   const exportRows = useMemo(
     () =>
@@ -213,58 +206,6 @@ export default function MonthlyTripsPage() {
           </div>
         </div>
 
-        {/* ── Month summary ──────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <SummaryTile
-            label="Trips"
-            value={summary?.total_trips ?? 0}
-            sub={monthLabel(month)}
-            icon={CalendarDays}
-            tone="brand"
-            loading={isLoading}
-          />
-          <SummaryTile
-            label="Companies"
-            value={summary?.companies ?? 0}
-            sub="with trips this month"
-            icon={Building2}
-            tone="blue"
-            loading={isLoading}
-          />
-          <SummaryTile
-            label="Drivers deployed"
-            value={summary?.drivers_used ?? 0}
-            sub="distinct drivers"
-            icon={Users}
-            tone="purple"
-            loading={isLoading}
-          />
-          <SummaryTile
-            label="Vehicles deployed"
-            value={summary?.vehicles_used ?? 0}
-            sub="distinct trucks"
-            icon={Truck}
-            tone="teal"
-            loading={isLoading}
-          />
-          <SummaryTile
-            label="Needs assignment"
-            value={summary?.unassigned_trips ?? 0}
-            sub="missing driver or truck"
-            icon={AlertTriangle}
-            tone={summary && summary.unassigned_trips > 0 ? 'amber' : 'slate'}
-            loading={isLoading}
-          />
-          <SummaryTile
-            label="Month value"
-            value={summary ? formatMoney(summary.total_billed) : '—'}
-            sub="priced trips only"
-            icon={Wallet}
-            tone="emerald"
-            loading={isLoading}
-          />
-        </div>
-
         {/* ── Filters ────────────────────────────────────────────────── */}
         <div className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-4 flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[220px]">
@@ -368,56 +309,12 @@ export default function MonthlyTripsPage() {
         ) : (
           <div className="flex flex-col gap-4">
             {companies.map((company) => (
-              <MonthlyCompanyCard
-                key={company.customer.id}
-                company={company}
-                month={month}
-                defaultExpanded={expandFirst}
-              />
+              <MonthlyCompanyCard key={company.customer.id} company={company} />
             ))}
           </div>
         )}
       </div>
     </DashboardLayout>
-  );
-}
-
-const TILE_TONES: Record<string, { icon: string; value: string }> = {
-  brand: { icon: 'bg-[#E8450F]/10 text-[#E8450F]', value: 'text-[#111111]' },
-  blue: { icon: 'bg-blue-50 text-blue-600', value: 'text-[#111111]' },
-  purple: { icon: 'bg-purple-50 text-purple-600', value: 'text-[#111111]' },
-  teal: { icon: 'bg-teal-50 text-teal-600', value: 'text-[#111111]' },
-  amber: { icon: 'bg-amber-50 text-amber-600', value: 'text-amber-700' },
-  emerald: { icon: 'bg-emerald-50 text-emerald-600', value: 'text-[#111111]' },
-  slate: { icon: 'bg-black/[0.04] text-[#9898A4]', value: 'text-[#111111]' },
-};
-
-function SummaryTile({
-  label, value, sub, icon: Icon, tone, loading,
-}: {
-  label: string;
-  value: number | string;
-  sub: string;
-  icon: React.ElementType;
-  tone: keyof typeof TILE_TONES | string;
-  loading?: boolean;
-}) {
-  const palette = TILE_TONES[tone] ?? TILE_TONES.slate;
-  return (
-    <div className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-4">
-      <div className="flex items-center justify-between">
-        <span className={LABEL}>{label}</span>
-        <span className={`h-7 w-7 rounded-lg grid place-items-center ${palette.icon}`}>
-          <Icon className="h-3.5 w-3.5" />
-        </span>
-      </div>
-      {loading ? (
-        <Skeleton className="h-7 w-16 mt-2 rounded-md" />
-      ) : (
-        <p className={`mt-2 text-xl font-bold ${palette.value}`}>{value}</p>
-      )}
-      <p className="mt-0.5 text-[11px] text-[#9898A4] truncate">{sub}</p>
-    </div>
   );
 }
 
