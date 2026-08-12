@@ -1,17 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ArrowRight,
-  Building2,
-  Coins,
-  Loader2,
-  MapPin,
-  Route,
-  Tag,
-  AlertCircle,
-  Sparkles,
-  Info
-} from 'lucide-react';
+import { ArrowRight, Building2, Loader2 } from 'lucide-react';
 
 import {
   Dialog,
@@ -45,12 +34,6 @@ interface RateCardFormDialogProps {
   defaultPrice?: string;
 }
 
-/**
- * Add or edit one priced lane for one customer. Used from the rate cards list,
- * the customer page and the trip wizard's "save this rate" flow. Every rate
- * card belongs to exactly one customer — there is no all-customers "standard"
- * rate, since every quote these carriers give is customer-specific.
- */
 export default function RateCardFormDialog({
   isOpen,
   onClose,
@@ -82,7 +65,6 @@ export default function RateCardFormDialog({
   });
   const customers = customersRes?.data || [];
 
-  // Reset every time the dialog opens so a previous edit never leaks into a fresh create.
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
@@ -151,82 +133,36 @@ export default function RateCardFormDialog({
     saveMutation.mutate();
   };
 
-  const selectedCustomer = customers.find((c) => c.id === effectiveCustomerId);
-  const activeCustomerName = lockedCustomerName || selectedCustomer?.name || 'Selected Customer';
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl p-0 overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800 shadow-2xl">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 px-6 py-5 text-white border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8450F]/20 text-[#E8450F] border border-[#E8450F]/30 shadow-inner">
-              <Tag className="h-5 w-5" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <DialogTitle className="text-lg font-bold tracking-tight text-white">
-                  {isEditing ? 'Edit Customer Rate' : 'Add New Rate'}
-                </DialogTitle>
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#E8450F]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#FF6B3B] border border-[#E8450F]/30">
-                  <Sparkles className="h-3 w-3" />
-                  Contracted Rate
-                </span>
-              </div>
-              <DialogDescription className="text-xs text-slate-300">
-                One price for one lane, for one customer.
-              </DialogDescription>
-            </div>
-          </div>
-        </div>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold">
+            {isEditing ? 'Edit Rate' : 'Add Rate'}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            One price for one lane, for one customer.
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Dialog Content Scroll Area */}
-        <div className="space-y-5 px-6 py-5 max-h-[75vh] overflow-y-auto bg-slate-50/50 dark:bg-slate-950/40">
-          
-          {/* Section 1: Customer Selection */}
-          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                  <Building2 className="h-4 w-4" />
-                </div>
-                <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Customer
-                </Label>
-              </div>
-              {lockedCustomerId && (
-                <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800/60">
-                  Fixed Context
-                </span>
-              )}
-            </div>
-
+        <div className="grid gap-4 py-2">
+          {/* Customer Field */}
+          <div className="grid gap-1.5">
+            <Label className="text-xs font-medium">Customer</Label>
             {lockedCustomerId ? (
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white text-xs font-bold">
-                  {activeCustomerName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                    {activeCustomerName}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    Rate is locked to this account
-                  </p>
-                </div>
+              <div className="flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-50/80 px-3 text-xs font-medium text-slate-800 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-200">
+                <Building2 className="h-3.5 w-3.5 text-slate-500" />
+                <span>{lockedCustomerName || 'Selected Customer'}</span>
               </div>
             ) : (
               <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger className="h-10 text-xs font-medium border-slate-200 bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-700">
-                  <SelectValue placeholder="Select customer account..." />
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select a customer..." />
                 </SelectTrigger>
-                <SelectContent className="max-h-56">
+                <SelectContent>
                   {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                        <span>{c.name}</span>
-                      </div>
+                    <SelectItem key={c.id} value={c.id} className="text-xs">
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -234,177 +170,117 @@ export default function RateCardFormDialog({
             )}
           </div>
 
-          {/* Section 2: Route & Lane Specification */}
-          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-                <Route className="h-4 w-4" />
-              </div>
-              <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Lane & Specifications
-              </Label>
-            </div>
-
-            {/* Origin -> Destination Route Visualizer Box */}
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-11 gap-2 items-center">
-                {/* Origin */}
-                <div className="sm:col-span-5 space-y-1.5">
-                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-emerald-600" /> Origin Location
-                  </Label>
-                  <LocationCombobox
-                    value={originId}
-                    onChange={(id) => setOriginId(id)}
-                    placeholder="Search origin city/hub..."
-                    excludeLocationId={destinationId}
-                  />
-                </div>
-
-                {/* Connection Arrow */}
-                <div className="sm:col-span-1 flex items-center justify-center py-1 sm:py-0">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-[#E8450F] shadow-sm">
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </div>
-                </div>
-
-                {/* Destination */}
-                <div className="sm:col-span-5 space-y-1.5">
-                  <Label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 text-[#E8450F]" /> Destination Location
-                  </Label>
-                  <LocationCombobox
-                    value={destinationId}
-                    onChange={(id) => setDestinationId(id)}
-                    placeholder="Search destination city/hub..."
-                    excludeLocationId={originId}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <Info className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                <span>Same location on both ends is permitted for within-city local deliveries.</span>
-              </div>
-            </div>
-
-            {/* Vehicle Specs & Rate Category */}
-            <RateCategoryVehicleTypeForm
-              vehicleType={vehicleType}
-              onVehicleTypeChange={setVehicleType}
-              rateCategory={rateCategory}
-              onRateCategoryChange={setRateCategory}
-              showPreviewBar={true}
-            />
-          </div>
-
-          {/* Section 3: Pricing & Details */}
-          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                <Coins className="h-4 w-4" />
-              </div>
-              <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Pricing & Details
-              </Label>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label htmlFor="rate_price" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Base Price per Trip
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="rate_price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="e.g. 1500.00"
-                    className="h-10 pl-3 pr-12 font-mono text-sm font-bold border-slate-200 bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-700"
-                  />
-                  <div className="absolute right-3 top-2.5 text-xs font-bold text-slate-400 uppercase">
-                    {currency}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="rate_currency" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Currency
-                </Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger id="rate_currency" className="h-10 text-xs font-semibold border-slate-200 bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-700">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SAR" className="text-xs font-bold">SAR (﷼)</SelectItem>
-                    <SelectItem value="USD" className="text-xs font-bold">USD ($)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Optional Rate Label */}
-            <div className="space-y-1.5 pt-1">
-              <Label htmlFor="rate_name" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Custom Label</span>
-                <span className="font-normal text-[11px] text-slate-400">Optional</span>
-              </Label>
-              <Input
-                id="rate_name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Standard Express Rate (defaults to lane name)"
-                className="h-9 text-xs border-slate-200 bg-slate-50/50 dark:bg-slate-800/50 dark:border-slate-700"
+          {/* Lane (Origin & Destination) */}
+          <div className="grid gap-1.5">
+            <Label className="text-xs font-medium">Lane</Label>
+            <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-center">
+              <LocationCombobox
+                value={originId}
+                onChange={(id) => setOriginId(id)}
+                placeholder="Origin..."
+                excludeLocationId={destinationId}
+              />
+              <ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
+              <LocationCombobox
+                value={destinationId}
+                onChange={(id) => setDestinationId(id)}
+                placeholder="Destination..."
+                excludeLocationId={originId}
               />
             </div>
           </div>
 
-          {/* Validation Error Message */}
+          {/* Vehicle Type & Rate Category */}
+          <RateCategoryVehicleTypeForm
+            vehicleType={vehicleType}
+            onVehicleTypeChange={setVehicleType}
+            rateCategory={rateCategory}
+            onRateCategoryChange={setRateCategory}
+            showPreviewBar={false}
+          />
+
+          {/* Price & Currency */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2 grid gap-1.5">
+              <Label htmlFor="rate_price" className="text-xs font-medium">
+                Price
+              </Label>
+              <Input
+                id="rate_price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0.00"
+                className="h-9 text-xs font-mono font-medium"
+              />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="rate_currency" className="text-xs font-medium">
+                Currency
+              </Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger id="rate_currency" className="h-9 text-xs font-medium">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SAR" className="text-xs">SAR</SelectItem>
+                  <SelectItem value="USD" className="text-xs">USD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Optional Label */}
+          <div className="grid gap-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="rate_name" className="text-xs font-medium">
+                Label
+              </Label>
+              <span className="text-[11px] text-muted-foreground">Optional</span>
+            </div>
+            <Input
+              id="rate_name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Defaults to lane name (e.g. Riyadh → Jeddah)"
+              className="h-9 text-xs"
+            />
+          </div>
+
           {error && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs font-medium text-rose-700 dark:text-rose-300 shadow-sm">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
-              <span>{error}</span>
+            <div className="rounded-md border border-red-200 bg-red-50 p-2.5 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300">
+              {error}
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <DialogFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 px-6 py-4 flex items-center justify-between gap-3">
-          <div className="text-[11px] text-slate-500 font-medium">
-            {isValid ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                ✓ Ready to save rate
-              </span>
-            ) : (
-              <span>Fill customer, lane, and price to save</span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-              className="h-9 px-4 text-xs font-medium border-slate-200 dark:border-slate-700"
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSubmit}
-              disabled={!isValid || saveMutation.isPending}
-              className="h-9 px-5 gap-1.5 bg-[#E8450F] text-xs font-bold text-white hover:bg-[#d03d0c] disabled:opacity-50 shadow-md shadow-[#E8450F]/20 transition-all"
-            >
-              {saveMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {isEditing ? 'Save Changes' : 'Add Rate'}
-            </Button>
-          </div>
+        <DialogFooter className="mt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            className="h-8 text-xs"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!isValid || saveMutation.isPending}
+            className="h-8 gap-1.5 bg-[#E8450F] text-xs font-medium text-white hover:bg-[#d03d0c]"
+          >
+            {saveMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {isEditing ? 'Save changes' : 'Add rate'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
