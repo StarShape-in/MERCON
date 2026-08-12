@@ -52,23 +52,3 @@ export const formatMoney = (value: number, currency = 'SAR'): string =>
 
 /** A trip is only covered when both a driver and a truck are on it. */
 export const isUnassigned = (trip: MonthlyBoardTrip): boolean => !trip.driver || !trip.vehicle;
-
-/**
- * Colour a company by its own name so the same company keeps its colour
- * across months and reloads — a random or index-based hue would not.
- */
-export const COMPANY_HUES = [
-  { chip: 'bg-blue-100 text-blue-700', rail: 'bg-blue-500' },
-  { chip: 'bg-emerald-100 text-emerald-700', rail: 'bg-emerald-500' },
-  { chip: 'bg-purple-100 text-purple-700', rail: 'bg-purple-500' },
-  { chip: 'bg-amber-100 text-amber-700', rail: 'bg-amber-500' },
-  { chip: 'bg-rose-100 text-rose-700', rail: 'bg-rose-500' },
-  { chip: 'bg-teal-100 text-teal-700', rail: 'bg-teal-500' },
-  { chip: 'bg-indigo-100 text-indigo-700', rail: 'bg-indigo-500' },
-] as const;
-
-export const companyHue = (name: string) => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  return COMPANY_HUES[hash % COMPANY_HUES.length];
-};
