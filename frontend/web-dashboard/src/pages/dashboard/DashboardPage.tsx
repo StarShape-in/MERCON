@@ -186,7 +186,7 @@ export default function DashboardPage() {
             {/* Left: title */}
             <div className="flex items-center gap-2">
               <h1 className="text-[17px] font-extrabold text-slate-900 tracking-tight">
-                {greeting}, <span className="text-[#E8450F]">{userName}</span> 👋
+                {`${greeting}, `}<span className="text-[#E8450F]">{userName}</span> 👋
               </h1>
               <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-[10px]">
                 Operations Module
@@ -220,15 +220,11 @@ export default function DashboardPage() {
               </Button>
 
               <Tooltip>
-                <TooltipTrigger>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefresh}
-                    className="h-8 w-8 p-0 border-slate-200 bg-white shadow-2xs text-slate-500 hover:text-slate-900"
-                  >
-                    <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  </Button>
+                <TooltipTrigger
+                  onClick={handleRefresh}
+                  className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white shadow-2xs text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </TooltipTrigger>
                 <TooltipContent><p className="text-xs">Refresh dashboard data</p></TooltipContent>
               </Tooltip>
@@ -496,18 +492,14 @@ export default function DashboardPage() {
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                                 <Tooltip>
-                                  <TooltipTrigger>
-                                    <button className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
-                                      <Eye className="w-3.5 h-3.5" />
-                                    </button>
+                                  <TooltipTrigger className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer">
+                                    <Eye className="w-3.5 h-3.5" />
                                   </TooltipTrigger>
                                   <TooltipContent><p className="text-xs">View trip details</p></TooltipContent>
                                 </Tooltip>
                                 <Tooltip>
-                                  <TooltipTrigger>
-                                    <button className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors">
-                                      <Phone className="w-3.5 h-3.5" />
-                                    </button>
+                                  <TooltipTrigger className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors cursor-pointer">
+                                    <Phone className="w-3.5 h-3.5" />
                                   </TooltipTrigger>
                                   <TooltipContent><p className="text-xs">Call driver</p></TooltipContent>
                                 </Tooltip>
