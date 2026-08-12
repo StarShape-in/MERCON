@@ -345,8 +345,8 @@ export default function DocumentsCenterPage() {
             icon={<FolderOpen className="w-4 h-4 text-[#E8450F]" />}
             trend="neutral"
             trendValue={`${totalDocsCount} active records`}
-            isActive={activeCategory === 'All'}
-            onClick={() => setActiveCategory('All')}
+            isActive={expiryFilter === 'all'}
+            onClick={() => setExpiryFilter('all')}
           />
 
           <KpiCard
@@ -367,7 +367,7 @@ export default function DocumentsCenterPage() {
             trend={expiringCount > 0 ? 'down' : 'up'}
             trendValue={expiringCount > 0 ? `${expiringCount} files due renewal` : 'All docs valid'}
             isActive={expiryFilter === 'warning' || expiryFilter === 'critical'}
-            onClick={() => setExpiryFilter(expiryFilter === 'warning' ? 'all' : 'warning')}
+            onClick={() => setExpiryFilter(expiryFilter === 'warning' || expiryFilter === 'critical' ? 'all' : 'warning')}
           />
 
           <KpiCard
