@@ -79,6 +79,18 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
   currency: ['currency', 'ccy'],
 };
 
+export const TRIP_COLUMNS: ColumnMap = {
+  customer_name: ['customer', 'customer name', 'company', 'company name', 'client'],
+  planned_start: ['date', 'trip date', 'planned start', 'planned date', 'start date', 'scheduled date'],
+  driver_name: ['driver', 'driver name', 'assigned driver', 'driver full name'],
+  vehicle_plate: ['vehicle plate', 'vehicle', 'plate', 'truck plate', 'plate number'],
+  rate_category: ['rate category', 'category', 'rate type', 'trip type'],
+  vehicle_type: ['vehicle type', 'truck type', 'body type', 'asset type'],
+  origin: ['origin', 'from', 'pickup', 'pickup city', 'starting point'],
+  destination: ['destination', 'to', 'dropoff', 'drop off', 'delivery city'],
+  billing_amount: ['amount', 'price', 'rate', 'billing amount', 'charges'],
+};
+
 export interface ParsedSheet {
   rows: Record<string, string | number>[];
   /** Fields the template defines that this file has no column for. */

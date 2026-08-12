@@ -450,10 +450,19 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
   try {
     const { rows } = req.body as {
       rows: Array<{
-        customer_name: string;
+        customer_id?: string;
+        customer_name?: string;
+        driver_id?: string;
         driver_name?: string;
+        vehicle_id?: string;
         vehicle_plate?: string;
         planned_start?: string;
+        rate_category?: string;
+        vehicle_type?: string;
+        billing_amount?: number;
+        origin?: string;
+        destination?: string;
+        status?: TripStatus;
       }>;
     };
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
@@ -463,13 +472,26 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        const customer = await prisma.customer.findFirst({
-          where: { name: { equals: row.customer_name.trim(), mode: 'insensitive' }, deletedAt: null },
-        });
-        if (!customer) throw new Error(`Customer "${row.customer_name}" not found`);
+        let customer: any = null;
+        if (row.customer_id) {
+          customer = await prisma.customer.findFirst({
+            where: { id: row.customer_id, deletedAt: null },
+          });
+        } else if (row.customer_name && row.customer_name.trim()) {
+          customer = await prisma.customer.findFirst({
+            where: { name: { equals: row.customer_name.trim(), mode: 'insensitive' }, deletedAt: null },
+          });
+        }
+        if (!customer) throw new Error(`Customer "${row.customer_name || row.customer_id}" not found`);
 
         let driverId: string | undefined;
-        if (row.driver_name && row.driver_name.trim()) {
+        if (row.driver_id) {
+          const driver = await prisma.driver.findFirst({
+            where: { id: row.driver_id, deletedAt: null },
+          });
+          if (!driver) throw new Error('Driver not found');
+          driverId = driver.id;
+        } else if (row.driver_name && row.driver_name.trim()) {
           const parts = row.driver_name.trim().split(/\s+/);
           const driver = await prisma.driver.findFirst({
             where: {
@@ -483,7 +505,13 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
         }
 
         let vehicleId: string | undefined;
-        if (row.vehicle_plate && row.vehicle_plate.trim()) {
+        if (row.vehicle_id) {
+          const vehicle = await prisma.vehicle.findFirst({
+            where: { id: row.vehicle_id, deletedAt: null },
+          });
+          if (!vehicle) throw new Error('Vehicle not found');
+          vehicleId = vehicle.id;
+        } else if (row.vehicle_plate && row.vehicle_plate.trim()) {
           const vehicle = await prisma.vehicle.findFirst({
             where: { plate_number: { equals: row.vehicle_plate.trim(), mode: 'insensitive' }, deletedAt: null },
           });
@@ -495,25 +523,12 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
           ? new Date(row.planned_start)
           : null;
 
+        const targetStatus = row.status || (driverId && vehicleId ? TripStatus.Dispatched : TripStatus.Draft);
+
         const ref_id = await generateRefId('TRP', () =>
           prisma.trip.findMany({ select: { ref_id: true } }));
 
         const trip = await prisma.$transaction(async (tx) => {
-          if (driverId) {
-            const driverClaim = await tx.driver.updateMany({
-              where: { id: driverId, status: 'Available' },
-              data: { status: 'OnTrip' },
-            });
-            if (driverClaim.count === 0) throw new Error(`Driver "${row.driver_name}" is not available`);
-          }
-          if (vehicleId) {
-            const vehicleClaim = await tx.vehicle.updateMany({
-              where: { id: vehicleId, status: 'Available' },
-              data: { status: 'OnTrip' },
-            });
-            if (vehicleClaim.count === 0) throw new Error(`Vehicle "${row.vehicle_plate}" is not available`);
-          }
-
           return tx.trip.create({
             data: {
               ref_id,
@@ -521,13 +536,44 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
               ...(driverId ? { driverId } : {}),
               ...(vehicleId ? { vehicleId } : {}),
               planned_start: parsedPlannedStart,
-              status: (driverId && vehicleId) ? TripStatus.Dispatched : TripStatus.Draft,
+              status: targetStatus,
+              ...(row.rate_category ? { rate_category: row.rate_category } : {}),
+              ...(row.vehicle_type ? { vehicle_type: row.vehicle_type } : {}),
+              ...(row.billing_amount !== undefined && row.billing_amount !== null && !isNaN(Number(row.billing_amount))
+                ? { billing_amount: Number(row.billing_amount) }
+                : {}),
               ...(createdBy ? { created_by: createdBy } : {}),
+              ...((row.origin || row.destination) ? {
+                stops: {
+                  create: [
+                    ...(row.origin ? [{
+                      stop_sequence: 1,
+                      stop_type: 'Pickup' as any,
+                      location_lat: 0,
+                      location_lng: 0,
+                      location_name: row.origin.trim(),
+                    }] : []),
+                    ...(row.destination ? [{
+                      stop_sequence: row.origin ? 2 : 1,
+                      stop_type: 'Dropoff' as any,
+                      location_lat: 0,
+                      location_lng: 0,
+                      location_name: row.destination.trim(),
+                    }] : []),
+                  ]
+                }
+              } : {})
             },
           });
         });
 
-        if (driverId) await notifyDriverAssigned(driverId, trip);
+        if (driverId && targetStatus === TripStatus.Dispatched) {
+          try {
+            await notifyDriverAssigned(driverId, trip);
+          } catch (e) {
+            // Notification failure shouldn't abort trip creation
+          }
+        }
 
         results.push({ row: i + 1, success: true, ref_id: trip.ref_id ?? undefined });
       } catch (err: any) {

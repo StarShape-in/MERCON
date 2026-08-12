@@ -316,10 +316,19 @@ export const tripService = {
 };
 
 export interface BulkImportTripRow {
-  customer_name: string;
+  customer_id?: string;
+  customer_name?: string;
+  driver_id?: string;
   driver_name?: string;
+  vehicle_id?: string;
   vehicle_plate?: string;
   planned_start?: string;
+  rate_category?: string;
+  vehicle_type?: string;
+  billing_amount?: number;
+  origin?: string;
+  destination?: string;
+  status?: TripStatus;
 }
 
 export interface BulkImportResult {

@@ -179,10 +179,21 @@ export const bulkImportVehiclesBody = z.object({
  *  later through the normal trip edit UI. */
 export const bulkImportTripsBody = z.object({
   rows: z.array(z.object({
-    customer_name: nonEmpty('Customer name'),
+    customer_id: z.string().trim().optional(),
+    customer_name: z.string().trim().optional(),
+    driver_id: z.string().trim().optional(),
     driver_name: z.string().trim().optional(),
+    vehicle_id: z.string().trim().optional(),
     vehicle_plate: z.string().trim().optional(),
     planned_start: z.string().trim().optional(),
+    rate_category: z.string().trim().optional(),
+    vehicle_type: z.string().trim().optional(),
+    billing_amount: z.coerce.number().optional(),
+    origin: z.string().trim().optional(),
+    destination: z.string().trim().optional(),
+    status: z.enum(['Draft', 'Dispatched']).optional(),
+  }).refine((data) => Boolean(data.customer_id || data.customer_name), {
+    message: 'Either customer_id or customer_name is required',
   })).min(1, 'At least one row is required').max(500, 'Import is limited to 500 rows at a time'),
 });
 

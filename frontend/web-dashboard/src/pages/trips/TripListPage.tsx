@@ -147,7 +147,7 @@ const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
 });
 
 
-const IMPORT_FIELD_ALIASES: Record<keyof BulkImportTripRow, string[]> = {
+const IMPORT_FIELD_ALIASES: Partial<Record<keyof BulkImportTripRow, string[]>> = {
   customer_name: ['customer_name', 'customer', 'client', 'client_name'],
   driver_name: ['driver_name', 'driver'],
   vehicle_plate: ['vehicle_plate', 'vehicle', 'plate_number', 'plate'],
@@ -155,7 +155,8 @@ const IMPORT_FIELD_ALIASES: Record<keyof BulkImportTripRow, string[]> = {
 };
 
 function pickImportField(row: Record<string, string>, field: keyof BulkImportTripRow): string {
-  for (const alias of IMPORT_FIELD_ALIASES[field]) {
+  const aliases = IMPORT_FIELD_ALIASES[field] || [];
+  for (const alias of aliases) {
     if (row[alias]) return row[alias];
   }
   return '';

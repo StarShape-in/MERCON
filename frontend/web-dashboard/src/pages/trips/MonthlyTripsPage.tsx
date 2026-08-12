@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   CalendarRange, ChevronLeft, ChevronRight, RotateCw, FileSpreadsheet,
-  Plus, Search, X, Info, SlidersHorizontal,
+  Plus, Search, X, Info, SlidersHorizontal, Layers,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
+import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
 import { currentMonthKey, monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,6 +48,7 @@ export default function MonthlyTripsPage() {
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [status, setStatus] = useState('');
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
   const filters = {
     month,
@@ -176,7 +178,16 @@ export default function MonthlyTripsPage() {
               </div>
 
               <Button
-                className="h-9 rounded-lg px-4 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none"
+                variant="outline"
+                className="h-9 rounded-lg px-3.5 text-xs font-bold border-[#E8450F]/30 bg-[#E8450F]/5 text-[#E8450F] hover:bg-[#E8450F]/10 shadow-none"
+                onClick={() => setIsBulkModalOpen(true)}
+              >
+                <Layers className="h-3.5 w-3.5 mr-1.5" />
+                Bulk Add Trips
+              </Button>
+
+              <Button
+                className="h-9 rounded-lg px-4 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none text-white"
                 onClick={() => navigate('/trips?new=true')}
               >
                 <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -350,6 +361,13 @@ export default function MonthlyTripsPage() {
           </div>
         )}
       </div>
+
+      <BulkAddTripsModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        defaultMonth={month}
+        onSuccess={() => refetch()}
+      />
     </DashboardLayout>
   );
 }
