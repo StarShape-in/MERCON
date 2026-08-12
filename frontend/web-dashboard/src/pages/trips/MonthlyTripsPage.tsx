@@ -131,21 +131,18 @@ export default function MonthlyTripsPage() {
     <DashboardLayout active="Trips" title="Monthly Trips">
       <div className="px-4 sm:px-6 pb-8 w-full flex flex-col animate-fade-in gap-4">
 
-        {/* ── Command bar: identity, month, actions, filters — one surface ──
-            Deliberately a single card. Header, search and filters as three
-            separate floating boxes read as three unrelated things stacked by
-            accident; they are one control surface for one list. */}
-        <section className="rounded-2xl border border-black/[0.06] bg-white shadow-sm">
+        {/* ── Command bar: identity, month, actions, filters — one surface ── */}
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
           {/* Row 1 — who/what, and the actions that change the whole page */}
-          <div className="flex items-start justify-between gap-4 flex-wrap p-5">
+          <div className="flex items-start justify-between gap-4 flex-wrap p-5 border-b border-slate-100">
             <div className="flex items-start gap-3 min-w-0">
-              <span className="h-10 w-10 rounded-xl bg-[#E8450F]/10 grid place-items-center shrink-0">
+              <span className="h-10 w-10 rounded-lg bg-[#E8450F]/10 border border-[#E8450F]/20 grid place-items-center shrink-0">
                 <CalendarRange className="h-[18px] w-[18px] text-[#E8450F]" />
               </span>
               <div className="min-w-0">
-                <h1 className="text-xl font-bold text-[#111111] leading-tight">Monthly Trips</h1>
-                <p className="text-xs text-[#6E6E80] mt-1">
+                <h1 className="text-xl font-bold text-slate-900 leading-tight">Monthly Trips</h1>
+                <p className="text-xs text-slate-500 mt-1">
                   Committed trips per company — who is driving, in which truck, on which day.
                 </p>
               </div>
@@ -154,18 +151,17 @@ export default function MonthlyTripsPage() {
             <div className="flex items-center gap-2 shrink-0">
               <MonthStepper month={month} onChange={setMonth} />
 
-              {/* Icon-only utilities, grouped so they read as one control
-                  rather than competing with the primary action. */}
-              <div className="flex items-center rounded-xl border border-black/[0.08] bg-white overflow-hidden divide-x divide-black/[0.06]">
+              {/* Icon-only utilities, grouped so they read as one control */}
+              <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden divide-x divide-slate-200 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => refetch()}
                   disabled={isFetching}
                   title="Refresh"
                   aria-label="Refresh"
-                  className="h-10 w-10 grid place-items-center text-[#6E6E80] hover:bg-black/[0.03] hover:text-[#111111] transition-colors disabled:opacity-50"
+                  className="h-9 w-9 grid place-items-center text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-50"
                 >
-                  <RotateCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+                  <RotateCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
                 </button>
                 <button
                   type="button"
@@ -173,42 +169,42 @@ export default function MonthlyTripsPage() {
                   disabled={exportRows.length === 0}
                   title="Export to Excel"
                   aria-label="Export to Excel"
-                  className="h-10 w-10 grid place-items-center text-[#6E6E80] hover:bg-black/[0.03] hover:text-[#111111] transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="h-9 w-9 grid place-items-center text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
                 >
-                  <FileSpreadsheet className="h-4 w-4" />
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
                 </button>
               </div>
 
               <Button
-                className="h-10 rounded-xl px-4 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none"
+                className="h-9 rounded-lg px-4 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none"
                 onClick={() => navigate('/trips?new=true')}
               >
-                <Plus className="h-4 w-4 mr-1.5" />
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
                 New Trip
               </Button>
             </div>
           </div>
 
           {/* Row 2 — search and filters, joined into one segmented control */}
-          <div className="px-5 pb-5">
-            <div className="flex flex-col sm:flex-row items-stretch rounded-xl border border-black/[0.08] bg-white overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-black/[0.06]">
+          <div className="p-5 bg-slate-50/40">
+            <div className="flex flex-col sm:flex-row items-stretch rounded-lg border border-slate-200 bg-white overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-slate-200 shadow-2xs">
               <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9898A4] pointer-events-none" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search trip ref, driver, plate or place…"
                   aria-label="Search trips"
-                  className="w-full h-11 pl-10 pr-9 bg-transparent text-xs font-medium text-[#111111] placeholder:text-[#9898A4] focus:outline-none"
+                  className="w-full h-10 pl-9 pr-9 bg-transparent text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch('')}
                     aria-label="Clear search"
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded-md text-[#9898A4] hover:bg-black/[0.05] hover:text-[#111111] transition-colors"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 h-5 w-5 grid place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-colors"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3 w-3" />
                   </button>
                 )}
               </div>
@@ -245,8 +241,8 @@ export default function MonthlyTripsPage() {
 
             {/* Row 3 — what is applied, and what the result adds up to */}
             <div className="flex items-center justify-between gap-3 flex-wrap mt-3">
-              <p className="text-xs text-[#6E6E80] flex items-center gap-1.5 flex-wrap">
-                <span className="font-bold text-[#111111]">{monthLabel(month)}</span>
+              <p className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-slate-900">{monthLabel(month)}</span>
                 {!isLoading && summary && (
                   <>
                     <Dot />
@@ -267,17 +263,17 @@ export default function MonthlyTripsPage() {
 
               {appliedFilters.length > 0 && (
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <SlidersHorizontal className="h-3 w-3 text-[#9898A4]" />
+                  <SlidersHorizontal className="h-3 w-3 text-slate-400" />
                   {appliedFilters.map((filter) => (
                     <button
                       key={filter.key}
                       type="button"
                       onClick={filter.clear}
-                      className="group inline-flex items-center gap-1 rounded-lg bg-black/[0.04] hover:bg-black/[0.07] pl-2 pr-1.5 py-1 text-[11px] font-semibold text-[#111111] transition-colors max-w-[180px]"
+                      className="group inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white hover:bg-slate-100 pl-2 pr-1.5 py-0.5 text-[11px] font-semibold text-slate-800 transition-colors max-w-[180px] shadow-2xs"
                       title={`Remove filter: ${filter.label}`}
                     >
                       <span className="truncate">{filter.label}</span>
-                      <X className="h-3 w-3 text-[#9898A4] group-hover:text-[#111111] shrink-0" />
+                      <X className="h-3 w-3 text-slate-400 group-hover:text-slate-800 shrink-0" />
                     </button>
                   ))}
                   <button
@@ -294,8 +290,8 @@ export default function MonthlyTripsPage() {
         </section>
 
         {summary?.truncated && (
-          <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-4 py-3 text-xs text-amber-800 flex items-start gap-2">
-            <Info className="h-4 w-4 shrink-0 mt-px" />
+          <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3 text-xs text-amber-900 flex items-start gap-2">
+            <Info className="h-4 w-4 shrink-0 mt-px text-amber-700" />
             <span>
               This month has more trips than the board loads at once. Filter by company to be sure you are
               seeing everything.
@@ -307,20 +303,20 @@ export default function MonthlyTripsPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
             {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-64 w-full rounded-2xl" />
+              <Skeleton key={i} className="h-64 w-full rounded-xl border border-slate-200" />
             ))}
           </div>
         ) : companies.length === 0 ? (
-          <div className="rounded-2xl border border-black/[0.06] bg-white shadow-sm px-6 py-16 text-center">
-            <div className="h-12 w-12 rounded-2xl bg-black/[0.03] grid place-items-center mx-auto">
-              <CalendarRange className="h-5 w-5 text-[#9898A4]" />
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-6 py-16 text-center">
+            <div className="h-12 w-12 rounded-lg bg-slate-100 border border-slate-200 grid place-items-center mx-auto">
+              <CalendarRange className="h-5 w-5 text-slate-400" />
             </div>
-            <h3 className="mt-4 text-sm font-bold text-[#111111]">
+            <h3 className="mt-4 text-sm font-bold text-slate-900">
               {appliedFilters.length > 0
                 ? 'Nothing matches these filters'
                 : `No trips planned for ${monthLabel(month)}`}
             </h3>
-            <p className="mt-1.5 text-xs text-[#6E6E80] max-w-sm mx-auto">
+            <p className="mt-1.5 text-xs text-slate-500 max-w-sm mx-auto">
               {appliedFilters.length > 0
                 ? 'Try clearing a filter, or step to another month.'
                 : 'Trips appear here as soon as they are created with a planned start in this month.'}
@@ -329,7 +325,7 @@ export default function MonthlyTripsPage() {
               {appliedFilters.length > 0 ? (
                 <Button
                   variant="outline"
-                  className="h-9 rounded-xl text-xs font-bold shadow-none"
+                  className="h-9 rounded-lg text-xs font-bold border-slate-200 shadow-none"
                   onClick={resetFilters}
                 >
                   <X className="h-3.5 w-3.5 mr-1.5" />
@@ -337,7 +333,7 @@ export default function MonthlyTripsPage() {
                 </Button>
               ) : (
                 <Button
-                  className="h-9 rounded-xl text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none"
+                  className="h-9 rounded-lg text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none"
                   onClick={() => navigate('/trips?new=true')}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -347,9 +343,6 @@ export default function MonthlyTripsPage() {
             </div>
           </div>
         ) : (
-          // Cards sit side by side, wrapping into a new row as the screen
-          // allows — a single full-width column forced a long vertical scroll
-          // once there were more than a couple of companies.
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
             {companies.map((company) => (
               <MonthlyCompanyCard key={company.customer.id} company={company} />
@@ -361,7 +354,7 @@ export default function MonthlyTripsPage() {
   );
 }
 
-const Dot = () => <span className="text-[#D4D4DC]">·</span>;
+const Dot = () => <span className="text-slate-300">·</span>;
 
 /**
  * Month navigation as one segmented control. The label is real text so it
@@ -372,18 +365,18 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (month: st
   const isCurrent = month === currentMonthKey();
 
   return (
-    <div className="flex items-center rounded-xl border border-black/[0.08] bg-white overflow-hidden divide-x divide-black/[0.06]">
+    <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden divide-x divide-slate-200 shadow-2xs">
       <button
         type="button"
         onClick={() => onChange(shiftMonth(month, -1))}
         aria-label="Previous month"
-        className="h-10 w-9 grid place-items-center text-[#6E6E80] hover:bg-black/[0.03] hover:text-[#111111] transition-colors"
+        className="h-9 w-8 grid place-items-center text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-3.5 w-3.5" />
       </button>
 
-      <div className="relative h-10 flex items-center">
-        <span className="px-3 text-xs font-bold text-[#111111] whitespace-nowrap min-w-[110px] text-center">
+      <div className="relative h-9 flex items-center">
+        <span className="px-3 text-xs font-bold text-slate-900 whitespace-nowrap min-w-[100px] text-center">
           {monthLabel(month)}
         </span>
         <input
@@ -399,16 +392,16 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (month: st
         type="button"
         onClick={() => onChange(shiftMonth(month, 1))}
         aria-label="Next month"
-        className="h-10 w-9 grid place-items-center text-[#6E6E80] hover:bg-black/[0.03] hover:text-[#111111] transition-colors"
+        className="h-9 w-8 grid place-items-center text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-3.5 w-3.5" />
       </button>
 
       {!isCurrent && (
         <button
           type="button"
           onClick={() => onChange(currentMonthKey())}
-          className="h-10 px-3 text-[11px] font-bold text-[#E8450F] hover:bg-[#E8450F]/[0.06] transition-colors whitespace-nowrap"
+          className="h-9 px-2.5 text-[11px] font-bold text-[#E8450F] hover:bg-[#E8450F]/[0.06] transition-colors whitespace-nowrap"
         >
           Today
         </button>
@@ -431,13 +424,13 @@ function FilterSelect({
   return (
     <Select value={value || 'all'} onValueChange={(val: string) => onChange(val === 'all' ? '' : val)}>
       <SelectTrigger
-        className={`h-11 w-full sm:w-[150px] shrink-0 rounded-none border-0 shadow-none bg-transparent px-3.5 text-xs font-semibold focus:ring-0 ${
-          active ? 'text-[#111111]' : 'text-[#6E6E80]'
+        className={`h-10 w-full sm:w-[145px] shrink-0 rounded-none border-0 shadow-none bg-transparent px-3 text-xs font-semibold focus:ring-0 ${
+          active ? 'text-slate-900 font-bold' : 'text-slate-500'
         }`}
       >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent align="start" className="w-[240px] max-h-[320px] p-1.5 rounded-xl">
+      <SelectContent align="start" className="w-[240px] max-h-[320px] p-1.5 rounded-lg border border-slate-200 shadow-md">
         <SelectGroup>
           <SelectLabel className={`${LABEL} px-2 py-1`}>{label}</SelectLabel>
           <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
