@@ -407,18 +407,22 @@ export default function DataTable<T>({
                       "animate-fade-in transition-colors border-b border-slate-100 dark:border-slate-800/60 focus-visible:bg-slate-50 dark:focus-visible:bg-slate-800/80 outline-none",
                       isSelected 
                         ? "bg-indigo-50/25 dark:bg-indigo-950/20 hover:bg-indigo-50/45 dark:hover:bg-indigo-950/30" 
-                        : onRowClick 
+                        : (isSelectionMode || onRowClick)
                           ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" 
                           : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
                     )}
                     style={{ animationDelay: `${rowIndex * 0.02}s` }}
-                    tabIndex={onRowClick ? 0 : undefined}
+                    tabIndex={(isSelectionMode || onRowClick) ? 0 : undefined}
                     aria-selected={isSelected}
                     role="row"
                     onKeyDown={(e) => {
-                      if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
+                      if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        onRowClick(row);
+                        if (isSelectionMode) {
+                          handleSelectRow(rowKey);
+                        } else if (onRowClick) {
+                          onRowClick(row);
+                        }
                       }
                     }}
                     onClick={(e) => {
@@ -431,7 +435,11 @@ export default function DataTable<T>({
                       ) {
                         return;
                       }
-                      onRowClick?.(row);
+                      if (isSelectionMode) {
+                        handleSelectRow(rowKey);
+                      } else {
+                        onRowClick?.(row);
+                      }
                     }}
                   >
                     {enableSelection && isSelectionMode && (
