@@ -8,11 +8,8 @@ import {
   SlidersHorizontal, 
   Download, 
   RotateCw,
-  Sparkles,
-  Building2,
   Clock
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 interface ReportsHeaderProps {
@@ -45,15 +42,12 @@ export default function ReportsHeader({
       {/* Top Scope & Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
-            <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-            <span>MERCON Fleet Analytics</span>
-            <span>•</span>
-            <span className="text-slate-900 dark:text-slate-100 font-bold">Reports & Intelligence</span>
+          <div className="w-9 h-9 rounded-xl bg-[#FFF0EB] dark:bg-[#E8450F]/10 flex items-center justify-center text-[#E8450F] shrink-0 border border-[#E8450F]/20">
+            <BarChart3 className="w-5 h-5" />
           </div>
-          <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200 font-bold dark:bg-indigo-950/40 dark:text-indigo-300">
-            Analytics Module
-          </Badge>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+            Reports & Intelligence
+          </h1>
         </div>
 
         <div className="flex items-center gap-2">

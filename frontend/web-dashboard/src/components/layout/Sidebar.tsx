@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Home, Bell, Truck, Users, Car, Building2,
@@ -24,7 +24,22 @@ interface SidebarProps {
 
 export default function Sidebar({ active, open = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = authStore.getUser();
+
+  const isItemActive = (itemPath: string, itemEnd?: boolean) => {
+    const currentPath = location.pathname;
+    if (itemPath === '/vehicles') {
+      return currentPath.startsWith('/vehicles') && !currentPath.includes('/financials');
+    }
+    if (itemPath === '/vehicles/financials') {
+      return currentPath.includes('/financials');
+    }
+    if (itemEnd || itemPath === '/') {
+      return currentPath === itemPath;
+    }
+    return currentPath === itemPath || currentPath.startsWith(itemPath + '/');
+  };
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
 
   const handleLogout = () => {
@@ -169,45 +184,43 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
             </p>
             {collapsed && <div aria-hidden="true" className="hidden lg:block h-px bg-white/10 mx-2 mb-2" />}
             <div className="space-y-0.5">
-              {g.items.map((item: any) => (
-                <NavLink
-                  key={item.label}
-                  to={item.path}
-                  end={item.end ?? item.path === '/'}
-                  onClick={onClose}
-                  title={collapsed ? item.label : undefined}
-                  className={({ isActive }) => `
-                    relative flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group
-                    ${collapsed ? 'lg:justify-center lg:px-0' : ''}
-                    ${isActive
-                      ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15'
-                      : 'text-white/60 hover:bg-white/5 hover:text-white'
-                    }
-                  `}
-                >
-                  {({ isActive }) => (
-                    <>
-                      <item.icon
-                        size={16}
-                        className={`shrink-0 transition-transform duration-150 group-hover:scale-105 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`}
-                      />
-                      <span className={`text-xs font-semibold flex-1 whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>
-                        {item.label}
-                      </span>
-                      {item.badge !== undefined && item.badge > 0 && !isActive && (
-                        <>
-                          <span className={`w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
-                            {item.badge > 9 ? '9+' : item.badge}
-                          </span>
-                          {collapsed && (
-                            <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-3 w-2 h-2 rounded-full bg-[#E8450F] animate-pulse" />
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
+              {g.items.map((item: any) => {
+                const isActive = isItemActive(item.path, item.end);
+                return (
+                  <NavLink
+                    key={item.label}
+                    to={item.path}
+                    onClick={onClose}
+                    title={collapsed ? item.label : undefined}
+                    className={`
+                      relative flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group
+                      ${collapsed ? 'lg:justify-center lg:px-0' : ''}
+                      ${isActive
+                        ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15'
+                        : 'text-white/60 hover:bg-white/5 hover:text-white'
+                      }
+                    `}
+                  >
+                    <item.icon
+                      size={16}
+                      className={`shrink-0 transition-transform duration-150 group-hover:scale-105 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`}
+                    />
+                    <span className={`text-xs font-semibold flex-1 whitespace-nowrap ${collapsed ? 'lg:hidden' : ''}`}>
+                      {item.label}
+                    </span>
+                    {item.badge !== undefined && item.badge > 0 && !isActive && (
+                      <>
+                        <span className={`w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                        {collapsed && (
+                          <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-3 w-2 h-2 rounded-full bg-[#E8450F] animate-pulse" />
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
             </div>
           </div>
         ))}
