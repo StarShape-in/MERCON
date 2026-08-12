@@ -40,32 +40,40 @@ export default function ImportantReminders({
         id: 'REM-01',
         title: 'Insurance Renewal - VSA-3871',
         subtext: 'Expired 2 days ago',
+        badgeText: 'Expired',
         icon: ShieldAlert,
         iconBg: 'bg-red-50 text-red-600 border-red-200',
+        pillBg: 'bg-red-50 text-red-600 border border-red-200',
         ping: true,
       },
       {
         id: 'REM-02',
         title: 'Driver License - M. Faizan',
         subtext: 'Expires in 3 days',
+        badgeText: 'In 3d',
         icon: UserCheck,
         iconBg: 'bg-amber-50 text-amber-600 border-amber-200',
+        pillBg: 'bg-amber-50 text-amber-700 border border-amber-200',
         ping: false,
       },
       {
         id: 'REM-03',
         title: 'Vehicle Fitness - VRA-5510',
         subtext: 'Expires in 5 days',
+        badgeText: 'In 5d',
         icon: Truck,
         iconBg: 'bg-red-50 text-red-600 border-red-200',
+        pillBg: 'bg-red-50 text-red-600 border border-red-200',
         ping: false,
       },
       {
         id: 'REM-04',
         title: 'Permit - ERA-9380',
         subtext: 'Expires in 12 days',
+        badgeText: 'In 12d',
         icon: FileText,
         iconBg: 'bg-blue-50 text-blue-600 border-blue-200',
+        pillBg: 'bg-blue-50 text-blue-600 border border-blue-200',
         ping: false,
       },
     ];
@@ -91,20 +99,20 @@ export default function ImportantReminders({
 
           <div
             onClick={onToggleCollapse}
-            className="relative bg-white rounded-[24px] border border-black/[0.06] shadow-sm cursor-pointer flex flex-col items-center justify-between py-5 px-2.5 h-full select-none group overflow-hidden
+            className="relative bg-white rounded-[24px] border border-black/[0.06] shadow-sm cursor-pointer flex flex-col items-center justify-between py-5 px-2 h-full select-none group overflow-hidden
               hover:border-orange-200 hover:shadow-md transition-all duration-200"
           >
             {/* Top: Bell Header Icon with Count Badge */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="relative flex flex-col items-center mt-1 z-10 cursor-pointer">
+                <div className="relative flex flex-col items-center mt-0.5 z-10 cursor-pointer">
                   <div className="relative">
                     <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />
-                    <div className="relative w-9 h-9 rounded-full bg-[#FFF3EE] flex items-center justify-center border border-orange-200 shadow-2xs">
-                      <Bell className="w-[17px] h-[17px] text-[#E8450F] fill-[#E8450F]" />
+                    <div className="relative w-9.5 h-9.5 rounded-full bg-[#FFF3EE] flex items-center justify-center border border-orange-200 shadow-2xs">
+                      <Bell className="w-5 h-5 text-[#E8450F] fill-[#E8450F]" />
                     </div>
                   </div>
-                  <span className="mt-1.5 w-4 h-4 rounded-full bg-[#E53E3E] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs">
+                  <span className="mt-1 w-4 h-4 rounded-full bg-[#E53E3E] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs">
                     {totalCount}
                   </span>
                 </div>
@@ -114,8 +122,8 @@ export default function ImportantReminders({
               </TooltipContent>
             </Tooltip>
 
-            {/* Middle: Timeline Connector Line & Notification Icon Badges */}
-            <div className="relative flex flex-col items-center gap-3 my-auto py-1 z-10">
+            {/* Middle: Timeline & Enriched Icon Cards with Short Text Snippets */}
+            <div className="relative flex flex-col items-center gap-2.5 my-auto py-1 z-10 w-full">
               {/* Connecting line */}
               <div className="absolute top-2 bottom-2 w-[1.5px] bg-slate-100 rounded-full -z-10" />
 
@@ -124,21 +132,27 @@ export default function ImportantReminders({
                 return (
                   <Tooltip key={item.id}>
                     <TooltipTrigger asChild>
-                      <div className="relative group/icon cursor-pointer">
-                        <div className={`w-7 h-7 rounded-xl ${item.iconBg} border flex items-center justify-center shadow-2xs transition-transform duration-150 group-hover/icon:scale-110 group-hover/icon:shadow-sm`}>
-                          <ItemIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+                      <div className="flex flex-col items-center gap-1 group/icon cursor-pointer w-full">
+                        <div className="relative">
+                          <div className={`w-9 h-9 rounded-2xl ${item.iconBg} border flex items-center justify-center shadow-2xs transition-all duration-200 group-hover/icon:scale-110 group-hover/icon:shadow-md`}>
+                            <ItemIcon className="w-4.5 h-4.5 stroke-[2.2]" />
+                          </div>
+                          {item.ping && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-2 ring-white" />
+                            </span>
+                          )}
                         </div>
-                        {item.ping && (
-                          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                          </span>
-                        )}
+                        {/* Compact short text snippet */}
+                        <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded-md ${item.pillBg} leading-none tracking-tight text-center whitespace-nowrap shadow-2xs`}>
+                          {item.badgeText}
+                        </span>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-slate-900 text-white p-2 rounded-xl text-[10px] space-y-0.5 border border-slate-800 shadow-xl max-w-[180px]">
+                    <TooltipContent side="right" className="bg-slate-900 text-white p-2.5 rounded-xl text-[10px] space-y-0.5 border border-slate-800 shadow-xl max-w-[200px]">
                       <p className="font-extrabold text-white leading-tight">{item.title}</p>
-                      <p className="font-semibold text-slate-300 text-[9px]">{item.subtext}</p>
+                      <p className="font-semibold text-amber-400 text-[9.5px]">{item.subtext}</p>
                     </TooltipContent>
                   </Tooltip>
                 );
