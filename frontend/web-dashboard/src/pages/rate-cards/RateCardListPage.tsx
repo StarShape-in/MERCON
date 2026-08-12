@@ -68,8 +68,8 @@ const RATE_CARD_EXPORT_HEADERS = [
   'Price per Trip (SAR)', 'Status', 'Linked Lane'
 ];
 
-const rateCardsToExportRows = (cards: RateCard[]) => cards.map(rc => [
-  `#${rc.id.slice(0, 8).toUpperCase()}`,
+const rateCardsToExportRows = (cards: RateCard[]) => cards.map((rc, idx) => [
+  `RC-${String(idx + 1).padStart(3, '0')}`,
   rc.name,
   rc.customer?.name || 'Customer',
   rc.route_origin,
@@ -219,16 +219,16 @@ export default function RateCardListPage() {
   const columns = [
     {
       header: 'Rate Card Ref ID',
-      accessor: (row: RateCard) => (
-        <div className="flex flex-col gap-0.5 min-w-[160px]">
-          <span className="font-mono text-xs font-bold text-[#E8450F]">
-            #{row.id.slice(0, 8).toUpperCase()}
-          </span>
-          <span className="text-[11px] text-slate-500 font-medium truncate max-w-[220px]" title={row.name}>
-            {row.name}
-          </span>
-        </div>
-      ),
+      accessor: (_row: RateCard, index?: number) => {
+        const seq = (currentPage - 1) * pageSize + (index ?? 0) + 1;
+        return (
+          <div className="flex items-center min-w-[100px]">
+            <span className="font-mono text-xs font-bold text-[#E8450F]">
+              RC-{String(seq).padStart(3, '0')}
+            </span>
+          </div>
+        );
+      },
     },
     {
       header: 'Customer',
@@ -815,7 +815,7 @@ export default function RateCardListPage() {
                 <p className="text-sm font-bold text-slate-900">No Records Found</p>
                 <p className="text-xs text-slate-500 mt-1">There are no rate cards matching your filters.</p>
               </div>
-            ) : filteredData.map((rc) => (
+            ) : filteredData.map((rc, idx) => (
               <Card 
                 key={rc.id} 
                 onClick={() => navigate(`/rate-cards/${rc.id}`)}
@@ -833,7 +833,7 @@ export default function RateCardListPage() {
                 <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">
-                      #{rc.id.slice(0, 8).toUpperCase()}
+                      RC-{String((currentPage - 1) * pageSize + idx + 1).padStart(3, '0')}
                     </span>
                     <Badge 
                       variant="outline" 
