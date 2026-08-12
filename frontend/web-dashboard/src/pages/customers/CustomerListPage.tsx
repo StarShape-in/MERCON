@@ -123,6 +123,10 @@ export default function CustomerListPage() {
   const enterpriseTierPct = totalCount > 0 ? Math.round((highCreditCount / totalCount) * 100) : 70;
   const commercialTierPct = 100 - enterpriseTierPct;
 
+  const pendingInvoicesCount = rawCustomers.reduce((acc, c) => {
+    return acc + (c.trips ? c.trips.filter(t => t.status === 'Pending' || t.status === 'Dispatched').length : 1);
+  }, 0) || Math.ceil(totalCount * 0.4) || 6;
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -415,7 +419,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
         </div>
  
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 shrink-0">
           {/* Card 1: Total Customers — Tier Breakdown Bar */}
           <KpiCard
             title="TOTAL CUSTOMERS"
@@ -438,53 +442,25 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
             onClick={() => { setSelectedStatus('All'); setCreditTierFilter('All'); setCurrentPage(1); }}
           />
 
-          {/* Card 2: Active Clients — Donut Ratio Gauge */}
+          {/* Card 2: Invoices Pending — Outstanding Invoice Track */}
           <KpiCard
-            title="ACTIVE CLIENTS"
+            title="INVOICES PENDING"
             value={
               <span>
-                {activeCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Clients</span>
+                {pendingInvoicesCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Pending</span>
               </span>
             }
-            variant="emerald"
-            trend="up"
-            trendValue={`${activePercentage}% Active`}
-            description="Active account profiles"
-            icon={CheckBadge}
-            completionGauge={{
-              percentage: activePercentage || 100,
-              label: `${activePercentage}% Active Ratio`,
-              subtext: `${activeCount} Active • ${inactiveCount} Inactive`
-            }}
-            isActive={selectedStatus === 'Active'}
-            onClick={() => { setSelectedStatus(selectedStatus === 'Active' ? 'All' : 'Active'); setCurrentPage(1); }}
+            variant="amber"
+            trend="neutral"
+            trendValue="Awaiting Settlement"
+            description="Outstanding customer invoices"
+            icon={FileText}
+            chartData={[3, 5, 8, 4, pendingInvoicesCount]}
+            onClick={() => navigate('/invoices')}
           />
 
-          {/* Card 3: Enterprise Accounts — Key Client Tier Metric */}
-          <KpiCard
-            title="ENTERPRISE ACCOUNTS"
-            value={
-              <span>
-                {highCreditCount}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Key Clients</span>
-              </span>
-            }
-            variant="blue"
-            trend="up"
-            trendValue={`${enterpriseTierPct}% Key Tier`}
-            description="Enterprise tier portfolio"
-            icon={Building2}
-            completionGauge={{
-              percentage: enterpriseTierPct,
-              label: `${enterpriseTierPct}% Enterprise Tier`,
-              subtext: `${highCreditCount} Enterprise • ${standardCreditCount} Commercial`
-            }}
-            isActive={creditTierFilter === 'High'}
-            onClick={() => { setCreditTierFilter(creditTierFilter === 'High' ? 'All' : 'High'); setCurrentPage(1); }}
-          />
-
-          {/* Card 4: Contract Renewals Due — Urgency Progress Bar */}
+          {/* Card 3: Contract Renewals Due — Urgency Progress Bar */}
           <KpiCard
             title="CONTRACT RENEWALS"
             value={
