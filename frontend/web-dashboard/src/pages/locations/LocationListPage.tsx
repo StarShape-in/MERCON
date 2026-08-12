@@ -483,19 +483,9 @@ export default function LocationListPage() {
             <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50">
               <MapPin className="w-6 h-6 text-[#E8450F] shrink-0" />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Locations
-                </h1>
-                <Badge className="bg-orange-50 dark:bg-orange-950/50 text-[#E8450F] border-orange-200/80 dark:border-orange-900/50 font-bold text-xs px-2.5 py-0.5">
-                  Master Data Module
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Physical & logistical nodes rate card pricing and trip stops sit inside ({kpiStats.total} total, {kpiStats.priced} priced).
-              </p>
-            </div>
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+              Locations
+            </h1>
           </div>
 
           <div className="flex items-center gap-2.5">
