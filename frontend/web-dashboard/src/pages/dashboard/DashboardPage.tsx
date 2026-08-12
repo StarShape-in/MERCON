@@ -227,10 +227,13 @@ export default function DashboardPage() {
 
               {/* Map Canvas with Overlays */}
               <div className="relative flex-1 min-h-[310px] w-full z-0" style={{ background: '#EAECEF' }}>
-                {/* Overlay HUD: Active Trips Badge (Bold & Prominent) */}
-                <div className="absolute top-3 left-3 z-[400] px-3.5 py-1.5 rounded-xl shadow-md border bg-white/95 backdrop-blur-md border-black/[0.08] flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  <span className="text-sm font-black text-slate-900 tracking-tight">
+                {/* Overlay HUD: Active Trips Badge (Bold, Ultra-Visible & Floating over Leaflet) */}
+                <div className="absolute top-3 left-3 z-[1000] px-4 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-900 flex items-center gap-2.5 pointer-events-auto">
+                  <span className="relative flex h-3 w-3 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                  </span>
+                  <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-slate-900">
                     {activeFleet.length} ACTIVE TRIPS
                   </span>
                 </div>
@@ -238,9 +241,9 @@ export default function DashboardPage() {
                 {/* Overlay: Full Map Button */}
                 <button
                   onClick={() => navigate('/vehicles')}
-                  className="absolute top-3 right-3 z-[400] px-2.5 py-1.5 rounded-xl shadow-md border bg-white/95 backdrop-blur-md border-black/[0.08] text-[10px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer transition-colors"
+                  className="absolute top-3 right-3 z-[1000] px-3 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-800 text-xs font-extrabold hover:bg-slate-900 hover:text-white hover:border-slate-900 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
                 >
-                  <Maximize2 className="w-3 h-3" /> Full Map
+                  <Maximize2 className="w-3.5 h-3.5" /> Full Map
                 </button>
 
                 <MapContainer
