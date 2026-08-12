@@ -64,6 +64,7 @@ export interface DataTableProps<T> {
   emptyMessage?: string;
   // Custom height/compactness
   compact?: boolean;
+  tableClassName?: string;
   className?: string;
 }
 
@@ -99,6 +100,7 @@ export default function DataTable<T>({
   emptyTitle = 'No Records Found',
   emptyMessage = 'There are no entries matching your current filters or search query.',
   compact = true,
+  tableClassName,
   className,
 }: DataTableProps<T>) {
   // Internal state for client-side pagination when onPageChange is not passed
@@ -322,7 +324,7 @@ export default function DataTable<T>({
 
       {/* Main Table Container */}
       <div className="flex-1 overflow-x-auto min-h-0 w-full">
-        <Table className="w-full min-w-full text-xs" role="table">
+        <Table className={cn("w-full text-xs", tableClassName)} role="table">
           <TableHeader>
             <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
               {enableSelection && isSelectionMode && (

@@ -276,7 +276,7 @@ export default function LocationListPage() {
   const columns = [
     {
       header: 'Location Ref ID',
-      className: 'whitespace-nowrap',
+      className: 'w-[130px] whitespace-nowrap',
       accessor: (row: Location) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs font-bold text-[#E8450F]">
@@ -287,39 +287,37 @@ export default function LocationListPage() {
     },
     {
       header: 'Location Name',
-      className: 'whitespace-nowrap min-w-[200px]',
+      className: 'w-[22%] min-w-[160px]',
       accessor: (row: Location) => (
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0 max-w-full">
           <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0">
             <MapPin className="w-3.5 h-3.5 text-[#E8450F]" />
           </div>
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={row.name}>
-                {row.name}
-              </span>
-              {!row.is_active && (
-                <Badge variant="outline" className="text-[9px] font-extrabold uppercase text-slate-500 bg-slate-100 dark:bg-slate-800 shrink-0">
-                  Inactive
-                </Badge>
-              )}
-            </div>
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+            <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate block min-w-0 flex-1" title={row.name}>
+              {row.name}
+            </span>
+            {!row.is_active && (
+              <Badge variant="outline" className="text-[9px] font-extrabold uppercase text-slate-500 bg-slate-100 dark:bg-slate-800 shrink-0">
+                Inactive
+              </Badge>
+            )}
           </div>
         </div>
       ),
     },
     {
       header: 'Street Address',
-      className: 'min-w-[240px]',
+      className: 'w-[32%] min-w-[180px]',
       accessor: (row: Location) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 max-w-full overflow-hidden">
           <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           {row.address ? (
-            <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate" title={row.address}>
+            <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate block min-w-0 flex-1" title={row.address}>
               {row.address}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200/60 dark:border-amber-900/40">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200/60 dark:border-amber-900/40 shrink-0">
               <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
               No address provided
             </span>
@@ -329,7 +327,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Coordinates',
-      className: 'whitespace-nowrap',
+      className: 'w-[170px] whitespace-nowrap',
       accessor: (row: Location) =>
         row.lat != null && row.lng != null ? (
           <div className="flex items-center gap-1.5">
@@ -361,7 +359,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Usage & Activity',
-      className: 'whitespace-nowrap',
+      className: 'w-[180px] whitespace-nowrap',
       accessor: (row: Location) => {
         const rates = rateCardUses(row);
         const trips = tripUses(row);
@@ -390,7 +388,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Status',
-      className: 'whitespace-nowrap',
+      className: 'w-[100px] whitespace-nowrap',
       accessor: (row: Location) => (
         row.is_active ? (
           <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800 font-bold text-xs px-2.5 py-0.5 flex items-center gap-1.5 w-fit">
@@ -407,7 +405,7 @@ export default function LocationListPage() {
     },
     {
       header: 'Actions',
-      className: 'whitespace-nowrap text-right',
+      className: 'w-[90px] whitespace-nowrap text-right',
       headerClassName: 'text-right',
       accessor: (row: Location) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -722,6 +720,7 @@ export default function LocationListPage() {
               }
               data={filteredData}
               columns={columns}
+              tableClassName="table-fixed w-full"
               enableSelection={true}
               selectionResetKey={selectionResetKey}
               compact={true}
