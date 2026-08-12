@@ -10,7 +10,12 @@ import {
   Clock,
   Info,
   Eye,
+  ShieldAlert,
+  UserCheck,
+  Truck,
+  FileText,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ImportantRemindersProps {
   collapsed?: boolean;
@@ -28,73 +33,133 @@ export default function ImportantReminders({
   const warningCount = 2;
   const totalCount = expiredCount + criticalCount + warningCount;
 
-  // ── COLLAPSED ALERT STRIP ──
+  // ── COLLAPSED ICON TIMELINE STRIP ──
   if (collapsed) {
+    const collapsedItems = [
+      {
+        id: 'REM-01',
+        title: 'Insurance Renewal - VSA-3871',
+        subtext: 'Expired 2 days ago',
+        icon: ShieldAlert,
+        iconBg: 'bg-red-50 text-red-600 border-red-200',
+        ping: true,
+      },
+      {
+        id: 'REM-02',
+        title: 'Driver License - M. Faizan',
+        subtext: 'Expires in 3 days',
+        icon: UserCheck,
+        iconBg: 'bg-amber-50 text-amber-600 border-amber-200',
+        ping: false,
+      },
+      {
+        id: 'REM-03',
+        title: 'Vehicle Fitness - VRA-5510',
+        subtext: 'Expires in 5 days',
+        icon: Truck,
+        iconBg: 'bg-red-50 text-red-600 border-red-200',
+        ping: false,
+      },
+      {
+        id: 'REM-04',
+        title: 'Permit - ERA-9380',
+        subtext: 'Expires in 12 days',
+        icon: FileText,
+        iconBg: 'bg-blue-50 text-blue-600 border-blue-200',
+        ping: false,
+      },
+    ];
+
     return (
-      <div className="relative h-full">
-        {/* Floating toggle button — slate, no orange */}
-        {onToggleCollapse && (
-          <button
+      <TooltipProvider delay={0}>
+        <div className="relative h-full">
+          {/* Floating toggle button — intact on left edge */}
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              aria-label="Expand reminders"
+              title="Expand reminders"
+              className="group hidden lg:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-30
+                w-7 h-7 items-center justify-center rounded-full
+                bg-white border border-slate-200 text-slate-500 shadow-md shadow-black/10
+                hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
+                transition-colors duration-150 cursor-pointer"
+            >
+              <ChevronsLeft size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:-translate-x-px" />
+            </button>
+          )}
+
+          <div
             onClick={onToggleCollapse}
-            aria-label="Expand reminders"
-            title="Expand reminders"
-            className="group hidden lg:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-30
-              w-7 h-7 items-center justify-center rounded-full
-              bg-white border border-slate-200 text-slate-500 shadow-md shadow-black/10
-              hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
-              transition-colors duration-150 cursor-pointer"
+            className="relative bg-white rounded-[24px] border border-black/[0.06] shadow-sm cursor-pointer flex flex-col items-center justify-between py-5 px-2.5 h-full select-none group overflow-hidden
+              hover:border-orange-200 hover:shadow-md transition-all duration-200"
           >
-            <ChevronsLeft size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:-translate-x-px" />
-          </button>
-        )}
+            {/* Top: Bell Header Icon with Count Badge */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="relative flex flex-col items-center mt-1 z-10 cursor-pointer">
+                  <div className="relative">
+                    <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />
+                    <div className="relative w-9 h-9 rounded-full bg-[#FFF3EE] flex items-center justify-center border border-orange-200 shadow-2xs">
+                      <Bell className="w-[17px] h-[17px] text-[#E8450F] fill-[#E8450F]" />
+                    </div>
+                  </div>
+                  <span className="mt-1.5 w-4 h-4 rounded-full bg-[#E53E3E] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs">
+                    {totalCount}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="font-bold text-[10px] bg-slate-900 text-white">
+                {totalCount} Active Reminders — Click to Expand
+              </TooltipContent>
+            </Tooltip>
 
-        <div
-          onClick={onToggleCollapse}
-          className="relative bg-white rounded-[24px] border border-black/[0.06] shadow-sm cursor-pointer flex flex-col items-center justify-between py-5 px-2.5 h-full select-none group overflow-hidden
-            hover:border-slate-200 hover:shadow-md transition-all duration-200"
-        >
-          {/* Bell — red alert styling, no orange */}
-          <div className="relative flex items-center justify-center mt-1 z-10">
-            <span className="absolute w-10 h-10 rounded-full bg-red-400/15 animate-ping" />
-            <span className="absolute w-8 h-8 rounded-full bg-red-400/10" />
-            <div className="relative w-9 h-9 rounded-full bg-red-50 flex items-center justify-center border border-red-100">
-              <Bell className="w-[18px] h-[18px] text-red-500 fill-red-500" />
+            {/* Middle: Timeline Connector Line & Notification Icon Badges */}
+            <div className="relative flex flex-col items-center gap-3 my-auto py-1 z-10">
+              {/* Connecting line */}
+              <div className="absolute top-2 bottom-2 w-[1.5px] bg-slate-100 rounded-full -z-10" />
+
+              {collapsedItems.map((item) => {
+                const ItemIcon = item.icon;
+                return (
+                  <Tooltip key={item.id}>
+                    <TooltipTrigger asChild>
+                      <div className="relative group/icon cursor-pointer">
+                        <div className={`w-7 h-7 rounded-xl ${item.iconBg} border flex items-center justify-center shadow-2xs transition-transform duration-150 group-hover/icon:scale-110 group-hover/icon:shadow-sm`}>
+                          <ItemIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+                        </div>
+                        {item.ping && (
+                          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                          </span>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-slate-900 text-white p-2 rounded-xl text-[10px] space-y-0.5 border border-slate-800 shadow-xl max-w-[180px]">
+                      <p className="font-extrabold text-white leading-tight">{item.title}</p>
+                      <p className="font-semibold text-slate-300 text-[9px]">{item.subtext}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
             </div>
-          </div>
 
-          {/* 3 vivid alert dots */}
-          <div className="flex flex-col items-center gap-3.5 z-10">
-            {/* High — red */}
-            <span className="relative flex h-3 w-3" title="High Priority">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
-            </span>
-
-            {/* Medium — amber */}
-            <span className="relative flex h-3 w-3" title="Medium Priority">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-60 [animation-delay:400ms]" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-400" />
-            </span>
-
-            {/* Low — blue */}
-            <span className="relative flex h-3 w-3" title="Low Priority">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60 [animation-delay:800ms]" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-400" />
-            </span>
-          </div>
-
-          {/* "!" alert badge — red, no orange */}
-          <div className="w-7 h-7 rounded-full bg-red-50 border border-red-200 flex items-center justify-center z-10
-            group-hover:bg-red-500 group-hover:border-red-500 transition-colors duration-200">
-            <span className="text-[13px] font-black text-red-500 leading-none group-hover:text-white transition-colors duration-200">!</span>
-          </div>
-
-          {/* Expand chevron */}
-          <div className="z-10 mb-0.5">
-            <ChevronsRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors duration-200" />
+            {/* Bottom: Expand Cue Icon */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center z-10
+                  group-hover:bg-[#E8450F] group-hover:border-[#E8450F] transition-colors duration-200">
+                  <ChevronsRight className="w-3.5 h-3.5 text-[#E8450F] group-hover:text-white transition-colors duration-200 stroke-[2.5]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="font-bold text-[10px] bg-slate-900 text-white">
+                Expand Reminders Panel
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
-      </div>
+      </TooltipProvider>
     );
   }
 
