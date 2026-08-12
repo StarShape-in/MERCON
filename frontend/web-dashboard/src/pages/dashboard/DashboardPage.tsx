@@ -224,30 +224,23 @@ export default function DashboardPage() {
 
             {/* 2. Active Trips Live Map (expands when reminders collapses) */}
             <div className={`${isRemindersCollapsed ? 'lg:col-span-7' : 'lg:col-span-5'} flex flex-col bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300`}>
-              {/* Map Header */}
-              <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[12px] font-extrabold text-slate-900">
-                    {activeFleet.length} Active Trips
-                  </span>
-                </div>
-              </div>
 
               {/* Map Canvas with Overlays */}
-              <div className="relative flex-1 min-h-[280px] w-full z-0" style={{ background: '#EAECEF' }}>
-                {/* Overlay HUD: Vehicles in range */}
-                <div className="absolute top-2.5 left-2.5 z-[400] px-2.5 py-1 rounded-lg shadow-sm border bg-white/95 backdrop-blur-md border-black/[0.08] text-[9px] flex items-center gap-1.5 font-bold text-slate-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {activeFleet.length} VEHICLES IN RANGE
+              <div className="relative flex-1 min-h-[310px] w-full z-0" style={{ background: '#EAECEF' }}>
+                {/* Overlay HUD: Active Trips Badge (Bold & Prominent) */}
+                <div className="absolute top-3 left-3 z-[400] px-3.5 py-1.5 rounded-xl shadow-md border bg-white/95 backdrop-blur-md border-black/[0.08] flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <span className="text-sm font-black text-slate-900 tracking-tight">
+                    {activeFleet.length} ACTIVE TRIPS
+                  </span>
                 </div>
 
                 {/* Overlay: Full Map Button */}
                 <button
                   onClick={() => navigate('/vehicles')}
-                  className="absolute top-2.5 right-2.5 z-[400] px-2 py-1 rounded-lg shadow-sm border bg-white/95 backdrop-blur-md border-black/[0.08] text-[9px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1 cursor-pointer transition-colors"
+                  className="absolute top-3 right-3 z-[400] px-2.5 py-1.5 rounded-xl shadow-md border bg-white/95 backdrop-blur-md border-black/[0.08] text-[10px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
-                  <Maximize2 className="w-2.5 h-2.5" /> Full Map
+                  <Maximize2 className="w-3 h-3" /> Full Map
                 </button>
 
                 <MapContainer
@@ -256,7 +249,7 @@ export default function DashboardPage() {
                   scrollWheelZoom={false}
                   zoomControl={false}
                   attributionControl={true}
-                  style={{ height: '100%', width: '100%', minHeight: '280px' }}
+                  style={{ height: '100%', width: '100%', minHeight: '310px' }}
                 >
                   <MapResizer isCollapsed={isRemindersCollapsed} />
                   <TileLayer
@@ -298,12 +291,9 @@ export default function DashboardPage() {
                 </MapContainer>
               </div>
 
-              {/* Map Footer: Status Legend */}
+              {/* Map Footer Status Bar */}
               <div className="px-4 py-2 border-t border-black/[0.04] bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
-                <span className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  Color Code Legend
-                </span>
-                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 flex-wrap">
+                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 flex-wrap w-full justify-between">
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span>In Transit</span>
