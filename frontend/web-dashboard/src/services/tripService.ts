@@ -135,6 +135,76 @@ export interface TripFilters {
   per_page?: number;
 }
 
+/* ─── Monthly board ─────────────────────────────────────────────────────── */
+
+/** One trip as it appears on the monthly board — a day, a driver, a truck. */
+export interface MonthlyBoardTrip {
+  id: string;
+  ref_id: string | null;
+  status: TripStatus;
+  /** Local YYYY-MM-DD the trip sits on. */
+  date: string;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  /** The day came from createdAt because the trip was never scheduled. */
+  date_is_inferred: boolean;
+  driver: { id: string; ref_id: string | null; name: string; phone_primary: string | null } | null;
+  vehicle: { id: string; ref_id: string | null; plate_number: string; asset_type: string } | null;
+  /** Tonnage tier — the trip's own, else the rate card it was booked from. */
+  vehicle_type: string | null;
+  /** Booking type, e.g. "Monthly Round". Same fallback as vehicle_type. */
+  rate_category: string | null;
+  billing_amount: number | null;
+  currency: string;
+  rate_card: { id: string; name: string; base_price: number } | null;
+  origin: string | null;
+  destination: string | null;
+}
+
+export interface MonthlyBoardCompany {
+  customer: { id: string; name: string; contact_phone: string };
+  total_trips: number;
+  total_billed: number;
+  /** Trips still missing a driver or a truck — the gaps to fill. */
+  unassigned_trips: number;
+  drivers: { id: string; name: string; ref_id: string | null; trips: number }[];
+  vehicles: { id: string; plate_number: string; trips: number }[];
+  categories: { name: string; trips: number }[];
+  days: { date: string; trips: MonthlyBoardTrip[] }[];
+}
+
+export interface MonthlyBoard {
+  /** YYYY-MM the board is showing. */
+  month: string;
+  start: string;
+  end: string;
+  summary: {
+    total_trips: number;
+    companies: number;
+    drivers_used: number;
+    vehicles_used: number;
+    total_billed: number;
+    unassigned_trips: number;
+    by_status: Record<string, number>;
+    truncated: boolean;
+  };
+  companies: MonthlyBoardCompany[];
+}
+
+export interface MonthlyBoardFilters {
+  /** YYYY-MM. Omitted means the current month. */
+  month?: string;
+  customer_id?: string;
+  driver_id?: string;
+  vehicle_id?: string;
+  status?: string;
+  rate_category?: string;
+  vehicle_type?: string;
+  search?: string;
+}
+
 export interface UpdateTripFinancialsPayload {
   waiting_labor_charges?: number;
   additional_stop_charges?: number;
@@ -148,6 +218,19 @@ export const tripService = {
   async getAll(filters: TripFilters = {}): Promise<ApiResponse<Trip[]>> {
     const res = await api.get<ApiResponse<Trip[]>>('/trips', { params: filters });
     return res.data;
+  },
+
+  /**
+   * A whole month grouped company → day. Not paginated: the board's whole
+   * point is seeing the month at once, and the server caps the query.
+   */
+  async getMonthlyBoard(filters: MonthlyBoardFilters = {}): Promise<MonthlyBoard> {
+    const res = await api.get<ApiResponse<MonthlyBoard>>('/trips/monthly', {
+      params: Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value !== undefined && value !== ''),
+      ),
+    });
+    return res.data.data;
   },
 
   async getById(id: string): Promise<Trip> {

@@ -4,7 +4,7 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
   Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
-  ChevronsLeft, ChevronsRight
+  ChevronsLeft, ChevronsRight, CalendarRange
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -35,6 +35,10 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     }
     if (itemPath === '/vehicles/financials') {
       return currentPath.includes('/financials');
+    }
+    // Monthly Trips is its own entry, so /trips must not claim it as well.
+    if (itemPath === '/trips') {
+      return currentPath === '/trips' || (currentPath.startsWith('/trips/') && !currentPath.startsWith('/trips/monthly'));
     }
     if (itemEnd || itemPath === '/') {
       return currentPath === itemPath;
@@ -67,6 +71,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'OPERATIONS',
       items: [
         { icon: Truck, label: 'Trips', path: '/trips' },
+        // Sits next to Trips because it's the same trips, grouped the way
+        // monthly contracts are sold: per company, per day.
+        { icon: CalendarRange, label: 'Monthly Trips', path: '/trips/monthly' },
         { icon: Users, label: 'Drivers', path: '/drivers' },
         { icon: Car, label: 'Vehicles', path: '/vehicles' },
         { icon: Wrench, label: 'Maintenance', path: '/maintenance' },

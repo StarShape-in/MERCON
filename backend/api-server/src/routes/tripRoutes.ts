@@ -3,7 +3,7 @@ import {
   getTrips, getTripById, createTrip, updateTripStatus, approveDriverPayment,
   dispatchTrip, replaceDriver, pickupArrive, pickupVerify, deliveryVerify,
   bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials,
-  logStopDelay, bulkImportTrips, updateTripStop
+  logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard
 } from '../controllers/tripController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
@@ -15,6 +15,9 @@ const router = Router();
 router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
 router.get('/unsettled', getUnsettledCompletedTrips);
+// Literal paths first — `/:id` would otherwise capture "monthly" as a trip id.
+// A whole month grouped company → day, for the monthly-commitment board.
+router.get('/monthly', getMonthlyTripBoard);
 router.post('/bulk-delete', bulkDeleteTrips);
 router.post('/bulk-update-status', bulkUpdateTripStatus);
 router.post('/bulk-import', validate({ body: bulkImportTripsBody }), bulkImportTrips);

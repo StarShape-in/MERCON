@@ -15,6 +15,7 @@ const NotificationsPage       = lazy(() => import('@/pages/notifications/Notific
 
 // Trips
 const TripListPage            = lazy(() => import('@/pages/trips/TripListPage'));
+const MonthlyTripsPage        = lazy(() => import('@/pages/trips/MonthlyTripsPage'));
 const TripDetailsPage         = lazy(() => import('@/pages/trips/TripDetailsPage'));
 const CreateTripPage          = lazy(() => import('@/pages/trips/CreateTripPage'));
 const EditTripPage            = lazy(() => import('@/pages/trips/EditTripPage'));
@@ -111,6 +112,8 @@ export default function AppRouter() {
           {/* Trips */}
           <Route path="/trips"                    element={<TripListPage />} />
           <Route path="/trips/new"                element={<Navigate to="/trips?new=true" replace />} />
+          {/* Literal path before /trips/:id, which would otherwise match it. */}
+          <Route path="/trips/monthly"            element={<MonthlyTripsPage />} />
           <Route path="/trips/:id"                element={<TripDetailsPage />} />
           <Route path="/trips/:id/edit"           element={<EditTripPage />} />
           <Route path="/trips/:id/track"          element={<TripTrackingPage />} />

@@ -1226,3 +1226,297 @@ export const updateTripFinancials = async (req: Request, res: Response) => {
   }
 };
 
+
+/* ─── Monthly board ───────────────────────────────────────────────────────
+ *
+ * A month of work seen the way it is actually sold: "this company gets N trips
+ * this month", with a driver and a truck assigned per day. The trip ledger
+ * answers "what is running right now" — it is paginated, sorted by status and
+ * flat, so it cannot answer "who is covering ARKAN on the 14th" without the
+ * operator scrolling and mentally regrouping. This returns the whole month in
+ * one response, already grouped customer → day, so the page never pages.
+ *
+ * A trip's day is its planned_start, falling back to createdAt when the trip
+ * was created without one — the same rule getTrips' date filter uses, so the
+ * ledger and this board can never disagree about which month a trip is in.
+ */
+
+/** A month of trips is bounded work; this only guards against a runaway query. */
+const MONTHLY_BOARD_TRIP_CAP = 5000;
+
+/** Local YYYY-MM-DD — never toISOString(), which shifts the date across UTC. */
+const toDayKey = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * The month the board is showing. Accepts `YYYY-MM`; anything else (including
+ * a missing param) falls back to the current month rather than erroring, since
+ * the page opens with no month chosen.
+ */
+function resolveMonth(raw: unknown): { month: string; start: Date; end: Date } {
+  const now = new Date();
+  let year = now.getFullYear();
+  let monthIndex = now.getMonth();
+
+  if (typeof raw === 'string') {
+    const match = /^(\d{4})-(\d{2})$/.exec(raw.trim());
+    if (match) {
+      const parsedYear = Number(match[1]);
+      const parsedMonth = Number(match[2]);
+      if (parsedYear >= 2000 && parsedYear <= 2100 && parsedMonth >= 1 && parsedMonth <= 12) {
+        year = parsedYear;
+        monthIndex = parsedMonth - 1;
+      }
+    }
+  }
+
+  return {
+    month: `${year}-${String(monthIndex + 1).padStart(2, '0')}`,
+    start: new Date(year, monthIndex, 1, 0, 0, 0, 0),
+    end: new Date(year, monthIndex + 1, 0, 23, 59, 59, 999),
+  };
+}
+
+export const getMonthlyTripBoard = async (req: Request, res: Response) => {
+  try {
+    const {
+      month: monthParam,
+      customer_id,
+      driver_id,
+      vehicle_id,
+      status,
+      rate_category,
+      vehicle_type,
+      search,
+    } = req.query;
+
+    const { month, start, end } = resolveMonth(monthParam);
+
+    const whereClause: Prisma.TripWhereInput = {
+      deletedAt: null,
+      AND: [
+        {
+          OR: [
+            { planned_start: { gte: start, lte: end } },
+            { AND: [{ planned_start: null }, { createdAt: { gte: start, lte: end } }] },
+          ],
+        },
+        ...(buildSearchAnd(search, TRIP_SEARCH_FIELDS) as Prisma.TripWhereInput[]),
+      ],
+    };
+
+    if (customer_id && isUuid(customer_id)) whereClause.customerId = customer_id as string;
+    if (driver_id && isUuid(driver_id)) whereClause.driverId = driver_id as string;
+    if (vehicle_id && isUuid(vehicle_id)) whereClause.vehicleId = vehicle_id as string;
+    if (typeof status === 'string' && status.trim()) {
+      const values = status.split(',').map((s) => s.trim()).filter(Boolean) as TripStatus[];
+      whereClause.status = values.length > 1 ? { in: values } : values[0];
+    }
+    // The tier/category a trip was booked under is copied onto the trip at
+    // creation, but older trips predate those columns and only carry it on
+    // their rate card — so match either place, otherwise filtering by
+    // "Monthly Round" would silently hide every trip created before the copy.
+    if (typeof rate_category === 'string' && rate_category.trim()) {
+      const value = rate_category.trim();
+      (whereClause.AND as Prisma.TripWhereInput[]).push({
+        OR: [{ rate_category: value }, { AND: [{ rate_category: null }, { rateCard: { rate_category: value } }] }],
+      });
+    }
+    if (typeof vehicle_type === 'string' && vehicle_type.trim()) {
+      const value = vehicle_type.trim();
+      (whereClause.AND as Prisma.TripWhereInput[]).push({
+        OR: [{ vehicle_type: value }, { AND: [{ vehicle_type: null }, { rateCard: { vehicle_type: value } }] }],
+      });
+    }
+
+    const trips = await prisma.trip.findMany({
+      where: whereClause,
+      take: MONTHLY_BOARD_TRIP_CAP,
+      orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        customer: { select: { id: true, name: true, contact_phone: true } },
+        driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true } },
+        vehicle: { select: { id: true, ref_id: true, plate_number: true, asset_type: true } },
+        rateCard: {
+          select: {
+            id: true, name: true, base_price: true, currency: true,
+            vehicle_type: true, rate_category: true,
+            route_origin: true, route_destination: true,
+          },
+        },
+        stops: {
+          where: { deletedAt: null },
+          orderBy: { stop_sequence: 'asc' },
+          select: {
+            stop_sequence: true, stop_type: true, location_name: true,
+            planned_arrival: true, actual_arrival: true,
+            location: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    type BoardTrip = ReturnType<typeof toBoardTrip>;
+
+    function toBoardTrip(trip: (typeof trips)[number]) {
+      const pickup = trip.stops.find((s) => s.stop_type === StopType.Pickup) ?? trip.stops[0] ?? null;
+      const dropoff = [...trip.stops].reverse().find((s) => s.stop_type === StopType.Dropoff) ?? null;
+      const day = trip.planned_start ?? trip.createdAt;
+
+      return {
+        id: trip.id,
+        ref_id: trip.ref_id,
+        status: trip.status,
+        /** Local calendar day this trip sits on — what the board groups by. */
+        date: toDayKey(day),
+        planned_start: trip.planned_start,
+        planned_end: trip.planned_end,
+        actual_start: trip.actual_start,
+        actual_end: trip.actual_end,
+        /** True when the day came from createdAt because nobody scheduled it. */
+        date_is_inferred: trip.planned_start === null,
+        driver: trip.driver
+          ? {
+              id: trip.driver.id,
+              ref_id: trip.driver.ref_id,
+              name: `${trip.driver.first_name} ${trip.driver.last_name}`.trim(),
+              phone_primary: trip.driver.phone_primary,
+            }
+          : null,
+        vehicle: trip.vehicle,
+        // The trip's own tier wins; a trip created before those columns existed
+        // only has its rate card's.
+        vehicle_type: trip.vehicle_type ?? trip.rateCard?.vehicle_type ?? null,
+        rate_category: trip.rate_category ?? trip.rateCard?.rate_category ?? null,
+        // What this trip is worth on the board. billing_amount is the agreed
+        // price; trip_charges is what a hand-priced trip carries. Never
+        // invented — a trip with neither contributes 0 and shows as unpriced.
+        billing_amount: trip.billing_amount ?? (trip.trip_charges || null),
+        currency: trip.rateCard?.currency ?? 'SAR',
+        rate_card: trip.rateCard
+          ? { id: trip.rateCard.id, name: trip.rateCard.name, base_price: trip.rateCard.base_price }
+          : null,
+        origin: pickup?.location?.name ?? pickup?.location_name ?? trip.rateCard?.route_origin ?? null,
+        destination: dropoff?.location?.name ?? dropoff?.location_name ?? trip.rateCard?.route_destination ?? null,
+      };
+    }
+
+    interface CompanyGroup {
+      customer: { id: string; name: string; contact_phone: string };
+      trips: BoardTrip[];
+      drivers: Map<string, { id: string; name: string; ref_id: string | null; trips: number }>;
+      vehicles: Map<string, { id: string; plate_number: string; trips: number }>;
+      categories: Map<string, number>;
+    }
+
+    const companies = new Map<string, CompanyGroup>();
+    const allDrivers = new Set<string>();
+    const allVehicles = new Set<string>();
+    const byStatus: Record<string, number> = {};
+    let totalBilled = 0;
+    let unassigned = 0;
+
+    for (const trip of trips) {
+      const boardTrip = toBoardTrip(trip);
+
+      let group = companies.get(trip.customerId);
+      if (!group) {
+        group = {
+          customer: trip.customer,
+          trips: [],
+          drivers: new Map(),
+          vehicles: new Map(),
+          categories: new Map(),
+        };
+        companies.set(trip.customerId, group);
+      }
+
+      group.trips.push(boardTrip);
+
+      if (boardTrip.driver) {
+        const existing = group.drivers.get(boardTrip.driver.id);
+        if (existing) existing.trips += 1;
+        else group.drivers.set(boardTrip.driver.id, {
+          id: boardTrip.driver.id,
+          name: boardTrip.driver.name,
+          ref_id: boardTrip.driver.ref_id,
+          trips: 1,
+        });
+        allDrivers.add(boardTrip.driver.id);
+      }
+
+      if (boardTrip.vehicle) {
+        const existing = group.vehicles.get(boardTrip.vehicle.id);
+        if (existing) existing.trips += 1;
+        else group.vehicles.set(boardTrip.vehicle.id, {
+          id: boardTrip.vehicle.id,
+          plate_number: boardTrip.vehicle.plate_number,
+          trips: 1,
+        });
+        allVehicles.add(boardTrip.vehicle.id);
+      }
+
+      const category = boardTrip.rate_category ?? 'Uncategorised';
+      group.categories.set(category, (group.categories.get(category) ?? 0) + 1);
+
+      byStatus[trip.status] = (byStatus[trip.status] ?? 0) + 1;
+      totalBilled += boardTrip.billing_amount ?? 0;
+      // A monthly commitment is only covered once both a driver and a truck
+      // are on the day — either one missing is a gap the operator must fill.
+      if (!boardTrip.driver || !boardTrip.vehicle) unassigned += 1;
+    }
+
+    const payload = [...companies.values()]
+      .map((group) => {
+        const days = new Map<string, BoardTrip[]>();
+        for (const trip of group.trips) {
+          const bucket = days.get(trip.date);
+          if (bucket) bucket.push(trip);
+          else days.set(trip.date, [trip]);
+        }
+
+        return {
+          customer: group.customer,
+          total_trips: group.trips.length,
+          total_billed: group.trips.reduce((sum, t) => sum + (t.billing_amount ?? 0), 0),
+          unassigned_trips: group.trips.filter((t) => !t.driver || !t.vehicle).length,
+          drivers: [...group.drivers.values()].sort((a, b) => b.trips - a.trips),
+          vehicles: [...group.vehicles.values()].sort((a, b) => b.trips - a.trips),
+          categories: [...group.categories.entries()]
+            .map(([name, count]) => ({ name, trips: count }))
+            .sort((a, b) => b.trips - a.trips),
+          days: [...days.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, dayTrips]) => ({ date, trips: dayTrips })),
+        };
+      })
+      // Busiest company first — that's the one the month is really about.
+      .sort((a, b) => b.total_trips - a.total_trips || a.customer.name.localeCompare(b.customer.name));
+
+    res.json({
+      success: true,
+      data: {
+        month,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        summary: {
+          total_trips: trips.length,
+          companies: companies.size,
+          drivers_used: allDrivers.size,
+          vehicles_used: allVehicles.size,
+          total_billed: totalBilled,
+          unassigned_trips: unassigned,
+          by_status: byStatus,
+          truncated: trips.length === MONTHLY_BOARD_TRIP_CAP,
+        },
+        companies: payload,
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to build the monthly trip board');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to load the monthly trip board' },
+    });
+  }
+};
