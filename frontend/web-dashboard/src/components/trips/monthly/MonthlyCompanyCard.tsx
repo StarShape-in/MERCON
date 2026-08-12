@@ -5,6 +5,7 @@ import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight } from 'lucide-re
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -18,11 +19,12 @@ interface MonthlyCompanyCardProps {
 }
 
 /**
- * One company's month as a vertical stack of trip cards: date, driver,
- * vehicle, route — each field labeled and compact rather than a wide table
- * that forces a horizontal scroll or an unreadably long row. Clicking a trip
- * opens a detail dialog rather than leaving the page, so scanning a month
- * doesn't mean losing your place in it.
+ * Companies stack vertically down the page, one card each. Inside a card,
+ * that company's trips are one tight table — date, driver, vehicle, route,
+ * category, amount, status — not a spaced-out stack of sub-cards, which was
+ * the previous pass and produced far more scrolling than the data needed.
+ * Clicking a row opens a detail dialog on the board rather than navigating
+ * away.
  */
 export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps) {
   const [selectedTrip, setSelectedTrip] = useState<MonthlyBoardTrip | null>(null);
@@ -34,8 +36,8 @@ export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps)
   return (
     <div className="rounded-2xl border border-black/[0.06] bg-white shadow-sm overflow-hidden">
       {/* ── Company header ─────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 p-5 border-b border-black/[0.06]">
-        <span className="h-11 w-11 shrink-0 rounded-xl bg-[#E8450F]/10 text-[#E8450F] grid place-items-center text-sm font-bold">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-black/[0.06]">
+        <span className="h-10 w-10 shrink-0 rounded-xl bg-[#E8450F]/10 text-[#E8450F] grid place-items-center text-sm font-bold">
           {initialsOf(company.customer.name)}
         </span>
 
@@ -54,7 +56,7 @@ export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps)
               </Badge>
             )}
           </span>
-          <span className="mt-1 flex items-center gap-3 flex-wrap text-xs text-[#6E6E80]">
+          <span className="mt-0.5 flex items-center gap-3 flex-wrap text-xs text-[#6E6E80]">
             {company.customer.contact_phone && (
               <span className="inline-flex items-center gap-1">
                 <Phone className="h-3 w-3 text-[#9898A4]" />
@@ -68,11 +70,26 @@ export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps)
         </span>
       </div>
 
-      {/* ── Trips, stacked vertically ─────────────────────────────── */}
-      <div className="p-4 flex flex-col gap-2.5 max-h-[520px] overflow-y-auto">
-        {trips.map((trip) => (
-          <TripCard key={trip.id} trip={trip} onOpen={() => setSelectedTrip(trip)} />
-        ))}
+      {/* ── Trip table ─────────────────────────────────────────────── */}
+      <div className="max-h-[420px] overflow-y-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="h-9 px-5">Date</TableHead>
+              <TableHead className="h-9 px-4">Driver</TableHead>
+              <TableHead className="h-9 px-4">Vehicle</TableHead>
+              <TableHead className="h-9 px-4">Route</TableHead>
+              <TableHead className="h-9 px-4">Category</TableHead>
+              <TableHead className="h-9 px-4">Amount</TableHead>
+              <TableHead className="h-9 px-4">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {trips.map((trip) => (
+              <TripRow key={trip.id} trip={trip} onOpen={() => setSelectedTrip(trip)} />
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       <TripDetailDialog trip={selectedTrip} onClose={() => setSelectedTrip(null)} />
@@ -80,73 +97,68 @@ export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps)
   );
 }
 
-/** One trip, stacked top to bottom: when, status, who, what, where, worth. */
-function TripCard({ trip, onOpen }: { trip: MonthlyBoardTrip; onOpen: () => void }) {
+function TripRow({ trip, onOpen }: { trip: MonthlyBoardTrip; onOpen: () => void }) {
   const gap = isUnassigned(trip);
-  const route = trip.origin && trip.destination ? `${trip.origin} → ${trip.destination}` : null;
-  const category = [trip.rate_category, trip.vehicle_type].filter(Boolean).join(' · ') || null;
-
   return (
-    <button
-      type="button"
+    <TableRow
       onClick={onOpen}
-      className={`w-full text-left rounded-xl border p-3.5 transition-colors flex flex-col gap-3 ${
-        gap ? 'border-amber-200 bg-amber-50/40 hover:bg-amber-50' : 'border-black/[0.06] bg-white hover:bg-[#FAFAFA]'
-      }`}
+      className={`cursor-pointer ${gap ? 'bg-amber-50/50 hover:bg-amber-50' : ''}`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-bold text-[#111111]">
-          {formatDayHeading(trip.date)}
-          <span className="ml-1.5 font-semibold text-[#9898A4]">{formatTime(trip.planned_start)}</span>
+      <TableCell className="px-5 py-2.5 whitespace-nowrap">
+        <span className="text-xs font-bold text-[#111111]">{formatDayHeading(trip.date)}</span>
+        <span className="ml-1.5 text-[11px] text-[#9898A4]">{formatTime(trip.planned_start)}</span>
+      </TableCell>
+      <TableCell className="px-4 py-2.5 max-w-[140px]">
+        <span
+          className={`block text-xs font-semibold truncate ${trip.driver ? 'text-[#111111]' : 'text-amber-700'}`}
+          title={trip.driver?.name}
+        >
+          {trip.driver?.name ?? 'Not assigned'}
         </span>
+      </TableCell>
+      <TableCell className="px-4 py-2.5 whitespace-nowrap">
+        {trip.vehicle ? (
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111111]">
+            <Truck className="h-3.5 w-3.5 text-[#9898A4]" />
+            {trip.vehicle.plate_number}
+          </span>
+        ) : (
+          <span className="text-xs font-semibold text-amber-700">Not assigned</span>
+        )}
+      </TableCell>
+      <TableCell className="px-4 py-2.5 max-w-[180px]">
+        {(trip.origin || trip.destination) ? (
+          <span
+            className="block text-xs text-[#6E6E80] truncate"
+            title={`${trip.origin ?? '—'} → ${trip.destination ?? '—'}`}
+          >
+            {trip.origin ?? '—'} → {trip.destination ?? '—'}
+          </span>
+        ) : (
+          <span className="text-xs text-[#9898A4]">—</span>
+        )}
+      </TableCell>
+      <TableCell className="px-4 py-2.5 max-w-[140px]">
+        {(trip.rate_category || trip.vehicle_type) ? (
+          <span
+            className="inline-block rounded-md bg-black/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-[#6E6E80] truncate max-w-full"
+            title={[trip.rate_category, trip.vehicle_type].filter(Boolean).join(' · ')}
+          >
+            {[trip.rate_category, trip.vehicle_type].filter(Boolean).join(' · ')}
+          </span>
+        ) : (
+          <span className="text-xs text-[#9898A4]">—</span>
+        )}
+      </TableCell>
+      <TableCell className="px-4 py-2.5 whitespace-nowrap">
+        <span className="text-xs font-bold text-[#111111]">
+          {trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : '—'}
+        </span>
+      </TableCell>
+      <TableCell className="px-4 py-2.5">
         <StatusBadge status={trip.status} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-        <Field
-          label="Driver"
-          value={trip.driver?.name}
-          placeholder="Not assigned"
-          warn={!trip.driver}
-        />
-        <Field
-          label="Vehicle"
-          value={trip.vehicle?.plate_number}
-          placeholder="Not assigned"
-          warn={!trip.vehicle}
-          icon={Truck}
-        />
-        {route && <Field label="Route" value={route} className="col-span-2" />}
-        <Field label="Amount" value={trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : undefined} />
-        {category && <Field label="Category" value={category} />}
-      </div>
-    </button>
-  );
-}
-
-function Field({
-  label, value, placeholder = '—', warn, icon: Icon, className,
-}: {
-  label: string;
-  value?: string | null;
-  placeholder?: string;
-  warn?: boolean;
-  icon?: React.ElementType;
-  className?: string;
-}) {
-  return (
-    <div className={`min-w-0 ${className ?? ''}`}>
-      <p className={FIELD_LABEL}>{label}</p>
-      <p
-        className={`mt-0.5 text-[13px] font-bold truncate flex items-center gap-1 ${
-          warn ? 'text-amber-700' : 'text-[#111111]'
-        }`}
-        title={value ?? undefined}
-      >
-        {Icon && value && <Icon className="h-3 w-3 text-[#9898A4] shrink-0" />}
-        {value ?? placeholder}
-      </p>
-    </div>
+      </TableCell>
+    </TableRow>
   );
 }
 
