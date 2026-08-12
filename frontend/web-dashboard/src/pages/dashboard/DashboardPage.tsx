@@ -227,34 +227,10 @@ export default function DashboardPage() {
               {/* Map Header */}
               <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[12px] font-extrabold text-slate-900">
                     {activeFleet.length} Active Trips
                   </span>
-                </div>
-
-                {/* Status Legend */}
-                <div className="flex items-center gap-2.5 text-[8.5px] font-bold text-slate-500">
-                  <div className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>In Transit</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                    <span>To Pickup</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    <span>At Pickup</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                    <span>To Delivery</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                    <span>Issue</span>
-                  </div>
                 </div>
               </div>
 
@@ -320,6 +296,35 @@ export default function DashboardPage() {
                     </Marker>
                   ))}
                 </MapContainer>
+              </div>
+
+              {/* Map Footer: Status Legend */}
+              <div className="px-4 py-2 border-t border-black/[0.04] bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
+                <span className="text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  Color Code Legend
+                </span>
+                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>In Transit</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-orange-500" />
+                    <span>To Pickup</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span>At Pickup</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-purple-500" />
+                    <span>To Delivery</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span>Issue</span>
+                  </div>
+                </div>
               </div>
             </div>
 
