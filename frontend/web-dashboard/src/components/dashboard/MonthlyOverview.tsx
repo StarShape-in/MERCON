@@ -211,15 +211,11 @@ export default function MonthlyOverview() {
           {/* Controls: Refetch & Period Selector */}
           <div className="flex items-center gap-2">
             <Tooltip>
-              <TooltipTrigger>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => refetch()}
-                  className="w-6 h-6 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60"
-                >
-                  <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin text-[#E8450F]' : ''}`} />
-                </Button>
+              <TooltipTrigger
+                onClick={() => refetch()}
+                className="w-6 h-6 inline-flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin text-[#E8450F]' : ''}`} />
               </TooltipTrigger>
               <TooltipContent className="text-[10px] font-bold">Refresh Overview</TooltipContent>
             </Tooltip>
