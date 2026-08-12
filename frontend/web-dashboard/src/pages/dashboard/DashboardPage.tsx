@@ -8,8 +8,6 @@ import {
   Download,
   Maximize2,
   ArrowUpRight,
-  PanelRightClose,
-  PanelRightOpen,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -204,35 +202,6 @@ export default function DashboardPage() {
                 <FileText className="w-3.5 h-3.5 text-slate-500" /> Add Document
               </Button>
 
-              {/* Toggle Reminders / Expand Map Button in Top Right */}
-              <Tooltip>
-                <TooltipTrigger
-                  onClick={() => setIsRemindersCollapsed(!isRemindersCollapsed)}
-                  className={`h-8 px-2.5 gap-1.5 inline-flex items-center justify-center rounded-lg border text-xs font-bold shadow-2xs transition-all cursor-pointer ${
-                    isRemindersCollapsed
-                      ? 'bg-orange-50 border-orange-200 text-[#E8450F] hover:bg-orange-100/80'
-                      : 'border-slate-200 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
-                >
-                  {isRemindersCollapsed ? (
-                    <>
-                      <PanelRightOpen className="w-3.5 h-3.5 text-[#E8450F]" />
-                      <span className="hidden sm:inline">Show Reminders</span>
-                    </>
-                  ) : (
-                    <>
-                      <PanelRightClose className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="hidden sm:inline">Expand Map</span>
-                    </>
-                  )}
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">
-                    {isRemindersCollapsed ? 'Restore Reminders Panel' : 'Collapse Reminders & Expand Map'}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-
               <Tooltip>
                 <TooltipTrigger
                   onClick={handleRefresh}
@@ -253,8 +222,8 @@ export default function DashboardPage() {
               <MonthlyOverview />
             </div>
 
-            {/* 2. Active Trips Live Map (Expands to 6 cols when reminders is collapsed, otherwise 5 cols) */}
-            <div className={`${isRemindersCollapsed ? 'lg:col-span-6' : 'lg:col-span-5'} flex flex-col bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300`}>
+            {/* 2. Active Trips Live Map (expands when reminders collapses) */}
+            <div className={`${isRemindersCollapsed ? 'lg:col-span-7' : 'lg:col-span-5'} flex flex-col bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300`}>
               {/* Map Header */}
               <div className="px-4 py-3 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
                 <div className="flex items-center gap-2">
@@ -354,8 +323,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 3. Important Reminders (Shrinks to 2 cols in compact card design, otherwise 3 cols) */}
-            <div className={`${isRemindersCollapsed ? 'lg:col-span-2' : 'lg:col-span-3'} flex flex-col transition-all duration-300`}>
+            {/* 3. Important Reminders */}
+            <div className={`${isRemindersCollapsed ? 'lg:col-span-1' : 'lg:col-span-3'} flex flex-col transition-all duration-300`}>
               <ImportantReminders
                 collapsed={isRemindersCollapsed}
                 onToggleCollapse={() => setIsRemindersCollapsed(!isRemindersCollapsed)}

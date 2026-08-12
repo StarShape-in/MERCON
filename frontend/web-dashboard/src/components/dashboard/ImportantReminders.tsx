@@ -1,80 +1,16 @@
-import { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
   ChevronsLeft,
   ChevronsRight,
   ChevronRight,
-  ArrowUpRight,
-  AlertTriangle,
+  MoreVertical,
+  Flag,
+  Clock,
   Info,
+  Eye,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
-interface ReminderItem {
-  id: string;
-  title: string;
-  subtext: string;
-  subtextColor: string;
-  badgeText: string;
-  badgeClass: string;
-  badgeIcon: any;
-  category: 'expired' | 'critical' | 'warning';
-}
-
-const REMINDERS_DATA: ReminderItem[] = [
-  {
-    id: 'REM-01',
-    title: 'Insurance Renewal - VSA-3871',
-    subtext: 'Expired 2 days ago',
-    subtextColor: 'text-red-500',
-    badgeText: 'Compliance',
-    badgeClass: 'bg-red-50 text-red-600 border-red-200',
-    badgeIcon: AlertTriangle,
-    category: 'expired',
-  },
-  {
-    id: 'REM-02',
-    title: 'Driver License - Mohammed Faizan',
-    subtext: 'Expires in 3 days',
-    subtextColor: 'text-amber-500',
-    badgeText: 'Driver',
-    badgeClass: 'bg-orange-50 text-orange-600 border-orange-200',
-    badgeIcon: AlertTriangle,
-    category: 'critical',
-  },
-  {
-    id: 'REM-03',
-    title: 'Vehicle Fitness - VRA-5510',
-    subtext: 'Expires in 5 days',
-    subtextColor: 'text-red-500',
-    badgeText: 'Compliance',
-    badgeClass: 'bg-red-50 text-red-600 border-red-200',
-    badgeIcon: AlertTriangle,
-    category: 'critical',
-  },
-  {
-    id: 'REM-04',
-    title: 'Permit - ERA-9380',
-    subtext: 'Expires in 12 days',
-    subtextColor: 'text-blue-500',
-    badgeText: 'Permit',
-    badgeClass: 'bg-blue-50 text-blue-600 border-blue-200',
-    badgeIcon: Info,
-    category: 'warning',
-  },
-  {
-    id: 'REM-05',
-    title: 'Insurance Renewal - DRA-6484',
-    subtext: 'Expires in 18 days',
-    subtextColor: 'text-red-500',
-    badgeText: 'Compliance',
-    badgeClass: 'bg-red-50 text-red-600 border-red-200',
-    badgeIcon: AlertTriangle,
-    category: 'warning',
-  },
-];
 
 interface ImportantRemindersProps {
   collapsed?: boolean;
@@ -82,288 +18,253 @@ interface ImportantRemindersProps {
 }
 
 export default function ImportantReminders({
-  collapsed: externalCollapsed,
+  collapsed = false,
   onToggleCollapse,
-}: ImportantRemindersProps = {}) {
+}: ImportantRemindersProps) {
   const navigate = useNavigate();
-  const [internalCollapsed, setInternalCollapsed] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'expired' | 'critical' | 'warning'>('all');
 
-  const isCollapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
-  const toggleCollapse = onToggleCollapse || (() => setInternalCollapsed(!internalCollapsed));
+  const expiredCount = 1;
+  const criticalCount = 2;
+  const warningCount = 2;
+  const totalCount = expiredCount + criticalCount + warningCount;
 
-  const filteredReminders = selectedFilter === 'all' 
-    ? REMINDERS_DATA 
-    : REMINDERS_DATA.filter(r => r.category === selectedFilter);
-
-  // Count by category
-  const expiredCount = REMINDERS_DATA.filter(r => r.category === 'expired').length;
-  const criticalCount = REMINDERS_DATA.filter(r => r.category === 'critical').length;
-  const warningCount = REMINDERS_DATA.filter(r => r.category === 'warning').length;
-  const totalCount = REMINDERS_DATA.length;
-
-  // ── If Collapsed / Shrunk: Render the exact requested design on pure clean white ─────────────
-  if (isCollapsed) {
+  // ── COLLAPSED ALERT STRIP ──
+  if (collapsed) {
     return (
-      <div className="bg-white rounded-[22px] border border-black/[0.06] shadow-sm p-3.5 flex flex-col justify-between h-full transition-all duration-300 select-none overflow-hidden">
-        
-        {/* Top chevron toggle */}
-        <div className="flex justify-center -mt-0.5">
+      <div className="relative h-full">
+        {/* Floating toggle button — slate, no orange */}
+        {onToggleCollapse && (
           <button
-            onClick={toggleCollapse}
-            title="Restore Reminders Panel"
-            className="p-0.5 rounded-full text-[#E8450F] hover:bg-slate-100 transition-all cursor-pointer group"
+            onClick={onToggleCollapse}
+            aria-label="Expand reminders"
+            title="Expand reminders"
+            className="group hidden lg:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-30
+              w-7 h-7 items-center justify-center rounded-full
+              bg-white border border-slate-200 text-slate-500 shadow-md shadow-black/10
+              hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
+              transition-colors duration-150 cursor-pointer"
           >
-            <ChevronsLeft className="w-3.5 h-3.5 stroke-[2.5] group-hover:-translate-x-0.5 transition-transform" />
+            <ChevronsLeft size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:-translate-x-px" />
           </button>
-        </div>
+        )}
 
-        {/* Bell Icon with red count badge & Title */}
-        <div className="flex flex-col items-center text-center -mt-1">
-          <div className="relative mb-1">
-            <div className="w-10 h-10 rounded-full bg-orange-50/80 border border-orange-100 flex items-center justify-center shadow-2xs">
-              <Bell className="w-4.5 h-4.5 text-[#E8450F] fill-[#E8450F]" />
+        <div
+          onClick={onToggleCollapse}
+          className="relative bg-white rounded-[24px] border border-black/[0.06] shadow-sm cursor-pointer flex flex-col items-center justify-between py-5 px-2.5 h-full select-none group overflow-hidden
+            hover:border-slate-200 hover:shadow-md transition-all duration-200"
+        >
+          {/* Bell — red alert styling, no orange */}
+          <div className="relative flex items-center justify-center mt-1 z-10">
+            <span className="absolute w-10 h-10 rounded-full bg-red-400/15 animate-ping" />
+            <span className="absolute w-8 h-8 rounded-full bg-red-400/10" />
+            <div className="relative w-9 h-9 rounded-full bg-red-50 flex items-center justify-center border border-red-100">
+              <Bell className="w-[18px] h-[18px] text-red-500 fill-red-500" />
             </div>
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#EF4444] text-white text-[9px] font-black flex items-center justify-center ring-1.5 ring-white shadow-xs">
-              {totalCount}
+          </div>
+
+          {/* 3 vivid alert dots */}
+          <div className="flex flex-col items-center gap-3.5 z-10">
+            {/* High — red */}
+            <span className="relative flex h-3 w-3" title="High Priority">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+            </span>
+
+            {/* Medium — amber */}
+            <span className="relative flex h-3 w-3" title="Medium Priority">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-60 [animation-delay:400ms]" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-400" />
+            </span>
+
+            {/* Low — blue */}
+            <span className="relative flex h-3 w-3" title="Low Priority">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60 [animation-delay:800ms]" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-400" />
             </span>
           </div>
 
-          <h2 className="text-[13px] font-extrabold text-[#111827] leading-tight tracking-tight">
-            Important Reminders
-          </h2>
-          <p className="text-[9px] text-slate-500 font-medium leading-tight mt-0.5 max-w-[190px]">
-            Stay on top of critical updates and actions.
-          </p>
-        </div>
-
-        {/* Priority Action Cards (3 Cards from Design) */}
-        <div className="w-full space-y-1.5 my-1">
-          {/* High Priority */}
-          <div
-            onClick={() => navigate('/documents')}
-            className="w-full bg-[#FFF5F5] hover:bg-[#FFEBEB] border border-[#FED7D7] rounded-xl px-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer shadow-2xs group"
-          >
-            <div className="w-6 h-6 rounded-full bg-white border border-[#FEB2B2] text-[#E53E3E] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-              {expiredCount}
-            </div>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-[10.5px] font-extrabold text-[#1F2937] leading-tight group-hover:text-[#E53E3E] transition-colors">
-                High Priority
-              </p>
-              <p className="text-[8.5px] text-slate-500 font-medium leading-tight">
-                Action needed
-              </p>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-[#E53E3E] shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          {/* "!" alert badge — red, no orange */}
+          <div className="w-7 h-7 rounded-full bg-red-50 border border-red-200 flex items-center justify-center z-10
+            group-hover:bg-red-500 group-hover:border-red-500 transition-colors duration-200">
+            <span className="text-[13px] font-black text-red-500 leading-none group-hover:text-white transition-colors duration-200">!</span>
           </div>
 
-          {/* Medium Priority */}
-          <div
-            onClick={() => navigate('/documents')}
-            className="w-full bg-[#FFFDF0] hover:bg-[#FFF9DB] border border-[#FEEBC8] rounded-xl px-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer shadow-2xs group"
-          >
-            <div className="w-6 h-6 rounded-full bg-white border border-[#FBD38D] text-[#DD6B20] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-              {criticalCount}
-            </div>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-[10.5px] font-extrabold text-[#1F2937] leading-tight group-hover:text-[#DD6B20] transition-colors">
-                Medium Priority
-              </p>
-              <p className="text-[8.5px] text-slate-500 font-medium leading-tight">
-                Attention required
-              </p>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-[#DD6B20] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-          </div>
-
-          {/* Low Priority */}
-          <div
-            onClick={() => navigate('/documents')}
-            className="w-full bg-[#F0F7FF] hover:bg-[#E1EFFF] border border-[#BEE3F8] rounded-xl px-2.5 py-1.5 flex items-center gap-2 transition-all cursor-pointer shadow-2xs group"
-          >
-            <div className="w-6 h-6 rounded-full bg-white border border-[#90CDF4] text-[#3182CE] font-black text-[10px] flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-              {warningCount}
-            </div>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-[10.5px] font-extrabold text-[#1F2937] leading-tight group-hover:text-[#3182CE] transition-colors">
-                Low Priority
-              </p>
-              <p className="text-[8.5px] text-slate-500 font-medium leading-tight">
-                For your info
-              </p>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-[#3182CE] shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          {/* Expand chevron */}
+          <div className="z-10 mb-0.5">
+            <ChevronsRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors duration-200" />
           </div>
         </div>
-
-        {/* Clipboard Checklist & Total Count Row */}
-        <div className="flex items-center justify-center gap-3 text-center my-0.5">
-          {/* Clipboard SVG */}
-          <div className="relative">
-            <svg width="32" height="32" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="12" y="8" width="32" height="42" rx="7" fill="#F8FAFC" stroke="#E2E8F0" strokeWidth="1.8"/>
-              <rect x="21" y="4" width="14" height="7" rx="2.5" fill="#EEF2F6" stroke="#CBD5E1" strokeWidth="1.8"/>
-              <circle cx="28" cy="7.5" r="1.5" fill="#E8450F"/>
-              
-              <rect x="17" y="17" width="5" height="5" rx="1" stroke="#FF8A65" strokeWidth="1.5"/>
-              <path d="M18.5 19.5L19.8 21L23 18" stroke="#FF8A65" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="25" y1="19.5" x2="38" y2="19.5" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round"/>
-
-              <rect x="17" y="26" width="5" height="5" rx="1" stroke="#FF8A65" strokeWidth="1.5"/>
-              <path d="M18.5 28.5L19.8 30L23 27" stroke="#FF8A65" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="25" y1="28.5" x2="38" y2="28.5" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round"/>
-
-              <rect x="17" y="35" width="5" height="5" rx="1" stroke="#FF8A65" strokeWidth="1.5"/>
-              <path d="M18.5 37.5L19.8 39L23 36" stroke="#FF8A65" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="25" y1="37.5" x2="34" y2="37.5" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round"/>
-
-              <circle cx="41" cy="41" r="7.5" fill="#FF8A65" stroke="#FFFFFF" strokeWidth="2"/>
-              <text x="41" y="44.5" textAnchor="middle" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="system-ui, sans-serif">!</text>
-            </svg>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <p className="text-[8px] font-bold text-slate-400 tracking-wider uppercase">
-              Total Reminders
-            </p>
-
-            {/* Big Number 5 with radiating dash sparks */}
-            <div className="flex items-center justify-center gap-1.5 mt-0.5">
-              <svg width="9" height="14" viewBox="0 0 12 20" fill="none" className="text-[#FF8A65]">
-                <line x1="10" y1="5" x2="2" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <line x1="10" y1="10" x2="0" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <line x1="10" y1="15" x2="2" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              
-              <span className="text-lg font-black text-[#E8450F] tracking-tight leading-none">
-                {totalCount}
-              </span>
-
-              <svg width="9" height="14" viewBox="0 0 12 20" fill="none" className="text-[#FF8A65]">
-                <line x1="2" y1="5" x2="10" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <line x1="2" y1="10" x2="12" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <line x1="2" y1="15" x2="10" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* View All Reminders button & bottom chevron */}
-        <div className="w-full pt-1 flex flex-col items-center">
-          <button
-            onClick={() => navigate('/documents')}
-            className="w-full py-1.5 px-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-[#E8450F] border border-slate-200/80 font-extrabold text-[10px] flex items-center justify-center gap-1 transition-all shadow-2xs hover:shadow-xs cursor-pointer group"
-          >
-            <span>View All Reminders</span>
-            <ChevronRight className="w-3 h-3 stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
-          </button>
-
-          <button
-            onClick={toggleCollapse}
-            title="Restore Reminders Panel"
-            className="p-0.5 mt-0.5 rounded-full text-[#E8450F] hover:bg-slate-100 transition-all cursor-pointer group"
-          >
-            <ChevronsLeft className="w-3.5 h-3.5 stroke-[2.5] group-hover:-translate-x-0.5 transition-transform" />
-          </button>
-        </div>
-
       </div>
     );
   }
 
-  // ── Default / Full View ──────────────────────────────────────────────────
+
+
+  // ── EXPANDED VIEW ──
+
+
+
+  const reminders = [
+    {
+      id: 'REM-01',
+      title: 'Insurance Renewal - VSA-3871',
+      subtext: 'Expired 2 days ago',
+      subtextColor: 'text-red-500',
+      titleColor: 'text-red-600',
+      badgeText: 'Compliance',
+      badgeClass: 'text-red-500 border-red-300 bg-red-50',
+      BadgeIcon: Flag,
+    },
+    {
+      id: 'REM-02',
+      title: 'Driver License - Mohammed Faizan',
+      subtext: 'Expires in 3 days',
+      subtextColor: 'text-amber-500',
+      titleColor: 'text-slate-900',
+      badgeText: 'Driver',
+      badgeClass: 'text-amber-500 border-amber-300 bg-amber-50',
+      BadgeIcon: Flag,
+    },
+    {
+      id: 'REM-03',
+      title: 'Vehicle Fitness - VRA-5510',
+      subtext: 'Expires in 5 days',
+      subtextColor: 'text-red-500',
+      titleColor: 'text-slate-900',
+      badgeText: 'Compliance',
+      badgeClass: 'text-red-500 border-red-300 bg-red-50',
+      BadgeIcon: Flag,
+    },
+    {
+      id: 'REM-04',
+      title: 'Permit - ERA-9380',
+      subtext: 'Expires in 12 days',
+      subtextColor: 'text-blue-500',
+      titleColor: 'text-slate-900',
+      badgeText: 'Permit',
+      badgeClass: 'text-blue-500 border-blue-300 bg-blue-50',
+      BadgeIcon: Info,
+    },
+    {
+      id: 'REM-05',
+      title: 'Insurance Renewal - DRA-6484',
+      subtext: 'Expires in 18 days',
+      subtextColor: 'text-red-500',
+      titleColor: 'text-slate-900',
+      badgeText: 'Compliance',
+      badgeClass: 'text-red-500 border-red-300 bg-red-50',
+      BadgeIcon: Flag,
+    },
+  ];
+
   return (
-    <div className="bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden flex flex-col h-full transition-all duration-300">
-      {/* Header */}
-      <div className="px-4 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
-        <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-amber-500 fill-amber-500/20" />
-          <span className="text-[11px] font-extrabold text-slate-900 tracking-tight">
-            Important Reminders
+    <div className="relative h-full">
+      {/* Floating collapse button on edge — sidebar style */}
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          aria-label="Collapse reminders"
+          title="Collapse reminders"
+          className="group hidden lg:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-30
+            w-7 h-7 items-center justify-center rounded-full
+            bg-white border border-orange-200 text-[#E8450F] shadow-md shadow-black/10
+            hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
+            transition-colors duration-150 cursor-pointer"
+        >
+          <ChevronsRight size={14} className="stroke-[2.25] transition-transform duration-150 group-hover:translate-x-px" />
+        </button>
+      )}
+
+      <div className="bg-white rounded-[18px] border border-black/[0.06] shadow-sm flex flex-col h-full overflow-hidden">
+
+        {/* ── Header ── */}
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bell className="w-[18px] h-[18px] text-amber-400 fill-amber-400/30" />
+            <span className="text-[13px] font-extrabold text-slate-900 tracking-tight">
+              Important Reminders
+            </span>
+          </div>
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              title="Collapse"
+              className="text-slate-400 hover:text-[#E8450F] transition-colors cursor-pointer p-0.5"
+            >
+              <ChevronsRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          )}
+        </div>
+
+        {/* ── Status row: 1 Expired · 2 Critical · 2 Warning · 5 MONITORED ── */}
+        <div className="px-4 py-2 border-b border-slate-100 flex items-center gap-3 text-[11px] font-bold">
+          <button
+            onClick={() => navigate('/documents?filter=expired')}
+            className="flex items-center gap-1.5 text-red-500 hover:opacity-75 transition-opacity cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+            {expiredCount} Expired
+          </button>
+          <button
+            onClick={() => navigate('/documents?filter=critical')}
+            className="flex items-center gap-1.5 text-amber-500 hover:opacity-75 transition-opacity cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+            {criticalCount} Critical
+          </button>
+          <button
+            onClick={() => navigate('/documents?filter=warning')}
+            className="flex items-center gap-1.5 text-blue-500 hover:opacity-75 transition-opacity cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+            {warningCount} Warning
+          </button>
+          <span className="ml-auto text-slate-400 font-bold text-[10px] tracking-wider uppercase">
+            {totalCount} MONITORED
           </span>
         </div>
-        <Tooltip>
-          <TooltipTrigger
-            onClick={toggleCollapse}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 transition-colors cursor-pointer"
-          >
-            <ChevronsRight className="w-3.5 h-3.5" />
-          </TooltipTrigger>
-          <TooltipContent side="left"><p className="text-xs">Shrink to compact view</p></TooltipContent>
-        </Tooltip>
-      </div>
 
-      {/* Status counter row */}
-      <div className="px-4 py-2 border-b border-slate-100/80 flex items-center justify-between text-[9px] font-bold bg-white">
-        <button
-          onClick={() => setSelectedFilter(selectedFilter === 'expired' ? 'all' : 'expired')}
-          className={`flex items-center gap-1.5 transition-colors cursor-pointer ${selectedFilter === 'expired' ? 'text-red-700 font-extrabold underline' : 'text-red-600 hover:text-red-700'}`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-          {expiredCount} Expired
-        </button>
-        <button
-          onClick={() => setSelectedFilter(selectedFilter === 'critical' ? 'all' : 'critical')}
-          className={`flex items-center gap-1.5 transition-colors cursor-pointer ${selectedFilter === 'critical' ? 'text-amber-700 font-extrabold underline' : 'text-amber-600 hover:text-amber-700'}`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-          {criticalCount} Critical
-        </button>
-        <button
-          onClick={() => setSelectedFilter(selectedFilter === 'warning' ? 'all' : 'warning')}
-          className={`flex items-center gap-1.5 transition-colors cursor-pointer ${selectedFilter === 'warning' ? 'text-blue-700 font-extrabold underline' : 'text-blue-600 hover:text-blue-700'}`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-          {warningCount} Warning
-        </button>
-        <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">
-          {totalCount} MONITORED
-        </span>
-      </div>
-
-      {/* Reminder items list */}
-      <div className="divide-y divide-slate-100 flex-1 overflow-y-auto">
-        {filteredReminders.map((item) => {
-          const Icon = item.badgeIcon;
-          return (
-            <div
-              key={item.id}
-              onClick={() => navigate('/documents')}
-              className="px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50/80 transition-colors cursor-pointer group"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-slate-800 group-hover:text-[#E8450F] transition-colors truncate">
-                  {item.title}
-                </p>
-                <p className={`text-[10px] font-semibold ${item.subtextColor} mt-0.5`}>
-                  {item.subtext}
-                </p>
-              </div>
-              <Badge
-                variant="outline"
-                className={`shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${item.badgeClass}`}
+        {/* ── Reminder items list ── */}
+        <div className="flex-1 divide-y divide-slate-100 overflow-y-auto">
+          {reminders.map((item) => {
+            const Icon = item.BadgeIcon;
+            return (
+              <div
+                key={item.id}
+                onClick={() => navigate('/documents')}
+                className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/70 transition-colors cursor-pointer group"
               >
-                <Icon className="w-2.5 h-2.5" />
-                {item.badgeText}
-              </Badge>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-2.5 border-t border-slate-100/80 bg-slate-50/40 flex items-center justify-between text-[10px]">
-        <div className="flex items-center gap-1.5 text-slate-500 font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Auto-monitoring is active
+                <div className="min-w-0 flex-1">
+                  <p className={`text-[12px] font-bold leading-tight truncate ${item.titleColor} group-hover:opacity-80 transition-opacity`}>
+                    {item.title}
+                  </p>
+                  <p className={`text-[11px] font-semibold mt-0.5 ${item.subtextColor}`}>
+                    {item.subtext}
+                  </p>
+                </div>
+                <span className={`shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${item.badgeClass} whitespace-nowrap`}>
+                  <Icon className="w-3 h-3" />
+                  {item.badgeText}
+                </span>
+              </div>
+            );
+          })}
         </div>
-        <button
-          onClick={() => navigate('/documents')}
-          className="font-bold text-[#E8450F] hover:underline flex items-center gap-0.5 cursor-pointer"
-        >
-          View All <ArrowUpRight className="w-3 h-3" />
-        </button>
+
+        {/* ── Footer: auto-monitoring + view all ── */}
+        <div className="px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+          <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+            Auto-monitoring is active
+          </div>
+          <button
+            onClick={() => navigate('/documents')}
+            className="font-bold text-[#E8450F] hover:underline flex items-center gap-0.5 cursor-pointer transition-colors"
+          >
+            View All <span className="ml-0.5 text-[13px] leading-none">↗</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );
