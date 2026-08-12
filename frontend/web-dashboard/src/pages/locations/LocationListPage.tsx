@@ -1,22 +1,28 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   MapPin, Plus, RotateCw, Edit2, Trash2, MoreVertical,
   AlertTriangle, Filter, Download, FileSpreadsheet, FileText,
   Building2, Navigation, Layers, ChevronDown, X,
+  LayoutGrid, List, Map as MapIcon, Copy, Check, ExternalLink,
+  Search, ShieldCheck, CheckCircle2, Info, Eye
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable, { BulkAction } from '@/components/ui/DataTable';
-import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
-import { RouteLine, CheckBadge, ClockIcon } from '@/components/ui/kpi-icons';
 import { locationService, Location } from '@/services/locationService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { matchesSearch } from '@/lib/search';
+import { MAP_THEMES } from '@/components/maps/mapThemes';
+import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -24,6 +30,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Card } from '@/components/ui/card';
 
 /** Rate cards quoting this place, on either end of a lane. */
 const rateCardUses = (l: Location) =>
@@ -46,9 +53,71 @@ const locationsToExportRows = (locs: Location[]) => locs.map((l) => [
   tripUses(l),
 ]);
 
+/** Custom Marker Icon Generator for Leaflet Map */
+function createCustomLocationPin(isSelected: boolean, isActive: boolean, isPriced: boolean, isDarkTheme: boolean) {
+  let pinColor = '#E8450F'; // Default MERCON Orange
+  let glowColor = 'rgba(232, 69, 15, 0.45)';
+
+  if (!isActive) {
+    pinColor = '#64748B'; // Slate for inactive
+    glowColor = 'rgba(100, 116, 139, 0.3)';
+  } else if (isPriced) {
+    pinColor = '#4F46E5'; // Indigo for priced
+    glowColor = 'rgba(79, 70, 229, 0.45)';
+  }
+
+  const borderCol = isSelected ? '#E8450F' : (isDarkTheme ? '#1F2937' : '#FFFFFF');
+  const size = isSelected ? 42 : 34;
+  const outerSize = isSelected ? 50 : 42;
+
+  const html = `
+    <div style="position: relative; width: ${outerSize}px; height: ${outerSize}px; display: flex; align-items: center; justify-content: center;">
+      ${isSelected ? `<div class="animate-ping" style="position: absolute; width: ${outerSize}px; height: ${outerSize}px; border-radius: 50%; background-color: ${glowColor}; opacity: 0.75;"></div>` : ''}
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        background: ${pinColor};
+        border: 3px solid ${borderCol};
+        box-shadow: 0 4px 14px ${glowColor};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        transition: all 0.2s ease-in-out;
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+    </div>
+  `;
+
+  return L.divIcon({
+    html,
+    className: 'custom-location-pin-wrapper',
+    iconSize: [outerSize, outerSize],
+    iconAnchor: [outerSize / 2, outerSize / 2],
+    popupAnchor: [0, -outerSize / 2],
+  });
+}
+
+/** Helper component to fly map camera to active coordinates */
+function FlyToLocation({ center }: { center: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, 13, { animate: true, duration: 1.2 });
+    }
+  }, [center, map]);
+  return null;
+}
+
 export default function LocationListPage() {
   const queryClient = useQueryClient();
 
+  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'priced' | 'unused' | 'incomplete' | 'active' | 'inactive'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -62,6 +131,14 @@ export default function LocationListPage() {
 
   const [bulkDeleteTargets, setBulkDeleteTargets] = useState<Location[] | null>(null);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  // Map state
+  const [mapThemeId, setMapThemeId] = useState<string>('voyager');
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedMapCenter, setSelectedMapCenter] = useState<[number, number] | null>(null);
+
+  // Copy feedback state
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const { data: response, isLoading, isError, error } = useQuery({
     queryKey: ['locations'],
@@ -93,13 +170,41 @@ export default function LocationListPage() {
     });
   }, [locations, search, filter]);
 
-  const kpis = useMemo(() => {
+  const kpiStats = useMemo(() => {
     const total = locations.length;
     const unused = locations.filter((l) => rateCardUses(l) === 0 && tripUses(l) === 0).length;
     const noAddress = locations.filter((l) => !l.address || l.lat == null).length;
     const priced = locations.filter((l) => rateCardUses(l) > 0).length;
-    return { total, unused, noAddress, priced };
+    const active = locations.filter((l) => l.is_active).length;
+    return { total, unused, noAddress, priced, active };
   }, [locations]);
+
+  // Center calculation for map (default to first mapped location or Riyadh)
+  const defaultCenter = useMemo<[number, number]>(() => {
+    const firstWithCoords = filteredData.find((l) => l.lat != null && l.lng != null);
+    if (firstWithCoords && firstWithCoords.lat != null && firstWithCoords.lng != null) {
+      return [firstWithCoords.lat, firstWithCoords.lng];
+    }
+    return [24.7136, 46.6753]; // Riyadh fallback
+  }, [filteredData]);
+
+  const handleCopyCoords = (loc: Location, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (loc.lat != null && loc.lng != null) {
+      navigator.clipboard.writeText(`${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`);
+      setCopiedId(loc.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
+
+  const handleFocusOnMap = (loc: Location, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (loc.lat != null && loc.lng != null) {
+      setSelectedLocationId(loc.id);
+      setSelectedMapCenter([loc.lat, loc.lng]);
+      setViewMode('map');
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -227,9 +332,28 @@ export default function LocationListPage() {
       className: 'whitespace-nowrap',
       accessor: (row: Location) =>
         row.lat != null && row.lng != null ? (
-          <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700">
-            <Navigation className="w-3 h-3 text-indigo-500 shrink-0" />
-            <span>{row.lat.toFixed(4)}, {row.lng.toFixed(4)}</span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => handleFocusOnMap(row, e)}
+              className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 hover:bg-orange-50 hover:text-[#E8450F] hover:border-orange-300 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
+              title="Click to view on interactive map"
+            >
+              <Navigation className="w-3 h-3 text-indigo-500 shrink-0" />
+              <span>{row.lat.toFixed(4)}, {row.lng.toFixed(4)}</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleCopyCoords(row, e)}
+              className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              title="Copy coordinates"
+            >
+              {copiedId === row.id ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
           </div>
         ) : (
           <span className="text-xs italic text-slate-400 font-medium">Unmapped coordinates</span>
@@ -287,6 +411,18 @@ export default function LocationListPage() {
       headerClassName: 'text-right',
       accessor: (row: Location) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          {row.lat != null && row.lng != null && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => handleFocusOnMap(row, e)}
+              className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+              title="View on Interactive Map"
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="sm"
@@ -313,6 +449,14 @@ export default function LocationListPage() {
               >
                 <Edit2 className="w-3.5 h-3.5 mr-2 text-indigo-600" /> Edit / Rename
               </DropdownMenuItem>
+              {row.lat != null && row.lng != null && (
+                <DropdownMenuItem
+                  onClick={(e) => handleFocusOnMap(row, e)}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                >
+                  <MapIcon className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Center Map Pin
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator className="my-1" />
               <DropdownMenuItem
                 onClick={() => { setDeleteError(null); setDeleteTarget(row); }}
@@ -327,12 +471,14 @@ export default function LocationListPage() {
     },
   ];
 
+  const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
+
   return (
     <DashboardLayout active="Locations" title="Locations">
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-4 max-w-[1400px] mx-auto w-full">
 
-        {/* Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+        {/* 1. Top Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200/70 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50">
               <MapPin className="w-6 h-6 text-[#E8450F] shrink-0" />
@@ -347,7 +493,7 @@ export default function LocationListPage() {
                 </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                The physical & logistical nodes rate cards pricing and trip stops sit inside.
+                Physical & logistical nodes rate card pricing and trip stops sit inside ({kpiStats.total} total, {kpiStats.priced} priced).
               </p>
             </div>
           </div>
@@ -400,87 +546,144 @@ export default function LocationListPage() {
           </div>
         </div>
 
-        {/* Instrument-Panel KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          <KpiCard
-            title="TOTAL LOCATIONS"
-            value={
-              <span>
-                {kpis.total}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Places</span>
-              </span>
-            }
-            variant="brand"
-            description="All logistics nodes & stops"
-            icon={RouteLine}
-            semiCircleGauge={{
-              segments: [
-                { label: "Priced", count: kpis.priced, color: "#16A34A" },
-                { label: "Unused", count: kpis.unused, color: "#2563EB" },
-                { label: "Incomplete", count: kpis.noAddress, color: "#D97706" },
-              ]
-            }}
-            isActive={filter === 'all'}
-            onClick={() => setFilter('all')}
-          />
-          <KpiCard
-            title="PRICED LOCATIONS"
-            value={
-              <span>
-                {kpis.priced}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Priced</span>
-              </span>
-            }
-            variant="emerald"
-            description="Linked to active rate cards"
-            icon={CheckBadge}
-            completionGauge={{
-              percentage: kpis.total > 0 ? Math.round((kpis.priced / kpis.total) * 100) : 0,
-              label: "Rate coverage",
-              subtext: `${kpis.priced} of ${kpis.total} places`,
-            }}
-            isActive={filter === 'priced'}
-            onClick={() => setFilter(prev => prev === 'priced' ? 'all' : 'priced')}
-          />
-          <KpiCard
-            title="MISSING ADDRESS / PIN"
-            value={
-              <span>
-                {kpis.noAddress}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Incomplete</span>
-              </span>
-            }
-            variant="amber"
-            description="Locations lacking address or coords"
-            icon={ClockIcon}
-            pipelineStages={[
-              { name: "Incomplete", count: kpis.noAddress, color: "bg-amber-500" },
-              { name: "Complete", count: Math.max(0, kpis.total - kpis.noAddress), color: "bg-emerald-500" },
-            ]}
-            isActive={filter === 'incomplete'}
-            onClick={() => setFilter(prev => prev === 'incomplete' ? 'all' : 'incomplete')}
-          />
-          <KpiCard
-            title="UNUSED LOCATIONS"
-            value={
-              <span>
-                {kpis.unused}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Unused</span>
-              </span>
-            }
-            variant="blue"
-            description="No rate card or trip stops"
-            icon={RouteLine}
-            livePulseTrack={{
-              statusText: kpis.unused > 0 ? "Needs Review" : "Clean Registry",
-              subText: kpis.unused > 0 ? `${kpis.unused} unlinked places` : "0 unlinked",
-            }}
-            isActive={filter === 'unused'}
-            onClick={() => setFilter(prev => prev === 'unused' ? 'all' : 'unused')}
-          />
+        {/* 2. Control Toolbar (Search, Filter, View Switcher) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+          
+          <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search location name, address, ref ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Dropdown */}
+            <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
+              <SelectTrigger className="h-9 px-3 w-auto min-w-[190px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                  <SelectValue placeholder="All Locations" />
+                </div>
+              </SelectTrigger>
+              <SelectContent align="start" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Filter View
+                  </SelectLabel>
+                  <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                      All Locations ({locations.length})
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="priced" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-indigo-700">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                      Priced Locations Only ({kpiStats.priced})
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="unused" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-blue-700">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      Unlinked Only ({kpiStats.unused})
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="incomplete" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-amber-700">
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      Missing Address / Coords ({kpiStats.noAddress})
+                    </span>
+                  </SelectItem>
+                </SelectGroup>
+                <SelectSeparator className="my-1 border-slate-100" />
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                    Status Filter
+                  </SelectLabel>
+                  <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-semibold text-emerald-700">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Active Locations ({kpiStats.active})
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                    <span className="flex items-center gap-2 font-medium text-slate-600">
+                      <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                      Inactive Locations ({locations.length - kpiStats.active})
+                    </span>
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Right Area: Map Theme Selector (if map mode) + Segmented View Switcher */}
+          <div className="flex items-center gap-2">
+            {viewMode === 'map' && (
+              <MapThemeSelector
+                currentThemeId={mapThemeId}
+                onThemeChange={(id: string) => setMapThemeId(id)}
+              />
+            )}
+
+            {/* View Mode Switcher */}
+            <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center gap-1 border border-slate-200/80 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Grid</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('map')}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'map'
+                    ? 'bg-[#E8450F] text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <MapIcon className="w-3.5 h-3.5" />
+                <span>Map</span>
+              </button>
+            </div>
+          </div>
+
         </div>
 
-        {/* Active Filter Banner */}
+        {/* 3. Active Filter Banner */}
         {filter !== 'all' && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
             <div className="flex items-center gap-2">
@@ -488,7 +691,7 @@ export default function LocationListPage() {
               <span>
                 Filtered view: <strong className="underline decoration-[#E8450F] font-bold text-slate-900 dark:text-slate-100">
                   {filter === 'priced' ? 'Priced Locations Only' :
-                   filter === 'unused' ? 'Unused Locations Only' :
+                   filter === 'unused' ? 'Unlinked Locations Only' :
                    filter === 'incomplete' ? 'Missing Address or Coords' :
                    filter === 'active' ? 'Active Locations Only' : 'Inactive Locations Only'}
                 </strong> ({filteredData.length} location{filteredData.length === 1 ? '' : 's'})
@@ -504,123 +707,367 @@ export default function LocationListPage() {
           </div>
         )}
 
-        {/* Missing Address Banner */}
-        {kpis.noAddress > 0 && filter === 'all' && (
-          <div className="shrink-0 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-            <div className="text-xs">
-              <p className="font-bold text-amber-900 dark:text-amber-200">
-                {kpis.noAddress} location{kpis.noAddress === 1 ? ' has' : 's have'} no street address or geographic coordinates
-              </p>
-              <p className="text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                Trip stops assigned to incomplete locations give drivers empty details. Click edit on any flagged row to supply complete details.
-              </p>
+        {/* 4. Missing Address Warning Banner */}
+        {kpiStats.noAddress > 0 && filter === 'all' && viewMode !== 'map' && (
+          <div className="shrink-0 flex items-center justify-between gap-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-2.5">
+            <div className="flex items-center gap-2.5 text-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+              <div>
+                <span className="font-bold text-amber-900 dark:text-amber-200">
+                  {kpiStats.noAddress} location{kpiStats.noAddress === 1 ? ' has' : 's have'} incomplete address details.
+                </span>
+                <span className="text-amber-800/80 dark:text-amber-300/80 ml-1">
+                  Trip stops linked to these places will lack navigation details.
+                </span>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setFilter('incomplete')}
+              className="text-[11px] font-bold text-amber-800 dark:text-amber-300 underline hover:text-amber-950 cursor-pointer shrink-0"
+            >
+              Review Incomplete ({kpiStats.noAddress})
+            </button>
           </div>
         )}
 
-        {/* Full Ledger Data Table */}
+        {/* 5. MAIN CONTENT AREA (List, Grid, or Map View) */}
         <div className="w-full flex-1 flex flex-col min-h-0">
-          <DataTable
-            title={
-              <span className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-500" />
-                <span>Locations Ledger</span>
-              </span>
-            }
-            data={filteredData}
-            columns={columns}
-            enableSelection={true}
-            selectionResetKey={selectionResetKey}
-            compact={true}
-            isLoading={isLoading}
-            isError={isError}
-            errorMessage={(error as Error)?.message || 'Failed to load locations.'}
-            searchPlaceholder="Search location name, address, ref ID..."
-            searchValue={search}
-            onSearchChange={setSearch}
-            filterElement={
-              <div className="flex items-center gap-2.5">
-                <Select value={filter} onValueChange={(val: any) => setFilter(val)}>
-                  <SelectTrigger className="h-9 px-3 w-auto min-w-[200px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                      <SelectValue placeholder="All Locations" className="whitespace-nowrap" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent align="start" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                    <SelectGroup>
-                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Filter View
-                      </SelectLabel>
-                      <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-slate-700">
-                          <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                          All Locations
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="priced" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-indigo-700">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                          Priced Locations Only
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="unused" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-blue-700">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                          Unused / Unlinked Only
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="incomplete" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-amber-700">
-                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                          Missing Address / Coords
-                        </span>
-                      </SelectItem>
-                    </SelectGroup>
-                    <SelectSeparator className="my-1 border-slate-100" />
-                    <SelectGroup>
-                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Status
-                      </SelectLabel>
-                      <SelectItem value="active" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-semibold text-emerald-700">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                          Active Locations
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-slate-600">
-                          <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                          Inactive Locations
-                        </span>
-                      </SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+          
+          {/* A) LIST VIEW */}
+          {viewMode === 'list' && (
+            <DataTable
+              title={
+                <span className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-indigo-500" />
+                  <span>Locations Ledger</span>
+                </span>
+              }
+              data={filteredData}
+              columns={columns}
+              enableSelection={true}
+              selectionResetKey={selectionResetKey}
+              compact={true}
+              isLoading={isLoading}
+              isError={isError}
+              errorMessage={(error as Error)?.message || 'Failed to load locations.'}
+              searchValue={search}
+              onSearchChange={setSearch}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => setPageSize(size)}
+              onRowClick={(row) => setEditTarget(row)}
+              emptyTitle="No Locations Found"
+              emptyMessage="There are no logistics locations matching your current search term or filter settings."
+            />
+          )}
+
+          {/* B) GRID VIEW */}
+          {viewMode === 'grid' && (
+            <div className="flex-1 overflow-y-auto pr-1">
+              {filteredData.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center flex flex-col items-center justify-center my-8">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
+                    <MapPin className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">No Locations Found</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                    No places match your search term or active filter criteria. Try clearing filters or adding a new location.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredData.map((loc) => {
+                    const rates = rateCardUses(loc);
+                    const trips = tripUses(loc);
+                    const hasCoords = loc.lat != null && loc.lng != null;
+
+                    return (
+                      <Card
+                        key={loc.id}
+                        onClick={() => setEditTarget(loc)}
+                        className="p-4 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-300 dark:hover:border-orange-900/60 transition-all hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group relative"
+                      >
+                        {/* Card Top Row */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0 group-hover:bg-[#E8450F] group-hover:text-white transition-colors">
+                              <MapPin className="w-4 h-4 text-[#E8450F] group-hover:text-white transition-colors" />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-mono text-[10px] font-bold text-[#E8450F] uppercase tracking-wide">
+                                LOC-{loc.id.slice(0, 6)}
+                              </span>
+                              <h3 className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={loc.name}>
+                                {loc.name}
+                              </h3>
+                            </div>
+                          </div>
+
+                          {/* Status Pill */}
+                          {loc.is_active ? (
+                            <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 font-bold text-[10px] shrink-0">
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold text-[10px] shrink-0">
+                              Inactive
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Address Row */}
+                        <div className="text-xs text-slate-600 dark:text-slate-300 flex items-start gap-1.5 min-h-[32px]">
+                          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                          {loc.address ? (
+                            <span className="line-clamp-2">{loc.address}</span>
+                          ) : (
+                            <span className="text-amber-700 dark:text-amber-400 italic text-[11px] font-medium flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
+                              No address provided
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Coordinates & Usage */}
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-col gap-2">
+                          {/* Coordinates */}
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-[11px] font-medium text-slate-400">Coords:</span>
+                            {hasCoords ? (
+                              <button
+                                type="button"
+                                onClick={(e) => handleFocusOnMap(loc, e)}
+                                className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:border-orange-300 hover:text-[#E8450F] transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <Navigation className="w-2.5 h-2.5 text-indigo-500" />
+                                {loc.lat?.toFixed(4)}, {loc.lng?.toFixed(4)}
+                              </button>
+                            ) : (
+                              <span className="text-[11px] italic text-slate-400">Unmapped</span>
+                            )}
+                          </div>
+
+                          {/* Usage tags & Actions */}
+                          <div className="flex items-center justify-between gap-1 pt-1">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {rates > 0 && (
+                                <Badge className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 font-bold text-[10px] px-1.5 py-0">
+                                  {rates} Rate Card{rates === 1 ? '' : 's'}
+                                </Badge>
+                              )}
+                              {trips > 0 && (
+                                <Badge className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 font-bold text-[10px] px-1.5 py-0">
+                                  {trips} Stop{trips === 1 ? '' : 's'}
+                                </Badge>
+                              )}
+                              {rates === 0 && trips === 0 && (
+                                <span className="text-[10px] text-slate-400 italic">Unlinked</span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditTarget(loc)}
+                                className="h-7 w-7 p-0 text-slate-400 hover:text-indigo-600"
+                                title="Edit Location"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => { setDeleteError(null); setDeleteTarget(loc); }}
+                                className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600"
+                                title="Delete Location"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* C) INTERACTIVE MAP VIEW */}
+          {viewMode === 'map' && (
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[540px] h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+              
+              {/* Map Canvas (3 columns on large screens) */}
+              <div className="lg:col-span-3 relative h-full min-h-[480px]">
+                <MapContainer
+                  center={selectedMapCenter || defaultCenter}
+                  zoom={11}
+                  style={{ height: '100%', width: '100%' }}
+                  zoomControl={true}
+                >
+                  <TileLayer
+                    url={currentTheme.url}
+                    attribution={currentTheme.attribution}
+                  />
+
+                  {/* Fly to selection helper */}
+                  <FlyToLocation center={selectedMapCenter} />
+
+                  {/* Location Markers */}
+                  {filteredData
+                    .filter((l) => l.lat != null && l.lng != null)
+                    .map((loc) => {
+                      const isSelected = selectedLocationId === loc.id;
+                      const rates = rateCardUses(loc);
+                      const isPriced = rates > 0;
+                      const customPin = createCustomLocationPin(
+                        isSelected,
+                        loc.is_active ?? true,
+                        isPriced,
+                        currentTheme.isDark
+                      );
+
+                      return (
+                        <Marker
+                          key={loc.id}
+                          position={[loc.lat!, loc.lng!]}
+                          icon={customPin}
+                          eventHandlers={{
+                            click: () => {
+                              setSelectedLocationId(loc.id);
+                              setSelectedMapCenter([loc.lat!, loc.lng!]);
+                            },
+                          }}
+                        >
+                          <Popup className={currentTheme.isDark ? 'dark-map-popup' : ''} maxWidth={280}>
+                            <div className="p-1 flex flex-col gap-2">
+                              <div className="flex items-center justify-between gap-2 border-b pb-1.5">
+                                <span className="font-mono text-[10px] font-bold text-[#E8450F]">
+                                  LOC-{loc.id.slice(0, 6).toUpperCase()}
+                                </span>
+                                {loc.is_active ? (
+                                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Active</span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">Inactive</span>
+                                )}
+                              </div>
+
+                              <div>
+                                <h4 className="font-bold text-xs text-slate-900">{loc.name}</h4>
+                                <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">{loc.address || 'No street address'}</p>
+                              </div>
+
+                              <div className="font-mono text-[10px] bg-slate-100 p-1.5 rounded text-slate-700 flex items-center justify-between">
+                                <span>{loc.lat?.toFixed(5)}, {loc.lng?.toFixed(5)}</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleCopyCoords(loc, e)}
+                                  className="text-slate-400 hover:text-slate-800"
+                                >
+                                  {copiedId === loc.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 pt-1">
+                                {rates > 0 && <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">{rates} Rate Cards</span>}
+                                {tripUses(loc) > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{tripUses(loc)} Stops</span>}
+                              </div>
+
+                              <Button
+                                size="sm"
+                                onClick={() => setEditTarget(loc)}
+                                className="w-full h-7 text-xs bg-slate-900 text-white hover:bg-slate-800 mt-1"
+                              >
+                                Edit Details
+                              </Button>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
+                </MapContainer>
+
+                {/* Map Overlay Badge */}
+                <div className="absolute top-3 left-3 z-[1000] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-md text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#E8450F]" />
+                  <span>{filteredData.filter((l) => l.lat != null).length} Plotted Pins</span>
+                </div>
               </div>
-            }
-            actionsElement={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleExportLocations(filteredData, 'locations_ledger')}
-                className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs"
-              >
-                <Download className="h-3.5 w-3.5 text-slate-500" />
-                <span>Export CSV</span>
-              </Button>
-            }
-            bulkActions={bulkActions}
-            pageSize={pageSize}
-            onPageSizeChange={(size) => setPageSize(size)}
-            onRowClick={(row) => setEditTarget(row)}
-            emptyTitle="No Locations Found"
-            emptyMessage="There are no logistics locations matching your current search term or filter settings."
-          />
+
+              {/* Sidebar Location Selector Pane */}
+              <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 flex flex-col h-full bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+                  <h3 className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Location Pins ({filteredData.length})</span>
+                  </h3>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                  {filteredData.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-400">
+                      No locations match filters.
+                    </div>
+                  ) : (
+                    filteredData.map((loc) => {
+                      const isSelected = selectedLocationId === loc.id;
+                      const hasCoords = loc.lat != null && loc.lng != null;
+
+                      return (
+                        <div
+                          key={loc.id}
+                          onClick={() => {
+                            setSelectedLocationId(loc.id);
+                            if (hasCoords) {
+                              setSelectedMapCenter([loc.lat!, loc.lng!]);
+                            }
+                          }}
+                          className={`p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-1 ${
+                            isSelected
+                              ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-900 shadow-2xs'
+                              : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate">
+                              {loc.name}
+                            </span>
+                            {hasCoords ? (
+                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-1.5 py-0">
+                                Mapped
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-1.5 py-0">
+                                No Coords
+                              </Badge>
+                            )}
+                          </div>
+
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {loc.address || 'No street address'}
+                          </p>
+
+                          {hasCoords && (
+                            <div className="font-mono text-[10px] text-slate-400 pt-0.5 flex items-center justify-between">
+                              <span>{loc.lat?.toFixed(4)}, {loc.lng?.toFixed(4)}</span>
+                              <span className="text-[#E8450F] font-bold hover:underline">Focus →</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+
         </div>
 
-        {/* Dialogs & Modals */}
+        {/* 6. Dialogs & Confirm Modals */}
         <LocationFormDialog isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
         <LocationFormDialog
           isOpen={!!editTarget}
