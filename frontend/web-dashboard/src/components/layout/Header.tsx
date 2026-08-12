@@ -124,7 +124,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         {title && (
           <div className="flex items-center gap-2">
             {!isDashboard && <span className="text-slate-300 dark:text-slate-600 font-light">/</span>}
-            <span className="font-extrabold text-slate-900 dark:text-slate-100 text-sm truncate max-w-[260px]">{title}</span>
+            <h1 className="font-extrabold text-slate-900 dark:text-slate-100 text-lg tracking-tight truncate max-w-[260px]">{title}</h1>
           </div>
         )}
       </div>
@@ -147,9 +147,9 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         {/* Secondary Action Button: Add New Document (Dark Slate / Border Accent) */}
         <button
           onClick={() => navigate('/documents')}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer border border-slate-800 dark:border-slate-700"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#18181B] dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer border border-slate-800 dark:border-slate-700"
         >
-          <FilePlus className="w-3.5 h-3.5" />
+          <FileText className="w-3.5 h-3.5" />
           <span className="hidden md:inline">Add New Document</span>
           <span className="md:hidden hidden sm:inline">Add Document</span>
         </button>
@@ -191,7 +191,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
             <Bell size={15} className="text-slate-600 dark:text-slate-300" />
           </div>
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
-            5
+            8
           </span>
         </Link>
 
@@ -201,17 +201,17 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
           >
-            <div className="w-5.5 h-5.5 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[9px] font-black select-none">
-              {initials}
+            <div className="w-6 h-6 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[10px] font-bold select-none">
+              MA
             </div>
-            <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[80px] truncate">{firstName}</span>
+            <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[80px] truncate">Mercon</span>
             <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 animate-fade-in origin-top-right z-50">
               <div className="px-4 py-2 border-b border-slate-200/60 dark:border-slate-800">
-                <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{user?.name || 'Mohammed Al-Harbi'}</p>
+                <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{user?.name || 'Mercon Operator'}</p>
                 <p className="text-[10px] text-slate-500 truncate">{user?.role || 'Operator'}</p>
               </div>
               
