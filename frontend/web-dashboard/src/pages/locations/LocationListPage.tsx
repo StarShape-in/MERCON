@@ -117,7 +117,7 @@ function FlyToLocation({ center }: { center: [number, number] | null }) {
 export default function LocationListPage() {
   const queryClient = useQueryClient();
 
-  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'priced' | 'unused' | 'incomplete' | 'active' | 'inactive'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -645,19 +645,6 @@ export default function LocationListPage() {
 
               <button
                 type="button"
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'grid'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Grid</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setViewMode('map')}
                 className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'map'
@@ -751,141 +738,7 @@ export default function LocationListPage() {
             />
           )}
 
-          {/* B) GRID VIEW */}
-          {viewMode === 'grid' && (
-            <div className="flex-1 overflow-y-auto pr-1">
-              {filteredData.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center flex flex-col items-center justify-center my-8">
-                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
-                    <MapPin className="w-6 h-6 text-slate-400" />
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">No Locations Found</h3>
-                  <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                    No places match your search term or active filter criteria. Try clearing filters or adding a new location.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filteredData.map((loc) => {
-                    const rates = rateCardUses(loc);
-                    const trips = tripUses(loc);
-                    const hasCoords = loc.lat != null && loc.lng != null;
-
-                    return (
-                      <Card
-                        key={loc.id}
-                        onClick={() => setEditTarget(loc)}
-                        className="p-4 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-300 dark:hover:border-orange-900/60 transition-all hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group relative"
-                      >
-                        {/* Card Top Row */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0 group-hover:bg-[#E8450F] group-hover:text-white transition-colors">
-                              <MapPin className="w-4 h-4 text-[#E8450F] group-hover:text-white transition-colors" />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-mono text-[10px] font-bold text-[#E8450F] uppercase tracking-wide">
-                                LOC-{loc.id.slice(0, 6)}
-                              </span>
-                              <h3 className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" title={loc.name}>
-                                {loc.name}
-                              </h3>
-                            </div>
-                          </div>
-
-                          {/* Status Pill */}
-                          {loc.is_active ? (
-                            <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 font-bold text-[10px] shrink-0">
-                              Active
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold text-[10px] shrink-0">
-                              Inactive
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Address Row */}
-                        <div className="text-xs text-slate-600 dark:text-slate-300 flex items-start gap-1.5 min-h-[32px]">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                          {loc.address ? (
-                            <span className="line-clamp-2">{loc.address}</span>
-                          ) : (
-                            <span className="text-amber-700 dark:text-amber-400 italic text-[11px] font-medium flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
-                              No address provided
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Coordinates & Usage */}
-                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-col gap-2">
-                          {/* Coordinates */}
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-[11px] font-medium text-slate-400">Coords:</span>
-                            {hasCoords ? (
-                              <button
-                                type="button"
-                                onClick={(e) => handleFocusOnMap(loc, e)}
-                                className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 hover:border-orange-300 hover:text-[#E8450F] transition-colors flex items-center gap-1 cursor-pointer"
-                              >
-                                <Navigation className="w-2.5 h-2.5 text-indigo-500" />
-                                {loc.lat?.toFixed(4)}, {loc.lng?.toFixed(4)}
-                              </button>
-                            ) : (
-                              <span className="text-[11px] italic text-slate-400">Unmapped</span>
-                            )}
-                          </div>
-
-                          {/* Usage tags & Actions */}
-                          <div className="flex items-center justify-between gap-1 pt-1">
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {rates > 0 && (
-                                <Badge className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 font-bold text-[10px] px-1.5 py-0">
-                                  {rates} Rate Card{rates === 1 ? '' : 's'}
-                                </Badge>
-                              )}
-                              {trips > 0 && (
-                                <Badge className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 font-bold text-[10px] px-1.5 py-0">
-                                  {trips} Stop{trips === 1 ? '' : 's'}
-                                </Badge>
-                              )}
-                              {rates === 0 && trips === 0 && (
-                                <span className="text-[10px] text-slate-400 italic">Unlinked</span>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEditTarget(loc)}
-                                className="h-7 w-7 p-0 text-slate-400 hover:text-indigo-600"
-                                title="Edit Location"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setDeleteError(null); setDeleteTarget(loc); }}
-                                className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600"
-                                title="Delete Location"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* C) INTERACTIVE MAP VIEW */}
+          {/* B) INTERACTIVE MAP VIEW */}
           {viewMode === 'map' && (
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[540px] h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
               
