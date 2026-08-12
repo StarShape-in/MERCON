@@ -566,13 +566,14 @@ export default function TripListPage() {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         return (
-          <div className="flex flex-col gap-0.5 py-0.5 max-w-[170px] truncate" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
+          <div className="flex flex-col gap-0 py-0.5 max-w-[170px] truncate" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {pickup.name}
               </span>
             </div>
+            <div className="ml-[2.5px] w-0 h-2 border-l border-dotted border-slate-400 dark:border-slate-500 my-0.5" />
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-[#E8450F] shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
