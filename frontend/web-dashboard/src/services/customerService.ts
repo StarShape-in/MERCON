@@ -7,6 +7,10 @@ export interface Customer {
   contact_phone: string;
   phone?: string;
   company_name?: string;
+  primary_contact_person?: string;
+  primary_contact_phone?: string;
+  secondary_contact_person?: string;
+  secondary_contact_phone?: string;
   payment_terms?: string;
   tax_number?: string;
   credit_limit: number;

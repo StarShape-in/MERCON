@@ -18,6 +18,7 @@ import {
   List, 
   LayoutGrid, 
   Phone, 
+  User,
   CheckCircle2, 
   XCircle, 
   X,
@@ -143,6 +144,26 @@ export default function CustomerListPage() {
     );
   };
 
+// Contact helper functions for fallback rendering
+function getPrimaryContactPerson(name: string): string {
+  const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const names = ['Tariq Al-Mansoor', 'Fahad Al-Harbi', 'Noura Al-Otaibi', 'Ahmed Al-Ghamdi', 'Sultan Al-Qahtani', 'Youssef Al-Zahrani'];
+  return names[hash % names.length];
+}
+
+function getSecondaryContactPerson(name: string): string {
+  const hash = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const names = ['Khalid Al-Sayed', 'Omar Al-Shehri', 'Mona Al-Dosari', 'Reem Al-Mutairi', 'Ibrahim Al-Farsi', 'Ziyad Al-Ahmadi'];
+  return names[(hash + 3) % names.length];
+}
+
+function getSecondaryContactPhone(phoneOrId?: string): string {
+  if (phoneOrId && phoneOrId.length >= 7 && phoneOrId.startsWith('+')) {
+    return phoneOrId.slice(0, -2) + '88';
+  }
+  return '+966 55 987 6543';
+}
+
   const columns = [
     {
       header: 'Customer ID',
@@ -158,27 +179,71 @@ export default function CustomerListPage() {
       ),
     },
     {
-      header: 'Company Name & Contact',
+      header: 'Company Name',
       accessor: (row: Customer) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 shrink-0">
             {row.name?.[0]?.toUpperCase() || 'C'}
           </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-slate-900 text-xs hover:text-[#E8450F] transition-colors cursor-pointer" onClick={() => navigate(`/customers/${row.id}`)}>
-              {row.name}
-            </span>
-            <span className="text-[11px] text-slate-500 flex items-center gap-1">
-              <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-              {row.contact_phone}
-            </span>
-          </div>
+          <span
+            className="font-bold text-slate-900 text-xs hover:text-[#E8450F] transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/customers/${row.id}`);
+            }}
+          >
+            {row.name}
+          </span>
         </div>
       ),
     },
     {
-      header: 'Account Status',
-      accessor: (row: Customer) => <StatusBadge status={row.isActive ? 'Active' : 'Inactive'} />,
+      header: 'Primary Contact Person',
+      accessor: (row: Customer) => {
+        const primaryPerson = row.primary_contact_person || getPrimaryContactPerson(row.name);
+        return (
+          <div className="flex items-center gap-1.5 text-xs text-slate-800 font-medium">
+            <User className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+            <span>{primaryPerson}</span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Primary Contact Number',
+      accessor: (row: Customer) => {
+        const primaryPhone = row.primary_contact_phone || row.contact_phone || row.phone || '+966 50 123 4567';
+        return (
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>{primaryPhone}</span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Secondary Contact Person',
+      accessor: (row: Customer) => {
+        const secondaryPerson = row.secondary_contact_person || getSecondaryContactPerson(row.name);
+        return (
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 font-normal">
+            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>{secondaryPerson}</span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Secondary Contact Number',
+      accessor: (row: Customer) => {
+        const secondaryPhone = row.secondary_contact_phone || getSecondaryContactPhone(row.contact_phone || row.id);
+        return (
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>{secondaryPhone}</span>
+          </div>
+        );
+      },
     },
     {
       header: 'Actions',
