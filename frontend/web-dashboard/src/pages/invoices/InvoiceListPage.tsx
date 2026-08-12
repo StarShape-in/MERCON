@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Plus, Download, RotateCw, Filter, MoreVertical, Receipt, X, 
   Building2, CheckCircle2, Clock, FileText, Check, Search, 
-  ExternalLink, ShieldCheck, Tag
+  ExternalLink, ShieldCheck, Tag, Trash2
 } from 'lucide-react';
 import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge, RevenueChart } from '@/components/ui/kpi-icons';
 
@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Select,
   SelectContent,
@@ -103,6 +104,14 @@ export default function InvoiceListPage() {
   const kpiInvoices = kpiInvoicesRes?.data || [];
   const totalCount = kpiInvoicesRes?.meta?.total || (kpiInvoices.length > 0 ? kpiInvoices.length : invoices.length);
   const allTrips = Array.isArray(tripsRes) ? tripsRes : (tripsRes as any)?.data || [];
+
+  const tripOptions = useMemo(() => {
+    return allTrips.map((t: any) => ({
+      value: t.id,
+      label: `${t.ref_id || 'TRIP'} — ${t.customer?.name || 'Customer'} (SAR ${Number(t.billing_amount || 0).toLocaleString()})`,
+      keywords: `${t.ref_id || ''} ${t.customer?.name || ''} ${t.billing_amount || ''}`,
+    }));
+  }, [allTrips]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -321,12 +330,13 @@ export default function InvoiceListPage() {
     {
       label: 'Mark Invoiced',
       icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />,
-      onClick: async (selectedRows: Invoice[]) => {
+      onClick: async (selectedRows: Invoice[], clearSelection?: () => void) => {
         if (!confirm(`Mark ${selectedRows.length} trips as Invoiced / Paid?`)) return;
         try {
           await invoiceService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Paid');
           toast.success(`Marked ${selectedRows.length} trips as Invoiced!`);
           queryClient.invalidateQueries({ queryKey: ['invoices'] });
+          clearSelection?.();
         } catch (e) { toast.error('Failed to update invoicing status'); }
       }
     },
@@ -336,6 +346,20 @@ export default function InvoiceListPage() {
       variant: 'secondary' as const,
       onClick: (selectedRows: Invoice[]) => {
         downloadCSV(selectedRows, 'trip_invoices_export.csv');
+      }
+    },
+    {
+      label: 'Delete Selected',
+      icon: <Trash2 className="w-3.5 h-3.5" />,
+      variant: 'danger' as const,
+      onClick: async (selectedRows: Invoice[], clearSelection?: () => void) => {
+        if (!confirm(`Are you sure you want to delete ${selectedRows.length} selected invoicing record(s)?`)) return;
+        try {
+          await invoiceService.bulkDelete(selectedRows.map(r => r.id));
+          toast.success(`Successfully deleted ${selectedRows.length} invoicing record(s)!`);
+          queryClient.invalidateQueries({ queryKey: ['invoices'] });
+          clearSelection?.();
+        } catch (e) { toast.error('Failed to delete invoicing records'); }
       }
     },
   ];
