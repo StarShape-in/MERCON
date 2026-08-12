@@ -5,14 +5,14 @@ import {
   ArrowLeft, ArrowRight, Edit2, Trash2, MapPin, Building2,
   FileCheck, RefreshCw, Plus,
   Layers, Download, AlertTriangle, DollarSign,
-  Truck, Tag, Search, ExternalLink
+  Truck, Tag, Search, ShieldCheck, Clock
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import KpiCard from '@/components/ui/KpiCard';
-import { rateCardService, RateCard } from '@/services/rateCardService';
+import { rateCardService } from '@/services/rateCardService';
 import { tripService, TripStatus } from '@/services/tripService';
 import { downloadCSV } from '@/utils/exportUtils';
 
@@ -20,7 +20,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 export default function RateCardDetailsPage() {
@@ -31,7 +30,7 @@ export default function RateCardDetailsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  // Trip filters state inside the Associated Trips tab
+  // Trip filters state
   const [tripSearch, setTripSearch] = useState('');
   const [tripStatusFilter, setTripStatusFilter] = useState<string>('ALL');
 
@@ -75,10 +74,13 @@ export default function RateCardDetailsPage() {
           <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/3"></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+              <div key={i} className="h-24 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
             ))}
           </div>
-          <div className="h-80 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div className="lg:col-span-7 h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="lg:col-span-5 h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -110,7 +112,7 @@ export default function RateCardDetailsPage() {
   const laneCards = laneCardsRes?.data || [];
   const otherCards = laneCards.filter((c) => c.id !== card.id);
 
-  // How this card compares to what other customers pay on the same lane
+  // Price comparison calculation
   const otherAvg =
     otherCards.length > 0
       ? otherCards.reduce((sum, c) => sum + Number(c.base_price), 0) / otherCards.length
@@ -118,12 +120,12 @@ export default function RateCardDetailsPage() {
 
   const delta = otherAvg !== null ? Number(card.base_price) - otherAvg : null;
 
-  // Generate price spectrum sparkline for the lane
+  // Price sparkline data
   const sparklineData = laneCards.length > 1
     ? laneCards.map(c => Number(c.base_price)).sort((a, b) => a - b)
     : [Number(card.base_price) * 0.95, Number(card.base_price), Number(card.base_price) * 1.05];
 
-  // Associated Trips processing
+  // Associated Trips filtering
   const trips = tripsRes?.data || [];
   const filteredTrips = trips.filter((t) => {
     const matchesSearch =
@@ -155,7 +157,6 @@ export default function RateCardDetailsPage() {
     downloadCSV(exportRows, `rate_card_${card.id}_export.csv`);
   };
 
-  // Helper for trip status badge styles
   const getStatusBadge = (status: TripStatus) => {
     switch (status) {
       case 'Completed':
@@ -180,30 +181,30 @@ export default function RateCardDetailsPage() {
 
   return (
     <DashboardLayout active="RateCards" title={card.name}>
-      <div className="px-4 sm:px-6 lg:px-8 pb-10 space-y-6 animate-fade-in w-full max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 lg:px-8 pb-10 space-y-5 animate-fade-in w-full max-w-[1400px] mx-auto">
 
         {/* ── 1. Top Bar Header & Clean Toolbar ─────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-slate-800">
 
-          {/* Header Title & Status */}
-          <div className="flex flex-wrap items-center gap-3 min-w-0">
+          {/* Header Title & Status Badges */}
+          <div className="flex flex-wrap items-center gap-2.5 min-w-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/rate-cards')}
-              className="h-9 w-9 p-0 shrink-0 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="h-8 w-8 p-0 shrink-0 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:bg-slate-100 dark:hover:bg-slate-800"
               title="Back to Rate Cards"
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
 
-            <div className="flex items-center gap-2.5 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
                 {card.name}
               </h1>
               <Badge
                 variant="outline"
-                className={`shrink-0 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                className={`shrink-0 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
                   isActive
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
                     : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
@@ -211,6 +212,16 @@ export default function RateCardDetailsPage() {
               >
                 {isActive ? '● Active' : '● Inactive'}
               </Badge>
+
+              {card.customer && (
+                <div
+                  onClick={() => navigate(`/customers/${card.customer?.id}`)}
+                  className="flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-2.5 py-0.5 rounded-full hover:bg-indigo-100 cursor-pointer transition-colors"
+                >
+                  <Building2 className="w-3 h-3" />
+                  <span>{card.customer.name}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -224,17 +235,17 @@ export default function RateCardDetailsPage() {
                 refetchTrips();
               }}
               disabled={isFetching}
-              className="h-9 w-9 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg"
+              className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg"
               title="Refresh Data"
             >
-              <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin text-[#E8450F]")} />
+              <RefreshCw className={cn("w-3.5 h-3.5", isFetching && "animate-spin text-[#E8450F]")} />
             </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={handleExportCSV}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
+              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" /> Export CSV
             </Button>
@@ -243,7 +254,7 @@ export default function RateCardDetailsPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate(`/rate-cards/${card.id}/documents`)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
+              className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
             >
               <FileCheck className="w-3.5 h-3.5 text-indigo-500" /> Documents
             </Button>
@@ -251,7 +262,7 @@ export default function RateCardDetailsPage() {
             <Button
               size="sm"
               onClick={() => setIsEditOpen(true)}
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs px-4"
+              className="h-8 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs px-3"
             >
               <Edit2 className="w-3.5 h-3.5" /> Edit
             </Button>
@@ -260,7 +271,7 @@ export default function RateCardDetailsPage() {
               variant="outline"
               size="sm"
               onClick={() => setIsDeleteModalOpen(true)}
-              className="h-9 text-xs font-semibold border-rose-200 dark:border-rose-950 bg-rose-50 dark:bg-rose-950/20 text-rose-600 hover:bg-rose-100"
+              className="h-8 text-xs font-semibold border-rose-200 dark:border-rose-950 bg-rose-50 dark:bg-rose-950/20 text-rose-600 hover:bg-rose-100 px-3"
             >
               <Trash2 className="w-3.5 h-3.5" /> Delete
             </Button>
@@ -269,23 +280,33 @@ export default function RateCardDetailsPage() {
 
         {/* Warning Banner if lane is unlinked */}
         {!laneLinked && (
-          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-            <div className="text-xs">
-              <p className="font-bold text-amber-900 dark:text-amber-200">Unlinked Lane Location</p>
-              <p className="text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                Origin and destination are currently text strings rather than structured system locations. Edit this rate card to link locations so trips automatically pick up negotiated rates.
-              </p>
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/90 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-2.5 text-xs">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+              <div>
+                <span className="font-bold text-amber-900 dark:text-amber-200 mr-2">Unlinked Lane Location</span>
+                <span className="text-amber-800/80 dark:text-amber-300/80">
+                  Origin and destination are currently unlinked text strings. Link them to enable automatic rate matching.
+                </span>
+              </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditOpen(true)}
+              className="h-7 text-[11px] font-bold border-amber-300 text-amber-800 bg-white hover:bg-amber-100 shrink-0"
+            >
+              Link Now
+            </Button>
           </div>
         )}
 
-        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ── 2. Instrument-Panel KPI Cards (4 Columns) ────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
 
-          {/* KPI 1: Price Per Trip */}
+          {/* KPI 1: Base Price */}
           <KpiCard
-            title="PRICE PER TRIP"
+            title="BASE PRICE RATE"
             value={
               <span className="text-xl font-black text-[#E8450F] font-mono">
                 {currency} {Number(card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -315,159 +336,114 @@ export default function RateCardDetailsPage() {
             title="LANE CORRIDOR"
             value={
               <div className="flex items-center gap-1.5 min-w-0 max-w-full text-slate-900 dark:text-slate-100 mt-0.5">
-                <span className="truncate max-w-[100px] sm:max-w-[120px] text-base font-extrabold">{card.route_origin}</span>
+                <span className="truncate max-w-[95px] text-sm font-extrabold">{card.route_origin}</span>
                 <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
-                <span className="truncate max-w-[100px] sm:max-w-[120px] text-base font-extrabold">{card.route_destination}</span>
+                <span className="truncate max-w-[95px] text-sm font-extrabold">{card.route_destination}</span>
               </div>
             }
             variant="blue"
             icon={MapPin}
             description={
-              <div className="flex flex-col gap-1 mt-0.5">
-                <span className="text-[10px] text-slate-500 font-semibold">
-                  {laneLinked ? 'Linked to locations' : 'Free text origin & dest'}
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-[10px] text-slate-500 font-semibold truncate">
+                  {card.via_location ? `via ${card.via_location}` : laneLinked ? 'Direct linked lane' : 'Free text lane'}
                 </span>
-                {card.via_location && (
-                  <Badge variant="outline" className="w-fit text-[9px] font-bold uppercase px-1.5 py-0 bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-950/40">
-                    via {card.via_location}
-                  </Badge>
-                )}
               </div>
             }
           />
 
-          {/* KPI 3: Customer Account */}
+          {/* KPI 3: Vehicle Type (Separately Highlighted) */}
           <KpiCard
-            title="CUSTOMER ACCOUNT"
+            title="VEHICLE TYPE"
             value={
-              <span className="truncate text-base font-extrabold block text-slate-900 dark:text-slate-100 max-w-[200px]" title={card.customer?.name}>
-                {card.customer?.name || 'Customer Account'}
-              </span>
-            }
-            variant="purple"
-            icon={Building2}
-            description={
-              <div className="flex flex-col gap-1 mt-0.5">
-                <span className="text-[10px] text-slate-500 font-semibold">
-                  Negotiated customer rate
-                </span>
-                {card.customer?.id && (
-                  <span
-                    onClick={() => navigate(`/customers/${card.customer?.id}`)}
-                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline cursor-pointer w-fit mt-0.5 flex items-center gap-1"
-                  >
-                    View Profile <ExternalLink className="w-2.5 h-2.5" />
-                  </span>
-                )}
-              </div>
-            }
-          />
-
-          {/* KPI 4: Vehicle Type & Rate Category Classification */}
-          <KpiCard
-            title="CLASSIFICATION & SPEC"
-            value={
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              <div className="flex items-center gap-1.5 mt-0.5">
                 {card.vehicle_type ? (
-                  <Badge variant="outline" className="text-xs font-bold bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300">
-                    <Truck className="w-3 h-3 mr-1 text-amber-600" />
-                    {card.vehicle_type}
+                  <Badge variant="outline" className="text-xs font-extrabold bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                    <Truck className="w-3 h-3 mr-1 text-amber-600 shrink-0" />
+                    <span className="truncate">{card.vehicle_type}</span>
                   </Badge>
                 ) : (
-                  <span className="text-xs font-semibold text-slate-400">All Vehicles</span>
+                  <span className="text-xs font-semibold text-slate-500">All Vehicle Types</span>
+                )}
+              </div>
+            }
+            variant="purple"
+            icon={Truck}
+            description={
+              <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">
+                {card.vehicle_type ? 'Specified rolling stock class' : 'Applies to any fleet vehicle'}
+              </span>
+            }
+          />
+
+          {/* KPI 4: Rate Category (Separately Highlighted) */}
+          <KpiCard
+            title="RATE CATEGORY"
+            value={
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {card.rate_category ? (
+                  <Badge variant="outline" className="text-xs font-extrabold bg-indigo-50 text-indigo-900 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800">
+                    <Tag className="w-3 h-3 mr-1 text-indigo-600 shrink-0" />
+                    <span className="truncate">{card.rate_category}</span>
+                  </Badge>
+                ) : (
+                  <span className="text-xs font-semibold text-slate-500">Standard Freight</span>
                 )}
               </div>
             }
             variant="slate"
             icon={Tag}
             description={
-              <div className="flex flex-col gap-1 mt-1">
-                {card.rate_category ? (
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-slate-500 font-semibold">Category:</span>
-                    <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400">
-                      {card.rate_category}
-                    </Badge>
-                  </div>
-                ) : (
-                  <span className="text-[10px] text-slate-400">No rate category set</span>
-                )}
-              </div>
+              <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">
+                {card.rate_category ? 'Assigned contract category' : 'Default rate classification'}
+              </span>
             }
           />
 
         </div>
 
-        {/* ── 3. Tabbed Content Section ────────────────────────────────────── */}
-        <Tabs defaultValue="trips" className="w-full space-y-4">
-          <TabsList className="bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-xl h-11 border border-slate-200/60 dark:border-slate-700/60 inline-flex w-full sm:w-auto">
-            <TabsTrigger
-              value="trips"
-              className="text-xs font-bold px-4 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs gap-2"
-            >
-              <Truck className="w-3.5 h-3.5 text-blue-600" />
-              <span>Trips Using Rate Card</span>
-              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold rounded-md">
-                {trips.length}
-              </Badge>
-            </TabsTrigger>
+        {/* ── 3. Single View Main Content Layout (2 Columns Grid) ────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-            <TabsTrigger
-              value="lane-ledger"
-              className="text-xs font-bold px-4 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs gap-2"
-            >
-              <Layers className="w-3.5 h-3.5 text-orange-600" />
-              <span>Comparative Lane Pricing</span>
-              {laneLinked && otherCards.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold rounded-md">
-                  {otherCards.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="specs"
-              className="text-xs font-bold px-4 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 data-[state=active]:shadow-2xs gap-2"
-            >
-              <Tag className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Specifications & Audit</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* ── TAB 1: Associated Trips Ledger ────────────────────────────── */}
-          <TabsContent value="trips" className="mt-0">
+          {/* ── LEFT COLUMN (8 cols): Associated Trips Ledger ─────────────── */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-5">
             <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3.5 px-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg">
-                    <Truck className="w-4 h-4" />
+              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-md">
+                    <Truck className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                      Trip Usage Ledger
-                    </CardTitle>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                      Trips dispatched or billed using this rate card
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                        Trips Using Rate Card
+                      </CardTitle>
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold rounded-md">
+                        {trips.length}
+                      </Badge>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-semibold">
+                      Historical and active trips dispatched on this rate
                     </p>
                   </div>
                 </div>
 
                 {/* Filter and search control toolbar */}
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:w-56">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                  <div className="relative flex-1 sm:w-48">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400" />
                     <Input
-                      placeholder="Search trip ID, customer..."
+                      placeholder="Search ref ID, driver..."
                       value={tripSearch}
                       onChange={(e) => setTripSearch(e.target.value)}
-                      className="pl-8 text-xs h-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      className="pl-8 text-xs h-7 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     />
                   </div>
 
                   <select
                     value={tripStatusFilter}
                     onChange={(e) => setTripStatusFilter(e.target.value)}
-                    className="h-8 text-xs font-bold px-2.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs focus:outline-none"
+                    className="h-7 text-xs font-bold px-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shadow-2xs focus:outline-none"
                   >
                     <option value="ALL">All Statuses</option>
                     <option value="Completed">Completed</option>
@@ -486,22 +462,22 @@ export default function RateCardDetailsPage() {
                     <RefreshCw className="w-4 h-4 animate-spin text-[#E8450F]" /> Loading trips...
                   </div>
                 ) : filteredTrips.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
-                      <Truck size={22} />
+                  <div className="flex flex-col items-center justify-center text-center py-10 px-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-2">
+                      <Truck size={18} />
                     </div>
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">No Trips Found</h3>
-                    <p className="text-xs text-slate-500 max-w-sm mt-1">
+                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">No Trips Billed</h3>
+                    <p className="text-[11px] text-slate-500 max-w-xs mt-0.5">
                       {tripSearch || tripStatusFilter !== 'ALL'
-                        ? 'No trips match the applied filter criteria.'
+                        ? 'No trips match the applied search filter.'
                         : 'No trips have been assigned or billed using this rate card yet.'}
                     </p>
                     <Button
                       size="sm"
                       onClick={() => navigate('/trips/new')}
-                      className="mt-4 h-8 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white gap-1.5"
+                      className="mt-3 h-7 text-[11px] font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white gap-1 px-3"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Create New Trip
+                      <Plus className="w-3 h-3" /> Create Trip
                     </Button>
                   </div>
                 ) : (
@@ -509,12 +485,11 @@ export default function RateCardDetailsPage() {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200/60 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                          <th className="py-2.5 px-5">Trip Ref ID</th>
-                          <th className="py-2.5 px-4">Customer</th>
-                          <th className="py-2.5 px-4">Driver & Vehicle</th>
-                          <th className="py-2.5 px-4">Status</th>
-                          <th className="py-2.5 px-4 text-right">Billing Amount</th>
-                          <th className="py-2.5 px-5 text-right">Date</th>
+                          <th className="py-2 px-4">Trip Ref</th>
+                          <th className="py-2 px-3">Driver & Vehicle</th>
+                          <th className="py-2 px-3">Status</th>
+                          <th className="py-2 px-3 text-right">Billing</th>
+                          <th className="py-2 px-4 text-right">Date</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -524,28 +499,25 @@ export default function RateCardDetailsPage() {
                             onClick={() => navigate(`/trips/${t.id}`)}
                             className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                           >
-                            <td className="py-3 px-5 font-mono font-extrabold text-[#E8450F] hover:underline">
+                            <td className="py-2.5 px-4 font-mono font-extrabold text-[#E8450F] hover:underline">
                               {t.ref_id}
                             </td>
-                            <td className="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
-                              {t.customer?.name || 'Customer'}
+                            <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
+                              <span className="font-semibold">{t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'}</span>
+                              {t.vehicle && <span className="text-slate-400 text-[10px] ml-1">({t.vehicle.plate_number})</span>}
                             </td>
-                            <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
-                              {t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'}
-                              {t.vehicle && <span className="text-slate-400 ml-1">({t.vehicle.plate_number})</span>}
-                            </td>
-                            <td className="py-3 px-4">
+                            <td className="py-2.5 px-3">
                               <Badge
                                 variant="outline"
-                                className={cn("text-[9px] font-extrabold uppercase px-2 py-0.5", getStatusBadge(t.status))}
+                                className={cn("text-[9px] font-extrabold uppercase px-1.5 py-0", getStatusBadge(t.status))}
                               >
                                 {t.status}
                               </Badge>
                             </td>
-                            <td className="py-3 px-4 text-right font-mono font-black text-slate-900 dark:text-slate-100">
+                            <td className="py-2.5 px-3 text-right font-mono font-black text-slate-900 dark:text-slate-100">
                               {currency} {Number(t.billing_amount || card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="py-3 px-5 text-right text-slate-500 font-semibold text-[11px]">
+                            <td className="py-2.5 px-4 text-right text-slate-400 font-medium text-[11px]">
                               {new Date(t.createdAt).toLocaleDateString()}
                             </td>
                           </tr>
@@ -556,175 +528,160 @@ export default function RateCardDetailsPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          {/* ── TAB 2: Comparative Lane Pricing Ledger ───────────────────────── */}
-          <TabsContent value="lane-ledger" className="mt-0">
+          {/* ── RIGHT COLUMN (5 cols): Specifications + Comparative Pricing ── */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-4">
+
+            {/* Specification & System Audit Box */}
             <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3.5 px-5 flex flex-row items-center justify-between space-y-0 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 rounded-lg">
-                    <Layers className="w-4 h-4" />
+              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-row items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
+                  <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                    Specifications & Audit
+                  </CardTitle>
+                </div>
+                <Badge variant="outline" className="text-[9px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500">
+                  ID: {card.id.slice(0, 8)}...
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3 text-xs">
+
+                {/* Account & Details breakdown */}
+                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Customer Account</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100 truncate block mt-0.5">
+                      {card.customer?.name || 'Customer Account'}
+                    </span>
                   </div>
                   <div>
-                    <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                      Lane Pricing Ledger
-                    </CardTitle>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                      Comparative rates configured for {card.route_origin} → {card.route_destination}
-                    </p>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Base Currency</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100 block mt-0.5">{currency}</span>
                   </div>
                 </div>
-              </CardHeader>
 
+                {/* Classifications breakdown */}
+                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Vehicle Type</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
+                      {card.vehicle_type || 'Any Vehicle'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Rate Category</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
+                      {card.rate_category || 'Standard Freight'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Location linkage IDs */}
+                <div className="space-y-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-400 font-semibold">Origin Location ID</span>
+                    <span className="font-mono text-slate-700 dark:text-slate-300 text-[10px] select-all bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                      {card.originLocationId || 'Not linked'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-400 font-semibold">Destination Location ID</span>
+                    <span className="font-mono text-slate-700 dark:text-slate-300 text-[10px] select-all bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                      {card.destinationLocationId || 'Not linked'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-400 font-semibold">Via Stop Location</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
+                      {card.via_location || 'Direct Lane'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Audit Timestamps */}
+                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Created: {new Date(card.createdAt).toLocaleDateString()}
+                  </span>
+                  <span>
+                    Updated: {new Date(card.updatedAt || card.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+
+              </CardContent>
+            </Card>
+
+            {/* Comparative Lane Pricing Box */}
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs overflow-hidden">
+              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3 px-4 bg-slate-50/50 dark:bg-slate-900/50 flex flex-row items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-3.5 h-3.5 text-orange-500" />
+                  <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                    Comparative Lane Pricing
+                  </CardTitle>
+                </div>
+                {laneLinked && otherCards.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold rounded-md">
+                    {otherCards.length}
+                  </Badge>
+                )}
+              </CardHeader>
               <CardContent className="p-0">
                 {!laneLinked ? (
-                  <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-                    <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
-                      <AlertTriangle size={22} />
-                    </div>
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">Lane Link Required</h3>
-                    <p className="text-xs text-slate-500 max-w-sm mt-1">
-                      This rate card is not linked to structured locations. Link origin and destination to compare prices across customers.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditOpen(true)}
-                      className="mt-4 h-8 text-xs font-bold border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100"
-                    >
-                      Link Lane Locations
-                    </Button>
+                  <div className="p-4 text-center text-xs">
+                    <p className="text-slate-500 text-[11px]">Origin and destination are unlinked text strings.</p>
                   </div>
                 ) : otherCards.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
-                      <Layers size={22} />
-                    </div>
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">No Other Rates Configured</h3>
-                    <p className="text-xs text-slate-500 max-w-sm mt-1">
-                      No other customer currently has a rate card on the {card.route_origin} → {card.route_destination} lane.
-                    </p>
+                  <div className="p-5 text-center text-xs text-slate-400">
+                    <p className="font-semibold text-slate-700 dark:text-slate-300 text-xs">Sole rate on this lane</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">No other customer rate cards configured for {card.route_origin} → {card.route_destination}.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-200/60 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                          <th className="py-2.5 px-5">Customer Account</th>
-                          <th className="py-2.5 px-4">Status</th>
-                          <th className="py-2.5 px-4">Tiers & Categories</th>
-                          <th className="py-2.5 px-5 text-right">Negotiated Price</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                        {otherCards.map((other) => {
-                          const isOtherActive = other.is_active ?? true;
-                          return (
-                            <tr
-                              key={other.id}
-                              onClick={() => navigate(`/rate-cards/${other.id}`)}
-                              className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
-                            >
-                              <td className="py-3 px-5 font-bold text-slate-800 dark:text-slate-200">
-                                <div className="flex items-center gap-2">
-                                  <Building2 className="w-4 h-4 text-indigo-500 shrink-0" />
-                                  <span className="hover:underline">{other.customer?.name || 'Customer Account'}</span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-[9px] font-extrabold uppercase px-1.5 py-0",
-                                    isOtherActive
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400"
-                                      : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400"
-                                  )}
-                                >
-                                  {isOtherActive ? '● Active' : '● Inactive'}
-                                </Badge>
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex flex-wrap gap-1">
-                                  {other.vehicle_type && (
-                                    <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400">
-                                      {other.vehicle_type}
-                                    </Badge>
-                                  )}
-                                  {other.rate_category && (
-                                    <Badge variant="outline" className="text-[9px] font-bold uppercase px-1.5 py-0 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400">
-                                      {other.rate_category}
-                                    </Badge>
-                                  )}
-                                  {!other.vehicle_type && !other.rate_category && (
-                                    <span className="text-[10px] text-slate-400 italic">Default rate</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="py-3 px-5 text-right font-mono font-black text-slate-900 dark:text-slate-100">
-                                {other.currency || 'SAR'} {Number(other.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                    {otherCards.map((other) => (
+                      <div
+                        key={other.id}
+                        onClick={() => navigate(`/rate-cards/${other.id}`)}
+                        className="p-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors flex items-center justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">
+                            {other.customer?.name || 'Customer Account'}
+                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {other.vehicle_type && (
+                              <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1 py-0 rounded">
+                                {other.vehicle_type}
+                              </span>
+                            )}
+                            {other.rate_category && (
+                              <span className="text-[9px] font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1 py-0 rounded">
+                                {other.rate_category}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-black text-slate-900 dark:text-slate-100 block">
+                            {other.currency || 'SAR'} {Number(other.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
+                            View Rate →
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          {/* ── TAB 3: Specifications & Audit Details ───────────────────────── */}
-          <TabsContent value="specs" className="mt-0">
-            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl shadow-2xs">
-              <CardHeader className="border-b border-slate-200/60 dark:border-slate-800 py-3.5 px-5 bg-slate-50/50 dark:bg-slate-900/50">
-                <CardTitle className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                  Contract & System Attributes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-xs">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Rate Card ID</span>
-                    <p className="font-mono text-slate-800 dark:text-slate-200 select-all">{card.id}</p>
-                  </div>
+          </div>
 
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Base Currency</span>
-                    <p className="font-semibold text-slate-800 dark:text-slate-200">{currency}</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Via Location Stop</span>
-                    <p className="font-semibold text-slate-800 dark:text-slate-200">{card.via_location || 'Direct Lane (No via stop)'}</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Origin Location ID</span>
-                    <p className="font-mono text-slate-800 dark:text-slate-200 select-all">{card.originLocationId || 'Not linked'}</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Destination Location ID</span>
-                    <p className="font-mono text-slate-800 dark:text-slate-200 select-all">{card.destinationLocationId || 'Not linked'}</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Created Date</span>
-                    <p className="font-semibold text-slate-800 dark:text-slate-200">{new Date(card.createdAt).toLocaleString()}</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Last Modified</span>
-                    <p className="font-semibold text-slate-800 dark:text-slate-200">{new Date(card.updatedAt || card.createdAt).toLocaleString()}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        </div>
 
       </div>
 
