@@ -60,6 +60,10 @@ export interface RateCardListParams {
   active_only?: boolean;
   origin_location_id?: string;
   destination_location_id?: string;
+  page?: number;
+  per_page?: number | 'all';
+  search?: string;
+  status?: string;
 }
 
 /** Where the matched price came from — always the customer's own rate. */
@@ -83,6 +87,10 @@ export const rateCardService = {
         ...(params?.active_only ? { active_only: 'true' } : {}),
         ...(params?.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
         ...(params?.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
+        ...(params?.page ? { page: params.page } : {}),
+        ...(params?.per_page ? { per_page: params.per_page } : {}),
+        ...(params?.search ? { search: params.search } : {}),
+        ...(params?.status ? { status: params.status } : {}),
       },
     });
     return res.data;

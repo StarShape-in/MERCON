@@ -196,24 +196,64 @@ export const getRateCards = async (req: Request, res: Response) => {
     const {
       customerId,
       active_only,
+      status,
       origin_location_id,
       destination_location_id,
+      search,
+      page,
+      per_page,
     } = req.query;
 
     const whereClause: any = { deletedAt: null };
-    if (active_only === 'true') whereClause.is_active = true;
+    if (active_only === 'true' || status === 'active') {
+      whereClause.is_active = true;
+    } else if (status === 'inactive') {
+      whereClause.is_active = false;
+    }
+
     if (origin_location_id) whereClause.originLocationId = origin_location_id as string;
     if (destination_location_id) whereClause.destinationLocationId = destination_location_id as string;
     if (customerId) whereClause.customerId = customerId as string;
 
-    const rateCards = await prisma.rateCard.findMany({
-      where: whereClause,
-      include: rateCardInclude,
-      orderBy: [{ route_origin: 'asc' }, { route_destination: 'asc' }, { createdAt: 'desc' }],
-    });
+    if (search && typeof search === 'string' && search.trim()) {
+      const term = search.trim();
+      whereClause.OR = [
+        { name: { contains: term, mode: 'insensitive' } },
+        { route_origin: { contains: term, mode: 'insensitive' } },
+        { route_destination: { contains: term, mode: 'insensitive' } },
+        { vehicle_type: { contains: term, mode: 'insensitive' } },
+        { rate_category: { contains: term, mode: 'insensitive' } },
+        { customer: { name: { contains: term, mode: 'insensitive' } } },
+      ];
+    }
 
-    res.json({ success: true, data: rateCards });
-  } catch (error) {
+    const isPaginated = page !== undefined || (per_page !== undefined && per_page !== 'all');
+    const pageNumber = Math.max(1, parseInt((page as string) || '1', 10));
+    const limit = Math.max(1, parseInt((per_page as string) || '10', 10));
+    const skip = (pageNumber - 1) * limit;
+
+    const [rateCards, total] = await Promise.all([
+      prisma.rateCard.findMany({
+        where: whereClause,
+        include: rateCardInclude,
+        ...(isPaginated ? { skip, take: limit } : {}),
+        orderBy: [{ route_origin: 'asc' }, { route_destination: 'asc' }, { createdAt: 'desc' }],
+      }),
+      prisma.rateCard.count({ where: whereClause }),
+    ]);
+
+    res.json({
+      success: true,
+      data: rateCards,
+      meta: {
+        page: isPaginated ? pageNumber : 1,
+        per_page: isPaginated ? limit : total,
+        total,
+        total_pages: isPaginated ? Math.ceil(total / limit) : 1,
+      },
+    });
+  } catch (error: any) {
+    logger.error({ err: error }, 'Failed to fetch rate cards');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch rate cards' } });
   }
 };

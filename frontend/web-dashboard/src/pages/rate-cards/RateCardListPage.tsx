@@ -60,6 +60,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+
 const RATE_CARD_EXPORT_HEADERS = [
   'Rate Card ID', 'Contract Name', 'Applies To', 'Route Origin', 'Route Destination',
   'Price per Trip (SAR)', 'Status', 'Linked Lane'
@@ -84,6 +86,7 @@ export default function RateCardListPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
   const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showPriceSummaryModal, setShowPriceSummaryModal] = useState(false);
   const [assignTarget, setAssignTarget] = useState<RateCard | null>(null);
@@ -92,6 +95,8 @@ export default function RateCardListPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -105,54 +110,57 @@ export default function RateCardListPage() {
     onConfirm: () => {},
   });
 
+  // Server-paginated query for the table / grid view
   const { data: response, isLoading, isError, error } = useQuery({
-    queryKey: ['rate-cards'],
-    queryFn: () => rateCardService.getAll(),
+    queryKey: ['rate-cards', { page: currentPage, per_page: pageSize, search: debouncedSearch, status: statusFilter }],
+    queryFn: () => rateCardService.getAll({
+      page: currentPage,
+      per_page: pageSize,
+      search: debouncedSearch || undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    }),
+  });
+
+  // Summary query for KPI cards across all rate cards
+  const { data: allResponse } = useQuery({
+    queryKey: ['rate-cards-summary'],
+    queryFn: () => rateCardService.getAll({ per_page: 'all' }),
   });
 
   const rateCards = response?.data || [];
+  const totalCount = response?.meta?.total ?? rateCards.length;
+  const totalPages = response?.meta?.total_pages ?? 1;
+
+  const allRateCards = allResponse?.data || rateCards;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['rate-cards'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['rate-cards'] }),
+      queryClient.invalidateQueries({ queryKey: ['rate-cards-summary'] }),
+    ]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  // Filtered rate cards
-  const filteredData = useMemo(() => {
-    return rateCards.filter((rc) => {
-      const matchesTerm = matchesSearch(search, [
-        rc.name,
-        rc.id,
-        rc.customer?.name,
-        rc.route_origin,
-        rc.route_destination,
-      ]);
+  // Filtered rate cards for view (data is already filtered server-side)
+  const filteredData = rateCards;
 
-      const matchesStatus =
-        statusFilter === 'all' ? true :
-        statusFilter === 'active' ? rc.is_active : !rc.is_active;
-
-      return matchesTerm && matchesStatus;
-    });
-  }, [rateCards, search, statusFilter]);
-
-  // Calculated KPIs
+  // Calculated KPIs from complete set
   const kpis = useMemo(() => {
-    const total = rateCards.length;
-    const activeCount = rateCards.filter(rc => rc.is_active).length;
+    const total = allRateCards.length;
+    const activeCount = allRateCards.filter(rc => rc.is_active).length;
     const activePct = total > 0 ? Math.round((activeCount / total) * 100) : 0;
 
-    const totalPrice = rateCards.reduce((acc, rc) => acc + (Number(rc.base_price) || 0), 0);
+    const totalPrice = allRateCards.reduce((acc, rc) => acc + (Number(rc.base_price) || 0), 0);
     const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
 
-    const laneKeys = new Set(rateCards.map(rc => `${rc.originLocationId}|${rc.destinationLocationId}`));
-    const uniqueCustomers = new Set(rateCards.map(rc => rc.customerId).filter(Boolean)).size;
+    const laneKeys = new Set(allRateCards.map(rc => `${rc.originLocationId}|${rc.destinationLocationId}`));
+    const uniqueCustomers = new Set(allRateCards.map(rc => rc.customerId).filter(Boolean)).size;
 
-    const unlinkedCount = rateCards.filter(rc => !rc.originLocationId || !rc.destinationLocationId).length;
+    const unlinkedCount = allRateCards.filter(rc => !rc.originLocationId || !rc.destinationLocationId).length;
 
     const routeCounts: Record<string, number> = {};
-    rateCards.forEach(rc => {
+    allRateCards.forEach(rc => {
       const routeKey = `${rc.route_origin} → ${rc.route_destination}`;
       routeCounts[routeKey] = (routeCounts[routeKey] || 0) + 1;
     });
@@ -657,10 +665,19 @@ export default function RateCardListPage() {
               errorMessage={(error as Error)?.message || 'Failed to load rate cards.'}
               searchPlaceholder="Search ID, customer, route..."
               searchValue={search}
-              onSearchChange={setSearch}
+              onSearchChange={(val) => {
+                setSearch(val);
+                setCurrentPage(1);
+              }}
               filterElement={
                 <div className="flex items-center gap-3">
-                  <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
+                  <Select
+                    value={statusFilter}
+                    onValueChange={(val: any) => {
+                      setStatusFilter(val);
+                      setCurrentPage(1);
+                    }}
+                  >
                     <SelectTrigger className="h-9 px-3 w-40 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
                       <div className="flex items-center gap-2">
                         <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
@@ -695,8 +712,15 @@ export default function RateCardListPage() {
                   </Select>
                 </div>
               }
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalRecords={totalCount}
+              onPageChange={(p) => setCurrentPage(p)}
               pageSize={pageSize}
-              onPageSizeChange={(size) => setPageSize(size)}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
               onRowClick={(row) => navigate(`/rate-cards/${row.id}`)}
             />
           </div>
