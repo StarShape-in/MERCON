@@ -522,6 +522,8 @@ export default function TripListPage() {
     const shareUrl = `${baseUrl}?text=${encodeURIComponent(whatsappMessageText)}`;
     window.open(shareUrl, '_blank');
     setWhatsappDialogOpen(false);
+  };
+
   const getDriverInitials = (driver?: { first_name?: string; last_name?: string } | null) => {
     if (!driver) return '—';
     const f = driver.first_name?.[0] || '';
@@ -651,6 +653,12 @@ export default function TripListPage() {
       className: 'w-[85px] text-right shrink-0',
       headerClassName: 'text-right',
       accessor: (row: Trip) => (
+        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400 transition-colors focus:outline-none cursor-pointer"
+                title="Trip Actions"
                 aria-label="Trip Actions"
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -1679,3 +1687,4 @@ export default function TripListPage() {
     </DashboardLayout>
   );
 }
+
