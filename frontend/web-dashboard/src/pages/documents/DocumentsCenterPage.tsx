@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { 
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import DataTable, { Column } from '@/components/ui/DataTable';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument } from '@/services/documentService';
 import { downloadCSV } from '@/utils/exportUtils';
@@ -115,6 +116,13 @@ export default function DocumentsCenterPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Reset page to 1 when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, expiryFilter, search]);
 
   // Queries
   const { data: docs = [], isLoading, isError } = useQuery({
@@ -225,6 +233,28 @@ export default function DocumentsCenterPage() {
   const safeCount = Math.max(0, totalDocsCount - expiringCount);
   const compliancePct = totalDocsCount > 0 ? Math.round((safeCount / totalDocsCount) * 100) : 100;
 
+  // Paginated Subset
+  const totalPages = Math.ceil(filteredDocs.length / pageSize) || 1;
+  const paginatedDocs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredDocs.slice(start, start + pageSize);
+  }, [filteredDocs, currentPage, pageSize]);
+
+  const handleDeleteDocument = async () => {
+    if (!deleteDocId) return;
+    setIsDeleting(true);
+    try {
+      await documentService.delete(deleteDocId);
+      toast.success('Document deleted successfully');
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      setDeleteDocId(null);
+    } catch (err) {
+      toast.error('Failed to delete document');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Selection handlers
   const toggleSelectAll = () => {
     if (selectedDocIds.length === filteredDocs.length) {
@@ -313,7 +343,6 @@ export default function DocumentsCenterPage() {
             icon={<FolderOpen className="w-4 h-4 text-[#E8450F]" />}
             trend="neutral"
             trendValue={`${totalDocsCount} active records`}
-            chartData={[12, 16, 14, 20, 24, 28, Math.max(10, totalDocsCount)]}
             isActive={activeCategory === 'All'}
             onClick={() => setActiveCategory('All')}
           />
@@ -323,9 +352,7 @@ export default function DocumentsCenterPage() {
             value={safeCount}
             variant="emerald"
             icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-            trend="up"
-            trendValue={`${compliancePct}% compliance rate`}
-            chartData={[80, 84, 88, 90, 92, 94, Math.max(10, safeCount)]}
+            completionGauge={{ percentage: compliancePct, label: 'Vault Compliance' }}
             isActive={expiryFilter === 'valid'}
             onClick={() => setExpiryFilter(expiryFilter === 'valid' ? 'all' : 'valid')}
           />
@@ -337,7 +364,6 @@ export default function DocumentsCenterPage() {
             icon={<Clock className="w-4 h-4 text-amber-600" />}
             trend={expiringCount > 0 ? 'down' : 'up'}
             trendValue={expiringCount > 0 ? `${expiringCount} files due renewal` : 'All docs valid'}
-            chartData={[4, 6, 5, 8, 7, 9, Math.max(1, expiringCount)]}
             isActive={expiryFilter === 'warning' || expiryFilter === 'critical'}
             onClick={() => setExpiryFilter(expiryFilter === 'warning' ? 'all' : 'warning')}
           />
@@ -349,7 +375,6 @@ export default function DocumentsCenterPage() {
             icon={<AlertTriangle className="w-4 h-4 text-rose-600" />}
             trend={expiredCount > 0 ? 'down' : 'neutral'}
             trendValue={expiredCount > 0 ? `${expiredCount} immediate action` : '0 expired files'}
-            chartData={[1, 3, 2, 4, 2, 3, Math.max(1, expiredCount)]}
             isActive={expiryFilter === 'expired'}
             onClick={() => setExpiryFilter(expiryFilter === 'expired' ? 'all' : 'expired')}
           />
@@ -485,73 +510,72 @@ export default function DocumentsCenterPage() {
             }
             columns={[
               {
-                header: 'Document Name',
+                header: 'Document File',
                 accessor: (row) => {
                   const DocIcon = DOC_TYPE_ICON[row.doc_type] ?? FileText;
                   const catCfg = CATEGORY_CONFIG[row.category];
                   return (
-                    <div className="flex items-center gap-3">
-                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', catCfg?.iconBg)}>
-                        <DocIcon className={cn('w-4 h-4', catCfg?.color)} />
+                    <div className="flex items-center gap-3 py-1">
+                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800', catCfg?.iconBg)}>
+                        <DocIcon className={cn('w-5 h-5', catCfg?.color)} />
                       </div>
                       <div>
                         <span 
                           onClick={() => setPreviewDoc(row)}
-                          className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer block"
+                          className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-[#E8450F] cursor-pointer block truncate max-w-[200px]"
                         >
                           {docTypeLabel(row.doc_type)}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">#{row.id.toString().slice(0, 8)}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">#DOC-{row.id.toString().slice(0, 8)}</span>
                       </div>
                     </div>
                   );
                 }
               },
               {
-                header: 'Entity Owner',
+                header: 'Category',
                 accessor: (row) => {
                   const catCfg = CATEGORY_CONFIG[row.category];
                   return (
-                    <div className="flex items-center gap-1.5">
-                      {catCfg && <catCfg.icon className={cn('w-3.5 h-3.5 shrink-0', catCfg.color)} />}
-                      <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[160px]">{row.entityName}</span>
-                    </div>
-                  );
-                }
-              },
-              {
-                header: 'Issuer Authority',
-                accessor: (row) => <span className="text-xs text-slate-500 font-medium">{row.issuer}</span>
-              },
-              {
-                header: 'Expiry Status',
-                accessor: (row) => {
-                  const expBadge = EXPIRY_BADGE[row.expStatus];
-                  return (
-                    <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border', expBadge.className)}>
-                      {row.expStatus === 'expired' || row.expStatus === 'critical' ? (
-                        <AlertTriangle className="w-2.5 h-2.5" />
-                      ) : row.expStatus === 'valid' ? (
-                        <CheckCircle2 className="w-2.5 h-2.5" />
-                      ) : row.expStatus === 'warning' ? (
-                        <Clock className="w-2.5 h-2.5" />
-                      ) : null}
-                      {expBadge.label}
+                    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border', catCfg?.iconBg, catCfg?.borderColor, catCfg?.color)}>
+                      <catCfg.icon className="w-3.5 h-3.5" />
+                      {row.category}
                     </span>
                   );
                 }
               },
               {
-                header: 'Days Left',
+                header: 'Entity Owner',
+                accessor: (row) => (
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-900 dark:text-slate-100 font-bold truncate max-w-[170px]">{row.entityName}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">{row.entity_type}</span>
+                  </div>
+                )
+              },
+              {
+                header: 'Issuer Authority',
+                accessor: (row) => <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold">{row.issuer}</span>
+              },
+              {
+                header: 'Uploaded Date',
+                accessor: (row) => (
+                  <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">
+                    {row.createdAt ? new Date(row.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                  </span>
+                )
+              },
+              {
+                header: 'Expiry Date',
                 accessor: (row) => (
                   row.expiry_date ? (
                     <div>
-                      <span className="text-xs text-slate-700 dark:text-slate-300 font-mono block">
+                      <span className="text-xs text-slate-900 dark:text-slate-100 font-mono font-bold block">
                         {new Date(row.expiry_date).toLocaleDateString()}
                       </span>
                       {row.daysLeft !== null && (
                         <span className={cn(
-                          'text-[10px] font-bold',
+                          'text-[10px] font-extrabold inline-block mt-0.5',
                           row.daysLeft <= 0 ? 'text-rose-600' : row.daysLeft <= 7 ? 'text-rose-500' : row.daysLeft <= 30 ? 'text-amber-600' : 'text-emerald-600'
                         )}>
                           {row.daysLeft <= 0 ? `${Math.abs(row.daysLeft)}d overdue` : `${row.daysLeft}d remaining`}
@@ -559,18 +583,36 @@ export default function DocumentsCenterPage() {
                       )}
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-400">—</span>
+                    <span className="text-xs text-slate-400 font-mono">No Expiry</span>
                   )
                 )
+              },
+              {
+                header: 'Status',
+                accessor: (row) => {
+                  const expBadge = EXPIRY_BADGE[row.expStatus];
+                  return (
+                    <span className={cn('inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border', expBadge.className)}>
+                      {row.expStatus === 'expired' || row.expStatus === 'critical' ? (
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                      ) : row.expStatus === 'valid' ? (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      ) : row.expStatus === 'warning' ? (
+                        <Clock className="w-3.5 h-3.5" />
+                      ) : null}
+                      {expBadge.label}
+                    </span>
+                  );
+                }
               },
               {
                 header: 'Actions',
                 headerClassName: 'text-right',
                 accessor: (row) => (
-                  <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => setPreviewDoc(row)}
-                      className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-colors"
+                      className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/40 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors border border-slate-200/60 dark:border-slate-700"
                       title="Preview File"
                     >
                       <Eye size={14} />
@@ -578,18 +620,51 @@ export default function DocumentsCenterPage() {
                     <a
                       href={row.file_url}
                       download
-                      className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                      className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors border border-slate-200/60 dark:border-slate-700"
                       title="Download File"
                     >
                       <Download size={14} />
                     </a>
+                    <button
+                      onClick={() => setDeleteDocId(row.id)}
+                      className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center text-slate-400 hover:text-rose-600 transition-colors border border-slate-200/60 dark:border-slate-700"
+                      title="Delete Document"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 )
               }
             ]}
-            data={filteredDocs}
-            compact={true}
+            data={paginatedDocs}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(p) => setCurrentPage(p)}
+            pageSize={pageSize}
+            onPageSizeChange={(sz) => {
+              setPageSize(sz);
+              setCurrentPage(1);
+            }}
+            totalRecords={filteredDocs.length}
+            pageSizeOptions={[10, 25, 50, 100]}
             bulkActions={[
+              {
+                label: 'Bulk Download ZIP',
+                icon: <Download size={13} />,
+                variant: 'secondary' as const,
+                onClick: async (selectedRows: EnrichedDocument[]) => {
+                  const ids = selectedRows.map(r => r.id);
+                  const blob = await documentService.bulkDownloadZip(ids);
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `documents-${new Date().toISOString().slice(0, 10)}.zip`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }
+              },
               {
                 label: 'Export CSV',
                 icon: <Download size={13} />,
@@ -601,46 +676,9 @@ export default function DocumentsCenterPage() {
             ]}
             enableSelection={true}
             isLoading={isLoading}
-            searchPlaceholder="Search by file name, driver, vehicle plate, or issuer..."
+            searchPlaceholder="Search by document name, owner, vehicle plate, or issuer..."
             searchValue={search}
             onSearchChange={setSearch}
-            filterElement={
-              <Select value={expiryFilter} onValueChange={(v) => setExpiryFilter(v as any)}>
-                <SelectTrigger className="h-9 w-44 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus-visible:ring-[#E8450F]/20">
-                  <div className="flex items-center gap-1.5">
-                    <Filter className="w-3.5 h-3.5 text-slate-400" />
-                    <SelectValue placeholder="Expiry Status" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-xs font-semibold">All Statuses</SelectItem>
-                  <SelectItem value="expired" className="text-xs text-rose-600 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
-                      <span>Expired</span>
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="critical" className="text-xs text-rose-500 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      <span>Critical (&lt;7d)</span>
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="warning" className="text-xs text-amber-600 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                      <span>Due Soon (&lt;30d)</span>
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="valid" className="text-xs text-emerald-600 font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Valid</span>
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            }
             onRowClick={(row) => setPreviewDoc(row)}
           />
         ) : (
@@ -681,7 +719,7 @@ export default function DocumentsCenterPage() {
                     <div>
                       <h4 
                         onClick={() => setPreviewDoc(doc)}
-                        className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-indigo-600 cursor-pointer truncate"
+                        className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-[#E8450F] cursor-pointer truncate"
                       >
                         {docTypeLabel(doc.doc_type)}
                       </h4>
@@ -711,7 +749,7 @@ export default function DocumentsCenterPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setPreviewDoc(doc)}
-                      className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 gap-1"
+                      className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#E8450F] gap-1"
                     >
                       <Eye size={13} /> Preview
                     </Button>
@@ -738,7 +776,7 @@ export default function DocumentsCenterPage() {
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-indigo-600" />
+                <FileText className="w-5 h-5 text-[#E8450F]" />
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
                   {previewDoc ? docTypeLabel(previewDoc.doc_type) : 'Document Preview'}
                 </DialogTitle>
@@ -750,7 +788,7 @@ export default function DocumentsCenterPage() {
             <div className="p-6 space-y-5">
               {/* Document File Viewer Placeholder Card */}
               <div className="w-full h-48 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 p-4 text-center">
-                <FileText className="w-8 h-8 text-orange-500 dark:text-orange-400" />
+                <FileText className="w-8 h-8 text-[#E8450F]" />
                 <div>
                   <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
                     {docTypeLabel(previewDoc.doc_type)} File
@@ -761,7 +799,7 @@ export default function DocumentsCenterPage() {
                   href={previewDoc.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-[#E8450F] hover:underline"
                 >
                   <ExternalLink size={13} /> Open Full Resolution File
                 </a>
@@ -818,6 +856,18 @@ export default function DocumentsCenterPage() {
         entityType="Driver"
         entityId={drivers[0]?.id || '1'}
         onUploadSuccess={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}
+      />
+
+      {/* ── Confirm Delete Modal ─────────────────────────────────────────── */}
+      <ConfirmModal
+        isOpen={!!deleteDocId}
+        onClose={() => setDeleteDocId(null)}
+        onConfirm={handleDeleteDocument}
+        title="Delete Vault Document"
+        message="Are you sure you want to permanently delete this document record from the compliance vault? This action cannot be undone."
+        confirmLabel="Delete Document"
+        isDestructive={true}
+        isLoading={isDeleting}
       />
     </DashboardLayout>
   );
