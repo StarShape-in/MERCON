@@ -199,6 +199,8 @@ export const getRateCards = async (req: Request, res: Response) => {
       status,
       origin_location_id,
       destination_location_id,
+      vehicle_type,
+      rate_category,
       search,
       page,
       per_page,
@@ -214,6 +216,8 @@ export const getRateCards = async (req: Request, res: Response) => {
     if (origin_location_id) whereClause.originLocationId = origin_location_id as string;
     if (destination_location_id) whereClause.destinationLocationId = destination_location_id as string;
     if (customerId) whereClause.customerId = customerId as string;
+    if (vehicle_type) whereClause.vehicle_type = vehicle_type as string;
+    if (rate_category) whereClause.rate_category = rate_category as string;
 
     if (search && typeof search === 'string' && search.trim()) {
       const term = search.trim();

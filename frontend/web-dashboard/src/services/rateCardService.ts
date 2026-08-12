@@ -60,6 +60,8 @@ export interface RateCardListParams {
   active_only?: boolean;
   origin_location_id?: string;
   destination_location_id?: string;
+  vehicle_type?: string;
+  rate_category?: string;
   page?: number;
   per_page?: number | 'all';
   search?: string;
@@ -87,6 +89,8 @@ export const rateCardService = {
         ...(params?.active_only ? { active_only: 'true' } : {}),
         ...(params?.origin_location_id ? { origin_location_id: params.origin_location_id } : {}),
         ...(params?.destination_location_id ? { destination_location_id: params.destination_location_id } : {}),
+        ...(params?.vehicle_type ? { vehicle_type: params.vehicle_type } : {}),
+        ...(params?.rate_category ? { rate_category: params.rate_category } : {}),
         ...(params?.page ? { page: params.page } : {}),
         ...(params?.per_page ? { per_page: params.per_page } : {}),
         ...(params?.search ? { search: params.search } : {}),

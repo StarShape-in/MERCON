@@ -31,6 +31,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { RouteCorridorKpi } from '@/components/ui/CustomKpiWidgets';
 import { RevenueChart, CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
+import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
 import AssignRateCardDialog from '@/components/rate-cards/AssignRateCardDialog';
@@ -84,6 +85,8 @@ export default function RateCardListPage() {
   
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>('');
+  const [rateCategoryFilter, setRateCategoryFilter] = useState<string>('');
   const [viewMode, setViewMode] = useState<'ledger' | 'grid'>('ledger');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -112,12 +115,14 @@ export default function RateCardListPage() {
 
   // Server-paginated query for the table / grid view
   const { data: response, isLoading, isError, error } = useQuery({
-    queryKey: ['rate-cards', { page: currentPage, per_page: pageSize, search: debouncedSearch, status: statusFilter }],
+    queryKey: ['rate-cards', { page: currentPage, per_page: pageSize, search: debouncedSearch, status: statusFilter, vehicle_type: vehicleTypeFilter, rate_category: rateCategoryFilter }],
     queryFn: () => rateCardService.getAll({
       page: currentPage,
       per_page: pageSize,
       search: debouncedSearch || undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
+      vehicle_type: vehicleTypeFilter || undefined,
+      rate_category: rateCategoryFilter || undefined,
     }),
   });
 
@@ -591,21 +596,38 @@ export default function RateCardListPage() {
         </div>
 
         {/* Active Filter Indicator Banner */}
-        {statusFilter !== 'all' && (
+        {(statusFilter !== 'all' || vehicleTypeFilter || rateCategoryFilter) && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
               <span>
                 Filtered by:{' '}
-                <span className="mr-2">
-                  Status: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
-                </span>
-                ({filteredData.length} agreement{filteredData.length === 1 ? '' : 's'} matching)
+                {statusFilter !== 'all' && (
+                  <span className="mr-2">
+                    Status: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
+                  </span>
+                )}
+                {vehicleTypeFilter && (
+                  <span className="mr-2">
+                    Vehicle Type: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{vehicleTypeFilter}</strong>
+                  </span>
+                )}
+                {rateCategoryFilter && (
+                  <span className="mr-2">
+                    Rate Category: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{rateCategoryFilter}</strong>
+                  </span>
+                )}
+                ({totalCount} agreement{totalCount === 1 ? '' : 's'} matching)
               </span>
             </div>
             <button
-              onClick={() => setStatusFilter('all')}
-              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+              onClick={() => {
+                setStatusFilter('all');
+                setVehicleTypeFilter('');
+                setRateCategoryFilter('');
+                setCurrentPage(1);
+              }}
+              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 shrink-0"
             >
               <span>Show All Rates</span>
               <X className="w-3 h-3 shrink-0" />
@@ -691,6 +713,72 @@ export default function RateCardListPage() {
                             Inactive Only
                           </span>
                         </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={vehicleTypeFilter || 'all'}
+                    onValueChange={(val: string) => {
+                      setVehicleTypeFilter(val === 'all' ? '' : val);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 px-3 w-44 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        <SelectValue placeholder="Vehicle Type" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                      <SelectGroup>
+                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                          Vehicle Type
+                        </SelectLabel>
+                        <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700">
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            All Vehicle Types
+                          </span>
+                        </SelectItem>
+                        {VEHICLE_TYPES.map((vType) => (
+                          <SelectItem key={vType} value={vType} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                            {vType}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={rateCategoryFilter || 'all'}
+                    onValueChange={(val: string) => {
+                      setRateCategoryFilter(val === 'all' ? '' : val);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                        <SelectValue placeholder="Rate Category" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent align="start" className="w-56 max-h-[320px] p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                      <SelectGroup>
+                        <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                          Rate Category
+                        </SelectLabel>
+                        <SelectItem value="all" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700">
+                            <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                            All Rate Categories
+                          </span>
+                        </SelectItem>
+                        {RATE_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                            {cat}
+                          </SelectItem>
+                        ))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
