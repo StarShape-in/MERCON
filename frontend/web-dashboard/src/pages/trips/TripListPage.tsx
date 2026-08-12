@@ -522,8 +522,6 @@ export default function TripListPage() {
     const shareUrl = `${baseUrl}?text=${encodeURIComponent(whatsappMessageText)}`;
     window.open(shareUrl, '_blank');
     setWhatsappDialogOpen(false);
-  };
-
   const getDriverInitials = (driver?: { first_name?: string; last_name?: string } | null) => {
     if (!driver) return '—';
     const f = driver.first_name?.[0] || '';
@@ -533,42 +531,48 @@ export default function TripListPage() {
 
   const columns = [
     {
-      header: 'TRIP ID',
-      className: 'whitespace-nowrap',
+      header: 'Trip ID',
+      className: 'w-[90px] shrink-0',
       accessor: (row: Trip) => (
-        <span className="font-mono text-xs font-bold text-[#E8450F]">
-          {row.ref_id || 'Draft'}
-        </span>
-      ),
-    },
-    {
-      header: 'CUSTOMER',
-      className: 'whitespace-nowrap max-w-[180px]',
-      accessor: (row: Trip) => (
-        <div className="flex items-center min-w-0 max-w-[180px]">
-          <span className="font-bold text-xs text-slate-900 dark:text-slate-100 leading-snug truncate" title={row.customer?.name}>
-            {row.customer?.name || '—'}
+        <div className="flex items-center gap-1">
+          <span className="font-mono text-xs font-bold text-[#E8450F] truncate">
+            {row.ref_id || 'Draft'}
           </span>
         </div>
       ),
     },
     {
-      header: 'ROUTE',
-      className: 'whitespace-nowrap min-w-[150px]',
+      header: 'Customer',
+      className: 'max-w-[130px] truncate',
+      accessor: (row: Trip) => (
+        <div className="flex flex-col max-w-[130px] truncate">
+          <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 leading-tight truncate" title={row.customer?.name}>
+            {row.customer?.name || '—'}
+          </span>
+          {row.customer?.contact_phone && (
+            <span className="text-[10px] text-slate-400 font-mono truncate" title={row.customer.contact_phone}>
+              {row.customer.contact_phone}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Route',
+      className: 'max-w-[170px] truncate',
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         return (
-          <div className="flex flex-col gap-0.5 py-0.5 min-w-[130px]">
-            <div className="flex items-center gap-2 min-w-0" title={`Pickup: ${pickup.name}${pickup.address ? ` (${pickup.address})` : ''}`}>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+          <div className="flex flex-col gap-0.5 py-0.5 max-w-[170px] truncate" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {pickup.name}
               </span>
             </div>
-            <div className="ml-[3px] w-0 h-1.5 border-l-2 border-dotted border-slate-300 dark:border-slate-600 my-0.5" />
-            <div className="flex items-center gap-2 min-w-0" title={`Dropoff: ${dropoff.name}${dropoff.address ? ` (${dropoff.address})` : ''}`}>
-              <span className="w-2 h-2 rounded-full bg-[#E8450F] shrink-0" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E8450F] shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {dropoff.name}
               </span>
@@ -578,105 +582,75 @@ export default function TripListPage() {
       },
     },
     {
-      header: 'DRIVER',
-      className: 'whitespace-nowrap max-w-[180px]',
-      accessor: (row: Trip) => {
-        const initials = getDriverInitials(row.driver);
-        const fullName = row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : null;
-        return (
-          <div className="flex items-center gap-2 max-w-[180px]">
-            <div className="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 font-bold text-[11px] flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/50">
-              {initials}
-            </div>
-            <div className="flex flex-col min-w-0 truncate">
-              {fullName ? (
-                <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate" title={fullName}>
-                  {fullName}
-                </span>
-              ) : (
-                <span className="text-xs text-slate-400 dark:text-slate-500 italic">
-                  Unassigned
-                </span>
-              )}
-            </div>
+      header: 'Driver',
+      className: 'max-w-[120px] truncate',
+      accessor: (row: Trip) => (
+        <div className="flex items-center gap-1.5 max-w-[120px] truncate">
+          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
+            {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
           </div>
-        );
-      },
-    },
-    {
-      header: 'VEHICLE',
-      className: 'whitespace-nowrap',
-      accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5">
-          <Truck size={13} className="text-slate-400 shrink-0" />
-          {row.vehicle?.plate_number ? (
-            <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded truncate">
-              {row.vehicle.plate_number}
-            </span>
-          ) : (
-            <span className="text-xs text-slate-400 dark:text-slate-500 italic">
-              Unassigned
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      header: 'RATE (SAR)',
-      className: 'whitespace-nowrap',
-      accessor: (row: Trip) => {
-        const price = row.billing_amount ?? row.trip_charges ?? row.rateCard?.base_price;
-        const currency = row.rateCard?.currency || 'SAR';
-        const hasPrice = price !== undefined && price !== null && Number(price) > 0;
-        const formattedPrice = hasPrice
-          ? `${currency} ${Number(price).toLocaleString('en-US')}`
-          : '—';
-        const rateType = row.rateCard?.name || (hasPrice ? 'Fixed' : null);
-
-        return (
-          <div className="flex flex-col gap-0.5">
-            <span className="font-bold text-xs text-slate-900 dark:text-slate-100 font-mono">
-              {formattedPrice}
-            </span>
-            {rateType && (
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">
-                {rateType}
-              </span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      header: 'STATUS',
-      className: 'whitespace-nowrap',
-      accessor: (row: Trip) => (
-        <StatusBadge status={row.status} />
-      ),
-    },
-    {
-      header: 'PLANNED START',
-      className: 'whitespace-nowrap',
-      accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
-          <CalendarIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>
-            {row.planned_start ? format(new Date(row.planned_start), 'd MMM yyyy') : '—'}
+          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}>
+            {row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}
           </span>
         </div>
       ),
     },
     {
-      header: 'ACTIONS',
-      className: 'whitespace-nowrap text-right',
+      header: 'Vehicle',
+      className: 'w-[95px] shrink-0',
+      accessor: (row: Trip) => (
+        <div className="flex items-center gap-1">
+          <Truck size={12} className="text-slate-400 shrink-0" />
+          {row.vehicle?.plate_number ? (
+            <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate">
+              {row.vehicle.plate_number}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400 italic">Unassigned</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Rate (SAR)',
+      className: 'w-[100px] shrink-0',
+      accessor: (row: Trip) => {
+        const price = row.billing_amount ?? row.trip_charges ?? row.rateCard?.base_price;
+        return (
+          <div className="flex flex-col font-mono text-xs">
+            <span className="font-extrabold text-slate-900 dark:text-slate-200">
+              {price !== undefined && price !== null && price > 0
+                ? `SAR ${Number(price).toLocaleString('en-US')}`
+                : '—'}
+            </span>
+            <span className="text-[9px] text-slate-400">
+              {row.rateCard ? 'Fixed' : 'Manual'}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Status',
+      className: 'w-[105px] shrink-0',
+      accessor: (row: Trip) => (
+        <StatusBadge status={row.status} />
+      ),
+    },
+    {
+      header: 'Planned Start',
+      className: 'w-[95px] shrink-0',
+      accessor: (row: Trip) => (
+        <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
+          {row.planned_start ? new Date(row.planned_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Actions',
+      className: 'w-[85px] text-right shrink-0',
       headerClassName: 'text-right',
       accessor: (row: Trip) => (
-        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400 transition-colors focus:outline-none cursor-pointer"
-                title="Trip Actions"
                 aria-label="Trip Actions"
               >
                 <MoreHorizontal className="h-4 w-4" />
