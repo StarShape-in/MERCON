@@ -75,12 +75,12 @@ export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps)
         <Table>
           <TableHeader>
             <TableRow>
+              {/* Route, category and amount are one click away in the detail
+                  dialog — keeping them out of the row is what makes the row
+                  scannable at a glance instead of a wall of columns. */}
               <TableHead className="h-9 px-5">Date</TableHead>
               <TableHead className="h-9 px-4">Driver</TableHead>
               <TableHead className="h-9 px-4">Vehicle</TableHead>
-              <TableHead className="h-9 px-4">Route</TableHead>
-              <TableHead className="h-9 px-4">Category</TableHead>
-              <TableHead className="h-9 px-4">Amount</TableHead>
               <TableHead className="h-9 px-4">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -125,35 +125,6 @@ function TripRow({ trip, onOpen }: { trip: MonthlyBoardTrip; onOpen: () => void 
         ) : (
           <span className="text-xs font-semibold text-amber-700">Not assigned</span>
         )}
-      </TableCell>
-      <TableCell className="px-4 py-2.5 max-w-[180px]">
-        {(trip.origin || trip.destination) ? (
-          <span
-            className="block text-xs text-[#6E6E80] truncate"
-            title={`${trip.origin ?? '—'} → ${trip.destination ?? '—'}`}
-          >
-            {trip.origin ?? '—'} → {trip.destination ?? '—'}
-          </span>
-        ) : (
-          <span className="text-xs text-[#9898A4]">—</span>
-        )}
-      </TableCell>
-      <TableCell className="px-4 py-2.5 max-w-[140px]">
-        {(trip.rate_category || trip.vehicle_type) ? (
-          <span
-            className="inline-block rounded-md bg-black/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-[#6E6E80] truncate max-w-full"
-            title={[trip.rate_category, trip.vehicle_type].filter(Boolean).join(' · ')}
-          >
-            {[trip.rate_category, trip.vehicle_type].filter(Boolean).join(' · ')}
-          </span>
-        ) : (
-          <span className="text-xs text-[#9898A4]">—</span>
-        )}
-      </TableCell>
-      <TableCell className="px-4 py-2.5 whitespace-nowrap">
-        <span className="text-xs font-bold text-[#111111]">
-          {trip.billing_amount != null ? formatMoney(trip.billing_amount, trip.currency) : '—'}
-        </span>
       </TableCell>
       <TableCell className="px-4 py-2.5">
         <StatusBadge status={trip.status} />
