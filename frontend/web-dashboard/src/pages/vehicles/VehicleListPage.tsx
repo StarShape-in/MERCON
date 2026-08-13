@@ -529,15 +529,7 @@ export default function VehicleListPage() {
       header: 'Actions',
       accessor: (row: Vehicle) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button 
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/vehicles/${row.id}`)}
-            className="h-8 w-8 p-0 text-slate-500 hover:text-indigo-600"
-            title="View Details"
-          >
-            <Eye size={14} />
-          </Button>
+
 
           {/* Workshop toggle — one click, deliberately outside the ⋮ menu since it is the
               action operators reach for most on this page. */}
@@ -550,7 +542,6 @@ export default function VehicleListPage() {
               title="Click to view maintenance details"
             >
               <Wrench size={14} />
-              <span className="hidden xl:inline">In maintenance</span>
             </Button>
           ) : (
             <Button
@@ -561,7 +552,6 @@ export default function VehicleListPage() {
               title="Open a service order and move this vehicle into Maintenance"
             >
               <Wrench size={14} />
-              <span className="hidden xl:inline">To workshop</span>
             </Button>
           )}
 
