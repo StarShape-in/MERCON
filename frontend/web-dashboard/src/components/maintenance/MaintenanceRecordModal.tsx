@@ -174,32 +174,25 @@ export default function MaintenanceRecordModal({
     ? `Add Maintenance (${bulkVehicles.length} Vehicles)`
     : 'Add Maintenance Record';
 
-  const statusHint: Record<string, string> = {
-    Scheduled: 'Future service — not yet started.',
-    In_Progress: 'Vehicle is currently in the workshop.',
-    Completed: 'Service finished — logging record.',
-    Cancelled: 'Planned service that was cancelled.',
-  };
-
   return (
     <Dialog open={open} onOpenChange={(val) => !isSaving && onOpenChange(val)}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-xl md:max-w-2xl lg:max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[92vh] flex flex-col">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-xl md:max-w-2xl lg:max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 max-h-[92vh] flex flex-col shadow-2xl">
         
-        {/* Header Bar */}
-        <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900 shrink-0">
-          <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-[#E8450F]">
+        {/* Crisp Header Bar */}
+        <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 shrink-0">
+          <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] border border-orange-200/60 dark:border-orange-900/40">
               <ClipboardList className="w-5 h-5" />
             </div>
             <span>{modalTitle}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500 mt-1">
-            Log a completed repair, record an active workshop visit, or schedule future maintenance.
+            Fill out vehicle maintenance details below.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Form Body */}
-        <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
+        {/* Clean Form Body */}
+        <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-white dark:bg-slate-950">
           
           {formError && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
@@ -218,24 +211,25 @@ export default function MaintenanceRecordModal({
             </div>
           )}
 
-          {/* Section 1: Asset & Status */}
-          <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 space-y-3">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-[#E8450F]" />
-              <span>Asset &amp; Classification</span>
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Section 1: Vehicle & Classification */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Truck className="w-4 h-4 text-[#E8450F]" />
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                Asset &amp; Classification
+              </h3>
+            </div>
 
-              {/* Vehicle Asset */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
               {!isBulk && (
                 <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-                  <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Vehicle Asset *</Label>
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle Asset *</Label>
                   <Select
                     value={formData.vehicle_id}
                     onValueChange={handleVehicleChange}
                     disabled={!!editingRecord}
                   >
-                    <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold">
+                    <SelectTrigger className="h-9.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold rounded-xl">
                       <SelectValue placeholder="Select Vehicle" />
                     </SelectTrigger>
                     <SelectContent>
@@ -249,14 +243,13 @@ export default function MaintenanceRecordModal({
                 </div>
               )}
 
-              {/* Maintenance Type */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Maintenance Type *</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Maintenance Type *</Label>
                 <Select
                   value={formData.maintenance_type}
                   onValueChange={(val: MaintenanceType) => setFormData(prev => ({ ...prev, maintenance_type: val }))}
                 >
-                  <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <SelectTrigger className="h-9.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
                     <SelectValue placeholder="Select Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -269,14 +262,13 @@ export default function MaintenanceRecordModal({
                 </Select>
               </div>
 
-              {/* Status */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Status *</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Status *</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(val: MaintenanceStatus) => setFormData(prev => ({ ...prev, status: val }))}
                 >
-                  <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <SelectTrigger className="h-9.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -308,22 +300,22 @@ export default function MaintenanceRecordModal({
                 </Select>
               </div>
             </div>
-            {statusHint[formData.status as string] && (
-              <p className="text-[11px] text-slate-500 italic pt-0.5">{statusHint[formData.status as string]}</p>
-            )}
           </div>
 
-          {/* Section 2: Schedule & Workshop */}
-          <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 space-y-3">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <CalendarDays className="w-3.5 h-3.5 text-[#E8450F]" />
-              <span>Schedule &amp; Workshop Details</span>
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <hr className="border-slate-100 dark:border-slate-800/80" />
 
-              {/* Start Date */}
+          {/* Section 2: Dates, Workshop & Cost */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-[#E8450F]" />
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                Dates, Workshop &amp; Expenses
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   {formData.status === 'Scheduled' ? 'Scheduled Date *' : 'Service Date *'}
                 </Label>
                 <Input
@@ -337,13 +329,12 @@ export default function MaintenanceRecordModal({
                       end_date: prev.end_date && prev.end_date < start_date ? start_date : prev.end_date,
                     }));
                   }}
-                  className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  className="h-9.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
                 />
               </div>
 
-              {/* End Date */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   {formData.status === 'Scheduled' ? 'Expected Completion' : 'Completion Date'}
                 </Label>
                 <Input
@@ -351,39 +342,36 @@ export default function MaintenanceRecordModal({
                   value={formData.end_date || ''}
                   min={formData.start_date || undefined}
                   onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  className="h-9.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
                 />
               </div>
 
-              {/* Workshop Name */}
               <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Workshop / Service Center *</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Workshop / Service Center *</Label>
                 <WorkshopField
                   value={formData.workshop_name}
                   onChange={(name) => setFormData(prev => ({ ...prev, workshop_name: name }))}
                   onPick={(w) => setFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
-                  placeholder="Select Saved Workshop"
-                  className="h-9"
+                  placeholder="Select or enter workshop name"
+                  className="h-9.5"
                 />
               </div>
 
-              {/* Workshop Contact */}
               <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Workshop Contact Phone</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Workshop Contact Phone</Label>
                 <div className="relative">
                   <Phone className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     value={formData.workshop_contact || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
                     placeholder="+966 5x xxx xxxx"
-                    className="h-9 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
                   />
                 </div>
               </div>
 
-              {/* Expense Cost */}
               <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Cost / Expense (SAR)</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Cost / Expense (SAR)</Label>
                 <div className="relative">
                   <DollarSign className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
@@ -393,28 +381,32 @@ export default function MaintenanceRecordModal({
                     value={formData.cost}
                     onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
                     placeholder="0.00"
-                    className="h-9 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold"
+                    className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold rounded-xl"
                   />
                 </div>
               </div>
-
             </div>
           </div>
 
-          {/* Section 3: Work Done & Remarks */}
-          <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 space-y-4">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Wrench className="w-3.5 h-3.5 text-[#E8450F]" />
-              <span>Service Work &amp; Notes</span>
-            </p>
+          <hr className="border-slate-100 dark:border-slate-800/80" />
 
+          {/* Section 3: Work Done & Notes */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-[#E8450F]" />
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                Service Details &amp; Notes
+              </h3>
+            </div>
+
+            {/* Selectable Service Details Field */}
             <WorkDoneSelect
               value={formData.work_done || ''}
               onChange={(text) => setFormData(prev => ({ ...prev, work_done: text }))}
             />
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Additional Remarks / Internal Notes</Label>
+            <div className="space-y-1.5 pt-1">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Additional Remarks / Notes</Label>
               <textarea
                 value={formData.remarks || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
@@ -426,7 +418,7 @@ export default function MaintenanceRecordModal({
           </div>
 
           {/* Footer Actions */}
-          <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0">
+          <DialogFooter className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-2 shrink-0 bg-white dark:bg-slate-950">
             <Button
               type="button"
               variant="ghost"
@@ -453,7 +445,6 @@ export default function MaintenanceRecordModal({
   );
 }
 
-// Re-export old name as alias so existing imports don't break during migration
 export { MaintenanceRecordModal as ScheduleMaintenanceModal };
 export type { MaintenanceRecordModalProps as ScheduleMaintenanceModalProps };
 export type { MaintenanceRecordModalVehicle as ScheduleMaintenanceModalVehicle };

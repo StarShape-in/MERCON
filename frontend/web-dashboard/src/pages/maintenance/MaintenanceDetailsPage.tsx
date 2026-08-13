@@ -390,14 +390,7 @@ export default function MaintenanceDetailsPage() {
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
-              </div>
 
-              <Button variant="outline" size="sm" onClick={handleOpenEditModal} className="h-9 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 shadow-2xs">
-                <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                Edit
-              </Button>
-
-              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white shadow-sm">
                     Update status
