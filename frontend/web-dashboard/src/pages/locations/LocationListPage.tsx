@@ -108,9 +108,34 @@ function FlyToLocation({ center }: { center: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
     if (center) {
-      map.flyTo(center, 13, { animate: true, duration: 1.2 });
+      map.flyTo(center, 14, { animate: true, duration: 1.2 });
     }
   }, [center, map]);
+  return null;
+}
+
+/**
+ * Leaflet measures its container in pixels the moment it mounts. This map
+ * only mounts when the user switches to the Map tab, and at that instant the
+ * grid/sidebar layout around it hasn't always finished settling — so Leaflet
+ * can cache a stale (or zero) size. Everything downstream (marker placement,
+ * flyTo panning) is then computed against that wrong size, so pins land off
+ * to the side and "fly to" doesn't visibly move anywhere. Re-measuring after
+ * mount, and again on any resize, keeps Leaflet's internal size in sync with
+ * what's actually on screen.
+ */
+function MapAutoSize() {
+  const map = useMap();
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => map.invalidateSize());
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
+  }, [map]);
   return null;
 }
 
@@ -753,6 +778,9 @@ export default function LocationListPage() {
                     url={currentTheme.url}
                     attribution={currentTheme.attribution}
                   />
+
+                  {/* Keep Leaflet's cached container size correct on this tab */}
+                  <MapAutoSize />
 
                   {/* Fly to selection helper */}
                   <FlyToLocation center={selectedMapCenter} />
