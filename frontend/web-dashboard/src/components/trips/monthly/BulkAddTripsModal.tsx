@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   Download,
   RotateCcw,
+  Clock,
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -110,6 +111,8 @@ export default function BulkAddTripsModal({
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
   const [contractOrigin, setContractOrigin] = useState('');
   const [contractDestination, setContractDestination] = useState('');
+  const [contractPickupTime, setContractPickupTime] = useState('08:00');
+  const [contractDropoffTime, setContractDropoffTime] = useState('18:00');
   const [intermediateLocations, setIntermediateLocations] = useState<string[]>([]);
   const [contractBillingAmount, setContractBillingAmount] = useState('');
 
@@ -350,7 +353,7 @@ export default function BulkAddTripsModal({
       const assignment = dayAssignments[date] || { driverId: '', vehicleId: '' };
       return {
         customer_id: contractCustomer,
-        planned_start: date,
+        planned_start: contractPickupTime ? `${date}T${contractPickupTime}:00` : date,
         driver_id: assignment.driverId || undefined,
         vehicle_id: assignment.vehicleId || undefined,
         rate_category: contractRateCategory || undefined,
@@ -621,7 +624,7 @@ export default function BulkAddTripsModal({
                           </Button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
                               Origin / Pickup (Optional)
@@ -632,6 +635,18 @@ export default function BulkAddTripsModal({
                               onChange={(e) => setContractOrigin(e.target.value)}
                               placeholder="e.g. Riyadh Sorting Yard"
                               className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-400" /> Pickup Time
+                            </label>
+                            <input
+                              type="time"
+                              value={contractPickupTime}
+                              onChange={(e) => setContractPickupTime(e.target.value)}
+                              className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F] bg-white cursor-pointer"
                             />
                           </div>
 
@@ -681,7 +696,7 @@ export default function BulkAddTripsModal({
                               >
                                 <RotateCcw className="w-3 h-3 text-[#E8450F]" />
                                 {contractOrigin.trim() && contractDestination.trim() === contractOrigin.trim()
-                                  ? '🔁 Same as Origin (Round Trip)'
+                                  ? '🔁 Same as Origin'
                                   : 'Same as Origin'}
                               </button>
                             </div>
@@ -695,6 +710,18 @@ export default function BulkAddTripsModal({
                                   ? 'border-emerald-300 bg-emerald-50/20 text-emerald-900 font-semibold'
                                   : 'border-black/10'
                               }`}
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-400" /> Drop-off Time
+                            </label>
+                            <input
+                              type="time"
+                              value={contractDropoffTime}
+                              onChange={(e) => setContractDropoffTime(e.target.value)}
+                              className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F] bg-white cursor-pointer"
                             />
                           </div>
 
