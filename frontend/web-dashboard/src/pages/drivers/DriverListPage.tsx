@@ -2,33 +2,31 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Plus, 
+import {
+  Plus,
   Download, UploadCloud,
-  Eye, 
-  Edit2, 
+  Edit2,
   Trash2,
   Search,
   AlertTriangle,
-  RefreshCw, 
-  User, 
+  User,
   Users,
-  CheckCircle2, 
-  RotateCw, 
-  List, 
-  LayoutGrid, 
-  ShieldAlert, 
-  Phone, 
-  FileText, 
-  ChevronDown, 
-  Filter, 
+  CheckCircle2,
+  RotateCw,
+  List,
+  LayoutGrid,
+  ShieldAlert,
+  Phone,
+  ChevronDown,
+  Filter,
   Layers,
   CheckCircle,
   XCircle,
   X,
   Send,
   Calendar as CalendarIcon,
-  Truck
+  Truck,
+  MoreHorizontal,
 } from 'lucide-react';
 import { DriverBadge, CheckBadge, RouteLine, TruckMotion, RiskAlert } from '@/components/ui/kpi-icons';
 import KpiCard from '@/components/ui/KpiCard';
@@ -93,10 +91,10 @@ export default function DriverListPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   
-  // Quick status update dialog state
-  const [statusDialogDriver, setStatusDialogDriver] = useState<Driver | null>(null);
-  const [newStatus, setNewStatus] = useState<DriverStatus>('Available');
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  // WhatsApp share dialog state
+  const [whatsappDriver, setWhatsappDriver] = useState<Driver | null>(null);
+  const [whatsappMessageText, setWhatsappMessageText] = useState('');
+  const [whatsappCustomPhone, setWhatsappCustomPhone] = useState('');
   const [showMotModal, setShowMotModal] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -171,18 +169,26 @@ export default function DriverListPage() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const handleUpdateStatus = async () => {
-    if (!statusDialogDriver) return;
-    setIsUpdatingStatus(true);
-    try {
-      await driverService.update(statusDialogDriver.id, { status: newStatus });
-      queryClient.invalidateQueries({ queryKey: ['drivers'] });
-      setStatusDialogDriver(null);
-    } catch (err) {
-      toast.error('Failed to update driver status.');
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+  const openWhatsappShare = (driver: Driver) => {
+    setWhatsappDriver(driver);
+    const text = `🚚 *MERCON LOGISTICS - Driver Profile*\n` +
+                 `• *Name:* ${driver.first_name} ${driver.last_name}\n` +
+                 `• *Status:* ${driver.status}\n` +
+                 `• *Phone:* ${driver.phone_primary || 'N/A'}\n` +
+                 `• *License No:* ${driver.license_number || 'N/A'}\n` +
+                 `• *Profile:* ${window.location.origin}/drivers/${driver.id}`;
+    setWhatsappMessageText(text);
+    setWhatsappCustomPhone(driver.phone_primary || '');
+  };
+
+  const handleWhatsappSend = () => {
+    const cleanPhone = whatsappCustomPhone.trim().replace(/\+/g, '').replace(/\D/g, '');
+    const baseUrl = cleanPhone
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone}`
+      : `https://api.whatsapp.com/send`;
+    const shareUrl = `${baseUrl}?text=${encodeURIComponent(whatsappMessageText)}`;
+    window.open(shareUrl, '_blank');
+    setWhatsappDriver(null);
   };
 
   const handleExportExcel = async (rowsToExport: Driver[]) => {
@@ -350,58 +356,56 @@ export default function DriverListPage() {
       accessor: (row: Driver) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={() => navigate(`/drivers/${row.id}`)}
-            title="View Driver Profile"
-            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+            onClick={() => openWhatsappShare(row)}
+            title="Share to WhatsApp"
+            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
           >
-            <Eye className="h-3.5 w-3.5" />
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
+            </svg>
           </button>
 
-          <button
-            onClick={() => {
-              setStatusDialogDriver(row);
-              setNewStatus(row.status);
-            }}
-            title="Quick Status Update"
-            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400 transition-colors focus:outline-none cursor-pointer"
+                title="Driver Actions"
+                aria-label="Driver Actions"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl">
+              <DropdownMenuItem
+                onClick={() => navigate(`/drivers/${row.id}/edit`)}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+              >
+                <Edit2 className="mr-2 h-3.5 w-3.5 text-amber-600" />
+                Edit Driver Profile
+              </DropdownMenuItem>
 
-          <button
-            onClick={() => navigate(`/drivers/${row.id}/documents`)}
-            title="Driver Compliance Docs"
-            className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors"
-          >
-            <FileText className="h-3.5 w-3.5" />
-          </button>
+              <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
 
-          <button
-            onClick={() => navigate(`/drivers/${row.id}/edit`)}
-            title="Edit Driver Profile"
-            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-          >
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
-
-          <button
-            onClick={() => {
-              setConfirmModal({
-                isOpen: true,
-                title: 'Delete Driver Record',
-                message: `Are you sure you want to delete driver ${row.first_name} ${row.last_name}? This action cannot be undone.`,
-                isDestructive: true,
-                onConfirm: async () => {
-                  await driverService.bulkDelete([row.id]);
-                  queryClient.invalidateQueries({ queryKey: ['drivers'] });
-                }
-              });
-            }}
-            title="Delete Driver Record"
-            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+              <DropdownMenuItem
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: 'Delete Driver Record',
+                    message: `Are you sure you want to delete driver ${row.first_name} ${row.last_name}? This action cannot be undone.`,
+                    isDestructive: true,
+                    onConfirm: async () => {
+                      await driverService.bulkDelete([row.id]);
+                      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+                    }
+                  });
+                }}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+              >
+                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                Delete Driver
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ),
     },
@@ -891,55 +895,64 @@ export default function DriverListPage() {
           </div>
         )}
 
-        {/* Quick Status Update Modal (Dialog) */}
-        <Dialog open={!!statusDialogDriver} onOpenChange={(open) => !open && setStatusDialogDriver(null)}>
+        {/* WhatsApp Share Dialog */}
+        <Dialog open={!!whatsappDriver} onOpenChange={(open) => !open && setWhatsappDriver(null)}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-[#E8450F]" />
-                Update Driver Duty Status
+                <svg className="h-4 w-4 text-emerald-600 fill-current" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
+                </svg>
+                Share to WhatsApp
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Update operational duty status for <span className="font-bold text-[#E8450F]">{statusDialogDriver?.first_name} {statusDialogDriver?.last_name}</span>.
+                Send <span className="font-bold text-[#E8450F]">{whatsappDriver?.first_name} {whatsappDriver?.last_name}</span>'s profile directly via WhatsApp web or mobile app.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-4 space-y-3">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Select Duty Status:
-              </label>
-              <Select value={newStatus} onValueChange={(val) => { if (val) setNewStatus(val as any); }}>
-                <SelectTrigger className="w-full text-xs font-semibold border-slate-200 rounded-lg">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent className="w-full p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectItem value="Available" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700">Available for Dispatch</SelectItem>
-                    <SelectItem value="OnTrip" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-blue-700">On Active Trip</SelectItem>
-                    <SelectItem value="OffDuty" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-700">Off Duty</SelectItem>
-                    <SelectItem value="Inactive" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-700">Inactive / Suspended</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+            <div className="py-2 space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Recipient Phone Number (Optional)
+                </label>
+                <Input
+                  placeholder="e.g. 966512345678 (Leave blank to select chat inside WhatsApp)"
+                  value={whatsappCustomPhone}
+                  onChange={(e) => setWhatsappCustomPhone(e.target.value)}
+                  className="h-9 text-xs border-slate-200 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Message Preview:
+                </label>
+                <textarea
+                  value={whatsappMessageText}
+                  onChange={(e) => setWhatsappMessageText(e.target.value)}
+                  className="w-full h-36 p-3 rounded-xl border border-slate-200 text-xs font-medium font-sans leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50 resize-none"
+                />
+              </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 className="text-xs"
-                onClick={() => setStatusDialogDriver(null)}
-                disabled={isUpdatingStatus}
+                onClick={() => setWhatsappDriver(null)}
               >
                 Cancel
               </Button>
               <Button
                 size="sm"
-                className="text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white"
-                onClick={handleUpdateStatus}
-                disabled={isUpdatingStatus}
+                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5"
+                onClick={handleWhatsappSend}
               >
-                {isUpdatingStatus ? 'Saving...' : 'Update Status'}
+                <svg className="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
+                </svg>
+                Open WhatsApp
               </Button>
             </DialogFooter>
           </DialogContent>
