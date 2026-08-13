@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -68,7 +68,7 @@ function CoverageBadge({ pct }: { pct: number }) {
   );
 }
 
-// ── Expandable trip sub-table ──────────────────────────────────────────────────
+// ── Expandable trip sub-table with Month Filter ────────────────────────────────
 function TripSubTable({
   trips,
   onMark,
@@ -80,78 +80,149 @@ function TripSubTable({
   onUnmark: (trip: BillingLedgerTrip) => void;
   navigate: (path: string) => void;
 }) {
+  const [selectedMonth, setSelectedMonth] = useState<string>('ALL');
+
+  // Extract unique Year-Month options from trips
+  const availableMonths = useMemo(() => {
+    const monthSet = new Map<string, string>(); // key: '2026-08', value: 'August 2026'
+    trips.forEach(t => {
+      const dateObj = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
+      if (!isNaN(dateObj.getTime())) {
+        const key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+        const label = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        monthSet.set(key, label);
+      }
+    });
+    return Array.from(monthSet.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [trips]);
+
+  // Filter trips by selected month
+  const filteredTrips = useMemo(() => {
+    if (selectedMonth === 'ALL') return trips;
+    return trips.filter(t => {
+      const dateObj = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
+      if (isNaN(dateObj.getTime())) return false;
+      const key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+      return key === selectedMonth;
+    });
+  }, [trips, selectedMonth]);
+
+  // Sub-totals for filtered trips
+  const subTotalAmount = useMemo(() => {
+    return filteredTrips.reduce((sum: number, t: BillingLedgerTrip) => sum + getTripTotal(t), 0);
+  }, [filteredTrips]);
+
   return (
-    <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-slate-200 dark:border-slate-800">
-            <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-400">Trip Ref</th>
-            <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-400">Route</th>
-            <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-400">Date</th>
-            <th className="px-4 py-2 text-right font-bold text-[10px] uppercase tracking-wider text-slate-400">Total</th>
-            <th className="px-4 py-2 text-center font-bold text-[10px] uppercase tracking-wider text-slate-400">Status</th>
-            <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-400">Ext. Ref</th>
-            <th className="px-4 py-2 text-right font-bold text-[10px] uppercase tracking-wider text-slate-400">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {trips.map(trip => {
-            const inv = getInvoiceRec(trip);
-            const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
-            return (
-              <tr
-                key={trip.id}
-                className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-100/60 dark:hover:bg-slate-800/30 cursor-pointer transition-colors"
-                onClick={() => navigate(`/trips/${trip.id}`)}
-              >
-                <td className="px-4 py-2.5">
-                  <span className="font-mono font-bold text-[#E8450F]">{trip.ref_id}</span>
-                </td>
-                <td className="px-4 py-2.5 max-w-[200px]">
-                  <span className="text-slate-600 dark:text-slate-400 truncate block">
-                    {getTripOrigin(trip)} → {getTripDest(trip)}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap">
-                  {d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                </td>
-                <td className="px-4 py-2.5 text-right font-mono font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                  SAR {fmt(getTripTotal(trip))}
-                </td>
-                <td className="px-4 py-2.5 text-center">
-                  {trip.status === 'Invoiced'
-                    ? <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-1.5">✓ Invoiced</Badge>
-                    : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px] uppercase tracking-wider px-1.5">Pending</Badge>
-                  }
-                </td>
-                <td className="px-4 py-2.5 font-mono text-[10px] text-slate-400 max-w-[120px] truncate">
-                  {inv?.zatca_ref || inv?.ref_id || '—'}
-                </td>
-                <td className="px-4 py-2.5 text-right" onClick={e => e.stopPropagation()}>
-                  {trip.status === 'Completed' ? (
-                    <Button
-                      size="sm"
-                      onClick={() => onMark(trip)}
-                      className="h-7 px-2.5 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                    >
-                      <CheckCircle2 className="w-3 h-3" /> Mark Invoiced
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onUnmark(trip)}
-                      className="h-7 px-2.5 text-[10px] font-semibold text-amber-600 border-amber-300 hover:bg-amber-50 gap-1"
-                    >
-                      <X className="w-3 h-3" /> Unmark
-                    </Button>
-                  )}
+    <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-3 space-y-2.5">
+      {/* Sub-table control bar: month filter + summary */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 py-1">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Filter by Month:</span>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="h-7 text-xs w-44 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium">
+              <SelectValue placeholder="Select Month" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Months ({trips.length} trips)</SelectItem>
+              {availableMonths.map(([val, label]: [string, string]) => (
+                <SelectItem key={val} value={val}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-3 text-xs font-mono">
+          <span className="text-slate-500">Showing {filteredTrips.length} of {trips.length} trips</span>
+          <span className="font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700">
+            Filtered Subtotal: <span className="text-indigo-600 dark:text-indigo-400">SAR {fmt(subTotalAmount)}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Trips list */}
+      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+              <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Trip Ref</th>
+              <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Route</th>
+              <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Date</th>
+              <th className="px-4 py-2 text-right font-bold text-[10px] uppercase tracking-wider text-slate-500">Total</th>
+              <th className="px-4 py-2 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500">Status</th>
+              <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Ext. Ref</th>
+              <th className="px-4 py-2 text-right font-bold text-[10px] uppercase tracking-wider text-slate-500">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTrips.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-slate-400 text-xs">
+                  No trips found for the selected month.
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            ) : (
+              filteredTrips.map((trip: BillingLedgerTrip) => {
+                const inv = getInvoiceRec(trip);
+                const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
+                return (
+                  <tr
+                    key={trip.id}
+                    className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/trips/${trip.id}`)}
+                  >
+                    <td className="px-4 py-2.5">
+                      <span className="font-mono font-bold text-[#E8450F]">{trip.ref_id}</span>
+                    </td>
+                    <td className="px-4 py-2.5 max-w-[200px]">
+                      <span className="text-slate-600 dark:text-slate-400 truncate block">
+                        {getTripOrigin(trip)} → {getTripDest(trip)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap">
+                      {d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                      SAR {fmt(getTripTotal(trip))}
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      {trip.status === 'Invoiced'
+                        ? <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-1.5">✓ Invoiced</Badge>
+                        : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px] uppercase tracking-wider px-1.5">Pending</Badge>
+                      }
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-[10px] text-slate-400 max-w-[120px] truncate">
+                      {inv?.zatca_ref || inv?.ref_id || '—'}
+                    </td>
+                    <td className="px-4 py-2.5 text-right" onClick={e => e.stopPropagation()}>
+                      {trip.status === 'Completed' ? (
+                        <Button
+                          size="sm"
+                          onClick={() => onMark(trip)}
+                          className="h-7 px-2.5 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Mark Invoiced
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onUnmark(trip)}
+                          className="h-7 px-2.5 text-[10px] font-semibold text-amber-600 border-amber-300 hover:bg-amber-50 gap-1"
+                        >
+                          <X className="w-3 h-3" /> Unmark
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
