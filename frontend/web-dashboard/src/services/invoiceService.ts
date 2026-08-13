@@ -10,9 +10,11 @@ export interface Invoice {
   subtotal: number;
   total_amount: number;
   due_date: string;
+  zatca_ref: string | null;
+  invoicing_note: string | null;
   createdAt: string;
   customer?: { id: string; name: string };
-  trip?: { id: string; ref_id: string; status: string };
+  trip?: { id: string; ref_id: string; status: string; stops?: any[]; driver?: any; vehicle?: any };
 }
 
 export interface CreateInvoicePayload {

@@ -5,6 +5,7 @@ import {
   bulkDeleteTrips, bulkUpdateTripStatus, getUnsettledCompletedTrips, updateTripFinancials,
   logStopDelay, bulkImportTrips, updateTripStop, getMonthlyTripBoard
 } from '../controllers/tripController';
+import { markTripInvoiced, unmarkTripInvoiced } from '../controllers/invoiceController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
@@ -46,6 +47,10 @@ router.patch('/:id/stops/:stopId', validate({ body: updateTripStopBody }), updat
 router.post('/:id/pickup/arrive', pickupArrive);
 router.post('/:id/pickup/verify', pickupVerify);
 router.post('/:id/delivery/verify', deliveryVerify);
+
+// Invoicing Ledger Actions — mark/unmark a completed trip as invoiced
+router.post('/:id/mark-invoiced', markTripInvoiced);
+router.post('/:id/unmark-invoiced', unmarkTripInvoiced);
 
 export default router;
 

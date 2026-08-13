@@ -484,6 +484,15 @@ model Invoice {
 
   due_date DateTime @db.Timestamptz
 
+  // External / ZATCA invoice reference — the reference number of the real-world
+  // invoice the operator issued to the customer through their external accounting
+  // or ZATCA system. MERCON does not generate ZATCA invoices; this field simply
+  // stores the reference for tracking purposes.
+  zatca_ref String? @db.Text
+
+  // Optional notes logged by the operator when marking a trip as invoiced.
+  invoicing_note String? @db.Text
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid

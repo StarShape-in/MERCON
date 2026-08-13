@@ -1,6 +1,4 @@
 import { Prisma, TripStatus, DriverStatus, AssetStatus, StopType } from '@prisma/client';
-import { generateRefId } from '../utils/refId';
-import { findRateForLane } from './rateLookup';
 
 /**
  * Legal next statuses for a trip, keyed by current status. Enforced by every
@@ -15,7 +13,9 @@ export const ALLOWED_TRANSITIONS: Record<TripStatus, TripStatus[]> = {
   [TripStatus.InTransit]: [TripStatus.AtDelivery, TripStatus.Cancelled],
   [TripStatus.AtDelivery]: [TripStatus.Completed, TripStatus.Cancelled],
   [TripStatus.Completed]: [TripStatus.Invoiced],
-  [TripStatus.Invoiced]: [],
+  // Invoiced → Completed is allowed only via the unmark-invoiced endpoint (operator correction).
+  // Regular status-update endpoints refuse Invoiced as a source otherwise.
+  [TripStatus.Invoiced]: [TripStatus.Completed],
   [TripStatus.Cancelled]: [TripStatus.Draft],
 };
 
@@ -121,11 +121,16 @@ export async function stampStopTransition(
 
 /**
  * The one place a trip is marked Completed: releases the driver/vehicle back
- * to Available and generates the invoice (customer's active rate card, or the
- * kingdom-wide default, or a flat fallback) if one doesn't already exist.
+ * to Available and stamps the dropoff departure timestamp.
+ *
+ * NOTE: Invoice creation is intentionally NOT performed here. Invoices are
+ * created manually by an operator via the POST /trips/:id/mark-invoiced
+ * endpoint AFTER the trip is completed. This gives the billing team full
+ * control over when and how trips are invoiced.
+ *
  * Call from inside an existing `prisma.$transaction`.
  */
-export async function completeTripAndInvoice(
+export async function completeTrip(
   tx: Prisma.TransactionClient,
   tripId: string,
   userId: string | null | undefined,
@@ -153,57 +158,13 @@ export async function completeTripAndInvoice(
   if (trip.driverId) await tx.driver.update({ where: { id: trip.driverId }, data: { status: DriverStatus.Available } });
   if (trip.vehicleId) await tx.vehicle.update({ where: { id: trip.vehicleId }, data: { status: AssetStatus.Available } });
 
-  const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id } });
-  if (!existingInvoice) {
-    // The card recorded at dispatch is authoritative — this used to re-guess
-    // the rate with a different rule than the wizard used, so the invoice could
-    // quote a price the dispatcher was never shown. Only fall back to matching
-    // the lane for trips created before rateCardId existed.
-    let rateCard = trip.rateCardId
-      ? await tx.rateCard.findUnique({ where: { id: trip.rateCardId } })
-      : null;
-
-    if (!rateCard) {
-      const stops = await tx.tripStop.findMany({
-        where: { tripId: trip.id },
-        orderBy: { stop_sequence: 'asc' },
-      });
-      const matched = await findRateForLane(tx, {
-        customerId: trip.customerId,
-        originLocationId: stops.find((s) => s.stop_type === StopType.Pickup)?.locationId ?? null,
-        destinationLocationId:
-          [...stops].reverse().find((s) => s.stop_type === StopType.Dropoff)?.locationId ?? null,
-        // Only constrain by tier when this (older) trip actually recorded one —
-        // a null here means "never captured", not "no tier", so it must not
-        // narrow the match to tier-less cards only.
-        ...(trip.vehicle_type !== null ? { vehicleType: trip.vehicle_type } : {}),
-        ...(trip.rate_category !== null ? { rateCategory: trip.rate_category } : {}),
-      });
-      rateCard = matched.rateCard;
-    }
-
-    // No flat fallback: an invented 1000.0 looks like a real agreed price and
-    // is impossible to tell from one. A trip nobody priced invoices at 0, which
-    // is visibly wrong and gets corrected.
-    const baseBilling = trip.billing_amount ?? rateCard?.base_price ?? 0;
-    const totalAmount = baseBilling + (trip.waiting_labor_charges ?? 0) + (trip.additional_stop_charges ?? 0);
-    const invoiceRefId = await generateRefId('INV', () => tx.invoice.findMany({ select: { ref_id: true } }));
-
-    await tx.invoice.create({
-      data: {
-        ref_id: invoiceRefId,
-        tripId: trip.id,
-        customerId: trip.customerId,
-        status: 'Draft',
-        currency: rateCard ? rateCard.currency : 'SAR',
-        subtotal: baseBilling,
-        total_amount: totalAmount,
-        due_date: new Date(new Date().setDate(new Date().getDate() + 30)), // Net 30
-        created_by: userId ?? undefined,
-      },
-    });
-  }
-
   return updatedTrip;
 }
+
+/**
+ * @deprecated Use completeTrip() instead.
+ * This alias is kept temporarily to ease migration of any call sites still
+ * referencing the old name. It will be removed in a future cleanup.
+ */
+export const completeTripAndInvoice = completeTrip;
 

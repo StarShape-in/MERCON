@@ -313,6 +313,24 @@ export const tripService = {
     const res = await api.post<ApiResponse<BulkImportResult>>('/trips/bulk-import', { rows });
     return res.data.data;
   },
+
+  /** Mark a completed trip as invoiced. Creates the Invoice tracking record. */
+  async markInvoiced(tripId: string, payload: { zatca_ref?: string; invoicing_note?: string }): Promise<{ trip: Trip; invoice: any }> {
+    const res = await api.post<ApiResponse<{ trip: Trip; invoice: any }>>(`/trips/${tripId}/mark-invoiced`, payload);
+    return res.data.data;
+  },
+
+  /** Reverse a mark-invoiced action. Admin-only correction. */
+  async unmarkInvoiced(tripId: string): Promise<Trip> {
+    const res = await api.post<ApiResponse<Trip>>(`/trips/${tripId}/unmark-invoiced`, {});
+    return res.data.data;
+  },
+
+  /** Fetch the billing ledger — completed + invoiced trips with filtering. */
+  async getBillingLedger(filters: BillingLedgerFilters = {}): Promise<ApiResponse<BillingLedgerTrip[]>> {
+    const res = await api.get<ApiResponse<BillingLedgerTrip[]>>('/invoices/billing-ledger', { params: filters });
+    return res.data;
+  },
 };
 
 export interface BulkImportTripRow {
@@ -337,3 +355,24 @@ export interface BulkImportResult {
   results: Array<{ row: number; success: boolean; ref_id?: string; error?: string }>;
 }
 
+export interface BillingLedgerFilters {
+  customer_id?: string;
+  date_from?: string;
+  date_to?: string;
+  invoice_status?: 'NotInvoiced' | 'Invoiced';
+  search?: string;
+  page?: number;
+  per_page?: number;
+}
+
+export interface BillingLedgerTrip extends Trip {
+  invoices: Array<{
+    id: string;
+    ref_id: string | null;
+    status: string;
+    total_amount: number;
+    zatca_ref: string | null;
+    invoicing_note: string | null;
+    createdAt: string;
+  }>;
+}
