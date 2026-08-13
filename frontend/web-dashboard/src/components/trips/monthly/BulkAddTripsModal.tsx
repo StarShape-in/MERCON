@@ -1417,21 +1417,23 @@ export default function BulkAddTripsModal({
                                         <span className="text-xs font-bold text-orange-950">Dropoff Stop (Destination)</span>
                                       </div>
 
-                                      <div className="flex items-center gap-1.5">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-                                          className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
-                                            slot.isOvernight
-                                              ? 'bg-indigo-600 text-white shadow-2xs'
-                                              : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                                          }`}
-                                          title="Toggle Overnight / Next-Day Return trip (+1 Day)"
-                                        >
-                                          <Moon className={`w-3 h-3 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                          {slot.isOvernight ? '🌙 +1 Day' : '+1 Day'}
-                                        </button>
-                                      </div>
+                                      {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
+                                        <div className="flex items-center gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
+                                            className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
+                                              slot.isOvernight
+                                                ? 'bg-indigo-600 text-white shadow-2xs'
+                                                : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
+                                            }`}
+                                            title="Toggle Overnight / Next-Day Return trip (+1 Day)"
+                                          >
+                                            <Moon className={`w-3 h-3 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
+                                            {slot.isOvernight ? '🌙 +1 Day' : '+1 Day'}
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
 
                                     <div className="p-3.5 space-y-3">
