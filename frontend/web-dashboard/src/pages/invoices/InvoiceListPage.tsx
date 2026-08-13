@@ -461,7 +461,7 @@ export default function InvoiceListPage() {
     }
   };
 
-  const hasFilters = !!(invoiceStatusFilter || dateFrom || dateTo || search);
+  const hasFilters = !!(invoiceStatusFilter || search);
 
   return (
     <DashboardLayout active="Invoices" title="Company Billing Ledger">
@@ -513,35 +513,9 @@ export default function InvoiceListPage() {
             </SelectContent>
           </Select>
 
-          {/* Date Presets + Custom Date Range */}
-          <Select value={datePreset} onValueChange={handleDatePresetChange}>
-            <SelectTrigger className="h-8 text-xs w-36 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-              <CalendarDays className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
-              <SelectValue placeholder="Date Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Time</SelectItem>
-              <SelectItem value="TODAY">Today</SelectItem>
-              <SelectItem value="THIS_WEEK">This Week</SelectItem>
-              <SelectItem value="THIS_MONTH">This Month</SelectItem>
-              <SelectItem value="LAST_MONTH">Last Month</SelectItem>
-              <SelectItem value="CUSTOM">Custom Range</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {(datePreset === 'CUSTOM' || dateFrom || dateTo) && (
-            <div className="flex items-center gap-1.5 animate-fade-in">
-              <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setDatePreset('CUSTOM'); }}
-                className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-2 text-slate-700 dark:text-slate-200" />
-              <span className="text-xs text-slate-400">—</span>
-              <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setDatePreset('CUSTOM'); }}
-                className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-2 text-slate-700 dark:text-slate-200" />
-            </div>
-          )}
-
           {hasFilters && (
             <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500 hover:text-slate-900 gap-1"
-              onClick={() => { setSearch(''); setInvoiceStatusFilter(''); setDateFrom(''); setDateTo(''); setDatePreset('ALL'); }}>
+              onClick={() => { setSearch(''); setInvoiceStatusFilter(''); }}>
               <X className="w-3 h-3" /> Clear
             </Button>
           )}
