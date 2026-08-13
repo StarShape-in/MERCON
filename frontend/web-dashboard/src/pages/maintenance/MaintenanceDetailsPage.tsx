@@ -6,7 +6,7 @@ import {
   AlertTriangle, FileText, Phone, Building2, Gauge,
   Trash2, ExternalLink, AlertCircle, RotateCw, CalendarClock,
   ChevronDown, Download, Receipt, Banknote, XCircle,
-  Upload, Paperclip, Printer, Hash, ClipboardList,
+  Upload, Paperclip, Printer, Hash, ClipboardList, MoreVertical,
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
