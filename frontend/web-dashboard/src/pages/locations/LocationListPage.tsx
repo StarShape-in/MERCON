@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -8,7 +8,7 @@ import {
   AlertTriangle, Filter, Download, FileSpreadsheet, FileText,
   Building2, Navigation, Layers, ChevronDown, X,
   LayoutGrid, List, Map as MapIcon, Copy, Check, ExternalLink,
-  Search, ShieldCheck, CheckCircle2, Info, Eye
+  Search, ShieldCheck, CheckCircle2, Info, Eye, Maximize2, Sparkles
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -103,67 +103,51 @@ function createCustomLocationPin(isSelected: boolean, isActive: boolean, isPrice
   });
 }
 
-/** Helper component to fly map camera to active coordinates */
-function FlyToLocation({ center }: { center: [number, number] | null }) {
+/** Helper component to manage Leaflet invalidation, auto-bounds, and fly-to */
+function MapBoundsController({
+  locations,
+  selectedMapCenter,
+  fitTrigger,
+}: {
+  locations: Location[];
+  selectedMapCenter: [number, number] | null;
+  fitTrigger: number;
+}) {
   const map = useMap();
-  useEffect(() => {
-    if (center) {
-      map.flyTo(center, 14, { animate: true, duration: 1.2 });
-    }
-  }, [center, map]);
-  return null;
-}
 
-/**
- * Leaflet measures its container in pixels the moment it mounts. This map
- * only mounts when the user switches to the Map tab, and at that instant the
- * grid/sidebar layout around it hasn't always finished settling — so Leaflet
- * can cache a stale (or zero) size. Everything downstream (marker placement,
- * flyTo panning) is then computed against that wrong size, so pins land off
- * to the side and "fly to" doesn't visibly move anywhere. Re-measuring after
- * mount, and again on any resize, keeps Leaflet's internal size in sync with
- * what's actually on screen.
- */
-function MapAutoSize() {
-  const map = useMap();
+  // Invalidate size immediately & after layout stabilizes to prevent blank map
   useEffect(() => {
-    // Synchronous, not deferred: FitAllPins fits bounds in the same effect
-    // pass right after this one, against whatever size Leaflet has cached —
-    // deferring this a frame left it computing that fit against a stale
-    // (sometimes zero) size, which produced a broken zoom and a blank map.
     map.invalidateSize();
-    const container = map.getContainer();
-    const observer = new ResizeObserver(() => map.invalidateSize());
-    observer.observe(container);
-    return () => observer.disconnect();
+    const t1 = setTimeout(() => map.invalidateSize(), 100);
+    const t2 = setTimeout(() => map.invalidateSize(), 300);
+    const t3 = setTimeout(() => map.invalidateSize(), 600);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [map]);
-  return null;
-}
 
-/**
- * `MapContainer`'s `center`/`zoom` props only take effect on the very first
- * mount — Leaflet ignores further changes to them, so anchoring the map to
- * "the first mapped location" leaves it stuck on that one point even when
- * the actual pins are somewhere else entirely. This fits the camera to
- * whatever is plotted the moment the map opens, once, so opening the tab
- * shows what you actually have instead of one arbitrary corner of it.
- */
-function FitAllPins({ points }: { points: [number, number][] }) {
-  const map = useMap();
-  const hasFit = useRef(false);
+  // Handle fly-to when a location is explicitly selected
   useEffect(() => {
-    if (hasFit.current || points.length === 0) return;
-    hasFit.current = true;
-    const bounds = L.latLngBounds(points);
-    // A degenerate box (one point, or several on top of each other) has no
-    // meaningful "fit" — center on it at a sane fixed zoom instead of letting
-    // fitBounds derive one from a near-zero-size box.
-    if (points.length === 1 || bounds.getNorthEast().distanceTo(bounds.getSouthWest()) < 50) {
-      map.setView(bounds.getCenter(), 13);
-    } else {
-      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 13 });
+    if (selectedMapCenter) {
+      map.flyTo(selectedMapCenter, 14, { animate: true, duration: 1.0 });
     }
-  }, [points, map]);
+  }, [selectedMapCenter, map]);
+
+  // Auto-fit bounds on initial load, or when locations/fitTrigger changes (if no specific pin selected)
+  useEffect(() => {
+    if (selectedMapCenter && fitTrigger === 0) return;
+
+    const mapped = locations.filter((l) => l.lat != null && l.lng != null);
+    if (mapped.length === 1) {
+      map.flyTo([mapped[0].lat!, mapped[0].lng!], 13, { animate: true, duration: 0.8 });
+    } else if (mapped.length > 1) {
+      const bounds = L.latLngBounds(mapped.map((l) => [l.lat!, l.lng!]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+    }
+  }, [locations, fitTrigger, map]);
+
   return null;
 }
 
@@ -189,6 +173,7 @@ export default function LocationListPage() {
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedMapCenter, setSelectedMapCenter] = useState<[number, number] | null>(null);
+  const [fitTrigger, setFitTrigger] = useState(0);
 
   // Copy feedback state
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -204,7 +189,14 @@ export default function LocationListPage() {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['locations'] });
     setSelectionResetKey((prev) => prev + 1);
+    setFitTrigger((prev) => prev + 1);
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleFitAllPins = () => {
+    setSelectedLocationId(null);
+    setSelectedMapCenter(null);
+    setFitTrigger((prev) => prev + 1);
   };
 
   const filteredData = useMemo(() => {
@@ -240,11 +232,6 @@ export default function LocationListPage() {
     }
     return [24.7136, 46.6753]; // Riyadh fallback
   }, [filteredData]);
-
-  const plottedLocations = useMemo(
-    () => filteredData.filter((l): l is Location & { lat: number; lng: number } => l.lat != null && l.lng != null),
-    [filteredData],
-  );
 
   const handleCopyCoords = (loc: Location, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -593,7 +580,7 @@ export default function LocationListPage() {
         </div>
 
         {/* 2. Control Toolbar (Search, Filter, View Switcher) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs relative z-10">
           
           <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
             {/* Search Input */}
@@ -797,32 +784,32 @@ export default function LocationListPage() {
 
           {/* B) INTERACTIVE MAP VIEW */}
           {viewMode === 'map' && (
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[540px] h-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[580px] h-[calc(100vh-230px)] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs relative z-0 isolate">
               
               {/* Map Canvas (3 columns on large screens) */}
-              <div className="lg:col-span-3 relative h-full min-h-[480px]">
+              <div className="lg:col-span-3 relative h-full min-h-[500px] bg-slate-100 dark:bg-slate-950">
                 <MapContainer
                   center={selectedMapCenter || defaultCenter}
                   zoom={11}
-                  style={{ height: '100%', width: '100%' }}
+                  style={{ height: '100%', width: '100%', minHeight: '500px' }}
                   zoomControl={true}
                 >
                   <TileLayer
+                    key={mapThemeId}
                     url={currentTheme.url}
                     attribution={currentTheme.attribution}
                   />
 
-                  {/* Keep Leaflet's cached container size correct on this tab */}
-                  <MapAutoSize />
-
-                  {/* Show everything plotted the moment the tab opens, not one arbitrary point */}
-                  <FitAllPins points={plottedLocations.map((l) => [l.lat, l.lng] as [number, number])} />
-
-                  {/* Fly to selection helper */}
-                  <FlyToLocation center={selectedMapCenter} />
+                  {/* Automatic bounds fitter and Leaflet size invalidator */}
+                  <MapBoundsController
+                    locations={filteredData}
+                    selectedMapCenter={selectedMapCenter}
+                    fitTrigger={fitTrigger}
+                  />
 
                   {/* Location Markers */}
-                  {plottedLocations
+                  {filteredData
+                    .filter((l) => l.lat != null && l.lng != null)
                     .map((loc) => {
                       const isSelected = selectedLocationId === loc.id;
                       const rates = rateCardUses(loc);
@@ -847,8 +834,8 @@ export default function LocationListPage() {
                           }}
                         >
                           <Popup className={currentTheme.isDark ? 'dark-map-popup' : ''} maxWidth={280}>
-                            <div className="p-1 flex flex-col gap-2">
-                              <div className="flex items-center justify-between gap-2 border-b pb-1.5">
+                            <div className="p-1 flex flex-col gap-2 font-sans">
+                              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5">
                                 <span className="font-mono text-[10px] font-bold text-[#E8450F]">
                                   LOC-{loc.id.slice(0, 6).toUpperCase()}
                                 </span>
@@ -875,7 +862,7 @@ export default function LocationListPage() {
                                 </button>
                               </div>
 
-                              <div className="flex items-center gap-1.5 pt-1">
+                              <div className="flex items-center gap-1.5 pt-0.5">
                                 {rates > 0 && <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">{rates} Rate Cards</span>}
                                 {tripUses(loc) > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{tripUses(loc)} Stops</span>}
                               </div>
@@ -883,9 +870,9 @@ export default function LocationListPage() {
                               <Button
                                 size="sm"
                                 onClick={() => setEditTarget(loc)}
-                                className="w-full h-7 text-xs bg-slate-900 text-white hover:bg-slate-800 mt-1"
+                                className="w-full h-7 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold mt-1"
                               >
-                                Edit Details
+                                <Edit2 className="w-3 h-3 mr-1" /> Edit Details
                               </Button>
                             </div>
                           </Popup>
@@ -894,11 +881,74 @@ export default function LocationListPage() {
                     })}
                 </MapContainer>
 
-                {/* Map Overlay Badge */}
-                <div className="absolute top-3 left-3 z-[1000] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-md text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#E8450F]" />
-                  <span>{filteredData.filter((l) => l.lat != null).length} Plotted Pins</span>
+                {/* Map Overlay Controls & HUD */}
+                <div className="absolute top-3 left-3 z-[1000] flex items-center gap-2">
+                  <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-md text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#E8450F]" />
+                    <span>{filteredData.filter((l) => l.lat != null && l.lng != null).length} Plotted Pins</span>
+                  </div>
+
+                  {filteredData.filter((l) => l.lat != null && l.lng != null).length > 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleFitAllPins}
+                      className="h-8 text-xs font-bold bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-slate-200 dark:border-slate-800 shadow-md hover:bg-slate-100 flex items-center gap-1.5"
+                      title="Fit all location pins in viewport"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Fit All</span>
+                    </Button>
+                  )}
                 </div>
+
+                {/* Overlay: Empty State if no locations match */}
+                {filteredData.length === 0 ? (
+                  <div className="absolute inset-0 z-[1000] flex flex-col items-center justify-center p-6 bg-slate-900/10 backdrop-blur-[2px]">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-sm text-center flex flex-col items-center gap-3 animate-fade-in">
+                      <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-900/60 flex items-center justify-center">
+                        <MapPin className="w-6 h-6 text-[#E8450F]" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                          {locations.length === 0 ? 'No Locations Registered' : 'No Matching Locations'}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {locations.length === 0
+                            ? 'Add logistics hubs, depots, and customer yards to plot them on the interactive map.'
+                            : 'No locations match your current search or filter criteria.'}
+                        </p>
+                      </div>
+                      {locations.length === 0 ? (
+                        <Button
+                          size="sm"
+                          onClick={() => setIsAddOpen(true)}
+                          className="bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold text-xs mt-1 shadow-xs"
+                        >
+                          <Plus className="w-4 h-4 mr-1.5" /> Add First Location
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setSearch(''); setFilter('all'); }}
+                          className="text-xs font-bold mt-1 shadow-2xs"
+                        >
+                          Reset Filters
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : filteredData.filter((l) => l.lat != null && l.lng != null).length === 0 ? (
+                  <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-amber-500/95 backdrop-blur-md text-white px-4 py-3 rounded-xl shadow-lg border border-amber-400 flex items-center justify-between gap-3 text-xs animate-fade-in">
+                    <div className="flex items-center gap-2.5 font-medium">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-white" />
+                      <span>
+                        None of your <strong>{filteredData.length} location{filteredData.length === 1 ? '' : 's'}</strong> have GPS coordinates assigned. Select a location in the sidebar to add coordinates.
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {/* Sidebar Location Selector Pane */}
@@ -908,6 +958,11 @@ export default function LocationListPage() {
                     <Layers className="w-3.5 h-3.5 text-indigo-500" />
                     <span>Location Pins ({filteredData.length})</span>
                   </h3>
+                  {filteredData.length > 0 && (
+                    <span className="text-[10px] font-bold text-slate-400">
+                      {filteredData.filter((l) => l.lat != null && l.lng != null).length} mapped
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
@@ -924,16 +979,14 @@ export default function LocationListPage() {
                         <div
                           key={loc.id}
                           onClick={() => {
-                            setSelectedLocationId(loc.id);
                             if (hasCoords) {
+                              setSelectedLocationId(loc.id);
                               setSelectedMapCenter([loc.lat!, loc.lng!]);
                             } else {
-                              // Nothing to zoom to — send them to fix it instead of doing nothing.
                               setEditTarget(loc);
                             }
                           }}
-                          title={hasCoords ? 'Click to zoom to this location' : 'No coordinates saved — click to add them'}
-                          className={`p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-1 ${
+                          className={`p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
                             isSelected
                               ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-900 shadow-2xs'
                               : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
@@ -944,11 +997,11 @@ export default function LocationListPage() {
                               {loc.name}
                             </span>
                             {hasCoords ? (
-                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-1.5 py-0">
+                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-1.5 py-0 shrink-0">
                                 Mapped
                               </Badge>
                             ) : (
-                              <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-1.5 py-0">
+                              <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-bold px-1.5 py-0 shrink-0">
                                 No Coords
                               </Badge>
                             )}
@@ -958,17 +1011,29 @@ export default function LocationListPage() {
                             {loc.address || 'No street address'}
                           </p>
 
-                          {hasCoords ? (
-                            <div className="font-mono text-[10px] text-slate-400 pt-0.5 flex items-center justify-between">
-                              <span>{loc.lat?.toFixed(4)}, {loc.lng?.toFixed(4)}</span>
-                              <span className="text-[#E8450F] font-bold hover:underline">Focus →</span>
-                            </div>
-                          ) : (
-                            <div className="text-[10px] text-amber-700 pt-0.5 flex items-center justify-between">
-                              <span>Not plotted on map</span>
-                              <span className="text-[#E8450F] font-bold hover:underline">Add coordinates →</span>
-                            </div>
-                          )}
+                          <div className="pt-0.5 flex items-center justify-between">
+                            {hasCoords ? (
+                              <>
+                                <span className="font-mono text-[10px] text-slate-400">
+                                  {loc.lat?.toFixed(4)}, {loc.lng?.toFixed(4)}
+                                </span>
+                                <span className="text-[#E8450F] text-[11px] font-bold hover:underline flex items-center gap-0.5">
+                                  Focus →
+                                </span>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditTarget(loc);
+                                }}
+                                className="text-[11px] font-bold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" /> Set Coordinates
+                              </button>
+                            )}
+                          </div>
                         </div>
                       );
                     })

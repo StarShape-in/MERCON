@@ -179,7 +179,7 @@ export default function TripStepCustomer({
                 placeholder="Search by customer name, company, or phone..."
                 className="h-10 text-xs"
               />
-              <CommandList className="max-h-64 p-1">
+              <CommandList className="max-h-64 p-1 overflow-y-auto overscroll-contain">
                 <CommandEmpty className="py-6 text-center text-xs text-slate-500">
                   No customer account found.
                 </CommandEmpty>

@@ -157,7 +157,7 @@ export function TimePicker({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl border-border bg-popover z-50" align="start">
+        <PopoverContent className="w-80 p-0 rounded-2xl shadow-xl border-border bg-popover z-[9999]" align="start">
           {/* Quick Presets Bar */}
           {showPresets && (
             <div className="p-2 border-b bg-muted/20">

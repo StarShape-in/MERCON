@@ -114,7 +114,7 @@ export default function LocationCombobox({
             value={search}
             onValueChange={setSearch}
           />
-          <CommandList>
+          <CommandList className="max-h-64 overflow-y-auto overscroll-contain">
             {isLoading ? (
               <div className="py-4 text-center text-xs text-muted-foreground">Loading locations...</div>
             ) : (

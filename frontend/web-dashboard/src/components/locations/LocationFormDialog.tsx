@@ -63,6 +63,21 @@ function FlyToPin({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+/** Invalidate map size when modal animation completes */
+function MapModalResizer() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    const t1 = setTimeout(() => map.invalidateSize(), 150);
+    const t2 = setTimeout(() => map.invalidateSize(), 350);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [map]);
+  return null;
+}
+
 /** Handles map click to update coordinates */
 function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
   useMapEvents({
@@ -390,6 +405,7 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
                     style={{ height: '100%', width: '100%' }}
                     zoomControl={false}
                   >
+                    <MapModalResizer />
                     <TileLayer
                       url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                       attribution='&copy; OpenStreetMap &copy; CARTO'

@@ -244,7 +244,7 @@ export function DateTimePicker({
         </PopoverTrigger>
 
         <PopoverContent
-          className="w-auto p-0 rounded-2xl shadow-2xl border-border bg-popover z-50 overflow-hidden"
+          className="w-auto p-0 rounded-2xl shadow-2xl border-border bg-popover z-[9999] overflow-hidden"
           align="start"
         >
           {/* Header Bar */}
