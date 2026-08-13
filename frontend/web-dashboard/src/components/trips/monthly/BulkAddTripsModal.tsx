@@ -590,7 +590,7 @@ export default function BulkAddTripsModal({
 
         let destString = slot.destination.trim();
 
-        if (contractRateCategory === 'Round Trip') {
+        if (contractRateCategory === 'Round Trip' || contractRateCategory === 'Monthly (ROUND TRIP , 2 vehicles)') {
           // Closed 4-section loop: Outbound Pickup -> Outbound Stops -> Outbound Dropoff -> Return Pickup -> Return Stops -> Return Dropoff
           const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
           const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
@@ -1032,7 +1032,7 @@ export default function BulkAddTripsModal({
                             </div>
 
                             {/* Conditional Rendering for Round Trip (4 Sections) vs Standard 1-Way Trip */}
-                            {contractRateCategory === 'Round Trip' ? (
+                            {contractRateCategory === 'Round Trip' || contractRateCategory === 'Monthly (ROUND TRIP , 2 vehicles)' ? (
                               <div className="space-y-5 pt-1">
                                 {/* LEG 1: OUTBOUND JOURNEY */}
                                 <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-3">
@@ -1672,6 +1672,21 @@ export default function BulkAddTripsModal({
                           Tailor driver and vehicle assignments for each trip slot, or use quick batch rotation shortcuts.
                         </p>
                       </div>
+
+                      {/* 2-Vehicle Shuttle Helper Banner */}
+                      {contractRateCategory === 'Monthly (ROUND TRIP , 2 vehicles)' && (
+                        <div className="p-3.5 rounded-2xl bg-indigo-50/90 border border-indigo-200 flex items-center justify-between flex-wrap gap-3 text-xs text-indigo-950 font-bold shadow-2xs">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
+                              <RefreshCw className="w-3 h-3" /> 2-Vehicle Shuttle Mode
+                            </Badge>
+                            <span>Driver A & Truck A (Outbound) ↔ Driver B & Truck B (Return Shuttle Loop)</span>
+                          </div>
+                          <span className="text-[11px] text-indigo-700 font-semibold bg-white border border-indigo-200 px-2.5 py-1 rounded-lg">
+                            Long-Distance 12+ Hr Rest Rotation Enabled
+                          </span>
+                        </div>
+                      )}
 
                       {/* Quick Apply Master Toolbar */}
                       <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100/90 space-y-3">
