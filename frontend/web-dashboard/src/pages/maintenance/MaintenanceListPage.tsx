@@ -7,12 +7,14 @@ import {
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
   Building2, Gauge, Layers, ChevronDown, Tag, MoreVertical,
-  ChevronsUpDown, ArrowUp, LayoutGrid, List, Phone, Database
+  ChevronsUpDown, ArrowUp, LayoutGrid, List, Phone, Database,
+  Banknote
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
 import MaintenanceRecordModal from '@/components/maintenance/MaintenanceRecordModal';
 import ManageWorkshopsModal from '@/components/maintenance/ManageWorkshopsModal';
+import AddMaintenanceCostModal from '@/components/maintenance/AddMaintenanceCostModal';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MaintenanceWrench, CheckBadge, MoneyBills } from '@/components/ui/kpi-icons';
@@ -79,18 +81,8 @@ export default function MaintenanceListPage() {
     onConfirm: () => {},
   });
 
-  // Mark Amount modal (list page)
-  const [markAmountRecord, setMarkAmountRecord] = useState<MaintenanceRecord | null>(null);
-  const [listMarkCost, setListMarkCost] = useState('');
-  const [listMarkInvoice, setListMarkInvoice] = useState('');
-  const [listMarkError, setListMarkError] = useState('');
-
-  const handleOpenListMarkAmount = (rec: MaintenanceRecord) => {
-    setMarkAmountRecord(rec);
-    setListMarkCost(rec.cost != null ? String(rec.cost) : '');
-    setListMarkInvoice(rec.invoice_number || '');
-    setListMarkError('');
-  };
+  // Cost Modal state (list page)
+  const [costModalRecord, setCostModalRecord] = useState<MaintenanceRecord | null>(null);
 
   // Queries
   const { data: maintenanceRes, isLoading, isFetching, refetch } = useQuery({
@@ -598,6 +590,14 @@ export default function MaintenanceListPage() {
                             </svg>
                           </button>
 
+                          <button
+                            onClick={() => setCostModalRecord(r)}
+                            title="Add / Update Cost"
+                            className="p-1.5 rounded-lg text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer"
+                          >
+                            <Banknote className="w-3.5 h-3.5" />
+                          </button>
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button
@@ -607,7 +607,13 @@ export default function MaintenanceListPage() {
                                 <MoreVertical className="h-4 w-4" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40 rounded-xl p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                            <DropdownMenuContent align="end" className="w-44 rounded-xl p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                              <DropdownMenuItem
+                                onClick={() => setCostModalRecord(r)}
+                                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
+                              >
+                                <Banknote className="w-3.5 h-3.5 mr-2 text-[#E8450F]" /> Add / Update Cost
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleOpenEditModal(r)}
                                 className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -736,6 +742,13 @@ export default function MaintenanceListPage() {
                           <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
                         </svg>
                       </button>
+                      <button
+                        onClick={() => setCostModalRecord(r)}
+                        title="Add / Update Cost"
+                        className="p-1.5 rounded-lg text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer"
+                      >
+                        <Banknote className="w-3.5 h-3.5" />
+                      </button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
@@ -827,6 +840,12 @@ export default function MaintenanceListPage() {
       <ManageWorkshopsModal
         open={isManageWorkshopsOpen}
         onOpenChange={setIsManageWorkshopsOpen}
+      />
+
+      <AddMaintenanceCostModal
+        open={!!costModalRecord}
+        onOpenChange={(open) => !open && setCostModalRecord(null)}
+        record={costModalRecord}
       />
 
     </DashboardLayout>

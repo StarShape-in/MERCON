@@ -42,6 +42,8 @@ import { documentService, MerconDocument } from '@/services/documentService';
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 
+import AddMaintenanceCostModal from '@/components/maintenance/AddMaintenanceCostModal';
+
 const STATUS_META: Record<string, { label: string; className: string }> = {
   Scheduled: { label: 'Scheduled', className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
   In_Progress: { label: 'In Progress', className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
@@ -112,10 +114,7 @@ export default function MaintenanceDetailsPage() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
-  const [uploadError, setUploadError] = useState('');
-  const [docToDelete, setDocToDelete] = useState<MerconDocument | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCostModalOpen, setIsCostModalOpen] = useState(false);
 
   const [editFormData, setEditFormData] = useState<CreateMaintenancePayload>({
     vehicle_id: '',
@@ -139,14 +138,6 @@ export default function MaintenanceDetailsPage() {
     queryFn: () => maintenanceService.getById(id!),
     enabled: !!id,
   });
-
-  const { data: docsRes } = useQuery({
-    queryKey: ['documents', MAINTENANCE_ENTITY_TYPE, id],
-    queryFn: () => documentService.getAll({ entity_type: MAINTENANCE_ENTITY_TYPE, entity_id: id, per_page: 50 }),
-    enabled: !!id,
-  });
-
-  const invoiceDocs = docsRes?.data ?? [];
 
   const updateMutation = useMutation({
     mutationFn: (payload: any) => maintenanceService.update(id!, payload),
@@ -177,35 +168,6 @@ export default function MaintenanceDetailsPage() {
         queryClient.invalidateQueries({ queryKey: ['vehicle', record.vehicleId] });
       }
       navigate('/maintenance');
-    },
-  });
-
-  const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('entity_type', MAINTENANCE_ENTITY_TYPE);
-      formData.append('entity_id', id!);
-      formData.append('doc_type', 'Invoice');
-      return documentService.upload(formData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents', MAINTENANCE_ENTITY_TYPE, id] });
-      queryClient.invalidateQueries({ queryKey: ['maintenance-detail', id] });
-      setInvoiceFile(null);
-      setUploadError('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    },
-    onError: (err: any) => {
-      setUploadError(err.response?.data?.error?.message || 'Failed to upload the invoice.');
-    },
-  });
-
-  const deleteDocMutation = useMutation({
-    mutationFn: (docId: string) => documentService.delete(docId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents', MAINTENANCE_ENTITY_TYPE, id] });
-      setDocToDelete(null);
     },
   });
 
@@ -503,10 +465,11 @@ export default function MaintenanceDetailsPage() {
         {/* ── Body: tabbed work report (report + billing/invoice) + joined service provider card ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
-          {/* Work report / billing — one tabbed card */}
-          <Card className="lg:col-span-2 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
-            <Tabs defaultValue="report" className="gap-0">
-              <div className="flex flex-wrap items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+          {/* Work report & Billing — inside cards in that page (no tabs) */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Card 1: Workshop work report */}
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                 <div>
                   <div className="flex items-center gap-2 text-[#E8450F]">
                     <ClipboardList className="w-4 h-4" />
@@ -516,23 +479,9 @@ export default function MaintenanceDetailsPage() {
                     {record.workshop_name || 'Unnamed workshop'}
                   </div>
                 </div>
-                <TabsList className="h-8 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
-                  <TabsTrigger value="report" className="h-7 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-                    Work Report
-                  </TabsTrigger>
-                  <TabsTrigger value="billing" className="h-7 gap-1.5 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-                    Billing &amp; Invoice
-                    {invoiceDocs.length > 0 && (
-                      <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-1.5 text-[10px] font-bold">
-                        {invoiceDocs.length}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                </TabsList>
               </div>
 
-              {/* Work report tab */}
-              <TabsContent value="report" className="mt-0 px-5 sm:px-6 py-5 space-y-5">
+              <div className="px-5 sm:px-6 py-5 space-y-5">
                 <section>
                   <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-2">
                     Scope of work performed
@@ -579,123 +528,65 @@ export default function MaintenanceDetailsPage() {
                     <Field label="Last updated" value={formatDate(record.updatedAt)} mono />
                   </div>
                 </section>
-              </TabsContent>
+              </div>
+            </Card>
 
-              {/* Billing & invoice tab */}
-              <TabsContent value="billing" className="mt-0 px-5 sm:px-6 py-5">
-                <div className="flex items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            {/* Card 2: Billing & Invoice */}
+            <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Receipt className="w-4 h-4" />
+                  </div>
                   <div>
-                    <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400">Total billed</h3>
-                    <div className="text-xl font-mono font-black text-slate-900 dark:text-slate-100 mt-0.5">
+                    <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400 block">
+                      Billing &amp; Invoice
+                    </span>
+                    <span className="text-base font-black text-slate-900 dark:text-slate-100 font-mono mt-0.5">
                       {formatSAR(record.cost)}
-                    </div>
+                    </span>
                   </div>
-                  <Receipt className="w-8 h-8 text-emerald-500/40" />
                 </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setIsCostModalOpen(true)}
+                  className="h-8.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white rounded-xl gap-1.5 shadow-xs"
+                >
+                  <Banknote className="w-3.5 h-3.5" />
+                  Enter / Update Cost
+                </Button>
+              </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Billing summary */}
-                  <div>
-                    <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-1">
-                      Billing details
-                    </h3>
-                    <Field label="Invoice number" value={record.invoice_number || EMPTY} mono />
-                    <Field label="Workshop" value={record.workshop_name || EMPTY} />
-                    <Field label="Maintenance type" value={typeMeta.label} />
-                    <Field label="Status" value={statusMeta.label} />
-                    <Field label="Recorded on" value={formatDate(record.createdAt)} mono />
-                  </div>
-
-                  {/* Uploaded workshop invoices */}
-                  <div>
-                    <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-2">
-                      Workshop invoice ({invoiceDocs.length})
-                    </h3>
-
-                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-0.5">
-                      {invoiceDocs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center text-center gap-1.5 py-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                          <Paperclip className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-                          <p className="text-xs text-slate-500">No invoice uploaded yet.</p>
-                          <p className="text-[10px] text-slate-400">Attach the bill issued by the workshop below.</p>
-                        </div>
+              <div className="px-5 sm:px-6 py-5">
+                <h3 className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-slate-400 mb-2">
+                  Billing details
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+                  <Field label="Total billed" value={formatSAR(record.cost)} mono />
+                  <Field label="Invoice number" value={record.invoice_number || EMPTY} mono />
+                  <Field
+                    label="Payment Status"
+                    value={
+                      record.cost > 0 || record.status === 'Completed' ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-bold">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Paid
+                        </Badge>
                       ) : (
-                        invoiceDocs.map((doc) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30"
-                          >
-                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                              <FileText className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                                {doc.file_url.split('/').pop()}
-                              </div>
-                              <div className="text-[10px] text-slate-500 font-mono">
-                                {formatDate(doc.createdAt)} · {doc.status}
-                              </div>
-                            </div>
-                            <a
-                              href={doc.file_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 shrink-0"
-                              title="Open invoice"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => setDocToDelete(doc)}
-                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0"
-                              title="Remove invoice"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {/* Upload */}
-                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                      {uploadError && (
-                        <div className="mb-2 p-2.5 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 text-[11px] font-bold flex items-center gap-2">
-                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                          <span>{uploadError}</span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        <Input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png,.webp"
-                          onChange={(e) => {
-                            setInvoiceFile(e.target.files?.[0] ?? null);
-                            setUploadError('');
-                          }}
-                          className="h-9 text-xs file:text-xs file:font-bold file:mr-2 cursor-pointer"
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={!invoiceFile || uploadMutation.isPending}
-                          onClick={() => invoiceFile && uploadMutation.mutate(invoiceFile)}
-                          className="h-9 shrink-0 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          {uploadMutation.isPending ? 'Uploading…' : 'Upload'}
-                        </Button>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-1.5">PDF or image, up to the server upload limit.</p>
-                    </div>
-                  </div>
+                        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] font-bold">
+                          Unpaid
+                        </Badge>
+                      )
+                    }
+                  />
+                  <Field label="Workshop" value={record.workshop_name || EMPTY} />
+                  <Field label="Maintenance type" value={typeMeta.label} />
+                  <Field label="Status" value={statusMeta.label} />
+                  <Field label="Recorded on" value={formatDate(record.createdAt)} mono />
                 </div>
-              </TabsContent>
-            </Tabs>
-          </Card>
+              </div>
+            </Card>
+          </div>
 
           {/* Service provider: vehicle + workshop, joined into one card */}
           <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
@@ -1002,36 +893,12 @@ export default function MaintenanceDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete invoice modal ─────────────────────────────────────────── */}
-      <Dialog open={!!docToDelete} onOpenChange={(open) => !open && setDocToDelete(null)}>
-        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden">
-          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2 text-rose-600">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <DialogTitle className="text-base font-extrabold">Remove invoice</DialogTitle>
-            </div>
-            <DialogDescription className="text-xs text-slate-500 mt-1">
-              Remove <strong className="text-slate-900 dark:text-slate-100">{docToDelete?.file_url.split('/').pop()}</strong> from
-              this service order?
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => setDocToDelete(null)} className="text-xs">
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={deleteDocMutation.isPending}
-              onClick={() => docToDelete && deleteDocMutation.mutate(docToDelete.id)}
-              className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold px-4"
-            >
-              {deleteDocMutation.isPending ? 'Removing…' : 'Remove invoice'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ── Add / Update Cost modal ─────────────────────────────────────────── */}
+      <AddMaintenanceCostModal
+        open={isCostModalOpen}
+        onOpenChange={setIsCostModalOpen}
+        record={record}
+      />
 
     </DashboardLayout>
   );
