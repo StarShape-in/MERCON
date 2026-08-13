@@ -808,18 +808,9 @@ export default function TripDetailsPage() {
                     ) : (
                       <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-black/[0.02] dark:bg-slate-900/20 border border-dashed border-black/[0.12] dark:border-slate-800">
                         <div>
-                          <p className="text-sm font-bold text-[#111] dark:text-slate-200">No invoice generated yet</p>
-                          <p className="text-xs font-medium text-[#6E6E80] mt-0.5">Invoices can be created once the trip is completed.</p>
+                          <p className="text-sm font-bold text-[#111] dark:text-slate-200">No external invoice linked yet</p>
+                          <p className="text-xs font-medium text-[#6E6E80] mt-0.5">Invoicing status and ZATCA references are managed directly in the Company Billing Ledger.</p>
                         </div>
-                        {trip.status === 'Completed' && (
-                          <Btn
-                            label="Generate Invoice"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => navigate(`/invoices/new?trip_id=${trip.id}`)}
-                            className="rounded-xl text-xs font-semibold cursor-pointer"
-                          />
-                        )}
                       </div>
                     )}
                   </CardContent>
