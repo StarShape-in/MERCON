@@ -69,7 +69,7 @@ const PERIODS = [
 ] as const;
 
 /** Turns a period preset into the `from` bound the API expects. */
-const rangeFor = (period: string) => {
+const rangeFor = (period: string): { from?: string; to?: string } => {
   if (period === 'all') return {};
   const from = new Date();
   from.setMonth(from.getMonth() - Number(period));
