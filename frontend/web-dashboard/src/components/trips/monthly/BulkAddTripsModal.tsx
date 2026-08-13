@@ -46,6 +46,8 @@ import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
 const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat)).map((cat) => (cat === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
+const isRoundTripCategory = (cat: string) => Boolean(cat) && cat.toLowerCase().includes('round');
+
 interface BulkAddTripsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -590,7 +592,7 @@ export default function BulkAddTripsModal({
 
         let destString = slot.destination.trim();
 
-        if (contractRateCategory === 'Round Trip' || contractRateCategory === 'Monthly (ROUND TRIP , 2 vehicles)') {
+        if (isRoundTripCategory(contractRateCategory)) {
           // Closed 4-section loop: Outbound Pickup -> Outbound Stops -> Outbound Dropoff -> Return Pickup -> Return Stops -> Return Dropoff
           const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
           const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
@@ -1032,7 +1034,7 @@ export default function BulkAddTripsModal({
                             </div>
 
                             {/* Conditional Rendering for Round Trip (4 Sections) vs Standard 1-Way Trip */}
-                            {contractRateCategory === 'Round Trip' || contractRateCategory === 'Monthly (ROUND TRIP , 2 vehicles)' ? (
+                            {isRoundTripCategory(contractRateCategory) ? (
                               <div className="space-y-5 pt-1">
                                 {/* LEG 1: OUTBOUND JOURNEY */}
                                 <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-3">
@@ -1674,7 +1676,7 @@ export default function BulkAddTripsModal({
                       </div>
 
                       {/* 2-Vehicle Shuttle Helper Banner */}
-                      {contractRateCategory === 'Monthly (ROUND TRIP , 2 vehicles)' && (
+                      {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
                         <div className="p-3.5 rounded-2xl bg-indigo-50/90 border border-indigo-200 flex items-center justify-between flex-wrap gap-3 text-xs text-indigo-950 font-bold shadow-2xs">
                           <div className="flex items-center gap-2">
                             <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
