@@ -109,7 +109,24 @@ export default function BulkAddTripsModal({
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
   const [contractOrigin, setContractOrigin] = useState('');
   const [contractDestination, setContractDestination] = useState('');
+  const [intermediateLocations, setIntermediateLocations] = useState<string[]>([]);
   const [contractBillingAmount, setContractBillingAmount] = useState('');
+
+  const handleAddIntermediateLocation = () => {
+    setIntermediateLocations((prev) => [...prev, '']);
+  };
+
+  const handleRemoveIntermediateLocation = (index: number) => {
+    setIntermediateLocations((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateIntermediateLocation = (index: number, val: string) => {
+    setIntermediateLocations((prev) => {
+      const next = [...prev];
+      next[index] = val;
+      return next;
+    });
+  };
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string }>>({});
 
@@ -323,6 +340,11 @@ export default function BulkAddTripsModal({
   const handleContractSubmit = () => {
     if (!contractCustomer || selectedDates.length === 0) return;
 
+    const filledStops = intermediateLocations.map((s) => s.trim()).filter(Boolean);
+    const destString = filledStops.length > 0
+      ? `${filledStops.join(' → ')} → ${contractDestination.trim()}`
+      : contractDestination.trim();
+
     const rows: BulkImportTripRow[] = selectedDates.map((date) => {
       const assignment = dayAssignments[date] || { driverId: '', vehicleId: '' };
       return {
@@ -333,7 +355,7 @@ export default function BulkAddTripsModal({
         rate_category: contractRateCategory || undefined,
         vehicle_type: contractVehicleType || undefined,
         origin: contractOrigin.trim() || undefined,
-        destination: contractDestination.trim() || undefined,
+        destination: destString || undefined,
         billing_amount: contractBillingAmount ? Number(contractBillingAmount) : undefined,
         status: assignment.driverId && assignment.vehicleId ? 'Dispatched' : 'Draft',
       };
@@ -581,42 +603,87 @@ export default function BulkAddTripsModal({
                       </div>
 
                       {/* Optional Route & Billing defaults */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                            Origin / Pickup (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={contractOrigin}
-                            onChange={(e) => setContractOrigin(e.target.value)}
-                            placeholder="e.g. Riyadh Sorting Yard"
-                            className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
-                          />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-black/[0.06] pb-1.5">
+                          <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
+                            Route Locations & Financials
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[11px] font-bold text-[#E8450F] border-orange-200 bg-orange-50/50 hover:bg-orange-100/60 shadow-2xs gap-1"
+                            onClick={handleAddIntermediateLocation}
+                          >
+                            <Plus className="w-3 h-3 text-[#E8450F]" />
+                            Add Location
+                          </Button>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                            Destination (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={contractDestination}
-                            onChange={(e) => setContractDestination(e.target.value)}
-                            placeholder="e.g. Jeddah Port Gate 4"
-                            className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                            Billing Amount (SAR)
-                          </label>
-                          <input
-                            type="number"
-                            value={contractBillingAmount}
-                            onChange={(e) => setContractBillingAmount(e.target.value)}
-                            placeholder="e.g. 3500"
-                            className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
-                          />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
+                              Origin / Pickup (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={contractOrigin}
+                              onChange={(e) => setContractOrigin(e.target.value)}
+                              placeholder="e.g. Riyadh Sorting Yard"
+                              className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
+                            />
+                          </div>
+
+                          {intermediateLocations.map((loc, idx) => (
+                            <div key={idx} className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
+                                  Stop {idx + 1} Location (Optional)
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveIntermediateLocation(idx)}
+                                  className="text-slate-400 hover:text-rose-600 transition-colors p-0.5"
+                                  title="Remove stop location"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={loc}
+                                onChange={(e) => handleUpdateIntermediateLocation(idx, e.target.value)}
+                                placeholder={`e.g. Intermediate Stop ${idx + 1}`}
+                                className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
+                              />
+                            </div>
+                          ))}
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
+                              Destination (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={contractDestination}
+                              onChange={(e) => setContractDestination(e.target.value)}
+                              placeholder="e.g. Jeddah Port Gate 4"
+                              className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
+                              Billing Amount (SAR)
+                            </label>
+                            <input
+                              type="number"
+                              value={contractBillingAmount}
+                              onChange={(e) => setContractBillingAmount(e.target.value)}
+                              placeholder="e.g. 3500"
+                              className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
+                            />
+                          </div>
                         </div>
                       </div>
 
