@@ -81,23 +81,28 @@ app.use(helmet.hsts({
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static('uploads')); // Serve uploaded files statically
 
-// Routes
-app.use('/auth', authRoutes);
-app.use('/drivers', driverRoutes);
-app.use('/vehicles', vehicleRoutes);
-app.use('/customers', customerRoutes);
-app.use('/trips', tripRoutes);
-app.use('/invoices', invoiceRoutes);
-app.use('/maintenance', maintenanceRoutes);
-app.use('/expenses', expenseRoutes);
-app.use('/reports', reportsRoutes);
-app.use('/documents', documentRoutes);
-app.use('/rate-cards', rateCardRoutes);
-app.use('/locations', locationRoutes);
-app.use('/notifications', notificationRoutes);
-app.use('/upload', uploadRoutes);
-app.use('/users', userRoutes);
-app.use('/trash', trashRoutes);
+// Create API router and mount all API routes
+const apiRouter = express.Router();
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/drivers', driverRoutes);
+apiRouter.use('/vehicles', vehicleRoutes);
+apiRouter.use('/customers', customerRoutes);
+apiRouter.use('/trips', tripRoutes);
+apiRouter.use('/invoices', invoiceRoutes);
+apiRouter.use('/maintenance', maintenanceRoutes);
+apiRouter.use('/expenses', expenseRoutes);
+apiRouter.use('/reports', reportsRoutes);
+apiRouter.use('/documents', documentRoutes);
+apiRouter.use('/rate-cards', rateCardRoutes);
+apiRouter.use('/locations', locationRoutes);
+apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/upload', uploadRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/trash', trashRoutes);
+
+// Mount router on both /api and root for maximum proxy compatibility
+app.use('/api', apiRouter);
+app.use(apiRouter);
 
 // Mobile API Routes
 app.use('/mobile/auth', mobileAuthRoutes);
@@ -106,6 +111,7 @@ app.use('/mobile/notifications', mobileNotificationRoutes);
 app.use('/mobile/profile', mobileProfileRoutes);
 app.use('/mobile/emergency', mobileEmergencyRoutes);
 app.use('/mobile', mobileMiscRoutes); // /mobile/documents, /mobile/vehicle
+app.use('/api/mobile', mobileMiscRoutes);
 
 // Socket.io Telemetry WebSockets — every connection must present a valid JWT
 // (same token used for the HTTP API) in the handshake, or it's rejected.
@@ -174,7 +180,7 @@ io.on('connection', (socket: Socket) => {
 });
 
 // Healthcheck endpoint
-app.get('/health', (req: Request, res: Response) => {
+app.get(['/health', '/api/health'], (req: Request, res: Response) => {
   res.json({ success: true, message: 'MERCON API is running perfectly!' });
 });
 

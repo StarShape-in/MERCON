@@ -23,8 +23,8 @@ export const getDrivers = async (req: Request, res: Response) => {
   try {
     const { status, search, page = '1', per_page = '20' } = req.query;
     
-    const pageNumber = parseInt(page as string);
-    const limit = parseInt(per_page as string);
+    const pageNumber = Math.max(1, parseInt(page as string) || 1);
+    const limit = Math.max(1, Math.min(5000, parseInt(per_page as string) || 20));
     const skip = (pageNumber - 1) * limit;
 
     const whereClause: any = { deletedAt: null };
@@ -76,6 +76,7 @@ export const getDrivers = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
+    logger.error({ err: error }, 'Failed to fetch drivers');
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch drivers' } });
   }
 };

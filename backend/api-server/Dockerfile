@@ -1,7 +1,7 @@
 # Build from the repo root: docker build -f backend/api-server/Dockerfile .
 FROM node:18-alpine
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl curl
 
 WORKDIR /app
 
