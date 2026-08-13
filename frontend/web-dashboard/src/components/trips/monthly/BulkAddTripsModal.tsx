@@ -21,6 +21,13 @@ import {
   Clock,
   Moon,
   RefreshCw,
+  User,
+  Building2,
+  MapPin,
+  Truck,
+  DollarSign,
+  Search,
+  X,
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -108,8 +115,9 @@ export default function BulkAddTripsModal({
   // ==========================================
   // TAB 1: MONTHLY CONTRACT BATCH GENERATOR STATE
   // ==========================================
-  const [contractStep, setContractStep] = useState<1 | 2>(1);
+  const [contractStep, setContractStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [contractCustomer, setContractCustomer] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
   const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
 
@@ -559,16 +567,18 @@ export default function BulkAddTripsModal({
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Navigation Tabs */}
-          {!submissionResult && (
-            <div className="flex items-center gap-1.5 mt-5 p-1 bg-black/[0.04] rounded-xl w-fit">
+        {/* Navigation Tabs & 5-Step Progress Pills */}
+        {!submissionResult && (
+          <div className="border-b border-black/[0.06] bg-slate-50/50">
+            <div className="flex items-center gap-1.5 px-6 pt-4 pb-2">
               <button
                 type="button"
                 onClick={() => setActiveTab('contract')}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'contract'
-                    ? 'bg-white text-[#111111] shadow-sm'
+                    ? 'bg-white text-[#111111] shadow-sm border border-black/5'
                     : 'text-[#6E6E80] hover:text-[#111111]'
                 }`}
               >
@@ -580,7 +590,7 @@ export default function BulkAddTripsModal({
                 onClick={() => setActiveTab('grid')}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'grid'
-                    ? 'bg-white text-[#111111] shadow-sm'
+                    ? 'bg-white text-[#111111] shadow-sm border border-black/5'
                     : 'text-[#6E6E80] hover:text-[#111111]'
                 }`}
               >
@@ -592,7 +602,7 @@ export default function BulkAddTripsModal({
                 onClick={() => setActiveTab('file')}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'file'
-                    ? 'bg-white text-[#111111] shadow-sm'
+                    ? 'bg-white text-[#111111] shadow-sm border border-black/5'
                     : 'text-[#6E6E80] hover:text-[#111111]'
                 }`}
               >
@@ -600,8 +610,44 @@ export default function BulkAddTripsModal({
                 CSV / Excel Import
               </button>
             </div>
-          )}
-        </div>
+
+            {/* Stepper Pills for Contract Batch */}
+            {activeTab === 'contract' && (
+              <div className="flex items-center gap-1.5 overflow-x-auto py-2 px-6 border-t border-black/[0.04] bg-white">
+                {[
+                  { step: 1, label: '1. Customer', icon: User },
+                  { step: 2, label: '2. Route Slots', icon: MapPin },
+                  { step: 3, label: '3. Schedule', icon: Calendar },
+                  { step: 4, label: '4. Assignments', icon: Truck },
+                  { step: 5, label: '5. Review', icon: Sparkles },
+                ].map((s) => {
+                  const IconComp = s.icon;
+                  const isActive = contractStep === s.step;
+                  const isPassed = contractStep > s.step;
+
+                  return (
+                    <button
+                      key={s.step}
+                      type="button"
+                      onClick={() => setContractStep(s.step as any)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                        isActive
+                          ? 'bg-[#E8450F] text-white shadow-sm ring-2 ring-[#E8450F]/20'
+                          : isPassed
+                          ? 'bg-orange-50 text-[#E8450F] border border-orange-200 hover:bg-orange-100'
+                          : 'bg-slate-50 text-slate-400 border border-slate-200/80 hover:bg-slate-100 hover:text-slate-600'
+                      }`}
+                    >
+                      <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-[#E8450F]' : 'text-slate-400'}`} />
+                      <span>{s.label}</span>
+                      {isPassed && <CheckCircle2 className="w-3 h-3 text-[#E8450F] ml-0.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6 min-h-[380px]">
@@ -674,17 +720,68 @@ export default function BulkAddTripsModal({
               {/* TAB 1: MONTHLY CONTRACT BATCH GENERATOR */}
               {activeTab === 'contract' && (
                 <div>
-                  {contractStep === 1 ? (
-                    <div className="space-y-6">
-                      {/* Step 1 Header & Customer select */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* STEP 1: CUSTOMER & CATEGORY */}
+                  {contractStep === 1 && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-[#E8450F]" />
+                          Select Customer Account
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Pick the client responsible for freight billing and contracted lane rates.
+                        </p>
+                      </div>
+
+                      {/* Frequent Shippers Cards */}
+                      <div className="space-y-2">
+                        <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider block">
+                          ⚡ Frequent Shippers
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {customers.slice(0, 4).map((c, idx) => {
+                            const isSelected = contractCustomer === c.id;
+                            const initials = c.name.substring(0, 2).toUpperCase();
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => setContractCustomer(c.id)}
+                                className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between h-24 ${
+                                  isSelected
+                                    ? 'bg-orange-50/70 border-[#E8450F] ring-2 ring-[#E8450F]/20 shadow-sm'
+                                    : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className={`w-8 h-8 rounded-xl font-bold text-xs grid place-items-center ${
+                                    isSelected ? 'bg-[#E8450F] text-white' : 'bg-slate-100 text-slate-700'
+                                  }`}>
+                                    {initials}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                                    Key {idx + 1}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-[#111111] truncate">{c.name}</p>
+                                  <p className="text-[10px] text-slate-400 font-medium">Commercial Account</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Search All Accounts & Trip Category/Vehicle Type */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-black/[0.06]">
                         <div className="space-y-1.5">
-                          <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                            Customer / Company *
+                          <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
+                            <Search className="w-3 h-3 text-slate-400" /> Search All Accounts *
                           </label>
                           <Select value={contractCustomer} onValueChange={setContractCustomer}>
-                            <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold">
-                              <SelectValue placeholder="Select customer" />
+                            <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white">
+                              <SelectValue placeholder="-- Select customer --" />
                             </SelectTrigger>
                             <SelectContent>
                               {customers.map((c) => (
@@ -701,7 +798,7 @@ export default function BulkAddTripsModal({
                             Trip Category
                           </label>
                           <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
-                            <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold">
+                            <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -719,7 +816,7 @@ export default function BulkAddTripsModal({
                             Vehicle Type
                           </label>
                           <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
-                            <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold">
+                            <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -731,6 +828,21 @@ export default function BulkAddTripsModal({
                             </SelectContent>
                           </Select>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 2: ROUTE & TRIPS SLOTS */}
+                  {contractStep === 2 && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-[#E8450F]" />
+                          Configure Daily Trip Slots & Routes
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Define origin, pickup time, intermediate stops, destination, drop-off time, and overnight status.
+                        </p>
                       </div>
 
                       {/* Trip Slots Section */}
@@ -953,37 +1065,52 @@ export default function BulkAddTripsModal({
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* STEP 3: SCHEDULE & DAYS */}
+                  {contractStep === 3 && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-[#E8450F]" />
+                          Select Operating Month & Days
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Choose the target month and select the operational days for this monthly contract batch.
+                        </p>
+                      </div>
 
                       {/* Month Switcher & Day Selector */}
-                      <div className="p-5 rounded-2xl border border-black/[0.08] bg-slate-50/70 space-y-4">
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-black/[0.06] space-y-4">
                         <div className="flex items-center justify-between flex-wrap gap-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#111111]">
-                              Select Month & Days:
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}
+                              className="h-8 rounded-lg border-black/10 px-2 text-xs"
+                            >
+                              ‹
+                            </Button>
+                            <span className="text-xs font-bold text-[#111111] min-w-[110px] text-center bg-white border border-black/10 px-3 py-1 rounded-lg">
+                              {monthLabel(selectedMonth)}
                             </span>
-                            <div className="inline-flex items-center bg-white border border-black/10 rounded-xl overflow-hidden shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}
-                                className="h-8 w-8 grid place-items-center text-[#6E6E80] hover:bg-black/[0.04]"
-                              >
-                                <ChevronLeft className="h-3.5 w-3.5" />
-                              </button>
-                              <span className="text-xs font-bold text-[#111111] px-3">
-                                {monthLabel(selectedMonth)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}
-                                className="h-8 w-8 grid place-items-center text-[#6E6E80] hover:bg-black/[0.04]"
-                              >
-                                <ChevronRight className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}
+                              className="h-8 rounded-lg border-black/10 px-2 text-xs"
+                            >
+                              ›
+                            </Button>
                           </div>
 
-                          {/* Quick selection pills */}
+                          {/* Presets */}
                           <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-bold text-[#9898A4] uppercase mr-1">Quick Select:</span>
                             <button
                               type="button"
                               onClick={() => selectPreset('weekdays')}
@@ -1005,15 +1132,6 @@ export default function BulkAddTripsModal({
                             >
                               All Days
                             </button>
-                            {selectedDates.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => selectPreset('clear')}
-                                className="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-[11px] font-semibold transition-colors"
-                              >
-                                Clear
-                              </button>
-                            )}
                           </div>
                         </div>
 
@@ -1025,7 +1143,6 @@ export default function BulkAddTripsModal({
                             </div>
                           ))}
 
-                          {/* Empty offset days for start of month */}
                           {Array.from({ length: monthDates[0]?.dayOfWeek || 0 }).map((_, i) => (
                             <div key={`pad-${i}`} className="h-10 rounded-xl opacity-0 pointer-events-none" />
                           ))}
@@ -1051,45 +1168,25 @@ export default function BulkAddTripsModal({
                             );
                           })}
                         </div>
-                      </div>
 
-                      {/* Step 1 Footer */}
-                      <div className="flex items-center justify-between pt-3 border-t border-black/[0.06]">
-                        <div className="text-xs text-[#6E6E80]">
-                          <span className="font-bold text-[#111111]">
-                            {selectedDates.length * contractSlots.length} total trips
-                          </span> ({selectedDates.length} days × {contractSlots.length} slot{contractSlots.length > 1 ? 's' : ''}/day)
+                        <div className="text-xs text-[#6E6E80] pt-1 text-center font-medium">
+                          Selected: <span className="font-bold text-[#111111]">{selectedDates.length} days</span> × {contractSlots.length} slot(s) = <span className="font-bold text-[#E8450F]">{selectedDates.length * contractSlots.length} total trips</span>
                         </div>
-                        <Button
-                          disabled={!contractCustomer || selectedDates.length === 0}
-                          onClick={() => setContractStep(2)}
-                          className="h-10 rounded-xl px-5 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
-                        >
-                          Next: Assign Drivers & Vehicles ({selectedDates.length * contractSlots.length})
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
                       </div>
                     </div>
-                  ) : (
-                    /* Step 2: Per-Day Driver & Vehicle Assignment Matrix */
+                  )}
+
+                  {/* STEP 4: DRIVER & TRUCK ASSIGNMENTS */}
+                  {contractStep === 4 && (
                     <div className="space-y-5 animate-fade-in">
-                      <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-black/[0.06]">
-                        <div>
-                          <h4 className="text-sm font-bold text-[#111111]">
-                            Assign Drivers & Trucks per Day
-                          </h4>
-                          <p className="text-xs text-[#6E6E80] mt-0.5">
-                            Tailor individual driver and vehicle assignments for each day, or leave days unassigned.
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setContractStep(1)}
-                          className="rounded-xl border-black/10 text-xs font-semibold h-8"
-                        >
-                          <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Back to Dates
-                        </Button>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-[#E8450F]" />
+                          Assign Drivers & Trucks
+                        </h4>
+                        <p className="text-xs text-[#6E6E80]">
+                          Tailor driver and vehicle assignments for each trip slot, or use quick batch rotation shortcuts.
+                        </p>
                       </div>
 
                       {/* Quick Apply Master Toolbar */}
@@ -1359,12 +1456,74 @@ export default function BulkAddTripsModal({
                           </tbody>
                         </table>
                       </div>
+                    </div>
+                  )}
 
-                      {/* Step 2 Execution Footer */}
-                      <div className="flex items-center justify-between pt-3 border-t border-black/[0.06]">
+                  {/* STEP 5: REVIEW & SUMMARY */}
+                  {contractStep === 5 && (
+                    <div className="space-y-6 animate-fade-in">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-[#E8450F]" />
+                          Review & Generate Monthly Batch
+                        </h4>
                         <p className="text-xs text-[#6E6E80]">
-                          Customer: <span className="font-bold text-[#111111]">{customers.find((c) => c.id === contractCustomer)?.name}</span> • Ready to create <span className="font-bold text-[#E8450F]">{batchTripRows.length} trips</span>
+                          Confirm all contract batch parameters before generating trips on the Monthly Board.
                         </p>
+                      </div>
+
+                      {/* Batch Summary KPI Card */}
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-4 border-b border-slate-200/60">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer</span>
+                            <span className="text-sm font-bold text-[#111111]">
+                              {customers.find((c) => c.id === contractCustomer)?.name || 'Not Selected'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Trips</span>
+                            <span className="text-sm font-bold text-[#E8450F]">
+                              {batchTripRows.length} Trips
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Operating Days</span>
+                            <span className="text-sm font-bold text-[#111111]">{selectedDates.length} Days</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Daily Trip Slots</span>
+                            <span className="text-sm font-bold text-[#111111]">{contractSlots.length} Slot(s) / Day</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Trip Category</span>
+                            <span className="text-xs font-semibold text-slate-700">{contractRateCategory}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicle Type</span>
+                            <span className="text-xs font-semibold text-slate-700">{contractVehicleType}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Overnight Trips</span>
+                            <span className="text-xs font-semibold text-indigo-600 flex items-center gap-1">
+                              <Moon className="w-3 h-3 fill-indigo-600" />
+                              {contractSlots.filter((s) => s.isOvernight).length} Slot(s) Marked +1 Day
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assignment Mode</span>
+                            <span className="text-xs font-semibold text-slate-700">
+                              {assignMode === 'alternating' ? '🔄 Alternating A/B Rotation' : 'Single Master Apply'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="flex items-center justify-end pt-3 border-t border-black/[0.06]">
                         <Button
                           disabled={bulkMutation.isPending || batchTripRows.length === 0}
                           onClick={handleContractSubmit}
@@ -1698,6 +1857,70 @@ export default function BulkAddTripsModal({
             </>
           )}
         </div>
+
+        {/* Sticky Guided Footer Action Bar for Contract Batch */}
+        {activeTab === 'contract' && !submissionResult && (
+          <div className="p-4 border-t border-black/[0.06] bg-slate-50/80 flex items-center justify-between shrink-0">
+            <div>
+              {contractStep > 1 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setContractStep((prev) => (prev - 1) as any)}
+                  className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white hover:bg-slate-50"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Back
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleDialogClose}
+                  className="h-10 text-xs font-semibold text-slate-500 hover:text-slate-900"
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {contractStep < 5 ? (
+                <Button
+                  type="button"
+                  disabled={
+                    (contractStep === 1 && !contractCustomer) ||
+                    (contractStep === 3 && selectedDates.length === 0)
+                  }
+                  onClick={() => setContractStep((prev) => (prev + 1) as any)}
+                  className="h-10 rounded-xl px-6 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
+                >
+                  Next Step: {contractStep === 1 ? 'Route Slots' : contractStep === 2 ? 'Schedule' : contractStep === 3 ? 'Assignments' : 'Review'}
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={bulkMutation.isPending || batchTripRows.length === 0}
+                  onClick={handleContractSubmit}
+                  className="h-10 rounded-xl px-6 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                >
+                  {bulkMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating Trips...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-1.5" />
+                      Generate {batchTripRows.length} Trips
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
