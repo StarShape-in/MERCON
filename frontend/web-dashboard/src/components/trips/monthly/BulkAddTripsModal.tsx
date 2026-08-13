@@ -19,6 +19,8 @@ import {
   Download,
   RotateCcw,
   Clock,
+  Moon,
+  RefreshCw,
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -117,6 +119,7 @@ export default function BulkAddTripsModal({
     pickupTime: string;
     dropoffTime: string;
     billingAmount: string;
+    isOvernight?: boolean;
     intermediateLocations: string[];
   }>>([
     {
@@ -126,6 +129,7 @@ export default function BulkAddTripsModal({
       pickupTime: '08:00',
       dropoffTime: '18:00',
       billingAmount: '',
+      isOvernight: false,
       intermediateLocations: [],
     },
   ]);
@@ -142,6 +146,7 @@ export default function BulkAddTripsModal({
         pickupTime: defaultTime,
         dropoffTime: '18:00',
         billingAmount: prev[0]?.billingAmount || '',
+        isOvernight: false,
         intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
       },
     ]);
@@ -188,8 +193,81 @@ export default function BulkAddTripsModal({
   const [dayAssignments, setDayAssignments] = useState<Record<string, { driverId: string; vehicleId: string }>>({});
 
   // Master quick-apply in Step 2
+  const [assignMode, setAssignMode] = useState<'single' | 'alternating'>('single');
   const [masterDriver, setMasterDriver] = useState('');
   const [masterVehicle, setMasterVehicle] = useState('');
+  const [loopDriverA, setLoopDriverA] = useState('');
+  const [loopVehicleA, setLoopVehicleA] = useState('');
+  const [loopDriverB, setLoopDriverB] = useState('');
+  const [loopVehicleB, setLoopVehicleB] = useState('');
+
+  // Batch trip rows for Step 2 preview
+  const batchTripRows = useMemo(() => {
+    const list: Array<{
+      key: string;
+      dateStr: string;
+      formattedDate: string;
+      slotLabel: string;
+      pickupTime: string;
+      isOvernight?: boolean;
+    }> = [];
+
+    selectedDates.forEach((dateStr) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const formattedDate = dateObj.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+
+      contractSlots.forEach((slot, slotIdx) => {
+        const key = contractSlots.length > 1 ? `${dateStr}::${slot.id}` : dateStr;
+        const slotLabel = contractSlots.length > 1 ? `Slot #${slotIdx + 1}` : '';
+        list.push({
+          key,
+          dateStr,
+          formattedDate,
+          slotLabel,
+          pickupTime: slot.pickupTime,
+          isOvernight: slot.isOvernight,
+        });
+      });
+    });
+
+    return list;
+  }, [selectedDates, contractSlots]);
+
+  const applyMasterToAll = () => {
+    setDayAssignments((prev) => {
+      const next = { ...prev };
+      batchTripRows.forEach((row) => {
+        next[row.key] = {
+          driverId: masterDriver !== 'unassigned' && masterDriver ? masterDriver : '',
+          vehicleId: masterVehicle !== 'unassigned' && masterVehicle ? masterVehicle : '',
+        };
+      });
+      return next;
+    });
+  };
+
+  const applyAlternatingLoop = () => {
+    const newAssignments: Record<string, { driverId: string; vehicleId: string }> = {};
+
+    batchTripRows.forEach((row, index) => {
+      const isEven = index % 2 === 0;
+      const drv = isEven ? loopDriverA : loopDriverB;
+      const veh = isEven ? loopVehicleA : loopVehicleB;
+
+      newAssignments[row.key] = {
+        driverId: drv === 'unassigned' ? '' : drv,
+        vehicleId: veh === 'unassigned' ? '' : veh,
+      };
+    });
+
+    setDayAssignments((prev) => ({ ...prev, ...newAssignments }));
+  };
 
   // Calendar dates for the selected month
   const monthDates = useMemo(() => {
@@ -249,18 +327,7 @@ export default function BulkAddTripsModal({
     });
   }, [selectedDates]);
 
-  const applyMasterToAll = () => {
-    setDayAssignments((prev) => {
-      const next = { ...prev };
-      selectedDates.forEach((date) => {
-        next[date] = {
-          driverId: masterDriver !== undefined ? masterDriver : next[date]?.driverId || '',
-          vehicleId: masterVehicle !== undefined ? masterVehicle : next[date]?.vehicleId || '',
-        };
-      });
-      return next;
-    });
-  };
+
 
   // ==========================================
   // TAB 2: QUICK GRID ENTRY STATE
@@ -839,14 +906,33 @@ export default function BulkAddTripsModal({
                               </div>
 
                               <div className="space-y-1.5">
-                                <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5 text-slate-400" /> Drop-off Time
-                                </label>
+                                <div className="flex items-center justify-between">
+                                  <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
+                                    <Clock className="w-3.5 h-3.5 text-slate-400" /> Drop-off Time
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
+                                    className={`text-[10px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all whitespace-nowrap shrink-0 ${
+                                      slot.isOvernight
+                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs'
+                                        : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50 border border-transparent'
+                                    }`}
+                                    title="Toggle Overnight / Next-Day Return trip (+1 Day)"
+                                  >
+                                    <Moon className={`w-3 h-3 ${slot.isOvernight ? 'text-indigo-600 fill-indigo-600' : 'text-slate-400'}`} />
+                                    {slot.isOvernight ? '🌙 +1 Day (Overnight)' : '+1 Day'}
+                                  </button>
+                                </div>
                                 <input
                                   type="time"
                                   value={slot.dropoffTime}
                                   onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                  className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F] bg-white cursor-pointer"
+                                  className={`w-full h-10 px-3 rounded-xl border text-xs font-medium focus:outline-none focus:border-[#E8450F] cursor-pointer ${
+                                    slot.isOvernight
+                                      ? 'border-indigo-300 bg-indigo-50/20 text-indigo-950 font-semibold'
+                                      : 'border-black/10 bg-white'
+                                  }`}
                                 />
                               </div>
 
@@ -1006,50 +1092,168 @@ export default function BulkAddTripsModal({
                       </div>
 
                       {/* Quick Apply Master Toolbar */}
-                      <div className="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100 flex items-center justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
-                          <span className="text-xs font-bold text-indigo-900">
-                            Batch Assign Shortcut:
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Select value={masterDriver} onValueChange={setMasterDriver}>
-                            <SelectTrigger className="h-8 w-44 rounded-lg bg-white border-indigo-200 text-xs font-medium">
-                              <SelectValue placeholder="Select driver" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                              {drivers.map((d) => (
-                                <SelectItem key={d.id} value={d.id} className="text-xs">
-                                  {d.first_name} {d.last_name} ({d.status})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100/90 space-y-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
+                            <span className="text-xs font-bold text-indigo-950">
+                              Batch Assign Drivers & Trucks
+                            </span>
+                          </div>
 
-                          <Select value={masterVehicle} onValueChange={setMasterVehicle}>
-                            <SelectTrigger className="h-8 w-44 rounded-lg bg-white border-indigo-200 text-xs font-medium">
-                              <SelectValue placeholder="Select vehicle" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="unassigned">-- Unassigned --</SelectItem>
-                              {vehicles.map((v) => (
-                                <SelectItem key={v.id} value={v.id} className="text-xs">
-                                  {v.plate_number} ({v.asset_type})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          <Button
-                            size="sm"
-                            onClick={applyMasterToAll}
-                            className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3"
-                          >
-                            Apply to All {selectedDates.length} Days
-                          </Button>
+                          <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-indigo-200/80 shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => setAssignMode('single')}
+                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                                assignMode === 'single'
+                                  ? 'bg-indigo-600 text-white shadow-2xs'
+                                  : 'text-indigo-900 hover:bg-indigo-50'
+                              }`}
+                            >
+                              Same Driver Every Day
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAssignMode('alternating')}
+                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1 ${
+                                assignMode === 'alternating'
+                                  ? 'bg-indigo-600 text-white shadow-2xs'
+                                  : 'text-indigo-900 hover:bg-indigo-50'
+                              }`}
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              🔄 Alternating A/B Loop Rotation
+                            </button>
+                          </div>
                         </div>
+
+                        {assignMode === 'single' ? (
+                          <div className="flex items-center gap-2 flex-wrap pt-1">
+                            <Select value={masterDriver} onValueChange={setMasterDriver}>
+                              <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
+                                <SelectValue placeholder="Select driver" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                {drivers.map((d) => (
+                                  <SelectItem key={d.id} value={d.id} className="text-xs">
+                                    {d.first_name} {d.last_name} ({d.status})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Select value={masterVehicle} onValueChange={setMasterVehicle}>
+                              <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
+                                <SelectValue placeholder="Select vehicle" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                {vehicles.map((v) => (
+                                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                                    {v.plate_number} ({v.asset_type})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Button
+                              size="sm"
+                              onClick={applyMasterToAll}
+                              className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3"
+                            >
+                              Apply to All {batchTripRows.length} Trips
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 pt-1 border-t border-indigo-100">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {/* Driver/Truck A */}
+                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-2">
+                                <span className="text-[11px] font-bold text-indigo-900 block">
+                                  🔵 Team A (Odd Trips: 1, 3, 5...)
+                                </span>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Select value={loopDriverA} onValueChange={setLoopDriverA}>
+                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
+                                      <SelectValue placeholder="Driver A" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                      {drivers.map((d) => (
+                                        <SelectItem key={d.id} value={d.id} className="text-xs">
+                                          {d.first_name} {d.last_name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+
+                                  <Select value={loopVehicleA} onValueChange={setLoopVehicleA}>
+                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
+                                      <SelectValue placeholder="Truck A" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                      {vehicles.map((v) => (
+                                        <SelectItem key={v.id} value={v.id} className="text-xs">
+                                          {v.plate_number}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+
+                              {/* Driver/Truck B */}
+                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-2">
+                                <span className="text-[11px] font-bold text-indigo-900 block">
+                                  🟠 Team B (Even Trips: 2, 4, 6...)
+                                </span>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Select value={loopDriverB} onValueChange={setLoopDriverB}>
+                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
+                                      <SelectValue placeholder="Driver B" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                      {drivers.map((d) => (
+                                        <SelectItem key={d.id} value={d.id} className="text-xs">
+                                          {d.first_name} {d.last_name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+
+                                  <Select value={loopVehicleB} onValueChange={setLoopVehicleB}>
+                                    <SelectTrigger className="h-8 w-full rounded-lg border-indigo-200 text-[11px]">
+                                      <SelectValue placeholder="Truck B" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassigned">-- Unassigned --</SelectItem>
+                                      {vehicles.map((v) => (
+                                        <SelectItem key={v.id} value={v.id} className="text-xs">
+                                          {v.plate_number}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end pt-1">
+                              <Button
+                                size="sm"
+                                onClick={applyAlternatingLoop}
+                                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 gap-1.5"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Apply Alternating A/B Rotation ({batchTripRows.length} Trips)
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Date Breakdown Table */}
@@ -1057,30 +1261,33 @@ export default function BulkAddTripsModal({
                         <table className="w-full text-left text-xs">
                           <thead className="bg-slate-50 text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0 z-10">
                             <tr>
-                              <th className="px-4 py-2.5">Date</th>
+                              <th className="px-4 py-2.5">Date & Slot</th>
                               <th className="px-4 py-2.5">Assigned Driver</th>
                               <th className="px-4 py-2.5">Assigned Truck</th>
                               <th className="px-4 py-2.5 text-right">Action</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-black/[0.04]">
-                            {selectedDates.map((dateStr) => {
-                              const [y, m, d] = dateStr.split('-').map(Number);
-                              const dateObj = new Date(y, m - 1, d);
-                              const formattedDate = dateObj.toLocaleDateString('en-GB', {
-                                weekday: 'short',
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              });
-                              const currentAssignment = dayAssignments[dateStr] || { driverId: '', vehicleId: '' };
+                            {batchTripRows.map((rowItem) => {
+                              const currentAssignment = dayAssignments[rowItem.key] || { driverId: '', vehicleId: '' };
 
                               return (
-                                <tr key={dateStr} className="hover:bg-slate-50/50">
+                                <tr key={rowItem.key} className="hover:bg-slate-50/50">
                                   <td className="px-4 py-2 font-bold text-[#111111] whitespace-nowrap">
                                     <div className="flex items-center gap-2">
                                       <Calendar className="h-3.5 w-3.5 text-[#E8450F]" />
-                                      {formattedDate}
+                                      <span>{rowItem.formattedDate}</span>
+                                      {rowItem.slotLabel && (
+                                        <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                                          {rowItem.slotLabel}
+                                        </span>
+                                      )}
+                                      {rowItem.isOvernight && (
+                                        <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                          <Moon className="w-2.5 h-2.5 fill-indigo-600" />
+                                          Overnight
+                                        </span>
+                                      )}
                                     </div>
                                   </td>
                                   <td className="px-4 py-2">
@@ -1089,8 +1296,8 @@ export default function BulkAddTripsModal({
                                       onValueChange={(val) =>
                                         setDayAssignments((prev) => ({
                                           ...prev,
-                                          [dateStr]: {
-                                            ...prev[dateStr],
+                                          [rowItem.key]: {
+                                            ...prev[rowItem.key],
                                             driverId: val === 'unassigned' ? '' : val,
                                           },
                                         }))
@@ -1115,8 +1322,8 @@ export default function BulkAddTripsModal({
                                       onValueChange={(val) =>
                                         setDayAssignments((prev) => ({
                                           ...prev,
-                                          [dateStr]: {
-                                            ...prev[dateStr],
+                                          [rowItem.key]: {
+                                            ...prev[rowItem.key],
                                             vehicleId: val === 'unassigned' ? '' : val,
                                           },
                                         }))
@@ -1138,7 +1345,7 @@ export default function BulkAddTripsModal({
                                   <td className="px-4 py-2 text-right">
                                     <button
                                       type="button"
-                                      onClick={() => toggleDate(dateStr)}
+                                      onClick={() => toggleDate(rowItem.dateStr)}
                                       className="p-1 rounded-md text-[#9898A4] hover:text-red-600 hover:bg-red-50 transition-colors"
                                       title="Remove this date"
                                     >
@@ -1155,10 +1362,10 @@ export default function BulkAddTripsModal({
                       {/* Step 2 Execution Footer */}
                       <div className="flex items-center justify-between pt-3 border-t border-black/[0.06]">
                         <p className="text-xs text-[#6E6E80]">
-                          Customer: <span className="font-bold text-[#111111]">{customers.find((c) => c.id === contractCustomer)?.name}</span> • Ready to create <span className="font-bold text-[#E8450F]">{selectedDates.length} trips</span>
+                          Customer: <span className="font-bold text-[#111111]">{customers.find((c) => c.id === contractCustomer)?.name}</span> • Ready to create <span className="font-bold text-[#E8450F]">{batchTripRows.length} trips</span>
                         </p>
                         <Button
-                          disabled={bulkMutation.isPending || selectedDates.length === 0}
+                          disabled={bulkMutation.isPending || batchTripRows.length === 0}
                           onClick={handleContractSubmit}
                           className="h-10 rounded-xl px-6 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
                         >
@@ -1170,7 +1377,7 @@ export default function BulkAddTripsModal({
                           ) : (
                             <>
                               <Sparkles className="h-4 w-4 mr-1.5" />
-                              Generate {selectedDates.length} Trips
+                              Generate {batchTripRows.length} Trips
                             </>
                           )}
                         </Button>
