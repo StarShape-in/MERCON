@@ -432,13 +432,10 @@ export default function InvoiceListPage() {
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             onRowClick={(row) => navigate(`/trips/${row.id}`)}
-            emptyState={{
-              icon: <FileText className="w-8 h-8 text-slate-300" />,
-              title: 'No trips found',
-              description: invoiceStatusFilter === 'NotInvoiced'
-                ? 'All completed trips have been invoiced. Great work!'
-                : 'No completed or invoiced trips match the current filters.',
-            }}
+            emptyTitle="No trips found"
+            emptyMessage={invoiceStatusFilter === 'NotInvoiced'
+              ? 'All completed trips have been invoiced. Great work!'
+              : 'No completed or invoiced trips match the current filters.'}
           />
         </div>
 

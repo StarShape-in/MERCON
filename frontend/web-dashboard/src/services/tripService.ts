@@ -365,7 +365,7 @@ export interface BillingLedgerFilters {
   per_page?: number;
 }
 
-export interface BillingLedgerTrip extends Trip {
+export interface BillingLedgerTrip extends Omit<Trip, 'invoices'> {
   invoices: Array<{
     id: string;
     ref_id: string | null;

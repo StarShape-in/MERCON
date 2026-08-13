@@ -382,23 +382,36 @@ export default function MaintenanceDetailsPage() {
                 </Button>
                 <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
 
-                <DropdownMenuContent align="end" className="w-44 text-xs font-semibold">
-                  <DropdownMenuLabel className="text-[10px] text-slate-400 uppercase">Set status</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleQuickStatusChange('Scheduled')}>
-                    <Clock className="w-3.5 h-3.5 mr-2 text-blue-500" /> Scheduled
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleQuickStatusChange('In_Progress')}>
-                    <RotateCw className="w-3.5 h-3.5 mr-2 text-amber-500" /> In Progress
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleQuickStatusChange('Completed')}>
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Completed
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleQuickStatusChange('Cancelled')}>
-                    <XCircle className="w-3.5 h-3.5 mr-2 text-rose-500" /> Cancelled
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-3 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 gap-1.5 text-xs font-bold"
+                      title="Change status"
+                    >
+                      Set Status
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44 text-xs font-semibold">
+                    <DropdownMenuLabel className="text-[10px] text-slate-400 uppercase">Set status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleQuickStatusChange('Scheduled')}>
+                      <Clock className="w-3.5 h-3.5 mr-2 text-blue-500" /> Scheduled
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleQuickStatusChange('In_Progress')}>
+                      <RotateCw className="w-3.5 h-3.5 mr-2 text-amber-500" /> In Progress
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleQuickStatusChange('Completed')}>
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Completed
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleQuickStatusChange('Cancelled')}>
+                      <XCircle className="w-3.5 h-3.5 mr-2 text-rose-500" /> Cancelled
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
 
