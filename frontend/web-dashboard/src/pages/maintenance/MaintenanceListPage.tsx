@@ -79,6 +79,19 @@ export default function MaintenanceListPage() {
     onConfirm: () => {},
   });
 
+  // Mark Amount modal (list page)
+  const [markAmountRecord, setMarkAmountRecord] = useState<MaintenanceRecord | null>(null);
+  const [listMarkCost, setListMarkCost] = useState('');
+  const [listMarkInvoice, setListMarkInvoice] = useState('');
+  const [listMarkError, setListMarkError] = useState('');
+
+  const handleOpenListMarkAmount = (rec: MaintenanceRecord) => {
+    setMarkAmountRecord(rec);
+    setListMarkCost(rec.cost != null ? String(rec.cost) : '');
+    setListMarkInvoice(rec.invoice_number || '');
+    setListMarkError('');
+  };
+
   // Queries
   const { data: maintenanceRes, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['maintenance', debouncedSearch, statusFilter, typeFilter, page, pageSize],
