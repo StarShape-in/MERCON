@@ -1,4 +1,5 @@
 import { api, ApiResponse } from '@/lib/api';
+import { MerconFolder } from './folderService';
 
 export type DocType   = 'DriverLicense' | 'VehicleRegistration' | 'Insurance' | 'POD' | 'CustomsClearance' | 'Waybill' | 'Contract' | 'Invoice' | 'Emergency';
 export type DocStatus = 'PendingReview' | 'Verified' | 'Rejected' | 'Expired';
@@ -11,6 +12,8 @@ export interface MerconDocument {
   status: DocStatus;
   file_url: string;
   mime_type: string | null;
+  folderId?: string | null;
+  folder?: MerconFolder | null;
   issue_date: string | null;
   expiry_date: string | null;
   is_confidential: boolean;
@@ -24,6 +27,7 @@ export interface DocumentFilters {
   doc_type?: DocType;
   status?: DocStatus;
   expiring_within_days?: number;
+  folder_id?: string | null;
   page?: number;
   per_page?: number;
 }
@@ -61,6 +65,10 @@ export const documentService = {
 
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
     await api.post('/documents/bulk-update-status', { ids, status });
+  },
+
+  async bulkMoveToFolder(ids: string[], folderId: string | null): Promise<void> {
+    await api.post('/documents/bulk-move', { ids, folder_id: folderId });
   },
 
   async bulkDownloadZip(ids: string[]): Promise<Blob> {

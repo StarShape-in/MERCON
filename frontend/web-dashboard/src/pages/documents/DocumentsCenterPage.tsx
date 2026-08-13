@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
-  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -15,6 +15,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument, type DocType } from '@/services/documentService';
+import { folderService, type MerconFolder } from '@/services/folderService';
 import { downloadCSV } from '@/utils/exportUtils';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
@@ -29,6 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import ExpiryRadarModal from '@/components/ui/ExpiryRadarModal';
+import CreateFolderModal from '@/components/ui/CreateFolderModal';
+import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
@@ -118,10 +121,15 @@ export default function DocumentsCenterPage() {
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [moveTargetDocIds, setMoveTargetDocIds] = useState<string[]>([]);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isExpiryModalOpen, setIsExpiryModalOpen] = useState(initialRadar);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
+  const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Sync state with URL params when they change
@@ -148,6 +156,10 @@ export default function DocumentsCenterPage() {
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', 'all'],
     queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
+  });
+  const { data: folders = [] } = useQuery({
+    queryKey: ['folders'],
+    queryFn: async () => (await folderService.getAll()).data,
   });
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers', 'lookup'],
@@ -246,15 +258,16 @@ export default function DocumentsCenterPage() {
           : expiryFilter === 'warning' 
             ? (d.expStatus === 'warning' || d.expStatus === 'critical')
             : d.expStatus === expiryFilter;
+        const matchesFolder = !selectedFolderId || d.folderId === selectedFolderId;
         const matchesTerm = matchesSearch(search, [
           docTypeLabel(d.doc_type),
           d.entityName,
           d.issuer,
           d.id,
         ]);
-        return matchesCat && matchesExpiry && matchesTerm;
+        return matchesCat && matchesExpiry && matchesFolder && matchesTerm;
       });
-  }, [docs, nameFor, activeCategory, expiryFilter, search]);
+  }, [docs, nameFor, activeCategory, expiryFilter, selectedFolderId, search]);
 
   // ── Calculated Real Vault Telematics ──────────────────────────────────────────
   const totalDocsCount = docs.length;
@@ -376,6 +389,16 @@ export default function DocumentsCenterPage() {
               )}
             </Button>
 
+            {/* New Folder Action */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1.5 text-xs font-bold border-[#E8450F]/30 bg-[#FFF0EB] hover:bg-[#ffe4db] text-[#E8450F] dark:bg-[#E8450F]/10 dark:border-[#E8450F]/20 shadow-2xs"
+              onClick={() => setIsCreateFolderOpen(true)}
+            >
+              <FolderPlus className="w-4 h-4" /> New Folder
+            </Button>
+
             {/* Upload Button */}
             <Button
               size="sm"
@@ -470,6 +493,83 @@ export default function DocumentsCenterPage() {
           />
         </div>
 
+
+        {/* ── Folder Explorer Shelf ────────────────────────────────────────── */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Folder className="w-4 h-4 text-[#E8450F]" />
+              <h3 className="text-xs font-extrabold text-slate-800 dark:text-slate-200 tracking-wide uppercase">
+                Folder Explorer ({folders.length})
+              </h3>
+              {selectedFolderId && (
+                <Badge
+                  variant="outline"
+                  className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold gap-1 cursor-pointer"
+                  onClick={() => setSelectedFolderId(null)}
+                >
+                  <span>Folder Filter Active</span>
+                  <X className="w-3 h-3" />
+                </Badge>
+              )}
+            </div>
+            <button
+              onClick={() => setIsCreateFolderOpen(true)}
+              className="text-xs text-[#E8450F] hover:underline font-bold flex items-center gap-1"
+            >
+              <FolderPlus size={13} /> Add Folder
+            </button>
+          </div>
+
+          {folders.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {folders.map((folder: MerconFolder) => {
+                const isSelected = selectedFolderId === folder.id;
+                return (
+                  <div
+                    key={folder.id}
+                    onClick={() => setSelectedFolderId(isSelected ? null : folder.id)}
+                    className={cn(
+                      'p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2 group relative',
+                      isSelected
+                        ? 'border-[#E8450F] bg-[#FFF0EB]/50 dark:bg-[#E8450F]/15 shadow-xs ring-1 ring-[#E8450F]'
+                        : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs'
+                    )}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div
+                        className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold shadow-2xs"
+                        style={{ backgroundColor: folder.color || '#E8450F' }}
+                      >
+                        <Folder className="w-4 h-4 text-white fill-white/20" />
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteFolderId(folder.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-rose-600 transition-opacity"
+                        title="Delete Folder"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{folder.name}</h4>
+                      <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
+                        <span className="truncate">{folder.category || 'General'}</span>
+                        <span className="font-mono font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-md text-slate-600 dark:text-slate-300">
+                          {folder.document_count || 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
@@ -708,6 +808,16 @@ export default function DocumentsCenterPage() {
                     >
                       <Eye size={14} />
                     </button>
+                    <button
+                      onClick={() => {
+                        setMoveTargetDocIds([row.id]);
+                        setIsMoveModalOpen(true);
+                      }}
+                      className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
+                      title="Move to Folder"
+                    >
+                      <FolderInput size={14} />
+                    </button>
                     <a
                       href={row.file_url}
                       download
@@ -733,6 +843,15 @@ export default function DocumentsCenterPage() {
             onPageSizeChange={(sz) => setPageSize(sz)}
             pageSizeOptions={[10, 25, 50, 100]}
             bulkActions={[
+              {
+                label: 'Move to Folder',
+                icon: <FolderInput size={13} />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: EnrichedDocument[]) => {
+                  setMoveTargetDocIds(selectedRows.map(r => r.id));
+                  setIsMoveModalOpen(true);
+                }
+              },
               {
                 label: 'Bulk Download ZIP',
                 icon: <Download size={13} />,
@@ -934,13 +1053,31 @@ export default function DocumentsCenterPage() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Create Folder Modal ────────────────────────────────────────── */}
+      <CreateFolderModal
+        isOpen={isCreateFolderOpen}
+        onClose={() => setIsCreateFolderOpen(false)}
+      />
+
+      {/* ── Move to Folder Modal ────────────────────────────────────────── */}
+      <MoveToFolderModal
+        isOpen={isMoveModalOpen}
+        onClose={() => {
+          setIsMoveModalOpen(false);
+          setMoveTargetDocIds([]);
+        }}
+        documentIds={moveTargetDocIds}
+      />
+
       {/* ── Upload Document Modal ────────────────────────────────────────── */}
       <UploadDocumentModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        entityType="Driver"
-        entityId={drivers[0]?.id || '1'}
-        onUploadSuccess={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}
+        folderId={selectedFolderId || undefined}
+        onUploadSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['documents'] });
+          queryClient.invalidateQueries({ queryKey: ['folders'] });
+        }}
       />
 
       {/* ── Expiry Radar Modal ───────────────────────────────────────────── */}
@@ -949,7 +1086,7 @@ export default function DocumentsCenterPage() {
         onClose={() => setIsExpiryModalOpen(false)}
       />
 
-      {/* ── Confirm Delete Modal ─────────────────────────────────────────── */}
+      {/* ── Confirm Delete Document Modal ────────────────────────────────── */}
       <ConfirmModal
         isOpen={!!deleteDocId}
         onClose={() => setDeleteDocId(null)}
@@ -957,6 +1094,33 @@ export default function DocumentsCenterPage() {
         title="Delete Vault Document"
         message="Are you sure you want to permanently delete this document record from the compliance vault? This action cannot be undone."
         confirmLabel="Delete Document"
+        isDestructive={true}
+        isLoading={isDeleting}
+      />
+
+      {/* ── Confirm Delete Folder Modal ──────────────────────────────────── */}
+      <ConfirmModal
+        isOpen={!!deleteFolderId}
+        onClose={() => setDeleteFolderId(null)}
+        onConfirm={async () => {
+          if (!deleteFolderId) return;
+          setIsDeleting(true);
+          try {
+            await folderService.delete(deleteFolderId);
+            toast.success('Folder deleted successfully');
+            await queryClient.invalidateQueries({ queryKey: ['folders'] });
+            await queryClient.invalidateQueries({ queryKey: ['documents'] });
+            if (selectedFolderId === deleteFolderId) setSelectedFolderId(null);
+            setDeleteFolderId(null);
+          } catch (err) {
+            toast.error('Failed to delete folder');
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+        title="Delete Folder"
+        message="Are you sure you want to delete this folder? Documents inside this folder will not be deleted; they will be moved to unassigned root."
+        confirmLabel="Delete Folder"
         isDestructive={true}
         isLoading={isDeleting}
       />

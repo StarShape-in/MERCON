@@ -1,7 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, Loader2, AlertCircle } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { documentService, DocType } from '@/services/documentService';
+import { folderService, MerconFolder } from '@/services/folderService';
+import { driverService } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
+import { tripService } from '@/services/tripService';
+import { customerService } from '@/services/customerService';
 import Btn from './Btn';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
 import { DatePicker } from './date-picker';
@@ -9,18 +14,20 @@ import { DatePicker } from './date-picker';
 interface UploadDocumentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  entityType: string;
-  entityId: string;
+  entityType?: string;
+  entityId?: string;
   docType?: DocType;
+  folderId?: string;
   onUploadSuccess?: () => void;
 }
 
 export default function UploadDocumentModal({
   isOpen,
   onClose,
-  entityType,
-  entityId,
+  entityType: initialEntityType = 'Driver',
+  entityId: initialEntityId = '',
   docType,
+  folderId: initialFolderId = '',
   onUploadSuccess,
 }: UploadDocumentModalProps) {
   const queryClient = useQueryClient();
@@ -28,15 +35,61 @@ export default function UploadDocumentModal({
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedDocType, setSelectedDocType] = useState<DocType>(docType || 'POD');
+  const [selectedEntityType, setSelectedEntityType] = useState<string>(initialEntityType);
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(initialEntityId);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(initialFolderId);
   const [issueDate, setIssueDate] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [isConfidential, setIsConfidential] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Queries for lookups
+  const { data: folders = [] } = useQuery({
+    queryKey: ['folders'],
+    queryFn: async () => (await folderService.getAll()).data,
+    enabled: isOpen,
+  });
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ['drivers', 'lookup'],
+    queryFn: async () => (await driverService.getAll()).data,
+    enabled: isOpen && selectedEntityType === 'Driver',
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles', 'lookup'],
+    queryFn: async () => (await vehicleService.getAll()).data,
+    enabled: isOpen && selectedEntityType === 'Vehicle',
+  });
+
+  const { data: trips = [] } = useQuery({
+    queryKey: ['trips', 'lookup'],
+    queryFn: async () => (await tripService.getAll({ per_page: 100 })).data,
+    enabled: isOpen && selectedEntityType === 'Trip',
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers', 'lookup'],
+    queryFn: async () => (await customerService.getAll()).data,
+    enabled: isOpen && selectedEntityType === 'Customer',
+  });
+
+  // Auto select first entity if none selected
+  useEffect(() => {
+    if (!selectedEntityId) {
+      if (selectedEntityType === 'Driver' && drivers.length > 0) setSelectedEntityId(drivers[0].id);
+      if (selectedEntityType === 'Vehicle' && vehicles.length > 0) setSelectedEntityId(vehicles[0].id);
+      if (selectedEntityType === 'Trip' && trips.length > 0) setSelectedEntityId(trips[0].id);
+      if (selectedEntityType === 'Customer' && customers.length > 0) setSelectedEntityId(customers[0].id);
+      if (selectedEntityType === 'Company') setSelectedEntityId('00000000-0000-0000-0000-000000000000');
+    }
+  }, [selectedEntityType, drivers, vehicles, trips, customers, selectedEntityId]);
+
   const uploadMutation = useMutation({
     mutationFn: (formData: FormData) => documentService.upload(formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
       if (onUploadSuccess) onUploadSuccess();
       handleClose();
     },
@@ -68,11 +121,19 @@ export default function UploadDocumentModal({
       return;
     }
 
+    const finalEntityId = selectedEntityId || (selectedEntityType === 'Company' ? '00000000-0000-0000-0000-000000000000' : '');
+
+    if (!finalEntityId) {
+      setError('Please select an entity owner for this document.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', selectedFile);
-    formData.append('entity_type', entityType);
-    formData.append('entity_id', entityId);
+    formData.append('entity_type', selectedEntityType);
+    formData.append('entity_id', finalEntityId);
     formData.append('doc_type', selectedDocType);
+    if (selectedFolderId) formData.append('folder_id', selectedFolderId);
     if (issueDate) formData.append('issue_date', new Date(issueDate).toISOString());
     if (expiryDate) formData.append('expiry_date', new Date(expiryDate).toISOString());
     formData.append('is_confidential', isConfidential.toString());
@@ -84,76 +145,137 @@ export default function UploadDocumentModal({
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open && !uploadMutation.isPending) handleClose();
     }}>
-      <DialogContent className="w-full max-w-md rounded-lg p-0 border-gray-100 shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="w-full max-w-md rounded-2xl p-0 border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
         
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b border-gray-100 m-0">
-          <DialogTitle className="text-lg font-bold text-gray-900">Upload Document</DialogTitle>
+        <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900 m-0">
+          <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">Upload Vault Document</DialogTitle>
         </DialogHeader>
 
         {/* Content */}
         <div className="p-6 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             
             {/* File Dropzone */}
             <div>
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all
-                  ${selectedFile ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-[#E8450F] hover:bg-orange-50/50'}`}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all
+                  ${selectedFile ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-700 hover:border-[#E8450F] hover:bg-[#FFF0EB]/40 dark:hover:bg-[#E8450F]/10'}`}
               >
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   onChange={handleFileSelect} 
                   className="hidden" 
-                  accept=".pdf,.png,.jpg,.jpeg"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
                 />
                 
                 {selectedFile ? (
                   <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3">
-                      <FileText size={24} />
+                    <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
+                      <FileText size={20} />
                     </div>
-                    <p className="text-sm font-semibold text-gray-900 truncate max-w-[250px]">{selectedFile.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[250px]">{selectedFile.name}</p>
+                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mb-3">
-                      <UploadCloud size={24} />
+                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mb-2">
+                      <UploadCloud size={20} />
                     </div>
-                    <p className="text-sm font-semibold text-gray-900">Click to upload file</p>
-                    <p className="text-xs text-gray-500 mt-1">PDF, PNG, JPG (Max 50MB)</p>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Click to upload file</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">PDF, PNG, JPG, WEBP (Max 50MB)</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Document Details */}
-            <div className="space-y-4 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-gray-900 mb-1.5">Document Type</label>
-                <select 
-                  value={selectedDocType}
-                  onChange={(e) => setSelectedDocType(e.target.value as DocType)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
-                  disabled={!!docType} // If docType passed as prop, disable changing it
-                >
-                  <option value="POD">Proof of Delivery (POD)</option>
-                  <option value="Contract">Contract</option>
-                  <option value="DriverLicense">Driver License</option>
-                  <option value="VehicleRegistration">Vehicle Registration</option>
-                  <option value="Insurance">Insurance</option>
-                  <option value="Waybill">Waybill</option>
-                  <option value="Invoice">Invoice</option>
-                  <option value="CustomsClearance">Customs Clearance</option>
-                </select>
+            {/* Entity & Document Details */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Entity Type</label>
+                  <select 
+                    value={selectedEntityType}
+                    onChange={(e) => {
+                      setSelectedEntityType(e.target.value);
+                      setSelectedEntityId('');
+                    }}
+                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+                  >
+                    <option value="Driver">Driver</option>
+                    <option value="Vehicle">Vehicle</option>
+                    <option value="Trip">Trip</option>
+                    <option value="Customer">Customer</option>
+                    <option value="Company">Company</option>
+                  </select>
+                </div>
+
+                {selectedEntityType !== 'Company' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Select Owner</label>
+                    <select
+                      value={selectedEntityId}
+                      onChange={(e) => setSelectedEntityId(e.target.value)}
+                      className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+                    >
+                      {selectedEntityType === 'Driver' && drivers.map((d: any) => (
+                        <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
+                      ))}
+                      {selectedEntityType === 'Vehicle' && vehicles.map((v: any) => (
+                        <option key={v.id} value={v.id}>{v.plate_number || v.ref_id}</option>
+                      ))}
+                      {selectedEntityType === 'Trip' && trips.map((t: any) => (
+                        <option key={t.id} value={t.id}>{t.ref_id || `Trip #${t.id.slice(0, 8)}`}</option>
+                      ))}
+                      {selectedEntityType === 'Customer' && customers.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Document Type</label>
+                  <select 
+                    value={selectedDocType}
+                    onChange={(e) => setSelectedDocType(e.target.value as DocType)}
+                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+                    disabled={!!docType}
+                  >
+                    <option value="POD">Proof of Delivery (POD)</option>
+                    <option value="Contract">Contract</option>
+                    <option value="DriverLicense">Driver License</option>
+                    <option value="VehicleRegistration">Vehicle Registration</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Waybill">Waybill</option>
+                    <option value="Invoice">Invoice</option>
+                    <option value="CustomsClearance">Customs Clearance</option>
+                    <option value="Emergency">Emergency Record</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Folder (Optional)</label>
+                  <select 
+                    value={selectedFolderId}
+                    onChange={(e) => setSelectedFolderId(e.target.value)}
+                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+                  >
+                    <option value="">No Folder (Root)</option>
+                    {folders.map((f: MerconFolder) => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-gray-900 dark:text-gray-100">Issue Date (Optional)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Issue Date</label>
                   <DatePicker
                     value={issueDate}
                     onChange={(_, dateStr) => setIssueDate(dateStr)}
@@ -161,7 +283,7 @@ export default function UploadDocumentModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-gray-900 dark:text-gray-100">Expiry Date (Optional)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Expiry Date</label>
                   <DatePicker
                     value={expiryDate}
                     onChange={(_, dateStr) => setExpiryDate(dateStr)}
@@ -176,15 +298,15 @@ export default function UploadDocumentModal({
                   type="checkbox" 
                   checked={isConfidential}
                   onChange={(e) => setIsConfidential(e.target.checked)}
-                  className="w-4 h-4 text-[#E8450F] rounded border-gray-300 focus:ring-[#E8450F]"
+                  className="w-4 h-4 text-[#E8450F] rounded border-slate-300 focus:ring-[#E8450F]"
                 />
-                <span className="text-sm text-gray-700 font-medium">Mark as confidential</span>
+                <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Mark document as confidential</span>
               </label>
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <div className="flex items-start gap-2 p-3 bg-rose-50 text-rose-600 rounded-xl text-xs">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
                 <p>{error}</p>
               </div>
             )}
@@ -192,7 +314,7 @@ export default function UploadDocumentModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+        <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
           <Btn 
             label="Cancel" 
             variant="outline" 
@@ -211,3 +333,4 @@ export default function UploadDocumentModal({
     </Dialog>
   );
 }
+

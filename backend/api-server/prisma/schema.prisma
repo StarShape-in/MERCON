@@ -368,9 +368,27 @@ model TripStop {
 // -----------------------------------------
 // 4. ENTERPRISE DMS (Document Management)
 // -----------------------------------------
+model Folder {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  category    String?   // "Drivers", "Vehicles", "Operations", "Company", or custom
+  description String?   @db.Text
+  color       String?   @default("#E8450F")
+
+  documents   Document[]
+
+  created_by  String?   @db.Uuid
+  updated_by  String?   @db.Uuid
+  deleted_by  String?   @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt   DateTime? @db.Timestamptz
+  isActive    Boolean   @default(true)
+}
+
 model Document {
   id          String    @id @default(uuid()) @db.Uuid
-  entity_type String // "Driver", "Vehicle", "Trip", "MaintenanceRecord"
+  entity_type String // "Driver", "Vehicle", "Trip", "MaintenanceRecord", "Customer", "Company"
   entity_id   String    @db.Uuid
   doc_type    DocType
   status      DocStatus @default(PendingReview)
@@ -378,6 +396,9 @@ model Document {
   file_url  String
   mime_type String?
   checksum  String?
+
+  folderId  String?   @db.Uuid
+  folder    Folder?   @relation(fields: [folderId], references: [id])
 
   issue_date  DateTime? @db.Timestamptz
   expiry_date DateTime? @db.Timestamptz

@@ -16,6 +16,7 @@ export const getDocuments = async (req: Request, res: Response) => {
       doc_type,
       status,
       expiring_within_days,
+      folder_id,
       page = '1',
       per_page = '20'
     } = req.query;
@@ -29,6 +30,9 @@ export const getDocuments = async (req: Request, res: Response) => {
     if (entity_id)   whereClause.entity_id = entity_id as string;
     if (doc_type)    whereClause.doc_type = doc_type as DocType;
     if (status)      whereClause.status = status as DocStatus;
+    if (folder_id !== undefined && folder_id !== null && folder_id !== '') {
+      whereClause.folderId = folder_id === 'null' ? null : (folder_id as string);
+    }
 
     // Filter by expiry window (e.g. docs expiring within 30 days)
     if (expiring_within_days) {
@@ -41,6 +45,7 @@ export const getDocuments = async (req: Request, res: Response) => {
     const [documents, total] = await Promise.all([
       prisma.document.findMany({
         where: whereClause,
+        include: { folder: true },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
@@ -88,7 +93,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
       });
     }
 
-    const { entity_type, entity_id, doc_type, issue_date, expiry_date, is_confidential } = req.body;
+    const { entity_type, entity_id, doc_type, issue_date, expiry_date, is_confidential, folder_id, folderId } = req.body;
 
     if (!entity_type || !entity_id || !doc_type) {
       return res.status(400).json({
@@ -100,6 +105,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
     // Build the public URL for the uploaded file
     const baseUrl = env.BASE_URL || `http://localhost:${env.PORT}`;
     const file_url = `${baseUrl}/uploads/${req.file.filename}`;
+    const targetFolderId = folder_id || folderId || null;
 
     const document = await prisma.document.create({
       data: {
@@ -109,11 +115,13 @@ export const uploadDocument = async (req: Request, res: Response) => {
         status: DocStatus.PendingReview,
         file_url,
         mime_type: req.file.mimetype,
+        folderId: targetFolderId,
         issue_date: issue_date ? new Date(issue_date) : null,
         expiry_date: expiry_date ? new Date(expiry_date) : null,
-        is_confidential: is_confidential === 'true',
+        is_confidential: is_confidential === 'true' || is_confidential === true,
         created_by: (req as any).user?.id
-      }
+      },
+      include: { folder: true }
     });
 
     res.status(201).json({ success: true, data: document });
@@ -271,5 +279,28 @@ export const bulkUpdateDocumentStatus = async (req: Request, res: Response) => {
     res.json({ success: true, data: { message: `Successfully updated ${ids.length} documents` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update documents` } });
+  }
+};
+
+export const bulkMoveDocumentsToFolder = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { ids, folder_id } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Document IDs are required' } });
+    }
+
+    await prisma.document.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        folderId: folder_id || null,
+        updated_by: userId
+      }
+    });
+
+    res.json({ success: true, data: { message: `Successfully moved ${ids.length} documents` } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to move documents to folder' } });
   }
 };
