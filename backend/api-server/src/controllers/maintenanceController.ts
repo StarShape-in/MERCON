@@ -136,52 +136,209 @@ export const getMaintenanceRecords = async (req: Request, res: Response) => {
 };
 
 /**
- * The workshops this fleet has actually used, newest first, so the forms can offer them
- * again instead of making the operator retype a name (and mistype it into a second,
- * near-duplicate workshop). Derived from the service orders themselves — there is no
- * separate workshop table to keep in sync.
- *
- * Names are matched case-insensitively; the spelling and contact returned are the ones
- * from the most recent order, which is the most likely to be current.
+ * Fetch saved workshops from database merged with historical workshop names from service orders.
  */
 export const getWorkshops = async (_req: Request, res: Response) => {
   try {
-    const records = await prisma.maintenanceRecord.findMany({
-      where: { deletedAt: null, workshop_name: { not: '' } },
-      select: { workshop_name: true, workshop_contact: true, start_date: true },
-      orderBy: { start_date: 'desc' },
-    });
+    const [savedWorkshops, records] = await Promise.all([
+      prisma.savedWorkshop.findMany({
+        where: { deletedAt: null, isActive: true },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.maintenanceRecord.findMany({
+        where: { deletedAt: null, workshop_name: { not: '' } },
+        select: { workshop_name: true, workshop_contact: true, start_date: true },
+        orderBy: { start_date: 'desc' },
+      }),
+    ]);
 
-    const workshops = new Map<
+    const workshopsMap = new Map<
       string,
-      { name: string; contact: string | null; order_count: number; last_used: Date }
+      {
+        id?: string;
+        name: string;
+        contact: string | null;
+        address: string | null;
+        notes: string | null;
+        is_saved: boolean;
+        order_count: number;
+        last_used?: Date | string;
+      }
     >();
+
+    for (const sw of savedWorkshops) {
+      workshopsMap.set(sw.name.toLowerCase(), {
+        id: sw.id,
+        name: sw.name,
+        contact: sw.contact_phone ?? null,
+        address: sw.address ?? null,
+        notes: sw.notes ?? null,
+        is_saved: true,
+        order_count: 0,
+      });
+    }
 
     for (const record of records) {
       const name = record.workshop_name?.trim();
       if (!name) continue;
       const key = name.toLowerCase();
-      const existing = workshops.get(key);
+      const existing = workshopsMap.get(key);
       if (existing) {
         existing.order_count += 1;
-        // Records arrive newest-first, so only fill a contact the newer order left blank.
+        if (!existing.last_used) existing.last_used = record.start_date;
         if (!existing.contact && record.workshop_contact) existing.contact = record.workshop_contact;
-        continue;
+      } else {
+        workshopsMap.set(key, {
+          name,
+          contact: record.workshop_contact ?? null,
+          address: null,
+          notes: null,
+          is_saved: false,
+          order_count: 1,
+          last_used: record.start_date,
+        });
       }
-      workshops.set(key, {
-        name,
-        contact: record.workshop_contact ?? null,
-        order_count: 1,
-        last_used: record.start_date,
-      });
     }
 
-    res.json({ success: true, data: Array.from(workshops.values()) });
+    res.json({ success: true, data: Array.from(workshopsMap.values()) });
   } catch (error) {
     logger.error({ err: error }, 'Failed to fetch workshops');
     res.status(500).json({
       success: false,
       error: { code: 'SERVER_ERROR', message: 'Failed to fetch workshops' },
+    });
+  }
+};
+
+export const createSavedWorkshop = async (req: Request, res: Response) => {
+  try {
+    const { name, contact_phone, address, notes } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Workshop name is required' },
+      });
+    }
+
+    const trimmedName = name.trim();
+    const workshop = await prisma.savedWorkshop.upsert({
+      where: { name: trimmedName },
+      update: {
+        contact_phone: contact_phone?.trim() || null,
+        address: address?.trim() || null,
+        notes: notes?.trim() || null,
+        deletedAt: null,
+        isActive: true,
+      },
+      create: {
+        name: trimmedName,
+        contact_phone: contact_phone?.trim() || null,
+        address: address?.trim() || null,
+        notes: notes?.trim() || null,
+        created_by: (req as any).user?.id,
+      },
+    });
+
+    res.status(201).json({ success: true, data: workshop });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to create saved workshop');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to save workshop' },
+    });
+  }
+};
+
+export const deleteSavedWorkshop = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    await prisma.savedWorkshop.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        updated_by: (req as any).user?.id,
+      },
+    });
+    res.json({ success: true, message: 'Saved workshop deleted successfully' });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to delete saved workshop');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to delete workshop' },
+    });
+  }
+};
+
+export const getSavedWorkItems = async (_req: Request, res: Response) => {
+  try {
+    const items = await prisma.savedWorkDone.findMany({
+      where: { deletedAt: null, isActive: true },
+      orderBy: [{ category: 'asc' }, { title: 'asc' }],
+    });
+
+    res.json({ success: true, data: items });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to fetch saved work items');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to fetch work items' },
+    });
+  }
+};
+
+export const createSavedWorkItem = async (req: Request, res: Response) => {
+  try {
+    const { title, category } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Work item title is required' },
+      });
+    }
+
+    const trimmedTitle = title.trim();
+    const item = await prisma.savedWorkDone.upsert({
+      where: { title: trimmedTitle },
+      update: {
+        category: category?.trim() || 'General',
+        deletedAt: null,
+        isActive: true,
+      },
+      create: {
+        title: trimmedTitle,
+        category: category?.trim() || 'General',
+        created_by: (req as any).user?.id,
+      },
+    });
+
+    res.status(201).json({ success: true, data: item });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to create saved work item');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to save work item' },
+    });
+  }
+};
+
+export const deleteSavedWorkItem = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    await prisma.savedWorkDone.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        updated_by: (req as any).user?.id,
+      },
+    });
+    res.json({ success: true, message: 'Saved work item deleted successfully' });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to delete saved work item');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to delete work item' },
     });
   }
 };

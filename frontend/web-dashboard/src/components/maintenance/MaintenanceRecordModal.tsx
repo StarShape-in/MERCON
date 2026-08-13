@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Wrench, AlertTriangle, AlertCircle, ClipboardList, CheckCircle2, XCircle, CalendarDays } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
+import WorkDoneSelect from '@/components/maintenance/WorkDoneSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -415,25 +416,19 @@ export default function MaintenanceRecordModal({
           {/* Section: Notes */}
           <div className="space-y-2.5 pt-1">
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Notes</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Work Done / Service Details</Label>
-                <textarea
-                  value={formData.work_done || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, work_done: e.target.value }))}
-                  placeholder="Specify all repairs, replaced parts, engine oil specs, brake pad renewals..."
-                  rows={2.5 as any}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
-                />
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+              <WorkDoneSelect
+                value={formData.work_done || ''}
+                onChange={(text) => setFormData(prev => ({ ...prev, work_done: text }))}
+              />
 
               <div className="space-y-1">
-                <Label className="text-xs font-bold">Additional Remarks / Notes</Label>
+                <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">Additional Remarks / Notes</Label>
                 <textarea
                   value={formData.remarks || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
                   placeholder="Internal notes, next service recommendations, or spare parts ordered..."
-                  rows={2.5 as any}
+                  rows={4}
                   className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
                 />
               </div>

@@ -436,6 +436,34 @@ model MaintenanceRecord {
   @@index([deletedAt])
 }
 
+model SavedWorkshop {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   @unique
+  contact_phone String?
+  address       String?  @db.Text
+  notes         String?  @db.Text
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deletedAt  DateTime? @db.Timestamptz
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  isActive   Boolean   @default(true)
+}
+
+model SavedWorkDone {
+  id       String  @id @default(uuid()) @db.Uuid
+  title    String  @unique
+  category String? @default("General")
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deletedAt  DateTime? @db.Timestamptz
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  isActive   Boolean   @default(true)
+}
+
 // -----------------------------------------
 // 6. FINANCIALS (Simplified Tax-Free)
 // -----------------------------------------

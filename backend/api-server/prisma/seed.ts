@@ -69,6 +69,7 @@ async function main() {
 
   await backfillMaintenanceRefIds();
   await releaseVehiclesStuckInMaintenance();
+  await seedDefaultWorkshopsAndServices();
 
   console.log('✅ Default accounts seeded successfully!');
 }
@@ -173,6 +174,59 @@ async function backfillMaintenanceRefIds() {
   }
 
   console.log(`  ✓ Backfilled ref_id for ${unnumbered.length} maintenance record(s)`);
+}
+
+/**
+ * Seed canonical workshops and common work done service items so the dashboard has
+ * ready-to-select entries out of the box. Idempotent upserts ensure no duplicates.
+ */
+async function seedDefaultWorkshopsAndServices() {
+  const defaultWorkshops = [
+    { name: 'Al-Riyadh Heavy Fleet Workshop', contact_phone: '+966 50 111 2233', address: 'Industrial Area 2, Riyadh' },
+    { name: 'Jeddah Central Truck Service Center', contact_phone: '+966 55 444 5566', address: 'Al-Jawaher Dist, Jeddah' },
+    { name: 'Dammam Commercial Vehicle Repair', contact_phone: '+966 53 777 8899', address: 'Al-Khobar Rd, Dammam' },
+    { name: 'Al Salam Auto Maintenance', contact_phone: '+966 54 999 0011', address: 'Ring Road Exit 14, Riyadh' },
+  ];
+
+  for (const ws of defaultWorkshops) {
+    await prisma.savedWorkshop.upsert({
+      where: { name: ws.name },
+      update: {},
+      create: {
+        name: ws.name,
+        contact_phone: ws.contact_phone,
+        address: ws.address,
+      },
+    });
+  }
+
+  const defaultServices = [
+    { title: 'Tire Puncture Repair', category: 'Tires' },
+    { title: 'Tire Replacement (New Unit)', category: 'Tires' },
+    { title: 'Wheel Alignment & Balancing', category: 'Tires' },
+    { title: 'Oil & Filter Change (Engine)', category: 'Oil & Fluids' },
+    { title: 'Transmission Fluid Service', category: 'Oil & Fluids' },
+    { title: 'Brake Pad & Disc Replacement', category: 'Brakes' },
+    { title: 'Battery Replacement & Electrical Check', category: 'Electrical' },
+    { title: 'Engine Diagnostic & Tune-up', category: 'Engine' },
+    { title: 'AC Maintenance & Gas Refill', category: 'General' },
+    { title: 'Periodic Inspection / Istimara Renewal', category: 'Inspection' },
+    { title: 'Hydraulic Hose & Fluid Repair', category: 'General' },
+    { title: 'Suspension & Shock Absorber Repair', category: 'General' },
+  ];
+
+  for (const svc of defaultServices) {
+    await prisma.savedWorkDone.upsert({
+      where: { title: svc.title },
+      update: {},
+      create: {
+        title: svc.title,
+        category: svc.category,
+      },
+    });
+  }
+
+  console.log('  ✓ Seeded default saved workshops and service items');
 }
 
 main()

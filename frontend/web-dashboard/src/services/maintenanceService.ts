@@ -90,12 +90,23 @@ export interface MaintenanceListResponse {
   };
 }
 
-/** A workshop the fleet has used before, derived from existing service orders. */
+/** A workshop available in the system (saved or derived from service orders). */
 export interface Workshop {
+  id?: string;
   name: string;
   contact: string | null;
+  address?: string | null;
+  notes?: string | null;
+  is_saved?: boolean;
   order_count: number;
-  last_used: string;
+  last_used?: string;
+}
+
+export interface SavedWorkItem {
+  id: string;
+  title: string;
+  category?: string | null;
+  createdAt?: string;
 }
 
 export const maintenanceService = {
@@ -104,10 +115,34 @@ export const maintenanceService = {
     return res.data;
   },
 
-  /** Workshops already used on service orders, newest first — offered for reuse in forms. */
+  /** Workshops (both explicitly saved and derived from service orders). */
   async getWorkshops(): Promise<Workshop[]> {
     const res = await api.get<ApiResponse<Workshop[]>>('/maintenance/workshops');
     return res.data.data;
+  },
+
+  async createWorkshop(payload: { name: string; contact_phone?: string; address?: string; notes?: string }): Promise<Workshop> {
+    const res = await api.post<ApiResponse<Workshop>>('/maintenance/workshops', payload);
+    return res.data.data;
+  },
+
+  async deleteWorkshop(id: string): Promise<void> {
+    await api.delete(`/maintenance/workshops/${id}`);
+  },
+
+  /** Saved work items / service details presets. */
+  async getWorkItems(): Promise<SavedWorkItem[]> {
+    const res = await api.get<ApiResponse<SavedWorkItem[]>>('/maintenance/work-items');
+    return res.data.data;
+  },
+
+  async createWorkItem(payload: { title: string; category?: string }): Promise<SavedWorkItem> {
+    const res = await api.post<ApiResponse<SavedWorkItem>>('/maintenance/work-items', payload);
+    return res.data.data;
+  },
+
+  async deleteWorkItem(id: string): Promise<void> {
+    await api.delete(`/maintenance/work-items/${id}`);
   },
 
   async getById(id: string): Promise<MaintenanceRecord> {
@@ -131,8 +166,6 @@ export const maintenanceService = {
 
   /**
    * Closes every open service order on a vehicle and puts it back to Available.
-   * Use this instead of writing the vehicle status directly, so the Maintenance page
-   * never shows an In Progress order for a vehicle the Vehicles page calls Available.
    */
   async returnVehicleToService(vehicleId: string): Promise<{ closed_orders: number }> {
     const res = await api.post<ApiResponse<{ closed_orders: number }>>(
