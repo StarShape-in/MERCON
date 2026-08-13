@@ -3,13 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   CalendarRange, ChevronLeft, ChevronRight, RotateCw, FileSpreadsheet,
+<<<<<<< HEAD
   Plus, Search, X, Info, SlidersHorizontal, Layers,
+=======
+  Plus, Search, X, Filter, Info, Layers,
+>>>>>>> 471c348 (feat(monthly-trips): redesign Bulk Add Trips workflow with dynamic rate categories, additional charges, and preview review step)
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
 import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
+<<<<<<< HEAD
 import { currentMonthKey, monthLabel, monthOptions, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
+=======
+import { currentMonthKey, monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
+>>>>>>> 471c348 (feat(monthly-trips): redesign Bulk Add Trips workflow with dynamic rate categories, additional charges, and preview review step)
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -48,7 +56,11 @@ export default function MonthlyTripsPage() {
   const [rateCategory, setRateCategory] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [status, setStatus] = useState('');
+<<<<<<< HEAD
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+=======
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
+>>>>>>> 471c348 (feat(monthly-trips): redesign Bulk Add Trips workflow with dynamic rate categories, additional charges, and preview review step)
 
   const filters = {
     month,
@@ -186,6 +198,7 @@ export default function MonthlyTripsPage() {
                 Bulk Add Trips
               </Button>
 
+<<<<<<< HEAD
               <Button
                 className="h-9 rounded-lg px-4 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none text-white"
                 onClick={() => navigate('/trips?new=true')}
@@ -194,6 +207,61 @@ export default function MonthlyTripsPage() {
                 New Trip
               </Button>
             </div>
+=======
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-xl text-xs font-bold"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RotateCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-xl text-xs font-bold"
+              onClick={handleExport}
+              disabled={exportRows.length === 0}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
+              Export
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-xl text-xs font-bold border-orange-200 bg-orange-50/50 text-[#E8450F] hover:bg-orange-100/60 shadow-2xs"
+              onClick={() => setIsBulkAddOpen(true)}
+            >
+              <Layers className="h-3.5 w-3.5 mr-1.5 text-[#E8450F]" />
+              Bulk Add Trips
+            </Button>
+
+            <Button
+              size="sm"
+              className="h-10 rounded-xl text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d]"
+              onClick={() => navigate('/trips?new=true')}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              New Trip
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Filters ────────────────────────────────────────────────── */}
+        <div className="rounded-2xl border border-black/[0.06] bg-white shadow-sm p-4 flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#9898A4]" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search trip ref, driver, plate, place…"
+              className="h-9 pl-9 rounded-xl text-xs"
+            />
+>>>>>>> 471c348 (feat(monthly-trips): redesign Bulk Add Trips workflow with dynamic rate categories, additional charges, and preview review step)
           </div>
 
           {/* Row 2 — search and filters, joined into one segmented control */}
@@ -364,10 +432,16 @@ export default function MonthlyTripsPage() {
       </div>
 
       <BulkAddTripsModal
+<<<<<<< HEAD
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
         defaultMonth={month}
         onSuccess={() => refetch()}
+=======
+        isOpen={isBulkAddOpen}
+        onClose={() => setIsBulkAddOpen(false)}
+        defaultMonth={month}
+>>>>>>> 471c348 (feat(monthly-trips): redesign Bulk Add Trips workflow with dynamic rate categories, additional charges, and preview review step)
       />
     </DashboardLayout>
   );
