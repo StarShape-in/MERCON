@@ -219,10 +219,6 @@ function CompanyRow({
         <td className="px-4 py-3.5 text-center">
           <span className="font-bold text-sm text-emerald-600">{row.invoiced}</span>
         </td>
-        {/* Coverage */}
-        <td className="px-4 py-3.5 text-center">
-          <CoverageBadge pct={row.coverage_pct} />
-        </td>
         {/* Amounts */}
         <td className="px-4 py-3.5 text-right">
           <span className="font-mono text-xs font-semibold text-slate-600 dark:text-slate-400">SAR {fmt(row.pending_amount)}</span>
@@ -238,7 +234,7 @@ function CompanyRow({
       {/* Expandable trip sub-table */}
       {expanded && (
         <tr>
-          <td colSpan={8} className="p-0">
+          <td colSpan={7} className="p-0">
             <TripSubTable
               trips={row.trips}
               onMark={onMark}
@@ -387,11 +383,10 @@ export default function InvoiceListPage() {
         </div>
 
         {/* ── KPI Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
           <KpiCard label="TOTAL COMPANIES" value={String(rows.length)} subtitle="With billing activity" variant="slate" />
           <KpiCard label="PENDING INVOICING" value={String(completedCnt)} subtitle={`SAR ${fmt(pendingAmt)}`} variant={completedCnt > 0 ? 'amber' : 'slate'} />
           <KpiCard label="INVOICED TRIPS" value={String(invoicedCnt)} subtitle={`SAR ${fmt(invoicedAmt)}`} variant="emerald" />
-          <KpiCard label="COVERAGE" value={`${coveragePct}%`} subtitle={`SAR ${fmt(totalBilling)} total`} variant={coveragePct >= 90 ? 'emerald' : coveragePct >= 60 ? 'amber' : 'rose'} />
         </div>
 
         {/* ── Filter Toolbar ─────────────────────────────────────────────── */}
@@ -473,7 +468,6 @@ export default function InvoiceListPage() {
                     <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500">Total Trips</th>
                     <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-amber-500">Pending</th>
                     <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-emerald-600">Invoiced</th>
-                    <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500">Coverage</th>
                     <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-amber-500">Pending (SAR)</th>
                     <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-emerald-600">Invoiced (SAR)</th>
                     <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-slate-500">Total (SAR)</th>
@@ -499,7 +493,6 @@ export default function InvoiceListPage() {
                     <td className="px-4 py-3 text-center font-black text-xs text-slate-800 dark:text-slate-200">{totalTrips}</td>
                     <td className="px-4 py-3 text-center font-black text-xs text-amber-600">{completedCnt}</td>
                     <td className="px-4 py-3 text-center font-black text-xs text-emerald-600">{invoicedCnt}</td>
-                    <td className="px-4 py-3 text-center"><CoverageBadge pct={coveragePct} /></td>
                     <td className="px-4 py-3 text-right font-mono font-black text-xs text-amber-600">SAR {fmt(pendingAmt)}</td>
                     <td className="px-4 py-3 text-right font-mono font-black text-xs text-emerald-600">SAR {fmt(invoicedAmt)}</td>
                     <td className="px-4 py-3 text-right font-mono font-black text-sm text-slate-900 dark:text-slate-100">SAR {fmt(totalBilling)}</td>
