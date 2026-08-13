@@ -479,7 +479,6 @@ export const getCustomerBillingLedger = async (req: Request, res: Response) => {
     const whereClause: any = {
       deletedAt: null,
       status: { in: statusFilter },
-      customerId: { not: null },
       ...(andConditions.length > 0 ? { AND: andConditions } : {}),
     };
 
