@@ -327,9 +327,39 @@ export default function InvoiceListPage() {
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [datePreset, setDatePreset] = useState<string>('ALL');
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<'' | 'NotInvoiced' | 'Invoiced'>('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Quick preset helper
+  const handleDatePresetChange = (preset: string) => {
+    setDatePreset(preset);
+    const now = new Date();
+    if (preset === 'ALL') {
+      setDateFrom('');
+      setDateTo('');
+    } else if (preset === 'TODAY') {
+      const todayStr = now.toISOString().slice(0, 10);
+      setDateFrom(todayStr);
+      setDateTo(todayStr);
+    } else if (preset === 'THIS_WEEK') {
+      const dayOfWeek = now.getDay();
+      const firstDay = new Date(now);
+      firstDay.setDate(now.getDate() - dayOfWeek);
+      setDateFrom(firstDay.toISOString().slice(0, 10));
+      setDateTo(now.toISOString().slice(0, 10));
+    } else if (preset === 'THIS_MONTH') {
+      const firstMonthDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      setDateFrom(firstMonthDay.toISOString().slice(0, 10));
+      setDateTo(now.toISOString().slice(0, 10));
+    } else if (preset === 'LAST_MONTH') {
+      const firstLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDateFrom(firstLastMonth.toISOString().slice(0, 10));
+      setDateTo(lastLastMonth.toISOString().slice(0, 10));
+    }
+  };
 
   // Mark-as-Invoiced modal state
   const [markModal, setMarkModal] = useState<{ open: boolean; trip: BillingLedgerTrip | null }>({ open: false, trip: null });
@@ -483,18 +513,35 @@ export default function InvoiceListPage() {
             </SelectContent>
           </Select>
 
-          <div className="flex items-center gap-1.5">
-            <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-2 text-slate-700 dark:text-slate-200" />
-            <span className="text-xs text-slate-400">—</span>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-2 text-slate-700 dark:text-slate-200" />
-          </div>
+          {/* Date Presets + Custom Date Range */}
+          <Select value={datePreset} onValueChange={handleDatePresetChange}>
+            <SelectTrigger className="h-8 text-xs w-36 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <CalendarDays className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+              <SelectValue placeholder="Date Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Time</SelectItem>
+              <SelectItem value="TODAY">Today</SelectItem>
+              <SelectItem value="THIS_WEEK">This Week</SelectItem>
+              <SelectItem value="THIS_MONTH">This Month</SelectItem>
+              <SelectItem value="LAST_MONTH">Last Month</SelectItem>
+              <SelectItem value="CUSTOM">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {(datePreset === 'CUSTOM' || dateFrom || dateTo) && (
+            <div className="flex items-center gap-1.5 animate-fade-in">
+              <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setDatePreset('CUSTOM'); }}
+                className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-2 text-slate-700 dark:text-slate-200" />
+              <span className="text-xs text-slate-400">—</span>
+              <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setDatePreset('CUSTOM'); }}
+                className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-2 text-slate-700 dark:text-slate-200" />
+            </div>
+          )}
 
           {hasFilters && (
             <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500 hover:text-slate-900 gap-1"
-              onClick={() => { setSearch(''); setInvoiceStatusFilter(''); setDateFrom(''); setDateTo(''); }}>
+              onClick={() => { setSearch(''); setInvoiceStatusFilter(''); setDateFrom(''); setDateTo(''); setDatePreset('ALL'); }}>
               <X className="w-3 h-3" /> Clear
             </Button>
           )}
@@ -557,18 +604,6 @@ export default function InvoiceListPage() {
                     />
                   ))}
                 </tbody>
-                {/* Totals footer */}
-                <tfoot className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60">
-                  <tr>
-                    <td className="px-4 py-3 font-black text-xs text-slate-700 dark:text-slate-300">TOTALS</td>
-                    <td className="px-4 py-3 text-center font-black text-xs text-slate-800 dark:text-slate-200">{totalTrips}</td>
-                    <td className="px-4 py-3 text-center font-black text-xs text-amber-600">{completedCnt}</td>
-                    <td className="px-4 py-3 text-center font-black text-xs text-emerald-600">{invoicedCnt}</td>
-                    <td className="px-4 py-3 text-right font-mono font-black text-xs text-amber-600">SAR {fmt(pendingAmt)}</td>
-                    <td className="px-4 py-3 text-right font-mono font-black text-xs text-emerald-600">SAR {fmt(invoicedAmt)}</td>
-                    <td className="px-4 py-3 text-right font-mono font-black text-sm text-slate-900 dark:text-slate-100">SAR {fmt(totalBilling)}</td>
-                  </tr>
-                </tfoot>
               </table>
             )}
           </div>
