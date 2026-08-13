@@ -23,6 +23,7 @@ export interface RateCategoryBadgeProps extends React.HTMLAttributes<HTMLDivElem
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
   'Trip': { bg: 'bg-indigo-50/80', text: 'text-indigo-700', border: 'border-indigo-200/80', icon: Tag },
   'Regular Trip': { bg: 'bg-indigo-50/80', text: 'text-indigo-700', border: 'border-indigo-200/80', icon: Tag },
+  'Round Trip': { bg: 'bg-blue-50/80', text: 'text-blue-700', border: 'border-blue-200/80', icon: Layers },
   'Trip/Round Trip': { bg: 'bg-blue-50/80', text: 'text-blue-700', border: 'border-blue-200/80', icon: Layers },
   'Monthly Round': { bg: 'bg-emerald-50/80', text: 'text-emerald-700', border: 'border-emerald-200/80', icon: Calendar },
   'Monthly (ROUND TRIP, 2 vehicles)': { bg: 'bg-emerald-50/80', text: 'text-emerald-700', border: 'border-emerald-200/80', icon: Calendar },

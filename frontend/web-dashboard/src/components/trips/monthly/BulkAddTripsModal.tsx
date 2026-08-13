@@ -44,7 +44,7 @@ import { monthLabel, shiftMonth } from './monthlyBoardUtils';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 
 const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
-const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat));
+const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat)).map((cat) => (cat === 'Trip/Round Trip' ? 'Round Trip' : cat));
 
 interface BulkAddTripsModalProps {
   isOpen: boolean;
