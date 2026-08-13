@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   getInvoices, getInvoiceById, createInvoice, updateInvoiceStatus,
   bulkDeleteInvoices, bulkUpdateInvoiceStatus,
-  markTripInvoiced, unmarkTripInvoiced, getBillingLedger
+  markTripInvoiced, unmarkTripInvoiced, getBillingLedger, getCustomerBillingLedger
 } from '../controllers/invoiceController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
@@ -21,6 +21,8 @@ router.post('/bulk-update-status', bulkUpdateInvoiceStatus);
 // Billing ledger — the primary invoicing workspace
 // GET /invoices/billing-ledger?customer_id=&date_from=&date_to=&invoice_status=&search=&page=&per_page=
 router.get('/billing-ledger', getBillingLedger);
+// GET /invoices/billing-ledger/by-customer — company-grouped summary view
+router.get('/billing-ledger/by-customer', getCustomerBillingLedger);
 
 // Standard invoice CRUD (preserved for backward compat)
 router.get('/', validate({ query: listQuery }), getInvoices);

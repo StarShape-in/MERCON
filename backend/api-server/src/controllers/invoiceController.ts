@@ -425,3 +425,170 @@ export const getBillingLedger = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch billing ledger' } });
   }
 };
+
+/**
+ * GET /invoices/billing-ledger/by-customer
+ * Returns one summary row per customer (company) with their billing stats and trip list.
+ * Used by the Company Billing Ledger page.
+ */
+export const getCustomerBillingLedger = async (req: Request, res: Response) => {
+  try {
+    const { date_from, date_to, invoice_status, search } = req.query;
+
+    let statusFilter: TripStatus[];
+    if (invoice_status === 'NotInvoiced') {
+      statusFilter = [TripStatus.Completed];
+    } else if (invoice_status === 'Invoiced') {
+      statusFilter = [TripStatus.Invoiced];
+    } else {
+      statusFilter = [TripStatus.Completed, TripStatus.Invoiced];
+    }
+
+    const andConditions: any[] = [];
+
+    if (date_from) {
+      const from = new Date(date_from as string);
+      from.setHours(0, 0, 0, 0);
+      andConditions.push({
+        OR: [
+          { planned_start: { gte: from } },
+          { AND: [{ planned_start: null }, { createdAt: { gte: from } }] }
+        ]
+      });
+    }
+    if (date_to) {
+      const to = new Date(date_to as string);
+      to.setHours(23, 59, 59, 999);
+      andConditions.push({
+        OR: [
+          { planned_start: { lte: to } },
+          { AND: [{ planned_start: null }, { createdAt: { lte: to } }] }
+        ]
+      });
+    }
+    if (search && String(search).trim()) {
+      const q = String(search).trim();
+      andConditions.push({
+        OR: [
+          { customer: { name: { contains: q, mode: 'insensitive' } } },
+          { ref_id: { contains: q, mode: 'insensitive' } },
+        ]
+      });
+    }
+
+    const whereClause: any = {
+      deletedAt: null,
+      status: { in: statusFilter },
+      customerId: { not: null },
+      ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+    };
+
+    // Fetch all matching trips grouped under their customers
+    const trips = await prisma.trip.findMany({
+      where: whereClause,
+      orderBy: [{ planned_start: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        customer: { select: { id: true, name: true, contact_phone: true, contact_email: true } },
+        stops: {
+          where: { deletedAt: null },
+          orderBy: { stop_sequence: 'asc' },
+          select: {
+            stop_sequence: true, stop_type: true, location_name: true,
+            location: { select: { id: true, name: true } }
+          }
+        },
+        invoices: {
+          where: { deletedAt: null },
+          select: { id: true, ref_id: true, status: true, total_amount: true, zatca_ref: true, invoicing_note: true, createdAt: true }
+        }
+      }
+    });
+
+    // Group by customer
+    const customerMap = new Map<string, {
+      customer: any;
+      trips: any[];
+      total_trips: number;
+      completed: number;
+      invoiced: number;
+      total_billing: number;
+      invoiced_amount: number;
+      pending_amount: number;
+    }>();
+
+    for (const trip of trips) {
+      if (!trip.customer) continue;
+      const cid = trip.customer.id;
+      if (!customerMap.has(cid)) {
+        customerMap.set(cid, {
+          customer: trip.customer,
+          trips: [],
+          total_trips: 0,
+          completed: 0,
+          invoiced: 0,
+          total_billing: 0,
+          invoiced_amount: 0,
+          pending_amount: 0,
+        });
+      }
+      const entry = customerMap.get(cid)!;
+      const billingTotal = Number(trip.billing_amount ?? trip.trip_charges ?? 0)
+        + Number(trip.waiting_labor_charges ?? 0)
+        + Number(trip.additional_stop_charges ?? 0);
+
+      entry.trips.push(trip);
+      entry.total_trips++;
+      entry.total_billing += billingTotal;
+
+      if (trip.status === TripStatus.Invoiced) {
+        entry.invoiced++;
+        entry.invoiced_amount += billingTotal;
+      } else {
+        entry.completed++;
+        entry.pending_amount += billingTotal;
+      }
+    }
+
+    const customers = Array.from(customerMap.values()).map(c => ({
+      customer: c.customer,
+      total_trips: c.total_trips,
+      completed: c.completed,
+      invoiced: c.invoiced,
+      coverage_pct: c.total_trips > 0 ? Math.round((c.invoiced / c.total_trips) * 10000) / 100 : 100,
+      total_billing: Math.round(c.total_billing * 100) / 100,
+      invoiced_amount: Math.round(c.invoiced_amount * 100) / 100,
+      pending_amount: Math.round(c.pending_amount * 100) / 100,
+      trips: c.trips,
+    }));
+
+    // Sort: customers with most pending first, then by name
+    customers.sort((a, b) => b.completed - a.completed || a.customer.name.localeCompare(b.customer.name));
+
+    const totalCompleted = customers.reduce((s, c) => s + c.completed, 0);
+    const totalInvoiced  = customers.reduce((s, c) => s + c.invoiced, 0);
+    const totalTrips     = customers.reduce((s, c) => s + c.total_trips, 0);
+    const totalBilling   = Math.round(customers.reduce((s, c) => s + c.total_billing, 0) * 100) / 100;
+    const totalInvoicedAmt = Math.round(customers.reduce((s, c) => s + c.invoiced_amount, 0) * 100) / 100;
+    const totalPendingAmt  = Math.round(customers.reduce((s, c) => s + c.pending_amount, 0) * 100) / 100;
+
+    res.json({
+      success: true,
+      data: customers,
+      meta: {
+        total_customers: customers.length,
+        summary: {
+          total_trips: totalTrips,
+          completed: totalCompleted,
+          invoiced: totalInvoiced,
+          coverage_pct: totalTrips > 0 ? Math.round((totalInvoiced / totalTrips) * 10000) / 100 : 100,
+          total_billing: totalBilling,
+          invoiced_amount: totalInvoicedAmt,
+          pending_amount: totalPendingAmt,
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch customer billing ledger' } });
+  }
+};
+

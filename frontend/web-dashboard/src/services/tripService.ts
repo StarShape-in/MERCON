@@ -331,6 +331,12 @@ export const tripService = {
     const res = await api.get<ApiResponse<BillingLedgerTrip[]>>('/invoices/billing-ledger', { params: filters });
     return res.data;
   },
+
+  /** Fetch the customer (company) billing ledger — one row per company with aggregated trip stats. */
+  async getCustomerBillingLedger(filters: CustomerBillingFilters = {}): Promise<ApiResponse<CustomerBillingRow[]>> {
+    const res = await api.get<ApiResponse<CustomerBillingRow[]>>('/invoices/billing-ledger/by-customer', { params: filters });
+    return res.data;
+  },
 };
 
 export interface BulkImportTripRow {
@@ -375,4 +381,28 @@ export interface BillingLedgerTrip extends Omit<Trip, 'invoices'> {
     invoicing_note: string | null;
     createdAt: string;
   }>;
+}
+
+export interface CustomerBillingFilters {
+  date_from?: string;
+  date_to?: string;
+  invoice_status?: 'NotInvoiced' | 'Invoiced';
+  search?: string;
+}
+
+export interface CustomerBillingRow {
+  customer: {
+    id: string;
+    name: string;
+    contact_phone?: string | null;
+    contact_email?: string | null;
+  };
+  total_trips: number;
+  completed: number;
+  invoiced: number;
+  coverage_pct: number;
+  total_billing: number;
+  invoiced_amount: number;
+  pending_amount: number;
+  trips: BillingLedgerTrip[];
 }

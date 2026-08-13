@@ -77,7 +77,7 @@ export const getDrivers = async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    logger.error({ err: error }, 'Failed to fetch drivers');
+    console.error('Failed to fetch drivers:', error);
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch drivers' } });
   }
 };
