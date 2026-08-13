@@ -127,14 +127,15 @@ function FlyToLocation({ center }: { center: [number, number] | null }) {
 function MapAutoSize() {
   const map = useMap();
   useEffect(() => {
-    const raf = requestAnimationFrame(() => map.invalidateSize());
+    // Synchronous, not deferred: FitAllPins fits bounds in the same effect
+    // pass right after this one, against whatever size Leaflet has cached —
+    // deferring this a frame left it computing that fit against a stale
+    // (sometimes zero) size, which produced a broken zoom and a blank map.
+    map.invalidateSize();
     const container = map.getContainer();
     const observer = new ResizeObserver(() => map.invalidateSize());
     observer.observe(container);
-    return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [map]);
   return null;
 }
@@ -153,10 +154,14 @@ function FitAllPins({ points }: { points: [number, number][] }) {
   useEffect(() => {
     if (hasFit.current || points.length === 0) return;
     hasFit.current = true;
-    if (points.length === 1) {
-      map.setView(points[0], 13);
+    const bounds = L.latLngBounds(points);
+    // A degenerate box (one point, or several on top of each other) has no
+    // meaningful "fit" — center on it at a sane fixed zoom instead of letting
+    // fitBounds derive one from a near-zero-size box.
+    if (points.length === 1 || bounds.getNorthEast().distanceTo(bounds.getSouthWest()) < 50) {
+      map.setView(bounds.getCenter(), 13);
     } else {
-      map.fitBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 13 });
+      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 13 });
     }
   }, [points, map]);
   return null;
