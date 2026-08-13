@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -139,6 +139,29 @@ function MapAutoSize() {
   return null;
 }
 
+/**
+ * `MapContainer`'s `center`/`zoom` props only take effect on the very first
+ * mount — Leaflet ignores further changes to them, so anchoring the map to
+ * "the first mapped location" leaves it stuck on that one point even when
+ * the actual pins are somewhere else entirely. This fits the camera to
+ * whatever is plotted the moment the map opens, once, so opening the tab
+ * shows what you actually have instead of one arbitrary corner of it.
+ */
+function FitAllPins({ points }: { points: [number, number][] }) {
+  const map = useMap();
+  const hasFit = useRef(false);
+  useEffect(() => {
+    if (hasFit.current || points.length === 0) return;
+    hasFit.current = true;
+    if (points.length === 1) {
+      map.setView(points[0], 13);
+    } else {
+      map.fitBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 13 });
+    }
+  }, [points, map]);
+  return null;
+}
+
 export default function LocationListPage() {
   const queryClient = useQueryClient();
 
@@ -212,6 +235,11 @@ export default function LocationListPage() {
     }
     return [24.7136, 46.6753]; // Riyadh fallback
   }, [filteredData]);
+
+  const plottedLocations = useMemo(
+    () => filteredData.filter((l): l is Location & { lat: number; lng: number } => l.lat != null && l.lng != null),
+    [filteredData],
+  );
 
   const handleCopyCoords = (loc: Location, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -782,12 +810,14 @@ export default function LocationListPage() {
                   {/* Keep Leaflet's cached container size correct on this tab */}
                   <MapAutoSize />
 
+                  {/* Show everything plotted the moment the tab opens, not one arbitrary point */}
+                  <FitAllPins points={plottedLocations.map((l) => [l.lat, l.lng] as [number, number])} />
+
                   {/* Fly to selection helper */}
                   <FlyToLocation center={selectedMapCenter} />
 
                   {/* Location Markers */}
-                  {filteredData
-                    .filter((l) => l.lat != null && l.lng != null)
+                  {plottedLocations
                     .map((loc) => {
                       const isSelected = selectedLocationId === loc.id;
                       const rates = rateCardUses(loc);
@@ -892,8 +922,12 @@ export default function LocationListPage() {
                             setSelectedLocationId(loc.id);
                             if (hasCoords) {
                               setSelectedMapCenter([loc.lat!, loc.lng!]);
+                            } else {
+                              // Nothing to zoom to — send them to fix it instead of doing nothing.
+                              setEditTarget(loc);
                             }
                           }}
+                          title={hasCoords ? 'Click to zoom to this location' : 'No coordinates saved — click to add them'}
                           className={`p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-1 ${
                             isSelected
                               ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-900 shadow-2xs'
@@ -919,10 +953,15 @@ export default function LocationListPage() {
                             {loc.address || 'No street address'}
                           </p>
 
-                          {hasCoords && (
+                          {hasCoords ? (
                             <div className="font-mono text-[10px] text-slate-400 pt-0.5 flex items-center justify-between">
                               <span>{loc.lat?.toFixed(4)}, {loc.lng?.toFixed(4)}</span>
                               <span className="text-[#E8450F] font-bold hover:underline">Focus →</span>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-amber-700 pt-0.5 flex items-center justify-between">
+                              <span>Not plotted on map</span>
+                              <span className="text-[#E8450F] font-bold hover:underline">Add coordinates →</span>
                             </div>
                           )}
                         </div>
