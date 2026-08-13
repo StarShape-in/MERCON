@@ -17,6 +17,7 @@ import {
   Layers,
   FileSpreadsheet,
   Download,
+  RotateCcw,
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -660,15 +661,40 @@ export default function BulkAddTripsModal({
                           ))}
 
                           <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                              Destination (Optional)
-                            </label>
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
+                                Destination (Optional)
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (contractOrigin.trim()) {
+                                    setContractDestination(contractOrigin.trim());
+                                  }
+                                }}
+                                className={`text-[10px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all ${
+                                  contractOrigin.trim() && contractDestination.trim() === contractOrigin.trim()
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
+                                    : 'text-[#E8450F] hover:bg-orange-50'
+                                }`}
+                                title="Click to set final destination same as origin for Round Trip"
+                              >
+                                <RotateCcw className="w-3 h-3 text-[#E8450F]" />
+                                {contractOrigin.trim() && contractDestination.trim() === contractOrigin.trim()
+                                  ? '🔁 Same as Origin (Round Trip)'
+                                  : 'Same as Origin'}
+                              </button>
+                            </div>
                             <input
                               type="text"
                               value={contractDestination}
                               onChange={(e) => setContractDestination(e.target.value)}
                               placeholder="e.g. Jeddah Port Gate 4"
-                              className="w-full h-10 px-3 rounded-xl border border-black/10 text-xs font-medium focus:outline-none focus:border-[#E8450F]"
+                              className={`w-full h-10 px-3 rounded-xl border text-xs font-medium focus:outline-none focus:border-[#E8450F] ${
+                                contractOrigin.trim() && contractDestination.trim() === contractOrigin.trim()
+                                  ? 'border-emerald-300 bg-emerald-50/20 text-emerald-900 font-semibold'
+                                  : 'border-black/10'
+                              }`}
                             />
                           </div>
 
