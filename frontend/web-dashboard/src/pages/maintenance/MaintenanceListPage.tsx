@@ -6,12 +6,14 @@ import {
   Wrench, Download, Plus, RotateCw, Filter, Search,
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
-  Building2, Gauge, Layers, ChevronDown, Eye,
+  Building2, Gauge, Layers, ChevronDown, Eye, Tag,
   ChevronsUpDown, ArrowUp, LayoutGrid, List, Phone, Database
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
 import MaintenanceRecordModal from '@/components/maintenance/MaintenanceRecordModal';
+import ManageWorkshopsModal from '@/components/maintenance/ManageWorkshopsModal';
+import ManageServiceItemsModal from '@/components/maintenance/ManageServiceItemsModal';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MaintenanceWrench, CheckBadge, MoneyBills, CalendarAlert } from '@/components/ui/kpi-icons';
@@ -63,6 +65,8 @@ export default function MaintenanceListPage() {
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isManageWorkshopsOpen, setIsManageWorkshopsOpen] = useState(false);
+  const [isManageServicesOpen, setIsManageServicesOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<MaintenanceRecord | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
@@ -331,6 +335,26 @@ export default function MaintenanceListPage() {
             >
               <Download className="h-3.5 w-3.5 text-slate-600" />
               Export CSV
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsManageWorkshopsOpen(true)}
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+            >
+              <Building2 className="h-3.5 w-3.5 text-amber-500" />
+              Manage Workshops
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsManageServicesOpen(true)}
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
+            >
+              <Tag className="h-3.5 w-3.5 text-indigo-500" />
+              Manage Service Items
             </Button>
 
             <Button
@@ -748,6 +772,16 @@ export default function MaintenanceListPage() {
         title={confirmModal.title}
         message={confirmModal.message}
         isDestructive={true}
+      />
+
+      <ManageWorkshopsModal
+        open={isManageWorkshopsOpen}
+        onOpenChange={setIsManageWorkshopsOpen}
+      />
+
+      <ManageServiceItemsModal
+        open={isManageServicesOpen}
+        onOpenChange={setIsManageServicesOpen}
       />
 
     </DashboardLayout>

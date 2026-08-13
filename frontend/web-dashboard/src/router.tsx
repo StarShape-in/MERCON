@@ -59,6 +59,9 @@ const InvoicePrintTemplate    = lazy(() => import('@/pages/invoices/InvoicePrint
 const CreateInvoicePage       = lazy(() => import('@/pages/invoices/CreateInvoicePage'));
 const PaymentStatusPage       = lazy(() => import('@/pages/invoices/PaymentStatusPage'));
 
+// Expenses
+const ExpenseListPage         = lazy(() => import('@/pages/expenses/ExpenseListPage'));
+
 // Documents
 const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCenterPage'));
 
@@ -159,6 +162,9 @@ export default function AppRouter() {
           <Route path="/invoices/:id"             element={<InvoiceDetailsPage />} />
           <Route path="/invoices/:id/print"       element={<InvoicePrintTemplate />} />
           <Route path="/invoices/:id/payment"     element={<PaymentStatusPage />} />
+
+          {/* Expenses */}
+          <Route path="/expenses"                 element={<ExpenseListPage />} />
 
           {/* Documents */}
           <Route path="/documents"                element={<DocumentsCenterPage />} />

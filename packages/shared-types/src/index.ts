@@ -48,6 +48,30 @@ export const RATE_CATEGORIES = [
 ] as const;
 export type RateCategory = (typeof RATE_CATEGORIES)[number];
 
+/**
+ * Suggested Expense.category values. Not a Postgres enum — the column stays a
+ * free-text String so a category typed once outside this list never breaks a
+ * deploy — but this is the list the create/edit form offers by default.
+ */
+export const EXPENSE_CATEGORIES = [
+  'Salary',
+  'Salary Advance',
+  'Fuel',
+  'Toll & Parking',
+  'Rent',
+  'Utilities',
+  'Office Supplies',
+  'Insurance',
+  'Vehicle Maintenance',
+  'Government Fees',
+  'Other',
+] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+/** Suggested Expense.payment_method values (free-text column, same reasoning as above). */
+export const EXPENSE_PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Cheque', 'Card'] as const;
+export type ExpensePaymentMethod = (typeof EXPENSE_PAYMENT_METHODS)[number];
+
 // ─── Domain entities ─────────────────────────────────────────────
 export interface User {
   id: string;
