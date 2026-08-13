@@ -7,7 +7,7 @@ import {
   ArrowLeft, DollarSign, TrendingUp, TrendingDown, Truck, Trophy,
   FileSpreadsheet, FileText, RefreshCw, AlertTriangle, ArrowUpDown, Wallet,
   Layers, PieChart as PieChartIcon, ArrowRight, Gauge, Ban,
-  CalendarRange, Route, ReceiptText, AlertOctagon,
+  CalendarRange, Route, ReceiptText, AlertOctagon, Grid3x3,
 } from 'lucide-react';
 import {
   Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, ReferenceLine,
@@ -75,6 +75,26 @@ const rangeFor = (period: string): { from?: string; to?: string } => {
   from.setMonth(from.getMonth() - Number(period));
   return { from: from.toISOString() };
 };
+
+/** Margin bands for the profitability grid, best tier first. */
+const PROFIT_TIERS = [
+  {
+    key: 'high', label: 'High Profit', test: (m: number) => m >= 20,
+    chip: 'bg-emerald-600 text-white',
+  },
+  {
+    key: 'profitable', label: 'Profitable', test: (m: number) => m >= 0 && m < 20,
+    chip: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200',
+  },
+  {
+    key: 'low', label: 'Low / Break-even', test: (m: number) => m >= -20 && m < 0,
+    chip: 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200',
+  },
+  {
+    key: 'loss', label: 'Heavy Loss', test: (m: number) => m < -20,
+    chip: 'bg-rose-600 text-white',
+  },
+] as const;
 
 const chartConfig = {
   income: { label: 'Income', color: INCOME },
@@ -344,14 +364,22 @@ export default function VehicleFinancialsPage() {
   const lossMakers = [...rankedByProfit].reverse().filter((r) => r.net_profit < 0).slice(0, 5);
   const maxAbsProfit = Math.max(1, ...activeRows.map((r) => Math.abs(r.net_profit)));
 
-  /** Diverging bar chart data — capped so a 60-truck fleet stays readable. */
-  const profitChartData = useMemo(
-    () => rankedByProfit.slice(0, 15).map((r) => ({
-      plate: r.plate_number,
-      net_profit: r.net_profit,
-      vehicle_id: r.vehicle_id,
+  /** Truck classes with any active vehicle in this period — the grid's columns. */
+  const assetTypesForGrid = useMemo(
+    () => Array.from(new Set(activeRows.map((r) => r.asset_type))).sort(),
+    [activeRows]
+  );
+
+  /** Every active vehicle placed into a profit tier × asset type cell. */
+  const profitabilityGrid = useMemo(
+    () => PROFIT_TIERS.map((tier) => ({
+      tier,
+      cells: assetTypesForGrid.map((type) => ({
+        type,
+        vehicles: activeRows.filter((r) => r.asset_type === type && tier.test(r.margin_percent)),
+      })),
     })),
-    [rankedByProfit]
+    [activeRows, assetTypesForGrid]
   );
 
   const expenseSplit = useMemo(() => {
@@ -818,52 +846,67 @@ export default function VehicleFinancialsPage() {
                   <Card className="lg:col-span-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <ArrowUpDown className="w-4 h-4 text-indigo-600" /> Net Profit by Vehicle
+                        <Grid3x3 className="w-4 h-4 text-indigo-600" /> Asset Profitability Grid
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Green bars earn, red bars cost. Showing the {profitChartData.length} most significant
-                        of {activeRows.length} active vehicles — click a bar to drill in.
+                        Every active vehicle placed by margin tier and truck class. Click a plate to drill in.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {profitChartData.length === 0 ? (
+                      {assetTypesForGrid.length === 0 ? (
                         <NoData message="No vehicle has recorded income or expenses in this period." />
                       ) : (
-                        <ChartContainer
-                          config={chartConfig}
-                          className="w-full aspect-auto"
-                          style={{ height: Math.max(260, profitChartData.length * 30) }}
-                        >
-                          <BarChart
-                            data={profitChartData}
-                            layout="vertical"
-                            margin={{ top: 4, right: 24, left: 4, bottom: 4 }}
-                          >
-                            <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                            <XAxis type="number" tickFormatter={compact} tickLine={false} axisLine={false} />
-                            <YAxis
-                              type="category"
-                              dataKey="plate"
-                              width={86}
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fontSize: 11, fontWeight: 700 }}
-                            />
-                            <ReferenceLine x={0} stroke="currentColor" className="text-border" />
-                            <ChartTooltip
-                              content={<ChartTooltipContent formatter={(v) => sar(Number(v))} />}
-                            />
-                            <Bar dataKey="net_profit" radius={4} onClick={(d: any) => openVehicle(d.vehicle_id)}>
-                              {profitChartData.map((d) => (
-                                <Cell
-                                  key={d.vehicle_id}
-                                  fill={d.net_profit >= 0 ? INCOME : EXPENSE}
-                                  className="cursor-pointer"
-                                />
+                        <div className="overflow-x-auto">
+                          <div className="min-w-[480px]">
+                            <div
+                              className="grid gap-1"
+                              style={{ gridTemplateColumns: `108px repeat(${assetTypesForGrid.length}, 1fr)` }}
+                            >
+                              <div />
+                              {assetTypesForGrid.map((type) => (
+                                <div
+                                  key={type}
+                                  className="text-center text-[10px] font-extrabold uppercase tracking-wider text-slate-400 pb-1.5"
+                                >
+                                  {type}
+                                </div>
                               ))}
-                            </Bar>
-                          </BarChart>
-                        </ChartContainer>
+                            </div>
+
+                            {profitabilityGrid.map(({ tier, cells }) => (
+                              <div
+                                key={tier.key}
+                                className="grid gap-1"
+                                style={{ gridTemplateColumns: `108px repeat(${assetTypesForGrid.length}, 1fr)` }}
+                              >
+                                <div className="flex items-center text-[11px] font-bold text-slate-600 dark:text-slate-400 pr-2 py-1">
+                                  {tier.label}
+                                </div>
+                                {cells.map((cell) => (
+                                  <div
+                                    key={cell.type}
+                                    className="rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 p-1.5 min-h-[56px] flex flex-wrap content-start gap-1"
+                                  >
+                                    {cell.vehicles.map((v) => (
+                                      <button
+                                        key={v.vehicle_id}
+                                        type="button"
+                                        onClick={() => openVehicle(v.vehicle_id)}
+                                        title={`${v.plate_number} · ${sar(v.net_profit)} · ${v.margin_percent}% margin`}
+                                        className={cn(
+                                          'px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 cursor-pointer transition-opacity hover:opacity-80',
+                                          tier.chip
+                                        )}
+                                      >
+                                        {v.plate_number}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
