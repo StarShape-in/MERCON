@@ -242,7 +242,7 @@ async function main() {
         maint.push({
           vehicleId: vehicles[vi].id, service_date: new Date(actual.getTime() + DAY),
           cost: Math.round(between(900, 9000)),
-          workshop_name: pick(['Dammam Truck Works', 'Khamis Auto Center', 'Riyadh Fleet Services']),
+          workshop_name: '',
           maintenance_type: 'Repair', work_done: 'Roadside repair',
           odometer_reading: Math.round(between(100000, 320000)), created_by: DEMO_MARKER,
         });
