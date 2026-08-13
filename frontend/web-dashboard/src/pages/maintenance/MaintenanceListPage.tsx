@@ -377,14 +377,13 @@ export default function MaintenanceListPage() {
                 {kpis.total_cost.toLocaleString()}
               </span>
             }
-            variant="brand"
+            variant="slate"
             description={`${totalMaintenanceCount || records.length} total service records`}
             icon={MoneyBills}
             progressSegments={[
-              { label: `Active (${kpis.active_count})`, value: kpis.active_count > 0 ? 50 : 0, color: 'bg-[#E8450F]' },
+              { label: `Active (${kpis.active_count})`, value: kpis.active_count > 0 ? 50 : 0, color: 'bg-amber-500' },
               { label: `Completed (${kpis.completed_count})`, value: kpis.completed_count > 0 ? 50 : 100, color: 'bg-emerald-500' },
             ]}
-            isActive={statusFilter === 'all'}
             onClick={() => {
               setStatusFilter('all');
               setPage(1);

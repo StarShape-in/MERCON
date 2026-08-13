@@ -162,7 +162,7 @@ export default function ReportsDashboardPage() {
           <KpiCard
             title="TRIP FULFILLMENT"
             value={totalTripsVal}
-            variant="brand"
+            variant="slate"
             trend="up"
             trendValue={kpis?.total_trips?.delta ? `${kpis.total_trips.delta}%` : '+12%'}
             description="Active trip volume"
@@ -204,7 +204,6 @@ export default function ReportsDashboardPage() {
               { label: `${criticalDocsCount} Critical (<7d)`, value: criticalDocsCount, color: 'bg-rose-500' },
               { label: `${warningDocsCount} Warning (30d)`, value: warningDocsCount, color: 'bg-amber-500' },
             ]}
-            isActive={totalExpiringRisk > 0}
             onClick={() => navigate('/documents?radar=open')}
           />
         </div>

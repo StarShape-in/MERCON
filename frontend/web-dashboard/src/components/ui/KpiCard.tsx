@@ -113,9 +113,9 @@ const variantStyles: Record<KpiCardVariant, {
     activeRing: 'shadow-[0_0_15px_rgba(220,38,38,0.18)] border-rose-500 scale-[1.01] transition-all',
   },
   slate: {
-    hex: '#52525B',
-    iconContainer: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400',
-    activeRing: 'shadow-[0_0_15px_rgba(82,82,91,0.18)] border-zinc-400 scale-[1.01] transition-all',
+    hex: '#0F172A',
+    iconContainer: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    activeRing: 'shadow-[0_0_15px_rgba(15,23,42,0.12)] border-slate-400 scale-[1.01] transition-all',
   },
 }
 
@@ -241,7 +241,7 @@ export function KpiCard({
     }
   }
 
-  let activeVariant: KpiCardVariant = variant || 'brand'
+  let activeVariant: KpiCardVariant = variant || 'slate'
   if (!variant) {
     if (color === '#E8450F') activeVariant = 'brand'
     else if (color === '#2563EB') activeVariant = 'blue'
@@ -249,10 +249,10 @@ export function KpiCard({
     else if (color === '#D97706') activeVariant = 'amber'
     else if (computedTrend === 'up') activeVariant = 'emerald'
     else if (computedTrend === 'down') activeVariant = 'rose'
-    else activeVariant = 'brand'
+    else activeVariant = 'slate'
   }
 
-  const selectedStyle = variantStyles[activeVariant] || variantStyles.brand
+  const selectedStyle = variantStyles[activeVariant] || variantStyles.slate
 
   let renderedIcon: React.ReactNode = null
   if (icon) {
@@ -323,8 +323,11 @@ export function KpiCard({
 
         {/* Value */}
         <div 
-          className="mt-1 text-[32px] font-bold leading-none tracking-tight transition-colors duration-150"
-          style={{ color: selectedStyle.hex }}
+          className={cn(
+            "mt-1 text-[32px] font-bold leading-none tracking-tight transition-colors duration-150",
+            activeVariant === 'slate' && "text-slate-900 dark:text-slate-100"
+          )}
+          style={activeVariant === 'slate' ? undefined : { color: selectedStyle.hex }}
         >
           {value}
         </div>

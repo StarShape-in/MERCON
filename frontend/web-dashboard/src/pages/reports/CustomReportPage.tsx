@@ -268,9 +268,7 @@ export default function CustomReportPage() {
                 label="Total Trips"
                 value={reportData.kpis.total_trips.toString()}
                 icon={TruckMotion}
-                color="#E8450F"
-                bg="#E8450F1A"
-                iconVariant="light"
+                variant="slate"
               />
               <KpiCard
                 label="Total Revenue"

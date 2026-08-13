@@ -404,18 +404,17 @@ export default function DocumentsCenterPage() {
           <KpiCard
             title="TOTAL VAULT DOCUMENTS"
             value={totalDocsCount}
-            variant="brand"
-            icon={<FolderOpen className="w-4 h-4 text-[#E8450F]" />}
+            variant="slate"
+            icon={<FolderOpen className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
             trend="neutral"
             trendValue={`${totalDocsCount} active records`}
             description="Compliance repository"
             progressSegments={[
-              { label: 'Drivers', value: foldersByCategory.Drivers.count, color: '#E8450F' },
-              { label: 'Vehicles', value: foldersByCategory.Vehicles.count, color: '#2563EB' },
+              { label: 'Drivers', value: foldersByCategory.Drivers.count, color: '#3B82F6' },
+              { label: 'Vehicles', value: foldersByCategory.Vehicles.count, color: '#10B981' },
               { label: 'Operations', value: foldersByCategory.Operations.count, color: '#7C3AED' },
-              { label: 'Company', value: foldersByCategory.Company.count, color: '#16A34A' },
+              { label: 'Company', value: foldersByCategory.Company.count, color: '#F59E0B' },
             ]}
-            isActive={expiryFilter === 'all' && activeCategory === 'All'}
             onClick={() => {
               setExpiryFilter('all');
               setActiveCategory('All');

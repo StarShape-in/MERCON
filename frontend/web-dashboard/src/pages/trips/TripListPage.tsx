@@ -994,7 +994,7 @@ export default function TripListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
               </span>
             }
-            variant="brand"
+            variant="slate"
             description="All fleet operations"
             icon={TruckMotion}
             semiCircleGauge={{
@@ -1004,7 +1004,6 @@ export default function TripListPage() {
                 { label: "Queue", count: dispatchQueueCount, color: "#D97706" },
               ]
             }}
-            isActive={selectedStatus === 'All'}
             onClick={() => {
               setSelectedStatus('All');
               setCurrentPage(1);

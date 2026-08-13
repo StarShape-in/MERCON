@@ -424,7 +424,7 @@ export default function InvoiceListPage() {
                 <span className="text-[14px] font-semibold ml-1.5 opacity-85">Trips</span>
               </span>
             }
-            variant="blue"
+            variant="slate"
             description="Overall fleet billing log"
             icon={InvoiceDoc}
             semiCircleGauge={{
@@ -434,7 +434,6 @@ export default function InvoiceListPage() {
                 { label: "Overdue", count: overdueCount, color: "#DC2626" },
               ]
             }}
-            isActive={selectedStatus === 'All'}
             onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
           />
 

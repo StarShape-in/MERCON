@@ -150,7 +150,7 @@ export default function DriverPerformancePage() {
             title="Total Trips"
             value={isLoading ? '—' : kpis.totalTrips.toLocaleString()}
             icon={RouteLine}
-            variant="brand"
+            variant="slate"
             trend="up"
             trendValue="+18%"
             description="Trips executed"
