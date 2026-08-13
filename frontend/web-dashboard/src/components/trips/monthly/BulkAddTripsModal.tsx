@@ -31,6 +31,8 @@ import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from './monthlyBoardUtils';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 
+const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => cat !== 'Surcharge');
+
 interface BulkAddTripsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -103,7 +105,7 @@ export default function BulkAddTripsModal({
   // ==========================================
   const [contractStep, setContractStep] = useState<1 | 2>(1);
   const [contractCustomer, setContractCustomer] = useState('');
-  const [contractRateCategory, setContractRateCategory] = useState<string>(RATE_CATEGORIES[0] || 'Standard');
+  const [contractRateCategory, setContractRateCategory] = useState<string>(MODAL_RATE_CATEGORIES[0] || 'Trip');
   const [contractVehicleType, setContractVehicleType] = useState<string>(VEHICLE_TYPES[0] || 'Flatbed');
   const [contractOrigin, setContractOrigin] = useState('');
   const [contractDestination, setContractDestination] = useState('');
@@ -195,7 +197,7 @@ export default function BulkAddTripsModal({
     date: new Date().toISOString().slice(0, 10),
     driverId: '',
     vehicleId: '',
-    rateCategory: RATE_CATEGORIES[0] || 'Standard',
+    rateCategory: MODAL_RATE_CATEGORIES[0] || 'Trip',
     vehicleType: VEHICLE_TYPES[0] || 'Flatbed',
     origin: '',
     destination: '',
@@ -550,7 +552,7 @@ export default function BulkAddTripsModal({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {RATE_CATEGORIES.map((cat) => (
+                              {MODAL_RATE_CATEGORIES.map((cat) => (
                                 <SelectItem key={cat} value={cat} className="text-xs">
                                   {cat}
                                 </SelectItem>
@@ -1040,7 +1042,7 @@ export default function BulkAddTripsModal({
                                 onChange={(e) => updateGridRow(row.id, { rateCategory: e.target.value })}
                                 className="w-28 h-8 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-[#E8450F]"
                               >
-                                {RATE_CATEGORIES.map((cat) => (
+                                {MODAL_RATE_CATEGORIES.map((cat) => (
                                   <option key={cat} value={cat}>
                                     {cat}
                                   </option>
