@@ -2,10 +2,11 @@ import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { logger } from '../utils/logger';
 import { nextMaintenanceRefId } from './maintenanceController';
+import { nextExpenseRefId } from './expenseController';
 
 export async function getTrashItems(req: Request, res: Response) {
   try {
-    const [customers, drivers, vehicles, trips, maintenance, invoices, rateCards] = await Promise.all([
+    const [customers, drivers, vehicles, trips, maintenance, invoices, rateCards, expenses] = await Promise.all([
       prisma.customer.findMany({ where: { deletedAt: { not: null } } }),
       prisma.driver.findMany({ where: { deletedAt: { not: null } } }),
       prisma.vehicle.findMany({ where: { deletedAt: { not: null } } }),
@@ -13,6 +14,7 @@ export async function getTrashItems(req: Request, res: Response) {
       prisma.maintenanceRecord.findMany({ where: { deletedAt: { not: null } } }),
       prisma.invoice.findMany({ where: { deletedAt: { not: null } } }),
       prisma.rateCard.findMany({ where: { deletedAt: { not: null } } }),
+      prisma.expense.findMany({ where: { deletedAt: { not: null } } }),
     ]);
 
     const trashItems: any[] = [
@@ -23,6 +25,7 @@ export async function getTrashItems(req: Request, res: Response) {
       ...maintenance.map(m => ({ id: m.id, type: 'MaintenanceRecord', name: `Workshop: ${m.workshop_name} (Cost: SAR ${m.cost})`, deletedAt: m.deletedAt })),
       ...invoices.map(i => ({ id: i.id, type: 'Invoice', name: i.ref_id || `INV-${i.id.substring(0, 8)}`, deletedAt: i.deletedAt })),
       ...rateCards.map(r => ({ id: r.id, type: 'RateCard', name: `${r.name || 'Rate Card'} (${r.base_price} ${r.currency})`, deletedAt: r.deletedAt })),
+      ...expenses.map(e => ({ id: e.id, type: 'Expense', name: `${e.category} (${e.currency} ${e.amount})`, deletedAt: e.deletedAt })),
     ];
 
     // Sort newest deletions first
@@ -71,6 +74,19 @@ export async function restoreTrashItem(req: Request, res: Response) {
       case 'RateCard':
         await prisma.rateCard.update({ where: { id }, data: { deletedAt: null } });
         break;
+      case 'Expense': {
+        // Deleting an expense releases its ref_id so the sequence stays
+        // gapless, so a restored expense needs a fresh number at the end.
+        const restored = await prisma.expense.findUnique({ where: { id } });
+        await prisma.expense.update({
+          where: { id },
+          data: {
+            deletedAt: null,
+            ...(restored?.ref_id ? {} : { ref_id: await nextExpenseRefId() }),
+          },
+        });
+        break;
+      }
       default:
         return res.status(400).json({ error: { message: 'Invalid entity type for restoration' } });
     }
@@ -109,6 +125,9 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
         break;
       case 'RateCard':
         await prisma.rateCard.delete({ where: { id } });
+        break;
+      case 'Expense':
+        await prisma.expense.delete({ where: { id } });
         break;
       default:
         return res.status(400).json({ error: { message: 'Invalid entity type for permanent deletion' } });

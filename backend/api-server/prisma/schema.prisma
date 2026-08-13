@@ -189,6 +189,7 @@ model Driver {
 
   trips         Trip[]
   notifications Notification[]
+  expenses      Expense[]
 }
 
 model Vehicle {
@@ -240,6 +241,7 @@ model Vehicle {
 
   trips              Trip[]
   maintenanceRecords MaintenanceRecord[]
+  expenses           Expense[]
   assignedDriver     Driver?             @relation("DriverAssignedVehicle")
 }
 
@@ -437,11 +439,11 @@ model MaintenanceRecord {
 }
 
 model SavedWorkshop {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String   @unique
+  id            String  @id @default(uuid()) @db.Uuid
+  name          String  @unique
   contact_phone String?
-  address       String?  @db.Text
-  notes         String?  @db.Text
+  address       String? @db.Text
+  notes         String? @db.Text
 
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
@@ -492,6 +494,49 @@ model Invoice {
   version    Int       @default(1)
 }
 
+// General operating expenses — salaries, fuel, rent, and any other outgoing
+// cost that isn't a vehicle service order (MaintenanceRecord already covers
+// those). Optionally tied to a Driver (salary/advance) or Vehicle (fuel/toll)
+// so those costs can be filtered per driver or per vehicle, but neither link
+// is required — plenty of expenses (rent, office supplies) are neither.
+model Expense {
+  id     String  @id @default(uuid()) @db.Uuid
+  ref_id String? @unique
+
+  // Free text like RateCard.vehicle_type, not a Postgres enum: the category
+  // list evolves with the business and an unrecognised legacy value must
+  // never break a deploy.
+  category String
+  status   String @default("Paid")
+
+  driverId  String?  @db.Uuid
+  driver    Driver?  @relation(fields: [driverId], references: [id])
+  vehicleId String?  @db.Uuid
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  payee          String?
+  amount         Float
+  currency       String   @default("SAR")
+  expense_date   DateTime @db.Timestamptz
+  payment_method String?
+  description    String?  @db.Text
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  isActive   Boolean   @default(true)
+  version    Int       @default(1)
+
+  @@index([deletedAt])
+  @@index([category])
+  @@index([expense_date])
+  @@index([driverId])
+  @@index([vehicleId])
+}
+
 // -----------------------------------------
 // 7. PRICING & QUOTATIONS (Rate Cards)
 // -----------------------------------------
@@ -512,7 +557,7 @@ model RateCard {
   // Free text, not an enum — each customer's quotation names its own vehicle
   // tiers ("5 TON", "DYNA 3 TON", "13.5M-20TON"), so there is no shared list to
   // validate against. Null means the card applies regardless of vehicle type.
-  vehicle_type String?
+  vehicle_type  String?
   // Groups quotes that price the same lane differently depending on how the
   // job is booked — e.g. "Trip/Round Trip" vs "Monthly Round" vs "Daily Local"
   // vs "Surcharge" for flat fees that aren't a lane at all. Null is the plain
@@ -521,7 +566,7 @@ model RateCard {
   // Denormalised name of an optional connecting stop between origin and
   // destination (mirrors route_origin/route_destination, not a Location FK,
   // for the same reason those two are denormalised text).
-  via_location String?
+  via_location  String?
 
   originLocationId      String?   @db.Uuid
   originLocation        Location? @relation("RateCardOrigin", fields: [originLocationId], references: [id])
@@ -560,9 +605,9 @@ model RateCard {
 // lat/lng are the default map pin for the place; a trip stop still stores its
 // own exact coordinates, since "Riyadh" is a city and the dock is a point in it.
 model Location {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
-  slug String @unique
+  id      String  @id @default(uuid()) @db.Uuid
+  name    String
+  slug    String  @unique
   // Full postal address of the place, from the address search. The name is the
   // short label people pick from a dropdown ("Jeddah"); this is the verified
   // address behind it, so a stop defaulting to this place inherits something a
