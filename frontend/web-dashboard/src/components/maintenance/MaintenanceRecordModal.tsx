@@ -62,6 +62,7 @@ export default function MaintenanceRecordModal({
     remarks: '',
   });
 
+  const [costInput, setCostInput] = useState<string>('');
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -83,6 +84,7 @@ export default function MaintenanceRecordModal({
         cost: editingRecord.cost || 0,
         remarks: editingRecord.remarks || '',
       });
+      setCostInput(editingRecord.cost !== undefined && editingRecord.cost !== null ? String(editingRecord.cost) : '');
     } else {
       const targetVehicleId = initialVehicleId || (bulkVehicles.length > 0 ? bulkVehicles[0].id : (vehicles[0]?.id || ''));
       const foundVehicle = vehicles.find((v) => v.id === targetVehicleId) || bulkVehicles.find((v) => v.id === targetVehicleId);
@@ -100,6 +102,7 @@ export default function MaintenanceRecordModal({
         cost: 0,
         remarks: '',
       });
+      setCostInput('');
     }
   }, [open, editingRecord, initialVehicleId, bulkVehicles, vehicles]);
 
@@ -180,19 +183,23 @@ export default function MaintenanceRecordModal({
         
         {/* Crisp Header Bar */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 shrink-0">
-          <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] border border-orange-200/60 dark:border-orange-900/40">
+          <div className="flex items-center gap-3 pr-6">
+            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] border border-orange-200/60 dark:border-orange-900/40 shrink-0">
               <ClipboardList className="w-5 h-5" />
             </div>
-            <span>{modalTitle}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500 mt-1">
-            Fill out vehicle maintenance details below.
-          </DialogDescription>
+            <div>
+              <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                {modalTitle}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 mt-0.5">
+                Fill out vehicle maintenance details below.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         {/* Clean Form Body */}
-        <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-white dark:bg-slate-950">
+        <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-5 space-y-5 text-xs bg-white dark:bg-slate-950">
           
           {formError && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
@@ -220,9 +227,9 @@ export default function MaintenanceRecordModal({
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               {!isBulk && (
-                <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+                <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle Asset *</Label>
                   <Select
                     value={formData.vehicle_id}
@@ -313,7 +320,7 @@ export default function MaintenanceRecordModal({
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   {formData.status === 'Scheduled' ? 'Scheduled Date *' : 'Service Date *'}
@@ -346,7 +353,28 @@ export default function MaintenanceRecordModal({
                 />
               </div>
 
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Cost / Expense (SAR)</Label>
+                <div className="relative">
+                  <DollarSign className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={costInput}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCostInput(val);
+                      const parsed = parseFloat(val);
+                      setFormData(prev => ({ ...prev, cost: isNaN(parsed) ? 0 : parsed }));
+                    }}
+                    placeholder="0.00"
+                    className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Workshop / Service Center *</Label>
                 <WorkshopField
                   value={formData.workshop_name}
@@ -357,7 +385,7 @@ export default function MaintenanceRecordModal({
                 />
               </div>
 
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Workshop Contact Phone</Label>
                 <div className="relative">
                   <Phone className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -366,22 +394,6 @@ export default function MaintenanceRecordModal({
                     onChange={(e) => setFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
                     placeholder="+966 5x xxx xxxx"
                     className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Cost / Expense (SAR)</Label>
-                <div className="relative">
-                  <DollarSign className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.cost}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
-                    placeholder="0.00"
-                    className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold rounded-xl"
                   />
                 </div>
               </div>

@@ -164,7 +164,10 @@ export default function WorkshopField({
           size="sm"
           onClick={() => setIsAddDialogOpen(true)}
           title="Save a new workshop"
-          className="h-8.5 px-2.5 text-xs font-bold shrink-0 border-slate-200 dark:border-slate-800 text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/20"
+          className={cn(
+            'h-8.5 px-2.5 text-xs font-bold shrink-0 border-slate-200 dark:border-slate-800 text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/20',
+            className
+          )}
         >
           <Plus className="w-3.5 h-3.5 mr-1" />
           New
