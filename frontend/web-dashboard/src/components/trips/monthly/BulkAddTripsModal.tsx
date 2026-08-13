@@ -968,53 +968,6 @@ export default function BulkAddTripsModal({
                         </div>
                       </div>
 
-                      {/* Category Type Quick Selector Pills */}
-                      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
-                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                          Trip Route Pattern & Category Mode:
-                        </span>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => setContractRateCategory('Trip')}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                              !isRoundTripCategory(contractRateCategory)
-                                ? 'bg-white text-slate-900 border border-slate-300 shadow-2xs ring-2 ring-slate-100'
-                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                            }`}
-                          >
-                            <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                            One-Way Standard Trip
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setContractRateCategory('Round Trip')}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                              contractRateCategory === 'Round Trip'
-                                ? 'bg-indigo-600 text-white shadow-2xs ring-2 ring-indigo-200'
-                                : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                            }`}
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            🔁 Round Trip (4-Section Closed Loop)
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setContractRateCategory('Monthly (ROUND TRIP, 2 vehicles)')}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                              contractRateCategory.toLowerCase().includes('2 vehicles')
-                                ? 'bg-indigo-700 text-white shadow-2xs ring-2 ring-indigo-300'
-                                : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                            }`}
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                            🚛 Monthly Round Trip (2 Vehicles Shuttle)
-                          </button>
-                        </div>
-                      </div>
-
                       {/* Trip Slots Section */}
                       <div className="space-y-5">
                         <div className="flex items-center justify-between">
