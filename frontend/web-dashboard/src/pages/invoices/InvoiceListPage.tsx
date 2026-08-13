@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Download, RotateCw, Search, CheckCircle2, X, CalendarDays,
   ChevronDown, ChevronRight, Building2, FileText, Hash, StickyNote,
-  ExternalLink
+  ExternalLink, Clock
 } from 'lucide-react';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -188,7 +188,7 @@ function TripSubTable({
       </div>
 
       {/* Trips list */}
-      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
+      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto shadow-2xs">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
@@ -510,7 +510,7 @@ export default function InvoiceListPage() {
 
   return (
     <DashboardLayout active="Invoices" title="Company Billing Ledger">
-      <div className="px-4 sm:px-6 pb-6 h-full flex flex-col gap-5 max-w-[1400px] mx-auto w-full animate-fade-in">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col gap-5 max-w-[1400px] mx-auto animate-fade-in">
 
         {/* ── Top Bar ──────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
@@ -528,11 +528,70 @@ export default function InvoiceListPage() {
           </div>
         </div>
 
-        {/* ── KPI Cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
-          <KpiCard label="TOTAL COMPANIES" value={String(rows.length)} subtitle="With billing activity" variant="slate" />
-          <KpiCard label="PENDING INVOICING" value={String(completedCnt)} subtitle={`SAR ${fmt(pendingAmt)}`} variant={completedCnt > 0 ? 'amber' : 'slate'} />
-          <KpiCard label="INVOICED TRIPS" value={String(invoicedCnt)} subtitle={`SAR ${fmt(invoicedAmt)}`} variant="emerald" />
+        {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
+          <KpiCard
+            title="TOTAL COMPANIES"
+            value={
+              <span>
+                {rows.length}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Accounts</span>
+              </span>
+            }
+            variant="slate"
+            description={`${totalTrips} total ledger trips`}
+            icon={Building2}
+            isActive={!invoiceStatusFilter}
+            onClick={() => setInvoiceStatusFilter('')}
+            progressSegments={[
+              { label: `Invoiced (${invoicedCnt})`, value: invoicedCnt, color: 'bg-emerald-500' },
+              { label: `Pending (${completedCnt})`, value: completedCnt, color: 'bg-amber-500' },
+            ]}
+          />
+
+          <KpiCard
+            title="PENDING INVOICING"
+            value={
+              <span>
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {fmt(pendingAmt)}
+              </span>
+            }
+            variant={completedCnt > 0 ? 'amber' : 'slate'}
+            description={`${completedCnt} trips awaiting invoice`}
+            icon={Clock}
+            isActive={invoiceStatusFilter === 'NotInvoiced'}
+            onClick={() => setInvoiceStatusFilter(invoiceStatusFilter === 'NotInvoiced' ? '' : 'NotInvoiced')}
+          />
+
+          <KpiCard
+            title="INVOICED REVENUE"
+            value={
+              <span>
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {fmt(invoicedAmt)}
+              </span>
+            }
+            variant="emerald"
+            description={`${invoicedCnt} trips settled & invoiced`}
+            icon={CheckCircle2}
+            isActive={invoiceStatusFilter === 'Invoiced'}
+            onClick={() => setInvoiceStatusFilter(invoiceStatusFilter === 'Invoiced' ? '' : 'Invoiced')}
+          />
+
+          <KpiCard
+            title="TOTAL LEDGER VALUE"
+            value={
+              <span>
+                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
+                {fmt(pendingAmt + invoicedAmt)}
+              </span>
+            }
+            variant="brand"
+            description="Combined billing portfolio"
+            icon={FileText}
+            isActive={false}
+          />
         </div>
 
         {/* ── Filter Toolbar ─────────────────────────────────────────────── */}
@@ -567,8 +626,8 @@ export default function InvoiceListPage() {
         </div>
 
         {/* ── Company Ledger Table ──────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-auto">
-          <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-slate-400" />
               <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Company Billing Ledger</span>
@@ -576,7 +635,7 @@ export default function InvoiceListPage() {
             <span className="text-xs text-slate-400 font-mono">{rows.length} companies · {totalTrips} trips</span>
           </div>
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto shadow-sm">
             {isLoading ? (
               <div className="p-8 text-center">
                 <div className="inline-flex items-center gap-2 text-slate-400 text-sm">
