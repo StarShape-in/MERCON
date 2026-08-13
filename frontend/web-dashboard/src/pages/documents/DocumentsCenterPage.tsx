@@ -6,7 +6,7 @@ import {
   ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -14,11 +14,13 @@ import KpiCard from '@/components/ui/KpiCard';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
-import { documentService, type MerconDocument } from '@/services/documentService';
+import { documentService, type MerconDocument, type DocType } from '@/services/documentService';
 import { downloadCSV } from '@/utils/exportUtils';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
-import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil } from '@/lib/documents';
+import { tripService } from '@/services/tripService';
+import { customerService } from '@/services/customerService';
+import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText } from '@/lib/documents';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +59,7 @@ const DOC_TYPE_ICON: Record<string, React.ElementType> = {
   Waybill:             FileClock,
   Contract:            FileText,
   Invoice:             FileBarChart2,
+  Emergency:           ShieldAlert,
 };
 
 const REGULATORY_BODY: Record<string, string> = {
@@ -68,18 +71,8 @@ const REGULATORY_BODY: Record<string, string> = {
   Waybill:             'Saudi Land Transport Auth',
   Contract:            'Ministry of Commerce',
   Invoice:             'ZATCA Tax Authority',
+  Emergency:           'Civil Defense / Operations Center',
 };
-
-// ─── Expiry Status Helpers ───────────────────────────────────────────────────
-
-function expiryStatus(iso: string | null | undefined): 'expired' | 'critical' | 'warning' | 'valid' | 'none' {
-  const days = daysUntil(iso);
-  if (days === null) return 'none';
-  if (days <= 0) return 'expired';
-  if (days <= 7) return 'critical';
-  if (days <= 30) return 'warning';
-  return 'valid';
-}
 
 const EXPIRY_BADGE: Record<string, { label: string; className: string }> = {
   expired:  { label: 'Expired',      className: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/50' },
@@ -104,22 +97,47 @@ type EnrichedDocument = MerconDocument & {
 export default function DocumentsCenterPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initial params from URL
+  const initialFilter = (searchParams.get('filter') as any) || 'all';
+  const initialCategory = (searchParams.get('category') as any) || 'All';
+  const initialRadar = searchParams.get('radar') === 'open';
 
   // State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [activeCategory, setActiveCategory] = useState<'All' | DocCategory>('All');
-  const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>('all');
+  const [activeCategory, setActiveCategory] = useState<'All' | DocCategory>(
+    ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'].includes(initialCategory) ? initialCategory : 'All'
+  );
+  const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>(
+    ['all', 'expired', 'critical', 'warning', 'valid'].includes(initialFilter) ? initialFilter : 'all'
+  );
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isExpiryModalOpen, setIsExpiryModalOpen] = useState(false);
+  const [isExpiryModalOpen, setIsExpiryModalOpen] = useState(initialRadar);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Sync state with URL params when they change
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam && ['all', 'expired', 'critical', 'warning', 'valid'].includes(filterParam)) {
+      setExpiryFilter(filterParam as any);
+    }
+    const catParam = searchParams.get('category');
+    if (catParam && ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'].includes(catParam)) {
+      setActiveCategory(catParam as any);
+    }
+    if (searchParams.get('radar') === 'open') {
+      setIsExpiryModalOpen(true);
+    }
+  }, [searchParams]);
 
   // Reset page to 1 when filters or search change
   useEffect(() => {
@@ -138,6 +156,14 @@ export default function DocumentsCenterPage() {
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', 'lookup'],
     queryFn: async () => (await vehicleService.getAll()).data,
+  });
+  const { data: trips = [] } = useQuery({
+    queryKey: ['trips', 'lookup'],
+    queryFn: async () => (await tripService.getAll({ per_page: 100 })).data,
+  });
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers', 'lookup'],
+    queryFn: async () => (await customerService.getAll()).data,
   });
 
   const handleBulkDownload = async () => {
@@ -170,12 +196,18 @@ export default function DocumentsCenterPage() {
   const nameFor = useMemo(() => {
     const dMap = new Map(drivers.map((d) => [d.id, `${d.first_name} ${d.last_name}`.trim()]));
     const vMap = new Map(vehicles.map((v) => [v.id, v.plate_number || v.ref_id || '']));
+    const tMap = new Map(trips.map((t) => [t.id, t.ref_id || `Trip #${t.id.slice(0, 8)}`]));
+    const cMap = new Map(customers.map((c) => [c.id, c.name]));
+
     return (doc: MerconDocument): string => {
       if (doc.entity_type === 'Driver') return dMap.get(doc.entity_id) || 'Unknown Driver';
       if (doc.entity_type === 'Vehicle') return vMap.get(doc.entity_id) || 'Unknown Vehicle';
+      if (doc.entity_type === 'Trip') return tMap.get(doc.entity_id) || 'Trip Operations';
+      if (doc.entity_type === 'Customer') return cMap.get(doc.entity_id) || 'Customer Account';
+      if (doc.entity_type === 'MaintenanceRecord') return vMap.get(doc.entity_id) || 'Maintenance Service';
       return doc.entity_type;
     };
-  }, [drivers, vehicles]);
+  }, [drivers, vehicles, trips, customers]);
 
   // Grouped Folders by Category
   const foldersByCategory = useMemo(() => {
@@ -203,13 +235,17 @@ export default function DocumentsCenterPage() {
         ...d,
         entityName: nameFor(d),
         category: categoryForEntity(d.entity_type),
-        expStatus: expiryStatus(d.expiry_date),
+        expStatus: getExpiryStatus(d.expiry_date),
         daysLeft: daysUntil(d.expiry_date),
         issuer: REGULATORY_BODY[d.doc_type] || 'Saudi Authority',
       }))
       .filter((d) => {
         const matchesCat = activeCategory === 'All' || d.category === activeCategory;
-        const matchesExpiry = expiryFilter === 'all' || d.expStatus === expiryFilter;
+        const matchesExpiry = expiryFilter === 'all' 
+          ? true 
+          : expiryFilter === 'warning' 
+            ? (d.expStatus === 'warning' || d.expStatus === 'critical')
+            : d.expStatus === expiryFilter;
         const matchesTerm = matchesSearch(search, [
           docTypeLabel(d.doc_type),
           d.entityName,
@@ -220,20 +256,43 @@ export default function DocumentsCenterPage() {
       });
   }, [docs, nameFor, activeCategory, expiryFilter, search]);
 
-  // Calculated Vault Telematics
+  // ── Calculated Real Vault Telematics ──────────────────────────────────────────
   const totalDocsCount = docs.length;
-  const expiringDocs = docs.filter((d) => {
+
+  // Overdue / expired: <= 0 days
+  const expiredDocs = useMemo(() => docs.filter((d) => {
     const days = daysUntil(d.expiry_date);
-    return days !== null && days <= 30;
-  });
-  const expiringCount = expiringDocs.length;
-  const expiredCount = docs.filter((d) => (daysUntil(d.expiry_date) ?? 1) <= 0).length;
-  const criticalCount = expiringDocs.filter((d) => {
+    return days !== null && days <= 0;
+  }), [docs]);
+  const expiredCount = expiredDocs.length;
+
+  // Critical: 1 to 7 days
+  const criticalDocs = useMemo(() => docs.filter((d) => {
     const days = daysUntil(d.expiry_date);
     return days !== null && days > 0 && days <= 7;
-  }).length;
-  const safeCount = Math.max(0, totalDocsCount - expiringCount);
-  const compliancePct = totalDocsCount > 0 ? Math.round((safeCount / totalDocsCount) * 100) : 100;
+  }), [docs]);
+  const criticalCount = criticalDocs.length;
+
+  // Warning / Due Soon: 8 to 30 days
+  const warningDocs = useMemo(() => docs.filter((d) => {
+    const days = daysUntil(d.expiry_date);
+    return days !== null && days > 7 && days <= 30;
+  }), [docs]);
+  const warningCount = warningDocs.length;
+
+  // Total expiring soon within 30 days (Critical + Warning, strictly > 0 and <= 30)
+  const expiringSoonCount = criticalCount + warningCount;
+
+  // Compliant & Valid: > 30 days or no expiry date (e.g. proof of delivery, customs, company records)
+  const validDocs = useMemo(() => docs.filter((d) => {
+    const days = daysUntil(d.expiry_date);
+    return days === null || days > 30;
+  }), [docs]);
+  const safeCount = validDocs.length;
+
+  // Total non-expired count
+  const nonExpiredCount = Math.max(0, totalDocsCount - expiredCount);
+  const compliancePct = totalDocsCount > 0 ? Math.round((nonExpiredCount / totalDocsCount) * 100) : 100;
 
   // Paginated Subset
   const totalPages = Math.ceil(filteredDocs.length / pageSize) || 1;
@@ -310,7 +369,11 @@ export default function DocumentsCenterPage() {
               onClick={() => setIsExpiryModalOpen(true)}
             >
               <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
-              Expiry Radar {expiringCount > 0 && <span className="ml-0.5 bg-rose-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">{expiringCount}</span>}
+              Expiry Radar {(expiringSoonCount + expiredCount) > 0 && (
+                <span className="ml-0.5 bg-rose-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">
+                  {expiringSoonCount + expiredCount}
+                </span>
+              )}
             </Button>
 
             {/* Upload Button */}
@@ -345,8 +408,18 @@ export default function DocumentsCenterPage() {
             icon={<FolderOpen className="w-4 h-4 text-[#E8450F]" />}
             trend="neutral"
             trendValue={`${totalDocsCount} active records`}
-            isActive={expiryFilter === 'all'}
-            onClick={() => setExpiryFilter('all')}
+            description="Compliance repository"
+            progressSegments={[
+              { label: 'Drivers', value: foldersByCategory.Drivers.count, color: '#E8450F' },
+              { label: 'Vehicles', value: foldersByCategory.Vehicles.count, color: '#2563EB' },
+              { label: 'Operations', value: foldersByCategory.Operations.count, color: '#7C3AED' },
+              { label: 'Company', value: foldersByCategory.Company.count, color: '#16A34A' },
+            ]}
+            isActive={expiryFilter === 'all' && activeCategory === 'All'}
+            onClick={() => {
+              setExpiryFilter('all');
+              setActiveCategory('All');
+            }}
           />
 
           <KpiCard
@@ -354,18 +427,30 @@ export default function DocumentsCenterPage() {
             value={safeCount}
             variant="emerald"
             icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-            completionGauge={{ percentage: compliancePct, label: 'Vault Compliance' }}
+            trend={expiredCount === 0 ? 'up' : 'neutral'}
+            trendValue={`${compliancePct}% compliant`}
+            description="No immediate action needed"
+            completionGauge={{ 
+              percentage: compliancePct, 
+              label: 'Vault Compliance',
+              subtext: `${nonExpiredCount} Compliant of ${totalDocsCount}`
+            }}
             isActive={expiryFilter === 'valid'}
             onClick={() => setExpiryFilter(expiryFilter === 'valid' ? 'all' : 'valid')}
           />
 
           <KpiCard
             title="EXPIRING SOON (<30D)"
-            value={expiringCount}
+            value={expiringSoonCount}
             variant="amber"
             icon={<Clock className="w-4 h-4 text-amber-600" />}
-            trend={expiringCount > 0 ? 'down' : 'up'}
-            trendValue={expiringCount > 0 ? `${expiringCount} files due renewal` : 'All docs valid'}
+            trend={expiringSoonCount > 0 ? 'down' : 'up'}
+            trendValue={expiringSoonCount > 0 ? `${expiringSoonCount} files due renewal` : 'All docs current'}
+            description="Renewal window"
+            progressSegments={[
+              { label: `${criticalCount} Critical (<7d)`, value: criticalCount, color: 'bg-rose-500' },
+              { label: `${warningCount} Warning (<30d)`, value: warningCount, color: 'bg-amber-500' },
+            ]}
             isActive={expiryFilter === 'warning' || expiryFilter === 'critical'}
             onClick={() => setExpiryFilter(expiryFilter === 'warning' || expiryFilter === 'critical' ? 'all' : 'warning')}
           />
@@ -377,10 +462,15 @@ export default function DocumentsCenterPage() {
             icon={<AlertTriangle className="w-4 h-4 text-rose-600" />}
             trend={expiredCount > 0 ? 'down' : 'neutral'}
             trendValue={expiredCount > 0 ? `${expiredCount} immediate action` : '0 expired files'}
+            description="Lapsed legal records"
+            progressSegments={[
+              { label: 'Expired', value: expiredCount > 0 ? 100 : 0, color: 'bg-rose-600' },
+            ]}
             isActive={expiryFilter === 'expired'}
             onClick={() => setExpiryFilter(expiryFilter === 'expired' ? 'all' : 'expired')}
           />
         </div>
+
 
         {/* ── Category Tabs & Toolbar Control Bar ──────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
