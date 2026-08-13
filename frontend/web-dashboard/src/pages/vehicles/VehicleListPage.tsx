@@ -289,15 +289,6 @@ export default function VehicleListPage() {
   const activeCount = availableCount + onTripCount;
   const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
 
-  const getTypeStyle = (type: string) => {
-    const t = (type || '').toLowerCase();
-    if (t.includes('tractor') || t.includes('heavy')) return 'bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800';
-    if (t.includes('reefer')) return 'bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-800';
-    if (t.includes('flatbed')) return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-    if (t.includes('tanker')) return 'bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800';
-    return 'bg-slate-50 text-slate-600 border-slate-200';
-  };
-
   const handleExportExcel = async (rowsToExport: Vehicle[]) => {
     const headers = [
       'Vehicle ID',
@@ -360,28 +351,13 @@ export default function VehicleListPage() {
           <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
             <Truck size={15} />
           </div>
-          <div>
-            <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-              <span>{row.plate_number}</span>
-              <Badge variant="outline" className="text-[9px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                KSA
-              </Badge>
-            </div>
-            {row.asset_type && (
-              <span className="text-[10px] text-slate-500 font-medium">
-                {row.asset_type}
-              </span>
-            )}
+          <div className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+            <span>{row.plate_number}</span>
+            <Badge variant="outline" className="text-[9px] font-mono font-bold px-1.5 py-0 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+              KSA
+            </Badge>
           </div>
         </div>
-      ),
-    },
-    {
-      header: 'Asset Type',
-      accessor: (row: Vehicle) => (
-        <Badge variant="outline" className={cn("text-[10px] font-bold px-2 py-0.5", getTypeStyle(row.asset_type))}>
-          {row.asset_type || 'Standard'}
-        </Badge>
       ),
     },
     {
