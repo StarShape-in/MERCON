@@ -49,8 +49,8 @@ router.post('/:id/pickup/verify', pickupVerify);
 router.post('/:id/delivery/verify', deliveryVerify);
 
 // Invoicing Ledger Actions — mark/unmark a completed trip as invoiced
-router.post('/:id/mark-invoiced', markTripInvoiced);
-router.post('/:id/unmark-invoiced', unmarkTripInvoiced);
+router.post('/:id/mark-invoiced', (req, res) => markTripInvoiced(req, res));
+router.post('/:id/unmark-invoiced', (req, res) => unmarkTripInvoiced(req, res));
 
 export default router;
 

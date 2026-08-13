@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../db';
 import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { InvoiceStatus, TripStatus } from '@prisma/client';
@@ -487,7 +487,7 @@ export const getCustomerBillingLedger = async (req: Request, res: Response) => {
       where: whereClause,
       orderBy: [{ planned_start: 'desc' }, { createdAt: 'desc' }],
       include: {
-        customer: { select: { id: true, name: true, contact_phone: true, contact_email: true } },
+        customer: { select: { id: true, name: true, contact_phone: true } },
         stops: {
           where: { deletedAt: null },
           orderBy: { stop_sequence: 'asc' },

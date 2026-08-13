@@ -16,7 +16,8 @@ export const io = new Server(httpServer, {
 });
 
 const port = env.PORT;
-export const prisma = new PrismaClient();
+import { prisma } from './db';
+export { prisma };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
