@@ -68,7 +68,7 @@ function CoverageBadge({ pct }: { pct: number }) {
   );
 }
 
-// ── Expandable trip sub-table with Month Filter ────────────────────────────────
+// ── Expandable trip sub-table with Date Range Preset Filter ────────────────────
 function TripSubTable({
   trips,
   onMark,
@@ -80,32 +80,59 @@ function TripSubTable({
   onUnmark: (trip: BillingLedgerTrip) => void;
   navigate: (path: string) => void;
 }) {
-  const [selectedMonth, setSelectedMonth] = useState<string>('ALL');
+  const [datePreset, setDatePreset] = useState<string>('ALL');
+  const [customFrom, setCustomFrom] = useState<string>('');
+  const [customTo, setCustomTo] = useState<string>('');
 
-  // Extract unique Year-Month options from trips
-  const availableMonths = useMemo(() => {
-    const monthSet = new Map<string, string>(); // key: '2026-08', value: 'August 2026'
-    trips.forEach(t => {
-      const dateObj = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
-      if (!isNaN(dateObj.getTime())) {
-        const key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-        const label = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        monthSet.set(key, label);
-      }
-    });
-    return Array.from(monthSet.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [trips]);
+  // Handle Preset Selection inside company table
+  const handlePresetChange = (preset: string) => {
+    setDatePreset(preset);
+    if (preset !== 'CUSTOM') {
+      setCustomFrom('');
+      setCustomTo('');
+    }
+  };
 
-  // Filter trips by selected month
+  // Filter trips by Date Preset / Custom Range
   const filteredTrips = useMemo(() => {
-    if (selectedMonth === 'ALL') return trips;
+    if (datePreset === 'ALL' && !customFrom && !customTo) return trips;
+
+    const now = new Date();
+    let fromDate: Date | null = null;
+    let toDate: Date | null = null;
+
+    if (datePreset === 'TODAY') {
+      fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    } else if (datePreset === 'THIS_WEEK') {
+      const dayOfWeek = now.getDay();
+      fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0);
+      toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    } else if (datePreset === 'THIS_MONTH') {
+      fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    } else if (datePreset === 'LAST_MONTH') {
+      fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+      toDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    } else if (datePreset === 'CUSTOM' || customFrom || customTo) {
+      if (customFrom) {
+        fromDate = new Date(customFrom);
+        fromDate.setHours(0, 0, 0, 0);
+      }
+      if (customTo) {
+        toDate = new Date(customTo);
+        toDate.setHours(23, 59, 59, 999);
+      }
+    }
+
     return trips.filter(t => {
-      const dateObj = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
-      if (isNaN(dateObj.getTime())) return false;
-      const key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-      return key === selectedMonth;
+      const d = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
+      if (isNaN(d.getTime())) return false;
+      if (fromDate && d < fromDate) return false;
+      if (toDate && d > toDate) return false;
+      return true;
     });
-  }, [trips, selectedMonth]);
+  }, [trips, datePreset, customFrom, customTo]);
 
   // Sub-totals for filtered trips
   const subTotalAmount = useMemo(() => {
@@ -114,24 +141,42 @@ function TripSubTable({
 
   return (
     <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-3 space-y-2.5">
-      {/* Sub-table control bar: month filter + summary */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 py-1">
-        <div className="flex items-center gap-2">
+      {/* Sub-table control bar: Date Range Preset + custom inputs + summary */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-1 py-1">
+        <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Filter by Month:</span>
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="h-7 text-xs w-44 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium">
-              <SelectValue placeholder="Select Month" />
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Period Filter:</span>
+          <Select value={datePreset} onValueChange={handlePresetChange}>
+            <SelectTrigger className="h-7 text-xs w-36 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium">
+              <SelectValue placeholder="Select Period" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Months ({trips.length} trips)</SelectItem>
-              {availableMonths.map(([val, label]: [string, string]) => (
-                <SelectItem key={val} value={val}>
-                  {label}
-                </SelectItem>
-              ))}
+              <SelectItem value="ALL">All Time ({trips.length})</SelectItem>
+              <SelectItem value="TODAY">Today</SelectItem>
+              <SelectItem value="THIS_WEEK">This Week</SelectItem>
+              <SelectItem value="THIS_MONTH">This Month</SelectItem>
+              <SelectItem value="LAST_MONTH">Last Month</SelectItem>
+              <SelectItem value="CUSTOM">Custom Range</SelectItem>
             </SelectContent>
           </Select>
+
+          {(datePreset === 'CUSTOM' || customFrom || customTo) && (
+            <div className="flex items-center gap-1.5 animate-fade-in">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={e => { setCustomFrom(e.target.value); setDatePreset('CUSTOM'); }}
+                className="h-7 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-2 text-slate-700 dark:text-slate-200"
+              />
+              <span className="text-xs text-slate-400">—</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={e => { setCustomTo(e.target.value); setDatePreset('CUSTOM'); }}
+                className="h-7 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-2 text-slate-700 dark:text-slate-200"
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 text-xs font-mono">
