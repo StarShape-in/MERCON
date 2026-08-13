@@ -69,7 +69,7 @@ async function main() {
 
   await backfillMaintenanceRefIds();
   await releaseVehiclesStuckInMaintenance();
-  await seedDefaultWorkshopsAndServices();
+  await seedDefaultServices();
 
   console.log('✅ Default accounts seeded successfully!');
 }
