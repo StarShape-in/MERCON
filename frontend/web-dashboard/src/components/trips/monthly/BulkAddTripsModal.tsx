@@ -35,7 +35,8 @@ import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { monthLabel, shiftMonth } from './monthlyBoardUtils';
 import { parseSheet, TRIP_COLUMNS } from '@/utils/importUtils';
 
-const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => cat !== 'Surcharge');
+const REMOVED_MODAL_CATEGORIES = ['Surcharge', 'Monthly Round', 'Extra Trip/Round Trip', 'Regular Trip'];
+const MODAL_RATE_CATEGORIES = RATE_CATEGORIES.filter((cat) => !REMOVED_MODAL_CATEGORIES.includes(cat));
 
 interface BulkAddTripsModalProps {
   isOpen: boolean;
