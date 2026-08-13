@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
-import { InvoiceStatus } from '@prisma/client';
+import { InvoiceStatus, TripStatus } from '@prisma/client';
 
 const INVOICE_SEARCH_FIELDS = [
   'ref_id',
@@ -53,7 +53,7 @@ export const getInvoices = async (req: Request, res: Response) => {
 
 export const createInvoice = async (req: Request, res: Response) => {
   try {
-    const { trip_id, customer_id, subtotal, total_amount, due_date } = req.body; // validated & coerced by createInvoiceBody
+    const { trip_id, customer_id, subtotal, total_amount, due_date } = req.body;
 
     const ref_id = await generateRefId('INV', () =>
       prisma.invoice.findMany({ select: { ref_id: true } }));
@@ -81,7 +81,16 @@ export const getInvoiceById = async (req: Request, res: Response) => {
   try {
     const invoice = await prisma.invoice.findUnique({
       where: { id: req.params.id as string, deletedAt: null },
-      include: { customer: true, trip: true }
+      include: {
+        customer: true,
+        trip: {
+          include: {
+            driver: { select: { id: true, first_name: true, last_name: true } },
+            vehicle: { select: { id: true, plate_number: true, asset_type: true } },
+            stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } },
+          }
+        }
+      }
     });
     if (!invoice) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Invoice not found' } });
@@ -118,7 +127,6 @@ export const updateInvoiceStatus = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to update invoice status' } });
   }
 };
-
 
 export const bulkDeleteInvoices = async (req: Request, res: Response) => {
   try {
@@ -162,5 +170,258 @@ export const bulkUpdateInvoiceStatus = async (req: Request, res: Response) => {
     res.json({ success: true, data: { message: `Successfully updated ${ids.length} invoices` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk update invoices` } });
+  }
+};
+
+/**
+ * Mark a completed trip as invoiced.
+ *
+ * This is the ONLY place an Invoice record is created in the new workflow.
+ * The operator calls this endpoint after they have processed the invoice
+ * externally (in their accounting/ZATCA system). MERCON stores the external
+ * reference for tracking purposes only.
+ *
+ * POST /trips/:id/mark-invoiced
+ * Body: { zatca_ref?: string; invoicing_note?: string }
+ */
+export const markTripInvoiced = async (req: Request, res: Response) => {
+  try {
+    const tripId = req.params.id as string;
+    const userId = (req as any).user?.id;
+    const { zatca_ref, invoicing_note } = req.body;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({
+        where: { id: tripId, deletedAt: null },
+        include: { customer: true }
+      });
+
+      if (!trip) throw Object.assign(new Error('NOT_FOUND'), { status: 404 });
+      if (trip.status !== TripStatus.Completed) throw Object.assign(new Error('TRIP_NOT_COMPLETED'), { status: 409 });
+
+      // Duplicate protection: one active invoice per trip
+      const existing = await tx.invoice.findFirst({
+        where: { tripId: trip.id, deletedAt: null }
+      });
+      if (existing) throw Object.assign(new Error('ALREADY_INVOICED'), { status: 409 });
+
+      const baseBilling = trip.billing_amount ?? trip.trip_charges ?? 0;
+      const totalAmount =
+        baseBilling +
+        (trip.waiting_labor_charges ?? 0) +
+        (trip.additional_stop_charges ?? 0);
+
+      const invoiceRefId = await generateRefId('INV', () =>
+        tx.invoice.findMany({ select: { ref_id: true } })
+      );
+
+      const invoice = await tx.invoice.create({
+        data: {
+          ref_id: invoiceRefId,
+          tripId: trip.id,
+          customerId: trip.customerId,
+          // Paid: the real invoice has already been processed externally by the time the operator marks it here
+          status: InvoiceStatus.Paid,
+          currency: 'SAR',
+          subtotal: baseBilling,
+          total_amount: totalAmount,
+          due_date: new Date(),
+          zatca_ref: zatca_ref ? String(zatca_ref).trim() || null : null,
+          invoicing_note: invoicing_note ? String(invoicing_note).trim() || null : null,
+          created_by: userId ?? undefined,
+        }
+      });
+
+      const updatedTrip = await tx.trip.update({
+        where: { id: trip.id },
+        data: { status: TripStatus.Invoiced, updated_by: userId ?? undefined },
+        include: {
+          customer: true,
+          driver: { select: { id: true, first_name: true, last_name: true } },
+          vehicle: { select: { id: true, plate_number: true } },
+          stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } },
+          invoices: { where: { deletedAt: null } },
+        }
+      });
+
+      return { trip: updatedTrip, invoice };
+    });
+
+    res.json({ success: true, data: result });
+  } catch (err: any) {
+    if (err.message === 'NOT_FOUND') return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    if (err.message === 'TRIP_NOT_COMPLETED') return res.status(409).json({ success: false, error: { code: 'TRIP_NOT_COMPLETED', message: 'Only completed trips can be marked as invoiced' } });
+    if (err.message === 'ALREADY_INVOICED') return res.status(409).json({ success: false, error: { code: 'ALREADY_INVOICED', message: 'This trip already has an invoice record' } });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to mark trip as invoiced' } });
+  }
+};
+
+/**
+ * Unmark a trip as invoiced — reverses markTripInvoiced.
+ * Soft-deletes the Invoice record and resets the trip to Completed.
+ *
+ * POST /trips/:id/unmark-invoiced
+ */
+export const unmarkTripInvoiced = async (req: Request, res: Response) => {
+  try {
+    const tripId = req.params.id as string;
+    const userId = (req as any).user?.id;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.findUnique({ where: { id: tripId, deletedAt: null } });
+      if (!trip) throw Object.assign(new Error('NOT_FOUND'), { status: 404 });
+      if (trip.status !== TripStatus.Invoiced) throw Object.assign(new Error('TRIP_NOT_INVOICED'), { status: 409 });
+
+      const existingInvoice = await tx.invoice.findFirst({ where: { tripId: trip.id, deletedAt: null } });
+      if (existingInvoice) {
+        await tx.invoice.update({
+          where: { id: existingInvoice.id },
+          data: { deletedAt: new Date(), isActive: false, deleted_by: userId ?? undefined }
+        });
+      }
+
+      return tx.trip.update({
+        where: { id: trip.id },
+        data: { status: TripStatus.Completed, updated_by: userId ?? undefined }
+      });
+    });
+
+    res.json({ success: true, data: result });
+  } catch (err: any) {
+    if (err.message === 'NOT_FOUND') return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    if (err.message === 'TRIP_NOT_INVOICED') return res.status(409).json({ success: false, error: { code: 'TRIP_NOT_INVOICED', message: 'This trip is not currently in Invoiced state' } });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to unmark trip invoiced status' } });
+  }
+};
+
+/**
+ * GET /invoices/billing-ledger
+ * Returns trips in Completed or Invoiced state for the invoicing ledger.
+ * Supports filtering by customer, date range, invoice_status, and search.
+ */
+export const getBillingLedger = async (req: Request, res: Response) => {
+  try {
+    const {
+      customer_id,
+      date_from,
+      date_to,
+      invoice_status,  // 'NotInvoiced' | 'Invoiced' | undefined (all)
+      search,
+      page = '1',
+      per_page = '20',
+    } = req.query;
+
+    const pageNumber = parseInt(page as string);
+    const limit = parseInt(per_page as string);
+    const skip = (pageNumber - 1) * limit;
+
+    let statusFilter: TripStatus[];
+    if (invoice_status === 'NotInvoiced') {
+      statusFilter = [TripStatus.Completed];
+    } else if (invoice_status === 'Invoiced') {
+      statusFilter = [TripStatus.Invoiced];
+    } else {
+      statusFilter = [TripStatus.Completed, TripStatus.Invoiced];
+    }
+
+    const andConditions: any[] = [];
+
+    if (date_from) {
+      const from = new Date(date_from as string);
+      from.setHours(0, 0, 0, 0);
+      andConditions.push({
+        OR: [
+          { planned_start: { gte: from } },
+          { AND: [{ planned_start: null }, { createdAt: { gte: from } }] }
+        ]
+      });
+    }
+    if (date_to) {
+      const to = new Date(date_to as string);
+      to.setHours(23, 59, 59, 999);
+      andConditions.push({
+        OR: [
+          { planned_start: { lte: to } },
+          { AND: [{ planned_start: null }, { createdAt: { lte: to } }] }
+        ]
+      });
+    }
+    if (search && String(search).trim()) {
+      const q = String(search).trim();
+      andConditions.push({
+        OR: [
+          { ref_id: { contains: q, mode: 'insensitive' } },
+          { customer: { name: { contains: q, mode: 'insensitive' } } },
+          { stops: { some: { location_name: { contains: q, mode: 'insensitive' } } } },
+        ]
+      });
+    }
+
+    const whereClause: any = {
+      deletedAt: null,
+      status: { in: statusFilter },
+      ...(customer_id ? { customerId: customer_id as string } : {}),
+      ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+    };
+
+    const [trips, total, allCounts] = await Promise.all([
+      prisma.trip.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy: [{ planned_start: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          customer: { select: { id: true, name: true, contact_phone: true } },
+          driver: { select: { id: true, first_name: true, last_name: true, ref_id: true } },
+          vehicle: { select: { id: true, plate_number: true, asset_type: true } },
+          stops: {
+            where: { deletedAt: null },
+            orderBy: { stop_sequence: 'asc' },
+            select: {
+              stop_sequence: true, stop_type: true, location_name: true,
+              location: { select: { id: true, name: true } }
+            }
+          },
+          invoices: {
+            where: { deletedAt: null },
+            select: { id: true, ref_id: true, status: true, total_amount: true, zatca_ref: true, invoicing_note: true, createdAt: true }
+          }
+        }
+      }),
+      prisma.trip.count({ where: whereClause }),
+      // Summary counts always over the full customer-filtered set (ignoring date/search/status filters)
+      prisma.trip.groupBy({
+        by: ['status'],
+        where: {
+          deletedAt: null,
+          status: { in: [TripStatus.Completed, TripStatus.Invoiced] },
+          ...(customer_id ? { customerId: customer_id as string } : {}),
+        },
+        _count: true,
+      }),
+    ]);
+
+    const completedCount = allCounts.find(r => r.status === TripStatus.Completed)?._count ?? 0;
+    const invoicedCount = allCounts.find(r => r.status === TripStatus.Invoiced)?._count ?? 0;
+    const totalTrips = completedCount + invoicedCount;
+
+    res.json({
+      success: true,
+      data: trips,
+      meta: {
+        page: pageNumber,
+        per_page: limit,
+        total,
+        total_pages: Math.ceil(total / limit),
+        summary: {
+          total_trips: totalTrips,
+          completed: completedCount,
+          invoiced: invoicedCount,
+          coverage_pct: totalTrips > 0 ? Math.round((invoicedCount / totalTrips) * 10000) / 100 : 100,
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to fetch billing ledger' } });
   }
 };

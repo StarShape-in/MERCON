@@ -812,15 +812,14 @@ export default function VehicleListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Vehicles</span>
               </span>
             }
-            variant="brand"
+            variant="slate"
             trend="up"
             trendValue={`${activePct}% Active`}
             description="Total assets in database"
             icon={FleetTruck}
-            isActive={selectedStatus === 'All'}
             onClick={() => { setSelectedStatus('All'); setViewMode('map'); setCurrentPage(1); }}
             customFooter={
-              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFF8F6] dark:bg-[#E8450F]/10 border-t border-[#E8450F]/10">
+              <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-50/70 dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">
                 <style>{`
                   @keyframes routeDashBrand {
                     to {

@@ -6,17 +6,16 @@ import {
   Wrench, Download, Plus, RotateCw, Filter, Search,
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
-  Building2, Gauge, Layers, ChevronDown, Eye, Tag,
+  Building2, Gauge, Layers, ChevronDown, Tag, MoreVertical,
   ChevronsUpDown, ArrowUp, LayoutGrid, List, Phone, Database
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
 import MaintenanceRecordModal from '@/components/maintenance/MaintenanceRecordModal';
 import ManageWorkshopsModal from '@/components/maintenance/ManageWorkshopsModal';
-import ManageServiceItemsModal from '@/components/maintenance/ManageServiceItemsModal';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
-import { MaintenanceWrench, CheckBadge, MoneyBills, CalendarAlert } from '@/components/ui/kpi-icons';
+import { MaintenanceWrench, CheckBadge, MoneyBills } from '@/components/ui/kpi-icons';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -66,7 +65,6 @@ export default function MaintenanceListPage() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isManageWorkshopsOpen, setIsManageWorkshopsOpen] = useState(false);
-  const [isManageServicesOpen, setIsManageServicesOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<MaintenanceRecord | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
@@ -158,6 +156,37 @@ export default function MaintenanceListPage() {
       Remarks: r.remarks || '',
     }));
     exportToCSV(exportData, `vehicle_maintenance_report_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const handleShareWhatsApp = (r: MaintenanceRecord) => {
+    const vAny = r.vehicle as any;
+    const vehicleInfo = r.vehicle ? `${r.vehicle.plate_number}${vAny?.make ? ` (${vAny.make} ${vAny.model || ''})` : ''}` : 'N/A';
+    const startDate = r.start_date ? new Date(r.start_date).toLocaleDateString() : 'N/A';
+    const endDate = r.end_date ? new Date(r.end_date).toLocaleDateString() : '—';
+    const costText = `SAR ${(r.cost || 0).toLocaleString()}`;
+    const details = r.work_done || r.remarks || 'Standard Maintenance';
+
+    const text = [
+      `🛠️ *MERCON Logistics - Maintenance Details*`,
+      ``,
+      `*Ref ID:* ${r.ref_id || r.id}`,
+      `🚛 *Vehicle:* ${vehicleInfo}`,
+      `🔧 *Type:* ${r.maintenance_type}`,
+      `📊 *Status:* ${r.status}`,
+      `💰 *Cost:* ${costText}`,
+      `🏭 *Workshop:* ${r.workshop_name}${r.workshop_contact ? ` (${r.workshop_contact})` : ''}`,
+      `📅 *Start Date:* ${startDate}`,
+      `📅 *End Date:* ${endDate}`,
+      r.invoice_number ? `🧾 *Invoice #:* ${r.invoice_number}` : null,
+      `📝 *Work Done:* ${details}`,
+    ].filter(Boolean).join('\n');
+
+    const cleanPhone = r.workshop_contact?.replace(/[^0-9]/g, '');
+    const waUrl = cleanPhone && cleanPhone.length >= 8
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
   const getStatusBadge = (status: string) => {
@@ -348,16 +377,6 @@ export default function MaintenanceListPage() {
             </Button>
 
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsManageServicesOpen(true)}
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300"
-            >
-              <Tag className="h-3.5 w-3.5 text-indigo-500" />
-              Manage Service Items
-            </Button>
-
-            <Button
               size="sm"
               onClick={handleOpenCreateModal}
               className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
@@ -379,7 +398,7 @@ export default function MaintenanceListPage() {
         </div>
 
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 shrink-0">
           
           <KpiCard
             title="TOTAL MAINTENANCE EXPENSE"
@@ -389,14 +408,13 @@ export default function MaintenanceListPage() {
                 {kpis.total_cost.toLocaleString()}
               </span>
             }
-            variant="brand"
+            variant="slate"
             description={`${totalMaintenanceCount || records.length} total service records`}
             icon={MoneyBills}
             progressSegments={[
-              { label: `Active (${kpis.active_count})`, value: kpis.active_count > 0 ? 50 : 0, color: 'bg-[#E8450F]' },
+              { label: `Active (${kpis.active_count})`, value: kpis.active_count > 0 ? 50 : 0, color: 'bg-amber-500' },
               { label: `Completed (${kpis.completed_count})`, value: kpis.completed_count > 0 ? 50 : 100, color: 'bg-emerald-500' },
             ]}
-            isActive={statusFilter === 'all'}
             onClick={() => {
               setStatusFilter('all');
               setPage(1);
@@ -424,27 +442,6 @@ export default function MaintenanceListPage() {
             isActive={statusFilter === 'In_Progress'}
             onClick={() => {
               setStatusFilter(statusFilter === 'In_Progress' ? 'all' : 'In_Progress');
-              setPage(1);
-            }}
-          />
-
-          <KpiCard
-            title="RENEWALS & SCHEDULED"
-            value={
-              <span>
-                {kpis.scheduled_count}
-                <span className="text-[16px] font-semibold ml-1.5 opacity-85">Scheduled</span>
-              </span>
-            }
-            variant="purple"
-            trend="neutral"
-            trendValue="Upcoming"
-            description={`Renewal SAR ${kpis.renewal_cost.toLocaleString()}`}
-            icon={CalendarAlert}
-            chartData={[2, 3, 5, 4, kpis.scheduled_count || 6]}
-            isActive={statusFilter === 'Scheduled'}
-            onClick={() => {
-              setStatusFilter(statusFilter === 'Scheduled' ? 'all' : 'Scheduled');
               setPage(1);
             }}
           />
@@ -579,26 +576,39 @@ export default function MaintenanceListPage() {
                       accessor: (r: MaintenanceRecord) => (
                         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={() => navigate(`/maintenance/${r.id}`)}
-                            title="View Details"
-                            className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            onClick={() => handleShareWhatsApp(r)}
+                            title="Share to WhatsApp"
+                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
                           >
-                            <Eye className="h-3.5 w-3.5" />
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
+                            </svg>
                           </button>
-                          <button
-                            onClick={() => handleOpenEditModal(r)}
-                            title="Edit Log"
-                            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setRecordToDelete(r)}
-                            title="Delete Record"
-                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                title="More actions"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40 rounded-xl p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                              <DropdownMenuItem
+                                onClick={() => handleOpenEditModal(r)}
+                                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 mr-2 text-amber-600 dark:text-amber-400" /> Edit Record
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setRecordToDelete(r)}
+                                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-600 dark:text-rose-400" /> Delete Record
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       ),
                     },
@@ -703,13 +713,40 @@ export default function MaintenanceListPage() {
                       <p className="line-clamp-2"><strong>Work Done:</strong> {r.work_done || r.remarks || 'N/A'}</p>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <Button size="sm" variant="outline" onClick={() => handleOpenEditModal(r)} className="h-7 text-xs">
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setRecordToDelete(r)} className="h-7 text-xs text-rose-600">
-                        Delete
-                      </Button>
+                    <div className="flex items-center justify-end gap-1 pt-2 border-t border-slate-200/60 dark:border-slate-700/60" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleShareWhatsApp(r)}
+                        title="Share to WhatsApp"
+                        className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.793 1.451 5.48.002 9.938-4.453 9.942-9.94.002-2.659-1.031-5.158-2.908-7.037C16.597 1.749 14.103.719 11.45.719 5.968.719 1.513 5.174 1.509 10.662c-.001 1.761.472 3.479 1.371 5.011L1.872 21.05l5.52-1.446c1.502.82 3.18 1.25 4.887 1.25h.008z" />
+                        </svg>
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            title="More actions"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40 rounded-xl p-1.5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                          <DropdownMenuItem
+                            onClick={() => handleOpenEditModal(r)}
+                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-2 text-amber-600 dark:text-amber-400" /> Edit Record
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setRecordToDelete(r)}
+                            className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-2 text-rose-600 dark:text-rose-400" /> Delete Record
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </Card>
                 ))}
@@ -777,11 +814,6 @@ export default function MaintenanceListPage() {
       <ManageWorkshopsModal
         open={isManageWorkshopsOpen}
         onOpenChange={setIsManageWorkshopsOpen}
-      />
-
-      <ManageServiceItemsModal
-        open={isManageServicesOpen}
-        onOpenChange={setIsManageServicesOpen}
       />
 
     </DashboardLayout>

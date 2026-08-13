@@ -605,7 +605,7 @@ export default function DriverListPage() {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Drivers</span>
               </span>
             }
-            variant="brand"
+            variant="slate"
             description="Total driver profiles"
             icon={DriverBadge}
             semiCircleGauge={{
@@ -615,7 +615,6 @@ export default function DriverListPage() {
                 { label: "Off Duty", count: Math.max(0, totalCount - availableCount - onTripCount), color: "#D97706" },
               ]
             }}
-            isActive={selectedStatus === 'All'}
             onClick={() => {
               setSelectedStatus('All');
               setCurrentPage(1);

@@ -429,16 +429,15 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Accounts</span>
               </span>
             }
-            variant="brand"
+            variant="slate"
             trend="up"
             trendValue="+8 Accounts"
             description="Corporate client accounts"
             icon={CustomerBuilding}
             progressSegments={[
-              { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-[#E8450F]' },
+              { label: `Enterprise (${highCreditCount})`, value: enterpriseTierPct, color: 'bg-indigo-600' },
               { label: `Commercial (${standardCreditCount})`, value: commercialTierPct, color: 'bg-blue-500' },
             ]}
-            isActive={selectedStatus === 'All' && creditTierFilter === 'All'}
             onClick={() => { setSelectedStatus('All'); setCreditTierFilter('All'); setCurrentPage(1); }}
           />
 

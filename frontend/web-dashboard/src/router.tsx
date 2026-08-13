@@ -56,7 +56,7 @@ const RateCardDocsPage        = lazy(() => import('@/pages/rate-cards/RateCardDo
 const InvoiceListPage         = lazy(() => import('@/pages/invoices/InvoiceListPage'));
 const InvoiceDetailsPage      = lazy(() => import('@/pages/invoices/InvoiceDetailsPage'));
 const InvoicePrintTemplate    = lazy(() => import('@/pages/invoices/InvoicePrintTemplate'));
-const CreateInvoicePage       = lazy(() => import('@/pages/invoices/CreateInvoicePage'));
+// CreateInvoicePage deprecated — /invoices/new redirects to billing ledger
 const PaymentStatusPage       = lazy(() => import('@/pages/invoices/PaymentStatusPage'));
 
 // Expenses

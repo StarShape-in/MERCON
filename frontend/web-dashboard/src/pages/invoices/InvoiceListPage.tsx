@@ -1,324 +1,299 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  Plus, Download, RotateCw, Filter, MoreVertical, Receipt, X, 
-  Building2, CheckCircle2, Clock, FileText, Check, Search, 
-  ExternalLink, ShieldCheck, Tag, Trash2
+import { useNavigate } from 'react-router-dom';
+import {
+  Download, RotateCw, CheckCircle2, Search, ExternalLink,
+  Trash2, FileText, Building2, CalendarDays, X, Hash
 } from 'lucide-react';
-import { InvoiceDoc, ClockIcon, RiskAlert, CheckBadge, RevenueChart } from '@/components/ui/kpi-icons';
 
 import { downloadCSV } from '@/utils/exportUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
-import { invoiceService, Invoice, InvoiceStatus } from '@/services/invoiceService';
-import { tripService, Trip } from '@/services/tripService';
+import { tripService, BillingLedgerTrip, BillingLedgerFilters } from '@/services/tripService';
+import { customerService } from '@/services/customerService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Combobox } from '@/components/ui/combobox';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+// Re-use MoreVertical icon
+import { MoreVertical } from 'lucide-react';
 
 export default function InvoiceListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
 
+  // ── Filters ────────────────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [selectedStatus, setSelectedStatus] = useState<string>('All');
+  const [pageSize]   = useState(20);
   const [search, setSearch] = useState('');
+  const [customerId, setCustomerId] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<'' | 'NotInvoiced' | 'Invoiced'>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Mark Trip Invoiced Modal State
-  const [showMarkModal, setShowMarkModal] = useState(false);
-  const [selectedTripForModal, setSelectedTripForModal] = useState<Trip | null>(null);
-  const [zatcaRefInput, setZatcaRefInput] = useState('');
-  const [modalStatusInput, setModalStatusInput] = useState<InvoiceStatus>('Paid');
-  const [isSavingMark, setIsSavingMark] = useState(false);
+  // ── Mark-as-Invoiced modal ──────────────────────────────────────────────
+  const [markModal, setMarkModal] = useState<{ open: boolean; trip: BillingLedgerTrip | null }>({ open: false, trip: null });
+  const [zatcaRef, setZatcaRef] = useState('');
+  const [invoicingNote, setInvoicingNote] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search, 350);
 
-  // Check URL query params for mark action modal opening
-  useEffect(() => {
-    if (searchParams.get('action') === 'mark' || searchParams.get('mark') === 'true') {
-      setShowMarkModal(true);
-    }
-  }, [searchParams]);
+  // ── Queries ────────────────────────────────────────────────────────────
+  const filters: BillingLedgerFilters = {
+    customer_id: customerId || undefined,
+    date_from: dateFrom || undefined,
+    date_to: dateTo || undefined,
+    invoice_status: invoiceStatusFilter || undefined,
+    search: debouncedSearch || undefined,
+    page: currentPage,
+    per_page: pageSize,
+  };
 
-  // Fetch invoices using React Query
-  const { data: invoicesRes, isLoading: isLoadingInvoices, isError, error } = useQuery({
-    queryKey: ['invoices', selectedStatus, debouncedSearch, currentPage, pageSize],
-    queryFn: () => invoiceService.getAll({
-      status: selectedStatus === 'All' ? undefined : (selectedStatus as InvoiceStatus),
-      search: debouncedSearch || undefined,
-      page: currentPage,
-      per_page: pageSize,
-    }),
+  const { data: ledgerRes, isLoading, isError } = useQuery({
+    queryKey: ['billing-ledger', filters],
+    queryFn: () => tripService.getBillingLedger(filters),
   });
 
-  // Fetch overall invoice summary for KPI cards
-  const { data: kpiInvoicesRes } = useQuery({
-    queryKey: ['invoices', 'kpi-summary'],
-    queryFn: () => invoiceService.getAll({ per_page: 1000 }),
+  const { data: customersRes } = useQuery({
+    queryKey: ['customers', 'all'],
+    queryFn: () => customerService.getAll({}),
   });
 
-  // Fetch completed trips that can be invoiced
-  const { data: tripsRes } = useQuery({
-    queryKey: ['trips', 'all-for-invoicing'],
-    queryFn: () => tripService.getAll({ per_page: 100 }),
-  });
+  const trips: BillingLedgerTrip[] = (ledgerRes?.data as BillingLedgerTrip[]) || [];
+  const totalPages = ledgerRes?.meta?.total_pages || 1;
+  const summary = (ledgerRes?.meta as any)?.summary;
 
-  const invoices = invoicesRes?.data || [];
-  const totalPages = invoicesRes?.meta?.total_pages || 1;
-  const kpiInvoices = kpiInvoicesRes?.data || [];
-  const totalCount = kpiInvoicesRes?.meta?.total || (kpiInvoices.length > 0 ? kpiInvoices.length : invoices.length);
-  const allTrips = Array.isArray(tripsRes) ? tripsRes : (tripsRes as any)?.data || [];
+  const totalTrips    = summary?.total_trips ?? 0;
+  const completedCnt  = summary?.completed ?? 0;
+  const invoicedCnt   = summary?.invoiced ?? 0;
+  const coveragePct   = summary?.coverage_pct ?? (totalTrips > 0 ? Math.round((invoicedCnt / totalTrips) * 100) : 100);
 
-  const tripOptions = useMemo(() => {
-    return allTrips.map((t: any) => ({
-      value: t.id,
-      label: `${t.ref_id || 'TRIP'} — ${t.customer?.name || 'Customer'} (SAR ${Number(t.billing_amount || 0).toLocaleString()})`,
-      keywords: `${t.ref_id || ''} ${t.customer?.name || ''} ${t.billing_amount || ''}`,
-    }));
-  }, [allTrips]);
+  const customers = useMemo(() => {
+    const raw = Array.isArray(customersRes) ? customersRes : (customersRes as any)?.data || [];
+    return raw as Array<{ id: string; name: string }>;
+  }, [customersRes]);
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  const getOrigin = (trip: BillingLedgerTrip) => {
+    const pickup = trip.stops?.find(s => s.stop_type === 'Pickup');
+    return pickup?.location?.name ?? pickup?.location_name ?? '—';
+  };
+  const getDestination = (trip: BillingLedgerTrip) => {
+    const drops = trip.stops?.filter(s => s.stop_type === 'Dropoff') ?? [];
+    const last = drops[drops.length - 1];
+    return last?.location?.name ?? last?.location_name ?? '—';
+  };
+  const getBillingTotal = (trip: BillingLedgerTrip) => {
+    const base = trip.billing_amount ?? trip.trip_charges ?? 0;
+    return base + (trip.waiting_labor_charges ?? 0) + (trip.additional_stop_charges ?? 0);
+  };
+  const getInvoiceRecord = (trip: BillingLedgerTrip) => trip.invoices?.[0] ?? null;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['invoices'] }),
-      queryClient.invalidateQueries({ queryKey: ['trips'] }),
-    ]);
+    await queryClient.invalidateQueries({ queryKey: ['billing-ledger'] });
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
   const handleExportCSV = () => {
-    downloadCSV(invoices, `trip_invoices_${new Date().toISOString().slice(0, 10)}.csv`);
+    const rows = trips.map(t => ({
+      trip_ref: t.ref_id,
+      customer: t.customer?.name,
+      origin: getOrigin(t),
+      destination: getDestination(t),
+      date: t.planned_start ? new Date(t.planned_start).toLocaleDateString() : new Date(t.createdAt).toLocaleDateString(),
+      billing_amount: t.billing_amount ?? 0,
+      waiting_labor: t.waiting_labor_charges ?? 0,
+      additional_stops: t.additional_stop_charges ?? 0,
+      total: getBillingTotal(t),
+      invoice_status: t.status === 'Invoiced' ? 'Invoiced' : 'Not Invoiced',
+      invoice_ref: getInvoiceRecord(t)?.ref_id ?? '',
+      zatca_ref: getInvoiceRecord(t)?.zatca_ref ?? '',
+    }));
+    downloadCSV(rows, `billing_ledger_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
-  // Open modal to mark trip invoiced
-  const handleOpenMarkModal = (trip?: Trip) => {
-    setSelectedTripForModal(trip || null);
-    setZatcaRefInput(trip?.ref_id ? `ZATCA-${trip.ref_id}` : '');
-    setModalStatusInput('Paid');
-    setShowMarkModal(true);
+  const openMarkModal = (trip: BillingLedgerTrip) => {
+    setMarkModal({ open: true, trip });
+    setZatcaRef('');
+    setInvoicingNote('');
   };
 
-  // Submit Mark Invoiced action
-  const handleSaveInvoicing = async () => {
-    if (!selectedTripForModal && allTrips.length === 0) {
-      toast.error('No trips available to mark as invoiced.');
-      return;
-    }
-
-    const tripToProcess = selectedTripForModal || allTrips[0];
-    if (!tripToProcess) {
-      toast.error('Please select a trip.');
-      return;
-    }
-
-    setIsSavingMark(true);
+  const handleMarkInvoiced = async () => {
+    if (!markModal.trip) return;
+    setIsSaving(true);
     try {
-      // 1. Create or update invoice record
-      await invoiceService.create({
-        trip_id: tripToProcess.id,
-        customer_id: tripToProcess.customerId || (tripToProcess as any).customer?.id || '',
-        subtotal: tripToProcess.billing_amount || 0,
-        total_amount: tripToProcess.billing_amount || 0,
-        due_date: new Date().toISOString(),
+      await tripService.markInvoiced(markModal.trip.id, {
+        zatca_ref: zatcaRef.trim() || undefined,
+        invoicing_note: invoicingNote.trim() || undefined,
       });
-
-      // 2. Update trip status to Invoiced
-      await tripService.updateStatus(tripToProcess.id, 'Invoiced');
-
-      toast.success(`Trip ${tripToProcess.ref_id || 'record'} successfully marked as Invoiced!`);
-      setShowMarkModal(false);
-      setSelectedTripForModal(null);
-      setZatcaRefInput('');
-      
-      // Clean query params if any
-      if (searchParams.has('action') || searchParams.has('mark')) {
-        setSearchParams({});
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      toast.success(`Trip ${markModal.trip.ref_id} marked as Invoiced`);
+      setMarkModal({ open: false, trip: null });
+      queryClient.invalidateQueries({ queryKey: ['billing-ledger'] });
     } catch (e: any) {
-      toast.error(e?.response?.data?.error?.message || 'Failed to mark trip as invoiced.');
+      const msg = e?.response?.data?.error?.message || 'Failed to mark trip as invoiced';
+      toast.error(msg);
     } finally {
-      setIsSavingMark(false);
+      setIsSaving(false);
     }
   };
 
-  // KPI Computations
-  const paidCount = kpiInvoices.filter(i => i.status === 'Paid').length;
-  const pendingCount = kpiInvoices.filter(i => i.status === 'Pending').length;
-  const overdueCount = kpiInvoices.filter(i => i.status === 'Overdue').length;
-
-  const totalCollectedAmount = kpiInvoices.filter(i => i.status === 'Paid').reduce((acc, i) => acc + (Number(i.total_amount) || 0), 0);
-  const invoicedCoveragePct = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 100;
-
-  const getStatusBadge = (status: InvoiceStatus | string) => {
-    switch (status) {
-      case 'Paid': 
-      case 'Invoiced':
-        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold uppercase text-[10px] tracking-wider px-2 py-0.5">Invoiced / Paid</Badge>;
-      case 'Pending': 
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold uppercase text-[10px] tracking-wider px-2 py-0.5">Pending Invoicing</Badge>;
-      case 'Overdue': 
-        return <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 font-bold uppercase text-[10px] tracking-wider px-2 py-0.5">Overdue</Badge>;
-      case 'Cancelled': 
-        return <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 font-bold uppercase text-[10px] tracking-wider px-2 py-0.5">Cancelled</Badge>;
-      default: 
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-bold uppercase text-[10px] tracking-wider px-2 py-0.5">Draft</Badge>;
+  const handleUnmark = async (trip: BillingLedgerTrip) => {
+    if (!confirm(`Unmark ${trip.ref_id} as Invoiced and revert to Completed?`)) return;
+    try {
+      await tripService.unmarkInvoiced(trip.id);
+      toast.success(`Trip ${trip.ref_id} reverted to Completed`);
+      queryClient.invalidateQueries({ queryKey: ['billing-ledger'] });
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error?.message || 'Failed to unmark trip');
     }
   };
 
+  // ── Table columns ──────────────────────────────────────────────────────
   const columns = [
     {
-      header: 'Trip Ref ID',
+      header: 'Trip Ref',
       className: 'whitespace-nowrap',
-      accessor: (row: Invoice) => (
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-bold text-[#E8450F]">
-            {row.trip?.ref_id || row.ref_id || row.id.split('-')[0].toUpperCase()}
-          </span>
-          {row.ref_id && (
-            <Badge variant="outline" className="text-[9px] bg-slate-50 text-slate-600 font-mono px-1 py-0 border-slate-200">
-              Ext #{row.ref_id}
-            </Badge>
-          )}
-        </div>
+      accessor: (row: BillingLedgerTrip) => (
+        <span className="font-mono text-xs font-bold text-[#E8450F]">{row.ref_id || '—'}</span>
       ),
     },
     {
       header: 'Customer',
-      className: 'whitespace-nowrap max-w-[140px]',
-      accessor: (row: Invoice) => (
-        <div className="flex flex-col max-w-[140px]">
-          <span className="font-semibold text-xs text-[#111] dark:text-slate-100 leading-snug truncate" title={row.customer?.name || 'Standard Account'}>
-            {row.customer?.name || 'Standard Account'}
-          </span>
-          <span className="text-[10px] text-slate-400 font-mono truncate">
-            Billed Customer
-          </span>
-        </div>
-      ),
-    },
-    {
-      header: 'Billing Amount',
-      className: 'whitespace-nowrap',
-      accessor: (row: Invoice) => (
-        <span className="font-bold text-xs text-[#111] dark:text-slate-200 font-mono tabular-nums">
-          {row.currency || 'SAR'} {Number(row.total_amount || row.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      className: 'whitespace-nowrap max-w-[130px]',
+      accessor: (row: BillingLedgerTrip) => (
+        <span className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate block max-w-[130px]" title={row.customer?.name}>
+          {row.customer?.name || '—'}
         </span>
       ),
     },
     {
-      header: 'Invoicing Date',
-      className: 'whitespace-nowrap',
-      accessor: (row: Invoice) => (
-        <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
-          {row.createdAt ? new Date(row.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : new Date(row.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+      header: 'Route',
+      className: 'whitespace-nowrap max-w-[180px]',
+      accessor: (row: BillingLedgerTrip) => (
+        <span className="text-xs text-slate-600 dark:text-slate-400 truncate block max-w-[180px]">
+          {getOrigin(row)} → {getDestination(row)}
         </span>
       ),
     },
     {
-      header: 'Invoicing Status',
+      header: 'Trip Date',
       className: 'whitespace-nowrap',
-      accessor: (row: Invoice) => getStatusBadge(row.status),
+      accessor: (row: BillingLedgerTrip) => {
+        const d = row.planned_start ? new Date(row.planned_start) : new Date(row.createdAt);
+        return <span className="text-xs text-slate-500">{d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>;
+      },
+    },
+    {
+      header: 'Base Amount',
+      className: 'whitespace-nowrap text-right',
+      headerClassName: 'text-right',
+      accessor: (row: BillingLedgerTrip) => (
+        <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-100 tabular-nums">
+          SAR {(row.billing_amount ?? row.trip_charges ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      header: 'Total Charges',
+      className: 'whitespace-nowrap text-right',
+      headerClassName: 'text-right',
+      accessor: (row: BillingLedgerTrip) => (
+        <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+          SAR {getBillingTotal(row).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      header: 'Invoice Status',
+      className: 'whitespace-nowrap',
+      accessor: (row: BillingLedgerTrip) => row.status === 'Invoiced'
+        ? <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold uppercase text-[10px] tracking-wider px-2 py-0.5">✓ Invoiced</Badge>
+        : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold uppercase text-[10px] tracking-wider px-2 py-0.5">Pending</Badge>,
+    },
+    {
+      header: 'Invoice Ref',
+      className: 'whitespace-nowrap max-w-[120px]',
+      accessor: (row: BillingLedgerTrip) => {
+        const inv = getInvoiceRecord(row);
+        return inv ? (
+          <span className="font-mono text-[10px] text-slate-500 truncate block max-w-[120px]" title={inv.zatca_ref || inv.ref_id || ''}>
+            {inv.zatca_ref || inv.ref_id || '—'}
+          </span>
+        ) : <span className="text-[10px] text-slate-300">—</span>;
+      },
     },
     {
       header: 'Actions',
       className: 'whitespace-nowrap text-right',
       headerClassName: 'text-right',
-      accessor: (row: Invoice) => (
-        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+      accessor: (row: BillingLedgerTrip) => (
+        <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-md"
-              >
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-md">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-1.5">
               <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                Invoicing Ledger Actions
+                Billing Actions
               </DropdownMenuLabel>
-              
-              <DropdownMenuItem 
-                onClick={() => {
-                  if (row.status !== 'Paid') {
-                    invoiceService.updateStatus(row.id, 'Paid').then(() => {
-                      toast.success('Marked invoice as Paid / Invoiced');
-                      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                    });
-                  } else {
-                    toast.info('Invoice is already marked as Paid.');
-                  }
-                }}
-                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-600 focus:bg-emerald-50"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Confirm Invoiced / Paid
-              </DropdownMenuItem>
 
-              {row.trip?.id && (
-                <DropdownMenuItem 
-                  onClick={() => navigate(`/trips/${row.trip?.id}`)}
-                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+              {row.status === 'Completed' && (
+                <DropdownMenuItem
+                  onClick={() => openMarkModal(row)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-emerald-600 focus:bg-emerald-50"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 mr-2 text-indigo-600" /> View Linked Trip
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Mark as Invoiced
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+              {row.status === 'Invoiced' && (
+                <DropdownMenuItem
+                  onClick={() => handleUnmark(row)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-amber-600 focus:bg-amber-50"
+                >
+                  <X className="w-3.5 h-3.5 mr-2 text-amber-600" /> Unmark Invoiced
+                </DropdownMenuItem>
+              )}
 
-              <DropdownMenuItem 
-                onClick={() => {
-                  if (confirm('Remove invoicing status log for this trip?')) {
-                    invoiceService.bulkDelete([row.id]).then(() => {
-                      toast.success('Invoicing status log removed.');
-                      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-                    });
-                  }
-                }}
-                className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-rose-600 focus:bg-rose-50"
+              <DropdownMenuItem
+                onClick={() => navigate(`/trips/${row.id}`)}
+                className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
               >
-                <X className="w-3.5 h-3.5 mr-2 text-rose-600" /> Delete Invoicing Record
+                <ExternalLink className="w-3.5 h-3.5 mr-2 text-indigo-500" /> View Trip Details
               </DropdownMenuItem>
+
+              {getInvoiceRecord(row) && (
+                <>
+                  <DropdownMenuSeparator className="my-1 bg-slate-100 dark:bg-slate-800" />
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/invoices/${getInvoiceRecord(row)!.id}`)}
+                    className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-2 text-slate-500" /> Invoice Record
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -326,358 +301,236 @@ export default function InvoiceListPage() {
     },
   ];
 
-  const bulkActions = [
-    {
-      label: 'Mark Invoiced',
-      icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />,
-      onClick: async (selectedRows: Invoice[], clearSelection?: () => void) => {
-        if (!confirm(`Mark ${selectedRows.length} trips as Invoiced / Paid?`)) return;
-        try {
-          await invoiceService.bulkUpdateStatus(selectedRows.map(r => r.id), 'Paid');
-          toast.success(`Marked ${selectedRows.length} trips as Invoiced!`);
-          queryClient.invalidateQueries({ queryKey: ['invoices'] });
-          clearSelection?.();
-        } catch (e) { toast.error('Failed to update invoicing status'); }
-      }
-    },
-    {
-      label: 'Export CSV',
-      icon: <Download className="w-3.5 h-3.5" />,
-      variant: 'secondary' as const,
-      onClick: (selectedRows: Invoice[]) => {
-        downloadCSV(selectedRows, 'trip_invoices_export.csv');
-      }
-    },
-    {
-      label: 'Delete Selected',
-      icon: <Trash2 className="w-3.5 h-3.5" />,
-      variant: 'danger' as const,
-      onClick: async (selectedRows: Invoice[], clearSelection?: () => void) => {
-        if (!confirm(`Are you sure you want to delete ${selectedRows.length} selected invoicing record(s)?`)) return;
-        try {
-          await invoiceService.bulkDelete(selectedRows.map(r => r.id));
-          toast.success(`Successfully deleted ${selectedRows.length} invoicing record(s)!`);
-          queryClient.invalidateQueries({ queryKey: ['invoices'] });
-          clearSelection?.();
-        } catch (e) { toast.error('Failed to delete invoicing records'); }
-      }
-    },
-  ];
-
   return (
-    <DashboardLayout active="Invoices" title="Trip Invoicing">
+    <DashboardLayout active="Invoices" title="Trip Billing Ledger">
       <div className="px-4 sm:px-6 pb-6 h-full flex flex-col animate-fade-in gap-5 max-w-[1400px] mx-auto w-full">
-        
-        {/* MERCON Dashboard Top Bar */}
+
+        {/* ── Top Bar ─────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200/80 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            {/* Page Title */}
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                Trip Invoicing & Settlement
-              </h1>
-            </div>
-          </div>
-
-          {/* Top Bar Actions Group */}
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs rounded-lg"
-              onClick={handleExportCSV}
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export CSV
+            <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Trip Billing Ledger</h1>
+            <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs">Invoicing Module</Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV} className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <Download className="w-3.5 h-3.5" /> Export CSV
             </Button>
-
-            <Button
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-lg px-4"
-              onClick={() => handleOpenMarkModal()}
-            >
-              <Plus className="h-4 w-4" />
-              Mark Trip Invoiced
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs rounded-lg"
-              onClick={handleRefresh}
-              title="Refresh Data"
-            >
-              <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="h-8 w-8 p-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {/* 4-Card Instrument Panel KPI Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
-          
-          {/* Card 1: Total Trips */}
+        {/* ── KPI Cards ───────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
           <KpiCard
-            title="TOTAL TRIPS RECORDED"
-            value={
-              <span>
-                {totalCount}
-                <span className="text-[14px] font-semibold ml-1.5 opacity-85">Trips</span>
-              </span>
-            }
-            variant="blue"
-            description="Overall fleet billing log"
-            icon={InvoiceDoc}
-            semiCircleGauge={{
-              segments: [
-                { label: "Paid", count: paidCount, color: "#16A34A" },
-                { label: "Pending", count: pendingCount, color: "#D97706" },
-                { label: "Overdue", count: overdueCount, color: "#DC2626" },
-              ]
-            }}
-            isActive={selectedStatus === 'All'}
-            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
+            label="COMPLETED TRIPS"
+            value={String(totalTrips)}
+            subtitle="Total eligible trips"
+            variant="slate"
           />
-
-          {/* Card 2: Total Settled Revenue */}
           <KpiCard
-            title="INVOICED & SETTLED"
-            value={
-              <span>
-                <span className="text-[14px] font-semibold mr-1.5 opacity-85">SAR</span>
-                {totalCollectedAmount.toLocaleString()}
-              </span>
-            }
+            label="PENDING INVOICING"
+            value={String(completedCnt)}
+            subtitle="Completed, not yet invoiced"
+            variant={completedCnt > 0 ? 'amber' : 'slate'}
+          />
+          <KpiCard
+            label="INVOICED"
+            value={String(invoicedCnt)}
+            subtitle="Marked as invoiced"
             variant="emerald"
-            description="Settled trip revenue"
-            icon={RevenueChart}
-            chartData={[15000, 24000, 21000, 32000, 38000, totalCollectedAmount > 0 ? totalCollectedAmount : 48000]}
-            isActive={selectedStatus === 'Paid'}
-            onClick={() => { setSelectedStatus('Paid'); setCurrentPage(1); }}
           />
-
-          {/* Card 3: Pending Invoicing */}
           <KpiCard
-            title="PENDING INVOICING"
-            value={
-              <span>
-                {pendingCount}
-                <span className="text-[14px] font-semibold ml-1.5 opacity-85">Pending</span>
-              </span>
-            }
-            variant="amber"
-            description="Trips awaiting invoice log"
-            icon={ClockIcon}
-            pipelineStages={[
-              { name: "Pending", count: pendingCount, color: "bg-amber-500" },
-              { name: "Overdue", count: overdueCount, color: "bg-rose-500" },
-            ]}
-            isActive={selectedStatus === 'Pending'}
-            onClick={() => { setSelectedStatus('Pending'); setCurrentPage(1); }}
-          />
-
-          {/* Card 4: Invoicing Coverage Rate */}
-          <KpiCard
-            title="INVOICING COVERAGE"
-            value={
-              <span>
-                {invoicedCoveragePct}%
-                <span className="text-[14px] font-semibold ml-1.5 opacity-85">Billed</span>
-              </span>
-            }
-            variant="purple"
-            description="Completion ratio"
-            icon={CheckBadge}
-            livePulseTrack={{
-              statusText: `${paidCount} of ${totalCount} Trips Invoiced`,
-              subText: `${pendingCount} remaining`,
-            }}
-            onClick={() => { setSelectedStatus('All'); setCurrentPage(1); }}
+            label="COVERAGE"
+            value={`${coveragePct}%`}
+            subtitle="Invoicing coverage rate"
+            variant={coveragePct >= 90 ? 'emerald' : coveragePct >= 60 ? 'amber' : 'rose'}
           />
         </div>
 
-        {/* Active Filter Indicator Banner */}
-        {selectedStatus !== 'All' && (
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-emerald-900 dark:text-emerald-200 animate-fade-in shrink-0">
-            <div className="flex items-center gap-2">
-              <Filter className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-              <span>
-                Filtered by status: <strong className="underline decoration-emerald-500 font-bold">{selectedStatus}</strong> ({invoices.length} trip{invoices.length === 1 ? '' : 's'} matching)
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                setSelectedStatus('All');
-                setCurrentPage(1);
-              }}
-              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
-            >
-              <span>Show All Invoices</span>
-              <X className="w-3 h-3 shrink-0" />
-            </button>
+        {/* ── Filter Toolbar ───────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Input
+              placeholder="Search trip, customer, route..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+              className="pl-8 h-8 text-xs w-56 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+            />
           </div>
-        )}
 
-        {/* Content Workspace: Trip Invoicing Ledger Data Table */}
-        <div className="flex-1 min-h-0 flex flex-col">
+          {/* Customer filter */}
+          <Select value={customerId} onValueChange={v => { setCustomerId(v === 'all' ? '' : v); setCurrentPage(1); }}>
+            <SelectTrigger className="h-8 text-xs w-44 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <Building2 className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+              <SelectValue placeholder="All Companies" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Companies</SelectItem>
+              {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          {/* Invoice status filter */}
+          <Select value={invoiceStatusFilter} onValueChange={v => { setInvoiceStatusFilter(v as any); setCurrentPage(1); }}>
+            <SelectTrigger className="h-8 text-xs w-40 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="NotInvoiced">Not Invoiced</SelectItem>
+              <SelectItem value="Invoiced">Invoiced</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Date range */}
+          <div className="flex items-center gap-1.5">
+            <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => { setDateFrom(e.target.value); setCurrentPage(1); }}
+              className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-2 text-slate-700 dark:text-slate-200"
+            />
+            <span className="text-xs text-slate-400">—</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => { setDateTo(e.target.value); setCurrentPage(1); }}
+              className="h-8 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-2 text-slate-700 dark:text-slate-200"
+            />
+          </div>
+
+          {/* Clear filters */}
+          {(customerId || invoiceStatusFilter || dateFrom || dateTo || search) && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-500 hover:text-slate-900 gap-1"
+              onClick={() => { setCustomerId(''); setInvoiceStatusFilter(''); setDateFrom(''); setDateTo(''); setSearch(''); setCurrentPage(1); }}>
+              <X className="w-3 h-3" /> Clear
+            </Button>
+          )}
+        </div>
+
+        {/* ── Ledger Table ─────────────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-slate-400" />
+              <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Trip Billing Ledger</span>
+            </div>
+            <span className="text-xs text-slate-400 font-mono">{ledgerRes?.meta?.total ?? 0} trips</span>
+          </div>
+
           <DataTable
-            title={
-              <span className="flex items-center gap-2 font-extrabold">
-                <Receipt className="w-4 h-4 text-emerald-600" />
-                <span>🥞 Trip Invoicing Ledger</span>
-              </span>
-            }
             columns={columns}
-            data={invoices}
-            bulkActions={bulkActions}
-            enableSelection={true}
-            compact={true}
-            isLoading={isLoadingInvoices}
+            data={trips}
+            isLoading={isLoading}
             isError={isError}
-            errorMessage={(error as Error)?.message || 'Failed to load trip invoicing records.'}
-            searchPlaceholder="Search trip ref ID, customer..."
-            searchValue={search}
-            onSearchChange={(val) => { setSearch(val); setCurrentPage(1); }}
-            filterElement={
-              <Select
-                value={selectedStatus}
-                onValueChange={(val: any) => { setSelectedStatus(val); setCurrentPage(1); }}
-              >
-                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 shadow-2xs focus-visible:ring-indigo-500">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                    <SelectValue placeholder="Invoicing Status" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent align="start" className="w-48 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
-                  <SelectGroup>
-                    <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                      Status Filter
-                    </SelectLabel>
-                    <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">All Statuses</SelectItem>
-                    <SelectItem value="Paid" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-emerald-700">Invoiced / Paid</SelectItem>
-                    <SelectItem value="Pending" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-amber-700">Pending Invoicing</SelectItem>
-                    <SelectItem value="Overdue" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-rose-700">Overdue Only</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            }
             currentPage={currentPage}
             totalPages={totalPages}
-            pageSize={pageSize}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setCurrentPage(1);
+            onPageChange={setCurrentPage}
+            onRowClick={(row) => navigate(`/trips/${row.id}`)}
+            emptyState={{
+              icon: <FileText className="w-8 h-8 text-slate-300" />,
+              title: 'No trips found',
+              description: invoiceStatusFilter === 'NotInvoiced'
+                ? 'All completed trips have been invoiced. Great work!'
+                : 'No completed or invoiced trips match the current filters.',
             }}
-            totalRecords={totalCount}
-            onPageChange={(page) => setCurrentPage(page)}
           />
         </div>
 
-        {/* Mark Trip Invoiced Shadcn Modal */}
-        <Dialog open={showMarkModal} onOpenChange={setShowMarkModal}>
-          <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
-            <DialogHeader>
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center mb-2">
-                <Receipt className="w-5 h-5 text-emerald-600" />
-              </div>
-              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                Mark Trip as Invoiced
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Confirm invoice completion status for completed fleet trips.
-              </DialogDescription>
-            </DialogHeader>
+      </div>
 
-            <div className="space-y-4 my-2 text-xs">
-              
-              {/* Trip Selection */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Select Trip <span className="text-rose-500">*</span>
-                </Label>
-                <Select 
-                  value={selectedTripForModal?.id || (allTrips[0]?.id || '')} 
-                  onValueChange={(val) => {
-                    const found = allTrips.find((t: any) => t.id === val);
-                    setSelectedTripForModal(found || null);
-                    if (found?.ref_id) setZatcaRefInput(`INV-${found.ref_id}`);
-                  }}
-                >
-                  <SelectTrigger className="h-9 text-xs border-slate-200 bg-white">
-                    <SelectValue placeholder="Select completed trip..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-48">
-                    {allTrips.map((t: any) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.ref_id || 'TRIP'} — {t.customer?.name || 'Customer'} (SAR {Number(t.billing_amount || 0).toLocaleString()})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+      {/* ── Mark as Invoiced Modal ──────────────────────────────────────── */}
+      <Dialog open={markModal.open} onOpenChange={open => { if (!open) setMarkModal({ open: false, trip: null }); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+              Mark as Invoiced
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Record that an external invoice has been issued for this trip.
+              MERCON does not generate the invoice — only tracks the reference.
+            </DialogDescription>
+          </DialogHeader>
+
+          {markModal.trip && (
+            <div className="space-y-4 pt-1">
+              {/* Trip info summary */}
+              <div className="bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Trip</span>
+                  <span className="font-mono text-xs font-bold text-[#E8450F]">{markModal.trip.ref_id}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Customer</span>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{markModal.trip.customer?.name}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Route</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">{getOrigin(markModal.trip)} → {getDestination(markModal.trip)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Charges</span>
+                  <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100">
+                    SAR {getBillingTotal(markModal.trip).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
 
-              {/* External Invoice Ref # */}
+              {/* ZATCA reference input */}
               <div className="space-y-1.5">
-                <Label htmlFor="zatcaRef" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Invoice / External Ref # (Optional)
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Hash className="w-3.5 h-3.5 text-slate-400" />
+                  External / ZATCA Invoice Reference
+                  <span className="text-slate-400 font-normal">(optional)</span>
                 </Label>
                 <Input
-                  id="zatcaRef"
-                  type="text"
-                  placeholder="e.g. INV-2026-092"
-                  value={zatcaRefInput}
-                  onChange={(e) => setZatcaRefInput(e.target.value)}
-                  className="h-9 text-xs font-mono font-semibold border-slate-200"
+                  value={zatcaRef}
+                  onChange={e => setZatcaRef(e.target.value)}
+                  placeholder="e.g. INV-2026-1042 or ZATCA reference"
+                  className="h-9 text-xs font-mono border-slate-200 dark:border-slate-700"
                 />
-                <p className="text-[10px] text-slate-500">
-                  Optional invoice number or tax serial generated by your primary accounting software.
+                <p className="text-[10px] text-slate-400">
+                  The reference number from your external accounting or ZATCA system.
+                  Stored for tracking only.
                 </p>
               </div>
 
-              {/* Invoicing Status */}
+              {/* Notes */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Invoicing Status
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Notes <span className="text-slate-400 font-normal">(optional)</span>
                 </Label>
-                <Select 
-                  value={modalStatusInput} 
-                  onValueChange={(val: any) => setModalStatusInput(val)}
-                >
-                  <SelectTrigger className="h-9 text-xs border-slate-200 bg-white">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Paid">Invoiced / Paid (Completed)</SelectItem>
-                    <SelectItem value="Pending">Pending Invoicing</SelectItem>
-                    <SelectItem value="Draft">Draft Status</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Textarea
+                  value={invoicingNote}
+                  onChange={e => setInvoicingNote(e.target.value)}
+                  placeholder="Any additional notes about this invoice..."
+                  className="text-xs min-h-[72px] resize-none border-slate-200 dark:border-slate-700"
+                />
               </div>
-
             </div>
+          )}
 
-            <DialogFooter className="mt-4 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs font-semibold border-slate-200"
-                onClick={() => setShowMarkModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                className="text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white px-4"
-                onClick={handleSaveInvoicing}
-                disabled={isSavingMark}
-              >
-                {isSavingMark ? 'Saving...' : 'Save Invoicing Record'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-      </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => setMarkModal({ open: false, trip: null })}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleMarkInvoiced}
+              disabled={isSaving}
+              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+            >
+              {isSaving ? 'Saving...' : <><CheckCircle2 className="w-3.5 h-3.5" /> Confirm Invoiced</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
+
