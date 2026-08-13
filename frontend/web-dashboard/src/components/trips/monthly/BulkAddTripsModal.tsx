@@ -408,7 +408,7 @@ export default function BulkAddTripsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose()}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-white border border-black/10 shadow-2xl rounded-2xl sm:max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[92vw] max-w-5xl sm:max-w-5xl p-0 overflow-hidden bg-white border border-black/10 shadow-2xl rounded-2xl sm:max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-black/[0.06] bg-slate-50/50">
           <div className="flex items-start justify-between gap-4">
@@ -672,7 +672,7 @@ export default function BulkAddTripsModal({
                                     setContractDestination(contractOrigin.trim());
                                   }
                                 }}
-                                className={`text-[10px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all ${
+                                className={`text-[10px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all whitespace-nowrap shrink-0 ${
                                   contractOrigin.trim() && contractDestination.trim() === contractOrigin.trim()
                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs'
                                     : 'text-[#E8450F] hover:bg-orange-50'
