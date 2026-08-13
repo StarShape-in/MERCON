@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import {
   ArrowLeft, DollarSign, TrendingUp, TrendingDown, Truck, Trophy,
-  FileSpreadsheet, RefreshCw, AlertTriangle, ArrowUpDown, Wallet,
+  FileSpreadsheet, FileText, RefreshCw, AlertTriangle, ArrowUpDown, Wallet,
   Layers, PieChart as PieChartIcon, ArrowRight, Gauge, Ban,
+  CalendarRange, Route, ReceiptText, AlertOctagon,
 } from 'lucide-react';
 import {
   Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, ReferenceLine,
@@ -20,6 +23,8 @@ import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,7 +33,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import type { ChartConfig } from '@/components/ui/chart';
 import DataTable from '@/components/ui/DataTable';
 import type { Column } from '@/components/ui/DataTable';
-import { exportExcelTable } from '@/utils/exportUtils';
+import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
@@ -248,6 +253,7 @@ export default function VehicleFinancialsPage() {
 
   const [tab, setTab] = useState<'fleet' | 'vehicle'>(urlId ? 'vehicle' : 'fleet');
   const [period, setPeriod] = useState<string>('all');
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
   const [selectedId, setSelectedId] = useState<string>(urlId || '');
   const [sort, setSort] = useState<{ field: SortField; dir: 'asc' | 'desc' }>({
     field: 'net_profit',
@@ -255,7 +261,15 @@ export default function VehicleFinancialsPage() {
   });
   const [tableSearch, setTableSearch] = useState('');
 
-  const range = useMemo(() => rangeFor(period), [period]);
+  const range = useMemo(() => {
+    if (period === 'custom' && customRange?.from) {
+      return {
+        from: customRange.from.toISOString(),
+        to: (customRange.to ?? customRange.from).toISOString(),
+      };
+    }
+    return rangeFor(period);
+  }, [period, customRange]);
 
   /* Queries ------------------------------------------------------------- */
 
@@ -268,7 +282,7 @@ export default function VehicleFinancialsPage() {
   const {
     data: fleet, isLoading: isFleetLoading, refetch: refetchFleet,
   } = useQuery({
-    queryKey: ['fleet-financials', period],
+    queryKey: ['fleet-financials', period, range.from, range.to],
     queryFn: () => vehicleService.getFleetFinancials(range),
   });
 
@@ -281,7 +295,7 @@ export default function VehicleFinancialsPage() {
   const {
     data: financials, isLoading: isFinancialsLoading, refetch: refetchFinancials,
   } = useQuery({
-    queryKey: ['vehicle-financials', selectedId, period],
+    queryKey: ['vehicle-financials', selectedId, period, range.from, range.to],
     queryFn: () => vehicleService.getFinancials(selectedId, range),
     enabled: !!selectedId,
   });
@@ -349,6 +363,36 @@ export default function VehicleFinancialsPage() {
     ].filter((d) => d.value > 0);
   }, [fleet]);
 
+  /** Fleet-wide average cost incurred per earning trip — a load-independent efficiency read. */
+  const fleetCostPerTrip = useMemo(() => {
+    const s = fleet?.fleet_summary;
+    if (!s || s.total_trips === 0) return 0;
+    return Math.round(s.total_expenses / s.total_trips);
+  }, [fleet]);
+
+  /** Net profit, income and expenses rolled up by asset type — is one class of truck carrying the fleet? */
+  const assetTypeBreakdown = useMemo(() => {
+    const byType = new Map<string, { income: number; expenses: number; trips: number; vehicles: number }>();
+    for (const r of fleetRows) {
+      const key = r.asset_type || 'Unclassified';
+      const b = byType.get(key) ?? { income: 0, expenses: 0, trips: 0, vehicles: 0 };
+      b.income += r.total_income;
+      b.expenses += r.total_expenses;
+      b.trips += r.trips_count;
+      b.vehicles += 1;
+      byType.set(key, b);
+    }
+    return Array.from(byType.entries())
+      .map(([type, b]) => ({
+        type,
+        net_profit: b.income - b.expenses,
+        margin_percent: b.income > 0 ? Math.round(((b.income - b.expenses) / b.income) * 1000) / 10 : 0,
+        vehicles: b.vehicles,
+        trips: b.trips,
+      }))
+      .sort((a, b) => b.net_profit - a.net_profit);
+  }, [fleetRows]);
+
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
     const filtered = fleetRows.filter((r) =>
@@ -378,6 +422,23 @@ export default function VehicleFinancialsPage() {
       { name: 'Renewals', value: s.renewal_expenses, fill: RENEWAL },
       { name: 'Net', value: s.net_profit, fill: s.net_profit >= 0 ? PROFIT : EXPENSE },
     ];
+  }, [financials]);
+
+  const vehicleCostPerTrip = useMemo(() => {
+    if (!financials) return 0;
+    const { total_expenses, completed_trips_count } = financials.summary;
+    return completed_trips_count > 0 ? Math.round(total_expenses / completed_trips_count) : 0;
+  }, [financials]);
+
+  /** Trailing months (most recent first) run at a loss — an early-warning streak, not just the period total. */
+  const consecutiveLossMonths = useMemo(() => {
+    const months = financials?.monthly ?? [];
+    let streak = 0;
+    for (let i = months.length - 1; i >= 0; i -= 1) {
+      if (months[i].profit < 0) streak += 1;
+      else break;
+    }
+    return streak;
   }, [financials]);
 
   const withLabels = (points: MonthlyPoint[] = []) =>
@@ -425,6 +486,48 @@ export default function VehicleFinancialsPage() {
         ['', '', 'NET VEHICLE PROFIT:', `SAR ${financials.summary.net_profit.toLocaleString()}`],
       ],
       `Vehicle_P&L_${vehicle.plate_number}.xlsx`
+    );
+  };
+
+  const exportFleetPDF = () => {
+    if (!fleet) return;
+    exportPDFTable(
+      'Fleet Vehicle Profitability Comparison',
+      ['Plate', 'Type', 'Trips', 'Income (SAR)', 'Expenses (SAR)', 'Net Profit (SAR)', 'Margin %'],
+      [
+        ...sortedRows.map((r) => [
+          r.plate_number, r.asset_type, r.trips_count,
+          r.total_income.toLocaleString(), r.total_expenses.toLocaleString(),
+          r.net_profit.toLocaleString(), `${r.margin_percent}%`,
+        ]),
+        ['TOTAL', '', fleet.fleet_summary.total_trips,
+          fleet.fleet_summary.total_income.toLocaleString(),
+          fleet.fleet_summary.total_expenses.toLocaleString(),
+          fleet.fleet_summary.net_profit.toLocaleString(),
+          `${fleet.fleet_summary.margin_percent}%`],
+      ],
+      'Fleet_Profitability.pdf'
+    );
+  };
+
+  const exportVehiclePDF = () => {
+    if (!financials || !vehicle) return;
+    exportPDFTable(
+      `Vehicle P&L Statement — ${vehicle.plate_number}`,
+      ['Reference / Type', 'Party / Workshop', 'Date', 'Amount (SAR)'],
+      [
+        ...financials.income_sources.map((t) => [
+          t.ref_id || 'TRIP', t.customer_name, new Date(t.date).toLocaleDateString(),
+          `+${t.income.toLocaleString()}`,
+        ]),
+        ...financials.expense_records.map((m) => [
+          m.maintenance_type, m.workshop_name,
+          m.start_date ? new Date(m.start_date).toLocaleDateString() : 'N/A',
+          `-${(m.cost || 0).toLocaleString()}`,
+        ]),
+        ['TOTAL', '', '', financials.summary.net_profit.toLocaleString()],
+      ],
+      `Vehicle_P&L_${vehicle.plate_number}.pdf`
     );
   };
 
@@ -557,6 +660,46 @@ export default function VehicleFinancialsPage() {
               ))}
             </ToggleGroup>
 
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'h-9 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs',
+                    period === 'custom' && 'border-[#E8450F]/40 bg-[#E8450F]/5 text-[#E8450F]'
+                  )}
+                >
+                  <CalendarRange className="w-3.5 h-3.5" />
+                  {period === 'custom' && customRange?.from
+                    ? customRange.to
+                      ? `${format(customRange.from, 'MMM d')} – ${format(customRange.to, 'MMM d')}`
+                      : format(customRange.from, 'MMM d')
+                    : 'Custom Range'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-auto p-3 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
+                <Calendar
+                  mode="range"
+                  selected={customRange}
+                  onSelect={setCustomRange}
+                  numberOfMonths={1}
+                  className="rounded-xl"
+                />
+                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!customRange?.from}
+                    onClick={() => setPeriod('custom')}
+                    className="h-8 text-xs px-3.5 rounded-lg bg-[#E8450F] hover:bg-[#d03d0c] text-white font-semibold"
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+
             <Button
               variant="outline"
               size="sm"
@@ -575,7 +718,18 @@ export default function VehicleFinancialsPage() {
               className="h-9 gap-1.5 text-xs font-semibold border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 shadow-2xs"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              Export Excel
+              Excel
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={tab === 'fleet' ? exportFleetPDF : exportVehiclePDF}
+              disabled={tab === 'fleet' ? !fleet : !financials}
+              className="h-9 gap-1.5 text-xs font-semibold border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 shadow-2xs"
+            >
+              <FileText className="w-3.5 h-3.5 text-rose-600" />
+              PDF
             </Button>
           </div>
         </div>
@@ -619,7 +773,7 @@ export default function VehicleFinancialsPage() {
             ) : (
               <>
                 {/* KPIs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <StatCard
                     label="Fleet Revenue"
                     value={sar(summary.total_income)}
@@ -641,6 +795,13 @@ export default function VehicleFinancialsPage() {
                     hint={`${summary.margin_percent}% overall margin`}
                     tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
                     icon={<Wallet className="w-4 h-4 text-indigo-600" />}
+                  />
+                  <StatCard
+                    label="Avg Cost / Trip"
+                    value={sar(fleetCostPerTrip)}
+                    hint="Fleet-wide expense per earning trip"
+                    tone="neutral"
+                    icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
                   />
                   <StatCard
                     label="Profitable Vehicles"
@@ -800,6 +961,62 @@ export default function VehicleFinancialsPage() {
                   </CardContent>
                 </Card>
 
+                {/* Profitability by asset type */}
+                <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-indigo-600" /> Profitability by Asset Type
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Net profit and margin rolled up by truck class — is one class of asset carrying the fleet?
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {assetTypeBreakdown.length === 0 ? (
+                      <NoData message="No vehicles with recorded activity in this period." />
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <ChartContainer config={chartConfig} className="w-full aspect-auto h-[240px]">
+                          <BarChart data={assetTypeBreakdown} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                            <XAxis dataKey="type" tickLine={false} axisLine={false} tick={{ fontSize: 11, fontWeight: 700 }} />
+                            <YAxis tickFormatter={compact} tickLine={false} axisLine={false} width={48} />
+                            <ReferenceLine y={0} stroke="currentColor" className="text-border" />
+                            <ChartTooltip content={<ChartTooltipContent formatter={(v) => sar(Number(v))} />} />
+                            <Bar dataKey="net_profit" radius={4} maxBarSize={56}>
+                              {assetTypeBreakdown.map((d) => (
+                                <Cell key={d.type} fill={d.net_profit >= 0 ? INCOME : EXPENSE} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ChartContainer>
+
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {assetTypeBreakdown.map((d) => (
+                            <div key={d.type} className="flex items-center justify-between py-2.5 text-xs">
+                              <div>
+                                <div className="font-bold text-slate-900 dark:text-slate-100">{d.type}</div>
+                                <div className="text-[10px] text-slate-400">
+                                  {d.vehicles} vehicle{d.vehicles === 1 ? '' : 's'} · {d.trips} trip{d.trips === 1 ? '' : 's'}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <Money value={d.net_profit} className="text-xs" />
+                                <div className={cn(
+                                  'text-[10px] font-bold',
+                                  d.margin_percent >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                                )}>
+                                  {d.margin_percent}% margin
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Leaderboards */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   <Card className="border border-emerald-200 dark:border-emerald-900/50 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
@@ -919,8 +1136,19 @@ export default function VehicleFinancialsPage() {
                   />
                 ) : (
                   <>
+                    {/* Early-warning banner: this vehicle has been bleeding money for a while, not just this period */}
+                    {consecutiveLossMonths >= 2 && (
+                      <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-4 py-2.5 flex items-center gap-2.5">
+                        <AlertOctagon className="w-4 h-4 text-rose-600 shrink-0" />
+                        <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">
+                          Running at a loss for {consecutiveLossMonths} consecutive months — worth a closer look
+                          before the next dispatch.
+                        </p>
+                      </div>
+                    )}
+
                     {/* KPIs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                       <StatCard
                         label="Total Income Generated"
                         value={sar(financials.summary.total_income)}
@@ -946,6 +1174,13 @@ export default function VehicleFinancialsPage() {
                         hint="Gross revenue less maintenance costs"
                         tone={financials.summary.net_profit >= 0 ? 'profit' : 'expense'}
                         icon={<DollarSign className="w-4 h-4 text-indigo-600" />}
+                      />
+                      <StatCard
+                        label="Cost / Trip"
+                        value={sar(vehicleCostPerTrip)}
+                        hint="Average expense per completed trip"
+                        tone="neutral"
+                        icon={<Route className="w-4 h-4 text-slate-400" />}
                       />
                       <StatCard
                         label="Profit Margin"
