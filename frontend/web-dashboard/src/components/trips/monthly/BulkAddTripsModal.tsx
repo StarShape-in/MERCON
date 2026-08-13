@@ -893,43 +893,23 @@ export default function BulkAddTripsModal({
                         </div>
                       </div>
 
-                      {/* Search All Accounts & Vehicle Type */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-black/[0.06]">
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
-                            <Search className="w-3 h-3 text-slate-400" /> Search All Accounts *
-                          </label>
-                          <Select value={contractCustomer} onValueChange={setContractCustomer}>
-                            <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white">
-                              <SelectValue placeholder="-- Select customer --" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {customers.map((c) => (
-                                <SelectItem key={c.id} value={c.id} className="text-xs">
-                                  {c.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
-                            Vehicle Type *
-                          </label>
-                          <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
-                            <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {VEHICLE_TYPES.map((type) => (
-                                <SelectItem key={type} value={type} className="text-xs">
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      {/* Search All Accounts (Full Width) */}
+                      <div className="space-y-1.5 pt-2 border-t border-black/[0.06]">
+                        <label className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider flex items-center gap-1">
+                          <Search className="w-3 h-3 text-slate-400" /> Search All Accounts *
+                        </label>
+                        <Select value={contractCustomer} onValueChange={setContractCustomer}>
+                          <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white">
+                            <SelectValue placeholder="-- Select customer --" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {customers.map((c) => (
+                              <SelectItem key={c.id} value={c.id} className="text-xs">
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   )}
@@ -1754,6 +1734,19 @@ export default function BulkAddTripsModal({
                                 {vehicles.map((v) => (
                                   <SelectItem key={v.id} value={v.id} className="text-xs">
                                     {v.plate_number} ({v.asset_type})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Select value={contractVehicleType} onValueChange={setContractVehicleType}>
+                              <SelectTrigger className="h-8 w-44 rounded-lg bg-white border-indigo-200 text-xs font-bold text-[#111111]" title="Vehicle Type">
+                                <SelectValue placeholder="Vehicle Type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {VEHICLE_TYPES.map((type) => (
+                                  <SelectItem key={type} value={type} className="text-xs font-semibold">
+                                    {type}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
