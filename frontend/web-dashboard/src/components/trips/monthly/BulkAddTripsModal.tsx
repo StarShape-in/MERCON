@@ -993,26 +993,6 @@ export default function BulkAddTripsModal({
                                   <div className="flex items-center gap-1.5">
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        if (slot.origin.trim()) {
-                                          handleUpdateTripSlot(slot.id, { destination: slot.origin.trim() });
-                                        }
-                                      }}
-                                      className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
-                                        slot.origin.trim() && slot.destination.trim() === slot.origin.trim()
-                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs'
-                                          : 'bg-white text-[#E8450F] border border-orange-200 hover:bg-orange-100/50'
-                                      }`}
-                                      title="Click to set final destination same as origin for Round Trip"
-                                    >
-                                      <RotateCcw className="w-3 h-3 text-[#E8450F]" />
-                                      {slot.origin.trim() && slot.destination.trim() === slot.origin.trim()
-                                        ? '🔁 Same as Origin'
-                                        : 'Same as Origin'}
-                                    </button>
-
-                                    <button
-                                      type="button"
                                       onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
                                       className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
                                         slot.isOvernight
