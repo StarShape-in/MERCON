@@ -47,16 +47,19 @@ function getInvoiceRec(trip: BillingLedgerTrip) {
 }
 function getVehicleDesc(trip: BillingLedgerTrip) {
   if (!trip.vehicle) return 'Unassigned';
-  const v = trip.vehicle;
+  const v = trip.vehicle as any;
   return `${v.plate_number}${v.make ? ` (${v.make})` : ''}`;
 }
 function getDriverDesc(trip: BillingLedgerTrip) {
   if (!trip.driver) return 'Unassigned';
-  return trip.driver.name;
+  const d = trip.driver;
+  const fullName = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+  return fullName || d.phone_primary || 'Assigned Driver';
 }
 function getCargoDesc(trip: BillingLedgerTrip) {
-  if (trip.cargo_type) return trip.cargo_type;
-  if (trip.cargo_weight) return `${trip.cargo_weight} kg`;
+  const t = trip as any;
+  if (t.cargo_type) return t.cargo_type;
+  if (t.cargo_weight) return `${t.cargo_weight} kg`;
   return 'General Cargo';
 }
 
@@ -255,6 +258,8 @@ function CompanyInvoiceStatementModal({
 }) {
   if (!row) return null;
 
+  const coverageRatio = row.coverage_pct ?? Math.round((row.invoiced / (row.total_trips || 1)) * 100);
+
   const handleExportCompanyCSV = () => {
     const csvRows = row.trips.map(trip => ({
       company: row.customer.name,
@@ -319,20 +324,20 @@ function CompanyInvoiceStatementModal({
         <div className="bg-indigo-50/60 dark:bg-indigo-950/30 px-5 py-3 border-b border-indigo-100 dark:border-indigo-900/40 grid grid-cols-4 gap-3 text-center shrink-0">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Trips</p>
-            <p className="font-extrabold text-base text-slate-900 dark:text-slate-100">{row.trips.length}</p>
+            <p className="font-extrabold text-base text-slate-900 dark:text-slate-100">{row.total_trips}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Invoiced</p>
-            <p className="font-extrabold text-base text-emerald-600">{row.invoiced_count}</p>
+            <p className="font-extrabold text-base text-emerald-600">{row.invoiced}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Pending</p>
-            <p className="font-extrabold text-base text-amber-600">{row.pending_count}</p>
+            <p className="font-extrabold text-base text-amber-600">{row.completed}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Coverage Ratio</p>
             <p className="font-extrabold text-base text-indigo-600 dark:text-indigo-400">
-              {Math.round((row.invoiced_count / (row.trips.length || 1)) * 100)}%
+              {coverageRatio}%
             </p>
           </div>
         </div>
@@ -612,7 +617,7 @@ function CompanyRow({
   onSelectTrip: (trip: BillingLedgerTrip) => void;
   onOpenStatement: (row: CustomerBillingRow) => void;
 }) {
-  const coverageRatio = Math.round((row.invoiced_count / (row.total_trips || 1)) * 100);
+  const coverageRatio = row.coverage_pct ?? Math.round((row.invoiced / (row.total_trips || 1)) * 100);
 
   return (
     <>
@@ -653,13 +658,13 @@ function CompanyRow({
           <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{row.total_trips}</span>
         </td>
         <td className="px-4 py-3.5 text-center">
-          {row.pending_count > 0
-            ? <span className="font-bold text-sm text-amber-600">{row.pending_count}</span>
+          {row.completed > 0
+            ? <span className="font-bold text-sm text-amber-600">{row.completed}</span>
             : <span className="text-sm text-slate-300 font-semibold">—</span>
           }
         </td>
         <td className="px-4 py-3.5 text-center">
-          <span className="font-bold text-sm text-emerald-600">{row.invoiced_count}</span>
+          <span className="font-bold text-sm text-emerald-600">{row.invoiced}</span>
         </td>
         {/* Coverage ratio */}
         <td className="px-4 py-3.5 text-center">
