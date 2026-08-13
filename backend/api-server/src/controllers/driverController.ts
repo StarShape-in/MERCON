@@ -4,6 +4,7 @@ import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { DriverStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { logger } from '../utils/logger';
 
 /**
  * Fields the driver roster search bar looks at. Full name has to work, so both
