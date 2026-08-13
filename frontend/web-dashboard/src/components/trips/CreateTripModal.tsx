@@ -300,7 +300,7 @@ export default function CreateTripModal({
   const availableRateCards = availableRateCardsRes || [];
   const matchedRateCard = availableRateCards.find((rc) => rc.id === selectedRateCardId) ?? null;
   const rateSource = matchedRateCard ? 'customer' as const : null;
-  const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && availableRateCards.length === 0;
+  const laneHasNoRate = !laneReady || (!isLookingUpRate && availableRateCards.length === 0);
 
   // Auto-select best matching rate card when availableRateCards loads
   useEffect(() => {
@@ -513,10 +513,6 @@ export default function CreateTripModal({
         setError('Name both locations — reports group trips by these names.');
         return;
       }
-      if (!pickupLocationId || !dropoffLocationId) {
-        setError('Pick origin and destination for both stops to match rate cards.');
-        return;
-      }
     }
     if (step === 3) {
       if (!pickupTime || !dropoffTime) {
@@ -576,7 +572,7 @@ export default function CreateTripModal({
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
   const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
-  const missingLane = !pickupLocationId || !dropoffLocationId;
+  const missingLane = false;
   const missingSchedule = pickupTime === '' || dropoffTime === '';
   const isScheduleInvalid = pickupTime !== '' && dropoffTime !== '' && dropoffTime <= pickupTime;
 
@@ -586,7 +582,6 @@ export default function CreateTripModal({
     (assignVehicleLater || vehicleId !== '') &&
     !missingLocation &&
     !missingName &&
-    !missingLane &&
     !missingSchedule &&
     !isScheduleInvalid;
 
@@ -603,10 +598,6 @@ export default function CreateTripModal({
     }
     if (pickupName.trim() === '' || dropoffName.trim() === '') {
       setError('Name both locations (e.g. "Khamis Sorting Center") — reports group trips by these names.');
-      return;
-    }
-    if (!pickupLocationId || !dropoffLocationId) {
-      setError('Pick the origin and destination for both stops — that is what the rate is priced against.');
       return;
     }
     if (!pickupTime || !dropoffTime) {
@@ -718,8 +709,8 @@ export default function CreateTripModal({
         const targetStep = parseInt(e.key, 10) as 1 | 2 | 3 | 4 | 5;
         if (targetStep === 1) setStep(1);
         if (targetStep === 2 && customerId) setStep(2);
-        if (targetStep === 3 && customerId && !missingLocation && !missingName && !missingLane) setStep(3);
-        if (targetStep === 4 && customerId && !missingLocation && !missingName && !missingLane && !missingSchedule && !isScheduleInvalid) setStep(4);
+        if (targetStep === 3 && customerId && !missingLocation && !missingName) setStep(3);
+        if (targetStep === 4 && customerId && !missingLocation && !missingName && !missingSchedule && !isScheduleInvalid) setStep(4);
         if (targetStep === 5 && isFormValid) setStep(5);
         return;
       }
@@ -760,7 +751,7 @@ export default function CreateTripModal({
           nextStep();
           return;
         }
-        if (step === 2 && !missingLocation && !missingName && !missingLane) {
+        if (step === 2 && !missingLocation && !missingName) {
           e.preventDefault();
           nextStep();
           return;
@@ -985,14 +976,14 @@ export default function CreateTripModal({
                   'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 2
                     ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
-                    : !missingLocation && !missingName && !missingLane
+                    : !missingLocation && !missingName
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
                 )}
               >
                 <Navigation className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">2. Route Stops</span>
-                {!missingLocation && !missingName && !missingLane && (
+                {!missingLocation && !missingName && (
                   <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-emerald-600 shrink-0" />
                 )}
               </button>
@@ -1000,11 +991,11 @@ export default function CreateTripModal({
               <button
                 type="button"
                 onClick={() => {
-                  if (customerId && !missingLocation && !missingName && !missingLane) {
+                  if (customerId && !missingLocation && !missingName) {
                     setStep(3);
                   }
                 }}
-                disabled={!customerId || missingLocation || missingName || missingLane}
+                disabled={!customerId || missingLocation || missingName}
                 className={cn(
                   'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 3
@@ -1024,11 +1015,11 @@ export default function CreateTripModal({
               <button
                 type="button"
                 onClick={() => {
-                  if (customerId && !missingLocation && !missingName && !missingLane && !missingSchedule && !isScheduleInvalid) {
+                  if (customerId && !missingLocation && !missingName && !missingSchedule && !isScheduleInvalid) {
                     setStep(4);
                   }
                 }}
-                disabled={!customerId || missingLocation || missingName || missingLane || missingSchedule || isScheduleInvalid}
+                disabled={!customerId || missingLocation || missingName || missingSchedule || isScheduleInvalid}
                 className={cn(
                   'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 4
@@ -1048,7 +1039,7 @@ export default function CreateTripModal({
               <button
                 type="button"
                 onClick={() => {
-                  if (customerId && (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater) && !missingLocation && !missingName && !missingLane && !missingSchedule && !isScheduleInvalid) {
+                  if (customerId && (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater) && !missingLocation && !missingName && !missingSchedule && !isScheduleInvalid) {
                     setStep(5);
                   }
                 }}
@@ -1128,8 +1119,8 @@ export default function CreateTripModal({
 
             {step === 3 && (
               <TripStepSchedule
-                pickupLocationName={pickupLocationName}
-                dropoffLocationName={dropoffLocationName}
+                pickupLocationName={pickupLocationName || pickupName}
+                dropoffLocationName={dropoffLocationName || dropoffName}
                 pickupTime={pickupTime}
                 dropoffTime={dropoffTime}
                 onPickupTimeChange={(t) => { setPickupTime(t); setError(null); }}
@@ -1169,8 +1160,8 @@ export default function CreateTripModal({
 
             {step === 5 && (
               <TripStepRatesBilling
-                pickupLocationName={pickupLocationName}
-                dropoffLocationName={dropoffLocationName}
+                pickupLocationName={pickupLocationName || pickupName}
+                dropoffLocationName={dropoffLocationName || dropoffName}
                 isLookingUpRate={isLookingUpRate}
                 availableRateCards={availableRateCards}
                 selectedRateCardId={selectedRateCardId}

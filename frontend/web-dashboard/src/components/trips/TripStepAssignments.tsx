@@ -84,6 +84,7 @@ export default function TripStepAssignments({
 
           {!assignDriverLater && (
             <Combobox
+              id="driver_assignment"
               options={driverOptions}
               value={driverId}
               onChange={onSelectDriver}
@@ -135,6 +136,7 @@ export default function TripStepAssignments({
 
           {!assignVehicleLater && (
             <Combobox
+              id="vehicle_assignment"
               options={vehicleOptions}
               value={vehicleId}
               onChange={onSelectVehicle}

@@ -99,7 +99,7 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-border bg-popover z-50 overflow-hidden" align={align}>
+        <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-border bg-popover z-[9999] overflow-hidden" align={align}>
           {/* Quick Presets Toolbar */}
           <div className="p-2 border-b bg-muted/20 flex flex-wrap items-center gap-1">
             {presets.map((p) => {

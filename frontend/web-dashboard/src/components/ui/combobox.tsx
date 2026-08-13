@@ -60,47 +60,65 @@ export function Combobox({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            'h-9 w-full justify-between text-xs font-normal border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700',
-            !selected && 'text-muted-foreground',
+            'h-10 w-full justify-between text-xs font-medium border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl px-3.5 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800/60',
+            !selected && 'text-slate-400 dark:text-slate-500 font-normal',
             triggerClassName
           )}
         >
           <span className="truncate">{selected ? selected.label : placeholder}</span>
-          <ChevronDown className="ml-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
+          <ChevronDown className="ml-1.5 h-4 w-4 shrink-0 opacity-50 text-slate-400" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className={cn('w-[--radix-popover-trigger-width] p-0', className)}>
+      <PopoverContent
+        align="start"
+        className={cn(
+          'w-[--radix-popover-trigger-width] min-w-[280px] p-0 rounded-xl shadow-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-[9999]',
+          className
+        )}
+      >
         <Command
           filter={(itemValue, search) => {
             const option = options.find((o) => o.value === itemValue);
             return matchesSearch(search, [option?.label, option?.keywords]) ? 1 : 0;
           }}
         >
-          <CommandInput placeholder={searchPlaceholder} className="text-xs" />
-          <CommandList>
-            <CommandEmpty className="py-4 text-xs">{emptyText}</CommandEmpty>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            className="h-10 text-xs border-b border-slate-100 dark:border-slate-800"
+          />
+          <CommandList className="max-h-64 p-1 overflow-y-auto overscroll-contain">
+            <CommandEmpty className="py-6 text-center text-xs text-slate-500">{emptyText}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.value}
-                  disabled={option.disabled}
-                  className={cn("text-xs", option.disabled && "opacity-50 cursor-not-allowed")}
-                  onSelect={(currentValue) => {
-                    if (option.disabled) return;
-                    onChange(currentValue === value ? value : currentValue);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
+              {options.map((option) => {
+                const isSelected = value === option.value;
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={option.value}
+                    disabled={option.disabled}
                     className={cn(
-                      'mr-2 h-3.5 w-3.5',
-                      value === option.value ? 'opacity-100' : 'opacity-0'
+                      'flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-colors text-xs my-0.5',
+                      isSelected
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] font-semibold'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300',
+                      option.disabled && 'opacity-50 cursor-not-allowed pointer-events-none'
                     )}
-                  />
-                  <span className="truncate">{option.label}</span>
-                </CommandItem>
-              ))}
+                    onSelect={(currentValue) => {
+                      if (option.disabled) return;
+                      onChange(currentValue === value ? value : currentValue);
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="truncate flex-1">{option.label}</span>
+                    <Check
+                      className={cn(
+                        'h-4 w-4 text-[#E8450F] shrink-0 ml-2',
+                        isSelected ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>
@@ -108,3 +126,4 @@ export function Combobox({
     </Popover>
   );
 }
+

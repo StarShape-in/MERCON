@@ -290,7 +290,7 @@ export default function CreateTripPage() {
   const availableRateCards = availableRateCardsRes || [];
   const matchedRateCard = availableRateCards.find((rc) => rc.id === selectedRateCardId) ?? null;
   const rateSource = matchedRateCard ? ('customer' as const) : null;
-  const laneHasNoRate = !!customerId && laneReady && !isLookingUpRate && availableRateCards.length === 0;
+  const laneHasNoRate = !laneReady || (!isLookingUpRate && availableRateCards.length === 0);
 
   // Auto-select the customer's card, whenever the lane's cards load or
   // change — but leave the dispatcher's
@@ -551,14 +551,14 @@ export default function CreateTripPage() {
 
   const missingLocation = pickupLat == null || pickupLng == null || dropoffLat == null || dropoffLng == null;
   const missingName = pickupName.trim() === '' || dropoffName.trim() === '';
-  const missingLane = !pickupLocationId || !dropoffLocationId;
+  const missingLane = false;
   const missingSchedule = pickupTime === '' || dropoffTime === '';
   const isScheduleInvalid = pickupTime !== '' && dropoffTime !== '' && dropoffTime <= pickupTime;
   const isFormValid =
     customerId !== '' &&
     (assignDriverLater || driverId !== '') &&
     (assignVehicleLater || vehicleId !== '') &&
-    !missingLocation && !missingName && !missingLane &&
+    !missingLocation && !missingName &&
     !missingSchedule && !isScheduleInvalid;
 
   const handleSubmit = useCallback((dispatchNow: boolean = false) => {
@@ -574,10 +574,6 @@ export default function CreateTripPage() {
     }
     if (pickupName.trim() === '' || dropoffName.trim() === '') {
       setError('Name both locations (e.g. "Khamis Sorting Center") — reports group trips by these names.');
-      return;
-    }
-    if (!pickupLocationId || !dropoffLocationId) {
-      setError('Pick the origin and destination for both stops — that is what the rate is priced against.');
       return;
     }
     if (!pickupTime || !dropoffTime) {
@@ -696,16 +692,16 @@ export default function CreateTripPage() {
 
             {/* Location Selection & Pricing */}
             <div className={`flex-1 p-3.5 flex items-center gap-3 w-full transition-colors ${step === 3 ? 'bg-muted/50' : ''}`}>
-              <Navigation className={`w-4 h-4 shrink-0 ${!missingLocation && !missingLane && !missingSchedule && !isScheduleInvalid ? 'text-primary' : 'text-muted-foreground/40'}`} />
+              <Navigation className={`w-4 h-4 shrink-0 ${!missingLocation && !missingName && !missingSchedule && !isScheduleInvalid ? 'text-primary' : 'text-muted-foreground/40'}`} />
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">3. Location Selection &amp; Pricing</span>
-                <p className={`text-sm font-bold truncate mt-0.5 ${!missingLocation && !missingLane && !missingSchedule && !isScheduleInvalid ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                  {!missingLocation && !missingLane && !missingSchedule && !isScheduleInvalid
-                    ? `${pickupLocationName} → ${dropoffLocationName}${billingAmount ? ` • SAR ${Number(billingAmount).toLocaleString()}` : ''}`
+                <p className={`text-sm font-bold truncate mt-0.5 ${!missingLocation && !missingName && !missingSchedule && !isScheduleInvalid ? 'text-foreground' : 'text-muted-foreground/60'}`}>
+                  {!missingLocation && !missingName && !missingSchedule && !isScheduleInvalid
+                    ? `${pickupLocationName || pickupName} → ${dropoffLocationName || dropoffName}${billingAmount ? ` • SAR ${Number(billingAmount).toLocaleString()}` : ''}`
                     : 'Pending...'}
                 </p>
               </div>
-              {!missingLocation && !missingLane && !missingSchedule && !isScheduleInvalid && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+              {!missingLocation && !missingName && !missingSchedule && !isScheduleInvalid && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
             </div>
           </div>
         </Card>
