@@ -31,6 +31,9 @@ import {
 } from '@/components/ui/select';
 import ReportsHeader from '@/components/reports/ReportsHeader';
 
+import { documentService } from '@/services/documentService';
+import { daysUntil } from '@/lib/documents';
+
 const CHART_COLORS = ['#E8450F', '#111111', '#16A34A', '#2563EB', '#CA8A04', '#9898A4'];
 
 export default function ReportsDashboardPage() {
@@ -45,9 +48,17 @@ export default function ReportsDashboardPage() {
     queryFn: reportsService.getSummary,
   });
 
+  const { data: docs = [] } = useQuery({
+    queryKey: ['documents', 'all'],
+    queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
+  });
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['reports-summary'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['reports-summary'] }),
+      queryClient.invalidateQueries({ queryKey: ['documents'] }),
+    ]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -113,10 +124,10 @@ export default function ReportsDashboardPage() {
   const totalFleetVal = fleetAvailVal + fleetOnTripVal || 1;
   const fleetUtilizationPct = Math.round((fleetOnTripVal / totalFleetVal) * 100);
 
-  const docsExpiringVal = kpis?.docs_expiring_soon?.value || 0;
-  const criticalDocs = Math.min(docsExpiringVal, Math.ceil(docsExpiringVal * 0.4));
-  const warningDocs = Math.max(0, docsExpiringVal - criticalDocs);
-  const safeDocs = Math.max(5, 20 - docsExpiringVal);
+  const expiredDocsCount = docs.filter(d => { const days = daysUntil(d.expiry_date); return days !== null && days <= 0; }).length;
+  const criticalDocsCount = docs.filter(d => { const days = daysUntil(d.expiry_date); return days !== null && days > 0 && days <= 7; }).length;
+  const warningDocsCount = docs.filter(d => { const days = daysUntil(d.expiry_date); return days !== null && days > 7 && days <= 30; }).length;
+  const totalExpiringRisk = expiredDocsCount + criticalDocsCount + warningDocsCount;
 
   const donutData = Object.entries(trip_status_distribution || {}).map(([name, value]) => ({
     name,
@@ -182,17 +193,19 @@ export default function ReportsDashboardPage() {
           {/* Card 4: Compliance & Risk Horizon — Urgency Bar */}
           <KpiCard
             title="COMPLIANCE RISK"
-            value={docsExpiringVal}
+            value={totalExpiringRisk}
             variant="amber"
-            trend={docsExpiringVal > 0 ? 'down' : 'neutral'}
-            trendValue={docsExpiringVal > 0 ? 'Action Needed' : 'All Clear'}
-            description="Documents expiring soon"
+            trend={expiredDocsCount > 0 ? 'down' : totalExpiringRisk > 0 ? 'neutral' : 'up'}
+            trendValue={expiredDocsCount > 0 ? `${expiredDocsCount} Expired` : totalExpiringRisk > 0 ? `${totalExpiringRisk} Action Needed` : 'All Clear'}
+            description="Documents needing action"
             icon={CalendarAlert}
             progressSegments={[
-              { label: `${criticalDocs} Critical (<7d)`, value: docsExpiringVal > 0 ? 35 : 0, color: 'bg-rose-500' },
-              { label: `${warningDocs} Warning (30d)`, value: docsExpiringVal > 0 ? 45 : 0, color: 'bg-amber-500' },
-              { label: `${safeDocs} Clear`, value: docsExpiringVal > 0 ? 20 : 100, color: 'bg-slate-300' },
+              { label: `${expiredDocsCount} Expired`, value: expiredDocsCount, color: 'bg-rose-600' },
+              { label: `${criticalDocsCount} Critical (<7d)`, value: criticalDocsCount, color: 'bg-rose-500' },
+              { label: `${warningDocsCount} Warning (30d)`, value: warningDocsCount, color: 'bg-amber-500' },
             ]}
+            isActive={totalExpiringRisk > 0}
+            onClick={() => navigate('/documents?radar=open')}
           />
         </div>
 
@@ -369,12 +382,13 @@ export default function ReportsDashboardPage() {
             <div>
               <h3 className="text-xs font-bold text-slate-900">Compliance & Expiry Radar Alert</h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                <span className="text-rose-600 font-extrabold">{docsExpiringVal}</span> compliance document(s) require renewal within 30 days.
+                <span className="text-rose-600 font-extrabold">{totalExpiringRisk}</span> compliance document(s) require renewal within 30 days.
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="h-8 text-xs font-semibold" onClick={() => navigate('/documents/expiring')}>
-            View Compliance Center
+          <Button variant="outline" size="sm" className="h-8 text-xs font-semibold gap-1.5" onClick={() => navigate('/documents?radar=open')}>
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+            Open Expiry Radar
           </Button>
         </div>
 

@@ -7,6 +7,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import Btn from '@/components/ui/Btn';
 import { documentService, DocType, MerconDocument } from '@/services/documentService';
 import { vehicleService } from '@/services/vehicleService';
+import { daysUntil, formatExpiryText } from '@/lib/documents';
 
 export default function VehicleDocumentsPage() {
   const { id } = useParams<{ id: string }>();
@@ -188,8 +189,9 @@ export default function VehicleDocumentsPage() {
               ) : (
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   {documents.map((doc) => {
-                    const fileUrl = doc.file_url.startsWith('http') ? doc.file_url : `${import.meta.env.VITE_API_URL}${doc.file_url}`;
-                    const isExpired = doc.expiry_date && new Date(doc.expiry_date) < new Date();
+                    const fileUrl = doc.file_url.startsWith('http') ? doc.file_url : `${import.meta.env.VITE_API_URL || ''}${doc.file_url}`;
+                    const days = daysUntil(doc.expiry_date);
+                    const isExpired = days !== null && days <= 0;
                     
                     return (
                       <div key={doc.id} className="border border-black/[0.06] rounded-lg p-4 hover:shadow-sm transition-shadow relative bg-[#F9F9FB]">
@@ -216,6 +218,9 @@ export default function VehicleDocumentsPage() {
                           {doc.expiry_date && (
                             <p className={`text-xs font-medium flex items-center gap-1.5 ${isExpired ? 'text-red-600 font-bold' : 'text-[#6E6E80]'}`}>
                               <Calendar size={12} /> Expiry: {new Date(doc.expiry_date).toLocaleDateString()}
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${isExpired ? 'bg-red-100 text-red-700' : days !== null && days <= 30 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                {formatExpiryText(days)}
+                              </span>
                               {isExpired && <AlertTriangle size={12} />}
                             </p>
                           )}

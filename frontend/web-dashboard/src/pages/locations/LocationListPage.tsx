@@ -115,16 +115,34 @@ function MapBoundsController({
 }) {
   const map = useMap();
 
-  // Invalidate size immediately & after layout stabilizes to prevent blank map
+  // ResizeObserver & timer invalidations guarantee Leaflet sizes properly in all environments (production & dev)
   useEffect(() => {
+    const container = map.getContainer();
+
     map.invalidateSize();
-    const t1 = setTimeout(() => map.invalidateSize(), 100);
-    const t2 = setTimeout(() => map.invalidateSize(), 300);
-    const t3 = setTimeout(() => map.invalidateSize(), 600);
+    const t1 = setTimeout(() => map.invalidateSize(), 50);
+    const t2 = setTimeout(() => map.invalidateSize(), 150);
+    const t3 = setTimeout(() => map.invalidateSize(), 350);
+    const t4 = setTimeout(() => map.invalidateSize(), 650);
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      ro = new ResizeObserver(() => {
+        map.invalidateSize();
+      });
+      ro.observe(container);
+    }
+
+    const onResize = () => map.invalidateSize();
+    window.addEventListener('resize', onResize);
+
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', onResize);
     };
   }, [map]);
 
@@ -145,6 +163,8 @@ function MapBoundsController({
     } else if (mapped.length > 1) {
       const bounds = L.latLngBounds(mapped.map((l) => [l.lat!, l.lng!]));
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+    } else {
+      map.setView([24.7136, 46.6753], 6);
     }
   }, [locations, fitTrigger, map]);
 
@@ -784,14 +804,15 @@ export default function LocationListPage() {
 
           {/* B) INTERACTIVE MAP VIEW */}
           {viewMode === 'map' && (
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[580px] h-[calc(100vh-230px)] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs relative z-0 isolate">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[580px] h-[650px] lg:h-[calc(100vh-230px)] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs relative z-0">
               
               {/* Map Canvas (3 columns on large screens) */}
-              <div className="lg:col-span-3 relative h-full min-h-[500px] bg-slate-100 dark:bg-slate-950">
+              <div className="lg:col-span-3 relative h-[450px] lg:h-full min-h-[450px] bg-slate-100 dark:bg-slate-950 overflow-hidden">
                 <MapContainer
                   center={selectedMapCenter || defaultCenter}
-                  zoom={11}
-                  style={{ height: '100%', width: '100%', minHeight: '500px' }}
+                  zoom={6}
+                  scrollWheelZoom={true}
+                  style={{ height: '100%', width: '100%', position: 'absolute', inset: 0, zIndex: 0 }}
                   zoomControl={true}
                 >
                   <TileLayer

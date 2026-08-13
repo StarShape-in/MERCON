@@ -441,4 +441,17 @@ body {
   display: none !important;
 }
 
+/* ─── Leaflet Map Container Global Resiliency ──────────────────────────────── */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  font-family: inherit !important;
+  z-index: 0 !important;
+}
+
+.custom-location-pin-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
 

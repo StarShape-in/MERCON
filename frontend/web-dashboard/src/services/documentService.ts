@@ -1,6 +1,6 @@
 import { api, ApiResponse } from '@/lib/api';
 
-export type DocType   = 'DriverLicense' | 'VehicleRegistration' | 'Insurance' | 'POD' | 'CustomsClearance' | 'Waybill' | 'Contract' | 'Invoice';
+export type DocType   = 'DriverLicense' | 'VehicleRegistration' | 'Insurance' | 'POD' | 'CustomsClearance' | 'Waybill' | 'Contract' | 'Invoice' | 'Emergency';
 export type DocStatus = 'PendingReview' | 'Verified' | 'Rejected' | 'Expired';
 
 export interface MerconDocument {

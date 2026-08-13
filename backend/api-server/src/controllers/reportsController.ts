@@ -49,11 +49,11 @@ export const getSummary = async (req: Request, res: Response) => {
         where: { deletedAt: null, createdAt: { gte: startOfMonth } },
         _count: { status: true }
       }),
-      // Documents expiring within 30 days
+      // Documents expiring within 30 days (including already expired requiring renewal)
       prisma.document.count({
         where: {
           deletedAt: null,
-          expiry_date: { gte: now, lte: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) }
+          expiry_date: { lte: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) }
         }
       }),
       // Monthly revenue for the last 6 months (for chart)
