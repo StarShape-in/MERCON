@@ -131,6 +131,7 @@ export default function BulkAddTripsModal({
     billingAmount: string;
     isOvernight?: boolean;
     intermediateLocations: string[];
+    intermediateStopFees?: string[];
   }>>([
     {
       id: 'slot-1',
@@ -141,6 +142,7 @@ export default function BulkAddTripsModal({
       billingAmount: '',
       isOvernight: false,
       intermediateLocations: [],
+      intermediateStopFees: [],
     },
   ]);
 
@@ -158,6 +160,7 @@ export default function BulkAddTripsModal({
         billingAmount: prev[0]?.billingAmount || '',
         isOvernight: false,
         intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
+        intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
       },
     ]);
   };
@@ -175,7 +178,15 @@ export default function BulkAddTripsModal({
 
   const handleAddSlotIntermediate = (slotId: string) => {
     setContractSlots((prev) =>
-      prev.map((s) => (s.id === slotId ? { ...s, intermediateLocations: [...s.intermediateLocations, ''] } : s))
+      prev.map((s) =>
+        s.id === slotId
+          ? {
+              ...s,
+              intermediateLocations: [...s.intermediateLocations, ''],
+              intermediateStopFees: [...(s.intermediateStopFees || []), ''],
+            }
+          : s
+      )
     );
   };
 
@@ -183,7 +194,11 @@ export default function BulkAddTripsModal({
     setContractSlots((prev) =>
       prev.map((s) =>
         s.id === slotId
-          ? { ...s, intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx) }
+          ? {
+              ...s,
+              intermediateLocations: s.intermediateLocations.filter((_, i) => i !== idx),
+              intermediateStopFees: (s.intermediateStopFees || []).filter((_, i) => i !== idx),
+            }
           : s
       )
     );
@@ -196,6 +211,17 @@ export default function BulkAddTripsModal({
         const nextLocs = [...s.intermediateLocations];
         nextLocs[idx] = val;
         return { ...s, intermediateLocations: nextLocs };
+      })
+    );
+  };
+
+  const handleUpdateSlotIntermediateFee = (slotId: string, idx: number, val: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextFees = [...(s.intermediateStopFees || [])];
+        nextFees[idx] = val;
+        return { ...s, intermediateStopFees: nextFees };
       })
     );
   };
@@ -899,7 +925,7 @@ export default function BulkAddTripsModal({
                                   onClick={() => handleAddSlotIntermediate(slot.id)}
                                 >
                                   <Plus className="w-3.5 h-3.5 text-[#E8450F]" />
-                                  Add Location
+                                  Add Stop
                                 </Button>
                                 {contractSlots.length > 1 && (
                                   <button
@@ -1040,32 +1066,58 @@ export default function BulkAddTripsModal({
 
                             {/* Intermediate Stop Cards */}
                             {slot.intermediateLocations.length > 0 && (
-                              <div className="space-y-2 pt-2 border-t border-slate-100">
+                              <div className="space-y-3 pt-3 border-t border-slate-100">
                                 <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider block">
-                                  Intermediate Stop Locations
+                                  Intermediate Stop Locations & Fees
                                 </span>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-3">
                                   {slot.intermediateLocations.map((loc, idx) => (
-                                    <div key={idx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                                          <MapPin className="w-3 h-3 text-blue-600" /> Intermediate Stop #{idx + 1}
+                                    <div key={idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                                      <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                          <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                                          Intermediate Stop #{idx + 1}
                                         </span>
                                         <button
                                           type="button"
                                           onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                          className="text-slate-400 hover:text-rose-600 transition-colors p-0.5"
-                                          title="Remove stop location"
+                                          className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 flex items-center gap-1 text-[11px] font-semibold"
+                                          title="Remove stop"
                                         >
                                           <Trash2 className="w-3.5 h-3.5" />
+                                          Remove Stop
                                         </button>
                                       </div>
-                                      <LocationCombobox
-                                        value={loc}
-                                        onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
-                                        placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
-                                        triggerClassName="h-9 border-slate-200"
-                                      />
+
+                                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div className="sm:col-span-2 space-y-1">
+                                          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                                            Stop Location *
+                                          </label>
+                                          <LocationCombobox
+                                            value={loc}
+                                            onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                            placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
+                                            triggerClassName="h-10 border-slate-200 bg-white shadow-2xs"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                                            <DollarSign className="w-3 h-3 text-emerald-600" /> Additional Stop Fee (SAR)
+                                          </label>
+                                          <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">SAR</span>
+                                            <input
+                                              type="number"
+                                              value={slot.intermediateStopFees?.[idx] || ''}
+                                              onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
+                                              placeholder="e.g. 150"
+                                              className="w-full h-10 pl-11 pr-3 rounded-xl border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-[#E8450F] bg-white shadow-2xs"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
