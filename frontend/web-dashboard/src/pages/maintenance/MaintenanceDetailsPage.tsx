@@ -381,17 +381,14 @@ export default function MaintenanceDetailsPage() {
                   <Download className="w-4 h-4" />
                 </Button>
                 <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
-
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-9 px-3 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 gap-1.5 text-xs font-bold"
-                      title="Change status"
+                      className="h-9 px-3 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 gap-1.5 text-xs font-semibold"
                     >
-                      Set Status
-                      <ChevronDown className="w-3.5 h-3.5" />
+                      Set Status <ChevronDown className="w-3.5 h-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44 text-xs font-semibold">
@@ -700,11 +697,11 @@ export default function MaintenanceDetailsPage() {
             </Tabs>
           </Card>
 
-          {/* Vehicle & Workshop: vehicle + workshop, joined into one card */}
+          {/* Service provider: vehicle + workshop, joined into one card */}
           <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
               <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-[#E8450F]" /> Vehicle &amp; Workshop
+                <Wrench className="w-4 h-4 text-[#E8450F]" /> Service Provider
               </h3>
             </div>
 
