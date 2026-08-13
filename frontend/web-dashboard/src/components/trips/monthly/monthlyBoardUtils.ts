@@ -21,6 +21,23 @@ export const monthLabel = (month: string): string => {
   });
 };
 
+/**
+ * Months for the dropdown picker: a year back (contract history) through a
+ * few months ahead (forward planning), newest first, current month included
+ * even if the range math ever drifts.
+ */
+export const monthOptions = (
+  centerMonth: string = currentMonthKey(),
+  monthsBack = 12,
+  monthsForward = 3,
+): { value: string; label: string }[] => {
+  const months: string[] = [];
+  for (let i = monthsForward; i >= -monthsBack; i -= 1) {
+    months.push(shiftMonth(centerMonth, i));
+  }
+  return months.map((value) => ({ value, label: monthLabel(value) }));
+};
+
 /** "Fri, 14 Aug" — the table's date cell. */
 export const formatDayHeading = (isoDay: string): string => {
   const [year, month, day] = isoDay.split('-').map(Number);

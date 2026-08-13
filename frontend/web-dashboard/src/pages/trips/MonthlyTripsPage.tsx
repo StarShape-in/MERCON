@@ -9,7 +9,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
 import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
-import { currentMonthKey, monthLabel, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
+import { currentMonthKey, monthLabel, monthOptions, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -220,6 +220,7 @@ export default function MonthlyTripsPage() {
                 )}
               </div>
 
+              <MonthSelect month={month} onChange={setMonth} />
               <FilterSelect
                 value={customerId}
                 onChange={setCustomerId}
@@ -425,6 +426,36 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (month: st
         </button>
       )}
     </div>
+  );
+}
+
+/**
+ * Jump straight to any month, same style as the other joined filters — the
+ * stepper next to it stays for quick prev/next, this is for "I know exactly
+ * which month I want." Unlike the other filters there is no "All" option:
+ * the board always needs one month.
+ */
+function MonthSelect({ month, onChange }: { month: string; onChange: (month: string) => void }) {
+  return (
+    <Select value={month} onValueChange={onChange}>
+      <SelectTrigger className="h-10 w-full sm:w-[160px] shrink-0 rounded-none border-0 shadow-none bg-transparent px-3 text-xs font-bold text-slate-900 focus:ring-0">
+        <SelectValue placeholder={monthLabel(month)} />
+      </SelectTrigger>
+      <SelectContent align="start" className="w-[200px] max-h-[320px] p-1.5 rounded-lg border border-slate-200 shadow-md">
+        <SelectGroup>
+          <SelectLabel className={`${LABEL} px-2 py-1`}>Month</SelectLabel>
+          {monthOptions(month).map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md"
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   );
 }
 
