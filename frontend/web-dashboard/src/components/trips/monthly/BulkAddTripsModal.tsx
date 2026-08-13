@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import LocationCombobox from '@/components/rate-cards/LocationCombobox';
 import { customerService } from '@/services/customerService';
 import { driverService, Driver } from '@/services/driverService';
 import { vehicleService, Vehicle } from '@/services/vehicleService';
@@ -933,19 +934,12 @@ export default function BulkAddTripsModal({
                                       <span>Pickup Location *</span>
                                       <span className="text-[10px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
                                     </label>
-                                    <div className="relative">
-                                      <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
-                                      <input
-                                        type="text"
-                                        value={slot.origin}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { origin: e.target.value })}
-                                        placeholder="Search or enter pickup location..."
-                                        className="w-full h-10 pl-9 pr-16 rounded-xl border border-emerald-200 text-xs font-medium focus:outline-none focus:border-emerald-500 bg-white shadow-2xs"
-                                      />
-                                      <span className="absolute right-2 top-2 text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                                        <MapPin className="w-2.5 h-2.5" /> Map Pin
-                                      </span>
-                                    </div>
+                                    <LocationCombobox
+                                      value={slot.origin}
+                                      onChange={(locName) => handleUpdateTripSlot(slot.id, { origin: locName })}
+                                      placeholder="Search or select pickup location..."
+                                      triggerClassName="h-10 border-emerald-200 bg-white shadow-2xs"
+                                    />
                                   </div>
 
                                   <div className="space-y-1.5 pt-1">
@@ -1013,23 +1007,16 @@ export default function BulkAddTripsModal({
                                       <span>Dropoff Location *</span>
                                       <span className="text-[10px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
                                     </label>
-                                    <div className="relative">
-                                      <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
-                                      <input
-                                        type="text"
-                                        value={slot.destination}
-                                        onChange={(e) => handleUpdateTripSlot(slot.id, { destination: e.target.value })}
-                                        placeholder="Search or enter dropoff location..."
-                                        className={`w-full h-10 pl-9 pr-16 rounded-xl border text-xs font-medium focus:outline-none focus:border-[#E8450F] shadow-2xs ${
-                                          slot.origin.trim() && slot.destination.trim() === slot.origin.trim()
-                                            ? 'border-emerald-300 bg-emerald-50/20 text-emerald-950 font-semibold'
-                                            : 'border-orange-200 bg-white'
-                                        }`}
-                                      />
-                                      <span className="absolute right-2 top-2 text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                                        <MapPin className="w-2.5 h-2.5" /> Map Pin
-                                      </span>
-                                    </div>
+                                    <LocationCombobox
+                                      value={slot.destination}
+                                      onChange={(locName) => handleUpdateTripSlot(slot.id, { destination: locName })}
+                                      placeholder="Search or select dropoff location..."
+                                      triggerClassName={`h-10 bg-white shadow-2xs ${
+                                        slot.origin.trim() && slot.destination.trim() === slot.origin.trim()
+                                          ? 'border-emerald-300 bg-emerald-50/20 text-emerald-950 font-semibold'
+                                          : 'border-orange-200'
+                                      }`}
+                                    />
                                   </div>
 
                                   <div className="space-y-1.5 pt-1">
@@ -1073,12 +1060,11 @@ export default function BulkAddTripsModal({
                                           <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                       </div>
-                                      <input
-                                        type="text"
+                                      <LocationCombobox
                                         value={loc}
-                                        onChange={(e) => handleUpdateSlotIntermediate(slot.id, idx, e.target.value)}
-                                        placeholder={`Enter Intermediate Stop ${idx + 1} location...`}
-                                        className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none focus:border-[#E8450F] bg-white"
+                                        onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                        placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
+                                        triggerClassName="h-9 border-slate-200"
                                       />
                                     </div>
                                   ))}

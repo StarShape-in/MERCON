@@ -57,14 +57,14 @@ export default function LocationCombobox({
   });
 
   const locations = (locationsRes?.data || []).filter((l) => l.id !== excludeLocationId);
-  const selected = locations.find((l) => l.id === value) || null;
+  const selected = locations.find((l) => l.id === value || l.name === value || (value && l.name.trim().toLowerCase() === value.trim().toLowerCase())) || null;
 
   const createMutation = useMutation({
     mutationFn: (name: string) =>
       locationService.create({ name, lat: newLocationLat ?? null, lng: newLocationLng ?? null }),
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['locations'] });
-      onChange(created.id, created);
+      onChange(created.name, created);
       setSearch('');
       setOpen(false);
     },
@@ -75,6 +75,8 @@ export default function LocationCombobox({
     (l) => l.name.trim().toLowerCase() === trimmedSearch.toLowerCase()
   );
   const canCreate = trimmedSearch.length > 0 && !alreadyExists;
+
+  const displayLabel = selected ? selected.name : value ? value : '';
 
   return (
     <Popover open={disabled ? false : open} onOpenChange={setOpen}>
@@ -87,14 +89,14 @@ export default function LocationCombobox({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            'h-9 w-full justify-between text-xs font-normal border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700',
-            !selected && 'text-muted-foreground',
+            'h-10 w-full justify-between text-xs font-medium border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700 rounded-xl px-3',
+            !displayLabel && 'text-muted-foreground',
             triggerClassName
           )}
         >
-          <span className="flex items-center gap-1.5 truncate">
-            <MapPin className={cn('h-3.5 w-3.5 shrink-0', selected ? 'text-[#E8450F]' : 'opacity-50')} />
-            <span className="truncate">{selected ? selected.name : placeholder}</span>
+          <span className="flex items-center gap-2 truncate">
+            <MapPin className={cn('h-3.5 w-3.5 shrink-0', displayLabel ? 'text-[#E8450F]' : 'text-slate-400')} />
+            <span className="truncate">{displayLabel || placeholder}</span>
           </span>
           <ChevronDown className="ml-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
@@ -130,7 +132,7 @@ export default function LocationCombobox({
                   value={location.id}
                   className="text-xs"
                   onSelect={() => {
-                    onChange(location.id, location);
+                    onChange(location.name || location.id, location);
                     setOpen(false);
                   }}
                 >
