@@ -132,17 +132,32 @@ export default function BulkAddTripsModal({
     isOvernight?: boolean;
     intermediateLocations: string[];
     intermediateStopFees?: string[];
+    // Return Leg fields for Round Trip
+    returnOrigin?: string;
+    returnDestination?: string;
+    returnPickupTime?: string;
+    returnDropoffTime?: string;
+    returnIsOvernight?: boolean;
+    returnIntermediateLocations?: string[];
+    returnIntermediateStopFees?: string[];
   }>>([
     {
       id: 'slot-1',
       origin: '',
       destination: '',
       pickupTime: '08:00',
-      dropoffTime: '18:00',
+      dropoffTime: '14:00',
       billingAmount: '',
       isOvernight: false,
       intermediateLocations: [],
       intermediateStopFees: [],
+      returnOrigin: '',
+      returnDestination: '',
+      returnPickupTime: '16:00',
+      returnDropoffTime: '22:00',
+      returnIsOvernight: false,
+      returnIntermediateLocations: [],
+      returnIntermediateStopFees: [],
     },
   ]);
 
@@ -156,11 +171,18 @@ export default function BulkAddTripsModal({
         origin: prev[0]?.origin || '',
         destination: prev[0]?.destination || '',
         pickupTime: defaultTime,
-        dropoffTime: '18:00',
+        dropoffTime: '14:00',
         billingAmount: prev[0]?.billingAmount || '',
         isOvernight: false,
         intermediateLocations: [...(prev[0]?.intermediateLocations || [])],
         intermediateStopFees: [...(prev[0]?.intermediateStopFees || [])],
+        returnOrigin: prev[0]?.returnOrigin || '',
+        returnDestination: prev[0]?.returnDestination || '',
+        returnPickupTime: '16:00',
+        returnDropoffTime: '22:00',
+        returnIsOvernight: false,
+        returnIntermediateLocations: [...(prev[0]?.returnIntermediateLocations || [])],
+        returnIntermediateStopFees: [...(prev[0]?.returnIntermediateStopFees || [])],
       },
     ]);
   };
@@ -222,6 +244,57 @@ export default function BulkAddTripsModal({
         const nextFees = [...(s.intermediateStopFees || [])];
         nextFees[idx] = val;
         return { ...s, intermediateStopFees: nextFees };
+      })
+    );
+  };
+
+  // Return Leg Intermediate Stop Handlers
+  const handleAddSlotReturnIntermediate = (slotId: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) =>
+        s.id === slotId
+          ? {
+              ...s,
+              returnIntermediateLocations: [...(s.returnIntermediateLocations || []), ''],
+              returnIntermediateStopFees: [...(s.returnIntermediateStopFees || []), ''],
+            }
+          : s
+      )
+    );
+  };
+
+  const handleRemoveSlotReturnIntermediate = (slotId: string, idx: number) => {
+    setContractSlots((prev) =>
+      prev.map((s) =>
+        s.id === slotId
+          ? {
+              ...s,
+              returnIntermediateLocations: (s.returnIntermediateLocations || []).filter((_, i) => i !== idx),
+              returnIntermediateStopFees: (s.returnIntermediateStopFees || []).filter((_, i) => i !== idx),
+            }
+          : s
+      )
+    );
+  };
+
+  const handleUpdateSlotReturnIntermediate = (slotId: string, idx: number, val: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextLocs = [...(s.returnIntermediateLocations || [])];
+        nextLocs[idx] = val;
+        return { ...s, returnIntermediateLocations: nextLocs };
+      })
+    );
+  };
+
+  const handleUpdateSlotReturnIntermediateFee = (slotId: string, idx: number, val: string) => {
+    setContractSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== slotId) return s;
+        const nextFees = [...(s.returnIntermediateStopFees || [])];
+        nextFees[idx] = val;
+        return { ...s, returnIntermediateStopFees: nextFees };
       })
     );
   };
@@ -507,10 +580,28 @@ export default function BulkAddTripsModal({
         const slotKey = contractSlots.length > 1 ? `${date}::${slot.id}` : date;
         const assignment = dayAssignments[slotKey] || dayAssignments[date] || { driverId: '', vehicleId: '' };
 
-        const filledStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
-        const destString = filledStops.length > 0
-          ? `${filledStops.join(' → ')} → ${slot.destination.trim()}`
-          : slot.destination.trim();
+        const outboundStops = slot.intermediateLocations.map((s) => s.trim()).filter(Boolean);
+        const returnStops = (slot.returnIntermediateLocations || []).map((s) => s.trim()).filter(Boolean);
+
+        const outboundFeesSum = (slot.intermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const returnFeesSum = (slot.returnIntermediateStopFees || []).reduce((sum, f) => sum + (Number(f) || 0), 0);
+        const baseAmount = Number(slot.billingAmount) || 0;
+        const totalAmount = baseAmount + outboundFeesSum + returnFeesSum;
+
+        let destString = slot.destination.trim();
+
+        if (contractRateCategory === 'Round Trip') {
+          // Closed 4-section loop: Outbound Pickup -> Outbound Stops -> Outbound Dropoff -> Return Pickup -> Return Stops -> Return Dropoff
+          const returnStart = slot.returnOrigin?.trim() || slot.destination.trim();
+          const returnEnd = slot.returnDestination?.trim() || slot.origin.trim();
+
+          const outboundChain = outboundStops.length > 0 ? `${outboundStops.join(' → ')} → ` : '';
+          const returnChain = returnStops.length > 0 ? `${returnStops.join(' → ')} → ` : '';
+
+          destString = `${outboundChain}${slot.destination.trim()} 🔁 [RETURN: ${returnStart} → ${returnChain}${returnEnd}]`;
+        } else if (outboundStops.length > 0) {
+          destString = `${outboundStops.join(' → ')} → ${slot.destination.trim()}`;
+        }
 
         rows.push({
           customer_id: contractCustomer,
@@ -521,7 +612,7 @@ export default function BulkAddTripsModal({
           vehicle_type: contractVehicleType || undefined,
           origin: slot.origin.trim() || undefined,
           destination: destString || undefined,
-          billing_amount: slot.billingAmount ? Number(slot.billingAmount) : undefined,
+          billing_amount: totalAmount > 0 ? totalAmount : undefined,
           status: assignment.driverId && assignment.vehicleId ? 'Dispatched' : 'Draft',
         });
       });
@@ -940,168 +1031,500 @@ export default function BulkAddTripsModal({
                               </div>
                             </div>
 
-                            {/* Card-Style Pickup & Dropoff Stops Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* 🟢 PICKUP STOP CARD (ORIGIN) */}
-                              <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-3">
-                                <div className="p-3 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
-                                    <span className="text-xs font-bold text-emerald-950">Pickup Stop (Origin)</span>
-                                  </div>
-                                  <span className="text-[10px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-2 py-0.5 rounded-md">
-                                    Rate Hub & Maps
-                                  </span>
-                                </div>
-
-                                <div className="p-3.5 space-y-3">
-                                  <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
-                                      <span>Pickup Location *</span>
-                                      <span className="text-[10px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
-                                    </label>
-                                    <LocationCombobox
-                                      value={slot.origin}
-                                      onChange={(locName) => handleUpdateTripSlot(slot.id, { origin: locName })}
-                                      placeholder="Search or select pickup location..."
-                                      triggerClassName="h-10 border-emerald-200 bg-white shadow-2xs"
-                                    />
-                                  </div>
-
-                                  <div className="space-y-1.5 pt-1">
-                                    <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                      <Clock className="w-3.5 h-3.5 text-emerald-600" /> Pickup Time *
-                                    </label>
-                                    <input
-                                      type="time"
-                                      value={slot.pickupTime}
-                                      onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
-                                      className="w-full h-10 px-3 rounded-xl border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* 🟠 DROPOFF STOP CARD (DESTINATION) */}
-                              <div className="rounded-2xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-3">
-                                <div className="p-3 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between flex-wrap gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-[#E8450F] ring-2 ring-orange-200 shrink-0" />
-                                    <span className="text-xs font-bold text-orange-950">Dropoff Stop (Destination)</span>
-                                  </div>
-
-                                  <div className="flex items-center gap-1.5">
-                                    <button
+                            {/* Conditional Rendering for Round Trip (4 Sections) vs Standard 1-Way Trip */}
+                            {contractRateCategory === 'Round Trip' ? (
+                              <div className="space-y-5 pt-1">
+                                {/* LEG 1: OUTBOUND JOURNEY */}
+                                <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-3">
+                                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                                        Leg 1: Outbound Journey
+                                      </Badge>
+                                      <span className="text-xs font-bold text-slate-800">Origin → Destination</span>
+                                    </div>
+                                    <Button
                                       type="button"
-                                      onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-                                      className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
-                                        slot.isOvernight
-                                          ? 'bg-indigo-600 text-white shadow-2xs'
-                                          : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
-                                      }`}
-                                      title="Toggle Overnight / Next-Day Return trip (+1 Day)"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 text-[10px] font-bold text-[#E8450F] border-orange-200 bg-white hover:bg-orange-50 gap-1 px-2"
+                                      onClick={() => handleAddSlotIntermediate(slot.id)}
                                     >
-                                      <Moon className={`w-3 h-3 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                      {slot.isOvernight ? '🌙 +1 Day' : '+1 Day'}
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="p-3.5 space-y-3">
-                                  <div className="space-y-1.5">
-                                    <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider flex items-center justify-between">
-                                      <span>Dropoff Location *</span>
-                                      <span className="text-[10px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
-                                    </label>
-                                    <LocationCombobox
-                                      value={slot.destination}
-                                      onChange={(locName) => handleUpdateTripSlot(slot.id, { destination: locName })}
-                                      placeholder="Search or select dropoff location..."
-                                      triggerClassName={`h-10 bg-white shadow-2xs ${
-                                        slot.origin.trim() && slot.destination.trim() === slot.origin.trim()
-                                          ? 'border-emerald-300 bg-emerald-50/20 text-emerald-950 font-semibold'
-                                          : 'border-orange-200'
-                                      }`}
-                                    />
+                                      <Plus className="w-3 h-3 text-[#E8450F]" />
+                                      Add Outbound Stop
+                                    </Button>
                                   </div>
 
-                                  <div className="space-y-1.5 pt-1">
-                                    <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                      <Clock className="w-3.5 h-3.5 text-[#E8450F]" /> Drop-off Time *
-                                    </label>
-                                    <input
-                                      type="time"
-                                      value={slot.dropoffTime}
-                                      onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                      className={`w-full h-10 px-3 rounded-xl border text-xs font-semibold focus:outline-none focus:border-[#E8450F] cursor-pointer ${
-                                        slot.isOvernight
-                                          ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
-                                          : 'border-orange-200 bg-white'
-                                      }`}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Intermediate Stop Cards */}
-                            {slot.intermediateLocations.length > 0 && (
-                              <div className="space-y-3 pt-3 border-t border-slate-100">
-                                <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider block">
-                                  Intermediate Stop Locations & Fees
-                                </span>
-                                <div className="space-y-3">
-                                  {slot.intermediateLocations.map((loc, idx) => (
-                                    <div key={idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                                      <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
-                                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                          <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                                          Intermediate Stop #{idx + 1}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* SECTION 1: 🟢 Outbound Pickup (Start) */}
+                                    <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-3">
+                                      <div className="p-2.5 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
+                                          <span className="text-xs font-bold text-emerald-950">1. Outbound Pickup (Start)</span>
+                                        </div>
+                                        <span className="text-[10px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-2 py-0.5 rounded-md">
+                                          Starting Point
                                         </span>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                          className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 flex items-center gap-1 text-[11px] font-semibold"
-                                          title="Remove stop"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                          Remove Stop
-                                        </button>
                                       </div>
 
-                                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        <div className="sm:col-span-2 space-y-1">
-                                          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                                            Stop Location *
+                                      <div className="p-3 space-y-3">
+                                        <div className="space-y-1">
+                                          <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider block">
+                                            Outbound Pickup Location *
                                           </label>
                                           <LocationCombobox
-                                            value={loc}
-                                            onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
-                                            placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
-                                            triggerClassName="h-10 border-slate-200 bg-white shadow-2xs"
+                                            value={slot.origin}
+                                            onChange={(locName) => {
+                                              handleUpdateTripSlot(slot.id, {
+                                                origin: locName,
+                                                returnDestination: slot.returnDestination || locName,
+                                              });
+                                            }}
+                                            placeholder="Search starting origin (e.g. Riyadh)..."
+                                            triggerClassName="h-10 border-emerald-200 bg-white shadow-2xs"
                                           />
                                         </div>
 
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
-                                            <DollarSign className="w-3 h-3 text-emerald-600" /> Additional Stop Fee (SAR)
+                                          <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5 text-emerald-600" /> Outbound Pickup Time *
                                           </label>
-                                          <div className="relative">
-                                            <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">SAR</span>
-                                            <input
-                                              type="number"
-                                              value={slot.intermediateStopFees?.[idx] || ''}
-                                              onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
-                                              placeholder="e.g. 150"
-                                              className="w-full h-10 pl-11 pr-3 rounded-xl border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-[#E8450F] bg-white shadow-2xs"
-                                            />
-                                          </div>
+                                          <input
+                                            type="time"
+                                            value={slot.pickupTime}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
+                                            className="w-full h-10 px-3 rounded-xl border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                          />
                                         </div>
                                       </div>
                                     </div>
-                                  ))}
+
+                                    {/* SECTION 2: 🟠 Outbound Dropoff (Destination) */}
+                                    <div className="rounded-2xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-3">
+                                      <div className="p-2.5 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-2.5 h-2.5 rounded-full bg-[#E8450F] ring-2 ring-orange-200 shrink-0" />
+                                          <span className="text-xs font-bold text-orange-950">2. Outbound Dropoff (Destination)</span>
+                                        </div>
+                                        <span className="text-[10px] font-semibold text-orange-700 bg-white border border-orange-200/80 px-2 py-0.5 rounded-md">
+                                          Delivery Point
+                                        </span>
+                                      </div>
+
+                                      <div className="p-3 space-y-3">
+                                        <div className="space-y-1">
+                                          <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider block">
+                                            Outbound Dropoff Location *
+                                          </label>
+                                          <LocationCombobox
+                                            value={slot.destination}
+                                            onChange={(locName) => {
+                                              handleUpdateTripSlot(slot.id, {
+                                                destination: locName,
+                                                returnOrigin: slot.returnOrigin || locName,
+                                              });
+                                            }}
+                                            placeholder="Search delivery destination (e.g. Dammam)..."
+                                            triggerClassName="h-10 border-orange-200 bg-white shadow-2xs"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5 text-[#E8450F]" /> Outbound Drop-off Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.dropoffTime}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
+                                            className="w-full h-10 px-3 rounded-xl border border-orange-200 text-xs font-semibold focus:outline-none focus:border-[#E8450F] bg-white cursor-pointer"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Outbound Intermediate Stops & Fees */}
+                                  {slot.intermediateLocations.length > 0 && (
+                                    <div className="space-y-3 pt-2 border-t border-slate-200/60">
+                                      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                                        Outbound Intermediate Stops & Fees ({slot.intermediateLocations.length})
+                                      </span>
+                                      <div className="space-y-2.5">
+                                        {slot.intermediateLocations.map((loc, idx) => (
+                                          <div key={idx} className="p-3 rounded-xl bg-white border border-slate-200 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                                                Outbound Stop #{idx + 1}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
+                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[11px] font-semibold"
+                                              >
+                                                Remove Stop
+                                              </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                              <div className="sm:col-span-2">
+                                                <LocationCombobox
+                                                  value={loc}
+                                                  onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                                  placeholder={`Search Outbound Stop #${idx + 1}...`}
+                                                  triggerClassName="h-9 border-slate-200 bg-white"
+                                                />
+                                              </div>
+                                              <div className="relative">
+                                                <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">SAR</span>
+                                                <input
+                                                  type="number"
+                                                  value={slot.intermediateStopFees?.[idx] || ''}
+                                                  onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
+                                                  placeholder="Stop fee e.g. 150"
+                                                  className="w-full h-9 pl-11 pr-3 rounded-xl border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-[#E8450F]"
+                                                />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* LEG 2: RETURN JOURNEY (CLOSED LOOP) */}
+                                <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200/80 space-y-3">
+                                  <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
+                                        <RefreshCw className="w-2.5 h-2.5" />
+                                        Leg 2: Return Journey (The Loop Back)
+                                      </Badge>
+                                      <span className="text-xs font-bold text-indigo-950">Destination → Starting Home Origin</span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-6 text-[10px] font-bold text-indigo-700 border-indigo-200 bg-white hover:bg-indigo-50 gap-1 px-2"
+                                      onClick={() => handleAddSlotReturnIntermediate(slot.id)}
+                                    >
+                                      <Plus className="w-3 h-3 text-indigo-600" />
+                                      Add Return Stop
+                                    </Button>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* SECTION 3: 🔵 Return Pickup (Reload Point) */}
+                                    <div className="rounded-2xl border border-blue-200/80 bg-blue-50/30 overflow-hidden space-y-3">
+                                      <div className="p-2.5 bg-blue-50/80 border-b border-blue-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0" />
+                                          <span className="text-xs font-bold text-blue-950">3. Return Pickup (Reload Point)</span>
+                                        </div>
+                                        <span className="text-[10px] font-semibold text-blue-700 bg-white border border-blue-200/80 px-2 py-0.5 rounded-md">
+                                          Reload Hub
+                                        </span>
+                                      </div>
+
+                                      <div className="p-3 space-y-3">
+                                        <div className="space-y-1">
+                                          <label className="text-[11px] font-bold text-blue-900 uppercase tracking-wider block">
+                                            Return Pickup Location *
+                                          </label>
+                                          <LocationCombobox
+                                            value={slot.returnOrigin || slot.destination}
+                                            onChange={(locName) => handleUpdateTripSlot(slot.id, { returnOrigin: locName })}
+                                            placeholder="Search return reload origin..."
+                                            triggerClassName="h-10 border-blue-200 bg-white shadow-2xs"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="text-[11px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5 text-blue-600" /> Return Pickup Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.returnPickupTime || '16:00'}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { returnPickupTime: e.target.value })}
+                                            className="w-full h-10 px-3 rounded-xl border border-blue-200 text-xs font-semibold focus:outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* SECTION 4: 🟣 Return Dropoff (Final Home Destination) */}
+                                    <div className="rounded-2xl border border-purple-200/80 bg-purple-50/30 overflow-hidden space-y-3">
+                                      <div className="p-2.5 bg-purple-50/80 border-b border-purple-100 flex items-center justify-between flex-wrap gap-2">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-2.5 h-2.5 rounded-full bg-purple-600 ring-2 ring-purple-200 shrink-0" />
+                                          <span className="text-xs font-bold text-purple-950">4. Return Dropoff (Final Home)</span>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => handleUpdateTripSlot(slot.id, { returnIsOvernight: !slot.returnIsOvernight })}
+                                          className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
+                                            slot.returnIsOvernight
+                                              ? 'bg-indigo-600 text-white shadow-2xs'
+                                              : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
+                                          }`}
+                                          title="Toggle Return Overnight (+1 Day)"
+                                        >
+                                          <Moon className={`w-3 h-3 ${slot.returnIsOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
+                                          {slot.returnIsOvernight ? '🌙 +1 Day' : '+1 Day'}
+                                        </button>
+                                      </div>
+
+                                      <div className="p-3 space-y-3">
+                                        <div className="space-y-1">
+                                          <label className="text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center justify-between">
+                                            <span>Return Dropoff (Home) *</span>
+                                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                              🔁 Auto-Linked Home
+                                            </span>
+                                          </label>
+                                          <LocationCombobox
+                                            value={slot.returnDestination || slot.origin}
+                                            onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
+                                            placeholder="Search final home destination..."
+                                            triggerClassName="h-10 border-purple-200 bg-white shadow-2xs"
+                                          />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          <label className="text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5 text-purple-600" /> Return Drop-off Time *
+                                          </label>
+                                          <input
+                                            type="time"
+                                            value={slot.returnDropoffTime || '22:00'}
+                                            onChange={(e) => handleUpdateTripSlot(slot.id, { returnDropoffTime: e.target.value })}
+                                            className={`w-full h-10 px-3 rounded-xl border text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer ${
+                                              slot.returnIsOvernight
+                                                ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
+                                                : 'border-purple-200 bg-white'
+                                            }`}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Return Intermediate Stops & Fees */}
+                                  {(slot.returnIntermediateLocations || []).length > 0 && (
+                                    <div className="space-y-3 pt-2 border-t border-indigo-100">
+                                      <span className="text-[11px] font-bold text-indigo-950 uppercase tracking-wider block">
+                                        Return Intermediate Stops & Fees ({(slot.returnIntermediateLocations || []).length})
+                                      </span>
+                                      <div className="space-y-2.5">
+                                        {(slot.returnIntermediateLocations || []).map((loc, idx) => (
+                                          <div key={idx} className="p-3 rounded-xl bg-white border border-indigo-200 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                                                <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                                                Return Stop #{idx + 1}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveSlotReturnIntermediate(slot.id, idx)}
+                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[11px] font-semibold"
+                                              >
+                                                Remove Stop
+                                              </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                              <div className="sm:col-span-2">
+                                                <LocationCombobox
+                                                  value={loc}
+                                                  onChange={(locName) => handleUpdateSlotReturnIntermediate(slot.id, idx, locName)}
+                                                  placeholder={`Search Return Stop #${idx + 1}...`}
+                                                  triggerClassName="h-9 border-indigo-200 bg-white"
+                                                />
+                                              </div>
+                                              <div className="relative">
+                                                <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">SAR</span>
+                                                <input
+                                                  type="number"
+                                                  value={slot.returnIntermediateStopFees?.[idx] || ''}
+                                                  onChange={(e) => handleUpdateSlotReturnIntermediateFee(slot.id, idx, e.target.value)}
+                                                  placeholder="Stop fee e.g. 150"
+                                                  className="w-full h-9 pl-11 pr-3 rounded-xl border border-indigo-200 text-xs font-bold text-right focus:outline-none focus:border-indigo-600"
+                                                />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
+                            ) : (
+                              /* Standard 1-Way Category Layout */
+                              <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {/* 🟢 PICKUP STOP CARD (ORIGIN) */}
+                                  <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-3">
+                                    <div className="p-3 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
+                                        <span className="text-xs font-bold text-emerald-950">Pickup Stop (Origin)</span>
+                                      </div>
+                                      <span className="text-[10px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-2 py-0.5 rounded-md">
+                                        Rate Hub & Maps
+                                      </span>
+                                    </div>
+
+                                    <div className="p-3.5 space-y-3">
+                                      <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
+                                          <span>Pickup Location *</span>
+                                          <span className="text-[10px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+                                        </label>
+                                        <LocationCombobox
+                                          value={slot.origin}
+                                          onChange={(locName) => handleUpdateTripSlot(slot.id, { origin: locName })}
+                                          placeholder="Search or select pickup location..."
+                                          triggerClassName="h-10 border-emerald-200 bg-white shadow-2xs"
+                                        />
+                                      </div>
+
+                                      <div className="space-y-1.5 pt-1">
+                                        <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                          <Clock className="w-3.5 h-3.5 text-emerald-600" /> Pickup Time *
+                                        </label>
+                                        <input
+                                          type="time"
+                                          value={slot.pickupTime}
+                                          onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
+                                          className="w-full h-10 px-3 rounded-xl border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 🟠 DROPOFF STOP CARD (DESTINATION) */}
+                                  <div className="rounded-2xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-3">
+                                    <div className="p-3 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between flex-wrap gap-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-[#E8450F] ring-2 ring-orange-200 shrink-0" />
+                                        <span className="text-xs font-bold text-orange-950">Dropoff Stop (Destination)</span>
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
+                                          className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
+                                            slot.isOvernight
+                                              ? 'bg-indigo-600 text-white shadow-2xs'
+                                              : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
+                                          }`}
+                                          title="Toggle Overnight / Next-Day Return trip (+1 Day)"
+                                        >
+                                          <Moon className={`w-3 h-3 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
+                                          {slot.isOvernight ? '🌙 +1 Day' : '+1 Day'}
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    <div className="p-3.5 space-y-3">
+                                      <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider flex items-center justify-between">
+                                          <span>Dropoff Location *</span>
+                                          <span className="text-[10px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+                                        </label>
+                                        <LocationCombobox
+                                          value={slot.destination}
+                                          onChange={(locName) => handleUpdateTripSlot(slot.id, { destination: locName })}
+                                          placeholder="Search or select dropoff location..."
+                                          triggerClassName="h-10 bg-white shadow-2xs border-orange-200"
+                                        />
+                                      </div>
+
+                                      <div className="space-y-1.5 pt-1">
+                                        <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                          <Clock className="w-3.5 h-3.5 text-[#E8450F]" /> Drop-off Time *
+                                        </label>
+                                        <input
+                                          type="time"
+                                          value={slot.dropoffTime}
+                                          onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
+                                          className={`w-full h-10 px-3 rounded-xl border text-xs font-semibold focus:outline-none focus:border-[#E8450F] cursor-pointer ${
+                                            slot.isOvernight
+                                              ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
+                                              : 'border-orange-200 bg-white'
+                                          }`}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Intermediate Stop Cards */}
+                                {slot.intermediateLocations.length > 0 && (
+                                  <div className="space-y-3 pt-3 border-t border-slate-100">
+                                    <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider block">
+                                      Intermediate Stop Locations & Fees
+                                    </span>
+                                    <div className="space-y-3">
+                                      {slot.intermediateLocations.map((loc, idx) => (
+                                        <div key={idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                                          <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                                              Intermediate Stop #{idx + 1}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
+                                              className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 flex items-center gap-1 text-[11px] font-semibold"
+                                              title="Remove stop"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                              Remove Stop
+                                            </button>
+                                          </div>
+
+                                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div className="sm:col-span-2 space-y-1">
+                                              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                                                Stop Location *
+                                              </label>
+                                              <LocationCombobox
+                                                value={loc}
+                                                onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
+                                                placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
+                                                triggerClassName="h-10 border-slate-200 bg-white shadow-2xs"
+                                              />
+                                            </div>
+
+                                            <div className="space-y-1">
+                                              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                                                <DollarSign className="w-3 h-3 text-emerald-600" /> Additional Stop Fee (SAR)
+                                              </label>
+                                              <div className="relative">
+                                                <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">SAR</span>
+                                                <input
+                                                  type="number"
+                                                  value={slot.intermediateStopFees?.[idx] || ''}
+                                                  onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
+                                                  placeholder="e.g. 150"
+                                                  className="w-full h-10 pl-11 pr-3 rounded-xl border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-[#E8450F] bg-white shadow-2xs"
+                                                />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
                             )}
 
                             {/* Billing Amount */}
