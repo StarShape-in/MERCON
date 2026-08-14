@@ -422,25 +422,15 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           <Activity className="w-3 h-3 text-emerald-500" /> Live corridor monitoring
         </span>
 
-        <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            onClick={() => navigate('/reports/delays')}
-            variant="ghost"
-            className="h-7 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 px-2 cursor-pointer gap-1"
-          >
-            <BarChart2 className="w-3 h-3 text-slate-400" />
-            Delay Report
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => navigate('/trips')}
-            className="h-7 text-xs font-extrabold bg-[#E8450F] hover:bg-[#cf3c0b] text-white rounded-lg px-3 shadow-xs cursor-pointer"
-          >
-            All Trips →
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          onClick={() => navigate('/reports/delays')}
+          variant="ghost"
+          className="h-7 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 px-2 cursor-pointer gap-1"
+        >
+          <BarChart2 className="w-3 h-3 text-slate-400" />
+          Delay Report ↗
+        </Button>
       </div>
 
       {/* ── Quick Driver Dispatch Notice Dialog ────────────────────────── */}
