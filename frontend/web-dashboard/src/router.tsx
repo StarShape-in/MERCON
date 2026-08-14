@@ -163,10 +163,10 @@ export default function AppRouter() {
           <Route path="/customers/:id/contracts"  element={<CustomerContractsPage />} />
 
           {/* Locations */}
-          <Route path="/locations"                element={<RequireModule moduleKey="locations"><LocationListPage /></RequireModule>} />
+          <Route path="/locations"                element={<LocationListPage />} />
 
           {/* Rate Cards */}
-          <Route path="/rate-cards"               element={<RequireModule moduleKey="rate-cards"><RateCardListPage /></RequireModule>} />
+          <Route path="/rate-cards"               element={<RateCardListPage />} />
           <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />
           <Route path="/rate-cards/:id/edit"      element={<EditRateCardPage />} />
           <Route path="/rate-cards/:id/documents" element={<RateCardDocsPage />} />

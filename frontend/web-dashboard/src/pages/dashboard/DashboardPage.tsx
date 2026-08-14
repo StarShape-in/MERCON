@@ -13,7 +13,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ImportantReminders from '@/components/dashboard/ImportantReminders';
 import MonthlyOverview from '@/components/dashboard/MonthlyOverview';
-import OperatorFleetOverview from '@/components/dashboard/OperatorFleetOverview';
+import OperatorActionCenter from '@/components/dashboard/OperatorActionCenter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
@@ -290,11 +290,11 @@ export default function DashboardPage() {
               </h1>
               {isAdmin ? (
                 <Badge className="bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
-                  Executive Operations Module
+                  Admin Module
                 </Badge>
               ) : (
                 <Badge className="bg-[#ECFDF5] text-[#059669] border-[#A7F3D0] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
-                  Dispatch &amp; Fleet Hub
+                  Operator Module
                 </Badge>
               )}
             </div>
@@ -341,12 +341,12 @@ export default function DashboardPage() {
           {/* ── TOP ROW: 3 Cards Side-by-Side (Consistent Height) ─────────── */}
           <div className="flex flex-col lg:flex-row gap-5 items-stretch transition-all duration-300 ease-in-out">
 
-            {/* 1. Left Card (~32%): Monthly Financial Overview for Admin, Operator Fleet Control for Operator */}
+            {/* 1. Left Card (~32%): Monthly Financial Overview for Admin, Urgent Action Center for Operator */}
             <div className="w-full lg:w-[33%] xl:w-[32%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
               {isAdmin ? (
                 <MonthlyOverview />
               ) : (
-                <OperatorFleetOverview trips={rawTrips} />
+                <OperatorActionCenter trips={rawTrips} />
               )}
             </div>
 
