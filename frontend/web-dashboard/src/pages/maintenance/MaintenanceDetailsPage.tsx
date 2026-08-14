@@ -326,6 +326,16 @@ export default function MaintenanceDetailsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={handleOpenEditModal}
+                  className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                  title="Edit service order"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+                <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => window.print()}
                   className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                   title="Print work report"
