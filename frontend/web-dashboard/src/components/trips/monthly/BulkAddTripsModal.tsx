@@ -1680,29 +1680,30 @@ export default function BulkAddTripsModal({
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-indigo-200/80 shadow-2xs">
+                          <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl border border-slate-300/70 shadow-2xs">
                             <button
                               type="button"
                               onClick={() => setAssignMode('single')}
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                                 assignMode === 'single'
-                                  ? 'bg-indigo-600 text-white shadow-2xs'
-                                  : 'text-indigo-900 hover:bg-indigo-50'
+                                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
+                                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                               }`}
                             >
-                              Same Driver Every Day
+                              <User className="w-3.5 h-3.5 text-slate-500" />
+                              Single Assigned Driver
                             </button>
                             <button
                               type="button"
                               onClick={() => setAssignMode('alternating')}
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1 ${
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                                 assignMode === 'alternating'
-                                  ? 'bg-indigo-600 text-white shadow-2xs'
-                                  : 'text-indigo-900 hover:bg-indigo-50'
+                                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                                  : 'text-indigo-900 hover:bg-white/50'
                               }`}
                             >
-                              <RefreshCw className="w-3 h-3" />
-                              🔄 Alternating A/B Loop Rotation
+                              <RefreshCw className="w-3.5 h-3.5 text-current stroke-[2.2]" />
+                              Alternating A/B Shuttle Loop
                             </button>
                           </div>
                         </div>
