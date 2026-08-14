@@ -5,6 +5,7 @@ import {
   createThirdPartyProvider,
   updateThirdPartyProvider,
   deleteThirdPartyProvider,
+  bulkImportThirdPartyProviders,
 } from '../controllers/thirdPartyController';
 
 const router = Router();
@@ -12,6 +13,7 @@ const router = Router();
 router.get('/', getThirdPartyProviders);
 router.get('/:id', getThirdPartyProviderById);
 router.post('/', createThirdPartyProvider);
+router.post('/import', bulkImportThirdPartyProviders);
 router.put('/:id', updateThirdPartyProvider);
 router.delete('/:id', deleteThirdPartyProvider);
 

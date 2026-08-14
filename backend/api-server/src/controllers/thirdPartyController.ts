@@ -238,3 +238,81 @@ export const deleteThirdPartyProvider = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete third party provider' } });
   }
 };
+
+export const bulkImportThirdPartyProviders = async (req: Request, res: Response) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows)) {
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Rows array is required' } });
+    }
+
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+    const results: any[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = String(row.name || row.provider_name || row.company || '').trim();
+
+      if (!name) {
+        failed++;
+        results.push({ row: i + 1, success: false, error: 'Provider name is required' });
+        continue;
+      }
+
+      try {
+        const existing = await prisma.thirdPartyProvider.findFirst({
+          where: { name: { equals: name, mode: 'insensitive' }, deletedAt: null },
+        });
+
+        if (existing) {
+          await prisma.thirdPartyProvider.update({
+            where: { id: existing.id },
+            data: {
+              ...(row.contact_person && { contact_person: String(row.contact_person).trim() }),
+              ...(row.phone && { phone: String(row.phone).trim() }),
+              ...(row.email && { email: String(row.email).trim() }),
+              ...(row.address && { address: String(row.address).trim() }),
+              ...(row.tax_id && { tax_id: String(row.tax_id).trim() }),
+              ...(row.notes && { notes: String(row.notes).trim() }),
+            },
+          });
+          updated++;
+          results.push({ row: i + 1, success: true, label: name, action: 'updated' });
+        } else {
+          await prisma.thirdPartyProvider.create({
+            data: {
+              name,
+              contact_person: row.contact_person ? String(row.contact_person).trim() : null,
+              phone: row.phone ? String(row.phone).trim() : null,
+              email: row.email ? String(row.email).trim() : null,
+              address: row.address ? String(row.address).trim() : null,
+              tax_id: row.tax_id ? String(row.tax_id).trim() : null,
+              notes: row.notes ? String(row.notes).trim() : null,
+            },
+          });
+          created++;
+          results.push({ row: i + 1, success: true, label: name, action: 'created' });
+        }
+      } catch (err: any) {
+        failed++;
+        results.push({ row: i + 1, success: false, label: name, error: err?.message || 'Database error' });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        total: rows.length,
+        created,
+        updated,
+        failed,
+        results,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to bulk import third party providers:', error);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to bulk import third party providers' } });
+  }
+};

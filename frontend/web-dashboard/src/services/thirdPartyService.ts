@@ -53,4 +53,9 @@ export const thirdPartyService = {
   delete: async (id: string) => {
     return api.delete<ApiResponse<{ id: string; deleted: boolean }>>(`/third-party-providers/${id}`);
   },
+
+  bulkImport: async (rows: Record<string, string | number>[]) => {
+    const res = await api.post<ApiResponse<any>>('/third-party-providers/import', { rows });
+    return res.data.data;
+  },
 };

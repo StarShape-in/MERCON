@@ -79,6 +79,16 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
   currency: ['currency', 'ccy'],
 };
 
+export const THIRD_PARTY_COLUMNS: ColumnMap = {
+  name: ['provider name', 'company name', 'company', 'provider', 'supplier name', 'supplier', 'name'],
+  contact_person: ['contact person', 'contact name', 'primary contact', 'representative'],
+  phone: ['phone', 'phone number', 'mobile', 'contact phone', 'contact number'],
+  email: ['email', 'email address', 'contact email'],
+  tax_id: ['tax id', 'tax number', 'cr number', 'vat number', 'commercial reg id'],
+  address: ['address', 'office address', 'yard address', 'location'],
+  notes: ['notes', 'remarks', 'terms', 'comments'],
+};
+
 export const TRIP_COLUMNS: ColumnMap = {
   customer_name: ['customer', 'customer name', 'company', 'company name', 'client'],
   planned_start: ['date', 'trip date', 'planned start', 'planned date', 'start date', 'scheduled date'],
