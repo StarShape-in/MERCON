@@ -963,12 +963,11 @@ export default function BulkAddTripsModal({
                           </div>
                           <Button
                             type="button"
-                            variant="outline"
                             size="sm"
-                            className="h-7 text-[11px] font-bold text-[#E8450F] border-orange-200 bg-orange-50/60 hover:bg-orange-100 shadow-2xs gap-1"
+                            className="h-8 text-xs font-bold text-white bg-[#E8450F] hover:bg-[#d03d0c] active:scale-[0.98] transition-all shadow-md shadow-orange-500/20 rounded-xl gap-1.5 px-3.5 border-0"
                             onClick={handleAddTripSlot}
                           >
-                            <Plus className="w-3.5 h-3.5 text-[#E8450F]" />
+                            <Plus className="w-4 h-4 text-white stroke-[2.5]" />
                             Add Another Trip Slot
                           </Button>
                         </div>
