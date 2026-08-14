@@ -33,6 +33,7 @@ import { Button } from './button';
 import { Input } from './input';
 import { Badge } from './badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
+import { authStore } from '@/store/authStore';
 
 interface BatchVehicleDocModalProps {
   isOpen: boolean;
@@ -564,7 +565,7 @@ export default function BatchVehicleDocModal({
                   Batch Import Truck Documents
                 </DialogTitle>
                 <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                  Operations Module
+                  {authStore.getUser()?.role === 'Admin' ? 'Admin Module' : 'Operator Module'}
                 </Badge>
               </div>
               <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">

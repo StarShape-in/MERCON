@@ -79,6 +79,11 @@ const CustomReportPage            = lazy(() => import('@/pages/reports/CustomRep
 const CompanyReportsGeneratorPage = lazy(() => import('@/pages/reports/CompanyReportsGeneratorPage'));
 const DelayReportPage             = lazy(() => import('@/pages/reports/DelayReportPage'));
 
+// Smart Report Builder
+const ReportBuilderLandingPage   = lazy(() => import('@/pages/report-builder/ReportBuilderLandingPage'));
+const QuickReportPage            = lazy(() => import('@/pages/report-builder/QuickReportPage'));
+const AdvancedBuilderPage         = lazy(() => import('@/pages/report-builder/AdvancedBuilderPage'));
+
 // Settings & Governance
 const OperatorProfilePage     = lazy(() => import('@/pages/settings/OperatorProfilePage'));
 const SettingsPage            = lazy(() => import('@/pages/settings/SettingsPage'));
@@ -158,10 +163,10 @@ export default function AppRouter() {
           <Route path="/customers/:id/contracts"  element={<CustomerContractsPage />} />
 
           {/* Locations */}
-          <Route path="/locations"                element={<RequireModule moduleKey="locations"><LocationListPage /></RequireModule>} />
+          <Route path="/locations"                element={<LocationListPage />} />
 
           {/* Rate Cards */}
-          <Route path="/rate-cards"               element={<RequireModule moduleKey="rate-cards"><RateCardListPage /></RequireModule>} />
+          <Route path="/rate-cards"               element={<RateCardListPage />} />
           <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />
           <Route path="/rate-cards/:id/edit"      element={<EditRateCardPage />} />
           <Route path="/rate-cards/:id/documents" element={<RateCardDocsPage />} />
@@ -192,6 +197,11 @@ export default function AppRouter() {
 
           {/* Custom Company Reports Generator */}
           <Route path="/company-reports"          element={<RequireModule moduleKey="company-reports"><CompanyReportsGeneratorPage /></RequireModule>} />
+
+          {/* Smart Report Builder */}
+          <Route path="/report-builder"          element={<ReportBuilderLandingPage />} />
+          <Route path="/report-builder/quick"    element={<QuickReportPage />} />
+          <Route path="/report-builder/advanced" element={<AdvancedBuilderPage />} />
 
           {/* Settings & Governance */}
           <Route path="/settings"                 element={<SettingsPage />} />

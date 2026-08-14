@@ -11,6 +11,7 @@ import StopAddressEditor from '@/components/trips/StopAddressEditor';
 import { tripService, TripStatus } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
+import { authStore } from '@/store/authStore';
 
 /**
  * Once a trip reaches one of these, its stops are a record of what happened —
@@ -66,6 +67,8 @@ export default function EditTripPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = authStore.getUser();
+  const isAdmin = user?.role === 'Admin';
 
   const [status, setStatus] = useState<TripStatus>('Draft');
   const [selectedDriverId, setSelectedDriverId] = useState<string>('');
@@ -188,7 +191,7 @@ export default function EditTripPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-black/[0.06] shadow-sm">
           <div className="flex items-center gap-2.5">
             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-              Operations Module
+              {isAdmin ? 'Admin Module' : 'Operator Module'}
             </span>
           </div>
           <button

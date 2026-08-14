@@ -13,6 +13,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ImportantReminders from '@/components/dashboard/ImportantReminders';
 import MonthlyOverview from '@/components/dashboard/MonthlyOverview';
+import OperatorActionCenter from '@/components/dashboard/OperatorActionCenter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
@@ -138,14 +139,16 @@ export default function DashboardPage() {
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
 
   const user = authStore.getUser();
+  const isAdmin = user?.role === 'Admin';
   const userName = user?.name ? user.name.split(' ')[0] : 'Mercon';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
-  // Live Queries for summary + real trips from API
+  // Live Queries for summary (Admin only) + real trips from API
   const { refetch: refetchSummary } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: reportsService.getSummary,
+    enabled: isAdmin,
   });
 
   const { data: tripsRes, refetch: refetchTrips } = useQuery({
@@ -155,7 +158,7 @@ export default function DashboardPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refetchSummary(), refetchTrips()]);
+    await Promise.all([isAdmin ? refetchSummary() : Promise.resolve(), refetchTrips()]);
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
@@ -282,12 +285,18 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1 pb-1 border-b border-black/[0.04]">
             {/* Left: Greeting & Module Badge */}
             <div className="flex items-center gap-2.5">
-              <h1 className="text-[17px] font-extrabold text-slate-900 tracking-tight">
-                {greeting}, <span className="text-slate-900">{userName}</span>
+              <h1 className="text-[17px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                {greeting}, <span className="text-slate-900 dark:text-slate-100">{userName}</span>
               </h1>
-              <Badge className="bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
-                Operations Module
-              </Badge>
+              {isAdmin ? (
+                <Badge className="bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
+                  Admin Module
+                </Badge>
+              ) : (
+                <Badge className="bg-[#ECFDF5] text-[#059669] border-[#A7F3D0] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
+                  Operator Module
+                </Badge>
+              )}
             </div>
 
             {/* Right: Actions */}
@@ -332,9 +341,13 @@ export default function DashboardPage() {
           {/* ── TOP ROW: 3 Cards Side-by-Side (Consistent Height) ─────────── */}
           <div className="flex flex-col lg:flex-row gap-5 items-stretch transition-all duration-300 ease-in-out">
 
-            {/* 1. Monthly Overview (Left ~32%) */}
+            {/* 1. Left Card (~32%): Monthly Financial Overview for Admin, Urgent Action Center for Operator */}
             <div className="w-full lg:w-[33%] xl:w-[32%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
-              <MonthlyOverview />
+              {isAdmin ? (
+                <MonthlyOverview />
+              ) : (
+                <OperatorActionCenter trips={rawTrips} />
+              )}
             </div>
 
             {/* 2. Active Trips Live Map (expands when reminders collapses) */}
@@ -447,7 +460,7 @@ export default function DashboardPage() {
           </div>
 
           {/* ── BOTTOM ROW: Active Transit Overview Table (Full Width) ──── */}
-          <div className="w-full bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden flex flex-col">
+          <div className="w-full bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden flex flex-col min-h-[460px]">
             {/* Table Header */}
             <div className="px-5 py-3.5 border-b border-black/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/40">
               <div>
@@ -499,112 +512,139 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full whitespace-nowrap text-left">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/20 text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <th className="px-5 py-2.5">Trip ID</th>
-                    <th className="px-5 py-2.5">Route</th>
-                    <th className="px-5 py-2.5">Driver</th>
-                    <th className="px-5 py-2.5">Vehicle</th>
-                    <th className="px-5 py-2.5">Status</th>
-                    <th className="px-5 py-2.5">Start Time</th>
-                    <th className="px-5 py-2.5">ETA</th>
-                    <th className="px-5 py-2.5">Progress</th>
-                    <th className="px-5 py-2.5 text-right">Distance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100/70 text-xs">
-                  {activeTrips.map((trip) => {
-                    const s = STATUS_STYLE[trip.status] || STATUS_STYLE['In Transit'];
-                    return (
-                      <tr
-                        key={trip.rawId || trip.id}
-                        onClick={() => navigate(`/trips/${trip.rawId || trip.id}`)}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
-                      >
-                        {/* Trip ID */}
-                        <td className="px-5 py-3">
-                          <span className="font-extrabold text-brand font-mono text-[11px]">
-                            {trip.id}
-                          </span>
-                        </td>
-
-                        {/* Route */}
-                        <td className="px-5 py-3">
-                          <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
-                            {trip.route}
-                          </span>
-                        </td>
-
-                        {/* Driver */}
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-extrabold ${trip.avatarBg}`}>
-                              {trip.initials}
+            {/* Table Area with Generous Min-Height */}
+            <div className="overflow-x-auto flex-1 flex flex-col justify-between">
+              <div className="min-h-[360px] max-h-[520px] overflow-y-auto">
+                <table className="w-full whitespace-nowrap text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/20 text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
+                      <th className="px-5 py-3">Trip ID</th>
+                      <th className="px-5 py-3">Route</th>
+                      <th className="px-5 py-3">Driver</th>
+                      <th className="px-5 py-3">Vehicle</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Start Time</th>
+                      <th className="px-5 py-3">ETA</th>
+                      <th className="px-5 py-3">Progress</th>
+                      <th className="px-5 py-3 text-right">Distance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100/70 text-xs">
+                    {activeTrips.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="px-5 py-16 text-center text-slate-400">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
+                              <FileText className="w-6 h-6" />
                             </div>
-                            <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
-                              {trip.driver}
-                            </span>
+                            <p className="text-sm font-bold text-slate-700">No {tripTab} trips active</p>
+                            <p className="text-xs text-slate-400">There are currently no dispatch records in this category.</p>
                           </div>
-                        </td>
-
-                        {/* Vehicle */}
-                        <td className="px-5 py-3">
-                          <span className="text-[10px] font-bold font-mono text-slate-700 dark:text-slate-300">
-                            {trip.vehicle}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-3">
-                          <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full border ${s.badge}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                            {trip.status}
-                          </span>
-                        </td>
-
-                        {/* Start Time */}
-                        <td className="px-5 py-3">
-                          <span className="text-[10px] text-slate-500 font-medium">
-                            {trip.startTime}
-                          </span>
-                        </td>
-
-                        {/* ETA */}
-                        <td className="px-5 py-3">
-                          <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100">
-                            {trip.eta}
-                          </span>
-                        </td>
-
-                        {/* Progress */}
-                        <td className="px-5 py-3 w-40">
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-brand rounded-full transition-all duration-300"
-                                style={{ width: `${trip.progress}%` }}
-                              />
-                            </div>
-                            <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 shrink-0">
-                              {trip.progress}%
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Distance */}
-                        <td className="px-5 py-3 text-right">
-                          <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
-                            {trip.distance}
-                          </span>
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    ) : (
+                      activeTrips.map((trip) => {
+                        const s = STATUS_STYLE[trip.status] || STATUS_STYLE['In Transit'];
+                        return (
+                          <tr
+                            key={trip.rawId || trip.id}
+                            onClick={() => navigate(`/trips/${trip.rawId || trip.id}`)}
+                            className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                          >
+                            {/* Trip ID */}
+                            <td className="px-5 py-3.5">
+                              <span className="font-extrabold text-brand font-mono text-[11px]">
+                                {trip.id}
+                              </span>
+                            </td>
+
+                            {/* Route */}
+                            <td className="px-5 py-3.5">
+                              <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                                {trip.route}
+                              </span>
+                            </td>
+
+                            {/* Driver */}
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-extrabold ${trip.avatarBg}`}>
+                                  {trip.initials}
+                                </div>
+                                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                                  {trip.driver}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Vehicle */}
+                            <td className="px-5 py-3.5">
+                              <span className="text-[10px] font-bold font-mono text-slate-700 dark:text-slate-300">
+                                {trip.vehicle}
+                              </span>
+                            </td>
+
+                            {/* Status */}
+                            <td className="px-5 py-3.5">
+                              <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full border ${s.badge}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                                {trip.status}
+                              </span>
+                            </td>
+
+                            {/* Start Time */}
+                            <td className="px-5 py-3.5">
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                {trip.startTime}
+                              </span>
+                            </td>
+
+                            {/* ETA */}
+                            <td className="px-5 py-3.5">
+                              <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100">
+                                {trip.eta}
+                              </span>
+                            </td>
+
+                            {/* Progress */}
+                            <td className="px-5 py-3.5 w-40">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-brand rounded-full transition-all duration-300"
+                                    style={{ width: `${trip.progress}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 shrink-0">
+                                  {trip.progress}%
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Distance */}
+                            <td className="px-5 py-3.5 text-right">
+                              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                                {trip.distance}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table Ledger Footer */}
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/40 flex items-center justify-between text-[11px] text-slate-500 font-semibold mt-auto">
+                <span>Showing {activeTrips.length} active dispatch entries</span>
+                <button
+                  onClick={() => navigate('/trips')}
+                  className="text-brand hover:underline font-extrabold flex items-center gap-1 cursor-pointer text-[11px]"
+                >
+                  View All Trips &rarr;
+                </button>
+              </div>
             </div>
           </div>
 

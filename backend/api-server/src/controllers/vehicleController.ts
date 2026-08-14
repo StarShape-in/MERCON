@@ -3,6 +3,7 @@ import { prisma } from '../index';
 import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { AssetStatus, AssetType } from '@prisma/client';
+import { tripIncome, isEarned } from '../reportEngine/derived';
 
 /** Fields the fleet ledger search bar looks at. */
 const VEHICLE_SEARCH_FIELDS = [
@@ -576,20 +577,8 @@ export const bulkUpdateVehicleStatus = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Revenue recognised for a trip. Falls back down the chain because older trips
- * were captured before invoicing existed: explicit billing amount wins, then the
- * issued invoice total, then the quoted trip charges.
- */
-const tripIncome = (t: { billing_amount: number | null; trip_charges: number | null; invoices: { total_amount: number | null }[] }) => {
-  const invoice = t.invoices[0];
-  if (t.billing_amount && t.billing_amount > 0) return t.billing_amount;
-  if (invoice?.total_amount && invoice.total_amount > 0) return invoice.total_amount;
-  return t.trip_charges || 0;
-};
-
-/** Only completed/invoiced trips count as earned revenue. */
-const isEarned = (status: string) => status === 'Completed' || status === 'Invoiced';
+// tripIncome/isEarned moved to reportEngine/derived.ts so the report builder
+// query engine uses the exact same definitions — see that file for docs.
 
 /** `YYYY-MM` bucket key used by the monthly trend series. */
 const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;

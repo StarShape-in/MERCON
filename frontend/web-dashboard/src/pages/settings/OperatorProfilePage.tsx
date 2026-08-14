@@ -186,15 +186,17 @@ export default function OperatorProfilePage() {
 
   const pwdStrength = getPasswordStrength(pwd.next);
 
+  const profileTitle = user?.role === 'Admin' ? 'Admin Profile' : 'Operator Profile';
+
   return (
-    <DashboardLayout active="Settings" title="Operator Profile">
+    <DashboardLayout active="Settings" title={profileTitle}>
       <div className="px-4 sm:px-6 pb-6 space-y-5 animate-fade-in max-w-[1250px] mx-auto w-full">
 
         {/* ── Minimalist Header ───────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-              Operator Profile
+              {profileTitle}
             </h1>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
               Manage personal identity, security credentials, active sessions, and system preferences

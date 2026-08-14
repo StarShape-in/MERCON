@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../index';
+import { MODULE_KEYS } from '@mercon/shared-types';
 
 const SINGLETON_ID = 'singleton';
 
@@ -9,11 +10,27 @@ export async function getCompanyLegalName(): Promise<string> {
   return settings.companyLegalName;
 }
 
+/**
+ * Single source of truth for "is module X on for this deployment" — used by
+ * requireModuleEnabled and by controllers that need to filter cross-module
+ * data (reports, trash, vehicle financials) rather than 403 outright.
+ */
+export async function getEnabledModules(): Promise<Set<string>> {
+  const settings = await getOrCreateSettings();
+  return new Set(settings.enabledModules);
+}
+
+// enabledModules defaults to every known module on first creation — this is
+// the row's *only* creation path (also used by seed.ts's own upsert with the
+// same default), so a deployment can never end up with an empty list simply
+// because a request created the row before the seed ran. requireModuleEnabled
+// fails closed on an empty list, so getting this default wrong 403s every
+// gated module at once.
 async function getOrCreateSettings() {
   return prisma.settings.upsert({
     where: { id: SINGLETON_ID },
     update: {},
-    create: { id: SINGLETON_ID },
+    create: { id: SINGLETON_ID, enabledModules: [...MODULE_KEYS] },
   });
 }
 
