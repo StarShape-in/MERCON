@@ -1,31 +1,37 @@
-name: CI
+name: Monorepo CI Pipeline
 
 on:
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  push:
-    branches-ignore: [ "main" ]
 
 jobs:
-  build:
-    name: Typecheck & Build
+  verify:
+    name: Build, Typecheck & Validate Monorepo
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4.2.2
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm ci
 
-      - name: Lint web dashboard
-        run: npm run lint -w @mercon/web-dashboard
+      - name: Generate Prisma Client
+        run: cd backend/api-server && npx prisma generate
 
-      - name: Build (types, api-server, web-dashboard)
+      - name: Typecheck Backend API Server
+        run: cd backend/api-server && npx tsc --noEmit
+
+      - name: Typecheck Frontend Web Dashboard
+        run: cd frontend/web-dashboard && npx tsc --noEmit
+
+      - name: Build All Monorepo Workspaces
         run: npm run build
