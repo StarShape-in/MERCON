@@ -87,4 +87,17 @@ export const documentService = {
     });
     return res.data;
   },
+
+  async bulkOcrExtract(onlyMissingExpiry = true, limit = 200): Promise<any> {
+    const res = await api.post('/documents/bulk-ocr-extract', {
+      only_missing_expiry: onlyMissingExpiry,
+      limit,
+    });
+    return res.data;
+  },
+
+  async extractDocumentOcr(id: string): Promise<any> {
+    const res = await api.post(`/documents/${id}/ocr-extract`);
+    return res.data;
+  },
 };
