@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -91,6 +91,13 @@ export default function DriverDetailsPage() {
     queryFn: () => driverService.getById(id!),
     enabled: !!id,
   });
+
+  // URL normalization: if navigated using ref_id, replace with canonical UUID
+  useEffect(() => {
+    if (driver && driver.id && id !== driver.id) {
+      navigate(`/drivers/${driver.id}`, { replace: true });
+    }
+  }, [driver?.id, id, navigate]);
 
   const { data: docsRes, isLoading: isLoadingDocs } = useQuery({
     queryKey: ['documents', 'Driver', id],

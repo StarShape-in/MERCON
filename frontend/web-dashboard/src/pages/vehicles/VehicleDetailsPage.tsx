@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -57,6 +57,13 @@ export default function VehicleDetailsPage() {
     queryFn: () => vehicleService.getById(id!),
     enabled: !!id,
   });
+
+  // URL normalization: if navigated using ref_id or plate, replace with canonical UUID
+  useEffect(() => {
+    if (vehicle && vehicle.id && id !== vehicle.id) {
+      navigate(`/vehicles/${vehicle.id}`, { replace: true });
+    }
+  }, [vehicle?.id, id, navigate]);
 
   const { data: maintenanceRes, isLoading: isMaintLoading } = useQuery({
     queryKey: ['maintenance', id],

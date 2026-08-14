@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -36,6 +36,13 @@ export default function CustomerDetailsPage() {
     queryFn: () => customerService.getById(id!),
     enabled: !!id,
   });
+
+  // URL normalization: if navigated using name/id, replace with canonical UUID
+  useEffect(() => {
+    if (customer && customer.id && id !== customer.id) {
+      navigate(`/customers/${customer.id}`, { replace: true });
+    }
+  }, [customer?.id, id, navigate]);
 
   // Fetch Invoices for this customer
   const { data: invoicesResponse } = useQuery({

@@ -129,8 +129,22 @@ export const getVehicles = async (req: Request, res: Response) => {
 export const getVehicleById = async (req: Request, res: Response) => {
   try {
     const now = new Date();
-    const vehicle = await prisma.vehicle.findUnique({
-      where: { id: req.params.id as string, deletedAt: null },
+    const idOrRef = req.params.id as string;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrRef);
+    const whereClause: any = isUuid
+      ? { id: idOrRef, deletedAt: null }
+      : {
+          OR: [
+            { ref_id: idOrRef },
+            { ref_id: { equals: idOrRef, mode: 'insensitive' } },
+            { plate_number: idOrRef },
+            { plate_number: { equals: idOrRef, mode: 'insensitive' } },
+          ],
+          deletedAt: null,
+        };
+
+    const vehicle = await prisma.vehicle.findFirst({
+      where: whereClause,
       include: {
         assignedDriver: true,
         trips: {

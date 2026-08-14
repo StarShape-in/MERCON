@@ -4,6 +4,9 @@ import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { InvoiceStatus, TripStatus } from '@prisma/client';
 
+const isUuid = (val: any): boolean =>
+  typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
 const INVOICE_SEARCH_FIELDS = [
   'ref_id',
   'customer.name',
@@ -201,7 +204,24 @@ export const bulkUpdateInvoiceStatus = async (req: Request, res: Response) => {
  */
 export const markTripInvoiced = async (req: Request, res: Response) => {
   try {
-    const tripId = req.params.id as string;
+    const rawTripId = req.params.id as string;
+    let tripId = rawTripId;
+    if (!isUuid(rawTripId)) {
+      const resolved = await prisma.trip.findFirst({
+        where: {
+          OR: [
+            { ref_id: rawTripId },
+            { ref_id: { equals: rawTripId, mode: 'insensitive' } },
+          ],
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      if (!resolved) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+      }
+      tripId = resolved.id;
+    }
     const userId = (req as any).user?.id;
     const { zatca_ref, invoicing_note } = req.body;
 
@@ -279,7 +299,24 @@ export const markTripInvoiced = async (req: Request, res: Response) => {
  */
 export const unmarkTripInvoiced = async (req: Request, res: Response) => {
   try {
-    const tripId = req.params.id as string;
+    const rawTripId = req.params.id as string;
+    let tripId = rawTripId;
+    if (!isUuid(rawTripId)) {
+      const resolved = await prisma.trip.findFirst({
+        where: {
+          OR: [
+            { ref_id: rawTripId },
+            { ref_id: { equals: rawTripId, mode: 'insensitive' } },
+          ],
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      if (!resolved) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+      }
+      tripId = resolved.id;
+    }
     const userId = (req as any).user?.id;
 
     const result = await prisma.$transaction(async (tx) => {
