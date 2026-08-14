@@ -261,7 +261,18 @@ export default function WorkshopField({
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleUseTypedName(searchQuery)}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    handleUseTypedName(searchQuery);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleUseTypedName(searchQuery);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleUseTypedName(searchQuery);
+                  }}
                   className="w-full px-3 py-2.5 rounded-xl text-xs font-bold bg-orange-50/90 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/80 flex items-center justify-between gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors text-left"
                 >
                   <div className="flex items-center gap-2 truncate">
@@ -281,7 +292,18 @@ export default function WorkshopField({
                   key={w.name}
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleSelectWorkshop(w)}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    handleSelectWorkshop(w);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelectWorkshop(w);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSelectWorkshop(w);
+                  }}
                   className={cn(
                     'w-full px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all select-none cursor-pointer group text-left border',
                     isSelected
@@ -294,6 +316,8 @@ export default function WorkshopField({
                   <div className="flex-1 flex items-center gap-2.5 min-w-0">
                     <button
                       type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleCheckedForDelete(w.name);

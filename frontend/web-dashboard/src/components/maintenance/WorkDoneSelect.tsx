@@ -218,7 +218,18 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
               <div className="pb-1">
                 <button
                   type="button"
-                  onClick={() => addCustomItem(searchQuery)}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    addCustomItem(searchQuery);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    addCustomItem(searchQuery);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    addCustomItem(searchQuery);
+                  }}
                   className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-orange-50/90 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/80 flex items-center justify-between gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors text-left"
                 >
                   <div className="flex items-center gap-2 truncate">
@@ -236,7 +247,18 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                 <button
                   type="button"
                   key={item.id}
-                  onClick={() => toggleItem(item.title)}
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    toggleItem(item.title);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    toggleItem(item.title);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleItem(item.title);
+                  }}
                   className={cn(
                     'w-full px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors text-left border-0 bg-transparent',
                     isSelected
