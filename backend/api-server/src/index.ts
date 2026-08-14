@@ -84,7 +84,9 @@ app.use(helmet.hsts({
 app.use(express.json({ limit: '250mb' }));
 app.use(express.urlencoded({ limit: '250mb', extended: true }));
 import { getUploadDir } from './middlewares/upload';
-app.use('/uploads', express.static(getUploadDir())); // Serve uploaded files statically
+app.use('/uploads', express.static(getUploadDir()));
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+app.use('/uploads', express.static('/tmp/uploads'));
 
 // Create API router and mount all API routes
 const apiRouter = express.Router();
