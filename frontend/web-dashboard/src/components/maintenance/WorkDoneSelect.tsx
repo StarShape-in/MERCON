@@ -145,7 +145,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
             className={cn(
               'w-full min-h-[42px] px-3 py-2 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 shadow-2xs cursor-pointer',
               popoverOpen
-                ? 'border-[#E8450F] ring-2 ring-[#E8450F]/20'
+                ? 'border-brand ring-2 ring-brand/20'
                 : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
             )}
           >
