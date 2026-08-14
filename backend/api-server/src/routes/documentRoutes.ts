@@ -4,7 +4,7 @@ import {
   bulkDeleteDocuments, bulkUpdateDocumentStatus, bulkDownloadDocuments, bulkMoveDocumentsToFolder
 } from '../controllers/documentController';
 import { importLocalTrucksDocs, importUploadedTrucksDocsFolder, uploadRawFileChunk } from '../controllers/batchImportController';
-import { extractAllDocumentsOcr, extractSingleDocumentOcr, syncLocalDocumentRecords } from '../controllers/bulkOcrController';
+import { extractAllDocumentsOcr, extractSingleDocumentOcr, syncLocalDocumentRecords, autoAssignUnlinkedDocs } from '../controllers/bulkOcrController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { upload } from '../middlewares/upload';
@@ -13,6 +13,7 @@ const router = Router();
 
 router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
+router.post('/auto-assign-unlinked', autoAssignUnlinkedDocs);
 router.post('/batch-truck-docs-local', importLocalTrucksDocs);
 router.post('/batch-upload-folder', upload.array('files', 500), importUploadedTrucksDocsFolder);
 router.post('/upload-raw-chunk', uploadRawFileChunk);

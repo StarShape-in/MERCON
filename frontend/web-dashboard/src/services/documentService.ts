@@ -115,4 +115,9 @@ export const documentService = {
     const res = await api.post(`/documents/${id}/ocr-extract`);
     return res.data;
   },
+
+  async autoAssignUnlinked(): Promise<any> {
+    const res = await api.post('/documents/auto-assign-unlinked');
+    return res.data;
+  },
 };

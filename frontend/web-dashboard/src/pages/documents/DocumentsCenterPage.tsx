@@ -120,7 +120,8 @@ export default function DocumentsCenterPage() {
     ['all', 'expired', 'critical', 'warning', 'valid'].includes(initialFilter) ? initialFilter : 'all'
   );
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'folders' | 'list' | 'grid'>('folders');
+  const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
   const [docRotation, setDocRotation] = useState<number>(0);
@@ -219,6 +220,23 @@ export default function DocumentsCenterPage() {
       toast.error(err.response?.data?.error?.message || err.message || 'AI OCR Extraction failed');
     } finally {
       setIsAiOcrRunning(false);
+    }
+  };
+
+  const handleAutoAssignUnlinkedDocs = async () => {
+    setIsAutoAssigning(true);
+    try {
+      toast.info('⚡ Auto-matching unassigned documents against Vehicles & Drivers...');
+      const res = await documentService.autoAssignUnlinked();
+      toast.success(res.message || '⚡ Successfully matched and assigned documents!');
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['folders'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      await queryClient.invalidateQueries({ queryKey: ['drivers'] });
+    } catch (err: any) {
+      toast.error('Auto-assign failed: ' + (err.message || 'Error processing request'));
+    } finally {
+      setIsAutoAssigning(false);
     }
   };
 
@@ -404,6 +422,54 @@ export default function DocumentsCenterPage() {
   const toggleSelectRow = (id: string) => {
     setSelectedDocIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
+
+  // Group documents by Vehicle, Driver, Operations, Company
+  const groupedEntityFolders = useMemo(() => {
+    const vehicleMap = new Map(vehicles.map((v) => [v.id, v]));
+    const driverMap = new Map(drivers.map((d) => [d.id, d]));
+
+    const vehicleGroups = new Map<string, { vehicle: any; docs: EnrichedDocument[]; expiredCount: number }>();
+    const driverGroups = new Map<string, { driver: any; docs: EnrichedDocument[]; expiredCount: number }>();
+    const operationsDocs: EnrichedDocument[] = [];
+    const companyDocs: EnrichedDocument[] = [];
+    const unlinkedDocs: EnrichedDocument[] = [];
+
+    for (const doc of filteredDocs) {
+      const isExp = doc.daysLeft !== null && doc.daysLeft <= 0;
+
+      if (doc.entity_type === 'Vehicle' && vehicleMap.has(doc.entity_id)) {
+        const v = vehicleMap.get(doc.entity_id)!;
+        if (!vehicleGroups.has(v.id)) {
+          vehicleGroups.set(v.id, { vehicle: v, docs: [], expiredCount: 0 });
+        }
+        const g = vehicleGroups.get(v.id)!;
+        g.docs.push(doc);
+        if (isExp) g.expiredCount += 1;
+      } else if (doc.entity_type === 'Driver' && driverMap.has(doc.entity_id)) {
+        const d = driverMap.get(doc.entity_id)!;
+        if (!driverGroups.has(d.id)) {
+          driverGroups.set(d.id, { driver: d, docs: [], expiredCount: 0 });
+        }
+        const g = driverGroups.get(d.id)!;
+        g.docs.push(doc);
+        if (isExp) g.expiredCount += 1;
+      } else if (doc.category === 'Operations') {
+        operationsDocs.push(doc);
+      } else if (doc.category === 'Company') {
+        companyDocs.push(doc);
+      } else {
+        unlinkedDocs.push(doc);
+      }
+    }
+
+    return {
+      vehicles: Array.from(vehicleGroups.values()),
+      drivers: Array.from(driverGroups.values()),
+      operations: operationsDocs,
+      company: companyDocs,
+      unlinked: unlinkedDocs,
+    };
+  }, [filteredDocs, vehicles, drivers]);
 
   return (
     <DashboardLayout active="Documents" title="Documents Center">
@@ -742,9 +808,22 @@ export default function DocumentsCenterPage() {
             {/* View Mode Switcher */}
             <div className="flex items-center bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
               <button
+                onClick={() => setViewMode('folders')}
+                className={cn(
+                  'p-1.5 px-2.5 rounded-lg transition-all text-xs flex items-center gap-1.5 font-bold',
+                  viewMode === 'folders'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Grouped Folder Explorer View"
+              >
+                <FolderOpen size={14} />
+                <span>Folders View</span>
+              </button>
+              <button
                 onClick={() => setViewMode('list')}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
+                  'p-1.5 px-2 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
                   viewMode === 'list'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
@@ -752,11 +831,12 @@ export default function DocumentsCenterPage() {
                 title="List View"
               >
                 <List size={14} />
+                <span>List</span>
               </button>
               <button
                 onClick={() => setViewMode('grid')}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
+                  'p-1.5 px-2 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
                   viewMode === 'grid'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
@@ -764,12 +844,13 @@ export default function DocumentsCenterPage() {
                 title="Grid View"
               >
                 <LayoutGrid size={14} />
+                <span>Grid</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* ── Document Vault Area (List vs Grid View) ──────────────────────── */}
+        {/* ── Document Vault Area (Grouped Folders vs List vs Grid) ────────────── */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
             <RotateCw className="w-8 h-8 animate-spin text-indigo-500 opacity-70" />
@@ -789,6 +870,182 @@ export default function DocumentsCenterPage() {
               <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No documents found</p>
               <p className="text-xs text-slate-400 mt-0.5">Try clearing your search query or status filter</p>
             </div>
+          </div>
+        ) : viewMode === 'folders' ? (
+          /* GROUPED FOLDERS DEFAULT VIEW MODE */
+          <div className="space-y-8">
+            {/* Unassigned Documents Alert Banner */}
+            {groupedEntityFolders.unlinked.length > 0 && (
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-700 dark:text-amber-300 shrink-0">
+                    <Sparkles className="w-5 h-5 fill-amber-500/20" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-amber-950 dark:text-amber-200">
+                      Found {groupedEntityFolders.unlinked.length} Unassigned Document(s)
+                    </h4>
+                    <p className="text-[11px] text-amber-800 dark:text-amber-400 mt-0.5">
+                      Some documents are not linked to a specific vehicle or driver. Click Auto-Assign to match them instantly!
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-xs shrink-0"
+                  onClick={handleAutoAssignUnlinkedDocs}
+                  disabled={isAutoAssigning}
+                >
+                  {isAutoAssigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  <span>Auto-Assign {groupedEntityFolders.unlinked.length} Docs</span>
+                </Button>
+              </div>
+            )}
+
+            {/* 1. Vehicles Group Section */}
+            {(activeCategory === 'All' || activeCategory === 'Vehicles') && groupedEntityFolders.vehicles.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-emerald-600" />
+                    <span>Vehicle Compliance Folders ({groupedEntityFolders.vehicles.length} Vehicles)</span>
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {groupedEntityFolders.vehicles.map(({ vehicle, docs: vDocs, expiredCount: vExp }) => (
+                    <Card
+                      key={vehicle.id}
+                      className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col justify-between group"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 shrink-0">
+                              <Folder className="w-4 h-4 fill-emerald-500/20" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                                {vehicle.plate_number || vehicle.ref_id || 'Vehicle Folder'}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 font-medium">Ref: #{vehicle.ref_id || vehicle.id.slice(0, 6)}</span>
+                            </div>
+                          </div>
+                          <Badge className={cn(
+                            'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
+                            vExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
+                          )}>
+                            {vExp > 0 ? `${vExp} Overdue` : 'Valid'}
+                          </Badge>
+                        </div>
+
+                        {/* Document type tags present inside this vehicle folder */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {vDocs.map((d) => (
+                            <Badge
+                              key={d.id}
+                              variant="outline"
+                              onClick={() => setPreviewDoc(d)}
+                              className="text-[10px] font-semibold bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-brand text-slate-700 dark:text-slate-300 cursor-pointer truncate max-w-[130px]"
+                            >
+                              {docTypeLabel(d.doc_type)}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="text-[10px] text-slate-400 font-semibold">{vDocs.length} Document(s)</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs font-bold text-brand hover:text-brand-hover p-0 flex items-center gap-1"
+                          onClick={() => {
+                            setSearch(vehicle.plate_number || vehicle.ref_id || '');
+                            setViewMode('list');
+                          }}
+                        >
+                          <span>Inspect Vault</span>
+                          <ChevronRight size={12} />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Drivers Group Section */}
+            {(activeCategory === 'All' || activeCategory === 'Drivers') && groupedEntityFolders.drivers.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+                    <UserIcon className="w-4 h-4 text-blue-600" />
+                    <span>Driver Compliance Folders ({groupedEntityFolders.drivers.length} Drivers)</span>
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {groupedEntityFolders.drivers.map(({ driver, docs: dDocs, expiredCount: dExp }) => (
+                    <Card
+                      key={driver.id}
+                      className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition-all flex flex-col justify-between group"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 shrink-0">
+                              <Folder className="w-4 h-4 fill-blue-500/20" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                                {driver.first_name} {driver.last_name}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 font-mono">IQAMA: {driver.iqama_number || 'N/A'}</span>
+                            </div>
+                          </div>
+                          <Badge className={cn(
+                            'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
+                            dExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                          )}>
+                            {dExp > 0 ? `${dExp} Overdue` : 'Active'}
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {dDocs.map((d) => (
+                            <Badge
+                              key={d.id}
+                              variant="outline"
+                              onClick={() => setPreviewDoc(d)}
+                              className="text-[10px] font-semibold bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-brand text-slate-700 dark:text-slate-300 cursor-pointer truncate max-w-[130px]"
+                            >
+                              {docTypeLabel(d.doc_type)}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="text-[10px] text-slate-400 font-semibold">{dDocs.length} Document(s)</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs font-bold text-brand hover:text-brand-hover p-0 flex items-center gap-1"
+                          onClick={() => {
+                            setSearch(driver.first_name);
+                            setViewMode('list');
+                          }}
+                        >
+                          <span>Inspect Vault</span>
+                          <ChevronRight size={12} />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : viewMode === 'list' ? (
           <DataTable<EnrichedDocument>
