@@ -1264,10 +1264,10 @@ export default function BulkAddTripsModal({
                                         <div className="space-y-1">
                                           <label className="text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center justify-between">
                                             <span>Return Dropoff (Home) *</span>
-                                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
-                                              <Link2 className="w-3 h-3 text-emerald-600" />
-                                              Auto-Linked Home
-                                            </span>
+                                            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200/90 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg shadow-2xs">
+                                              <RotateCcw className="w-3 h-3 text-emerald-600" />
+                                              Auto-Linked Home Origin
+                                            </Badge>
                                           </label>
                                           <LocationCombobox
                                             value={slot.returnDestination || slot.origin}
