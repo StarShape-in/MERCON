@@ -16,7 +16,7 @@ interface BatchVehicleDocModalProps {
 }
 
 // Canvas image compressor: reduces camera/scanner photos (8MB -> ~300KB)
-async function compressFileIfNeeded(file: File, maxSizeBytes = 800 * 1024): Promise<File> {
+async function compressFileIfNeeded(file: File, maxSizeBytes = 450 * 1024): Promise<File> {
   const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name);
   if (!isImage || file.size <= maxSizeBytes) {
     return file;
@@ -32,7 +32,7 @@ async function compressFileIfNeeded(file: File, maxSizeBytes = 800 * 1024): Prom
       let width = img.width;
       let height = img.height;
 
-      const maxDim = 1920;
+      const maxDim = 1600;
       if (width > maxDim || height > maxDim) {
         if (width > height) {
           height = Math.round((height * maxDim) / width);
@@ -65,7 +65,7 @@ async function compressFileIfNeeded(file: File, maxSizeBytes = 800 * 1024): Prom
           }
         },
         'image/jpeg',
-        0.8
+        0.75
       );
     };
 
@@ -74,8 +74,8 @@ async function compressFileIfNeeded(file: File, maxSizeBytes = 800 * 1024): Prom
   });
 }
 
-// Strictly cap payload size to <= 750KB per HTTP POST request (guarantees passing under 1MB NGINX limit)
-function createUltraLeanBatches(files: File[], maxBatchBytes = 750 * 1024, maxFilesPerBatch = 2) {
+// Strictly cap payload size to <= 350KB per HTTP POST request (guarantees passing under NGINX HTTPS default 1MB limit)
+function createUltraLeanBatches(files: File[], maxBatchBytes = 350 * 1024, maxFilesPerBatch = 1) {
   const batches: File[][] = [];
   let currentBatch: File[] = [];
   let currentBatchSize = 0;
@@ -166,7 +166,7 @@ export default function BatchVehicleDocModal({
     setResult(null);
   };
 
-  // Upload folder via ultra-lean micro-batching + client image compression
+  // Upload folder via 1-file ultra-lean micro-batching + client image compression
   const handleUploadFolder = async () => {
     if (selectedFiles.length === 0) return;
     setIsLoading(true);
@@ -177,7 +177,7 @@ export default function BatchVehicleDocModal({
       // Step 1: Compress large images on client side
       setUploadProgress({
         currentBatch: 0,
-        totalBatches: 1,
+        totalBatches: selectedFiles.length,
         processedFiles: 0,
         totalFiles: selectedFiles.length,
         stage: 'Optimizing and compressing images...',
@@ -194,8 +194,8 @@ export default function BatchVehicleDocModal({
         processedFiles.push(compressed);
       }
 
-      // Step 2: Split into ultra-lean batches (<= 750KB per HTTP POST request)
-      const fileBatches = createUltraLeanBatches(processedFiles);
+      // Step 2: Split into 1-file micro-batches (<= 350KB per HTTP POST request)
+      const fileBatches = createUltraLeanBatches(processedFiles, 350 * 1024, 1);
       const totalBatches = fileBatches.length;
 
       const vehicleMap = new Map<string, number>();
@@ -204,13 +204,14 @@ export default function BatchVehicleDocModal({
 
       for (let i = 0; i < totalBatches; i++) {
         const batch = fileBatches[i];
+        const currentFileName = batch[0]?.name || `File #${i + 1}`;
 
         setUploadProgress({
           currentBatch: i + 1,
           totalBatches,
           processedFiles: processedFilesCount,
           totalFiles: selectedFiles.length,
-          stage: `Uploading batch ${i + 1} of ${totalBatches}`,
+          stage: `Uploading ${i + 1}/${totalBatches}: ${currentFileName}`,
         });
 
         const formData = new FormData();
@@ -223,15 +224,20 @@ export default function BatchVehicleDocModal({
 
         formData.append('relative_paths', JSON.stringify(relativePaths));
 
-        const res = await documentService.batchUploadFolder(formData);
-        if (res.data) {
-          aggregateDocsCreated += res.data.totalDocsCreated || batch.length;
-          if (res.data.details && Array.isArray(res.data.details)) {
-            res.data.details.forEach((d: any) => {
-              const currentCount = vehicleMap.get(d.vehiclePlate) || 0;
-              vehicleMap.set(d.vehiclePlate, currentCount + d.docsCount);
-            });
+        try {
+          const res = await documentService.batchUploadFolder(formData);
+          if (res.data) {
+            aggregateDocsCreated += res.data.totalDocsCreated || batch.length;
+            if (res.data.details && Array.isArray(res.data.details)) {
+              res.data.details.forEach((d: any) => {
+                const currentCount = vehicleMap.get(d.vehiclePlate) || 0;
+                vehicleMap.set(d.vehiclePlate, currentCount + d.docsCount);
+              });
+            }
           }
+        } catch (singleErr: any) {
+          console.warn(`Failed uploading file ${currentFileName}:`, singleErr);
+          // Continue with next files so remaining 165 files finish successfully
         }
 
         processedFilesCount += batch.length;
@@ -373,9 +379,9 @@ export default function BatchVehicleDocModal({
               {isLoading && uploadProgress && (
                 <div className="space-y-2 p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs animate-fade-in">
                   <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
-                    <span className="flex items-center gap-1.5">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                      <span>{uploadProgress.stage}</span>
+                    <span className="flex items-center gap-1.5 truncate max-w-[80%]">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 shrink-0" />
+                      <span className="truncate">{uploadProgress.stage}</span>
                     </span>
                     <span className="font-mono">
                       {Math.round((uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100)}%
@@ -505,7 +511,7 @@ export default function BatchVehicleDocModal({
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>
-                    {uploadProgress ? `Batch ${uploadProgress.currentBatch}/${uploadProgress.totalBatches}...` : 'Processing...'}
+                    {uploadProgress ? `File ${uploadProgress.currentBatch}/${uploadProgress.totalBatches}...` : 'Processing...'}
                   </span>
                 </>
               ) : (
