@@ -497,6 +497,13 @@ export default function VehicleListPage() {
                     min={0}
                     value={odometerDraft}
                     onChange={(e) => setOdometerDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return;
+                      e.preventDefault();
+                      const value = Number(odometerDraft);
+                      if (!odometerDraft || !Number.isFinite(value) || value < 0) return;
+                      updateOdometerMutation.mutate({ id: row.id, value });
+                    }}
                     placeholder="Odometer (km)"
                     className="h-8 text-xs mb-2"
                     autoFocus
