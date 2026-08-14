@@ -8,9 +8,9 @@ import { DocStatus } from '@prisma/client';
  */
 export const extractSingleDocumentOcr = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const docId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const document = await prisma.document.findUnique({
-      where: { id },
+      where: { id: docId },
     });
 
     if (!document) {
@@ -53,7 +53,7 @@ export const extractSingleDocumentOcr = async (req: Request, res: Response) => {
     }
 
     const updatedDocument = await prisma.document.update({
-      where: { id },
+      where: { id: docId },
       data: updateData,
     });
 
