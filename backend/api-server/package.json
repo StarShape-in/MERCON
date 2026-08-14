@@ -12,7 +12,8 @@
     "demo:purge": "ts-node scripts/demo-purge.ts",
     "test:icces": "node -r ts-node/register --test src/services/icces/trackParser.test.ts src/services/icces/iccesSession.test.ts src/services/icces/fleetPoller.test.ts",
     "test:tracking": "node -r ts-node/register --test src/services/tracking/locationUpdate.test.ts",
-    "test:routing": "node -r ts-node/register --test src/services/routing/routeProvider.test.ts"
+    "test:routing": "node -r ts-node/register --test src/services/routing/routeProvider.test.ts",
+    "test:xlsx": "node -r ts-node/register --test src/services/reports/xlsxTemplate/splice.test.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -43,8 +44,10 @@
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.1",
+    "fflate": "^0.8.3",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",

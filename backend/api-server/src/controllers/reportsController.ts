@@ -305,46 +305,56 @@ export const getRevenueReport = async (req: Request, res: Response) => {
 export const getCustomReport = async (req: Request, res: Response) => {
   try {
     const { startDate, endDate, customerId } = req.query;
-    
-    const whereClause: any = { deletedAt: null };
-    
-    if (startDate) {
-      whereClause.createdAt = { ...whereClause.createdAt, gte: new Date(startDate as string) };
-    }
+
+    // Filter on the trip's own date, not createdAt (a trip created in July
+    // for a June job should show up in June's report), falling back to
+    // planned_start for trips that haven't actually started yet.
+    const dateRange: { gte?: Date; lte?: Date } = {};
+    if (startDate) dateRange.gte = new Date(startDate as string);
     if (endDate) {
-      // Add time to cover the whole end day
       const end = new Date(endDate as string);
       end.setHours(23, 59, 59, 999);
-      whereClause.createdAt = { ...whereClause.createdAt, lte: end };
+      dateRange.lte = end;
+    }
+
+    const whereClause: any = { deletedAt: null };
+    if (Object.keys(dateRange).length > 0) {
+      whereClause.OR = [
+        { actual_start: dateRange },
+        { AND: [{ actual_start: null }, { planned_start: dateRange }] },
+      ];
     }
     if (customerId && customerId !== 'all') {
       whereClause.customerId = customerId;
     }
 
-    const [
-      totalTrips,
-      tripsByStatus,
-      recentTrips
-    ] = await Promise.all([
-      prisma.trip.count({ where: whereClause }),
-      prisma.trip.groupBy({
-        by: ['status'],
+    const tripInclude = {
+      customer: { select: { name: true } },
+      driver: { select: { first_name: true, last_name: true, phone_primary: true } },
+      vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
+      stops: { orderBy: { stop_sequence: 'asc' as const } },
+      invoices: true,
+    };
+
+    // No row cap — page internally so a full month's ledger exports
+    // completely instead of silently truncating at a fixed limit.
+    const PAGE_SIZE = 1000;
+    const allTrips: any[] = [];
+    for (let skip = 0; ; skip += PAGE_SIZE) {
+      const page = await prisma.trip.findMany({
         where: whereClause,
-        _count: { status: true }
-      }),
-      prisma.trip.findMany({
-        where: whereClause,
-        orderBy: { createdAt: 'desc' },
-        take: 500, // Increase limit for ledger exports
-        include: {
-          customer: { select: { name: true } },
-          driver: { select: { first_name: true, last_name: true, phone_primary: true } },
-          vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
-          stops: { orderBy: { stop_sequence: 'asc' } },
-          invoices: true,
-        }
-      })
-    ]);
+        orderBy: [{ actual_start: 'desc' }, { planned_start: 'desc' }],
+        skip,
+        take: PAGE_SIZE,
+        include: tripInclude,
+      });
+      allTrips.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+
+    const totalTrips = allTrips.length;
+    const statusMap: Record<string, number> = {};
+    for (const t of allTrips) statusMap[t.status] = (statusMap[t.status] ?? 0) + 1;
 
     // For revenue, we filter invoices based on the same criteria
     const invoiceWhere: any = { deletedAt: null, status: InvoiceStatus.Paid };
@@ -361,9 +371,6 @@ export const getCustomReport = async (req: Request, res: Response) => {
       _sum: { total_amount: true }
     });
 
-    const statusMap: Record<string, number> = {};
-    tripsByStatus.forEach((row) => { statusMap[row.status] = row._count.status; });
-
     res.json({
       success: true,
       data: {
@@ -372,8 +379,8 @@ export const getCustomReport = async (req: Request, res: Response) => {
           total_revenue: totalRevenue._sum.total_amount ?? 0,
         },
         trip_status_distribution: statusMap,
-        trips: recentTrips.map(t => {
-          const dropoff = t.stops.find(s => s.stop_type === 'Dropoff');
+        trips: allTrips.map(t => {
+          const dropoff = t.stops.find((s: any) => s.stop_type === 'Dropoff');
           const invoice = t.invoices[0];
           const billing = t.billing_amount ?? (invoice?.subtotal || 0);
           const totalAmt = invoice?.total_amount ?? (billing + t.waiting_labor_charges + t.additional_stop_charges);
@@ -383,14 +390,14 @@ export const getCustomReport = async (req: Request, res: Response) => {
           return {
             id: t.id,
             ref_id: t.ref_id,
-            date: t.actual_start || t.createdAt,
+            date: t.actual_start || t.planned_start || t.createdAt,
             driver: t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'N/A',
             driver_phone: t.driver?.phone_primary || 'N/A',
             vehicle: t.vehicle?.plate_number || 'N/A',
             vehicle_type: vehicleTypeLabel,
             carrier_name: t.carrier_name || 'MERCON LOGISTICS',
             customer: t.customer?.name || 'N/A',
-            receiver: dropoff ? `Dropoff Stop ${dropoff.stop_sequence}` : 'N/A',
+            receiver: dropoff?.location_name || dropoff?.location_address || 'N/A',
             waiting_labor_charges: t.waiting_labor_charges,
             additional_stop_charges: t.additional_stop_charges,
             billing_amount: billing,

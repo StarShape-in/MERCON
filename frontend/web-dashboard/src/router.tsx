@@ -76,7 +76,7 @@ const ReportsDashboardPage        = lazy(() => import('@/pages/reports/ReportsDa
 const FleetPerformancePage        = lazy(() => import('@/pages/reports/FleetPerformancePage'));
 const RevenueReportsPage          = lazy(() => import('@/pages/reports/RevenueReportsPage'));
 const CustomReportPage            = lazy(() => import('@/pages/reports/CustomReportPage'));
-const CompanyReportTemplatesPage = lazy(() => import('@/pages/reports/CompanyReportTemplatesPage'));
+const CompanyReportsGeneratorPage = lazy(() => import('@/pages/reports/CompanyReportsGeneratorPage'));
 const DelayReportPage             = lazy(() => import('@/pages/reports/DelayReportPage'));
 
 // Smart Report Builder
@@ -189,11 +189,14 @@ export default function AppRouter() {
           {/* Reports */}
           <Route path="/reports"                  element={<RequireModule moduleKey="reports"><ReportsDashboardPage /></RequireModule>} />
           <Route path="/reports/custom"           element={<CustomReportPage />} />
-          <Route path="/reports/client-templates" element={<CompanyReportTemplatesPage />} />
+          <Route path="/reports/client-templates" element={<Navigate to="/company-reports" replace />} />
           <Route path="/reports/fleet"            element={<FleetPerformancePage />} />
           <Route path="/reports/revenue"          element={<RevenueReportsPage />} />
           <Route path="/reports/drivers"          element={<Navigate to="/reports" replace />} />
           <Route path="/reports/delays"           element={<DelayReportPage />} />
+
+          {/* Custom Company Reports Generator */}
+          <Route path="/company-reports"          element={<RequireModule moduleKey="company-reports"><CompanyReportsGeneratorPage /></RequireModule>} />
 
           {/* Smart Report Builder */}
           <Route path="/report-builder"          element={<ReportBuilderLandingPage />} />
