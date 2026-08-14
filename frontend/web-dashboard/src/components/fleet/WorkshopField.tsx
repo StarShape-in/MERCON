@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wrench, Plus, Building2, Phone, Search, ChevronsUpDown, Check, X } from 'lucide-react';
+import { Wrench, Plus, Building2, Phone, Search, ChevronsUpDown, Check, X, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +70,16 @@ export default function WorkshopField({
     },
     onError: (err: any) => {
       setSaveError(err.response?.data?.error?.message || 'Failed to save workshop.');
+    },
+  });
+
+  const selectedWorkshop = workshops.find((w) => w.name === value);
+
+  const deleteWorkshopMutation = useMutation({
+    mutationFn: (id: string) => maintenanceService.deleteWorkshop(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['workshops'] });
+      if (selectedWorkshop?.id === id) onChange('');
     },
   });
 
@@ -226,7 +236,17 @@ export default function WorkshopField({
 
           {/* Footer Action */}
           <div className="p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-medium">Need to register a workshop?</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={!selectedWorkshop?.id || deleteWorkshopMutation.isPending}
+              onClick={() => selectedWorkshop?.id && deleteWorkshopMutation.mutate(selectedWorkshop.id)}
+              title={selectedWorkshop?.id ? `Delete "${selectedWorkshop.name}"` : 'Select a saved workshop to delete it'}
+              className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-30"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
             <Button
               type="button"
               variant="outline"
