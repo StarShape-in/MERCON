@@ -21,7 +21,7 @@ const normalise = (header: string) =>
     .trim();
 
 /** Field name → the header spellings that map to it, most specific first. */
-type ColumnMap = Record<string, string[]>;
+export type ColumnMap = Record<string, string[]>;
 
 export const DRIVER_COLUMNS: ColumnMap = {
   ref_id: ['driver ref id', 'driver ref', 'ref id', 'driver id'],
