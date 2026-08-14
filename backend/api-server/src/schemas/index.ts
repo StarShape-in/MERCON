@@ -260,6 +260,7 @@ export const updateVehicleBody = z.object({
   plate_number: nonEmpty('Plate number').optional(),
   asset_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
   capacity_kg: z.coerce.number().int().positive().optional(),
+  current_odometer: z.coerce.number().min(0).optional(),
   trailer_number: z.string().trim().optional(),
   trailer_type: z.enum(['Flatbed', 'Reefer', 'Box', 'Tanker']).optional(),
   trailer_capacity_kg: z.coerce.number().int().positive().optional(),
