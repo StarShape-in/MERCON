@@ -125,6 +125,40 @@ function createUltraLeanBatches(files: File[], maxBatchBytes = 350 * 1024, maxFi
   return batches;
 }
 
+// Helper to upload a single large file (> 250KB) in 200KB micro-chunks to eliminate NGINX 413 & buffer errors
+async function uploadFileInMicroChunks(file: File, cleanId: string): Promise<boolean> {
+  const CHUNK_SIZE = 200 * 1024; // 200KB chunks (guaranteed to pass under 1MB NGINX limit)
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  const safeBaseName = file.name.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+  const uniqueFilename = `truck-${cleanId}-${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeBaseName}`;
+
+  const arrayBuffer = await file.arrayBuffer();
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const chunkBuffer = arrayBuffer.slice(start, end);
+
+    let binary = '';
+    const bytes = new Uint8Array(chunkBuffer);
+    const len = bytes.byteLength;
+    for (let j = 0; j < len; j++) {
+      binary += String.fromCharCode(bytes[j]);
+    }
+    const base64Chunk = btoa(binary);
+
+    await documentService.uploadRawChunk({
+      filename: uniqueFilename,
+      chunk: base64Chunk,
+      isFirst: i === 0,
+      isLast: i === totalChunks - 1,
+      cleanId,
+    });
+  }
+
+  return true;
+}
+
 export default function BatchVehicleDocModal({
   isOpen,
   onClose,
@@ -331,7 +365,7 @@ export default function BatchVehicleDocModal({
     }
   };
 
-  // Upload folder via 1-file micro-batches + tracking successes and failures explicitly
+  // Upload folder with 200KB micro-chunking for files > 250KB to eliminate 413 & buffer errors
   const handleUploadFolder = async () => {
     if (selectedFiles.length === 0) return;
     setIsLoading(true);
@@ -359,44 +393,47 @@ export default function BatchVehicleDocModal({
         processedFiles.push(compressed);
       }
 
-      const fileBatches = createUltraLeanBatches(processedFiles, 350 * 1024, 1);
-      const totalBatches = fileBatches.length;
-
       const vehicleMap = new Map<string, number>();
       let aggregateDocsCreated = 0;
       let processedFilesCount = 0;
 
-      for (let i = 0; i < totalBatches; i++) {
-        const batch = fileBatches[i];
-        const currentFileName = batch[0]?.name || `File #${i + 1}`;
+      for (let i = 0; i < processedFiles.length; i++) {
+        const file = processedFiles[i];
+        const currentFileName = file.name;
+
+        // Parse vehicle clean ID from relative path
+        const rel = file.webkitRelativePath || file.name;
+        const parts = rel.replace(/\\/g, '/').split('/').filter(Boolean);
+        let cleanId = 'General';
+        if (parts.length >= 3) cleanId = parts[1].trim();
+        else if (parts.length === 2) cleanId = parts[0].trim();
 
         setUploadProgress({
           currentBatch: i + 1,
-          totalBatches,
+          totalBatches: processedFiles.length,
           processedFiles: processedFilesCount,
-          totalFiles: selectedFiles.length,
-          stage: `Uploading ${i + 1}/${totalBatches}: ${currentFileName}`,
+          totalFiles: processedFiles.length,
+          stage: `Uploading ${i + 1}/${processedFiles.length}: ${currentFileName}`,
         });
-
-        const formData = new FormData();
-        const relativePaths: string[] = [];
-
-        batch.forEach((file) => {
-          formData.append('files', file);
-          relativePaths.push(file.webkitRelativePath || file.name);
-        });
-
-        formData.append('relative_paths', JSON.stringify(relativePaths));
 
         try {
-          const res = await documentService.batchUploadFolder(formData);
-          if (res.data) {
-            aggregateDocsCreated += res.data.totalDocsCreated || batch.length;
-            if (res.data.details && Array.isArray(res.data.details)) {
-              res.data.details.forEach((d: any) => {
-                const currentCount = vehicleMap.get(d.vehiclePlate) || 0;
-                vehicleMap.set(d.vehiclePlate, currentCount + d.docsCount);
-              });
+          if (file.size > 250 * 1024) {
+            // Upload large PDFs / images via 200KB micro-chunks (never hits NGINX 413 or buffer limits)
+            await uploadFileInMicroChunks(file, cleanId);
+            aggregateDocsCreated += 1;
+            const currentCount = vehicleMap.get(cleanId) || 0;
+            vehicleMap.set(cleanId, currentCount + 1);
+          } else {
+            // Send small files via standard batch upload endpoint
+            const formData = new FormData();
+            formData.append('files', file);
+            formData.append('relative_paths', JSON.stringify([rel]));
+
+            const res = await documentService.batchUploadFolder(formData);
+            if (res.data) {
+              aggregateDocsCreated += res.data.totalDocsCreated || 1;
+              const currentCount = vehicleMap.get(cleanId) || 0;
+              vehicleMap.set(cleanId, currentCount + 1);
             }
           }
         } catch (singleErr: any) {
@@ -405,7 +442,7 @@ export default function BatchVehicleDocModal({
           console.warn(`Failed uploading file ${currentFileName}:`, singleErr);
         }
 
-        processedFilesCount += batch.length;
+        processedFilesCount += 1;
       }
 
       const detailsList = Array.from(vehicleMap.entries()).map(([plate, count]) => ({

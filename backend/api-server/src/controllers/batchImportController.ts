@@ -403,23 +403,34 @@ export const uploadRawFileChunk = async (req: Request, res: Response) => {
         },
       });
 
+      if (!vehicle) {
+        const uniqueRef = `VEH-${cleanId}-${Date.now().toString().slice(-4)}`;
+        vehicle = await prisma.vehicle.create({
+          data: {
+            plate_number: cleanId,
+            ref_id: uniqueRef,
+            asset_type: AssetType.Flatbed,
+            status: 'Available',
+            capacity_kg: 20000,
+          },
+        });
+      }
+
       const file_url = env.BASE_URL ? `${env.BASE_URL}/uploads/${filename}` : `/uploads/${filename}`;
       const doc_type = classifyDocType(filename);
       const mime_type = getMimeType(filename);
 
-      if (vehicle) {
-        await prisma.document.create({
-          data: {
-            entity_type: 'Vehicle',
-            entity_id: vehicle.id,
-            doc_type,
-            status: DocStatus.Verified,
-            file_url,
-            mime_type,
-            is_confidential: false,
-          },
-        });
-      }
+      await prisma.document.create({
+        data: {
+          entity_type: 'Vehicle',
+          entity_id: vehicle.id,
+          doc_type,
+          status: DocStatus.Verified,
+          file_url,
+          mime_type,
+          is_confidential: false,
+        },
+      });
     }
 
     res.json({ success: true, filename, received: buffer.length });

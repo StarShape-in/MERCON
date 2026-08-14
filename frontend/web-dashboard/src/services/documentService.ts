@@ -96,6 +96,11 @@ export const documentService = {
     return res.data;
   },
 
+  async uploadRawChunk(payload: { filename: string; chunk: string; isFirst: boolean; isLast: boolean; cleanId?: string }): Promise<any> {
+    const res = await api.post('/documents/upload-raw-chunk', payload);
+    return res.data;
+  },
+
   async bulkOcrExtract(onlyMissingExpiry = true, limit = 200): Promise<any> {
     const res = await api.post('/documents/bulk-ocr-extract', {
       only_missing_expiry: onlyMissingExpiry,
