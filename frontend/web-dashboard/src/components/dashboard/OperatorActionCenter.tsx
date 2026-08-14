@@ -9,13 +9,11 @@ import {
   ChevronRight,
   ShieldAlert,
   CheckCircle2,
-  Activity,
   BarChart2,
   MessageSquare,
   Filter,
   Send,
   Truck,
-  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -87,39 +85,39 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         const reason = (delayedStop.delay_reason || '').toLowerCase();
         let category: DelayItem['category'] = 'general';
         let Icon = AlertTriangle;
-        let solidBadgeBg = 'bg-[#E11D48] text-white';
-        let cardBorderAccent = 'border-l-4 border-l-[#E11D48]';
-        let iconBg = 'bg-rose-100 dark:bg-rose-950/60 text-rose-600';
-        let iconColor = 'text-rose-600';
+        let solidBadgeBg = 'bg-red-600 text-white';
+        let cardBorderAccent = 'border-l-4 border-l-red-600';
+        let iconBg = 'bg-red-600 text-white';
+        let iconColor = 'text-white';
 
         if (reason.includes('traffic') || reason.includes('route') || reason.includes('checkpoint')) {
           category = 'traffic';
           Icon = Clock;
-          solidBadgeBg = 'bg-[#EA580C] text-white';
-          cardBorderAccent = 'border-l-4 border-l-[#EA580C]';
-          iconBg = 'bg-orange-100 dark:bg-orange-950/60 text-orange-600';
-          iconColor = 'text-orange-600';
+          solidBadgeBg = 'bg-red-600 text-white';
+          cardBorderAccent = 'border-l-4 border-l-red-600';
+          iconBg = 'bg-red-600 text-white';
+          iconColor = 'text-white';
         } else if (reason.includes('breakdown') || reason.includes('vehicle') || reason.includes('repair')) {
           category = 'breakdown';
           Icon = Wrench;
-          solidBadgeBg = 'bg-[#E11D48] text-white';
-          cardBorderAccent = 'border-l-4 border-l-[#E11D48]';
-          iconBg = 'bg-rose-100 dark:bg-rose-950/60 text-rose-600';
-          iconColor = 'text-rose-600';
+          solidBadgeBg = 'bg-red-600 text-white';
+          cardBorderAccent = 'border-l-4 border-l-red-600';
+          iconBg = 'bg-red-600 text-white';
+          iconColor = 'text-white';
         } else if (reason.includes('loading') || reason.includes('unloading') || reason.includes('customer') || reason.includes('warehouse')) {
           category = 'loading';
           Icon = Timer;
-          solidBadgeBg = 'bg-[#2563EB] text-white';
-          cardBorderAccent = 'border-l-4 border-l-[#2563EB]';
-          iconBg = 'bg-blue-100 dark:bg-blue-950/60 text-blue-600';
-          iconColor = 'text-blue-600';
+          solidBadgeBg = 'bg-red-600 text-white';
+          cardBorderAccent = 'border-l-4 border-l-red-600';
+          iconBg = 'bg-red-600 text-white';
+          iconColor = 'text-white';
         } else if (reason.includes('weather') || reason.includes('sandstorm') || reason.includes('rain')) {
           category = 'weather';
           Icon = CloudRain;
-          solidBadgeBg = 'bg-[#475569] text-white';
-          cardBorderAccent = 'border-l-4 border-l-[#475569]';
-          iconBg = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
-          iconColor = 'text-slate-700';
+          solidBadgeBg = 'bg-red-600 text-white';
+          cardBorderAccent = 'border-l-4 border-l-red-600';
+          iconBg = 'bg-red-600 text-white';
+          iconColor = 'text-white';
         }
 
         list.push({
@@ -163,11 +161,11 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           delayDuration: '+45m Delay',
           delayNote: 'Eastern Ring Road bottleneck & checkpoint queues',
           badgeText: 'TRAFFIC +45M',
-          solidBadgeBg: 'bg-[#EA580C] text-white',
-          cardBorderAccent: 'border-l-4 border-l-[#EA580C]',
+          solidBadgeBg: 'bg-red-600 text-white',
+          cardBorderAccent: 'border-l-4 border-l-red-600',
           icon: Clock,
-          iconBg: 'bg-orange-100 dark:bg-orange-950/60 text-orange-600',
-          iconColor: 'text-orange-600',
+          iconBg: 'bg-red-600 text-white',
+          iconColor: 'text-white',
         },
         {
           id: 'delay-demo-2',
@@ -184,11 +182,11 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           delayDuration: '+1h 15m Delay',
           delayNote: 'Drive axle tire repair; roadside mobile tech active',
           badgeText: 'BREAKDOWN',
-          solidBadgeBg: 'bg-[#E11D48] text-white',
-          cardBorderAccent: 'border-l-4 border-l-[#E11D48]',
+          solidBadgeBg: 'bg-red-600 text-white',
+          cardBorderAccent: 'border-l-4 border-l-red-600',
           icon: Wrench,
-          iconBg: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600',
-          iconColor: 'text-rose-600',
+          iconBg: 'bg-red-600 text-white',
+          iconColor: 'text-white',
         },
         {
           id: 'delay-demo-3',
@@ -205,11 +203,11 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           delayDuration: '+50m Delay',
           delayNote: 'Manual pallet offload; awaiting forklift dock availability',
           badgeText: 'DOCK QUEUE',
-          solidBadgeBg: 'bg-[#2563EB] text-white',
-          cardBorderAccent: 'border-l-4 border-l-[#2563EB]',
+          solidBadgeBg: 'bg-red-600 text-white',
+          cardBorderAccent: 'border-l-4 border-l-red-600',
           icon: Timer,
-          iconBg: 'bg-blue-100 dark:bg-blue-950/60 text-blue-600',
-          iconColor: 'text-blue-600',
+          iconBg: 'bg-red-600 text-white',
+          iconColor: 'text-white',
         },
         {
           id: 'delay-demo-4',
@@ -226,11 +224,11 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           delayDuration: '+30m Delay',
           delayNote: 'Reduced driving pace on Route 65 due to sandstorm',
           badgeText: 'WEATHER',
-          solidBadgeBg: 'bg-[#475569] text-white',
-          cardBorderAccent: 'border-l-4 border-l-[#475569]',
+          solidBadgeBg: 'bg-red-600 text-white',
+          cardBorderAccent: 'border-l-4 border-l-red-600',
           icon: CloudRain,
-          iconBg: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
-          iconColor: 'text-slate-700',
+          iconBg: 'bg-red-600 text-white',
+          iconColor: 'text-white',
         },
       ];
     }
@@ -274,12 +272,12 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[18px] border border-black/[0.06] dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-full overflow-hidden">
       
-      {/* ── Header with Title & Highlighted Delayed Units Badge ────────────────────────── */}
+      {/* ── Header with Title & Solid Warning Red Delayed Units Badge ────────────────────────── */}
       <div className="space-y-2.5 pb-2.5 border-b border-black/[0.05] dark:border-slate-800 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/60 flex items-center justify-center text-red-600">
-              <ShieldAlert className="w-4 h-4 text-red-600" />
+            <div className="w-8 h-8 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-xs">
+              <ShieldAlert className="w-4 h-4 text-white" />
             </div>
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
@@ -289,13 +287,13 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
             </div>
           </div>
 
-          {/* Prominent Red Fill & Pure White Text Badge */}
+          {/* Solid Warning Red Fill Badge (No gradients, no fuzzy ring) */}
           <div
             className={cn(
-              'px-3 py-1 rounded-xl flex items-center gap-2 shadow-sm transition-all select-none',
+              'px-3 py-1 rounded-xl flex items-center gap-2 shadow-xs transition-all select-none',
               filteredDelays.length > 0
-                ? 'bg-red-600 text-white shadow-red-600/30 ring-2 ring-red-600/20'
-                : 'bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-600/20'
+                ? 'bg-red-600 text-white'
+                : 'bg-emerald-600 text-white'
             )}
           >
             <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
@@ -305,37 +303,24 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           </div>
         </div>
 
-        {/* ── Standard Project Select Dropdown Control Bar ───────────────── */}
-        <div className="w-full">
-          <Select value={categoryFilter} onValueChange={(val: any) => setCategoryFilter(val)}>
-            <SelectTrigger className="h-8 w-full text-xs font-bold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-600 shadow-2xs">
-              <div className="flex items-center gap-2 truncate">
-                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <SelectValue placeholder="All Delay Categories" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
-              <SelectItem value="all" className="text-xs font-bold cursor-pointer">
-                All Delay Categories ({counts.all})
-              </SelectItem>
-              <SelectItem value="traffic" className="text-xs font-semibold cursor-pointer">
-                Traffic Congestion ({counts.traffic})
-              </SelectItem>
-              <SelectItem value="breakdown" className="text-xs font-semibold cursor-pointer">
-                Mechanical Breakdown ({counts.breakdown})
-              </SelectItem>
-              <SelectItem value="loading" className="text-xs font-semibold cursor-pointer">
-                Dock &amp; Loading Queue ({counts.loading})
-              </SelectItem>
-              <SelectItem value="weather" className="text-xs font-semibold cursor-pointer">
-                Weather &amp; Sandstorm ({counts.weather})
-              </SelectItem>
-            </SelectContent>
-          </Select>
+        {/* ── Delay Category Filter Dropdown (Neutral Slate, No Orange) ───────────────── */}
+        <div className="w-full relative">
+          <Filter className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as any)}
+            className="w-full h-8 pl-8 pr-7 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-600 shadow-2xs appearance-none cursor-pointer"
+          >
+            <option value="all">All Delay Categories ({counts.all})</option>
+            <option value="traffic">Traffic Congestion ({counts.traffic})</option>
+            <option value="breakdown">Mechanical Breakdown ({counts.breakdown})</option>
+            <option value="loading">Dock &amp; Loading Queue ({counts.loading})</option>
+            <option value="weather">Weather &amp; Sandstorm ({counts.weather})</option>
+          </select>
         </div>
       </div>
 
-      {/* ── Scrollable Thinner Delay Boxes Ledger ───────────────────────────── */}
+      {/* ── Scrollable Solid Warning Red Delay Units Ledger ───────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1 my-1.5 custom-scrollbar">
         {filteredDelays.map((item) => {
           const Icon = item.icon;
@@ -344,15 +329,15 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
               key={item.id}
               onClick={() => navigate(`/trips/${item.rawId}`)}
               className={cn(
-                'p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 shadow-2xs transition-colors cursor-pointer group flex flex-col gap-1.5',
+                'p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-400 dark:hover:border-slate-600 shadow-2xs transition-colors cursor-pointer group flex flex-col gap-1.5',
                 item.cardBorderAccent
               )}
             >
-              {/* Top Row: Icon + Ref ID + Route + Solid Category Badge + Quick Ping Action */}
+              {/* Top Row: Warning Red Icon + Ref ID + Route + Solid Warning Red Badge + Quick Ping Action */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <div className={cn('w-5 h-5 rounded-md flex items-center justify-center shrink-0 font-bold', item.iconBg)}>
-                    <Icon className="w-3 h-3" />
+                    <Icon className="w-3 h-3 text-white" />
                   </div>
                   <span className="font-mono font-black text-xs text-slate-900 dark:text-slate-100 shrink-0">
                     {item.tripId}
@@ -364,14 +349,14 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className={cn('text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded tracking-wide shadow-2xs', item.solidBadgeBg)}>
+                  <span className={cn('text-[8.5px] font-black uppercase px-2 py-0.5 rounded tracking-wide shadow-2xs', item.solidBadgeBg)}>
                     {item.badgeText}
                   </span>
                   <button
                     type="button"
                     onClick={(e) => handleOpenQuickMsg(item, e)}
                     title="Ping Driver"
-                    className="h-5 px-1.5 rounded-md text-[9px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                    className="h-5 px-2 rounded-md text-[9px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <MessageSquare className="w-2.5 h-2.5 text-slate-500" />
                     <span>Ping</span>
@@ -380,15 +365,15 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
               </div>
 
               {/* Bottom Row: Delay Cause Note + Driver / Vehicle Info */}
-              <div className="flex items-center justify-between gap-2 text-[10px] pt-0.5 border-t border-slate-100/70 dark:border-slate-800/60">
-                <p className="text-slate-600 dark:text-slate-400 font-medium truncate flex-1">
+              <div className="flex items-center justify-between gap-2 text-[10px] pt-0.5 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-slate-700 dark:text-slate-300 font-semibold truncate flex-1">
                   {item.delayNote}
                 </p>
 
                 <div className="flex items-center gap-1.5 font-mono text-[9.5px] text-slate-400 dark:text-slate-500 shrink-0">
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">{item.driverName}</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-bold">{item.driverName}</span>
                   <span>•</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-200">{item.vehiclePlate}</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{item.vehiclePlate}</span>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all ml-0.5" />
                 </div>
               </div>
@@ -405,7 +390,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         )}
       </div>
 
-      {/* ── Map-Matched Thin Footer Status Bar ─────────────────────── */}
+      {/* ── Footer Status Bar ─────────────────────── */}
       <div className="-mx-4 -mb-4 px-4 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between flex-wrap gap-2 shrink-0">
         <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-400">
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -415,7 +400,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         <button
           type="button"
           onClick={() => navigate('/reports/delays')}
-          className="text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:text-[#E8450F] flex items-center gap-1 cursor-pointer transition-colors"
+          className="text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 flex items-center gap-1 cursor-pointer transition-colors"
         >
           <BarChart2 className="w-3 h-3 text-slate-400" />
           <span>Delay Report ↗</span>
@@ -442,7 +427,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Current Delay</span>
-                <p className="font-mono font-bold text-rose-600">{selectedDelayForMsg?.delayDuration}</p>
+                <p className="font-mono font-bold text-red-600">{selectedDelayForMsg?.delayDuration}</p>
               </div>
             </div>
 
@@ -452,7 +437,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
                 value={quickMsgText}
                 onChange={(e) => setQuickMsgText(e.target.value)}
                 rows={3}
-                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-[#E8450F] focus:border-[#E8450F] resize-none bg-white dark:bg-slate-900"
+                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-600 resize-none bg-white dark:bg-slate-900"
               />
             </div>
           </div>
@@ -472,7 +457,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
               size="sm"
               disabled={isSendingMsg}
               onClick={handleSendQuickNotice}
-              className="text-xs font-bold bg-[#E8450F] hover:bg-[#cf3c0b] text-white gap-1.5 px-4"
+              className="text-xs font-bold bg-red-600 hover:bg-red-700 text-white gap-1.5 px-4"
             >
               <Send className="w-3.5 h-3.5" />
               {isSendingMsg ? 'Sending...' : 'Send Message'}
