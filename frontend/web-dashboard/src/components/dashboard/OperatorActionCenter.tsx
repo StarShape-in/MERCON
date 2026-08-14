@@ -308,7 +308,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         {/* ── Standard Project Select Dropdown Control Bar ───────────────── */}
         <div className="w-full">
           <Select value={categoryFilter} onValueChange={(val: any) => setCategoryFilter(val)}>
-            <SelectTrigger className="h-8 w-full text-xs font-bold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-1 focus:ring-[#E8450F] shadow-2xs">
+            <SelectTrigger className="h-8 w-full text-xs font-bold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-600 shadow-2xs">
               <div className="flex items-center gap-2 truncate">
                 <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <SelectValue placeholder="All Delay Categories" />
