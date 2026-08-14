@@ -8,12 +8,13 @@ import {
   SlidersHorizontal, 
   Download, 
   RotateCw,
-  Clock
+  Clock,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ReportsHeaderProps {
-  activeTab: 'overview' | 'revenue' | 'fleet' | 'drivers' | 'custom' | 'delays';
+  activeTab: 'overview' | 'revenue' | 'fleet' | 'drivers' | 'custom' | 'delays' | 'company';
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onExport?: () => void;
@@ -30,6 +31,7 @@ export default function ReportsHeader({
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3, path: '/reports' },
+    { id: 'company', label: 'Company Formats', icon: FileSpreadsheet, path: '/reports/client-templates' },
     { id: 'revenue', label: 'Revenue Report', icon: TrendingUp, path: '/reports/revenue' },
     { id: 'fleet', label: 'Fleet Performance', icon: Truck, path: '/reports/fleet' },
     { id: 'drivers', label: 'Driver Safety', icon: Users, path: '/reports/drivers' },

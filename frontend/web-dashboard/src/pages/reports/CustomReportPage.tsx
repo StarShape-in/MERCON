@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, Upload, CheckCircle2, FileSpreadsheet, Sparkles, RefreshCw, AlertCircle, BarChart3 } from 'lucide-react';
+import { Download, FileText, Truck, TrendingUp, BarChart3, FileSpreadsheet, ArrowRight, Sparkles } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
-import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
@@ -10,33 +10,23 @@ import { TruckMotion, RevenueChart } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { reportsService } from '@/services/reportsService';
 import { customerService } from '@/services/customerService';
-import { driverService } from '@/services/driverService';
-import { vehicleService } from '@/services/vehicleService';
-
 import { exportExcelTable } from '@/utils/exportUtils';
-import { inspectExcelTemplate, generateCustomTemplateExcel, TemplateInspectionResult } from '@/utils/customTemplateExport';
 import ReportsHeader from '@/components/reports/ReportsHeader';
 
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
-type EntityType = 'drivers' | 'trips' | 'vehicles' | 'customers';
 
 export default function CustomReportPage() {
+  const navigate = useNavigate();
   const [preset, setPreset] = useState<DatePreset>('this_month');
   const [customerId, setCustomerId] = useState<string>('all');
   
   // Custom date range state
   const [customStart, setCustomStart] = useState<string>('');
   const [customEnd, setCustomEnd] = useState<string>('');
-
-  // Client Excel Template State
-  const [templateFile, setTemplateFile] = useState<File | null>(null);
-  const [inspection, setInspection] = useState<TemplateInspectionResult | null>(null);
-  const [isInspecting, setIsInspecting] = useState<boolean>(false);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [selectedEntity, setSelectedEntity] = useState<EntityType>('trips');
 
   const { data: customersResponse } = useQuery({
     queryKey: ['customers'],
@@ -46,20 +36,6 @@ export default function CustomReportPage() {
   const customers = useMemo(() => {
     return Array.isArray(customersResponse) ? customersResponse : (customersResponse as any)?.data || [];
   }, [customersResponse]);
-
-  // Query drivers for custom template export
-  const { data: driversResponse } = useQuery({
-    queryKey: ['drivers-export-pool'],
-    queryFn: () => driverService.getAll({ per_page: 500 }),
-    enabled: selectedEntity === 'drivers',
-  });
-
-  // Query vehicles for custom template export
-  const { data: vehiclesResponse } = useQuery({
-    queryKey: ['vehicles-export-pool'],
-    queryFn: () => vehicleService.getAll({ per_page: 500 }),
-    enabled: selectedEntity === 'vehicles',
-  });
 
   // Compute active dates based on preset
   const { startDate, endDate } = useMemo(() => {
@@ -97,65 +73,6 @@ export default function CustomReportPage() {
       customerId: customerId !== 'all' ? customerId : undefined,
     }),
   });
-
-  const handleTemplateFileUpload = async (file: File) => {
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-      toast.error('Please select a valid Excel file (.xlsx)');
-      return;
-    }
-
-    setTemplateFile(file);
-    setIsInspecting(true);
-    try {
-      const res = await inspectExcelTemplate(file);
-      setInspection(res);
-      if (res.detectedEntity !== 'unknown') {
-        setSelectedEntity(res.detectedEntity);
-      }
-      toast.success(`Template inspected! Found sheet "${res.sheetInfo?.sheetName || res.allSheets[0]}"`);
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to parse Excel template');
-      setInspection(null);
-    } finally {
-      setIsInspecting(false);
-    }
-  };
-
-  const handleGenerateFromTemplate = async () => {
-    if (!templateFile) {
-      toast.error('Upload an Excel template first');
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      let records: any[] = [];
-      if (selectedEntity === 'trips') {
-        records = reportData?.trips || [];
-      } else if (selectedEntity === 'drivers') {
-        records = Array.isArray(driversResponse) ? driversResponse : (driversResponse as any)?.data || [];
-      } else if (selectedEntity === 'vehicles') {
-        records = Array.isArray(vehiclesResponse) ? vehiclesResponse : (vehiclesResponse as any)?.data || [];
-      } else if (selectedEntity === 'customers') {
-        records = customers;
-      }
-
-      if (!records || records.length === 0) {
-        toast.warning(`No database records available for ${selectedEntity}`);
-        setIsGenerating(false);
-        return;
-      }
-
-      const outName = `${templateFile.name.replace(/\.[^/.]+$/, '')}_populated_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
-      await generateCustomTemplateExcel(templateFile, records, outName);
-      toast.success(`Custom Client Excel generated with ${records.length} records!`);
-    } catch (err: any) {
-      console.error('Template export error:', err);
-      toast.error(err.message || 'Failed to generate Excel file');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const handleExportCSV = async () => {
     if (!reportData?.trips || reportData.trips.length === 0) return;
@@ -228,93 +145,37 @@ export default function CustomReportPage() {
 
   return (
     <DashboardLayout active="Reports" title="Custom Generator">
-      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto gap-6 flex flex-col">
+      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto flex flex-col gap-5">
         <ReportsHeader 
           activeTab="custom" 
           onRefresh={() => refetch()}
           onExport={handleExportCSV}
         />
 
-        {/* ─── CUSTOM CLIENT EXCEL TEMPLATE GENERATOR BANNER ─── */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl border border-indigo-500/20 p-6 shadow-xl text-white relative overflow-hidden">
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
-          
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-            <div className="max-w-2xl">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5 mr-1 text-indigo-400" /> Client Template Engine
-                </Badge>
-                <span className="text-xs text-slate-400 font-mono">Custom Excel Stylist</span>
+        {/* Dedicated Company Formats Banner */}
+        <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-xl p-4 border border-indigo-500/20 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/30">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Need Customer-Specific Company Excel Formats?</h3>
+                <Badge className="bg-indigo-500/30 text-indigo-200 border-indigo-400/30 text-[10px]">New</Badge>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                Upload Customer Excel & Export in Their Style
-              </h2>
-              <p className="text-sm text-slate-300 mt-1 leading-relaxed">
-                Upload any client's custom Excel spreadsheet template (<code className="text-indigo-300 font-mono">.xlsx</code>). The engine inspects banners, instruction tabs, column layouts, and populates live database records preserving 100% of their visual design.
+              <p className="text-xs text-slate-300 mt-0.5">
+                Generate reports matching exact customer Excel spreadsheets (e.g. ARKAN, SHIPA, JDL) with custom colors and headers.
               </p>
             </div>
-
-            {/* Dropzone & Actions */}
-            <div className="w-full lg:w-auto shrink-0 flex flex-col sm:flex-row items-center gap-3">
-              <label className="cursor-pointer group relative flex items-center justify-center gap-3 px-5 py-3 rounded-xl border-2 border-dashed border-indigo-400/40 hover:border-indigo-400 bg-white/5 hover:bg-white/10 transition-all text-xs font-semibold text-white w-full sm:w-auto">
-                <Upload className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
-                <span>{templateFile ? templateFile.name : 'Upload Template (.xlsx)'}</span>
-                <input 
-                  type="file" 
-                  accept=".xlsx, .xls"
-                  className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) handleTemplateFileUpload(e.target.files[0]);
-                  }}
-                />
-              </label>
-
-              {templateFile && (
-                <button
-                  onClick={handleGenerateFromTemplate}
-                  disabled={isGenerating || isInspecting}
-                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-brand hover:bg-brand/90 text-white text-xs font-bold shadow-lg shadow-brand/20 transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
-                >
-                  {isGenerating ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                  <span>Generate & Export Excel</span>
-                </button>
-              )}
-            </div>
           </div>
-
-          {/* Inspection Summary Bar */}
-          {inspection && (
-            <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-slate-200">
-                  Detected Sheet: <strong className="text-white font-mono">{inspection.sheetInfo?.sheetName}</strong> (Header at Row {inspection.sheetInfo?.headerRowIdx})
-                </span>
-                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
-                  {inspection.sheetInfo?.columns.filter(c => c.mappedField).length || 0} Columns Mapped
-                </Badge>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400 text-xs font-medium">Data Target:</span>
-                <select
-                  value={selectedEntity}
-                  onChange={(e) => setSelectedEntity(e.target.value as EntityType)}
-                  className="bg-slate-800 text-white border border-slate-700 rounded-lg px-3 py-1 text-xs outline-none focus:border-indigo-400"
-                >
-                  <option value="trips">Trip Ledger Data</option>
-                  <option value="drivers">Drivers Directory</option>
-                  <option value="vehicles">Fleet Vehicles</option>
-                  <option value="customers">Customers List</option>
-                </select>
-              </div>
-            </div>
-          )}
+          <Button
+            size="sm"
+            onClick={() => navigate('/reports/client-templates')}
+            className="bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5 shrink-0 shadow-sm"
+          >
+            <span>Open Company Excel Generator</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
         </div>
 
         {/* Filters Section */}

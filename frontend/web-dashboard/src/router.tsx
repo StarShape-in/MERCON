@@ -71,12 +71,13 @@ const ExpenseListPage         = lazy(() => import('@/pages/expenses/ExpenseListP
 const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCenterPage'));
 
 // Reports
-const ReportsDashboardPage    = lazy(() => import('@/pages/reports/ReportsDashboardPage'));
-const FleetPerformancePage    = lazy(() => import('@/pages/reports/FleetPerformancePage'));
-const RevenueReportsPage      = lazy(() => import('@/pages/reports/RevenueReportsPage'));
-const DriverPerformancePage   = lazy(() => import('@/pages/reports/DriverPerformancePage'));
-const CustomReportPage        = lazy(() => import('@/pages/reports/CustomReportPage'));
-const DelayReportPage         = lazy(() => import('@/pages/reports/DelayReportPage'));
+const ReportsDashboardPage        = lazy(() => import('@/pages/reports/ReportsDashboardPage'));
+const FleetPerformancePage        = lazy(() => import('@/pages/reports/FleetPerformancePage'));
+const RevenueReportsPage          = lazy(() => import('@/pages/reports/RevenueReportsPage'));
+const DriverPerformancePage       = lazy(() => import('@/pages/reports/DriverPerformancePage'));
+const CustomReportPage            = lazy(() => import('@/pages/reports/CustomReportPage'));
+const CompanyReportTemplatesPage = lazy(() => import('@/pages/reports/CompanyReportTemplatesPage'));
+const DelayReportPage             = lazy(() => import('@/pages/reports/DelayReportPage'));
 
 // Settings & Governance
 const OperatorProfilePage     = lazy(() => import('@/pages/settings/OperatorProfilePage'));
@@ -182,6 +183,7 @@ export default function AppRouter() {
           {/* Reports */}
           <Route path="/reports"                  element={<RequireModule moduleKey="reports"><ReportsDashboardPage /></RequireModule>} />
           <Route path="/reports/custom"           element={<CustomReportPage />} />
+          <Route path="/reports/client-templates" element={<CompanyReportTemplatesPage />} />
           <Route path="/reports/fleet"            element={<FleetPerformancePage />} />
           <Route path="/reports/revenue"          element={<RevenueReportsPage />} />
           <Route path="/reports/drivers"          element={<DriverPerformancePage />} />
