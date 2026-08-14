@@ -4,20 +4,11 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { LayoutProvider, useLayoutMeta } from '@/context/LayoutContext';
 
-const SIDEBAR_COLLAPSED_KEY = 'mercon.sidebarCollapsed';
-
 /** Inner shell — reads metadata from context set by each page's DashboardLayout */
 function ShellInner() {
   const location = useLocation();
   const { meta } = useLayoutMeta();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
-  );
-
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
-  }, [sidebarCollapsed]);
 
   // Close mobile drawer on navigation
   useEffect(() => {
@@ -49,8 +40,6 @@ function ShellInner() {
         active={meta.active}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       />
 
       <div className="flex flex-col flex-1 min-w-0 bg-white">

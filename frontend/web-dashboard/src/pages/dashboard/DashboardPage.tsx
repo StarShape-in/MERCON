@@ -13,6 +13,7 @@ import {
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ImportantReminders from '@/components/dashboard/ImportantReminders';
 import MonthlyOverview from '@/components/dashboard/MonthlyOverview';
+import OperatorFleetOverview from '@/components/dashboard/OperatorFleetOverview';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
@@ -138,14 +139,16 @@ export default function DashboardPage() {
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
 
   const user = authStore.getUser();
+  const isAdmin = user?.role === 'Admin';
   const userName = user?.name ? user.name.split(' ')[0] : 'Mercon';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
-  // Live Queries for summary + real trips from API
+  // Live Queries for summary (Admin only) + real trips from API
   const { refetch: refetchSummary } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: reportsService.getSummary,
+    enabled: isAdmin,
   });
 
   const { data: tripsRes, refetch: refetchTrips } = useQuery({
@@ -155,7 +158,7 @@ export default function DashboardPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([refetchSummary(), refetchTrips()]);
+    await Promise.all([isAdmin ? refetchSummary() : Promise.resolve(), refetchTrips()]);
     setTimeout(() => setIsRefreshing(false), 600);
   };
 
@@ -282,12 +285,18 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1 pb-1 border-b border-black/[0.04]">
             {/* Left: Greeting & Module Badge */}
             <div className="flex items-center gap-2.5">
-              <h1 className="text-[17px] font-extrabold text-slate-900 tracking-tight">
-                {greeting}, <span className="text-slate-900">{userName}</span>
+              <h1 className="text-[17px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                {greeting}, <span className="text-slate-900 dark:text-slate-100">{userName}</span>
               </h1>
-              <Badge className="bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
-                Operations Module
-              </Badge>
+              {isAdmin ? (
+                <Badge className="bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
+                  Executive Operations Module
+                </Badge>
+              ) : (
+                <Badge className="bg-[#ECFDF5] text-[#059669] border-[#A7F3D0] font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
+                  Dispatch &amp; Fleet Hub
+                </Badge>
+              )}
             </div>
 
             {/* Right: Actions */}
@@ -332,9 +341,13 @@ export default function DashboardPage() {
           {/* ── TOP ROW: 3 Cards Side-by-Side (Consistent Height) ─────────── */}
           <div className="flex flex-col lg:flex-row gap-5 items-stretch transition-all duration-300 ease-in-out">
 
-            {/* 1. Monthly Overview (Left ~32%) */}
+            {/* 1. Left Card (~32%): Monthly Financial Overview for Admin, Operator Fleet Control for Operator */}
             <div className="w-full lg:w-[33%] xl:w-[32%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
-              <MonthlyOverview />
+              {isAdmin ? (
+                <MonthlyOverview />
+              ) : (
+                <OperatorFleetOverview trips={rawTrips} />
+              )}
             </div>
 
             {/* 2. Active Trips Live Map (expands when reminders collapses) */}

@@ -4,8 +4,6 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { useLayoutMeta } from '@/context/LayoutContext';
 
-const SIDEBAR_COLLAPSED_KEY = 'mercon.sidebarCollapsed';
-
 interface DashboardLayoutProps {
   active: string;
   title: string;
@@ -36,10 +34,6 @@ export default function DashboardLayout({
     if (isInsideShell) {
       setMeta({ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton });
     }
-    // Re-run only when primitive values change (actions/pageTitle are JSX so
-    // excluding them from deps avoids infinite loops; they update via ref on
-    // each render in AppShell anyway).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInsideShell, active, title, breadcrumb, pageSub, hideBackButton]);
 
   if (isInsideShell) {
@@ -48,8 +42,6 @@ export default function DashboardLayout({
   }
 
   // ── Standalone mode (fallback): render the full shell inline ────────────
-  // This path is only taken on pages that are NOT inside the AppShell layout
-  // route, e.g. during local development of an isolated page.
   return <StandaloneShell {...{ active, title, breadcrumb, pageTitle, pageSub, actions, hideBackButton, children }} />;
 }
 
@@ -63,13 +55,6 @@ function StandaloneShell({
 }: DashboardLayoutProps) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
-  );
-
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
-  }, [sidebarCollapsed]);
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -81,18 +66,6 @@ function StandaloneShell({
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = previous; };
   }, [sidebarOpen]);
-
-  // Cmd/Ctrl + B collapses or expands the desktop rail
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        setSidebarCollapsed((c) => !c);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
 
   // Escape closes the drawer
   useEffect(() => {
@@ -110,8 +83,6 @@ function StandaloneShell({
         active={active}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       />
       <div className="flex flex-col flex-1 min-w-0 bg-white">
         <Header
