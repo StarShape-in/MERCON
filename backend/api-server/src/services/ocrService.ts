@@ -11,6 +11,7 @@ export interface OcrResult {
   expiry_date: string | null; // ISO YYYY-MM-DD (Gregorian)
   vehicle_plate: string | null;
   issuing_authority: string | null;
+  extra_details?: Record<string, any> | null;
   notes: string | null;
   raw_text?: string;
   confidence: number;
@@ -60,6 +61,7 @@ function fallbackRegexExtract(filename: string): Partial<OcrResult> {
     expiry_date: null,
     vehicle_plate: null,
     issuing_authority: null,
+    extra_details: null,
     notes: 'Parsed using keyword fallback matcher',
     confidence: 0.6,
   };
@@ -100,6 +102,7 @@ export async function analyzeDocumentWithAI(filePath: string): Promise<OcrResult
       expiry_date: null,
       vehicle_plate: null,
       issuing_authority: null,
+      extra_details: null,
       notes: 'File not found on server disk',
       confidence: 0,
     };
@@ -133,11 +136,12 @@ Extract the metadata into a JSON object matching this schema:
   "expiry_date": "YYYY-MM-DD" or null (Gregorian ISO date format. CONVERT Hijri dates like 1447/05/12 or 1446/10/15 to standard Gregorian ISO YYYY-MM-DD date!),
   "vehicle_plate": string or null (e.g. "2541", "3071"),
   "issuing_authority": string or null (CRITICAL: Always provide BOTH English and Arabic names! For example: "Malath Insurance (شركة ملاذ للتأمين)", "Saudi Traffic Dept (المرور)", "Transport General Authority (الهيئة العامة للنقل)", "Vehicles Safety Center (مركز سلامة المركبات)", "Capital Symbol Motors (معرض رمز العاصمة للسيارات)", "Power Barriers Factory (مصنع حواجز القوة للصناعة)"),
+  "extra_details": object or null (Include ALL extra useful fields found in the document like: issue_id, chassis_number, owner_name, owner_id, vehicle_make, vehicle_year, weight_kg, policy_type, coverage_amount),
   "notes": string or null,
   "confidence": number between 0.0 and 1.0
 }
 
-Respond ONLY with valid JSON inside a \`\`\`json block.
+Respond ONLY with valid JSON inside a json code block.
 `;
 
     const requestPayload = {
@@ -193,6 +197,7 @@ Respond ONLY with valid JSON inside a \`\`\`json block.
       expiry_date: parsed.expiry_date || null,
       vehicle_plate: parsed.vehicle_plate || null,
       issuing_authority: parsed.issuing_authority || null,
+      extra_details: parsed.extra_details || null,
       notes: parsed.notes || 'Successfully extracted via Gemini 2.5 AI OCR',
       confidence: parsed.confidence || 0.95,
       raw_text: responseText.slice(0, 300),

@@ -21,6 +21,7 @@ export interface MerconDocument {
     document_number?: string | null;
     vehicle_plate?: string | null;
     issuing_authority?: string | null;
+    extra_details?: Record<string, any> | null;
     notes?: string | null;
     confidence?: number;
   } | null;

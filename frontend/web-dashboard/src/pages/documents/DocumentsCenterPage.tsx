@@ -1414,6 +1414,29 @@ export default function DocumentsCenterPage() {
                       </div>
                     </div>
 
+                    {/* Extra Extracted Document Attributes (Issue ID, Chassis #, Owner Name, etc.) */}
+                    {previewDoc.ai_extracted_json?.extra_details && Object.keys(previewDoc.ai_extracted_json.extra_details).length > 0 && (
+                      <div className="pt-2 border-t border-amber-200/60 dark:border-amber-900/40 space-y-1.5">
+                        <span className="text-[9px] font-extrabold text-amber-900 dark:text-amber-300 uppercase tracking-wider block">
+                          Extracted Document Attributes (Issue ID & Details)
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          {Object.entries(previewDoc.ai_extracted_json.extra_details).map(([k, v]) => (
+                            v ? (
+                              <div key={k} className="bg-white/80 dark:bg-slate-800/80 p-2 rounded-lg border border-amber-200/40 dark:border-slate-700/60">
+                                <span className="text-[9px] text-slate-400 font-bold uppercase block truncate">
+                                  {k.replace(/_/g, ' ')}
+                                </span>
+                                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 block truncate">
+                                  {String(v)}
+                                </span>
+                              </div>
+                            ) : null
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {previewDoc.ai_extracted_json?.notes && (
                       <div className="p-3 rounded-xl bg-amber-100/60 dark:bg-amber-900/30 border border-amber-200/80 dark:border-amber-800/50 text-[11px] text-amber-950 dark:text-amber-200 italic leading-relaxed">
                         "{previewDoc.ai_extracted_json.notes}"

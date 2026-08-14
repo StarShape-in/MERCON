@@ -1053,6 +1053,23 @@ export default function BatchVehicleDocModal({
                                 <span>Issue Date: {rowAi.issue_date || '2024-01-15'}</span>
                               </div>
 
+                              {rowAi.extra_details && Object.keys(rowAi.extra_details).length > 0 && (
+                                <div className="grid grid-cols-2 gap-1.5 pt-1 text-[10px]">
+                                  {Object.entries(rowAi.extra_details).map(([k, v]) => (
+                                    v ? (
+                                      <div key={k} className="bg-white/80 dark:bg-slate-800/80 p-1.5 rounded-md border border-amber-200/40 dark:border-slate-700/60 truncate">
+                                        <span className="text-[8px] text-slate-400 font-bold uppercase block truncate">
+                                          {k.replace(/_/g, ' ')}
+                                        </span>
+                                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 truncate block">
+                                          {String(v)}
+                                        </span>
+                                      </div>
+                                    ) : null
+                                  ))}
+                                </div>
+                              )}
+
                               {rowAi.notes && (
                                 <p className="text-[10px] text-amber-800 dark:text-amber-300 italic bg-amber-100/50 dark:bg-amber-900/30 p-1.5 rounded-md">
                                   "{rowAi.notes}"
