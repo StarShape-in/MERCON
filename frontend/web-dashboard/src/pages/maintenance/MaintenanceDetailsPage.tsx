@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   ArrowLeft, Edit2, Wrench, Truck, Clock, CheckCircle2,
   AlertTriangle, FileText, Phone, Building2, Gauge,
@@ -11,6 +12,7 @@ import {
 
 import WorkshopField from '@/components/fleet/WorkshopField';
 import WorkDoneSelect from '@/components/maintenance/WorkDoneSelect';
+import MaintenanceRecordModal from '@/components/maintenance/MaintenanceRecordModal';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -117,23 +119,6 @@ export default function MaintenanceDetailsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCostModalOpen, setIsCostModalOpen] = useState(false);
 
-  const [editFormData, setEditFormData] = useState<CreateMaintenancePayload>({
-    vehicle_id: '',
-    workshop_name: '',
-    workshop_contact: '',
-    maintenance_type: 'Routine',
-    status: 'Completed',
-    start_date: '',
-    end_date: '',
-    work_done: '',
-    odometer_reading: 0,
-    cost: 0,
-    invoice_number: '',
-    next_service_due: '',
-    remarks: '',
-  });
-  const [editError, setEditError] = useState('');
-
   const { data: record, isLoading, error } = useQuery({
     queryKey: ['maintenance-detail', id],
     queryFn: () => maintenanceService.getById(id!),
@@ -153,10 +138,9 @@ export default function MaintenanceDetailsPage() {
         queryClient.invalidateQueries({ queryKey: ['vehicle-financials', record.vehicleId] });
       }
       setIsEditModalOpen(false);
-      setEditError('');
     },
     onError: (err: any) => {
-      setEditError(err.response?.data?.error?.message || 'Failed to update record.');
+      toast.error(err.response?.data?.error?.message || 'Failed to update record.');
     },
   });
 
@@ -173,40 +157,7 @@ export default function MaintenanceDetailsPage() {
   });
 
   const handleOpenEditModal = () => {
-    if (!record) return;
-    setEditFormData({
-      vehicle_id: record.vehicleId,
-      workshop_name: record.workshop_name,
-      workshop_contact: record.workshop_contact || '',
-      maintenance_type: record.maintenance_type,
-      status: record.status,
-      start_date: record.start_date ? record.start_date.split('T')[0] : '',
-      end_date: record.end_date ? record.end_date.split('T')[0] : '',
-      work_done: record.work_done || '',
-      odometer_reading: record.odometer_reading || 0,
-      cost: record.cost || 0,
-      invoice_number: record.invoice_number || '',
-      next_service_due: record.next_service_due ? record.next_service_due.split('T')[0] : '',
-      remarks: record.remarks || '',
-    });
-    setEditError('');
     setIsEditModalOpen(true);
-  };
-
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editFormData.end_date && editFormData.start_date && editFormData.end_date < editFormData.start_date) {
-      setEditError('End date cannot be before the start date.');
-      return;
-    }
-    if (
-      editFormData.next_service_due && editFormData.start_date &&
-      editFormData.next_service_due < editFormData.start_date
-    ) {
-      setEditError('Next service due cannot be before the start date.');
-      return;
-    }
-    updateMutation.mutate(editFormData);
   };
 
   const handleQuickStatusChange = (newStatus: MaintenanceStatus) => {
@@ -681,196 +632,24 @@ export default function MaintenanceDetailsPage() {
               </div>
             </CardContent>
           </Card>
+          {/* ── Edit modal ───────────────────────────────────────────────────── */}
+          <MaintenanceRecordModal
+            open={isEditModalOpen}
+            onOpenChange={setIsEditModalOpen}
+            editingRecord={record}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['maintenance-detail', id] });
+              queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+              queryClient.invalidateQueries({ queryKey: ['workshops'] });
+              if (record?.vehicleId) {
+                queryClient.invalidateQueries({ queryKey: ['vehicle', record.vehicleId] });
+                queryClient.invalidateQueries({ queryKey: ['vehicle-financials', record.vehicleId] });
+              }
+            }}
+          />
         </div>
       </div>
-
-      {/* ── Edit modal ───────────────────────────────────────────────────── */}
-      <Dialog open={isEditModalOpen} onOpenChange={(open) => !open && setIsEditModalOpen(false)}>
-        <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
-          <DialogHeader className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
-            <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-brand" /> Edit service order {orderNo}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 mt-0.5">
-              Changes are applied immediately to the maintenance record.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-5 space-y-3.5 text-xs">
-            {editError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 text-xs font-bold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{editError}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Maintenance type *</Label>
-                <Select
-                  value={editFormData.maintenance_type}
-                  onValueChange={(val: MaintenanceType) => setEditFormData(prev => ({ ...prev, maintenance_type: val }))}
-                >
-                  <SelectTrigger className="h-8.5 text-xs w-full">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Routine">Routine</SelectItem>
-                    <SelectItem value="Repair">Repair</SelectItem>
-                    <SelectItem value="Inspection">Inspection</SelectItem>
-                    <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-                    <SelectItem value="Emergency">Emergency</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Status *</Label>
-                <Select
-                  value={editFormData.status}
-                  onValueChange={(val: MaintenanceStatus) => setEditFormData(prev => ({ ...prev, status: val }))}
-                >
-                  <SelectTrigger className="h-8.5 text-xs w-full">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Scheduled">Scheduled</SelectItem>
-                    <SelectItem value="In_Progress">In Progress</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Cost (SAR) *</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={editFormData.cost}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Start date</Label>
-                <Input
-                  type="date"
-                  value={editFormData.start_date}
-                  onChange={(e) => {
-                    const start_date = e.target.value;
-                    setEditFormData(prev => ({
-                      ...prev,
-                      start_date,
-                      end_date: prev.end_date && prev.end_date < start_date ? start_date : prev.end_date,
-                    }));
-                  }}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Completion date</Label>
-                <Input
-                  type="date"
-                  value={editFormData.end_date || ''}
-                  min={editFormData.start_date || undefined}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Next service due</Label>
-                <Input
-                  type="date"
-                  value={editFormData.next_service_due || ''}
-                  min={editFormData.start_date || undefined}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, next_service_due: e.target.value }))}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Workshop name *</Label>
-                <WorkshopField
-                  value={editFormData.workshop_name}
-                  onChange={(name) => setEditFormData(prev => ({ ...prev, workshop_name: name }))}
-                  onPick={(w) => setEditFormData(prev => ({
-                    ...prev,
-                    workshop_name: w.name,
-                    workshop_contact: (w.contact !== undefined && w.contact !== null) ? w.contact : prev.workshop_contact,
-                  }))}
-                  className="h-8.5"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Workshop contact</Label>
-                <Input
-                  value={editFormData.workshop_contact || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Odometer reading (km)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={editFormData.odometer_reading}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Invoice number</Label>
-                <Input
-                  value={editFormData.invoice_number || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                  className="h-8.5 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <WorkDoneSelect
-                value={editFormData.work_done || ''}
-                onChange={(text) => setEditFormData(prev => ({ ...prev, work_done: text }))}
-              />
-
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Additional Remarks / Notes</Label>
-                <Textarea
-                  value={editFormData.remarks || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, remarks: e.target.value }))}
-                  rows={2.5}
-                  className="text-xs resize-none p-2.5"
-                  placeholder="Internal notes, technician remarks..."
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditModalOpen(false)} className="text-xs h-8.5">
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={updateMutation.isPending}
-                className="text-xs h-8.5 bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
-              >
-                {updateMutation.isPending ? 'Saving…' : 'Save changes'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* ── Delete record modal ──────────────────────────────────────────── */}
       <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
