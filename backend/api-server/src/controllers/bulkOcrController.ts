@@ -310,12 +310,12 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
 
     const vehicles = await prisma.vehicle.findMany({
       where: { deletedAt: null },
-      select: { id: true, plate_number: true, ref_id: true, chassis_number: true },
+      select: { id: true, plate_number: true, ref_id: true, trailer_number: true },
     });
 
     const drivers = await prisma.driver.findMany({
       where: { deletedAt: null },
-      select: { id: true, first_name: true, last_name: true, iqama_number: true, phone: true },
+      select: { id: true, first_name: true, last_name: true, license_number: true, phone_primary: true, ref_id: true },
     });
 
     const folders = await prisma.folder.findMany({
@@ -330,43 +330,40 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
       const rawText = (doc.ocr_raw_text || '').toLowerCase();
       const aiJson: any = doc.ai_extracted_json || {};
       const aiPlate = (aiJson.vehicle_plate || '').toString().toLowerCase();
-      const extraDetails = aiJson.extra_details || {};
-      const aiChassis = (extraDetails.chassis_number || '').toString().toLowerCase();
+      const aiDocNum = (aiJson.document_number || '').toString().toLowerCase();
 
       let matchedVehicle = null;
 
       // 1. Try Vehicle Match
       for (const v of vehicles) {
-        const vObj: any = v;
-        const plateStr = (vObj.plate_number || '').toLowerCase();
+        const plateStr = (v.plate_number || '').toLowerCase().trim();
         const plateDigits = plateStr.replace(/\D/g, '');
-        const refStr = (vObj.ref_id || '').toLowerCase();
-        const chassisStr = (vObj.chassis_number || '').toLowerCase();
+        const refStr = (v.ref_id || '').toLowerCase().trim();
+        const trailerStr = (v.trailer_number || '').toLowerCase().trim();
 
-        // Check plate digits (e.g., "2541", "3071", "6708") in filename
+        // Check plate digits (e.g. "2541", "3071", "6708", "9973", "5510", "4244", "3531")
         if (plateDigits && plateDigits.length >= 3) {
-          const regexDigit = new RegExp(`(?:^|\\D)${plateDigits}(?:\\D|$)`);
-          if (regexDigit.test(fileName) || regexDigit.test(aiPlate) || regexDigit.test(rawText)) {
-            matchedVehicle = vObj;
+          if (fileName.includes(plateDigits) || aiPlate.includes(plateDigits) || rawText.includes(plateDigits) || aiDocNum.includes(plateDigits)) {
+            matchedVehicle = v;
             break;
           }
         }
 
         // Check plate string
         if (plateStr && (fileName.toLowerCase().includes(plateStr) || aiPlate.includes(plateStr))) {
-          matchedVehicle = vObj;
+          matchedVehicle = v;
           break;
         }
 
         // Check ref_id
         if (refStr && refStr.length >= 3 && (fileName.toLowerCase().includes(refStr) || rawText.includes(refStr))) {
-          matchedVehicle = vObj;
+          matchedVehicle = v;
           break;
         }
 
-        // Check chassis number
-        if (chassisStr && chassisStr.length >= 5 && (aiChassis.includes(chassisStr) || rawText.includes(chassisStr))) {
-          matchedVehicle = vObj;
+        // Check trailer_number
+        if (trailerStr && trailerStr.length >= 3 && (fileName.toLowerCase().includes(trailerStr) || rawText.includes(trailerStr))) {
+          matchedVehicle = v;
           break;
         }
       }
@@ -398,18 +395,23 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
       // 2. Try Driver Match if not linked to a vehicle
       let matchedDriver = null;
       for (const d of drivers) {
-        const dObj: any = d;
-        const iqama = (dObj.iqama_number || '').toString().trim();
-        const fullName = `${dObj.first_name || ''} ${dObj.last_name || ''}`.trim().toLowerCase();
-        const firstName = (dObj.first_name || '').toString().trim().toLowerCase();
+        const license = (d.license_number || '').toString().trim();
+        const refId = (d.ref_id || '').toString().trim().toLowerCase();
+        const firstName = (d.first_name || '').toString().trim().toLowerCase();
+        const lastName = (d.last_name || '').toString().trim().toLowerCase();
 
-        if (iqama && iqama.length >= 6 && (rawText.includes(iqama) || fileName.includes(iqama))) {
-          matchedDriver = dObj;
+        if (license && license.length >= 5 && (rawText.includes(license) || fileName.includes(license) || aiDocNum.includes(license))) {
+          matchedDriver = d;
+          break;
+        }
+
+        if (refId && refId.length >= 3 && (fileName.toLowerCase().includes(refId) || rawText.includes(refId))) {
+          matchedDriver = d;
           break;
         }
 
         if (firstName && firstName.length >= 3 && (fileName.toLowerCase().includes(firstName) || rawText.includes(firstName))) {
-          matchedDriver = dObj;
+          matchedDriver = d;
           break;
         }
       }
