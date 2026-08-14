@@ -568,7 +568,7 @@ export default function VehicleDetailsPage() {
                   <p className="text-[11px] text-slate-500 mt-0.5">This vehicle has no active or upcoming trips assigned.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="flex flex-col gap-3">
                   {getUpcomingScheduledDates(vehicle.trips).map((item, idx) => (
                     <div
                       key={idx}
