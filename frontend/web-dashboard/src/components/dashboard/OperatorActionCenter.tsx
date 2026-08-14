@@ -478,28 +478,6 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         )}
       </div>
 
-      {/* ── Map-Matched Bottom Legend Bar with Color Codes ─────────────────────── */}
-      <div className="-mx-4 -mb-4 px-4 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between flex-wrap gap-2 shrink-0">
-        <div className="flex items-center gap-2.5 sm:gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-400 flex-wrap w-full justify-between">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#EA580C]" />
-            <span>Traffic</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#E11D48]" />
-            <span>Breakdown</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#2563EB]" />
-            <span>Dock Queue</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#475569]" />
-            <span>Weather</span>
-          </div>
-        </div>
-      </div>
-
       {/* ── Quick Driver Dispatch Notice Dialog ────────────────────────── */}
       <Dialog open={!!selectedDelayForMsg} onOpenChange={(open) => !open && setSelectedDelayForMsg(null)}>
         <DialogContent className="sm:max-w-md rounded-2xl">
