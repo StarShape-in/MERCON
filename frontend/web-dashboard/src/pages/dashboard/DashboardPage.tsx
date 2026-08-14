@@ -583,8 +583,13 @@ export default function DashboardPage() {
               </div>
 
               {/* Map Footer Status Bar */}
-              <div className="px-4 py-2 border-t border-black/[0.04] bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 flex-wrap w-full justify-between">
+              <div className="px-4 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Live Fleet Tracking</span>
+                </div>
+
+                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-400 flex-wrap justify-end ml-auto">
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span>In Transit</span>
