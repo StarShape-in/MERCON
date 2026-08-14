@@ -75,7 +75,6 @@ const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCe
 const ReportsDashboardPage        = lazy(() => import('@/pages/reports/ReportsDashboardPage'));
 const FleetPerformancePage        = lazy(() => import('@/pages/reports/FleetPerformancePage'));
 const RevenueReportsPage          = lazy(() => import('@/pages/reports/RevenueReportsPage'));
-const DriverPerformancePage       = lazy(() => import('@/pages/reports/DriverPerformancePage'));
 const CustomReportPage            = lazy(() => import('@/pages/reports/CustomReportPage'));
 const CompanyReportTemplatesPage = lazy(() => import('@/pages/reports/CompanyReportTemplatesPage'));
 const DelayReportPage             = lazy(() => import('@/pages/reports/DelayReportPage'));
