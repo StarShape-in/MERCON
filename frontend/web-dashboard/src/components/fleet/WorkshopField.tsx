@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { maintenanceService, Workshop } from '@/services/maintenanceService';
 import { cn } from '@/lib/utils';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface WorkshopFieldProps {
   value: string;
@@ -41,6 +42,9 @@ export default function WorkshopField({
   const [newWorkshopPhone, setNewWorkshopPhone] = useState('');
   const [newWorkshopAddress, setNewWorkshopAddress] = useState('');
   const [saveError, setSaveError] = useState('');
+
+  const [checkedForDeleteIds, setCheckedForDeleteIds] = useState<Set<string>>(new Set());
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   const { data: workshops = [], isLoading } = useQuery({
     queryKey: ['workshops'],
@@ -73,15 +77,29 @@ export default function WorkshopField({
     },
   });
 
-  const selectedWorkshop = workshops.find((w) => w.name === value);
-
-  const deleteWorkshopMutation = useMutation({
-    mutationFn: (id: string) => maintenanceService.deleteWorkshop(id),
-    onSuccess: (_data, id) => {
+  const deleteWorkshopsMutation = useMutation({
+    mutationFn: (ids: string[]) => Promise.all(ids.map((id) => maintenanceService.deleteWorkshop(id))),
+    onSuccess: (_data, ids) => {
       queryClient.invalidateQueries({ queryKey: ['workshops'] });
-      if (selectedWorkshop?.id === id) onChange('');
+      const deletedNames = workshops.filter((w) => w.id && ids.includes(w.id)).map((w) => w.name);
+      if (deletedNames.includes(value)) onChange('');
+      setCheckedForDeleteIds(new Set());
+      setIsConfirmDeleteOpen(false);
     },
   });
+
+  const toggleCheckedForDelete = (id: string) => {
+    setCheckedForDeleteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const checkedWorkshopNames = workshops
+    .filter((w) => w.id && checkedForDeleteIds.has(w.id))
+    .map((w) => w.name);
 
   const handleSelectWorkshop = (w: Workshop) => {
     onChange(w.name);
@@ -193,25 +211,41 @@ export default function WorkshopField({
 
             {filteredWorkshops.map((w) => {
               const isSelected = value === w.name;
+              const isCheckedForDelete = !!w.id && checkedForDeleteIds.has(w.id);
               return (
                 <div
                   key={w.name}
                   onClick={() => handleSelectWorkshop(w)}
                   className={cn(
                     'px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors',
-                    isSelected
+                    isCheckedForDelete
+                      ? 'bg-emerald-50 dark:bg-emerald-950/30'
+                      : isSelected
                       ? 'bg-orange-50/80 dark:bg-orange-950/30 text-[#E8450F] dark:text-orange-300 font-bold'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
                   )}
                 >
                   <div className="flex items-center gap-2.5 truncate">
+                    {w.id && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCheckedForDelete(w.id!);
+                        }}
+                        title={isCheckedForDelete ? 'Unselect for deletion' : 'Select for deletion'}
+                        className={cn(
+                          'w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 transition-colors',
+                          isCheckedForDelete
+                            ? 'bg-emerald-500 border-emerald-500'
+                            : 'border-slate-300 dark:border-slate-600 hover:border-emerald-400'
+                        )}
+                      >
+                        {isCheckedForDelete && <Check className="w-3 h-3 text-white stroke-[3]" />}
+                      </button>
+                    )}
                     <Wrench className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span className="truncate font-medium">{w.name}</span>
-                    {w.is_saved && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 shrink-0">
-                        Saved
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
@@ -240,9 +274,9 @@ export default function WorkshopField({
               type="button"
               variant="ghost"
               size="sm"
-              disabled={!selectedWorkshop?.id || deleteWorkshopMutation.isPending}
-              onClick={() => selectedWorkshop?.id && deleteWorkshopMutation.mutate(selectedWorkshop.id)}
-              title={selectedWorkshop?.id ? `Delete "${selectedWorkshop.name}"` : 'Select a saved workshop to delete it'}
+              disabled={checkedForDeleteIds.size === 0}
+              onClick={() => setIsConfirmDeleteOpen(true)}
+              title={checkedForDeleteIds.size > 0 ? `Delete ${checkedForDeleteIds.size} selected workshop(s)` : 'Check a saved workshop to delete it'}
               className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-30"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -260,6 +294,22 @@ export default function WorkshopField({
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* Confirm Delete Workshop(s) */}
+      <ConfirmModal
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        onConfirm={() => deleteWorkshopsMutation.mutate(Array.from(checkedForDeleteIds))}
+        title={checkedWorkshopNames.length === 1 ? 'Delete Saved Workshop' : 'Delete Saved Workshops'}
+        message={
+          checkedWorkshopNames.length === 1
+            ? `Delete "${checkedWorkshopNames[0]}"? This can't be undone.`
+            : `Delete these ${checkedWorkshopNames.length} workshops? ${checkedWorkshopNames.join(', ')}. This can't be undone.`
+        }
+        confirmLabel="Yes, delete"
+        isDestructive
+        isLoading={deleteWorkshopsMutation.isPending}
+      />
 
       {/* Save New Workshop Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
