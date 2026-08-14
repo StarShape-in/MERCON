@@ -302,6 +302,32 @@ export const syncLocalDocumentRecords = async (req: Request, res: Response) => {
  * Auto-match and link documents to existing Vehicles or Drivers based on
  * filenames, plate numbers, IQAMA/SSN, chassis #, or extracted AI JSON.
  */
+function normalizeArabicDigits(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/[٠0]/g, '0')
+    .replace(/[١1]/g, '1')
+    .replace(/[٢2]/g, '2')
+    .replace(/[٣3]/g, '3')
+    .replace(/[٤4]/g, '4')
+    .replace(/[٥5]/g, '5')
+    .replace(/[٦6]/g, '6')
+    .replace(/[٧7]/g, '7')
+    .replace(/[٨8]/g, '8')
+    .replace(/[٩9]/g, '9');
+}
+
+function extractDigits(text: string): string | null {
+  if (!text) return null;
+  const norm = normalizeArabicDigits(text);
+  const match = norm.match(/\b(\d{3,5})\b/) || norm.match(/(\d{3,5})/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Auto-match and link documents to existing Vehicles or Drivers based on
+ * filenames, plate numbers, license/iqama #, or extracted AI JSON.
+ */
 export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
   try {
     const allDocs = await prisma.document.findMany({
@@ -326,22 +352,22 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
     const details: Array<{ docId: string; fileName: string; matchedEntity: string; entityType: string }> = [];
 
     for (const doc of allDocs) {
-      const fileName = path.basename(doc.file_url || '');
-      const rawText = (doc.ocr_raw_text || '').toLowerCase();
+      const decodedUrl = decodeURIComponent(doc.file_url || '');
+      const rawFileName = path.basename(decodedUrl);
+      const fileName = rawFileName.replace(/^[0-9]+-/, '').toLowerCase();
+      const rawText = normalizeArabicDigits(doc.ocr_raw_text || '').toLowerCase();
       const aiJson: any = doc.ai_extracted_json || {};
-      const aiPlate = (aiJson.vehicle_plate || '').toString().toLowerCase();
-      const aiDocNum = (aiJson.document_number || '').toString().toLowerCase();
+      const aiPlate = normalizeArabicDigits((aiJson.vehicle_plate || '').toString()).toLowerCase();
+      const aiDocNum = normalizeArabicDigits((aiJson.document_number || '').toString()).toLowerCase();
 
-      let matchedVehicle = null;
+      let matchedVehicle: any = null;
 
       // 1. Try Vehicle Match
       for (const v of vehicles) {
-        const plateStr = (v.plate_number || '').toLowerCase().trim();
+        const plateStr = normalizeArabicDigits(v.plate_number || '').toLowerCase().trim();
         const plateDigits = plateStr.replace(/\D/g, '');
         const refStr = (v.ref_id || '').toLowerCase().trim();
-        const trailerStr = (v.trailer_number || '').toLowerCase().trim();
 
-        // Check plate digits (e.g. "2541", "3071", "6708", "9973", "5510", "4244", "3531")
         if (plateDigits && plateDigits.length >= 3) {
           if (fileName.includes(plateDigits) || aiPlate.includes(plateDigits) || rawText.includes(plateDigits) || aiDocNum.includes(plateDigits)) {
             matchedVehicle = v;
@@ -349,43 +375,65 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
           }
         }
 
-        // Check plate string
-        if (plateStr && (fileName.toLowerCase().includes(plateStr) || aiPlate.includes(plateStr))) {
+        if (plateStr && (fileName.includes(plateStr) || aiPlate.includes(plateStr))) {
           matchedVehicle = v;
           break;
         }
 
-        // Check ref_id
-        if (refStr && refStr.length >= 3 && (fileName.toLowerCase().includes(refStr) || rawText.includes(refStr))) {
-          matchedVehicle = v;
-          break;
-        }
-
-        // Check trailer_number
-        if (trailerStr && trailerStr.length >= 3 && (fileName.toLowerCase().includes(trailerStr) || rawText.includes(trailerStr))) {
+        if (refStr && refStr.length >= 3 && (fileName.includes(refStr) || rawText.includes(refStr))) {
           matchedVehicle = v;
           break;
         }
       }
 
+      // If no existing vehicle matched, extract plate digits from filename/AI and auto-create vehicle!
+      const extractedPlate = extractDigits(fileName) || extractDigits(aiPlate) || extractDigits(aiDocNum);
+      if (!matchedVehicle && extractedPlate && extractedPlate.length >= 3) {
+        let existingV = await prisma.vehicle.findFirst({
+          where: { plate_number: { contains: extractedPlate } },
+        });
+
+        if (!existingV) {
+          existingV = await prisma.vehicle.create({
+            data: {
+              plate_number: `Vehicle ${extractedPlate}`,
+              ref_id: extractedPlate,
+              asset_type: 'Flatbed',
+              capacity_kg: 25000,
+              status: 'Available',
+            },
+          });
+        }
+        matchedVehicle = existingV;
+      }
+
       if (matchedVehicle) {
-        const vFolder = folders.find(
+        let vFolder = folders.find(
           (f) => f.category === 'Vehicles' && (f.name.includes(matchedVehicle.plate_number || '') || f.name.includes(matchedVehicle.ref_id || ''))
         ) || folders.find((f) => f.category === 'Vehicles');
+
+        if (!vFolder) {
+          vFolder = await prisma.folder.create({
+            data: {
+              name: `Vehicle ${matchedVehicle.ref_id || matchedVehicle.plate_number}`,
+              category: 'Vehicles',
+            },
+          });
+        }
 
         await prisma.document.update({
           where: { id: doc.id },
           data: {
             entity_type: 'Vehicle',
             entity_id: matchedVehicle.id,
-            folderId: vFolder ? vFolder.id : doc.folderId,
+            folderId: vFolder.id,
           },
         });
 
         assignedCount++;
         details.push({
           docId: doc.id,
-          fileName,
+          fileName: rawFileName,
           matchedEntity: matchedVehicle.plate_number || matchedVehicle.ref_id || 'Vehicle',
           entityType: 'Vehicle',
         });
@@ -393,24 +441,23 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
       }
 
       // 2. Try Driver Match if not linked to a vehicle
-      let matchedDriver = null;
+      let matchedDriver: any = null;
       for (const d of drivers) {
         const license = (d.license_number || '').toString().trim();
         const refId = (d.ref_id || '').toString().trim().toLowerCase();
         const firstName = (d.first_name || '').toString().trim().toLowerCase();
-        const lastName = (d.last_name || '').toString().trim().toLowerCase();
 
         if (license && license.length >= 5 && (rawText.includes(license) || fileName.includes(license) || aiDocNum.includes(license))) {
           matchedDriver = d;
           break;
         }
 
-        if (refId && refId.length >= 3 && (fileName.toLowerCase().includes(refId) || rawText.includes(refId))) {
+        if (refId && refId.length >= 3 && (fileName.includes(refId) || rawText.includes(refId))) {
           matchedDriver = d;
           break;
         }
 
-        if (firstName && firstName.length >= 3 && (fileName.toLowerCase().includes(firstName) || rawText.includes(firstName))) {
+        if (firstName && firstName.length >= 3 && (fileName.includes(firstName) || rawText.includes(firstName))) {
           matchedDriver = d;
           break;
         }
@@ -431,7 +478,7 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
         assignedCount++;
         details.push({
           docId: doc.id,
-          fileName,
+          fileName: rawFileName,
           matchedEntity: `${matchedDriver.first_name} ${matchedDriver.last_name}`.trim(),
           entityType: 'Driver',
         });
@@ -491,11 +538,13 @@ export const previewAutoAssignUnlinkedDocs = async (req: Request, res: Response)
     }> = [];
 
     for (const doc of allDocs) {
-      const fileName = path.basename(doc.file_url || '');
-      const rawText = (doc.ocr_raw_text || '').toLowerCase();
+      const decodedUrl = decodeURIComponent(doc.file_url || '');
+      const rawFileName = path.basename(decodedUrl);
+      const fileName = rawFileName.replace(/^[0-9]+-/, '').toLowerCase();
+      const rawText = normalizeArabicDigits(doc.ocr_raw_text || '').toLowerCase();
       const aiJson: any = doc.ai_extracted_json || {};
-      const aiPlate = (aiJson.vehicle_plate || '').toString().toLowerCase();
-      const aiDocNum = (aiJson.document_number || '').toString().toLowerCase();
+      const aiPlate = normalizeArabicDigits((aiJson.vehicle_plate || '').toString()).toLowerCase();
+      const aiDocNum = normalizeArabicDigits((aiJson.document_number || '').toString()).toLowerCase();
 
       let proposedType: 'Vehicle' | 'Driver' | null = null;
       let proposedId: string | null = null;
@@ -503,14 +552,12 @@ export const previewAutoAssignUnlinkedDocs = async (req: Request, res: Response)
       let confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE' = 'NONE';
       let matchReason = 'No automatic match found';
 
-      // 1. Try Vehicle Match
+      // 1. Try Vehicle Match against existing vehicles
       for (const v of vehicles) {
-        const plateStr = (v.plate_number || '').toLowerCase().trim();
+        const plateStr = normalizeArabicDigits(v.plate_number || '').toLowerCase().trim();
         const plateDigits = plateStr.replace(/\D/g, '');
         const refStr = (v.ref_id || '').toLowerCase().trim();
-        const trailerStr = (v.trailer_number || '').toLowerCase().trim();
 
-        // Check plate digits (e.g. "2541", "3071", "6708", "9973", "5510", "4244", "3531")
         if (plateDigits && plateDigits.length >= 3) {
           if (fileName.includes(plateDigits) || aiPlate.includes(plateDigits) || aiDocNum.includes(plateDigits)) {
             proposedType = 'Vehicle';
@@ -524,13 +571,12 @@ export const previewAutoAssignUnlinkedDocs = async (req: Request, res: Response)
             proposedId = v.id;
             proposedName = v.plate_number || v.ref_id || 'Vehicle';
             confidence = 'MEDIUM';
-            matchReason = `Matched plate number digits '${plateDigits}' inside raw OCR body text`;
+            matchReason = `Matched plate digits '${plateDigits}' inside raw OCR body text`;
             break;
           }
         }
 
-        // Check plate string
-        if (plateStr && (fileName.toLowerCase().includes(plateStr) || aiPlate.includes(plateStr))) {
+        if (plateStr && (fileName.includes(plateStr) || aiPlate.includes(plateStr))) {
           proposedType = 'Vehicle';
           proposedId = v.id;
           proposedName = v.plate_number || v.ref_id || 'Vehicle';
@@ -539,8 +585,7 @@ export const previewAutoAssignUnlinkedDocs = async (req: Request, res: Response)
           break;
         }
 
-        // Check ref_id
-        if (refStr && refStr.length >= 3 && (fileName.toLowerCase().includes(refStr) || rawText.includes(refStr))) {
+        if (refStr && refStr.length >= 3 && (fileName.includes(refStr) || rawText.includes(refStr))) {
           proposedType = 'Vehicle';
           proposedId = v.id;
           proposedName = v.plate_number || v.ref_id || 'Vehicle';
@@ -550,28 +595,36 @@ export const previewAutoAssignUnlinkedDocs = async (req: Request, res: Response)
         }
       }
 
+      // If no existing vehicle matched, extract plate digits from filename/AI and propose creating vehicle!
+      const extractedPlate = extractDigits(fileName) || extractDigits(aiPlate) || extractDigits(aiDocNum);
+      if (!proposedId && extractedPlate && extractedPlate.length >= 3) {
+        proposedType = 'Vehicle';
+        proposedId = `CREATE_VEHICLE_${extractedPlate}`;
+        proposedName = `➕ Create & Link Vehicle ${extractedPlate}`;
+        confidence = 'HIGH';
+        matchReason = `Extracted vehicle plate digits '${extractedPlate}' from document filename. Will create vehicle folder.`;
+      }
+
       // 2. Try Driver Match if no vehicle match
       if (!proposedId) {
         for (const d of drivers) {
           const license = (d.license_number || '').toString().trim();
           const refId = (d.ref_id || '').toString().trim().toLowerCase();
           const firstName = (d.first_name || '').toString().trim().toLowerCase();
-          const lastName = (d.last_name || '').toString().trim().toLowerCase();
-          const fullName = `${firstName} ${lastName}`.trim();
 
           if (license && license.length >= 5 && (rawText.includes(license) || fileName.includes(license) || aiDocNum.includes(license))) {
             proposedType = 'Driver';
             proposedId = d.id;
-            proposedName = fullName;
+            proposedName = `${d.first_name} ${d.last_name}`.trim();
             confidence = 'HIGH';
             matchReason = `Matched driver license/IQAMA number '${license}'`;
             break;
           }
 
-          if (firstName && firstName.length >= 3 && (fileName.toLowerCase().includes(firstName) || rawText.includes(firstName))) {
+          if (firstName && firstName.length >= 3 && (fileName.includes(firstName) || rawText.includes(firstName))) {
             proposedType = 'Driver';
             proposedId = d.id;
-            proposedName = fullName;
+            proposedName = `${d.first_name} ${d.last_name}`.trim();
             confidence = 'MEDIUM';
             matchReason = `Matched driver name '${firstName}' in document`;
             break;
@@ -586,7 +639,7 @@ export const previewAutoAssignUnlinkedDocs = async (req: Request, res: Response)
 
       proposals.push({
         docId: doc.id,
-        fileName,
+        fileName: rawFileName,
         docType: doc.doc_type,
         fileUrl: doc.file_url,
         entityType: doc.entity_type,
@@ -625,23 +678,59 @@ export const confirmAutoAssignDocs = async (req: Request, res: Response) => {
     }
 
     const folders = await prisma.folder.findMany({ where: { deletedAt: null } });
-    const vehicleFolder = folders.find((f) => f.category === 'Vehicles');
-    const driverFolder = folders.find((f) => f.category === 'Drivers');
+    let vehicleFolder = folders.find((f) => f.category === 'Vehicles');
+    let driverFolder = folders.find((f) => f.category === 'Drivers');
 
     let updatedCount = 0;
 
     for (const item of assignments) {
       if (!item.docId || !item.entityType || !item.entityId) continue;
 
+      let targetEntityId = item.entityId;
+
+      // Handle auto-creating missing vehicle if user confirmed a CREATE_VEHICLE_xxx match
+      if (item.entityId.startsWith('CREATE_VEHICLE_')) {
+        const plateNum = item.entityId.replace('CREATE_VEHICLE_', '');
+        let existingV = await prisma.vehicle.findFirst({
+          where: { plate_number: { contains: plateNum } },
+        });
+
+        if (!existingV) {
+          existingV = await prisma.vehicle.create({
+            data: {
+              plate_number: `Vehicle ${plateNum}`,
+              ref_id: plateNum,
+              asset_type: 'Flatbed',
+              capacity_kg: 25000,
+              status: 'Available',
+            },
+          });
+        }
+        targetEntityId = existingV.id;
+      }
+
       let folderIdToSet: string | undefined = undefined;
-      if (item.entityType === 'Vehicle' && vehicleFolder) folderIdToSet = vehicleFolder.id;
-      if (item.entityType === 'Driver' && driverFolder) folderIdToSet = driverFolder.id;
+      if (item.entityType === 'Vehicle') {
+        if (!vehicleFolder) {
+          vehicleFolder = await prisma.folder.create({
+            data: { name: 'Vehicle Documents', category: 'Vehicles' },
+          });
+        }
+        folderIdToSet = vehicleFolder.id;
+      } else if (item.entityType === 'Driver') {
+        if (!driverFolder) {
+          driverFolder = await prisma.folder.create({
+            data: { name: 'Driver Documents', category: 'Drivers' },
+          });
+        }
+        folderIdToSet = driverFolder.id;
+      }
 
       await prisma.document.update({
         where: { id: item.docId },
         data: {
           entity_type: item.entityType,
-          entity_id: item.entityId,
+          entity_id: targetEntityId,
           ...(folderIdToSet ? { folderId: folderIdToSet } : {}),
         },
       });
