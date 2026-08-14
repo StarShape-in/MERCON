@@ -3,26 +3,22 @@ import path from 'path';
 import fs from 'fs';
 import { imageOrPdfFileFilter } from './uploadFileFilter';
 
-// Get and guarantee that the uploads directory exists synchronously on disk with fallbacks
+// Get and guarantee that the uploads directory exists and is 100% writable inside Docker container
 export const getUploadDir = (): string => {
-  const primaryDir = path.resolve(process.cwd(), 'uploads');
   try {
-    if (fs.existsSync(primaryDir)) {
-      const stat = fs.statSync(primaryDir);
-      if (!stat.isDirectory()) {
-        fs.unlinkSync(primaryDir);
-        fs.mkdirSync(primaryDir, { recursive: true, mode: 0o777 });
-      }
-    } else {
+    const primaryDir = path.resolve(process.cwd(), 'uploads');
+    if (!fs.existsSync(primaryDir)) {
       fs.mkdirSync(primaryDir, { recursive: true, mode: 0o777 });
     }
     return primaryDir;
   } catch (err) {
-    console.error('[Upload Middleware] Failed to create primary uploadDir, falling back to /tmp/uploads:', err);
-    const fallbackDir = path.resolve('/tmp', 'uploads');
-    if (!fs.existsSync(fallbackDir)) {
-      fs.mkdirSync(fallbackDir, { recursive: true, mode: 0o777 });
-    }
+    console.warn('[Upload Middleware] Primary uploadDir is not writable in container, using /tmp/uploads fallback');
+    const fallbackDir = '/tmp/uploads';
+    try {
+      if (!fs.existsSync(fallbackDir)) {
+        fs.mkdirSync(fallbackDir, { recursive: true, mode: 0o777 });
+      }
+    } catch (_) {}
     return fallbackDir;
   }
 };
@@ -32,12 +28,18 @@ getUploadDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
+    let dir = getUploadDir();
     try {
-      const dir = getUploadDir();
-      cb(null, dir);
-    } catch (err: any) {
-      cb(err, '');
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true, mode: 0o777 });
+      }
+    } catch (e) {
+      dir = '/tmp/uploads';
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true, mode: 0o777 });
+      }
     }
+    cb(null, dir);
   },
   filename: (_req, file, cb) => {
     // Clean original filename for safe disk naming

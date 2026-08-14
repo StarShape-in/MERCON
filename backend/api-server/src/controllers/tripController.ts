@@ -170,8 +170,20 @@ export const getTrips = async (req: Request, res: Response) => {
 
 export const getTripById = async (req: Request, res: Response) => {
   try {
-    const trip = await prisma.trip.findUnique({
-      where: { id: req.params.id as string, deletedAt: null },
+    const idOrRef = req.params.id as string;
+    const whereClause: Prisma.TripWhereInput = isUuid(idOrRef)
+      ? { id: idOrRef, deletedAt: null }
+      : {
+          OR: [
+            { ref_id: idOrRef },
+            { ref_id: { equals: idOrRef, mode: 'insensitive' } },
+            { id: idOrRef },
+          ],
+          deletedAt: null,
+        };
+
+    const trip = await prisma.trip.findFirst({
+      where: whereClause,
       include: {
         driver: true,
         vehicle: true,
