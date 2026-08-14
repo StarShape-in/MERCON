@@ -28,6 +28,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import TripStopCard from '@/components/trips/TripStopCard';
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
+import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 import { tripService, CreateTripPayload } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
@@ -121,10 +122,9 @@ export default function CreateTripPage() {
   // Which of possibly several rate cards for this lane (imported tiers differ
   // by vehicle_type/rate_category) the dispatcher picked.
   const [selectedRateCardId, setSelectedRateCardId] = useState('');
-  // Tier for a brand-new rate on a lane nobody has priced yet — there's no
-  // existing card to read this off, so the dispatcher picks it directly.
-  const [newRateVehicleType, setNewRateVehicleType] = useState('');
-  const [newRateCategory, setNewRateCategory] = useState('');
+  // Required Vehicle Specification & Rate Category
+  const [vehicleType, setVehicleType] = useState('');
+  const [rateCategory, setRateCategory] = useState('');
 
   // Fetch Customers, Drivers, Vehicles, and Locations
   const { data: customersRes } = useQuery({
@@ -421,8 +421,8 @@ export default function CreateTripPage() {
             customerId,
             origin_location_id: finalPickupLocId,
             destination_location_id: finalDropoffLocId,
-            vehicle_type: newRateVehicleType || null,
-            rate_category: newRateCategory || null,
+            vehicle_type: vehicleType || null,
+            rate_category: rateCategory || null,
           });
           rateCardId = created.id;
         } catch (e: any) {
@@ -495,8 +495,8 @@ export default function CreateTripPage() {
     setSaveRateAs('customer');
     setRateSaveWarning(null);
     setSelectedRateCardId('');
-    setNewRateVehicleType('');
-    setNewRateCategory('');
+    setVehicleType('');
+    setRateCategory('');
     setError(null);
   };
 
@@ -599,11 +599,8 @@ export default function CreateTripPage() {
       trip_charges: numericPrice,
       status: willDispatchNow ? 'Dispatched' : 'Draft',
       dispatch_now: willDispatchNow,
-      // Explicit only when there's no matched card to inherit it from — with
-      // one, the backend copies its vehicle_type/rate_category onto the trip
-      // automatically. Without one (a one-off price on an unpriced lane),
-      // this is the only place the tier the dispatcher picked gets recorded.
-      ...(!matchedRateCard ? { vehicle_type: newRateVehicleType || null, rate_category: newRateCategory || null } : {}),
+      vehicle_type: vehicleType || matchedRateCard?.vehicle_type || null,
+      rate_category: rateCategory || matchedRateCard?.rate_category || null,
       stops: [
         {
           stop_type: 'Pickup',
@@ -627,7 +624,7 @@ export default function CreateTripPage() {
     };
 
     createMutation.mutate(payload);
-  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, pickupTime, dropoffTime, pickupName, dropoffName, pickupAddress, dropoffAddress, billingAmount, matchedRateCard, newRateVehicleType, newRateCategory, createMutation]);
+  }, [customerId, driverId, vehicleId, assignDriverLater, assignVehicleLater, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupLocationId, dropoffLocationId, pickupTime, dropoffTime, pickupName, dropoffName, pickupAddress, dropoffAddress, billingAmount, matchedRateCard, vehicleType, rateCategory, createMutation]);
 
   return (
     <DashboardLayout active="Trips" title="Create New Trip">
@@ -863,6 +860,22 @@ export default function CreateTripPage() {
                     <span className="text-xs text-muted-foreground">Assign vehicle later</span>
                   </label>
                 </div>
+              </div>
+
+              {/* Required Vehicle Specification & Rate Category */}
+              <div className="pt-4 border-t space-y-2">
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-primary" /> Required Vehicle Specification &amp; Category <span className="text-destructive">*</span>
+                </Label>
+                <RateCategoryVehicleTypeForm
+                  vehicleType={vehicleType}
+                  onVehicleTypeChange={setVehicleType}
+                  rateCategory={rateCategory}
+                  onRateCategoryChange={setRateCategory}
+                  size="sm"
+                  required={true}
+                  showPreviewBar={true}
+                />
               </div>
             </CardContent>
             <CardFooter className="justify-between rounded-b-xl border-t bg-muted/10">
@@ -1393,49 +1406,6 @@ export default function CreateTripPage() {
                         </span>
                       </label>
                     ))}
-                  </div>
-
-                  {/* Which tonnage/booking type this price is actually for — nothing
-                      existing to read it off since this lane has no card yet. */}
-                  <div className="grid grid-cols-2 gap-2 pl-5.5 pt-1">
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-amber-900 dark:text-amber-200">
-                        Vehicle type
-                      </Label>
-                      <Select
-                        value={newRateVehicleType || '__none__'}
-                        onValueChange={(v) => setNewRateVehicleType(v === '__none__' ? '' : v)}
-                      >
-                        <SelectTrigger className="h-8 text-[11px] bg-white dark:bg-slate-900">
-                          <SelectValue placeholder="Any / not set" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Any / not set</SelectItem>
-                          {VEHICLE_TYPES.map((v) => (
-                            <SelectItem key={v} value={v}>{v}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-semibold text-amber-900 dark:text-amber-200">
-                        Rate category
-                      </Label>
-                      <Select
-                        value={newRateCategory || '__none__'}
-                        onValueChange={(v) => setNewRateCategory(v === '__none__' ? '' : v)}
-                      >
-                        <SelectTrigger className="h-8 text-[11px] bg-white dark:bg-slate-900">
-                          <SelectValue placeholder="Any / not set" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Any / not set</SelectItem>
-                          {RATE_CATEGORIES.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
                 </div>
               )}

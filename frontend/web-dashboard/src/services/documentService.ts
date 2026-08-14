@@ -75,4 +75,9 @@ export const documentService = {
     const res = await api.post('/documents/bulk-download', { ids }, { responseType: 'blob' });
     return res.data as Blob;
   },
+
+  async batchImportTruckDocs(folderPath?: string): Promise<any> {
+    const res = await api.post('/documents/batch-truck-docs-local', { folderPath });
+    return res.data;
+  },
 };
