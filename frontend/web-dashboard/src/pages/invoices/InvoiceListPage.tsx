@@ -105,12 +105,12 @@ function QuickTripSummaryModal({
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center border border-orange-200/60 dark:border-orange-900/40">
-                <FileText className="w-4.5 h-4.5 text-[#E8450F]" />
+                <FileText className="w-4.5 h-4.5 text-brand" />
               </div>
               <div>
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <span>Trip Summary & Invoicing</span>
-                  <span className="font-mono text-sm text-[#E8450F]">{trip.ref_id}</span>
+                  <span className="font-mono text-sm text-brand">{trip.ref_id}</span>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-500 mt-0.5">
                   Descriptive details for trip billing inspection
@@ -235,7 +235,7 @@ function QuickTripSummaryModal({
             <Button
               size="sm"
               onClick={() => { onClose(); navigate(`/trips/${trip.id}`); }}
-              className="h-8 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white gap-1.5"
+              className="h-8 text-xs font-bold bg-brand hover:bg-brand-hover text-white gap-1.5"
             >
               View Full Details <ExternalLink className="w-3.5 h-3.5" />
             </Button>
@@ -624,7 +624,7 @@ function CompanyInvoiceStatementModal({
                         onClick={() => onSelectTrip?.(trip)}
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="font-mono font-bold text-[#E8450F] flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-brand flex items-center gap-1.5">
                             {trip.ref_id}
                             <Eye className="w-3.5 h-3.5 text-slate-400 opacity-60 hover:opacity-100" />
                           </span>
@@ -871,7 +871,7 @@ function TripSubTable({
                     onClick={() => onSelectTrip(trip)}
                   >
                     <td className="px-4 py-2.5">
-                      <span className="font-mono font-bold text-[#E8450F] flex items-center gap-1">
+                      <span className="font-mono font-bold text-brand flex items-center gap-1">
                         {trip.ref_id}
                         <Eye className="w-3 h-3 text-slate-400 opacity-60" />
                       </span>
@@ -1364,7 +1364,7 @@ export default function InvoiceListPage() {
               <div className="bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Trip</span>
-                  <span className="font-mono text-xs font-bold text-[#E8450F]">{markModal.trip.ref_id}</span>
+                  <span className="font-mono text-xs font-bold text-brand">{markModal.trip.ref_id}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Company</span>

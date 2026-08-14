@@ -92,7 +92,7 @@ export default function ManageWorkshopsModal({
       <DialogContent className="sm:max-w-2xl rounded-2xl p-0 overflow-hidden max-h-[85vh] flex flex-col border-slate-200 dark:border-slate-800">
         <DialogHeader className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shrink-0">
           <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-[#E8450F]" />
+            <Building2 className="w-5 h-5 text-brand" />
             Manage Saved Workshops
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
@@ -126,7 +126,7 @@ export default function ManageWorkshopsModal({
               />
             </div>
             <div className="flex justify-end">
-              <Button type="submit" size="sm" disabled={createWsMutation.isPending} className="h-7 text-xs bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold">
+              <Button type="submit" size="sm" disabled={createWsMutation.isPending} className="h-7 text-xs bg-brand hover:bg-[#d03c0b] text-white font-bold">
                 <Plus className="w-3 h-3 mr-1" />
                 Save Workshop
               </Button>

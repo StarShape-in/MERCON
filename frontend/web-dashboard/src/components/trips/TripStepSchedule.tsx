@@ -39,7 +39,7 @@ export default function TripStepSchedule({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#E8450F]" /> Schedule &amp; SLA Windows
+            <Clock className="w-4 h-4 text-brand" /> Schedule &amp; SLA Windows
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Set planned pickup date/time, delivery arrival window, and view transit SLA timing.
@@ -47,7 +47,7 @@ export default function TripStepSchedule({
         </div>
 
         <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-          <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+          <Keyboard className="w-3.5 h-3.5 text-brand" />
           <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">1</kbd> +4h, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">2</kbd> +8h, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">3</kbd> +24h, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">4</kbd> EOD</span>
         </div>
       </div>
@@ -86,7 +86,7 @@ export default function TripStepSchedule({
                 2. Delivery Target Window
               </span>
             </div>
-            <Badge variant="outline" className="bg-orange-50 text-[#E8450F] dark:bg-orange-950/40 dark:text-orange-300 border-orange-200 text-[11px] font-semibold truncate max-w-[180px] gap-1">
+            <Badge variant="outline" className="bg-orange-50 text-brand dark:bg-orange-950/40 dark:text-orange-300 border-orange-200 text-[11px] font-semibold truncate max-w-[180px] gap-1">
               <MapPin className="w-3 h-3 shrink-0" />
               <span className="truncate">{dropoffLocationName || 'Destination'}</span>
             </Badge>

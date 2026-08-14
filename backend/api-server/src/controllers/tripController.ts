@@ -9,6 +9,7 @@ import { findRateForLane } from '../services/rateLookup';
 import { resolveLocation } from './locationController';
 import { parseOptionalFloat } from '../utils/uuid';
 import { buildSearchAnd } from '../utils/search';
+import { getCompanyLegalName } from './settingsController';
 
 /** Fields the trip ledger search bar looks at. */
 const TRIP_SEARCH_FIELDS = [
@@ -226,6 +227,8 @@ export const createTrip = async (req: Request, res: Response) => {
       !!vehicle_id;
     const targetStatus = isDispatchingNow ? TripStatus.Dispatched : TripStatus.Draft;
 
+    const carrierName = await getCompanyLegalName();
+
     let trip;
     let attempts = 0;
     const maxAttempts = 3;
@@ -380,6 +383,7 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(vehicle_id ? { vehicleId: vehicle_id } : {}),
               planned_start: parsedPlannedStart,
               status: targetStatus,
+              carrier_name: carrierName,
               ...(createdBy ? { created_by: createdBy } : {}),
               ...(appliedRateCard ? { rateCardId: appliedRateCard.id } : {}),
               ...(finalVehicleType !== null ? { vehicle_type: finalVehicleType } : {}),
@@ -468,6 +472,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
 
     const results: Array<{ row: number; success: boolean; ref_id?: string; error?: string }> = [];
+    const carrierName = await getCompanyLegalName();
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -543,6 +548,7 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
                 ? { billing_amount: Number(row.billing_amount) }
                 : {}),
               ...(createdBy ? { created_by: createdBy } : {}),
+              carrier_name: carrierName,
               ...((row.origin || row.destination) ? {
                 stops: {
                   create: [

@@ -54,21 +54,36 @@ export const getInvoices = async (req: Request, res: Response) => {
 export const createInvoice = async (req: Request, res: Response) => {
   try {
     const { trip_id, customer_id, subtotal, total_amount, due_date } = req.body;
+    const userId = (req as any).user?.id;
 
     const ref_id = await generateRefId('INV', () =>
       prisma.invoice.findMany({ select: { ref_id: true } }));
 
-    const invoice = await prisma.invoice.create({
-      data: {
-        ref_id,
-        tripId: trip_id,
-        customerId: customer_id,
-        subtotal,
-        total_amount,
-        due_date,
-        status: InvoiceStatus.Draft,
-        created_by: (req as any).user?.id
+    const invoice = await prisma.$transaction(async (tx) => {
+      const inv = await tx.invoice.create({
+        data: {
+          ref_id,
+          tripId: trip_id,
+          customerId: customer_id,
+          subtotal,
+          total_amount,
+          due_date,
+          status: InvoiceStatus.Draft,
+          created_by: userId
+        }
+      });
+
+      if (trip_id) {
+        await tx.trip.update({
+          where: { id: trip_id },
+          data: {
+            status: TripStatus.Invoiced,
+            updated_by: userId
+          }
+        });
       }
+
+      return inv;
     });
 
     res.status(201).json({ success: true, data: invoice });

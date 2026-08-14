@@ -84,7 +84,7 @@ export default function MoveToFolderModal({ isOpen, onClose, documentIds, onSucc
               onClick={() => setSelectedFolderId('root')}
               className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                 selectedFolderId === 'root'
-                  ? 'border-[#E8450F] bg-[#FFF0EB]/40 dark:bg-[#E8450F]/10'
+                  ? 'border-brand bg-brand-light/40 dark:bg-brand/10'
                   : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
               }`}
             >
@@ -95,7 +95,7 @@ export default function MoveToFolderModal({ isOpen, onClose, documentIds, onSucc
                   <span className="text-[10px] text-slate-400">Keep file in unassigned root vault</span>
                 </div>
               </div>
-              {selectedFolderId === 'root' && <Check className="w-4 h-4 text-[#E8450F]" />}
+              {selectedFolderId === 'root' && <Check className="w-4 h-4 text-brand" />}
             </div>
 
             {isLoading ? (
@@ -111,7 +111,7 @@ export default function MoveToFolderModal({ isOpen, onClose, documentIds, onSucc
                     onClick={() => setSelectedFolderId(folder.id)}
                     className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                       isSelected
-                        ? 'border-[#E8450F] bg-[#FFF0EB]/40 dark:bg-[#E8450F]/10'
+                        ? 'border-brand bg-brand-light/40 dark:bg-brand/10'
                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
                     }`}
                   >
@@ -125,7 +125,7 @@ export default function MoveToFolderModal({ isOpen, onClose, documentIds, onSucc
                         <span className="text-[10px] text-slate-400 font-medium">{folder.category || 'General'} Category • {folder.document_count || 0} files</span>
                       </div>
                     </div>
-                    {isSelected && <Check className="w-4 h-4 text-[#E8450F] shrink-0" />}
+                    {isSelected && <Check className="w-4 h-4 text-brand shrink-0" />}
                   </div>
                 );
               })
@@ -147,7 +147,7 @@ export default function MoveToFolderModal({ isOpen, onClose, documentIds, onSucc
               type="submit"
               size="sm"
               disabled={moveMutation.isPending || documentIds.length === 0}
-              className="bg-[#E8450F] hover:bg-[#d03d0c] text-white text-xs font-bold gap-1.5 px-4"
+              className="bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5 px-4"
             >
               {moveMutation.isPending ? (
                 <>

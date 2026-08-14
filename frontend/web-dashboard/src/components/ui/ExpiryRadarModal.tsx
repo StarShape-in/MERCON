@@ -259,7 +259,7 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
             <Button
               size="sm"
               onClick={() => handleActionClick(link)}
-              className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white px-3 shadow-2xs rounded-md"
+              className="h-7 text-xs font-bold bg-brand hover:bg-brand-hover text-white px-3 shadow-2xs rounded-md"
             >
               Update Permit
             </Button>

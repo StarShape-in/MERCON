@@ -61,7 +61,7 @@ export function RateCategoryVehicleTypeForm({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsCustomVehicleType(!isCustomVehicleType)}
-                className="h-5 px-1.5 text-[10px] font-semibold text-slate-500 hover:text-[#E8450F]"
+                className="h-5 px-1.5 text-[10px] font-semibold text-slate-500 hover:text-brand"
               >
                 {isCustomVehicleType ? <Check className="w-2.5 h-2.5 mr-0.5" /> : <Edit3 className="w-2.5 h-2.5 mr-0.5" />}
                 {isCustomVehicleType ? 'List' : 'Custom'}
@@ -106,7 +106,7 @@ export function RateCategoryVehicleTypeForm({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsCustomRateCategory(!isCustomRateCategory)}
-                className="h-5 px-1.5 text-[10px] font-semibold text-slate-500 hover:text-[#E8450F]"
+                className="h-5 px-1.5 text-[10px] font-semibold text-slate-500 hover:text-brand"
               >
                 {isCustomRateCategory ? <Check className="w-2.5 h-2.5 mr-0.5" /> : <Edit3 className="w-2.5 h-2.5 mr-0.5" />}
                 {isCustomRateCategory ? 'List' : 'Custom'}

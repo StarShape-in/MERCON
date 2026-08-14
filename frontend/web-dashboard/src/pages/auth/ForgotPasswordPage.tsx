@@ -47,8 +47,8 @@ export default function ForgotPasswordPage() {
         <div className="p-8">
           {!isSent ? (
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="flex items-start gap-3 bg-[#FFF0EB] border border-[#E8450F]/15 rounded-lg p-4">
-                <LifeBuoy size={18} className="text-[#E8450F] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 bg-brand-light border border-brand/15 rounded-lg p-4">
+                <LifeBuoy size={18} className="text-brand shrink-0 mt-0.5" />
                 <p className="text-xs text-[#6E6E80] font-medium leading-relaxed">
                   Passwords are reset by your operator or administrator. Enter your username
                   or email and we'll notify them to reset it for you.
@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading || !identifier.trim()}
-                className="w-full bg-[#E8450F] hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-brand hover:bg-[#D43D0D] text-white font-bold py-3.5 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

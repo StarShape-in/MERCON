@@ -97,7 +97,7 @@ export default function RateCardDetailsPage() {
           <p className="text-xs text-slate-500 max-w-md">
             This rate card does not exist or may have been deleted.
           </p>
-          <Button onClick={() => navigate('/rate-cards')} size="sm" className="mt-2 text-xs font-bold bg-[#E8450F] text-white hover:bg-[#d03d0c]">
+          <Button onClick={() => navigate('/rate-cards')} size="sm" className="mt-2 text-xs font-bold bg-brand text-white hover:bg-brand-hover">
             Back to Rate Cards
           </Button>
         </div>
@@ -238,7 +238,7 @@ export default function RateCardDetailsPage() {
               className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg"
               title="Refresh Data"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", isFetching && "animate-spin text-[#E8450F]")} />
+              <RefreshCw className={cn("w-3.5 h-3.5", isFetching && "animate-spin text-brand")} />
             </Button>
 
             <Button
@@ -262,7 +262,7 @@ export default function RateCardDetailsPage() {
             <Button
               size="sm"
               onClick={() => setIsEditOpen(true)}
-              className="h-8 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs px-3"
+              className="h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs px-3"
             >
               <Edit2 className="w-3.5 h-3.5" /> Edit
             </Button>
@@ -308,7 +308,7 @@ export default function RateCardDetailsPage() {
           <KpiCard
             title="BASE PRICE RATE"
             value={
-              <span className="text-xl font-black text-[#E8450F] font-mono">
+              <span className="text-xl font-black text-brand font-mono">
                 {currency} {Number(card.base_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             }
@@ -337,7 +337,7 @@ export default function RateCardDetailsPage() {
             value={
               <div className="flex items-center gap-1.5 min-w-0 max-w-full text-slate-900 dark:text-slate-100 mt-0.5">
                 <span className="truncate max-w-[95px] text-sm font-extrabold">{card.route_origin}</span>
-                <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[#E8450F]" />
+                <ArrowRight className="w-3.5 h-3.5 shrink-0 text-brand" />
                 <span className="truncate max-w-[95px] text-sm font-extrabold">{card.route_destination}</span>
               </div>
             }
@@ -459,7 +459,7 @@ export default function RateCardDetailsPage() {
               <CardContent className="p-0">
                 {isTripsLoading ? (
                   <div className="py-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin text-[#E8450F]" /> Loading trips...
+                    <RefreshCw className="w-4 h-4 animate-spin text-brand" /> Loading trips...
                   </div>
                 ) : filteredTrips.length === 0 ? (
                   <div className="flex flex-col items-center justify-center text-center py-10 px-4">
@@ -475,7 +475,7 @@ export default function RateCardDetailsPage() {
                     <Button
                       size="sm"
                       onClick={() => navigate('/trips/new')}
-                      className="mt-3 h-7 text-[11px] font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white gap-1 px-3"
+                      className="mt-3 h-7 text-[11px] font-bold bg-brand hover:bg-brand-hover text-white gap-1 px-3"
                     >
                       <Plus className="w-3 h-3" /> Create Trip
                     </Button>
@@ -499,7 +499,7 @@ export default function RateCardDetailsPage() {
                             onClick={() => navigate(`/trips/${t.id}`)}
                             className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                           >
-                            <td className="py-2.5 px-4 font-mono font-extrabold text-[#E8450F] hover:underline">
+                            <td className="py-2.5 px-4 font-mono font-extrabold text-brand hover:underline">
                               {t.ref_id}
                             </td>
                             <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">

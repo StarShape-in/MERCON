@@ -209,7 +209,7 @@ export default function OperatorProfilePage() {
               disabled={isFetching}
               className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-300"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[#E8450F]' : 'text-slate-500'}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-brand' : 'text-slate-500'}`} />
               Refresh
             </Button>
 
@@ -228,7 +228,7 @@ export default function OperatorProfilePage() {
                   size="sm"
                   onClick={handleSaveProfile}
                   disabled={saveMutation.isPending}
-                  className="h-8 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs px-4"
+                  className="h-8 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs px-4"
                 >
                   <Save className="w-3.5 h-3.5" /> {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
@@ -384,7 +384,7 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('firstName', e.target.value)}
                       disabled={!isEditing}
                       placeholder="First Name"
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -398,7 +398,7 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('lastName', e.target.value)}
                       disabled={!isEditing}
                       placeholder="Last Name"
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -413,7 +413,7 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('email', e.target.value)}
                       disabled={!isEditing}
                       placeholder="operator@mercon.sa"
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -427,7 +427,7 @@ export default function OperatorProfilePage() {
                       onChange={(e) => setFormField('phone', e.target.value)}
                       disabled={!isEditing}
                       placeholder="+966 50 000 0000"
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -440,7 +440,7 @@ export default function OperatorProfilePage() {
                       value={form.iqamaNumber}
                       onChange={(e) => setFormField('iqamaNumber', e.target.value)}
                       disabled={!isEditing}
-                      className="h-9 text-xs font-mono border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs font-mono border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -453,7 +453,7 @@ export default function OperatorProfilePage() {
                       value={form.operatingHub}
                       onChange={(e) => setFormField('operatingHub', e.target.value)}
                       disabled={!isEditing}
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -466,7 +466,7 @@ export default function OperatorProfilePage() {
                       value={form.department}
                       onChange={(e) => setFormField('department', e.target.value)}
                       disabled={!isEditing}
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -479,7 +479,7 @@ export default function OperatorProfilePage() {
                       value={form.timezone}
                       onChange={(e) => setFormField('timezone', e.target.value)}
                       disabled={!isEditing}
-                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 dark:border-slate-800 disabled:bg-slate-50 dark:disabled:bg-slate-800/40 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -491,7 +491,7 @@ export default function OperatorProfilePage() {
                   <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="text-xs h-8">
                     Cancel
                   </Button>
-                  <Button size="sm" onClick={handleSaveProfile} disabled={saveMutation.isPending} className="text-xs h-8 bg-[#E8450F] text-white font-bold">
+                  <Button size="sm" onClick={handleSaveProfile} disabled={saveMutation.isPending} className="text-xs h-8 bg-brand text-white font-bold">
                     Save Changes
                   </Button>
                 </CardFooter>
@@ -539,7 +539,7 @@ export default function OperatorProfilePage() {
                         placeholder="••••••••••••"
                         value={pwd.current}
                         onChange={(e) => setPwd((p) => ({ ...p, current: e.target.value }))}
-                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-brand/20 focus-visible:border-brand"
                       />
                     </div>
 
@@ -560,7 +560,7 @@ export default function OperatorProfilePage() {
                         placeholder="At least 8 characters"
                         value={pwd.next}
                         onChange={(e) => setPwd((p) => ({ ...p, next: e.target.value }))}
-                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-brand/20 focus-visible:border-brand"
                       />
                       
                       {pwd.next && (
@@ -580,7 +580,7 @@ export default function OperatorProfilePage() {
                         placeholder="Re-enter new password"
                         value={pwd.confirm}
                         onChange={(e) => setPwd((p) => ({ ...p, confirm: e.target.value }))}
-                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                        className="h-9 text-xs border-slate-200 dark:border-slate-800 focus-visible:ring-brand/20 focus-visible:border-brand"
                       />
                     </div>
 
@@ -590,7 +590,7 @@ export default function OperatorProfilePage() {
                     <Button
                       type="submit"
                       disabled={pwdMutation.isPending}
-                      className="h-8 text-xs bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold px-4 rounded-md focus-visible:ring-[#E8450F]/20"
+                      className="h-8 text-xs bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold px-4 rounded-md focus-visible:ring-brand/20"
                     >
                       {pwdMutation.isPending ? 'Updating...' : 'Update Password'}
                     </Button>

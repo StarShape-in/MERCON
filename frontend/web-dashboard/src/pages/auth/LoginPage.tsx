@@ -5,11 +5,13 @@ import {
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { authService } from '@/services/authService';
+import { useBranding } from '@/hooks/useBranding';
+import BrandLogo from '@/components/ui/BrandLogo';
 
 /* Brand tokens */
 const C = {
-  orange: '#E8450F',
-  orangeDark: '#CF3D0D',
+  orange: 'var(--color-brand)',
+  orangeDark: 'var(--color-brand-hover)',
   dark: '#1E1F28',
   sub: '#6E7285',
   border: '#ECEEF3',
@@ -21,10 +23,11 @@ const FONT = "'Inter Variable', Inter, system-ui, -apple-system, sans-serif";
 const inputCls =
   'w-full h-12 pl-11 pr-4 rounded-xl bg-white text-[15px] text-[#1E1F28] border border-[#ECEEF3] outline-none ' +
   'transition-all duration-200 placeholder:text-[#9AA0AB] hover:border-[#DDE0E6] ' +
-  'focus:border-[#E8450F] focus:ring-4 focus:ring-[#E8450F]/15';
+  'focus:border-brand focus:ring-4 focus:ring-brand/15';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { data: branding } = useBranding();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -61,9 +64,8 @@ export default function LoginPage() {
       }}
     >
       {/* Logo pinned to the top-right of the page */}
-      <img
-        src="/mercon-logo.png"
-        alt="MERCON Logistics"
+      <BrandLogo
+        variant="login"
         className="absolute top-6 right-6 lg:top-10 lg:right-12 h-12 lg:h-16 w-auto z-10"
       />
 
@@ -137,7 +139,7 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
-                className="w-[18px] h-[18px] rounded-[6px] accent-[#E8450F] cursor-pointer"
+                className="w-[18px] h-[18px] rounded-[6px] accent-brand cursor-pointer"
               />
               <span className="text-sm" style={{ color: C.sub }}>Keep me signed in</span>
             </label>
@@ -158,7 +160,7 @@ export default function LoginPage() {
 
           <p className="mt-8 flex items-center justify-center gap-1.5 text-xs" style={{ color: C.sub }}>
             <ShieldCheck size={14} />
-            Secure portal · © {new Date().getFullYear()} MERCON Logistics
+            Secure portal · © {new Date().getFullYear()} {branding?.appName || 'MERCON Operator Platform'}
           </p>
         </div>
       </div>

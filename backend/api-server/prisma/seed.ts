@@ -1,5 +1,6 @@
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { MODULE_KEYS } from '@mercon/shared-types';
 
 const prisma = new PrismaClient();
 
@@ -34,6 +35,7 @@ async function main() {
       name: 'Mercon Admin',
       role: Role.Admin,
       isActive: true,
+      isSuperAdmin: true,
     },
   });
   console.log(`  ✓ Admin user: ${admin.username}`);
@@ -67,12 +69,22 @@ async function main() {
   });
   console.log(`  ✓ Admin user: ${ilan.username}`);
 
+  // enabledModules defaults to every known module on first creation, so an
+  // existing deployment (Mercon) sees no regression the moment this table
+  // exists — its dashboard already uses all of them today. A brand-new
+  // client's superadmin can then turn specific modules off deliberately.
+  await prisma.settings.upsert({
+    where: { id: 'singleton' },
+    update: {}, // never overwrite branding/module config an owner already set
+    create: { id: 'singleton', enabledModules: [...MODULE_KEYS] },
+  });
+  console.log('  ✓ Settings row present');
+
   await backfillMaintenanceRefIds();
   await releaseVehiclesStuckInMaintenance();
   await seedDefaultServices();
-  await seedDefaultBillingLedgerData();
 
-  console.log('✅ Default accounts and billing data seeded successfully!');
+  console.log('✅ Default accounts seeded successfully!');
 }
 
 /**
@@ -208,110 +220,6 @@ async function seedDefaultServices() {
   }
 
   console.log('  ✓ Seeded default service items');
-}
-
-/**
- * Idempotently seeds test companies and billing ledger trips across diverse date ranges.
- */
-async function seedDefaultBillingLedgerData() {
-  const customerDefs = [
-    { name: 'Aramco Logistics Solutions', phone: '+966 50 123 4567' },
-    { name: 'SABIC Global Supply Chain', phone: '+966 55 987 6543' },
-    { name: 'Al-Marai Cold Chain Distribution', phone: '+966 54 321 0987' },
-    { name: 'Olayan Freight & Cargo', phone: '+966 51 444 3322' },
-    { name: 'BinZagur Logistics Co.', phone: '+966 56 777 8899' },
-    { name: 'Panda Retail Logistics', phone: '+966 53 222 1100' },
-  ];
-
-  const customers: any[] = [];
-  for (const cdef of customerDefs) {
-    let cust = await prisma.customer.findFirst({ where: { name: { contains: cdef.name.split(' ')[0], mode: 'insensitive' } } });
-    if (!cust) {
-      cust = await prisma.customer.create({
-        data: {
-          name: cdef.name,
-          contact_phone: cdef.phone,
-        }
-      });
-    }
-    customers.push(cust);
-  }
-
-  const drivers = await prisma.driver.findMany();
-  const vehicles = await prisma.vehicle.findMany();
-  const driverId = drivers.length > 0 ? drivers[0].id : null;
-  const vehicleId = vehicles.length > 0 ? vehicles[0].id : null;
-
-  const now = new Date();
-  const getTodayDate = () => new Date();
-  const getThisWeekDate = () => { const d = new Date(); d.setDate(d.getDate() - 2); return d; };
-  const getThisMonthDate = () => { const d = new Date(); d.setDate(5); return d; };
-  const getLastMonthDate = () => { const d = new Date(); d.setMonth(d.getMonth() - 1); d.setDate(15); return d; };
-  const getOlderDate = () => { const d = new Date(); d.setMonth(d.getMonth() - 3); return d; };
-
-  const tripsToCreate = [
-    { cust: customers[0], ref_id: 'TRP-2026-TODAY-01', status: 'Completed' as const, billing: 6500, labor: 400, stop_chg: 300, origin: 'Dammam Port Gate 3', dest: 'Riyadh Industrial City 2', date: getTodayDate(), invoiced: false, zatca: undefined, note: undefined },
-    { cust: customers[1], ref_id: 'TRP-2026-TODAY-02', status: 'Invoiced' as const, billing: 9200, labor: 500, stop_chg: 0, origin: 'Jubail Industrial Complex', dest: 'King Fahd Industrial Port', date: getTodayDate(), invoiced: true, zatca: 'ZATCA-TODAY-02', note: 'Same day urgent chemical haulage' },
-    { cust: customers[2], ref_id: 'TRP-2026-WEEK-01', status: 'Completed' as const, billing: 3800, labor: 150, stop_chg: 200, origin: 'Al-Kharj Central Dairy Farm', dest: 'Riyadh Cold Depot', date: getThisWeekDate(), invoiced: false, zatca: undefined, note: undefined },
-    { cust: customers[3], ref_id: 'TRP-2026-WEEK-02', status: 'Invoiced' as const, billing: 11500, labor: 800, stop_chg: 600, origin: 'Jeddah Islamic Port Gate 5', dest: 'Medina Highway DC', date: getThisWeekDate(), invoiced: true, zatca: 'ZATCA-WEEK-99', note: 'Heavy equipment transport' },
-    { cust: customers[0], ref_id: 'TRP-2026-TMONTH-01', status: 'Completed' as const, billing: 7200, labor: 350, stop_chg: 250, origin: 'Ras Tanura Refinery Gate 1', dest: 'Yanbu Terminal', date: getThisMonthDate(), invoiced: false, zatca: undefined, note: undefined },
-    { cust: customers[4], ref_id: 'TRP-2026-TMONTH-02', status: 'Invoiced' as const, billing: 4900, labor: 200, stop_chg: 150, origin: 'Khobar Commercial Zone', dest: 'Al-Ahsa Logistics Park', date: getThisMonthDate(), invoiced: true, zatca: 'ZATCA-TMONTH-02', note: 'FMCG Monthly Delivery Batch #1' },
-    { cust: customers[1], ref_id: 'TRP-2026-LMONTH-01', status: 'Completed' as const, billing: 12800, labor: 900, stop_chg: 500, origin: 'Jubail 2 Chemical Storage', dest: 'Rabigh Petrochemical Port', date: getLastMonthDate(), invoiced: false, zatca: undefined, note: undefined },
-    { cust: customers[5], ref_id: 'TRP-2026-LMONTH-02', status: 'Invoiced' as const, billing: 5600, labor: 300, stop_chg: 200, origin: 'Qassim Produce Terminal', dest: 'Riyadh Hypermarket DC', date: getLastMonthDate(), invoiced: true, zatca: 'ZATCA-LMONTH-44', note: 'Monthly supermarket distribution contract' },
-    { cust: customers[3], ref_id: 'TRP-2026-OLD-01', status: 'Invoiced' as const, billing: 14200, labor: 1000, stop_chg: 750, origin: 'Dammam Sea Port Terminal 1', dest: 'Tabuk Logistics Hub', date: getOlderDate(), invoiced: true, zatca: 'ZATCA-HIST-101', note: 'Q1 Container haulage contract' },
-    { cust: customers[5], ref_id: 'TRP-2026-OLD-02', status: 'Completed' as const, billing: 4100, labor: 150, stop_chg: 100, origin: 'Southern Ring Road DC', dest: 'Kharj Supercenter', date: getOlderDate(), invoiced: false, zatca: undefined, note: undefined }
-  ];
-
-  let seededCount = 0;
-  for (const t of tripsToCreate) {
-    if (!t.cust) continue;
-    const existing = await prisma.trip.findFirst({ where: { ref_id: t.ref_id } });
-    if (existing) continue;
-
-    const createdTrip = await prisma.trip.create({
-      data: {
-        ref_id: t.ref_id,
-        customerId: t.cust.id,
-        driverId,
-        vehicleId,
-        status: t.status,
-        billing_amount: t.billing,
-        waiting_labor_charges: t.labor,
-        additional_stop_charges: t.stop_chg,
-        trip_charges: t.billing,
-        planned_start: t.date,
-        createdAt: t.date,
-        stops: {
-          create: [
-            { stop_sequence: 1, stop_type: 'Pickup', location_name: t.origin, location_lat: 26.43, location_lng: 50.10 },
-            { stop_sequence: 2, stop_type: 'Dropoff', location_name: t.dest, location_lat: 24.71, location_lng: 46.67 },
-          ]
-        }
-      }
-    });
-
-    if (t.invoiced) {
-      await prisma.invoice.create({
-        data: {
-          ref_id: 'INV-' + t.ref_id.replace('TRP-', ''),
-          tripId: createdTrip.id,
-          customerId: t.cust.id,
-          subtotal: t.billing,
-          total_amount: t.billing + t.labor + t.stop_chg,
-          due_date: new Date().toISOString(),
-          status: 'Paid',
-          zatca_ref: t.zatca,
-          invoicing_note: t.note,
-          createdAt: t.date,
-        }
-      });
-    }
-    seededCount++;
-  }
-
-  if (seededCount > 0) {
-    console.log(`  ✓ Seeded ${seededCount} default billing ledger trips`);
-  }
 }
 
 main()

@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
-  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -49,7 +49,7 @@ const CATEGORY_CONFIG: Record<DocCategory, {
   label: string;
   description: string;
 }> = {
-  Drivers:    { icon: UserIcon,      color: 'text-[#E8450F]',   iconBg: 'bg-[#FFF0EB] dark:bg-[#E8450F]/10', borderColor: 'border-[#E8450F]/20', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
+  Drivers:    { icon: UserIcon,      color: 'text-brand',   iconBg: 'bg-brand-light dark:bg-brand/10', borderColor: 'border-brand/20', label: 'Driver Documents', description: 'Licenses, medical certificates & permits' },
   Vehicles:   { icon: Car,           color: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/30',    borderColor: 'border-blue-200/60',   label: 'Vehicle Documents', description: 'Registrations, insurance & Istimara' },
   Operations: { icon: Briefcase,     color: 'text-violet-600',  iconBg: 'bg-violet-50 dark:bg-violet-950/30',borderColor: 'border-violet-200/60', label: 'Operations Files', description: 'Waybills, PODs & customs clearance' },
   Company:    { icon: Shield,        color: 'text-emerald-600', iconBg: 'bg-emerald-50 dark:bg-emerald-950/30', borderColor: 'border-emerald-200/60', label: 'Company Records', description: 'Contracts, invoices & corporate filings' },
@@ -182,6 +182,22 @@ export default function DocumentsCenterPage() {
     queryKey: ['customers', 'lookup'],
     queryFn: async () => (await customerService.getAll()).data,
   });
+
+  const [isAiOcrRunning, setIsAiOcrRunning] = useState(false);
+
+  const handleRunAiOcrExtract = async () => {
+    setIsAiOcrRunning(true);
+    try {
+      const res = await documentService.bulkOcrExtract(true, 200);
+      toast.success(res.message || 'Successfully extracted document dates with AI OCR!');
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error?.message || err.message || 'AI OCR Extraction failed');
+    } finally {
+      setIsAiOcrRunning(false);
+    }
+  };
 
   const handleBulkDownload = async () => {
     if (selectedDocIds.length === 0) return;
@@ -373,14 +389,14 @@ export default function DocumentsCenterPage() {
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FFF0EB] dark:bg-[#E8450F]/10 flex items-center justify-center text-[#E8450F] shrink-0 border border-[#E8450F]/20">
+            <div className="w-10 h-10 rounded-xl bg-brand-light dark:bg-brand/10 flex items-center justify-center text-brand shrink-0 border border-brand/20">
               <FolderOpen className="w-5 h-5" />
             </div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                 Documents Center
               </h1>
-              <Badge variant="outline" className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/20 text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5">
+              <Badge variant="outline" className="bg-brand-light text-brand border-brand/20 text-[10px] font-bold tracking-wide uppercase px-2.5 py-0.5">
                 Compliance Module
               </Badge>
             </div>
@@ -417,7 +433,7 @@ export default function DocumentsCenterPage() {
             <Button
               size="sm"
               variant="outline"
-              className="h-9 gap-1.5 text-xs font-bold border-[#E8450F]/30 bg-[#FFF0EB] hover:bg-[#ffe4db] text-[#E8450F] dark:bg-[#E8450F]/10 dark:border-[#E8450F]/20 shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-bold border-brand/30 bg-brand-light hover:bg-[#ffe4db] text-brand dark:bg-brand/10 dark:border-brand/20 shadow-2xs"
               onClick={() => setIsCreateFolderOpen(true)}
             >
               <FolderPlus className="w-4 h-4" /> New Folder
@@ -434,10 +450,31 @@ export default function DocumentsCenterPage() {
               Batch Import Trucks Docs
             </Button>
 
+            {/* AI Auto-Extract Expiries Action */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1.5 text-xs font-bold border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300 shadow-2xs"
+              onClick={handleRunAiOcrExtract}
+              disabled={isAiOcrRunning}
+            >
+              {isAiOcrRunning ? (
+                <>
+                  <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+                  <span>Extracting Expiries with AI...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-amber-500/20" />
+                  <span>AI Auto-Extract Expiries</span>
+                </>
+              )}
+            </Button>
+
             {/* Upload Button */}
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-lg px-4"
+              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
               onClick={() => setIsUploadOpen(true)}
             >
               <UploadCloud className="w-4 h-4" /> Upload Document
@@ -533,14 +570,14 @@ export default function DocumentsCenterPage() {
         <div className="space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Folder className="w-4 h-4 text-[#E8450F]" />
+              <Folder className="w-4 h-4 text-brand" />
               <h3 className="text-xs font-extrabold text-slate-800 dark:text-slate-200 tracking-wide uppercase">
                 Folder Explorer ({folders.length})
               </h3>
               {selectedFolderId && (
                 <Badge
                   variant="outline"
-                  className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold gap-1 cursor-pointer"
+                  className="bg-brand-light text-brand border-brand/30 text-[10px] font-bold gap-1 cursor-pointer"
                   onClick={() => setSelectedFolderId(null)}
                 >
                   <span>Folder Filter Active</span>
@@ -550,7 +587,7 @@ export default function DocumentsCenterPage() {
             </div>
             <button
               onClick={() => setIsCreateFolderOpen(true)}
-              className="text-xs text-[#E8450F] hover:underline font-bold flex items-center gap-1"
+              className="text-xs text-brand hover:underline font-bold flex items-center gap-1"
             >
               <FolderPlus size={13} /> Add Folder
             </button>
@@ -567,7 +604,7 @@ export default function DocumentsCenterPage() {
                     className={cn(
                       'p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2 group relative',
                       isSelected
-                        ? 'border-[#E8450F] bg-[#FFF0EB]/50 dark:bg-[#E8450F]/15 shadow-xs ring-1 ring-[#E8450F]'
+                        ? 'border-brand bg-brand-light/50 dark:bg-brand/15 shadow-xs ring-1 ring-brand'
                         : 'border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs'
                     )}
                   >
@@ -620,7 +657,7 @@ export default function DocumentsCenterPage() {
                   className={cn(
                     'px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap',
                     isActive
-                      ? 'bg-[#E8450F] text-white shadow-2xs'
+                      ? 'bg-brand text-white shadow-2xs'
                       : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/70 border border-slate-200/70 dark:border-slate-700'
                   )}
                 >
@@ -753,7 +790,7 @@ export default function DocumentsCenterPage() {
           <DataTable<EnrichedDocument>
             title={
               <span className="flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-[#E8450F]" />
+                <FolderOpen className="w-4 h-4 text-brand" />
                 <span>Document Vault Ledger</span>
               </span>
             }
@@ -771,7 +808,7 @@ export default function DocumentsCenterPage() {
                       <div className="flex flex-col min-w-0">
                         <span 
                           onClick={() => setPreviewDoc(row)}
-                          className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-[#E8450F] cursor-pointer block truncate max-w-[220px]"
+                          className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-brand cursor-pointer block truncate max-w-[220px]"
                         >
                           {docTypeLabel(row.doc_type)}
                         </span>
@@ -803,8 +840,34 @@ export default function DocumentsCenterPage() {
                 )
               },
               {
+                header: 'Doc # / AI Metadata',
+                accessor: (row) => {
+                  const docNum = row.ai_extracted_json?.document_number;
+                  const confidence = row.ai_extracted_json?.confidence;
+                  return (
+                    <div className="flex flex-col">
+                      <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                        {docNum || `DOC-${row.id.slice(0, 8)}`}
+                      </span>
+                      {confidence ? (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>{Math.round(confidence * 100)}% AI Vision</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">Manual Entry</span>
+                      )}
+                    </div>
+                  );
+                }
+              },
+              {
                 header: 'Issuer Authority',
-                accessor: (row) => <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">{row.issuer}</span>
+                accessor: (row) => (
+                  <span className="text-xs text-slate-700 dark:text-slate-200 font-semibold">
+                    {row.ai_extracted_json?.issuing_authority || row.issuer}
+                  </span>
+                )
               },
               {
                 header: 'Uploaded Date',
@@ -967,10 +1030,10 @@ export default function DocumentsCenterPage() {
                   <Card
                     key={doc.id}
                     className={cn(
-                      "border rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30 relative",
+                      "border rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-brand/30 relative",
                       isSelected
                         ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/10 dark:bg-indigo-950/20"
-                        : "border-slate-200 dark:border-slate-800 hover:border-[#E8450F]/45 hover:-translate-y-0.5"
+                        : "border-slate-200 dark:border-slate-800 hover:border-brand/45 hover:-translate-y-0.5"
                     )}
                     tabIndex={0}
                     role="button"
@@ -1009,7 +1072,7 @@ export default function DocumentsCenterPage() {
                       <div>
                         <h4 
                           onClick={() => setPreviewDoc(doc)}
-                          className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-[#E8450F] cursor-pointer truncate"
+                          className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-brand cursor-pointer truncate"
                         >
                           {docTypeLabel(doc.doc_type)}
                         </h4>
@@ -1039,7 +1102,7 @@ export default function DocumentsCenterPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setPreviewDoc(doc)}
-                        className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#E8450F] gap-1 px-2"
+                        className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-brand gap-1 px-2"
                       >
                         <Eye size={13} /> Preview
                       </Button>
@@ -1128,7 +1191,7 @@ export default function DocumentsCenterPage() {
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#E8450F]" />
+                <FileText className="w-5 h-5 text-brand" />
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
                   {previewDoc ? docTypeLabel(previewDoc.doc_type) : 'Document Preview'}
                 </DialogTitle>
@@ -1170,7 +1233,7 @@ export default function DocumentsCenterPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-                    <FileText className="w-10 h-10 text-[#E8450F]" />
+                    <FileText className="w-10 h-10 text-brand" />
                     <div>
                       <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
                         {docTypeLabel(previewDoc.doc_type)} File
@@ -1181,13 +1244,55 @@ export default function DocumentsCenterPage() {
                       href={resolvedUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-[#E8450F] hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline"
                     >
                       <ExternalLink size={13} /> Open File in New Tab
                     </a>
                   </div>
                 )}
               </div>
+
+              {/* AI Vision OCR Extracted Metadata Card */}
+              {previewDoc.ai_extracted_json && (
+                <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Gemini Vision AI Extracted Metadata</span>
+                    </span>
+                    {previewDoc.ai_extracted_json.confidence && (
+                      <span className="text-[10px] bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-mono font-bold">
+                        {Math.round(previewDoc.ai_extracted_json.confidence * 100)}% Confidence
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {previewDoc.ai_extracted_json.document_number && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Doc / Policy #</span>
+                        <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400">{previewDoc.ai_extracted_json.document_number}</span>
+                      </div>
+                    )}
+                    {previewDoc.ai_extracted_json.issuing_authority && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Issuing Authority</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json.issuing_authority}</span>
+                      </div>
+                    )}
+                    {previewDoc.ai_extracted_json.vehicle_plate && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Extracted Vehicle Plate</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json.vehicle_plate}</span>
+                      </div>
+                    )}
+                  </div>
+                  {previewDoc.ai_extracted_json.notes && (
+                    <div className="pt-1.5 border-t border-amber-200/50 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-200 italic">
+                      "{previewDoc.ai_extracted_json.notes}"
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Metadata Key-Value Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -1203,7 +1308,7 @@ export default function DocumentsCenterPage() {
 
                 <div className="space-y-1">
                   <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Issuing Regulatory Body</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{REGULATORY_BODY[previewDoc.doc_type] || 'Saudi Authority'}</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json?.issuing_authority || REGULATORY_BODY[previewDoc.doc_type] || 'Saudi Authority'}</p>
                 </div>
 
                 <div className="space-y-1">
@@ -1225,7 +1330,7 @@ export default function DocumentsCenterPage() {
               <a
                 href={previewDoc.file_url}
                 download
-                className="h-8 px-4 rounded-md bg-[#E8450F] text-white text-xs font-bold hover:bg-[#d03d0c] inline-flex items-center gap-1.5"
+                className="h-8 px-4 rounded-md bg-brand text-white text-xs font-bold hover:bg-brand-hover inline-flex items-center gap-1.5"
               >
                 <Download size={14} /> Download Document
               </a>

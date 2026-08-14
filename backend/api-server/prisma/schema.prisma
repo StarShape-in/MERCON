@@ -116,6 +116,12 @@ model User {
   name          String?
   role          Role    @default(Operator)
 
+  // Platform-level flag, orthogonal to `role`. A superadmin is an Admin who
+  // can also edit this deployment's branding/module config (see Settings
+  // below). Deliberately NOT a 4th Role value — see CLAUDE.md's "exactly
+  // three roles" rule.
+  isSuperAdmin Boolean @default(false)
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid
@@ -300,7 +306,10 @@ model Trip {
   additional_stop_charges Float   @default(0.0)
   trip_charges            Float   @default(0.0)
   billing_amount          Float?
-  carrier_name            String? @default("MERCON LOGISTICS")
+  // No DB-level default — set from Settings.companyLegalName at create time
+  // (see tripController.ts / getCompanyLegalName), since a hardcoded literal
+  // here can't vary per deployment.
+  carrier_name            String?
   is_post_trip_settled    Boolean @default(false)
 
   created_by String?   @db.Uuid
@@ -662,6 +671,31 @@ model Location {
   originRateCards      RateCard[] @relation("RateCardOrigin")
   destinationRateCards RateCard[] @relation("RateCardDestination")
   tripStops            TripStop[]
+}
+
+// -----------------------------------------
+// 9. DEPLOYMENT SETTINGS (Branding & Modules)
+// -----------------------------------------
+// Singleton: this app is deployed once per client (separate VPS, separate
+// database per client — see PROGRESS.md), so a single database only ever
+// needs one Settings row. Not a per-user or per-org table; there is no
+// tenant concept in this schema and none is needed.
+model Settings {
+  id String @id @default("singleton")
+
+  appName          String  @default("MERCON Operator Platform")
+  companyLegalName String  @default("MERCON Operations Ltd.")
+  logoUrl          String?
+  primaryColor     String  @default("#E8450F")
+
+  // Module keys this deployment shows/allows. See ModuleKey in
+  // @mercon/shared-types for the known set; core modules (trips, drivers,
+  // vehicles, customers, settings) are always available regardless of this
+  // list and are not stored here.
+  enabledModules String[] @default([])
+
+  updated_by String?  @db.Uuid
+  updatedAt  DateTime @default(now()) @updatedAt @db.Timestamptz
 }
 
 // -----------------------------------------

@@ -272,7 +272,7 @@ export default function RateCardFormDialog({
             size="sm"
             onClick={handleSubmit}
             disabled={!isValid || saveMutation.isPending}
-            className="h-8 gap-1.5 bg-[#E8450F] text-xs font-medium text-white hover:bg-[#d03d0c]"
+            className="h-8 gap-1.5 bg-brand text-xs font-medium text-white hover:bg-brand-hover"
           >
             {saveMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {isEditing ? 'Save changes' : 'Add rate'}

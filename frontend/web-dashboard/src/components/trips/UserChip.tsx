@@ -56,7 +56,7 @@ export default function UserChip({ userId, users, size = 'default', className = 
   return (
     <div className="flex items-center gap-2">
       <Avatar className="size-6">
-        <AvatarFallback className="text-[9px] font-bold bg-[#E8450F]/10 text-[#E8450F]">
+        <AvatarFallback className="text-[9px] font-bold bg-brand/10 text-brand">
           {initials(label)}
         </AvatarFallback>
       </Avatar>

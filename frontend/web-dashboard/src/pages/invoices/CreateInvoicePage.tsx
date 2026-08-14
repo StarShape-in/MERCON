@@ -242,7 +242,7 @@ export default function CreateInvoicePage() {
               <span>•</span>
               <span className="text-slate-900 dark:text-slate-100 font-bold">Billing & Invoicing</span>
             </div>
-            <Badge variant="outline" className="bg-[#E8450F]/10 text-[#E8450F] border-[#E8450F]/30 font-bold">
+            <Badge variant="outline" className="bg-brand/10 text-brand border-brand/30 font-bold">
               VAT Invoice Generation
             </Badge>
           </div>
@@ -271,7 +271,7 @@ export default function CreateInvoicePage() {
               size="sm" 
               onClick={() => handleSubmit()}
               disabled={createInvoiceMutation.isPending || !isFormValid}
-              className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-md px-4"
               label={createInvoiceMutation.isPending ? 'Generating...' : 'Generate Invoice'}
               icon={<Save className="w-3.5 h-3.5" />}
               shortcut={{ key: 'Enter', metaOrControl: true }}
@@ -313,7 +313,7 @@ export default function CreateInvoicePage() {
 
             {/* Financial Billed Segment */}
             <div className="flex-1 p-4 flex items-center gap-3 w-full">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100 text-[#E8450F] dark:bg-amber-900/40 dark:text-[#ff6a38] shrink-0">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100 text-brand dark:bg-amber-900/40 dark:text-[#ff6a38] shrink-0">
                 <DollarSign className="w-4.5 h-4.5" />
               </div>
               <div className="flex-1 min-w-0">
@@ -422,7 +422,7 @@ export default function CreateInvoicePage() {
                       size="sm"
                       onClick={goToNextTab}
                       disabled={!customerId}
-                      className="h-9 text-xs gap-1.5 bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold rounded-md px-4 shadow-xs"
+                      className="h-9 text-xs gap-1.5 bg-brand hover:bg-brand-hover text-white font-bold rounded-md px-4 shadow-xs"
                       label="Next: Select Trip & Billing"
                       icon={<ChevronRight className="w-3.5 h-3.5" />}
                       shortcut={{ key: 'ArrowRight', alt: true }}
@@ -443,7 +443,7 @@ export default function CreateInvoicePage() {
                     <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
                       {isLoadingTrips ? (
                         <div className="p-8 flex justify-center items-center gap-2 text-xs font-semibold text-slate-500">
-                          <Loader2 className="w-4 h-4 animate-spin text-[#E8450F]" /> Fetching completed trips...
+                          <Loader2 className="w-4 h-4 animate-spin text-brand" /> Fetching completed trips...
                         </div>
                       ) : trips.length === 0 ? (
                         <div className="p-8 text-center text-slate-500 text-xs font-medium">
@@ -466,7 +466,7 @@ export default function CreateInvoicePage() {
                                   name="selectedTrip"
                                   checked={selectedTripId === trip.id}
                                   onChange={() => setSelectedTripId(trip.id)}
-                                  className="w-4 h-4 text-[#E8450F] accent-[#E8450F]"
+                                  className="w-4 h-4 text-brand accent-brand"
                                 />
                                 <div>
                                   <div className="text-xs font-extrabold text-slate-900 dark:text-slate-100 font-mono">
@@ -555,7 +555,7 @@ export default function CreateInvoicePage() {
 
                     <div className="border-t border-slate-200 dark:border-slate-700 pt-2 flex justify-between items-center">
                       <span className="font-extrabold text-slate-900 dark:text-slate-100">Net Total Billed Amount:</span>
-                      <span className="font-mono font-black text-base text-[#E8450F]">
+                      <span className="font-mono font-black text-base text-brand">
                         SAR {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -578,7 +578,7 @@ export default function CreateInvoicePage() {
                       size="sm"
                       onClick={() => handleSubmit()}
                       disabled={createInvoiceMutation.isPending || !isFormValid}
-                      className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold gap-1.5 shadow-xs rounded-md px-4"
+                      className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-1.5 shadow-xs rounded-md px-4"
                       label={createInvoiceMutation.isPending ? 'Generating...' : 'Generate Invoice'}
                       icon={<Save className="w-3.5 h-3.5" />}
                       shortcut={{ key: 'Enter', metaOrControl: true }}

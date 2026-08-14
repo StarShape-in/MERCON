@@ -695,7 +695,7 @@ export default function VehicleFinancialsPage() {
                   size="sm"
                   className={cn(
                     'h-9 gap-1.5 text-xs font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs',
-                    period === 'custom' && 'border-[#E8450F]/40 bg-[#E8450F]/5 text-[#E8450F]'
+                    period === 'custom' && 'border-brand/40 bg-brand/5 text-brand'
                   )}
                 >
                   <CalendarRange className="w-3.5 h-3.5" />
@@ -720,7 +720,7 @@ export default function VehicleFinancialsPage() {
                     size="sm"
                     disabled={!customRange?.from}
                     onClick={() => setPeriod('custom')}
-                    className="h-8 text-xs px-3.5 rounded-lg bg-[#E8450F] hover:bg-[#d03d0c] text-white font-semibold"
+                    className="h-8 text-xs px-3.5 rounded-lg bg-brand hover:bg-brand-hover text-white font-semibold"
                   >
                     Apply
                   </Button>
@@ -1144,7 +1144,7 @@ export default function VehicleFinancialsPage() {
                             {vehicle.plate_number}
                           </h2>
                           {vehicle.asset_type && (
-                            <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold">
+                            <Badge className="bg-brand-light text-brand border-brand/30 text-[10px] font-bold">
                               {vehicle.asset_type}
                             </Badge>
                           )}

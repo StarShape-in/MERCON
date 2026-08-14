@@ -122,7 +122,7 @@ export default function NotificationsPage() {
   const getIcon = (type: NotificationType) => {
     switch (type) {
       case 'alert': return <AlertTriangle size={18} className="text-rose-600" />;
-      case 'trip': return <Truck size={18} className="text-[#E8450F]" />;
+      case 'trip': return <Truck size={18} className="text-brand" />;
       case 'document': return <FileText size={18} className="text-amber-600" />;
       case 'system': return <Bell size={18} className="text-blue-600" />;
     }
@@ -213,7 +213,7 @@ export default function NotificationsPage() {
             description="Click to view Unread alerts"
             icon={CalendarAlert}
             progressSegments={[
-              { label: `${unreadCount} Unread`, value: unreadCount > 0 ? 80 : 0, color: 'bg-[#E8450F]' },
+              { label: `${unreadCount} Unread`, value: unreadCount > 0 ? 80 : 0, color: 'bg-brand' },
               { label: 'Read', value: unreadCount > 0 ? 20 : 100, color: 'bg-slate-300' },
             ]}
             onClick={() => setActiveTab('unread')}
@@ -272,13 +272,13 @@ export default function NotificationsPage() {
                 onClick={() => setActiveTab('unread')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all whitespace-nowrap flex items-center gap-1.5 ${
                   activeTab === 'unread'
-                    ? 'bg-white dark:bg-slate-900 text-[#E8450F] shadow-2xs'
+                    ? 'bg-white dark:bg-slate-900 text-brand shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
                 <span>Unread</span>
                 {unreadCount > 0 && (
-                  <Badge className="bg-[#E8450F] text-white text-[9px] px-1.5 py-0 font-bold">
+                  <Badge className="bg-brand text-white text-[9px] px-1.5 py-0 font-bold">
                     {unreadCount}
                   </Badge>
                 )}
@@ -365,7 +365,7 @@ export default function NotificationsPage() {
                     className={cn(
                       "p-4 flex gap-4 transition-all duration-150 ease-in-out hover:bg-slate-100/70 dark:hover:bg-slate-800/80 cursor-pointer outline-none border-l-4",
                       !notif.is_read 
-                        ? 'bg-indigo-50/20 dark:bg-indigo-950/15 border-l-[#E8450F]' 
+                        ? 'bg-indigo-50/20 dark:bg-indigo-950/15 border-l-brand' 
                         : 'bg-white dark:bg-slate-900 border-l-transparent focus-visible:bg-slate-50'
                     )}
                     tabIndex={0}
@@ -415,7 +415,7 @@ export default function NotificationsPage() {
                           <Button
                             variant="link"
                             size="sm"
-                            className="h-auto p-0 text-xs font-bold text-[#E8450F] hover:underline gap-1 focus-visible:ring-1 focus-visible:ring-[#E8450F]"
+                            className="h-auto p-0 text-xs font-bold text-brand hover:underline gap-1 focus-visible:ring-1 focus-visible:ring-brand"
                             onClick={(e) => { 
                               e.stopPropagation(); 
                               markAsRead(notif.id); 
@@ -437,7 +437,7 @@ export default function NotificationsPage() {
                     </div>
 
                     {!notif.is_read && (
-                      <div className="w-2 h-2 rounded-full bg-[#E8450F] shrink-0 mt-2.5 animate-pulse" />
+                      <div className="w-2 h-2 rounded-full bg-brand shrink-0 mt-2.5 animate-pulse" />
                     )}
                   </div>
                 );

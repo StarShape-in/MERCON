@@ -47,7 +47,7 @@ export default function TripCompletionPage() {
     return (
       <DashboardLayout active="Trips" title="Trip Completion">
         <div className="p-8 flex items-center justify-center">
-          <div className="h-8 w-8 border-2 border-[#E8450F] border-t-transparent rounded-full animate-spin"></div>
+          <div className="h-8 w-8 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
         </div>
       </DashboardLayout>
     );

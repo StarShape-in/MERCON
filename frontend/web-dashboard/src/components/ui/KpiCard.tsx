@@ -84,8 +84,8 @@ const variantStyles: Record<KpiCardVariant, {
 }> = {
   brand: {
     hex: '#E8450F',
-    iconContainer: 'bg-[#E8450F]/10 text-[#E8450F]',
-    activeRing: 'shadow-[0_0_15px_rgba(232,69,15,0.18)] border-[#E8450F] scale-[1.01] transition-all',
+    iconContainer: 'bg-brand/10 text-brand',
+    activeRing: 'shadow-[0_0_15px_rgba(232,69,15,0.18)] border-brand scale-[1.01] transition-all',
   },
   blue: {
     hex: '#2563EB',

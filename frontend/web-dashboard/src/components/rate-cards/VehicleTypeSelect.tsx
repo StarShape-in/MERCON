@@ -52,7 +52,7 @@ export function VehicleTypeSelect({
       >
         <SelectTrigger
           className={cn(
-            'w-full font-semibold border-slate-200 bg-white transition-colors focus:ring-1 focus:ring-[#E8450F]',
+            'w-full font-semibold border-slate-200 bg-white transition-colors focus:ring-1 focus:ring-brand',
             heightClass,
             className
           )}

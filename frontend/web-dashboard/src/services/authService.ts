@@ -19,7 +19,7 @@ export const authService = {
       authStore.setSession(token, user);
       return res.data.data;
     } catch (err: any) {
-      if (!err.response || err.response.status >= 500 || err.code === 'ERR_NETWORK') {
+      if (import.meta.env.DEV && (!err.response || err.response.status >= 500 || err.code === 'ERR_NETWORK')) {
         const mockUser: AuthUser = {
           id: 'user-admin-001',
           name: payload.username ? (payload.username.charAt(0).toUpperCase() + payload.username.slice(1)) : 'Ilan',

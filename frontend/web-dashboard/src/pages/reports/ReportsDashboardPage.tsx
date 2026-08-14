@@ -34,7 +34,7 @@ import ReportsHeader from '@/components/reports/ReportsHeader';
 import { documentService } from '@/services/documentService';
 import { daysUntil } from '@/lib/documents';
 
-const CHART_COLORS = ['#E8450F', '#111111', '#16A34A', '#2563EB', '#CA8A04', '#9898A4'];
+const CHART_COLORS = ['var(--color-brand)', '#111111', '#16A34A', '#2563EB', '#CA8A04', '#9898A4'];
 
 export default function ReportsDashboardPage() {
   const navigate = useNavigate();
@@ -217,7 +217,7 @@ export default function ReportsDashboardPage() {
               
               {/* Date Horizon Dropdown */}
               <Select value={dateHorizon} onValueChange={(val) => { if (val) setDateHorizon(val); }}>
-                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs focus-visible:ring-[#E8450F]/20">
+                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs focus-visible:ring-brand/20">
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="Date Horizon" />
@@ -237,7 +237,7 @@ export default function ReportsDashboardPage() {
 
               {/* Module Filter Dropdown */}
               <Select value={moduleFilter} onValueChange={(val) => { if (val) setModuleFilter(val); }}>
-                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs focus-visible:ring-[#E8450F]/20">
+                <SelectTrigger className="h-9 px-3 w-48 shrink-0 border-slate-200 bg-white rounded-lg text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors shadow-2xs focus-visible:ring-brand/20">
                   <div className="flex items-center gap-2">
                     <Layers className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                     <SelectValue placeholder="Analytics Module" />
@@ -324,7 +324,7 @@ export default function ReportsDashboardPage() {
                   />
                   <Bar dataKey="revenue" radius={[6, 6, 0, 0]} maxBarSize={48}>
                     {(monthly_revenue_chart || []).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === (monthly_revenue_chart?.length || 1) - 1 ? '#E8450F' : '#E8450F40'} />
+                      <Cell key={`cell-${index}`} fill={index === (monthly_revenue_chart?.length || 1) - 1 ? 'var(--color-brand)' : 'color-mix(in srgb, var(--color-brand) 25%, transparent)'} />
                     ))}
                   </Bar>
                 </BarChart>

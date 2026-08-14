@@ -115,7 +115,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
             className={cn(
               'w-full min-h-[42px] px-3 py-2 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 shadow-2xs cursor-pointer',
               popoverOpen
-                ? 'border-[#E8450F] ring-2 ring-[#E8450F]/20'
+                ? 'border-brand ring-2 ring-brand/20'
                 : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
             )}
           >
@@ -124,7 +124,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                 selectedItems.map((title) => (
                   <span
                     key={title}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] dark:text-orange-400 border border-orange-200 dark:border-orange-900/60"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200 dark:border-orange-900/60"
                   >
                     <span>{title}</span>
                     <span
@@ -184,7 +184,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                   className={cn(
                     'px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors',
                     isSelected
-                      ? 'bg-orange-50/80 dark:bg-orange-950/30 text-[#E8450F] dark:text-orange-300 font-bold'
+                      ? 'bg-orange-50/80 dark:bg-orange-950/30 text-brand dark:text-orange-300 font-bold'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
                   )}
                 >
@@ -193,7 +193,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                       className={cn(
                         'w-4 h-4 rounded border flex items-center justify-center transition-colors',
                         isSelected
-                          ? 'bg-[#E8450F] border-[#E8450F] text-white'
+                          ? 'bg-brand border-brand text-white'
                           : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'
                       )}
                     >
@@ -229,7 +229,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                 setPopoverOpen(false);
                 setIsAddDialogOpen(true);
               }}
-              className="h-7 text-xs font-bold text-[#E8450F] border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
+              className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
             >
               <Plus className="w-3 h-3 mr-1" />
               + Save New Service Item
@@ -243,7 +243,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
         <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
           <DialogHeader className="px-5 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
             <DialogTitle className="text-sm font-extrabold flex items-center gap-2 text-slate-900 dark:text-slate-100">
-              <Tag className="w-4 h-4 text-[#E8450F]" />
+              <Tag className="w-4 h-4 text-brand" />
               Save New Service Item
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
@@ -293,7 +293,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                 type="submit"
                 size="sm"
                 disabled={saveWorkItemMutation.isPending}
-                className="h-8 text-xs bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
+                className="h-8 text-xs bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
               >
                 {saveWorkItemMutation.isPending ? 'Saving...' : 'Save Service Item'}
               </Button>

@@ -1149,7 +1149,7 @@ export default function CreateTripPage() {
                   onClick={() => handleSubmit(false)}
                   disabled={createMutation.isPending || !isFormValid}
                   size="sm"
-                  className="h-9 px-4 text-xs font-bold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-xs gap-1.5"
+                  className="h-9 px-4 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs gap-1.5"
                 >
                   <Clock className="w-3.5 h-3.5" />
                   <span>{createMutation.isPending ? 'Scheduling...' : 'Schedule Trip'}</span>
@@ -1398,7 +1398,7 @@ export default function CreateTripPage() {
                           name="save_rate_as"
                           checked={saveRateAs === option.key}
                           onChange={() => setSaveRateAs(option.key)}
-                          className="mt-0.5 accent-[#E8450F]"
+                          className="mt-0.5 accent-brand"
                         />
                         <span>
                           <span className="block font-semibold text-amber-900 dark:text-amber-200">{option.label}</span>

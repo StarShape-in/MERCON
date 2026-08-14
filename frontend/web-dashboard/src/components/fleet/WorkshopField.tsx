@@ -153,14 +153,14 @@ export default function WorkshopField({
             className={cn(
               'w-full h-9.5 px-3 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 cursor-pointer shadow-2xs',
               popoverOpen
-                ? 'border-[#E8450F] ring-2 ring-[#E8450F]/20'
+                ? 'border-brand ring-2 ring-brand/20'
                 : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700',
               className
             )}
           >
             {value ? (
               <div className="flex items-center gap-2 truncate font-semibold text-slate-900 dark:text-slate-100">
-                <Building2 className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
+                <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
                 <span className="truncate">{value}</span>
               </div>
             ) : (
@@ -208,7 +208,7 @@ export default function WorkshopField({
                   onChange(typed);
                   openAddDialogWith(typed);
                 }}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-orange-50/80 dark:bg-orange-950/40 text-[#E8450F] dark:text-orange-400 border border-orange-200/60 dark:border-orange-900/60 flex items-center gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors"
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-orange-50/80 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200/60 dark:border-orange-900/60 flex items-center gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors"
               >
                 <Plus className="w-4 h-4 shrink-0" />
                 <span className="truncate">Add "{searchQuery.trim()}" as new workshop</span>
@@ -227,7 +227,7 @@ export default function WorkshopField({
                     isCheckedForDelete
                       ? 'bg-emerald-50 dark:bg-emerald-950/30'
                       : isSelected
-                      ? 'bg-orange-50/80 dark:bg-orange-950/30 text-[#E8450F] dark:text-orange-300 font-bold'
+                      ? 'bg-orange-50/80 dark:bg-orange-950/30 text-brand dark:text-orange-300 font-bold'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
                   )}
                 >
@@ -262,7 +262,7 @@ export default function WorkshopField({
                         {w.contact}
                       </span>
                     )}
-                    {isSelected && <Check className="w-3.5 h-3.5 text-[#E8450F] stroke-[3]" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-brand stroke-[3]" />}
                   </div>
                 </div>
               );
@@ -293,7 +293,7 @@ export default function WorkshopField({
               variant="outline"
               size="sm"
               onClick={() => openAddDialogWith(searchQuery)}
-              className="h-7 text-xs font-bold text-[#E8450F] border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
+              className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
             >
               <Plus className="w-3 h-3 mr-1" />
               + Save New Workshop
@@ -328,7 +328,7 @@ export default function WorkshopField({
         <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
           <DialogHeader className="px-5 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
             <DialogTitle className="text-sm font-extrabold flex items-center gap-2 text-slate-900 dark:text-slate-100">
-              <Building2 className="w-4 h-4 text-[#E8450F]" />
+              <Building2 className="w-4 h-4 text-brand" />
               Save New Workshop
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
@@ -388,7 +388,7 @@ export default function WorkshopField({
                 type="submit"
                 size="sm"
                 disabled={saveWorkshopMutation.isPending}
-                className="h-8 text-xs bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
+                className="h-8 text-xs bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
               >
                 {saveWorkshopMutation.isPending ? 'Saving...' : 'Save Workshop'}
               </Button>

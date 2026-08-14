@@ -136,7 +136,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         <button
           onClick={() => setIsCreateTripOpen(true)}
           title="Create New Trip (Shortcut: Alt + T or Alt + N)"
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           <span className="hidden sm:inline">Create New Trip</span>
@@ -177,7 +177,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1 bg-slate-200/50 dark:bg-slate-800" />
             <DropdownMenuItem onClick={() => navigate('/rate-cards')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
-              <FileText className="w-3.5 h-3.5 mr-2 text-[#E8450F]" /> Create Rate Card
+              <FileText className="w-3.5 h-3.5 mr-2 text-brand" /> Create Rate Card
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/invoices/new')} className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md">
               <Receipt className="w-3.5 h-3.5 mr-2 text-purple-600" /> Generate Invoice
@@ -190,7 +190,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
           <div className="w-8.5 h-8.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700">
             <Bell size={15} className="text-slate-600 dark:text-slate-300" />
           </div>
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand text-white text-[9px] font-extrabold flex items-center justify-center shadow-2xs">
             8
           </span>
         </Link>
@@ -201,7 +201,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
           >
-            <div className="w-6 h-6 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-[10px] font-bold select-none">
+            <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-bold select-none">
               MA
             </div>
             <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[80px] truncate">Mercon</span>

@@ -55,7 +55,7 @@ const locationsToExportRows = (locs: Location[]) => locs.map((l) => [
 
 /** Custom Marker Icon Generator for Leaflet Map */
 function createCustomLocationPin(isSelected: boolean, isActive: boolean, isPriced: boolean, isDarkTheme: boolean) {
-  let pinColor = '#E8450F'; // Default MERCON Orange
+  let pinColor = 'var(--color-brand)'; // Default brand color
   let glowColor = 'rgba(232, 69, 15, 0.45)';
 
   if (!isActive) {
@@ -66,7 +66,7 @@ function createCustomLocationPin(isSelected: boolean, isActive: boolean, isPrice
     glowColor = 'rgba(79, 70, 229, 0.45)';
   }
 
-  const borderCol = isSelected ? '#E8450F' : (isDarkTheme ? '#1F2937' : '#FFFFFF');
+  const borderCol = isSelected ? 'var(--color-brand)' : (isDarkTheme ? '#1F2937' : '#FFFFFF');
   const size = isSelected ? 42 : 34;
   const outerSize = isSelected ? 50 : 42;
 
@@ -344,7 +344,7 @@ export default function LocationListPage() {
       className: 'w-[130px] whitespace-nowrap',
       accessor: (row: Location) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-xs font-bold text-[#E8450F]">
+          <span className="font-mono text-xs font-bold text-brand">
             LOC-{row.id.slice(0, 6).toUpperCase()}
           </span>
         </div>
@@ -356,7 +356,7 @@ export default function LocationListPage() {
       accessor: (row: Location) => (
         <div className="flex items-center gap-2.5 min-w-0 max-w-full">
           <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50 flex items-center justify-center shrink-0">
-            <MapPin className="w-3.5 h-3.5 text-[#E8450F]" />
+            <MapPin className="w-3.5 h-3.5 text-brand" />
           </div>
           <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
             <span className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate block min-w-0 flex-1" title={row.name}>
@@ -399,7 +399,7 @@ export default function LocationListPage() {
             <button
               type="button"
               onClick={(e) => handleFocusOnMap(row, e)}
-              className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 hover:bg-orange-50 hover:text-[#E8450F] hover:border-orange-300 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-100 hover:bg-orange-50 hover:text-brand hover:border-orange-300 dark:bg-slate-800 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer"
               title="Click to view on interactive map"
             >
               <Navigation className="w-3 h-3 text-indigo-500 shrink-0" />
@@ -544,7 +544,7 @@ export default function LocationListPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1 border-b border-slate-200/70 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-900/50">
-              <MapPin className="w-6 h-6 text-[#E8450F] shrink-0" />
+              <MapPin className="w-6 h-6 text-brand shrink-0" />
             </div>
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
               Locations
@@ -582,7 +582,7 @@ export default function LocationListPage() {
             <Button
               size="sm"
               onClick={() => setIsAddOpen(true)}
-              className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-lg px-4"
+              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-lg px-4"
             >
               <Plus className="w-4 h-4" /> Add Location
             </Button>
@@ -711,7 +711,7 @@ export default function LocationListPage() {
                 onClick={() => setViewMode('map')}
                 className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'map'
-                    ? 'bg-[#E8450F] text-white shadow-xs'
+                    ? 'bg-brand text-white shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
@@ -727,9 +727,9 @@ export default function LocationListPage() {
         {filter !== 'all' && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
             <div className="flex items-center gap-2">
-              <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+              <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
               <span>
-                Filtered view: <strong className="underline decoration-[#E8450F] font-bold text-slate-900 dark:text-slate-100">
+                Filtered view: <strong className="underline decoration-brand font-bold text-slate-900 dark:text-slate-100">
                   {filter === 'priced' ? 'Priced Locations Only' :
                    filter === 'unused' ? 'Unlinked Locations Only' :
                    filter === 'incomplete' ? 'Missing Address or Coords' :
@@ -739,7 +739,7 @@ export default function LocationListPage() {
             </div>
             <button
               onClick={() => setFilter('all')}
-              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
             >
               <span>Show All Locations</span>
               <X className="w-3 h-3 shrink-0" />
@@ -857,7 +857,7 @@ export default function LocationListPage() {
                           <Popup className={currentTheme.isDark ? 'dark-map-popup' : ''} maxWidth={280}>
                             <div className="p-1 flex flex-col gap-2 font-sans">
                               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5">
-                                <span className="font-mono text-[10px] font-bold text-[#E8450F]">
+                                <span className="font-mono text-[10px] font-bold text-brand">
                                   LOC-{loc.id.slice(0, 6).toUpperCase()}
                                 </span>
                                 {loc.is_active ? (
@@ -891,7 +891,7 @@ export default function LocationListPage() {
                               <Button
                                 size="sm"
                                 onClick={() => setEditTarget(loc)}
-                                className="w-full h-7 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold mt-1"
+                                className="w-full h-7 text-xs bg-brand hover:bg-brand-hover text-white font-bold mt-1"
                               >
                                 <Edit2 className="w-3 h-3 mr-1" /> Edit Details
                               </Button>
@@ -905,7 +905,7 @@ export default function LocationListPage() {
                 {/* Map Overlay Controls & HUD */}
                 <div className="absolute top-3 left-3 z-[1000] flex items-center gap-2">
                   <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-md text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#E8450F]" />
+                    <MapPin className="w-4 h-4 text-brand" />
                     <span>{filteredData.filter((l) => l.lat != null && l.lng != null).length} Plotted Pins</span>
                   </div>
 
@@ -928,7 +928,7 @@ export default function LocationListPage() {
                   <div className="absolute inset-0 z-[1000] flex flex-col items-center justify-center p-6 bg-slate-900/10 backdrop-blur-[2px]">
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-sm text-center flex flex-col items-center gap-3 animate-fade-in">
                       <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/80 dark:border-orange-900/60 flex items-center justify-center">
-                        <MapPin className="w-6 h-6 text-[#E8450F]" />
+                        <MapPin className="w-6 h-6 text-brand" />
                       </div>
                       <div>
                         <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
@@ -944,7 +944,7 @@ export default function LocationListPage() {
                         <Button
                           size="sm"
                           onClick={() => setIsAddOpen(true)}
-                          className="bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold text-xs mt-1 shadow-xs"
+                          className="bg-brand hover:bg-brand-hover text-white font-bold text-xs mt-1 shadow-xs"
                         >
                           <Plus className="w-4 h-4 mr-1.5" /> Add First Location
                         </Button>
@@ -1038,7 +1038,7 @@ export default function LocationListPage() {
                                 <span className="font-mono text-[10px] text-slate-400">
                                   {loc.lat?.toFixed(4)}, {loc.lng?.toFixed(4)}
                                 </span>
-                                <span className="text-[#E8450F] text-[11px] font-bold hover:underline flex items-center gap-0.5">
+                                <span className="text-brand text-[11px] font-bold hover:underline flex items-center gap-0.5">
                                   Focus →
                                 </span>
                               </>

@@ -237,7 +237,7 @@ export default function MaintenanceDetailsPage() {
           <p className="text-xs text-slate-500 max-w-md">
             This maintenance record does not exist or has been deleted.
           </p>
-          <Button onClick={() => navigate('/maintenance')} size="sm" className="mt-2 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white">
+          <Button onClick={() => navigate('/maintenance')} size="sm" className="mt-2 text-xs font-bold bg-brand hover:bg-[#d03c0b] text-white">
             Back to maintenance
           </Button>
         </div>
@@ -278,7 +278,7 @@ export default function MaintenanceDetailsPage() {
         {/* ── HERO: header + actions + lifecycle rail + integrated metrics, one card ─── */}
         <Card className="relative overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)] py-0 gap-0 ring-0">
           {/* brand accent rail */}
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#E8450F] via-amber-500 to-emerald-500" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-amber-500 to-emerald-500" />
 
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 p-4 pt-5">
             <div className="flex items-start gap-3 min-w-0">
@@ -310,7 +310,7 @@ export default function MaintenanceDetailsPage() {
                     <button
                       type="button"
                       onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-md px-2 py-1 hover:text-[#E8450F] hover:border-[#E8450F]/40 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 rounded-md px-2 py-1 hover:text-brand hover:border-brand/40 transition-colors"
                     >
                       <Truck className="w-3.5 h-3.5" />
                       {vehicle.plate_number}
@@ -327,7 +327,7 @@ export default function MaintenanceDetailsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={handleOpenEditModal}
-                  className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                  className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:text-brand hover:bg-orange-50 dark:hover:bg-orange-950/30"
                   title="Edit service order"
                 >
                   <Edit2 className="w-4 h-4" />
@@ -396,7 +396,7 @@ export default function MaintenanceDetailsPage() {
               <div className="px-1">
                 <div className="relative h-1 rounded-full bg-slate-200 dark:bg-slate-800">
                   <div
-                    className="absolute inset-y-0 left-0 rounded-full bg-[#E8450F] transition-all duration-500"
+                    className="absolute inset-y-0 left-0 rounded-full bg-brand transition-all duration-500"
                     style={{ width: `${progressPct}%` }}
                   />
                   {LIFECYCLE.map((step, index) => (
@@ -404,7 +404,7 @@ export default function MaintenanceDetailsPage() {
                       key={step}
                       className={cn(
                         'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-950 transition-colors',
-                        index <= currentStep ? 'bg-[#E8450F]' : 'bg-slate-300 dark:bg-slate-700',
+                        index <= currentStep ? 'bg-brand' : 'bg-slate-300 dark:bg-slate-700',
                       )}
                       style={{ left: `${(index / (LIFECYCLE.length - 1)) * 100}%` }}
                     />
@@ -481,7 +481,7 @@ export default function MaintenanceDetailsPage() {
             <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
               <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                 <div>
-                  <div className="flex items-center gap-2 text-[#E8450F]">
+                  <div className="flex items-center gap-2 text-brand">
                     <ClipboardList className="w-4 h-4" />
                     <span className="text-[10px] font-extrabold uppercase tracking-[0.14em]">Workshop work report</span>
                   </div>
@@ -497,7 +497,7 @@ export default function MaintenanceDetailsPage() {
                     Scope of work performed
                   </h3>
                   {record.work_done ? (
-                    <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed border-l-2 border-[#E8450F]/40 pl-3.5">
+                    <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed border-l-2 border-brand/40 pl-3.5">
                       {record.work_done}
                     </p>
                   ) : (
@@ -561,7 +561,7 @@ export default function MaintenanceDetailsPage() {
                   type="button"
                   size="sm"
                   onClick={() => setIsCostModalOpen(true)}
-                  className="h-8.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white rounded-xl gap-1.5 shadow-xs"
+                  className="h-8.5 text-xs font-bold bg-brand hover:bg-[#d03c0b] text-white rounded-xl gap-1.5 shadow-xs"
                 >
                   <Banknote className="w-3.5 h-3.5" />
                   Enter / Update Cost
@@ -602,7 +602,7 @@ export default function MaintenanceDetailsPage() {
           <Card className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] p-0 gap-0 ring-0 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
               <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-[#E8450F]" /> Vehicle Details
+                <Wrench className="w-4 h-4 text-brand" /> Vehicle Details
               </h3>
             </div>
 
@@ -611,7 +611,7 @@ export default function MaintenanceDetailsPage() {
               <div className="pb-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-[#E8450F]" /> Vehicle
+                    <Truck className="w-3.5 h-3.5 text-brand" /> Vehicle
                   </span>
                   {vehicle && (
                     <button
@@ -688,7 +688,7 @@ export default function MaintenanceDetailsPage() {
         <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
           <DialogHeader className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
             <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-[#E8450F]" /> Edit service order {orderNo}
+              <Wrench className="w-5 h-5 text-brand" /> Edit service order {orderNo}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 mt-0.5">
               Changes are applied immediately to the maintenance record.
@@ -862,7 +862,7 @@ export default function MaintenanceDetailsPage() {
                 type="submit"
                 size="sm"
                 disabled={updateMutation.isPending}
-                className="text-xs h-8.5 bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
+                className="text-xs h-8.5 bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
               >
                 {updateMutation.isPending ? 'Saving…' : 'Save changes'}
               </Button>

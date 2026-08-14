@@ -396,7 +396,7 @@ export default function RecycleBinPage() {
               className="h-9 w-9 p-0 border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 shadow-2xs text-slate-600 dark:text-slate-300 hover:bg-slate-50"
               title="Refresh Data"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5", isRefetching && "animate-spin text-[#E8450F]")} />
+              <RefreshCw className={cn("h-3.5 w-3.5", isRefetching && "animate-spin text-brand")} />
             </Button>
           </div>
         </div>
@@ -481,7 +481,7 @@ export default function RecycleBinPage() {
               className={cn(
                 "flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-extrabold transition-all shrink-0 cursor-pointer",
                 selectedCategory === 'ALL'
-                  ? "bg-[#E8450F] text-white shadow-xs"
+                  ? "bg-brand text-white shadow-xs"
                   : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
@@ -592,7 +592,7 @@ export default function RecycleBinPage() {
                 placeholder="Search deleted items by ID, name, or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-8.5 text-xs border-slate-200 dark:border-slate-700 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                className="pl-9 h-8.5 text-xs border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand"
               />
             </div>
 
@@ -601,7 +601,7 @@ export default function RecycleBinPage() {
               <select
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
-                className="h-8.5 px-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E8450F]/20 cursor-pointer shadow-2xs"
+                className="h-8.5 px-3 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer shadow-2xs"
               >
                 <option value="newest">Newest Deleted First</option>
                 <option value="oldest">Oldest Deleted First</option>

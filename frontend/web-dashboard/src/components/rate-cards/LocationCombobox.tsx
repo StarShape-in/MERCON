@@ -95,7 +95,7 @@ export default function LocationCombobox({
           )}
         >
           <span className="flex items-center gap-2 truncate">
-            <MapPin className={cn('h-3.5 w-3.5 shrink-0', displayLabel ? 'text-[#E8450F]' : 'text-slate-400')} />
+            <MapPin className={cn('h-3.5 w-3.5 shrink-0', displayLabel ? 'text-brand' : 'text-slate-400')} />
             <span className="truncate">{displayLabel || placeholder}</span>
           </span>
           <ChevronDown className="ml-1.5 h-3.5 w-3.5 shrink-0 opacity-50" />
@@ -151,7 +151,7 @@ export default function LocationCombobox({
                 type="button"
                 disabled={createMutation.isPending}
                 onClick={() => createMutation.mutate(trimmedSearch)}
-                className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-[#E8450F] hover:bg-[#E8450F]/10 transition-colors disabled:opacity-60"
+                className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-brand hover:bg-brand/10 transition-colors disabled:opacity-60"
               >
                 {createMutation.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

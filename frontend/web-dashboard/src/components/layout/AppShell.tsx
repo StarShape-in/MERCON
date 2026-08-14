@@ -68,7 +68,7 @@ function ShellInner() {
               <div style={{
                 width: 32, height: 32,
                 border: '3px solid #F0F0F2',
-                borderTopColor: '#E8450F',
+                borderTopColor: 'var(--color-brand)',
                 borderRadius: '50%',
                 animation: 'spin 0.7s linear infinite',
               }} />

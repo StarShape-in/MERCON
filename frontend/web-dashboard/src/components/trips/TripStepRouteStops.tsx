@@ -75,7 +75,7 @@ export default function TripStepRouteStops({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Navigation className="w-4 h-4 text-[#E8450F]" /> Route Stops (Origin &amp; Destination)
+            <Navigation className="w-4 h-4 text-brand" /> Route Stops (Origin &amp; Destination)
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Select origin pickup and destination dropoff locations for this trip route.
@@ -83,7 +83,7 @@ export default function TripStepRouteStops({
         </div>
 
         <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-          <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+          <Keyboard className="w-3.5 h-3.5 text-brand" />
           <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">\</kbd> for Pickup, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">Shift+\</kbd> for Dropoff</span>
         </div>
       </div>

@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
+import { settingsService } from '@/services/settingsService';
+import BrandLogo from '@/components/ui/BrandLogo';
+import type { ModuleKey } from '@mercon/shared-types';
 
 interface SidebarProps {
   active?: string;
@@ -59,6 +62,21 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
 
   const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 0;
 
+  // Full settings (not /settings/public) so we get enabledModules — only
+  // reachable once logged in, which Sidebar always is.
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsService.get,
+    staleTime: 60000,
+  });
+
+  // Undefined moduleKey = core, always visible. While settings is still
+  // loading, default to visible rather than flashing items in/out — the
+  // seed always populates enabledModules on first deploy, so this only
+  // matters for the first render.
+  const moduleEnabled = (moduleKey?: ModuleKey) =>
+    !moduleKey || !settings || settings.enabledModules.includes(moduleKey);
+
   const groups = [
     {
       label: 'OVERVIEW',
@@ -76,27 +94,27 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         { icon: CalendarRange, label: 'Monthly Trips', path: '/trips/monthly' },
         { icon: Users, label: 'Drivers', path: '/drivers' },
         { icon: Car, label: 'Vehicles', path: '/vehicles' },
-        { icon: Wrench, label: 'Maintenance', path: '/maintenance' },
+        { icon: Wrench, label: 'Maintenance', path: '/maintenance', moduleKey: 'maintenance' as ModuleKey },
         { icon: Building2, label: 'Customers', path: '/customers' },
       ],
     },
     {
       label: 'FINANCE',
       items: [
-        { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards' },
+        { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards', moduleKey: 'rate-cards' as ModuleKey },
         // Sits with Rate Cards rather than Operations: a location exists to be
         // one end of a priced lane, and that's where you go to fix one.
-        { icon: MapPin, label: 'Locations', path: '/locations' },
-        { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
-        { icon: Wallet, label: 'Expenses', path: '/expenses' },
+        { icon: MapPin, label: 'Locations', path: '/locations', moduleKey: 'locations' as ModuleKey },
+        { icon: ReceiptText, label: 'Invoices', path: '/invoices', moduleKey: 'invoices' as ModuleKey },
+        { icon: Wallet, label: 'Expenses', path: '/expenses', moduleKey: 'expenses' as ModuleKey },
         { icon: DollarSign, label: 'Vehicle P&L', path: '/vehicles/financials' },
       ],
     },
     {
       label: 'COMPLIANCE',
       items: [
-        { icon: FileText, label: 'Documents', path: '/documents' },
-        { icon: BarChart3, label: 'Reports', path: '/reports' },
+        { icon: FileText, label: 'Documents', path: '/documents', moduleKey: 'documents' as ModuleKey },
+        { icon: BarChart3, label: 'Reports', path: '/reports', moduleKey: 'reports' as ModuleKey },
       ],
     },
     {
@@ -105,10 +123,11 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
         { icon: User, label: 'Profile', path: '/settings/profile' },
         ...(user?.role === 'Admin' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
-        { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
+        { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin', moduleKey: 'recycle-bin' as ModuleKey },
       ],
     },
-  ];
+  ].map((group) => ({ ...group, items: group.items.filter((item: any) => !item.moduleKey || moduleEnabled(item.moduleKey)) }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <>
@@ -135,9 +154,8 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       >
       {/* Logo */}
       <div className="relative flex items-center shrink-0 justify-center bg-[#18181B] border-b border-white/10 h-[72px] lg:h-[88px] overflow-hidden">
-        <img
-          src="/navbar-logo-final.png"
-          alt="MERCON Logo"
+        <BrandLogo
+          variant="sidebar"
           className={`w-full h-full object-contain origin-center transition-transform duration-300 ease-in-out scale-[2.5] ${collapsed ? 'lg:scale-100' : ''}`}
         />
         <button
@@ -173,8 +191,8 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           w-7 h-7 items-center justify-center rounded-full
           bg-[#232326] border border-white/15 text-white/70 shadow-md shadow-black/20
           before:absolute before:-inset-2 before:content-['']
-          hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
-          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
+          hover:bg-brand hover:border-brand hover:text-white
+          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand
           transition-colors duration-150 cursor-pointer
         "
       >
@@ -204,7 +222,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       relative flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group
                       ${collapsed ? 'lg:justify-center lg:px-0' : ''}
                       ${isActive
-                        ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15'
+                        ? 'bg-brand text-white shadow-sm shadow-brand/15'
                         : 'text-white/60 hover:bg-white/5 hover:text-white'
                       }
                     `}
@@ -218,11 +236,11 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                     </span>
                     {item.badge !== undefined && item.badge > 0 && !isActive && (
                       <>
-                        <span className={`w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
+                        <span className={`w-4 h-4 rounded-full bg-brand text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
                           {item.badge > 9 ? '9+' : item.badge}
                         </span>
                         {collapsed && (
-                          <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-3 w-2 h-2 rounded-full bg-[#E8450F] animate-pulse" />
+                          <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-3 w-2 h-2 rounded-full bg-brand animate-pulse" />
                         )}
                       </>
                     )}
@@ -238,7 +256,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       <div className={`px-4 py-3.5 border-t border-white/10 flex items-center gap-2.5 bg-black/20 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
         <div
           title={collapsed ? user?.name || 'Mohammed Al-Harbi' : undefined}
-          className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none"
+          className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-brand/20 select-none"
         >
           {initials}
         </div>

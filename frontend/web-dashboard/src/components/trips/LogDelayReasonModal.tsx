@@ -99,7 +99,7 @@ export default function LogDelayReasonModal({ isOpen, onClose, stop, onSuccess }
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value as DelayReason)}
-              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-[#E8450F]"
+              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
               required
             >
               <option value="" disabled>Select a reason…</option>
@@ -115,7 +115,7 @@ export default function LogDelayReasonModal({ isOpen, onClose, stop, onSuccess }
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
-              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#E8450F] resize-none"
+              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand resize-none"
               placeholder="Any extra context for this delay…"
             />
           </div>

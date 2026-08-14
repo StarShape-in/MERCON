@@ -80,7 +80,7 @@ export default function PaymentStatusPage() {
       header: 'Invoice ID',
       accessor: (row: Invoice) => (
         <span
-          className="font-mono text-xs font-bold text-[#E8450F] cursor-pointer hover:underline"
+          className="font-mono text-xs font-bold text-brand cursor-pointer hover:underline"
           onClick={() => navigate(`/invoices/${row.id}`)}
         >
           {row.ref_id ?? row.id.slice(0, 8)}
@@ -155,7 +155,7 @@ export default function PaymentStatusPage() {
 
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
               onClick={() => navigate('/invoices/new')}
             >
               <Plus className="h-4 w-4" />

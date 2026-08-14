@@ -117,7 +117,7 @@ export function TripDateFilterPicker({
         {/* Header & Tabs */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
-            <CalendarDays className="h-4 w-4 text-[#E8450F]" />
+            <CalendarDays className="h-4 w-4 text-brand" />
             <span>Date Horizon</span>
           </div>
 
@@ -177,7 +177,7 @@ export function TripDateFilterPicker({
                       {p.desc}
                     </div>
                   </div>
-                  {isSelected && <Check className="h-4 w-4 text-[#E8450F]" />}
+                  {isSelected && <Check className="h-4 w-4 text-brand" />}
                 </button>
               );
             })}
@@ -191,7 +191,7 @@ export function TripDateFilterPicker({
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-3.5 w-3.5 text-[#E8450F]" />
+                  <CalendarIcon className="h-3.5 w-3.5 text-brand" />
                   <span>Select Custom Date Range...</span>
                 </div>
                 <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-slate-400" />
@@ -242,7 +242,7 @@ export function TripDateFilterPicker({
                   size="sm"
                   disabled={!tempRange?.from}
                   onClick={handleApplyCustomRange}
-                  className="h-8 text-xs px-3.5 rounded-lg bg-[#E8450F] hover:bg-[#d03d0c] text-white font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                  className="h-8 text-xs px-3.5 rounded-lg bg-brand hover:bg-brand-hover text-white font-semibold shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   Apply
                 </Button>

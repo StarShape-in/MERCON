@@ -85,7 +85,7 @@ export default function PostTripSettlementModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-black/[0.06] flex items-center justify-between bg-gray-50">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-[#E8450F] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-brand flex items-center justify-center">
               <DollarSign size={18} />
             </div>
             <div>
@@ -152,7 +152,7 @@ export default function PostTripSettlementModal({
                 <button
                   type="button"
                   onClick={() => setHasExtraCharges(true)}
-                  className="py-3 px-4 rounded-xl bg-[#E8450F] hover:bg-[#d03d0c] text-white font-semibold text-xs transition-all shadow-xs flex flex-col items-center gap-1"
+                  className="py-3 px-4 rounded-xl bg-brand hover:bg-brand-hover text-white font-semibold text-xs transition-all shadow-xs flex flex-col items-center gap-1"
                 >
                   <PlusCircle size={18} />
                   <span>Yes, Enter Charges</span>
@@ -174,7 +174,7 @@ export default function PostTripSettlementModal({
                     step="0.01"
                     value={waitingLabor}
                     onChange={(e) => setWaitingLabor(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
                     placeholder="0.00"
                     required
                   />
@@ -190,7 +190,7 @@ export default function PostTripSettlementModal({
                     step="0.01"
                     value={additionalStops}
                     onChange={(e) => setAdditionalStops(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
                     placeholder="0.00"
                   />
                 </div>
@@ -205,7 +205,7 @@ export default function PostTripSettlementModal({
                     step="0.01"
                     value={tripCharges}
                     onChange={(e) => setTripCharges(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
                     placeholder="0.00"
                   />
                 </div>
@@ -220,7 +220,7 @@ export default function PostTripSettlementModal({
                     step="0.01"
                     value={billingAmount}
                     onChange={(e) => setBillingAmount(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
                     placeholder="Optional base price override"
                   />
                 </div>
@@ -234,7 +234,7 @@ export default function PostTripSettlementModal({
                   type="text"
                   value={carrierName}
                   onChange={(e) => setCarrierName(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-[#E8450F]"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
                   placeholder="MERCON LOGISTICS or 3rd Party"
                 />
               </div>

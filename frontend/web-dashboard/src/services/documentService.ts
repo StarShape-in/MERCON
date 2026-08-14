@@ -16,6 +16,14 @@ export interface MerconDocument {
   folder?: MerconFolder | null;
   issue_date: string | null;
   expiry_date: string | null;
+  ocr_raw_text?: string | null;
+  ai_extracted_json?: {
+    document_number?: string | null;
+    vehicle_plate?: string | null;
+    issuing_authority?: string | null;
+    notes?: string | null;
+    confidence?: number;
+  } | null;
   is_confidential: boolean;
   isActive: boolean;
   createdAt: string;
@@ -85,6 +93,19 @@ export const documentService = {
     const res = await api.post('/documents/batch-upload-folder', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return res.data;
+  },
+
+  async bulkOcrExtract(onlyMissingExpiry = true, limit = 200): Promise<any> {
+    const res = await api.post('/documents/bulk-ocr-extract', {
+      only_missing_expiry: onlyMissingExpiry,
+      limit,
+    });
+    return res.data;
+  },
+
+  async extractDocumentOcr(id: string): Promise<any> {
+    const res = await api.post(`/documents/${id}/ocr-extract`);
     return res.data;
   },
 };

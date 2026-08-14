@@ -161,7 +161,7 @@ export default function ExpenseListPage() {
             <Button
               size="sm"
               onClick={handleOpenCreateModal}
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
             >
               <Plus className="h-4 w-4" />
               Add Expense
@@ -375,7 +375,7 @@ export default function ExpenseListPage() {
                   Clear Filters
                 </Button>
               ) : !isFetching && records.length === 0 ? (
-                <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-[#E8450F] text-white h-9">
+                <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-brand text-white h-9">
                   + Add First Expense
                 </Button>
               ) : undefined

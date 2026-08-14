@@ -218,10 +218,10 @@ export default function AddCustomerPage() {
                 Customers
               </button>
               <span>/</span>
-              <span className="text-[#E8450F] font-bold">New Customer</span>
+              <span className="text-brand font-bold">New Customer</span>
             </div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-[#E8450F]" />
+              <Building2 className="w-5 h-5 text-brand" />
               New Customer Account
             </h1>
           </div>
@@ -247,7 +247,7 @@ export default function AddCustomerPage() {
               size="sm" 
               onClick={handleSubmit}
               disabled={createMutation.isPending || !isFormValid}
-              className="h-8 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-4 shadow-xs"
+              className="h-8 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-4 shadow-xs"
             >
               {createMutation.isPending ? 'Saving...' : 'Save Customer'}
             </Button>
@@ -366,7 +366,7 @@ export default function AddCustomerPage() {
                       variant="outline"
                       size="sm"
                       onClick={addContactPerson}
-                      className="h-7 text-xs font-semibold gap-1 text-[#E8450F] border-orange-200 hover:bg-orange-50 dark:border-slate-700"
+                      className="h-7 text-xs font-semibold gap-1 text-brand border-orange-200 hover:bg-orange-50 dark:border-slate-700"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add Contact Person
                     </Button>
@@ -387,7 +387,7 @@ export default function AddCustomerPage() {
                             variant={contact.is_primary ? 'default' : 'outline'}
                             className={`text-[10px] font-bold cursor-pointer ${
                               contact.is_primary
-                                ? 'bg-[#E8450F] text-white hover:bg-[#d03d0c]'
+                                ? 'bg-brand text-white hover:bg-brand-hover'
                                 : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                             }`}
                             onClick={() => setPrimaryContact(contact.id)}
@@ -547,7 +547,7 @@ export default function AddCustomerPage() {
                     size="sm" 
                     onClick={handleSubmit} 
                     disabled={createMutation.isPending || !isFormValid}
-                    className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5 shadow-xs"
+                    className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs"
                   >
                     {createMutation.isPending ? 'Saving...' : 'Save Customer Account'}
                   </Button>
@@ -569,7 +569,7 @@ export default function AddCustomerPage() {
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-4 space-y-4 shadow-2xs">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Account Summary</span>
-                <Badge variant="outline" className="text-[10px] font-mono text-[#E8450F] border-orange-200">
+                <Badge variant="outline" className="text-[10px] font-mono text-brand border-orange-200">
                   {completionPct}% Complete
                 </Badge>
               </div>
@@ -595,7 +595,7 @@ export default function AddCustomerPage() {
                   {contacts.map((c, i) => (
                     <div key={c.id} className="flex items-start gap-2.5 text-xs">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
-                        c.is_primary ? 'bg-orange-100 text-[#E8450F] dark:bg-orange-950/50' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'
+                        c.is_primary ? 'bg-orange-100 text-brand dark:bg-orange-950/50' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'
                       }`}>
                         {i + 1}
                       </div>
@@ -605,7 +605,7 @@ export default function AddCustomerPage() {
                             {c.name.trim() || `Contact Person #${i + 1}`}
                           </span>
                           {c.is_primary && (
-                            <Badge className="bg-orange-100 text-[#E8450F] hover:bg-orange-100 text-[9px] px-1 py-0 font-bold border-none">
+                            <Badge className="bg-orange-100 text-brand hover:bg-orange-100 text-[9px] px-1 py-0 font-bold border-none">
                               Primary
                             </Badge>
                           )}
@@ -627,7 +627,7 @@ export default function AddCustomerPage() {
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div 
-                    className="bg-[#E8450F] h-full transition-all duration-300 rounded-full"
+                    className="bg-brand h-full transition-all duration-300 rounded-full"
                     style={{ width: `${completionPct}%` }}
                   />
                 </div>
