@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -105,18 +105,27 @@ export default function TripDetailsPage() {
   const [replaceDriverId, setReplaceDriverId] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Fetch single trip
+  // Fetch single trip (supports both UUID and human-readable ref_id like TRP-0044)
   const { data: trip, isLoading } = useQuery({
     queryKey: ['trip', id],
     queryFn: () => tripService.getById(id!),
     enabled: !!id,
   });
 
+  // URL normalization: if navigated using ref_id, replace with canonical UUID
+  useEffect(() => {
+    if (trip && trip.id && id !== trip.id) {
+      navigate(`/trips/${trip.id}`, { replace: true });
+    }
+  }, [trip?.id, id, navigate]);
+
+  const tripEntityId = trip?.id || id;
+
   // Trip documents
   const { data: docsRes, isLoading: isLoadingDocs } = useQuery({
-    queryKey: ['documents', 'Trip', id],
-    queryFn: () => documentService.getAll({ entity_type: 'Trip', entity_id: id, per_page: 50 }),
-    enabled: !!id,
+    queryKey: ['documents', 'Trip', tripEntityId],
+    queryFn: () => documentService.getAll({ entity_type: 'Trip', entity_id: tripEntityId, per_page: 50 }),
+    enabled: !!tripEntityId,
   });
   const documents = docsRes?.data || [];
 
@@ -144,9 +153,9 @@ export default function TripDetailsPage() {
 
   // Assign a driver and/or vehicle to a trip created with "assign later"
   const assignMutation = useMutation({
-    mutationFn: (payload: { driver_id?: string; vehicle_id?: string }) => tripService.dispatch(id!, payload),
+    mutationFn: (payload: { driver_id?: string; vehicle_id?: string }) => tripService.dispatch(tripEntityId!, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trip', id] });
+      queryClient.invalidateQueries({ queryKey: ['trip', tripEntityId] });
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       setPendingDriverId('');
       setPendingVehicleId('');
@@ -155,22 +164,20 @@ export default function TripDetailsPage() {
 
   // Swap the assigned driver mid-trip
   const replaceDriverMutation = useMutation({
-    mutationFn: (newDriverId: string) => tripService.replaceDriver(id!, newDriverId),
+    mutationFn: (newDriverId: string) => tripService.replaceDriver(tripEntityId!, newDriverId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trip', id] });
+      queryClient.invalidateQueries({ queryKey: ['trip', tripEntityId] });
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       setIsReplaceDriverOpen(false);
       setReplaceDriverId('');
     },
   });
 
-
-
   // Mutate Trip Status
   const updateStatusMutation = useMutation({
-    mutationFn: (status: TripStatus) => tripService.updateStatus(id!, status),
+    mutationFn: (status: TripStatus) => tripService.updateStatus(tripEntityId!, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trip', id] });
+      queryClient.invalidateQueries({ queryKey: ['trip', tripEntityId] });
       queryClient.invalidateQueries({ queryKey: ['trips'] });
       setIsStatusModalOpen(false);
       setIsCancelModalOpen(false);

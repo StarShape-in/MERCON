@@ -11,6 +11,7 @@ export interface ScheduledTripInfo {
 export interface ScheduledDateChip {
   rawDate: string;
   formattedDate: string;
+  tripId?: string;
   tripRef?: string;
   status?: string;
 }
@@ -45,6 +46,7 @@ export function getUpcomingScheduledDates(trips?: ScheduledTripInfo[] | null): S
       results.push({
         rawDate: ymd,
         formattedDate: format(parsed, 'MMM d'),
+        tripId: trip.id,
         tripRef: trip.ref_id || trip.id,
         status: trip.status || undefined,
       });

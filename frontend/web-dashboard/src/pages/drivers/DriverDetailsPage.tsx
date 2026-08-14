@@ -468,7 +468,7 @@ export default function DriverDetailsPage() {
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => item.tripRef && navigate(`/trips/${item.tripRef}`)}
+                        onClick={() => (item.tripId || item.tripRef) && navigate(`/trips/${item.tripId || item.tripRef}`)}
                         className="group flex items-center justify-between gap-2 p-2.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/20 text-left hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-sm transition-all"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
