@@ -80,7 +80,8 @@ app.use(helmet.hsts({
 // rate card / customer / driver / vehicle rows posted as JSON easily exceeds
 // it and fails with "request entity too large" before the row-by-row import
 // logic ever runs.
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '250mb' }));
+app.use(express.urlencoded({ limit: '250mb', extended: true }));
 app.use('/uploads', express.static('uploads')); // Serve uploaded files statically
 
 // Create API router and mount all API routes

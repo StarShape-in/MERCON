@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { UploadCloud, CheckCircle2, AlertTriangle, Loader2, Truck, FolderOpen, FileText, HardDrive } from 'lucide-react';
+import { UploadCloud, CheckCircle2, AlertTriangle, Loader2, Truck, FolderOpen, HardDrive } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { documentService } from '@/services/documentService';
@@ -26,10 +26,11 @@ export default function BatchVehicleDocModal({
   const [activeTab, setActiveTab] = useState<'upload' | 'local'>('upload');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [folderName, setFolderName] = useState<string>('');
-  const [folderSummary, setFolderSummary] = useState<Record<string, number>>({});
+  const [folderSummary, setFolderSummary] = useState<Record<string, File[]>>({});
   const [folderPath, setFolderPath] = useState('C:\\Users\\ILAN\\Downloads\\Trucks Docs\\Trucks Docs');
   
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; currentVehicle: string } | null>(null);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,12 +51,12 @@ export default function BatchVehicleDocModal({
       return;
     }
 
-    // Infer main folder name and breakdown by subfolder
+    // Infer main folder name and breakdown by vehicle subfolder
     const firstRel = validFiles[0].webkitRelativePath || validFiles[0].name;
     const firstParts = firstRel.replace(/\\/g, '/').split('/');
     const rootName = firstParts.length > 1 ? firstParts[0] : 'Selected Folder';
 
-    const summary: Record<string, number> = {};
+    const grouped: Record<string, File[]> = {};
     validFiles.forEach((file) => {
       const rel = file.webkitRelativePath || file.name;
       const parts = rel.replace(/\\/g, '/').split('/').filter(Boolean);
@@ -65,37 +66,72 @@ export default function BatchVehicleDocModal({
       } else if (parts.length === 2) {
         vehicleId = parts[0];
       }
-      summary[vehicleId] = (summary[vehicleId] || 0) + 1;
+      const cleanVeh = vehicleId.trim();
+      if (!grouped[cleanVeh]) {
+        grouped[cleanVeh] = [];
+      }
+      grouped[cleanVeh].push(file);
     });
 
     setFolderName(rootName);
     setSelectedFiles(validFiles);
-    setFolderSummary(summary);
+    setFolderSummary(grouped);
     setError(null);
     setResult(null);
   };
 
-  // Upload folder via multipart browser FormData
+  // Upload folder via smart vehicle-folder chunking (prevents HTTP 413 Request Entity Too Large)
   const handleUploadFolder = async () => {
     if (selectedFiles.length === 0) return;
     setIsLoading(true);
     setError(null);
     setResult(null);
 
+    const vehicleEntries = Object.entries(folderSummary);
+    const totalVehicles = vehicleEntries.length;
+
+    let aggregateVehiclesProcessed = 0;
+    let aggregateDocsCreated = 0;
+    const aggregatedDetails: any[] = [];
+
     try {
-      const formData = new FormData();
-      const relativePaths: string[] = [];
+      for (let i = 0; i < totalVehicles; i++) {
+        const [vehPlate, files] = vehicleEntries[i];
+        setUploadProgress({
+          current: i + 1,
+          total: totalVehicles,
+          currentVehicle: vehPlate,
+        });
 
-      selectedFiles.forEach((file) => {
-        formData.append('files', file);
-        relativePaths.push(file.webkitRelativePath || file.name);
-      });
+        const formData = new FormData();
+        const relativePaths: string[] = [];
 
-      formData.append('relative_paths', JSON.stringify(relativePaths));
+        files.forEach((file) => {
+          formData.append('files', file);
+          relativePaths.push(file.webkitRelativePath || file.name);
+        });
 
-      const res = await documentService.batchUploadFolder(formData);
-      setResult(res.data);
-      toast.success(res.message || 'Successfully uploaded and assigned vehicle documents!');
+        formData.append('relative_paths', JSON.stringify(relativePaths));
+
+        const res = await documentService.batchUploadFolder(formData);
+        if (res.data) {
+          aggregateVehiclesProcessed += res.data.totalVehiclesProcessed || 1;
+          aggregateDocsCreated += res.data.totalDocsCreated || files.length;
+          if (res.data.details) {
+            aggregatedDetails.push(...res.data.details);
+          }
+        }
+      }
+
+      const finalSummary = {
+        totalFoldersScanned: totalVehicles,
+        totalVehiclesProcessed: aggregateVehiclesProcessed,
+        totalDocsCreated: aggregateDocsCreated,
+        details: aggregatedDetails,
+      };
+
+      setResult(finalSummary);
+      toast.success(`Successfully uploaded and assigned ${aggregateDocsCreated} documents across ${aggregateVehiclesProcessed} vehicle folders!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       await queryClient.invalidateQueries({ queryKey: ['folders'] });
@@ -106,6 +142,7 @@ export default function BatchVehicleDocModal({
       toast.error(msg);
     } finally {
       setIsLoading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -139,6 +176,7 @@ export default function BatchVehicleDocModal({
     setFolderSummary({});
     setResult(null);
     setError(null);
+    setUploadProgress(null);
     onClose();
   };
 
@@ -210,22 +248,43 @@ export default function BatchVehicleDocModal({
                 )}
               </div>
 
+              {/* Progress Bar when uploading */}
+              {isLoading && uploadProgress && (
+                <div className="space-y-2 p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs animate-fade-in">
+                  <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                      <span>Uploading Vehicle #{uploadProgress.currentVehicle} ({uploadProgress.current}/{uploadProgress.total})</span>
+                    </span>
+                    <span className="font-mono">
+                      {Math.round((uploadProgress.current / uploadProgress.total) * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-indigo-200 dark:bg-indigo-900 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-600 transition-all duration-300 rounded-full"
+                      style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Detected vehicle folder preview */}
-              {selectedFiles.length > 0 && (
+              {selectedFiles.length > 0 && !isLoading && (
                 <div className="space-y-1.5 border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400">
                     <span>Detected Vehicle Subfolders ({vehicleFoldersCount})</span>
                     <span className="font-mono text-[#E8450F]">{selectedFiles.length} files</span>
                   </div>
                   <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
-                    {Object.entries(folderSummary).map(([vehId, count]) => (
+                    {Object.entries(folderSummary).map(([vehId, files]) => (
                       <div key={vehId} className="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700">
                         <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                           <Truck size={12} className="text-slate-400" />
                           <span>Vehicle #{vehId}</span>
                         </span>
                         <span className="font-mono text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.2 rounded-md">
-                          {count} documents
+                          {files.length} documents
                         </span>
                       </div>
                     ))}
@@ -292,8 +351,8 @@ export default function BatchVehicleDocModal({
               {result.details && result.details.length > 0 && (
                 <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 border-t border-emerald-200/50 dark:border-emerald-800/50 pt-2">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Documents per Vehicle:</span>
-                  {result.details.map((item: any) => (
-                    <div key={item.folder} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700">
+                  {result.details.map((item: any, idx: number) => (
+                    <div key={`${item.folder}-${idx}`} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700">
                       <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                         <Truck size={12} className="text-slate-400" />
                         <span>Vehicle #{item.vehiclePlate}</span>
@@ -324,7 +383,9 @@ export default function BatchVehicleDocModal({
               {isLoading ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Uploading & Assigning...</span>
+                  <span>
+                    {uploadProgress ? `Uploading Vehicle ${uploadProgress.current}/${uploadProgress.total}...` : 'Processing...'}
+                  </span>
                 </>
               ) : (
                 <>
