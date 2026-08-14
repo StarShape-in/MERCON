@@ -105,6 +105,7 @@ export default function CompanyReportsGeneratorPage() {
           sheetName: result.bestSheet.sheetName,
           headerRowIdx: result.bestSheet.headerRowIdx,
           dataStartRow: result.bestSheet.dataStartRow,
+          dataEndRow: result.bestSheet.dataEndRow,
           bandSize: result.bestSheet.bandSize,
           columns: result.bestSheet.columns
             .filter((c) => c.suggestedField)

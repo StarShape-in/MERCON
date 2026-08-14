@@ -5,11 +5,16 @@ import {
   ParsedCell,
   ParsedRow,
   colNumberToLetter,
+  effectiveFormula,
+  parseSharedFormulas,
   parseSheetDataRows,
   rewriteRowNumber,
   shiftRowRefs,
+  shiftRowRefsAtOrAfter,
   xmlEscapeText,
 } from './xmlRowSplice';
+
+type SharedFormulaMap = Map<string, { row: number; text: string }>;
 
 const FIELD_TYPE: Record<TripReportFieldKey, string> = Object.fromEntries(
   TRIP_REPORT_FIELDS.map((f) => [f.key, f.type])
@@ -37,7 +42,9 @@ function buildCell(
   sourceCell: ParsedCell,
   column: TemplateLayout['columns'][number] | undefined,
   record: Record<TripReportFieldKey, unknown> | null,
-  rowDelta: number
+  rowDelta: number,
+  sourceRow: number,
+  shared: SharedFormulaMap
 ): string {
   const s = cellStyleAttr(sourceCell.s);
   const source = column?.source ?? { kind: 'blank' as const };
@@ -51,10 +58,12 @@ function buildCell(
   }
 
   if (source.kind === 'formula') {
-    const fMatch = /<f[^>]*>([\s\S]*?)<\/f>/.exec(sourceCell.xml);
-    if (!fMatch) return `<c r="${ref}"${s}/>`;
-    const shiftedFormula = shiftRowRefs(fMatch[1], rowDelta);
-    return `<c r="${ref}"${s}><f>${shiftedFormula}</f></c>`;
+    // Resolved against the shared-formula master when this cell is a
+    // follower, then emitted standalone — a cloned `<f t="shared" si="N"/>`
+    // would otherwise carry no formula at all.
+    const formula = effectiveFormula(sourceCell.xml, sourceRow, shared);
+    if (!formula) return `<c r="${ref}"${s}/>`;
+    return `<c r="${ref}"${s}><f>${shiftRowRefs(formula, rowDelta)}</f></c>`;
   }
 
   // source.kind === 'field'
@@ -84,14 +93,15 @@ function buildDataRow(
   bandRow: ParsedRow,
   layout: TemplateLayout,
   record: Record<TripReportFieldKey, unknown>,
-  bandRowNum: number
+  bandRowNum: number,
+  shared: SharedFormulaMap
 ): string {
   const columnsByIndex = new Map(layout.columns.map((c) => [c.colIndex, c]));
   const rowDelta = rowNum - bandRowNum;
   const cellsXml = bandRow.cells
     .map((cell) => {
       const ref = `${colNumberToLetter(cell.col)}${rowNum}`;
-      return buildCell(ref, cell, columnsByIndex.get(cell.col), record, rowDelta);
+      return buildCell(ref, cell, columnsByIndex.get(cell.col), record, rowDelta, bandRowNum, shared);
     })
     .join('');
   return `<row r="${rowNum}" spans="${bandRow.cells[0]?.col ?? 1}:${bandRow.cells[bandRow.cells.length - 1]?.col ?? 1}">${cellsXml}</row>`;
@@ -125,22 +135,6 @@ function escapeRegExp(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Shifts row numbers >= `fromRow` by `delta` inside a non-sheetData XML part
- * (dimension refs, mergeCell refs, autofilter refs, etc.), leaving refs to
- * earlier rows (headers/banners) untouched.
- */
-function shiftRefsAtOrAfter(text: string, fromRow: number, delta: number): string {
-  if (delta === 0) return text;
-  return text.replace(/\$?[A-Z]{1,3}\$?\d+/g, (ref) => {
-    const rowMatch = /\d+$/.exec(ref);
-    if (!rowMatch) return ref;
-    const rowNum = parseInt(rowMatch[0], 10);
-    if (rowNum < fromRow) return ref;
-    return shiftRowRefs(ref, delta);
-  });
-}
-
 export interface GenerateOptions {
   tokens?: Record<string, string>;
 }
@@ -167,7 +161,9 @@ export function generateFromTemplate(
   const sheetDataMatch = /<sheetData\b[^>]*>([\s\S]*?)<\/sheetData>|<sheetData\b[^>]*\/>/.exec(sheetXml);
   if (!sheetDataMatch) throw new Error(`Sheet "${layout.sheetName}" has no <sheetData>`);
 
-  const allRows = parseSheetDataRows(sheetDataMatch[1] ?? '');
+  const sheetDataInner = sheetDataMatch[1] ?? '';
+  const shared = parseSharedFormulas(sheetDataInner);
+  const allRows = parseSheetDataRows(sheetDataInner);
   const beforeRows = allRows.filter((r) => r.r < layout.dataStartRow);
   const bandRows: ParsedRow[] = [];
   for (let i = 0; i < layout.bandSize; i++) {
@@ -178,18 +174,22 @@ export function generateFromTemplate(
     throw new Error(`No band rows found at row ${layout.dataStartRow} in sheet "${layout.sheetName}"`);
   }
 
-  // Consume any further existing rows that still match the band's style
-  // pattern (redundant sample rows) — they're discarded and replaced by
-  // freshly generated rows. The first row that breaks the pattern starts
-  // the "after" section (e.g. a totals row) and is preserved, shifted.
-  let consumedThrough = layout.dataStartRow + bandRows.length - 1;
-  for (const row of allRows) {
-    if (row.r <= consumedThrough) continue;
-    const expectedBandRow = bandRows[(row.r - layout.dataStartRow) % layout.bandSize];
-    if (rowStyleSignature(row) === rowStyleSignature(expectedBandRow) && row.r === consumedThrough + 1) {
-      consumedThrough = row.r;
-    } else {
-      break;
+  // The whole sample data block is replaced. dataEndRow is authoritative
+  // (confirmed by a human in the mapping editor); the style-signature scan is
+  // only a fallback for a layout saved before dataEndRow existed. Without a
+  // correct end row the customer's own sample rows survive underneath the
+  // generated data in the finished report.
+  let consumedThrough = layout.dataEndRow ?? 0;
+  if (!consumedThrough || consumedThrough < layout.dataStartRow) {
+    consumedThrough = layout.dataStartRow + bandRows.length - 1;
+    for (const row of allRows) {
+      if (row.r <= consumedThrough) continue;
+      const expectedBandRow = bandRows[(row.r - layout.dataStartRow) % layout.bandSize];
+      if (rowStyleSignature(row) === rowStyleSignature(expectedBandRow) && row.r === consumedThrough + 1) {
+        consumedThrough = row.r;
+      } else {
+        break;
+      }
     }
   }
   const afterRows = allRows.filter((r) => r.r > consumedThrough);
@@ -200,7 +200,7 @@ export function generateFromTemplate(
     .map((record, i) => {
       const bandRow = bandRows[i % bandRows.length];
       const newR = layout.dataStartRow + i;
-      return buildDataRow(newR, bandRow, layout, record, bandRow.r);
+      return buildDataRow(newR, bandRow, layout, record, bandRow.r, shared);
     })
     .join('');
 
@@ -208,9 +208,20 @@ export function generateFromTemplate(
     .map((row) => {
       const newR = row.r + delta;
       const shifted = rewriteRowNumber(row, newR);
-      // Shift any relative formula references inside this row's own cells too.
       const cellsXml = shifted.cells
-        .map((c) => c.xml.replace(/<f>([\s\S]*?)<\/f>/, (_m, f) => `<f>${shiftRowRefs(f, delta)}</f>`))
+        .map((c, i) => {
+          const original = row.cells[i];
+          const formula = effectiveFormula(original.xml, row.r, shared);
+          if (!formula) return c.xml;
+          // Rebuild formula cells standalone: a totals row's `SUM(M4:M53)`
+          // has to follow the block that moved, and any shared-formula
+          // pointer here could reference a master inside the replaced range.
+          // Row-insert semantics, so a `SUM(M1:M37)` anchored in the header
+          // keeps its M1 start and only its end follows the block.
+          // The cached <v> is dropped so Excel recomputes on open.
+          const shiftedFormula = shiftRowRefsAtOrAfter(formula, layout.dataStartRow, delta);
+          return `<c r="${c.ref}"${cellStyleAttr(c.s)}><f>${shiftedFormula}</f></c>`;
+        })
         .join('');
       return `<row r="${newR}" spans="${shifted.cells[0]?.col ?? 1}:${shifted.cells[shifted.cells.length - 1]?.col ?? 1}">${cellsXml}</row>`;
     })
@@ -225,31 +236,44 @@ export function generateFromTemplate(
   sheetXml = sheetXml.replace(/(<dimension\b[^>]*ref=")([^"]+)(")/, (_m, pre, ref, post) => {
     const [start, end] = ref.split(':');
     if (!end) return `${pre}${ref}${post}`;
-    return `${pre}${start}:${shiftRefsAtOrAfter(end, layout.dataStartRow, delta)}${post}`;
+    return `${pre}${start}:${shiftRowRefsAtOrAfter(end, layout.dataStartRow, delta)}${post}`;
   });
   sheetXml = sheetXml.replace(/<mergeCell\b[^>]*ref="([^"]+)"[^>]*\/>/g, (whole, ref) => {
-    return whole.replace(ref, shiftRefsAtOrAfter(ref, layout.dataStartRow, delta));
+    return whole.replace(ref, shiftRowRefsAtOrAfter(ref, layout.dataStartRow, delta));
   });
   sheetXml = sheetXml.replace(/(<autoFilter\b[^>]*ref=")([^"]+)(")/, (_m, pre, ref, post) => {
-    return `${pre}${shiftRefsAtOrAfter(ref, layout.dataStartRow, delta)}${post}`;
+    return `${pre}${shiftRowRefsAtOrAfter(ref, layout.dataStartRow, delta)}${post}`;
   });
   sheetXml = sheetXml.replace(/(<conditionalFormatting\b[^>]*sqref=")([^"]+)(")/g, (_m, pre, ref, post) => {
-    return `${pre}${shiftRefsAtOrAfter(ref, layout.dataStartRow, delta)}${post}`;
+    return `${pre}${shiftRowRefsAtOrAfter(ref, layout.dataStartRow, delta)}${post}`;
   });
   sheetXml = sheetXml.replace(/(<dataValidation\b[^>]*sqref=")([^"]+)(")/g, (_m, pre, ref, post) => {
-    return `${pre}${shiftRefsAtOrAfter(ref, layout.dataStartRow, delta)}${post}`;
+    return `${pre}${shiftRowRefsAtOrAfter(ref, layout.dataStartRow, delta)}${post}`;
   });
 
-  // Token substitution: any cell whose text is exactly "{{token}}" gets
-  // replaced in place, style untouched.
-  if (options.tokens) {
-    for (const [token, value] of Object.entries(options.tokens)) {
-      const needle = `{{${token}}}`;
-      sheetXml = sheetXml.split(needle).join(xmlEscapeText(value));
+  files[sheetPath] = encoder.encode(sheetXml);
+
+  // Token substitution for banner cells ("Period: {{period}}"). These must be
+  // applied to sharedStrings.xml as well as the sheet: Excel stores ordinary
+  // text cells as shared strings (t="s" + an index), so a token typed into a
+  // template lives there and not inline in the worksheet. Replacing the text
+  // in place leaves the cell's style index untouched.
+  if (options.tokens && Object.keys(options.tokens).length > 0) {
+    const applyTokens = (xml: string): string => {
+      let result = xml;
+      for (const [token, value] of Object.entries(options.tokens!)) {
+        result = result.split(`{{${token}}}`).join(xmlEscapeText(value));
+      }
+      return result;
+    };
+
+    for (const part of [sheetPath, 'xl/sharedStrings.xml']) {
+      if (!files[part]) continue;
+      const before = decoder.decode(files[part]);
+      const after = applyTokens(before);
+      if (after !== before) files[part] = encoder.encode(after);
     }
   }
-
-  files[sheetPath] = encoder.encode(sheetXml);
 
   // Force Excel to recalculate formulas on open, since cached <v> values for
   // shifted/cloned formulas were dropped.
@@ -265,6 +289,31 @@ export function generateFromTemplate(
       workbookXml = workbookXml.replace('</workbook>', '<calcPr fullCalcOnLoad="1"/></workbook>');
     }
     files['xl/workbook.xml'] = encoder.encode(workbookXml);
+  }
+
+  // calcChain.xml caches formula evaluation order by cell reference. Once rows
+  // move it points at cells that no longer hold formulas, which is what makes
+  // Excel show "we found a problem with some content". It is a pure cache, so
+  // dropping it (part + content-type override + relationship) is safe — Excel
+  // rebuilds it on open, helped by the fullCalcOnLoad flag set above.
+  if (files['xl/calcChain.xml']) {
+    delete files['xl/calcChain.xml'];
+
+    const contentTypesPath = '[Content_Types].xml';
+    if (files[contentTypesPath]) {
+      const ct = decoder
+        .decode(files[contentTypesPath])
+        .replace(/<Override[^>]*PartName="\/xl\/calcChain\.xml"[^>]*\/>/, '');
+      files[contentTypesPath] = encoder.encode(ct);
+    }
+
+    const relsPath = 'xl/_rels/workbook.xml.rels';
+    if (files[relsPath]) {
+      const rels = decoder
+        .decode(files[relsPath])
+        .replace(/<Relationship[^>]*Target="calcChain\.xml"[^>]*\/>/, '');
+      files[relsPath] = encoder.encode(rels);
+    }
   }
 
   return Buffer.from(zipSync(files, { level: 6 }));

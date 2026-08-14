@@ -81,7 +81,31 @@ export function xmlEscapeText(value: string): string {
     .replace(/\r\n/g, '\n');
 }
 
-/** Shifts row numbers inside A1-style references (skips absolute `$row` refs). */
+/**
+ * Row-insert semantics: shifts references that point at or below `fromRow`,
+ * leaving references above it alone — and unlike a copy, `$`-anchored rows
+ * move too, because Excel re-points absolute references when rows are
+ * inserted or deleted.
+ *
+ * This is what a totals row needs. Blindly shifting every ref turns a
+ * `SUM(M1:M37)` whose M1 anchor sits in the header into `SUM(M14:M50)`,
+ * quietly dropping the first rows of the block from a customer's invoice
+ * total.
+ */
+export function shiftRowRefsAtOrAfter(text: string, fromRow: number, delta: number): string {
+  if (delta === 0) return text;
+  return text.replace(/(\$?)([A-Z]{1,3})(\$?)(\d+)/g, (whole, colDollar, colLetters, rowDollar, rowDigits) => {
+    const row = parseInt(rowDigits, 10);
+    if (row < fromRow) return whole;
+    return `${colDollar}${colLetters}${rowDollar}${row + delta}`;
+  });
+}
+
+/**
+ * Copy semantics: shifts relative row references by `delta` and leaves
+ * absolute `$row` references pinned, exactly as Excel does when a formula is
+ * copied from one row to another. Used when cloning a band row.
+ */
 export function shiftRowRefs(text: string, delta: number): string {
   if (delta === 0) return text;
   return text.replace(/(\$?)([A-Z]{1,3})(\$?)(\d+)/g, (whole, colDollar, colLetters, rowDollar, rowDigits) => {
@@ -89,6 +113,51 @@ export function shiftRowRefs(text: string, delta: number): string {
     const newRow = parseInt(rowDigits, 10) + delta;
     return `${colDollar}${colLetters}${rowDollar}${newRow}`;
   });
+}
+
+/**
+ * Master definitions of shared formulas, keyed by their `si` index.
+ *
+ * Excel compresses a column of identical formulas into one "master" cell that
+ * carries the text (`<f t="shared" ref="M2:M13" si="0">+L2*15/100</f>`) and a
+ * run of followers that carry only a pointer (`<f t="shared" si="0"/>`). A
+ * cloned follower is therefore formula-less on its own, and if the master
+ * happens to sit inside the block being replaced the whole group dangles — so
+ * every formula we emit is resolved back to standalone text instead.
+ */
+export function parseSharedFormulas(sheetDataInner: string): Map<string, { row: number; text: string }> {
+  const masters = new Map<string, { row: number; text: string }>();
+  const masterRe = /<c\b[^>]*\br="([A-Z]+)(\d+)"[^>]*>\s*<f\b[^>]*\bt="shared"[^>]*\bsi="(\d+)"[^>]*>([\s\S]*?)<\/f>/g;
+  let m: RegExpExecArray | null;
+  while ((m = masterRe.exec(sheetDataInner)) !== null) {
+    const [, , rowDigits, si, text] = m;
+    if (text.trim() && !masters.has(si)) {
+      masters.set(si, { row: parseInt(rowDigits, 10), text });
+    }
+  }
+  return masters;
+}
+
+/**
+ * The formula a cell effectively holds, expressed for the row it currently
+ * sits on — resolving shared-formula followers against their master. Returns
+ * null when the cell has no formula.
+ */
+export function effectiveFormula(
+  cellXml: string,
+  cellRow: number,
+  shared: Map<string, { row: number; text: string }>
+): string | null {
+  const withText = /<f\b[^>]*>([\s\S]*?)<\/f>/.exec(cellXml);
+  if (withText && withText[1].trim()) return withText[1];
+
+  // Self-closing or empty <f>: only useful if it points at a shared master.
+  const siMatch = /<f\b[^>]*\bsi="(\d+)"[^>]*\/?>/.exec(cellXml);
+  if (siMatch) {
+    const master = shared.get(siMatch[1]);
+    if (master) return shiftRowRefs(master.text, cellRow - master.row);
+  }
+  return null;
 }
 
 /** Rewrites a row's `r=` and every cell's `r=` to a new row number, keeping everything else. */

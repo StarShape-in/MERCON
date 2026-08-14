@@ -48,10 +48,39 @@ export default function TemplateMappingEditor({ inspection, layout, onChange }: 
     <div className="space-y-3">
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span>
-          Sheet <strong className="text-slate-800">{sheet.sheetName}</strong> — header at row {sheet.headerRowIdx}, data starts row{' '}
-          {sheet.dataStartRow}
+          Sheet <strong className="text-slate-800">{sheet.sheetName}</strong> — header at row {sheet.headerRowIdx}
         </span>
         <span className="font-semibold text-brand">{mappedCount} of {sheet.columns.length} columns mapped</span>
+      </div>
+
+      {/* The sample-data range. Everything inside it is replaced by generated
+          rows; anything below (totals, notes, signatures) is kept and shifted
+          down. Getting the end row wrong leaves the customer's own sample rows
+          sitting underneath the real data, so it is editable, not inferred. */}
+      <div className="flex flex-wrap items-end gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Data rows from</label>
+          <input
+            type="number"
+            min={1}
+            value={layout.dataStartRow}
+            onChange={(e) => onChange({ ...layout, dataStartRow: Math.max(1, Number(e.target.value) || 1) })}
+            className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-xs outline-none focus:border-brand"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">to (inclusive)</label>
+          <input
+            type="number"
+            min={layout.dataStartRow}
+            value={layout.dataEndRow}
+            onChange={(e) => onChange({ ...layout, dataEndRow: Math.max(layout.dataStartRow, Number(e.target.value) || layout.dataStartRow) })}
+            className="w-24 bg-white border border-slate-200 rounded-md px-2 py-1 text-xs outline-none focus:border-brand"
+          />
+        </div>
+        <p className="text-[11px] text-slate-500 flex-1 min-w-[220px] leading-relaxed">
+          These rows are the template's sample data and get replaced. Rows below them (totals, notes) are kept and shift down.
+        </p>
       </div>
 
       <div className="border border-slate-200 rounded-lg overflow-hidden">

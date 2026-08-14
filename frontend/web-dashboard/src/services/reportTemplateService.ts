@@ -12,6 +12,7 @@ export interface InspectedSheet {
   sheetName: string;
   headerRowIdx: number;
   dataStartRow: number;
+  dataEndRow: number;
   bandSize: number;
   columns: InspectedColumn[];
 }

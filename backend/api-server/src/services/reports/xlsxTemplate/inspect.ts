@@ -13,6 +13,7 @@ export interface InspectedSheet {
   sheetName: string;
   headerRowIdx: number;
   dataStartRow: number;
+  dataEndRow: number;
   bandSize: number;
   columns: InspectedColumn[];
 }
@@ -63,12 +64,12 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
       if (hits >= 2 && hits > maxHits) {
         maxHits = hits;
         const dataStartRow = r + 1;
-        const bandSize = detectBandSize(worksheet, dataStartRow);
         bestSheet = {
           sheetName: worksheet.name,
           headerRowIdx: r,
           dataStartRow,
-          bandSize,
+          dataEndRow: detectDataEndRow(worksheet, dataStartRow),
+          bandSize: detectBandSize(worksheet, dataStartRow),
           columns,
         };
       }
@@ -78,25 +79,54 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
   return { allSheets, bestSheet };
 }
 
+function rowHasAnyValue(worksheet: ExcelJS.Worksheet, rowIdx: number): boolean {
+  let found = false;
+  worksheet.getRow(rowIdx).eachCell({ includeEmpty: false }, (cell) => {
+    if (String(cell.value ?? '').trim() !== '') found = true;
+  });
+  return found;
+}
+
+/**
+ * The last row of the template's sample data block: scan down from the first
+ * data row and stop at the first row with no values at all. Everything in
+ * [dataStartRow, dataEndRow] gets replaced at generation time, so getting this
+ * right is what stops the customer's own sample rows from surviving
+ * underneath the real data. The operator can correct it in the mapping editor.
+ */
+function detectDataEndRow(worksheet: ExcelJS.Worksheet, dataStartRow: number): number {
+  let last = dataStartRow;
+  const limit = Math.max(worksheet.rowCount, dataStartRow);
+  for (let r = dataStartRow; r <= limit; r++) {
+    if (rowHasAnyValue(worksheet, r)) last = r;
+    else if (r > dataStartRow) break;
+  }
+  return last;
+}
+
 /**
  * How many rows a striped/banded template repeats its style over, found by
- * comparing each row's per-cell style-id signature against the first data
- * row. Uninspected beyond 8 rows — real templates band at 1 or 2, rarely more.
+ * comparing each row's per-cell style signature against the first data row.
+ * Not scanned beyond 8 rows — real templates band at 1 or 2, rarely more.
  */
 function detectBandSize(worksheet: ExcelJS.Worksheet, dataStartRow: number): number {
   const signature = (rowIdx: number): string => {
     const row = worksheet.getRow(rowIdx);
     const parts: string[] = [];
     row.eachCell({ includeEmpty: true }, (cell) => {
-      parts.push(String((cell as any).style?.id ?? cell.numFmt ?? ''));
+      // cell.style is the resolved style object; there is no `.id` on it, so
+      // stringifying the object is what actually distinguishes banded rows.
+      parts.push(JSON.stringify(cell.style ?? {}));
     });
     return parts.join('|');
   };
 
   const firstSig = signature(dataStartRow);
-  const maxBand = 8;
-  for (let band = 2; band <= maxBand; band++) {
-    if (signature(dataStartRow + band) === firstSig) return band;
+  if (!firstSig) return 1;
+  for (let band = 2; band <= 8; band++) {
+    if (signature(dataStartRow + band) === firstSig && signature(dataStartRow + 1) !== firstSig) {
+      return band;
+    }
   }
   return 1;
 }

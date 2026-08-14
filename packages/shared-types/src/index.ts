@@ -129,6 +129,14 @@ export interface TemplateLayout {
   sheetName: string;
   headerRowIdx: number; // 1-based
   dataStartRow: number; // 1-based; first row of the style band
+  /**
+   * 1-based, inclusive. The last row of the template's sample data block —
+   * everything in [dataStartRow, dataEndRow] is replaced by generated rows,
+   * and anything below it (a totals row, notes, signature block) is kept and
+   * shifted. Without this the customer's own sample rows survive underneath
+   * the real data in the generated report.
+   */
+  dataEndRow: number;
   bandSize: number; // 1 = uniform rows, 2 = striped, N = repeating block
   columns: Array<{
     colIndex: number; // 1-based
