@@ -1,10 +1,11 @@
-import { Truck, User, Plus, Keyboard } from 'lucide-react';
+import { Truck, User, Plus, Keyboard, Tag } from 'lucide-react';
 import { Driver } from '@/services/driverService';
 import { Vehicle } from '@/services/vehicleService';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 
 interface Option {
   value: string;
@@ -22,10 +23,14 @@ interface TripStepAssignmentsProps {
   selectedDriver: Driver | null;
   selectedVehicle: Vehicle | null;
   vehicleAutoAssigned: boolean;
+  vehicleType: string;
+  rateCategory: string;
   onSelectDriver: (id: string) => void;
   onSelectVehicle: (id: string) => void;
   onToggleAssignDriverLater: (val: boolean) => void;
   onToggleAssignVehicleLater: (val: boolean) => void;
+  onVehicleTypeChange: (val: string) => void;
+  onRateCategoryChange: (val: string) => void;
   onOpenAddDriver: () => void;
   onOpenAddVehicle: () => void;
 }
@@ -40,10 +45,14 @@ export default function TripStepAssignments({
   selectedDriver,
   selectedVehicle,
   vehicleAutoAssigned,
+  vehicleType,
+  rateCategory,
   onSelectDriver,
   onSelectVehicle,
   onToggleAssignDriverLater,
   onToggleAssignVehicleLater,
+  onVehicleTypeChange,
+  onRateCategoryChange,
   onOpenAddDriver,
   onOpenAddVehicle,
 }: TripStepAssignmentsProps) {
@@ -52,10 +61,10 @@ export default function TripStepAssignments({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Truck className="w-4 h-4 text-[#E8450F]" /> Assign Fleet Resources
+            <Truck className="w-4 h-4 text-[#E8450F]" /> Assign Fleet Resources &amp; Vehicle Type
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Assign an available driver and vehicle to dispatch this trip immediately, or defer assignment.
+            Set vehicle type specification, rate category, and assign driver and vehicle to dispatch this trip.
           </p>
         </div>
 
@@ -63,6 +72,24 @@ export default function TripStepAssignments({
           <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
           <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">D</kbd> Driver, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">V</kbd> Vehicle, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">L</kbd> Defer, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">↵</kbd> Next</span>
         </div>
+      </div>
+
+      {/* Required Vehicle Type & Rate Category Card */}
+      <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/30 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+            <Tag className="w-3.5 h-3.5 text-[#E8450F]" /> Required Vehicle Specification &amp; Category <span className="text-rose-500">*</span>
+          </Label>
+        </div>
+        <RateCategoryVehicleTypeForm
+          vehicleType={vehicleType}
+          onVehicleTypeChange={onVehicleTypeChange}
+          rateCategory={rateCategory}
+          onRateCategoryChange={onRateCategoryChange}
+          size="sm"
+          required={true}
+          showPreviewBar={true}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -176,4 +203,5 @@ export default function TripStepAssignments({
     </div>
   );
 }
+
 

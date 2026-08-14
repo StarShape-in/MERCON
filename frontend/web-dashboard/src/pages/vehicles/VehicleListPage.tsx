@@ -29,6 +29,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { vehicleService, Vehicle, AssetStatus } from '@/services/vehicleService';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
 
 import KpiCard from '@/components/ui/KpiCard';
 import { Button } from '@/components/ui/button';
@@ -124,6 +125,7 @@ export default function VehicleListPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isBatchTruckDocsOpen, setIsBatchTruckDocsOpen] = useState(false);
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -763,6 +765,16 @@ export default function VehicleListPage() {
             >
               <UploadCloud className="h-3.5 w-3.5 text-emerald-600" />
               Import Excel
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800 dark:text-indigo-300 shadow-2xs"
+              onClick={() => setIsBatchTruckDocsOpen(true)}
+            >
+              <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              Batch Import Trucks Docs
             </Button>
 
             <Button
@@ -1538,6 +1550,15 @@ export default function VehicleListPage() {
           templateUrl="/templates/MERCON_Vehicles_Import_Template.xlsx"
           onImport={(rows) => vehicleService.importRows(rows)}
           invalidateKeys={[['vehicles'], ['vehicles-select']]}
+        />
+
+        <BatchVehicleDocModal
+          isOpen={isBatchTruckDocsOpen}
+          onClose={() => setIsBatchTruckDocsOpen(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
+          }}
         />
 
         <SendToWorkshopDialog

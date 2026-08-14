@@ -2,11 +2,9 @@ import React from 'react';
 import { Receipt, Loader2, AlertTriangle, DollarSign, Tag, ArrowRight, Check, Keyboard, Pencil } from 'lucide-react';
 import { Customer } from '@/services/customerService';
 import { RateCard } from '@/services/rateCardService';
-import { RateCategoryVehicleTypeForm } from '@/components/rate-cards';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface TripStepRatesBillingProps {
@@ -22,15 +20,10 @@ interface TripStepRatesBillingProps {
   selectedCustomer: Customer | null;
   rateSaveWarning: string | null;
   billingAmount: string;
-  /** Tier for a brand-new rate card — nothing existing to read it off. */
-  newRateVehicleType: string;
-  newRateCategory: string;
   onSelectRateCard: (card: RateCard | null) => void;
   onSaveRateAsChange: (val: 'customer' | 'none') => void;
   onBillingAmountChange: (val: string) => void;
   onAdjustPrice: (amount: number) => void;
-  onNewRateVehicleTypeChange: (val: string) => void;
-  onNewRateCategoryChange: (val: string) => void;
 }
 
 export default function TripStepRatesBilling({
@@ -46,14 +39,10 @@ export default function TripStepRatesBilling({
   selectedCustomer,
   rateSaveWarning,
   billingAmount,
-  newRateVehicleType,
-  newRateCategory,
   onSelectRateCard,
   onSaveRateAsChange,
   onBillingAmountChange,
   onAdjustPrice,
-  onNewRateVehicleTypeChange,
-  onNewRateCategoryChange,
 }: TripStepRatesBillingProps) {
   const hasAvailableCards = availableRateCards.length > 0;
 
@@ -236,18 +225,6 @@ export default function TripStepRatesBilling({
                   </div>
                 </label>
               ))}
-            </div>
-
-            {/* Which tonnage/booking type this price is actually for. */}
-            <div className="pl-6 pt-1">
-              <RateCategoryVehicleTypeForm
-                vehicleType={newRateVehicleType}
-                onVehicleTypeChange={onNewRateVehicleTypeChange}
-                rateCategory={newRateCategory}
-                onRateCategoryChange={onNewRateCategoryChange}
-                size="sm"
-                showPreviewBar={false}
-              />
             </div>
           </div>
         )}

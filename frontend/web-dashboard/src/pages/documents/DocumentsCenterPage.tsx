@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
-  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -33,6 +33,7 @@ import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import ExpiryRadarModal from '@/components/ui/ExpiryRadarModal';
 import CreateFolderModal from '@/components/ui/CreateFolderModal';
 import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
+import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
@@ -127,6 +128,7 @@ export default function DocumentsCenterPage() {
   const [moveTargetDocIds, setMoveTargetDocIds] = useState<string[]>([]);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isExpiryModalOpen, setIsExpiryModalOpen] = useState(initialRadar);
+  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
@@ -419,6 +421,17 @@ export default function DocumentsCenterPage() {
               onClick={() => setIsCreateFolderOpen(true)}
             >
               <FolderPlus className="w-4 h-4" /> New Folder
+            </Button>
+
+            {/* Batch Import Trucks Docs Action */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1.5 text-xs font-bold border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800 dark:text-indigo-300 shadow-2xs"
+              onClick={() => setIsBatchImportOpen(true)}
+            >
+              <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              Batch Import Trucks Docs
             </Button>
 
             {/* Upload Button */}
@@ -1244,6 +1257,17 @@ export default function DocumentsCenterPage() {
         folderId={selectedFolderId || undefined}
         onUploadSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['documents'] });
+          queryClient.invalidateQueries({ queryKey: ['folders'] });
+        }}
+      />
+
+      {/* ── Batch Vehicle Doc Modal ──────────────────────────────────────── */}
+      <BatchVehicleDocModal
+        isOpen={isBatchImportOpen}
+        onClose={() => setIsBatchImportOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['documents'] });
+          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.invalidateQueries({ queryKey: ['folders'] });
         }}
       />
