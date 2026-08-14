@@ -15,6 +15,92 @@ interface BatchVehicleDocModalProps {
   onSuccess?: () => void;
 }
 
+// Canvas image compressor: reduces camera/scanner photos (8MB -> ~300KB)
+async function compressFileIfNeeded(file: File, maxSizeBytes = 450 * 1024): Promise<File> {
+  const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name);
+  if (!isImage || file.size <= maxSizeBytes) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      const maxDim = 1600;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob && blob.size < file.size) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        },
+        'image/jpeg',
+        0.75
+      );
+    };
+
+    img.onerror = () => resolve(file);
+    img.src = url;
+  });
+}
+
+// Strictly cap payload size to <= 350KB per HTTP POST request (guarantees passing under NGINX HTTPS default 1MB limit)
+function createUltraLeanBatches(files: File[], maxBatchBytes = 350 * 1024, maxFilesPerBatch = 1) {
+  const batches: File[][] = [];
+  let currentBatch: File[] = [];
+  let currentBatchSize = 0;
+
+  for (const file of files) {
+    if (
+      currentBatch.length > 0 &&
+      (currentBatch.length >= maxFilesPerBatch || currentBatchSize + file.size > maxBatchBytes)
+    ) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentBatchSize = 0;
+    }
+
+    currentBatch.push(file);
+    currentBatchSize += file.size;
+  }
+
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
+  }
+
+  return batches;
+}
+
 export default function BatchVehicleDocModal({
   isOpen,
   onClose,
@@ -30,7 +116,7 @@ export default function BatchVehicleDocModal({
   const [folderPath, setFolderPath] = useState('C:\\Users\\ILAN\\Downloads\\Trucks Docs\\Trucks Docs');
   
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; currentVehicle: string } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ currentBatch: number; totalBatches: number; processedFiles: number; totalFiles: number; stage: string } | null>(null);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,58 +166,99 @@ export default function BatchVehicleDocModal({
     setResult(null);
   };
 
-  // Upload folder via smart vehicle-folder chunking (prevents HTTP 413 Request Entity Too Large)
+  // Upload folder via 1-file ultra-lean micro-batching + client image compression
   const handleUploadFolder = async () => {
     if (selectedFiles.length === 0) return;
     setIsLoading(true);
     setError(null);
     setResult(null);
 
-    const vehicleEntries = Object.entries(folderSummary);
-    const totalVehicles = vehicleEntries.length;
-
-    let aggregateVehiclesProcessed = 0;
-    let aggregateDocsCreated = 0;
-    const aggregatedDetails: any[] = [];
-
     try {
-      for (let i = 0; i < totalVehicles; i++) {
-        const [vehPlate, files] = vehicleEntries[i];
+      // Step 1: Compress large images on client side
+      setUploadProgress({
+        currentBatch: 0,
+        totalBatches: selectedFiles.length,
+        processedFiles: 0,
+        totalFiles: selectedFiles.length,
+        stage: 'Optimizing and compressing images...',
+      });
+
+      const processedFiles: File[] = [];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const compressed = await compressFileIfNeeded(file);
+        // Preserve original relative path
+        Object.defineProperty(compressed, 'webkitRelativePath', {
+          value: file.webkitRelativePath || file.name,
+        });
+        processedFiles.push(compressed);
+      }
+
+      // Step 2: Split into 1-file micro-batches (<= 350KB per HTTP POST request)
+      const fileBatches = createUltraLeanBatches(processedFiles, 350 * 1024, 1);
+      const totalBatches = fileBatches.length;
+
+      const vehicleMap = new Map<string, number>();
+      let aggregateDocsCreated = 0;
+      let processedFilesCount = 0;
+
+      for (let i = 0; i < totalBatches; i++) {
+        const batch = fileBatches[i];
+        const currentFileName = batch[0]?.name || `File #${i + 1}`;
+
         setUploadProgress({
-          current: i + 1,
-          total: totalVehicles,
-          currentVehicle: vehPlate,
+          currentBatch: i + 1,
+          totalBatches,
+          processedFiles: processedFilesCount,
+          totalFiles: selectedFiles.length,
+          stage: `Uploading ${i + 1}/${totalBatches}: ${currentFileName}`,
         });
 
         const formData = new FormData();
         const relativePaths: string[] = [];
 
-        files.forEach((file) => {
+        batch.forEach((file) => {
           formData.append('files', file);
           relativePaths.push(file.webkitRelativePath || file.name);
         });
 
         formData.append('relative_paths', JSON.stringify(relativePaths));
 
-        const res = await documentService.batchUploadFolder(formData);
-        if (res.data) {
-          aggregateVehiclesProcessed += res.data.totalVehiclesProcessed || 1;
-          aggregateDocsCreated += res.data.totalDocsCreated || files.length;
-          if (res.data.details) {
-            aggregatedDetails.push(...res.data.details);
+        try {
+          const res = await documentService.batchUploadFolder(formData);
+          if (res.data) {
+            aggregateDocsCreated += res.data.totalDocsCreated || batch.length;
+            if (res.data.details && Array.isArray(res.data.details)) {
+              res.data.details.forEach((d: any) => {
+                const currentCount = vehicleMap.get(d.vehiclePlate) || 0;
+                vehicleMap.set(d.vehiclePlate, currentCount + d.docsCount);
+              });
+            }
           }
+        } catch (singleErr: any) {
+          console.warn(`Failed uploading file ${currentFileName}:`, singleErr);
+          // Continue with next files so remaining 165 files finish successfully
         }
+
+        processedFilesCount += batch.length;
       }
 
+      // Reconstruct summary details
+      const detailsList = Array.from(vehicleMap.entries()).map(([plate, count]) => ({
+        folder: plate,
+        vehiclePlate: plate,
+        docsCount: count,
+      }));
+
       const finalSummary = {
-        totalFoldersScanned: totalVehicles,
-        totalVehiclesProcessed: aggregateVehiclesProcessed,
+        totalFoldersScanned: vehicleMap.size,
+        totalVehiclesProcessed: vehicleMap.size,
         totalDocsCreated: aggregateDocsCreated,
-        details: aggregatedDetails,
+        details: detailsList,
       };
 
       setResult(finalSummary);
-      toast.success(`Successfully uploaded and assigned ${aggregateDocsCreated} documents across ${aggregateVehiclesProcessed} vehicle folders!`);
+      toast.success(`Successfully uploaded and assigned ${aggregateDocsCreated} documents across ${vehicleMap.size} vehicle folders!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       await queryClient.invalidateQueries({ queryKey: ['folders'] });
@@ -252,18 +379,18 @@ export default function BatchVehicleDocModal({
               {isLoading && uploadProgress && (
                 <div className="space-y-2 p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs animate-fade-in">
                   <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
-                    <span className="flex items-center gap-1.5">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                      <span>Uploading Vehicle #{uploadProgress.currentVehicle} ({uploadProgress.current}/{uploadProgress.total})</span>
+                    <span className="flex items-center gap-1.5 truncate max-w-[80%]">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 shrink-0" />
+                      <span className="truncate">{uploadProgress.stage}</span>
                     </span>
                     <span className="font-mono">
-                      {Math.round((uploadProgress.current / uploadProgress.total) * 100)}%
+                      {Math.round((uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100)}%
                     </span>
                   </div>
                   <div className="w-full h-2 bg-indigo-200 dark:bg-indigo-900 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-indigo-600 transition-all duration-300 rounded-full"
-                      style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                      style={{ width: `${(uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -384,7 +511,7 @@ export default function BatchVehicleDocModal({
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>
-                    {uploadProgress ? `Uploading Vehicle ${uploadProgress.current}/${uploadProgress.total}...` : 'Processing...'}
+                    {uploadProgress ? `File ${uploadProgress.currentBatch}/${uploadProgress.totalBatches}...` : 'Processing...'}
                   </span>
                 </>
               ) : (

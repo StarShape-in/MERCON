@@ -146,7 +146,7 @@ export default function WorkshopField({
 
   return (
     <div className="relative w-full">
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen} modal={false}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -164,9 +164,9 @@ export default function WorkshopField({
                 <span className="truncate">{value}</span>
               </div>
             ) : (
-              <span className="text-slate-400 flex items-center gap-2">
+              <span className="text-slate-400 flex items-center gap-2 min-w-0 truncate">
                 <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>{isLoading ? 'Loading workshops...' : placeholder}</span>
+                <span className="truncate whitespace-nowrap">{isLoading ? 'Loading...' : 'Select workshop'}</span>
               </span>
             )}
             <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0" />
