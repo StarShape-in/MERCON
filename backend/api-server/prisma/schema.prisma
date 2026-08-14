@@ -157,9 +157,10 @@ model Customer {
   isActive   Boolean   @default(true)
   version    Int       @default(1)
 
-  trips     Trip[]
-  invoices  Invoice[]
-  rateCards RateCard[]
+  trips           Trip[]
+  invoices        Invoice[]
+  rateCards       RateCard[]
+  reportTemplates ReportTemplate[]
 }
 
 // -----------------------------------------
@@ -754,4 +755,37 @@ model Notification {
   entity_id   String? @db.Uuid
 
   createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+// -----------------------------------------
+// 9. COMPANY EXCEL REPORT TEMPLATES
+// -----------------------------------------
+// A customer-supplied .xlsx (their own branded trip-report layout) plus the
+// human-confirmed column mapping used to fill it. The file's bytes live in
+// Postgres, not on disk — the deploy's only durable volume is pgdata (see
+// docker-compose.yml), and templates are small, precious configuration that
+// should ride along with the database rather than a bind-mounted /tmp.
+model ReportTemplate {
+  id     String @id @default(uuid()) @db.Uuid
+  name   String
+  source String @default("trips") // room for invoices/expenses later
+
+  customerId String?   @db.Uuid // null = shared/global template
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  original_filename String
+  file_data         Bytes // the uploaded .xlsx, unmodified
+  file_size         Int
+  layout            Json  @db.JsonB // TemplateLayout (@mercon/shared-types) — confirmed mapping
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  isActive   Boolean   @default(true)
+  version    Int       @default(1)
+
+  @@index([customerId])
 }

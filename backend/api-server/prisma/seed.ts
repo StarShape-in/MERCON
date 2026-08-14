@@ -80,6 +80,14 @@ async function main() {
   });
   console.log('  ✓ Settings row present');
 
+  // The upsert above only sets enabledModules on first creation, so an
+  // existing production row never gains a module key added later — this is
+  // a one-shot, single-key backfill for 'company-reports' specifically, not
+  // a general union with MODULE_KEYS (which would silently re-enable any
+  // module an owner had deliberately turned off). No owner could have
+  // disabled a key that didn't exist yet, so this stays safe and idempotent.
+  await backfillCompanyReportsModule();
+
   await backfillMaintenanceRefIds();
   await releaseVehiclesStuckInMaintenance();
   await seedDefaultServices();
@@ -148,6 +156,23 @@ async function releaseVehiclesStuckInMaintenance() {
       .map((v) => v.plate_number)
       .join(', ')}`,
   );
+}
+
+/**
+ * Adds the 'company-reports' module key to an existing Settings row that
+ * predates it, so the Custom Company Reports Generator becomes visible on
+ * deployments (like mercon.tech) that already had a Settings row before this
+ * module existed. Idempotent: a no-op once the key is present.
+ */
+async function backfillCompanyReportsModule() {
+  const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
+  if (settings && !settings.enabledModules.includes('company-reports')) {
+    await prisma.settings.update({
+      where: { id: 'singleton' },
+      data: { enabledModules: { push: 'company-reports' } },
+    });
+    console.log('  ✓ Backfilled company-reports module key');
+  }
 }
 
 /**

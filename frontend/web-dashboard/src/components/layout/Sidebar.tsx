@@ -4,7 +4,7 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
   Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
-  ChevronsLeft, ChevronsRight, CalendarRange, Wallet
+  ChevronsLeft, ChevronsRight, CalendarRange, Wallet, FileSpreadsheet
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -116,6 +116,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       items: [
         { icon: FileText, label: 'Documents', path: '/documents', moduleKey: 'documents' as ModuleKey },
         { icon: BarChart3, label: 'Reports', path: '/reports', moduleKey: 'reports' as ModuleKey },
+        { icon: FileSpreadsheet, label: 'Company Reports', path: '/company-reports', moduleKey: 'company-reports' as ModuleKey },
       ],
     },
     {

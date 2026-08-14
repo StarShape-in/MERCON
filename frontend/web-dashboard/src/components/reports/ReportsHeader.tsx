@@ -1,27 +1,26 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Truck, 
-  SlidersHorizontal, 
-  Download, 
+import {
+  BarChart3,
+  TrendingUp,
+  Truck,
+  SlidersHorizontal,
+  Download,
   RotateCw,
   Clock,
-  FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ReportsHeaderProps {
-  activeTab: 'overview' | 'revenue' | 'fleet' | 'custom' | 'delays' | 'company';
+  activeTab: 'overview' | 'revenue' | 'fleet' | 'custom' | 'delays';
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onExport?: () => void;
 }
 
-export default function ReportsHeader({ 
-  activeTab, 
-  onRefresh, 
+export default function ReportsHeader({
+  activeTab,
+  onRefresh,
   isRefreshing = false,
   onExport
 }: ReportsHeaderProps) {
@@ -30,7 +29,6 @@ export default function ReportsHeader({
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3, path: '/reports' },
-    { id: 'company', label: 'Company Formats', icon: FileSpreadsheet, path: '/reports/client-templates' },
     { id: 'revenue', label: 'Revenue Report', icon: TrendingUp, path: '/reports/revenue' },
     { id: 'fleet', label: 'Fleet Performance', icon: Truck, path: '/reports/fleet' },
     { id: 'delays', label: 'Delay Report', icon: Clock, path: '/reports/delays' },
