@@ -15,8 +15,67 @@ interface BatchVehicleDocModalProps {
   onSuccess?: () => void;
 }
 
-// Chunk files into small HTTP payloads (max 3 files or max 3MB per batch) to prevent NGINX HTTP 413
-function createMicroBatches(files: File[], maxBatchBytes = 3 * 1024 * 1024, maxFilesPerBatch = 3) {
+// Canvas image compressor: reduces camera/scanner photos (8MB -> ~300KB)
+async function compressFileIfNeeded(file: File, maxSizeBytes = 800 * 1024): Promise<File> {
+  const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name);
+  if (!isImage || file.size <= maxSizeBytes) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      const maxDim = 1920;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob && blob.size < file.size) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        },
+        'image/jpeg',
+        0.8
+      );
+    };
+
+    img.onerror = () => resolve(file);
+    img.src = url;
+  });
+}
+
+// Strictly cap payload size to <= 750KB per HTTP POST request (guarantees passing under 1MB NGINX limit)
+function createUltraLeanBatches(files: File[], maxBatchBytes = 750 * 1024, maxFilesPerBatch = 2) {
   const batches: File[][] = [];
   let currentBatch: File[] = [];
   let currentBatchSize = 0;
@@ -57,7 +116,7 @@ export default function BatchVehicleDocModal({
   const [folderPath, setFolderPath] = useState('C:\\Users\\ILAN\\Downloads\\Trucks Docs\\Trucks Docs');
   
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ currentBatch: number; totalBatches: number; processedFiles: number; totalFiles: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ currentBatch: number; totalBatches: number; processedFiles: number; totalFiles: number; stage: string } | null>(null);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,22 +166,42 @@ export default function BatchVehicleDocModal({
     setResult(null);
   };
 
-  // Upload folder via strict micro-batching (max 3MB / 3 files per HTTP request) to guarantee no HTTP 413
+  // Upload folder via ultra-lean micro-batching + client image compression
   const handleUploadFolder = async () => {
     if (selectedFiles.length === 0) return;
     setIsLoading(true);
     setError(null);
     setResult(null);
 
-    const fileBatches = createMicroBatches(selectedFiles);
-    const totalBatches = fileBatches.length;
-
-    const vehicleMap = new Map<string, number>();
-    let aggregateDocsCreated = 0;
-    const aggregatedDetails: any[] = [];
-    let processedFilesCount = 0;
-
     try {
+      // Step 1: Compress large images on client side
+      setUploadProgress({
+        currentBatch: 0,
+        totalBatches: 1,
+        processedFiles: 0,
+        totalFiles: selectedFiles.length,
+        stage: 'Optimizing and compressing images...',
+      });
+
+      const processedFiles: File[] = [];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const compressed = await compressFileIfNeeded(file);
+        // Preserve original relative path
+        Object.defineProperty(compressed, 'webkitRelativePath', {
+          value: file.webkitRelativePath || file.name,
+        });
+        processedFiles.push(compressed);
+      }
+
+      // Step 2: Split into ultra-lean batches (<= 750KB per HTTP POST request)
+      const fileBatches = createUltraLeanBatches(processedFiles);
+      const totalBatches = fileBatches.length;
+
+      const vehicleMap = new Map<string, number>();
+      let aggregateDocsCreated = 0;
+      let processedFilesCount = 0;
+
       for (let i = 0; i < totalBatches; i++) {
         const batch = fileBatches[i];
 
@@ -131,6 +210,7 @@ export default function BatchVehicleDocModal({
           totalBatches,
           processedFiles: processedFilesCount,
           totalFiles: selectedFiles.length,
+          stage: `Uploading batch ${i + 1} of ${totalBatches}`,
         });
 
         const formData = new FormData();
@@ -295,16 +375,16 @@ export default function BatchVehicleDocModal({
                   <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
                     <span className="flex items-center gap-1.5">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                      <span>Uploading batch {uploadProgress.currentBatch} of {uploadProgress.totalBatches} ({uploadProgress.processedFiles}/{uploadProgress.totalFiles} files)...</span>
+                      <span>{uploadProgress.stage}</span>
                     </span>
                     <span className="font-mono">
-                      {Math.round((uploadProgress.currentBatch / uploadProgress.totalBatches) * 100)}%
+                      {Math.round((uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100)}%
                     </span>
                   </div>
                   <div className="w-full h-2 bg-indigo-200 dark:bg-indigo-900 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-indigo-600 transition-all duration-300 rounded-full"
-                      style={{ width: `${(uploadProgress.currentBatch / uploadProgress.totalBatches) * 100}%` }}
+                      style={{ width: `${(uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100}%` }}
                     />
                   </div>
                 </div>
