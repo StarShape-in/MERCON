@@ -286,7 +286,7 @@ export default function DashboardPage() {
   const activeTrips = tripTab === 'current' ? currentTrips : tripTab === 'upcoming' ? upcomingTrips : recentTrips;
   const activeFleet = activeTrips;
 
-  // Exact Trip Ledger Columns matching TripListPage
+  // Exact Comprehensive Trip Ledger Columns matching TripListPage + full telemetry
   const tripLedgerColumns = useMemo<Column<any>[]>(() => [
     {
       header: 'Trip ID',
@@ -310,12 +310,12 @@ export default function DashboardPage() {
     },
     {
       header: 'Route',
-      className: 'max-w-[170px] truncate',
+      className: 'max-w-[155px] truncate',
       accessor: (row: any) => {
         const pickup = row.pickup || (row.route || '').split('→')[0]?.trim() || 'Riyadh';
         const dropoff = row.dropoff || (row.route || '').split('→')[1]?.trim() || 'Jeddah';
         return (
-          <div className="flex flex-col gap-0 py-0.5 max-w-[170px] truncate" title={`From: ${pickup}\nTo: ${dropoff}`}>
+          <div className="flex flex-col gap-0 py-0.5 max-w-[155px] truncate" title={`From: ${pickup}\nTo: ${dropoff}`}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
@@ -335,9 +335,9 @@ export default function DashboardPage() {
     },
     {
       header: 'Driver',
-      className: 'max-w-[150px] truncate',
+      className: 'max-w-[140px] truncate',
       accessor: (row: any) => (
-        <div className="flex items-center gap-1.5 max-w-[150px]">
+        <div className="flex items-center gap-1.5 max-w-[140px]">
           <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
             {row.initials || (row.driver ? `${row.driver[0]}` : 'U')}
           </div>
@@ -364,31 +364,15 @@ export default function DashboardPage() {
       ),
     },
     {
-      header: 'Rate (SAR)',
-      className: 'w-[100px] shrink-0',
-      accessor: (row: any) => {
-        const price = row.price;
-        return (
-          <div className="flex items-center font-mono text-xs">
-            <span className="font-extrabold text-slate-900 dark:text-slate-200">
-              {price !== undefined && price !== null && Number(price) > 0
-                ? `SAR ${Number(price).toLocaleString('en-US')}`
-                : (row.distance || '—')}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
       header: 'Status',
-      className: 'w-[110px] shrink-0',
+      className: 'w-[105px] shrink-0',
       accessor: (row: any) => (
         <StatusBadge status={row.rawStatus || row.status} />
       ),
     },
     {
-      header: 'Planned Start',
-      className: 'w-[95px] shrink-0',
+      header: 'Departure',
+      className: 'w-[90px] shrink-0',
       accessor: (row: any) => (
         <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
           {row.startTime}
@@ -396,8 +380,60 @@ export default function DashboardPage() {
       ),
     },
     {
+      header: 'ETA',
+      className: 'w-[75px] shrink-0',
+      accessor: (row: any) => (
+        <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+          {row.eta || '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Progress',
+      className: 'w-[130px] shrink-0',
+      accessor: (row: any) => (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-brand rounded-full transition-all duration-300"
+              style={{ width: `${row.progress ?? 0}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-extrabold text-brand shrink-0 font-mono">
+            {row.progress ?? 0}%
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Distance',
+      className: 'w-[85px] shrink-0',
+      accessor: (row: any) => (
+        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 font-mono">
+          {row.distance || '—'}
+        </span>
+      ),
+    },
+    {
+      header: 'Rate (SAR)',
+      className: 'w-[95px] text-right shrink-0',
+      headerClassName: 'text-right',
+      accessor: (row: any) => {
+        const price = row.price;
+        return (
+          <div className="flex items-center justify-end font-mono text-xs">
+            <span className="font-extrabold text-slate-900 dark:text-slate-200">
+              {price !== undefined && price !== null && Number(price) > 0
+                ? `SAR ${Number(price).toLocaleString('en-US')}`
+                : '—'}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       header: '',
-      className: 'w-[40px] text-right shrink-0',
+      className: 'w-[32px] text-right shrink-0',
       accessor: () => (
         <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand transition-colors ml-auto" />
       ),

@@ -88,37 +88,37 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         let category: DelayItem['category'] = 'general';
         let Icon = AlertTriangle;
         let solidBadgeBg = 'bg-[#E11D48] text-white';
-        let cardBorderAccent = 'border-l-[5px] border-l-[#E11D48]';
-        let iconBg = 'bg-rose-100 text-rose-600';
+        let cardBorderAccent = 'border-l-4 border-l-[#E11D48]';
+        let iconBg = 'bg-rose-100 dark:bg-rose-950/60 text-rose-600';
         let iconColor = 'text-rose-600';
 
         if (reason.includes('traffic') || reason.includes('route') || reason.includes('checkpoint')) {
           category = 'traffic';
           Icon = Clock;
           solidBadgeBg = 'bg-[#EA580C] text-white';
-          cardBorderAccent = 'border-l-[5px] border-l-[#EA580C]';
-          iconBg = 'bg-orange-100 text-orange-600';
+          cardBorderAccent = 'border-l-4 border-l-[#EA580C]';
+          iconBg = 'bg-orange-100 dark:bg-orange-950/60 text-orange-600';
           iconColor = 'text-orange-600';
         } else if (reason.includes('breakdown') || reason.includes('vehicle') || reason.includes('repair')) {
           category = 'breakdown';
           Icon = Wrench;
           solidBadgeBg = 'bg-[#E11D48] text-white';
-          cardBorderAccent = 'border-l-[5px] border-l-[#E11D48]';
-          iconBg = 'bg-rose-100 text-rose-600';
+          cardBorderAccent = 'border-l-4 border-l-[#E11D48]';
+          iconBg = 'bg-rose-100 dark:bg-rose-950/60 text-rose-600';
           iconColor = 'text-rose-600';
         } else if (reason.includes('loading') || reason.includes('unloading') || reason.includes('customer') || reason.includes('warehouse')) {
           category = 'loading';
           Icon = Timer;
           solidBadgeBg = 'bg-[#2563EB] text-white';
-          cardBorderAccent = 'border-l-[5px] border-l-[#2563EB]';
-          iconBg = 'bg-blue-100 text-blue-600';
+          cardBorderAccent = 'border-l-4 border-l-[#2563EB]';
+          iconBg = 'bg-blue-100 dark:bg-blue-950/60 text-blue-600';
           iconColor = 'text-blue-600';
         } else if (reason.includes('weather') || reason.includes('sandstorm') || reason.includes('rain')) {
           category = 'weather';
           Icon = CloudRain;
           solidBadgeBg = 'bg-[#475569] text-white';
-          cardBorderAccent = 'border-l-[5px] border-l-[#475569]';
-          iconBg = 'bg-slate-100 text-slate-700';
+          cardBorderAccent = 'border-l-4 border-l-[#475569]';
+          iconBg = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
           iconColor = 'text-slate-700';
         }
 
@@ -164,9 +164,9 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           delayNote: 'Eastern Ring Road bottleneck & checkpoint queues',
           badgeText: 'TRAFFIC +45M',
           solidBadgeBg: 'bg-[#EA580C] text-white',
-          cardBorderAccent: 'border-l-[5px] border-l-[#EA580C]',
+          cardBorderAccent: 'border-l-4 border-l-[#EA580C]',
           icon: Clock,
-          iconBg: 'bg-orange-100 text-orange-600',
+          iconBg: 'bg-orange-100 dark:bg-orange-950/60 text-orange-600',
           iconColor: 'text-orange-600',
         },
         {
@@ -185,9 +185,9 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           delayNote: 'Drive axle tire repair; roadside mobile tech active',
           badgeText: 'BREAKDOWN',
           solidBadgeBg: 'bg-[#E11D48] text-white',
-          cardBorderAccent: 'border-l-[5px] border-l-[#E11D48]',
+          cardBorderAccent: 'border-l-4 border-l-[#E11D48]',
           icon: Wrench,
-          iconBg: 'bg-rose-100 text-rose-600',
+          iconBg: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600',
           iconColor: 'text-rose-600',
         },
         {
@@ -206,9 +206,9 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           delayNote: 'Manual pallet offload; awaiting forklift dock availability',
           badgeText: 'DOCK QUEUE',
           solidBadgeBg: 'bg-[#2563EB] text-white',
-          cardBorderAccent: 'border-l-[5px] border-l-[#2563EB]',
+          cardBorderAccent: 'border-l-4 border-l-[#2563EB]',
           icon: Timer,
-          iconBg: 'bg-blue-100 text-blue-600',
+          iconBg: 'bg-blue-100 dark:bg-blue-950/60 text-blue-600',
           iconColor: 'text-blue-600',
         },
         {
@@ -227,9 +227,9 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           delayNote: 'Reduced driving pace on Route 65 due to sandstorm',
           badgeText: 'WEATHER',
           solidBadgeBg: 'bg-[#475569] text-white',
-          cardBorderAccent: 'border-l-[5px] border-l-[#475569]',
+          cardBorderAccent: 'border-l-4 border-l-[#475569]',
           icon: CloudRain,
-          iconBg: 'bg-slate-100 text-slate-700',
+          iconBg: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
           iconColor: 'text-slate-700',
         },
       ];
@@ -293,14 +293,14 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           <div
             className={cn(
               'px-3 py-1 rounded-xl flex items-center gap-2 shadow-sm transition-all select-none',
-              delayItems.length > 0
+              filteredDelays.length > 0
                 ? 'bg-red-600 text-white shadow-red-600/30 ring-2 ring-red-600/20'
                 : 'bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-600/20'
             )}
           >
             <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
             <span className="text-xs font-black uppercase tracking-tight text-white">
-              {delayItems.length} Delayed Unit{delayItems.length === 1 ? '' : 's'}
+              {filteredDelays.length} {filteredDelays.length === 1 ? 'Delayed Unit' : 'Delayed Units'}
             </span>
           </div>
         </div>
@@ -452,7 +452,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
                 value={quickMsgText}
                 onChange={(e) => setQuickMsgText(e.target.value)}
                 rows={3}
-                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-[#E8450F] resize-none bg-white dark:bg-slate-900"
+                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-[#E8450F] focus:border-[#E8450F] resize-none bg-white dark:bg-slate-900"
               />
             </div>
           </div>
