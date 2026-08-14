@@ -32,6 +32,7 @@ export const env = {
   ICCES_USER: process.env.ICCES_USER,
   ICCES_PASS: process.env.ICCES_PASS,
   ICCES_ACCT: process.env.ICCES_ACCT,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 };
 
 /** True only when all three ICCES credentials are present. */

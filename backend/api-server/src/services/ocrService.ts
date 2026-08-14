@@ -43,7 +43,7 @@ function getMimeType(filePath: string): string {
  */
 function fallbackRegexExtract(filename: string): Partial<OcrResult> {
   const upper = filename.toUpperCase();
-  let doc_type = DocType.VehicleRegistration;
+  let doc_type: DocType = DocType.VehicleRegistration;
 
   if (upper.includes('INSURANCE') || upper.includes('TAMEEN') || upper.includes('INURANCE')) {
     doc_type = DocType.Insurance;
@@ -180,7 +180,7 @@ Respond ONLY with valid JSON inside a \`\`\`json block.
     const parsed = JSON.parse(jsonString);
 
     // Map doc_type string to Prisma DocType enum
-    let docTypeEnum = DocType.VehicleRegistration;
+    let docTypeEnum: DocType = DocType.VehicleRegistration;
     if (parsed.doc_type === 'Insurance') docTypeEnum = DocType.Insurance;
     else if (parsed.doc_type === 'Waybill') docTypeEnum = DocType.Waybill;
     else if (parsed.doc_type === 'Contract') docTypeEnum = DocType.Contract;
