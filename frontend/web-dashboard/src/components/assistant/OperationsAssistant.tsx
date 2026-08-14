@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, CheckCircle2, ArrowLeft, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { expenseService } from '@/services/expenseService';
 import { tripService, Trip } from '@/services/tripService';
 
@@ -11,7 +10,15 @@ const POSITION_KEY = 'mercon_assistant_position_v2';
 const HANDLED_REMINDERS_KEY = 'mercon_assistant_handled_reminders_v2';
 const SNOOZED_REMINDERS_KEY = 'mercon_assistant_snoozed_reminders_v2';
 
-export type CharacterPose = 'ARMS_CROSSED' | 'THUMBS_UP' | 'POINTING_UP' | 'TALKING' | 'HAPPY';
+// State-based character assets matching exact filenames provided
+const ASSISTANT_ASSETS = {
+  profile: '/assistant/profile.png',
+  question: '/assistant/was there any labor charge for this trip.png',
+  great: '/assistant/great.png',
+  remind_later: '/assistant/when should i remind you.png',
+} as const;
+
+export type AssistantAssetKey = keyof typeof ASSISTANT_ASSETS;
 
 interface ReminderItem {
   id: string; // e.g. "labor-charge-TRP-0159"
@@ -22,51 +29,24 @@ interface ReminderItem {
   question: string;
 }
 
-/** Fallback Vector Avatar Icon */
-function FallbackAvatarIcon({ className = "w-full h-full" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <circle cx="50" cy="50" r="48" fill="#FFF" stroke="#E8450F" strokeWidth="3" />
-      <circle cx="50" cy="50" r="45" fill="url(#av_grad)" />
-      <defs>
-        <linearGradient id="av_grad" x1="50" y1="5" x2="50" y2="95" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FFF5F2" />
-          <stop offset="1" stopColor="#FED7CC" />
-        </linearGradient>
-      </defs>
-      <path d="M20 90C20 74 33 64 50 64C67 64 80 74 80 90V95H20V90Z" fill="#1E293B" />
-      <path d="M42 64L50 74L58 64H42Z" fill="#E8450F" />
-      <rect x="44" y="52" width="12" height="15" rx="3" fill="#FDBA74" />
-      <ellipse cx="50" cy="40" rx="18" ry="20" fill="#FDBA74" />
-      <circle cx="31" cy="40" r="4" fill="#FDBA74" />
-      <circle cx="69" cy="40" r="4" fill="#FDBA74" />
-      <path d="M31 36C31 22 40 16 50 16C60 16 69 22 69 36C69 31 63 24 50 24C37 24 31 31 31 36Z" fill="#0F172A" />
-      <ellipse cx="43" cy="38" rx="2.5" ry="3.5" fill="#0F172A" />
-      <ellipse cx="57" cy="38" rx="2.5" ry="3.5" fill="#0F172A" />
-      <path d="M44 46C46 49 54 49 56 46" stroke="#E8450F" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/** Render character pose image with automatic fallback */
-function CharacterImage({ pose, className = '' }: { pose: CharacterPose; className?: string }) {
-  const [imgError, setImgError] = useState(false);
-
-  let src = '/assistant/arms_crossed.jpg';
-  if (pose === 'POINTING_UP') src = '/assistant/pointing_up.jpg';
-  if (pose === 'THUMBS_UP' || pose === 'HAPPY') src = '/assistant/thumbs_up.jpg';
-
-  if (imgError) {
-    return <FallbackAvatarIcon className={className} />;
-  }
+/** Render state-based character image with transparency and consistent proportions */
+function CharacterImage({
+  assetKey,
+  className = '',
+}: {
+  assetKey: AssistantAssetKey;
+  className?: string;
+}) {
+  const src = ASSISTANT_ASSETS[assetKey];
 
   return (
-    <img
-      src={src}
-      alt={`Operations Assistant - ${pose}`}
-      onError={() => setImgError(true)}
-      className={`object-cover object-top rounded-xl ${className}`}
-    />
+    <div className={`relative flex items-center justify-center w-full h-full ${className}`}>
+      <img
+        src={src}
+        alt={`Operations Assistant - ${assetKey}`}
+        className="w-full h-full max-h-44 object-contain select-none pointer-events-none transition-all duration-200"
+      />
+    </div>
   );
 }
 
@@ -353,12 +333,18 @@ export default function OperationsAssistant() {
     }, 300);
   };
 
-  // Determine character pose based on current panel state
-  let currentPose: CharacterPose = 'ARMS_CROSSED';
-  if (panelView === 'question') currentPose = 'ARMS_CROSSED';
-  if (panelView === 'yes_input' || panelView === 'success') currentPose = 'THUMBS_UP';
-  if (panelView === 'no_confirmed') currentPose = 'HAPPY';
-  if (panelView === 'remind_later') currentPose = 'POINTING_UP';
+  // State-based asset mapping matching exact requirements:
+  // Floating assistant -> profile
+  // Completed trip / labor-charge question -> was there any labor charge for this trip
+  // YES clicked / entering labor amount -> great
+  // Successful labor charge -> great
+  // Remind Me Later clicked -> when should i remind you
+  // Reminder returns -> was there any labor charge for this trip
+  // NO selected -> great (closest neutral/happy state from supplied assets)
+  let currentAsset: AssistantAssetKey = 'question';
+  if (panelView === 'question') currentAsset = 'question';
+  if (panelView === 'yes_input' || panelView === 'success' || panelView === 'no_confirmed') currentAsset = 'great';
+  if (panelView === 'remind_later') currentAsset = 'remind_later';
 
   // Intelligent quadrant placement
   const isRightHalf = pos.x > window.innerWidth / 2;
@@ -383,20 +369,17 @@ export default function OperationsAssistant() {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           aria-label="Open Operations Assistant"
-          className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-white shadow-2xl border-2 border-[#E8450F] flex items-center justify-center relative cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95 transition-all p-0.5 ${
+          className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-white shadow-2xl border-2 border-[#E8450F] flex items-center justify-center relative cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95 transition-all p-1 ${
             reminders.length > 0 ? 'ring-4 ring-[#E8450F]/25 animate-pulse' : ''
           }`}
         >
           <img
-            src="/assistant/avatar.jpg"
+            src={ASSISTANT_ASSETS.profile}
             alt="Operations Assistant Avatar"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-            className="w-full h-full rounded-full object-cover"
+            className="w-full h-full rounded-full object-cover select-none pointer-events-none"
           />
 
-          {/* Pending Notification Badge */}
+          {/* Pending Notification Badge - dynamically displays number of pending reminders */}
           {reminders.length > 0 && (
             <span className="absolute -top-1 -right-1 bg-[#E8450F] text-white text-[11px] font-extrabold w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-md animate-bounce">
               {reminders.length}
@@ -423,7 +406,7 @@ export default function OperationsAssistant() {
                   <button
                     type="button"
                     onClick={() => setPanelView('question')}
-                    className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md"
+                    className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </button>
@@ -445,9 +428,9 @@ export default function OperationsAssistant() {
 
             {/* TWO-COLUMN LAYOUT: Character Image on Left + Interaction Content on Right */}
             <div className="grid grid-cols-12 gap-3 items-center">
-              {/* Left Column: Character Pose State */}
-              <div className="col-span-5 flex items-center justify-center p-1 bg-slate-50 rounded-xl border border-slate-100">
-                <CharacterImage pose={currentPose} className="w-full h-44 object-cover" />
+              {/* Left Column: Transparent Character State Asset */}
+              <div className="col-span-5 flex items-center justify-center p-0 h-44 relative overflow-hidden">
+                <CharacterImage assetKey={currentAsset} className="w-full h-44" />
               </div>
 
               {/* Right Column: Interaction Speech Bubble & Controls */}
@@ -552,7 +535,7 @@ export default function OperationsAssistant() {
                   </div>
                 )}
 
-                {/* VIEW 5: Remind Me Later State (Pointing Up Pose) */}
+                {/* VIEW 5: Remind Me Later State */}
                 {panelView === 'remind_later' && (
                   <div className="space-y-2">
                     <h5 className="text-xs font-bold text-[#111111]">When should I remind you?</h5>
