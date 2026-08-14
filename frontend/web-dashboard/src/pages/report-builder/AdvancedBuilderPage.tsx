@@ -102,7 +102,7 @@ const DraggableFieldItem: React.FC<{
       <div className="flex items-center gap-2 overflow-hidden">
         <GripVertical className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0" />
         <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${isNumeric ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-          {field.type === 'money' ? '$' : field.type === 'number' ? '#' : field.type === 'date' ? '📅' : 'Aa'}
+          {field.type === 'money' ? '$' : field.type === 'number' ? '#' : field.type === 'date' ? 'Date' : 'Aa'}
         </span>
         <span className="font-medium text-slate-800 truncate">{field.label}</span>
       </div>

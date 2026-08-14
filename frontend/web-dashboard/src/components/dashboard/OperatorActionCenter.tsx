@@ -272,8 +272,8 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
       <div className="space-y-2.5 pb-2.5 border-b border-black/[0.05] dark:border-slate-800 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/60 flex items-center justify-center text-[#E8450F]">
-              <ShieldAlert className="w-4 h-4 text-[#E8450F]" />
+            <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/60 flex items-center justify-center text-red-600">
+              <ShieldAlert className="w-4 h-4 text-red-600" />
             </div>
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
@@ -283,17 +283,17 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
             </div>
           </div>
 
-          {/* Prominent, Highly Highlighted Delayed Units Badge */}
+          {/* Prominent Red Fill & Pure White Text Badge */}
           <div
             className={cn(
-              'px-3.5 py-1 rounded-xl flex items-center gap-2 shadow-xs transition-all select-none',
+              'px-3 py-1 rounded-xl flex items-center gap-2 shadow-sm transition-all select-none',
               delayItems.length > 0
-                ? 'bg-rose-600 text-white shadow-rose-600/25 ring-2 ring-rose-600/20'
-                : 'bg-emerald-600 text-white shadow-emerald-600/25 ring-2 ring-emerald-600/20'
+                ? 'bg-red-600 text-white shadow-red-600/30 ring-2 ring-red-600/20'
+                : 'bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-600/20'
             )}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse shrink-0" />
-            <span className="text-xs font-black uppercase tracking-tight">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
+            <span className="text-xs font-black uppercase tracking-tight text-white">
               {delayItems.length} Delayed Unit{delayItems.length === 1 ? '' : 's'}
             </span>
           </div>
