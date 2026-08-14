@@ -214,3 +214,150 @@ export const importLocalTrucksDocs = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * Controller endpoint to handle direct browser multipart folder uploads.
+ */
+export const importUploadedTrucksDocsFolder = async (req: Request, res: Response) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'No files uploaded' },
+      });
+    }
+
+    let relativePaths: string[] = [];
+    if (req.body.relative_paths) {
+      try {
+        relativePaths = typeof req.body.relative_paths === 'string'
+          ? JSON.parse(req.body.relative_paths)
+          : req.body.relative_paths;
+      } catch (e) {
+        relativePaths = [];
+      }
+    }
+
+    const vehicleFolderMap = new Map<string, Array<{ file: Express.Multer.File; relPath: string }>>();
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const relPath = relativePaths[i] || file.originalname;
+      const parts = relPath.replace(/\\/g, '/').split('/').filter(Boolean);
+
+      // Folder identifier is parts[1] if parts is [rootFolder, vehicleFolder, filename]
+      // or parts[0] if parts is [vehicleFolder, filename]
+      let vehicleIdStr = '';
+      if (parts.length >= 3) {
+        vehicleIdStr = parts[1];
+      } else if (parts.length === 2) {
+        vehicleIdStr = parts[0];
+      } else {
+        vehicleIdStr = 'unassigned';
+      }
+
+      const cleanId = vehicleIdStr.trim();
+      if (!cleanId) continue;
+
+      if (!vehicleFolderMap.has(cleanId)) {
+        vehicleFolderMap.set(cleanId, []);
+      }
+      vehicleFolderMap.get(cleanId)!.push({ file, relPath });
+    }
+
+    let totalVehiclesProcessed = 0;
+    let totalDocsCreated = 0;
+    const resultsDetails: Array<{
+      folder: string;
+      vehicleId: string;
+      vehiclePlate: string;
+      docsCount: number;
+      files: string[];
+    }> = [];
+
+    for (const [cleanId, fileEntries] of vehicleFolderMap.entries()) {
+      // Find or auto-create vehicle
+      let vehicle = await prisma.vehicle.findFirst({
+        where: {
+          deletedAt: null,
+          OR: [
+            { plate_number: { contains: cleanId, mode: 'insensitive' } },
+            { ref_id: { contains: cleanId, mode: 'insensitive' } },
+          ],
+        },
+      });
+
+      if (!vehicle) {
+        const uniqueRef = `VEH-${cleanId}-${Date.now().toString().slice(-4)}`;
+        vehicle = await prisma.vehicle.create({
+          data: {
+            plate_number: cleanId,
+            ref_id: uniqueRef,
+            asset_type: AssetType.Flatbed,
+            status: 'Available',
+            capacity_kg: 20000,
+          },
+        });
+      }
+
+      let createdForVehicle = 0;
+      const createdFileNames: string[] = [];
+
+      for (const { file } of fileEntries) {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (ext === '.rar' || ext === '.zip') continue;
+
+        const file_url = env.BASE_URL
+          ? `${env.BASE_URL}/uploads/${file.filename}`
+          : `/uploads/${file.filename}`;
+        const doc_type = classifyDocType(file.originalname);
+
+        await prisma.document.create({
+          data: {
+            entity_type: 'Vehicle',
+            entity_id: vehicle.id,
+            doc_type,
+            status: DocStatus.Verified,
+            file_url,
+            mime_type: file.mimetype,
+            is_confidential: false,
+          },
+        });
+
+        createdForVehicle++;
+        totalDocsCreated++;
+        createdFileNames.push(file.originalname);
+      }
+
+      totalVehiclesProcessed++;
+      resultsDetails.push({
+        folder: cleanId,
+        vehicleId: vehicle.id,
+        vehiclePlate: vehicle.plate_number,
+        docsCount: createdForVehicle,
+        files: createdFileNames,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        totalFoldersScanned: vehicleFolderMap.size,
+        totalVehiclesProcessed,
+        totalDocsCreated,
+        details: resultsDetails,
+      },
+      message: `Successfully uploaded and assigned ${totalDocsCreated} documents across ${totalVehiclesProcessed} vehicle folders.`,
+    });
+  } catch (error: any) {
+    console.error('Failed multipart batch folder upload:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: error.message || 'Failed to process uploaded folder',
+      },
+    });
+  }
+};

@@ -80,4 +80,11 @@ export const documentService = {
     const res = await api.post('/documents/batch-truck-docs-local', { folderPath });
     return res.data;
   },
+
+  async batchUploadFolder(formData: FormData): Promise<any> {
+    const res = await api.post('/documents/batch-upload-folder', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
 };
