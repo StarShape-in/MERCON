@@ -218,12 +218,12 @@ export default function DashboardPage() {
           <div className="flex flex-col lg:flex-row gap-5 items-stretch transition-all duration-300 ease-in-out">
 
             {/* 1. Monthly Overview (Left ~32%) */}
-            <div className="w-full lg:w-[33%] xl:w-[32%] shrink-0 flex flex-col transition-all duration-300 ease-in-out">
+            <div className="w-full lg:w-[33%] xl:w-[32%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
               <MonthlyOverview />
             </div>
 
             {/* 2. Active Trips Live Map (expands when reminders collapses) */}
-            <div className="flex-1 min-w-0 flex flex-col bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300 ease-in-out">
+            <div className="flex-1 min-w-0 flex flex-col h-[390px] max-h-[390px] bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300 ease-in-out">
 
               {/* Map Canvas with Overlays */}
               <div className="relative flex-1 min-h-[310px] w-full z-0" style={{ background: '#EAECEF' }}>
@@ -322,7 +322,7 @@ export default function DashboardPage() {
             </div>
 
             {/* 3. Important Reminders */}
-            <div className={`shrink-0 flex flex-col transition-all duration-300 ease-in-out ${isRemindersCollapsed ? 'w-full lg:w-[76px]' : 'w-full lg:w-[280px] xl:w-[320px]'}`}>
+            <div className={`shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out ${isRemindersCollapsed ? 'w-full lg:w-[76px]' : 'w-full lg:w-[280px] xl:w-[320px]'}`}>
               <ImportantReminders
                 collapsed={isRemindersCollapsed}
                 onToggleCollapse={() => setIsRemindersCollapsed(!isRemindersCollapsed)}

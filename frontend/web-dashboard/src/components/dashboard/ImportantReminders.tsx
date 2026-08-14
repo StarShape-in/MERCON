@@ -9,17 +9,13 @@ import {
   UserCheck,
   Truck,
   FileText,
-  AlertTriangle,
-  Clock,
   CheckCircle2,
-  Briefcase,
-  Shield,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { documentService } from '@/services/documentService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
-import { docTypeLabel, categoryForEntity, daysUntil, getExpiryStatus } from '@/lib/documents';
+import { docTypeLabel, categoryForEntity, daysUntil } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 
 interface ImportantRemindersProps {
@@ -177,7 +173,7 @@ export default function ImportantReminders({
 
   return (
     <TooltipProvider delay={0}>
-      <div className="relative h-full select-none">
+      <div className="relative h-full w-full select-none flex flex-col">
         {/* Floating edge rail toggle button — Sidebar rail style */}
         {onToggleCollapse && (
           <button
@@ -203,67 +199,72 @@ export default function ImportantReminders({
           </button>
         )}
 
-        {/* Card shell container with smooth width clipping */}
-        <div className="relative bg-white dark:bg-slate-900 rounded-[18px] border border-black/[0.06] dark:border-slate-800 shadow-sm h-full overflow-hidden transition-all duration-300 ease-in-out">
+        {/* Card shell container with fixed height and internal scrolling */}
+        <div className="relative bg-white dark:bg-slate-900 rounded-[18px] border border-black/[0.06] dark:border-slate-800 shadow-sm h-full max-h-[385px] overflow-hidden transition-all duration-300 ease-in-out flex flex-col">
 
           {/* ── LAYER 1: COLLAPSED RAIL VIEW (w-[76px]) ── */}
           <div
-            className={`absolute inset-0 w-[76px] flex flex-col items-center justify-between py-4 px-1.5 transition-opacity duration-200 ease-in-out z-10 ${
+            className={`absolute inset-0 w-[76px] flex flex-col items-center justify-between py-3.5 px-1.5 transition-opacity duration-200 ease-in-out z-10 overflow-hidden ${
               collapsed ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
             }`}
           >
             {/* Top: Bell Icon & Count Badge */}
-            <Tooltip>
-              <TooltipTrigger>
-                <div
-                  onClick={onToggleCollapse}
-                  className="relative flex flex-col items-center cursor-pointer group/bell"
-                >
-                  <div className="relative">
-                    {totalCount > 0 && <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />}
-                    <div className={cn(
-                      'relative w-9 h-9 rounded-full flex items-center justify-center border shadow-2xs group-hover/bell:scale-105 transition-transform duration-200',
-                      totalCount > 0 
-                        ? 'bg-[#FFF3EE] border-orange-200 text-brand'
-                        : 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                    )}>
-                      {totalCount > 0 ? (
-                        <Bell className="w-4.5 h-4.5 fill-current" />
-                      ) : (
-                        <CheckCircle2 className="w-4.5 h-4.5" />
-                      )}
+            <div className="shrink-0">
+              <Tooltip>
+                <TooltipTrigger>
+                  <div
+                    onClick={onToggleCollapse}
+                    className="relative flex flex-col items-center cursor-pointer group/bell"
+                  >
+                    <div className="relative">
+                      {totalCount > 0 && <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping" />}
+                      <div className={cn(
+                        'relative w-9 h-9 rounded-full flex items-center justify-center border shadow-2xs group-hover/bell:scale-105 transition-transform duration-200',
+                        totalCount > 0 
+                          ? 'bg-[#FFF3EE] border-orange-200 text-brand'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                      )}>
+                        {totalCount > 0 ? (
+                          <Bell className="w-4.5 h-4.5 fill-current" />
+                        ) : (
+                          <CheckCircle2 className="w-4.5 h-4.5" />
+                        )}
+                      </div>
                     </div>
+                    <span className={cn(
+                      'mt-1 px-1.5 py-0.5 rounded-full text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs',
+                      totalCount > 0 ? 'bg-[#E53E3E]' : 'bg-emerald-500'
+                    )}>
+                      {totalCount}
+                    </span>
                   </div>
-                  <span className={cn(
-                    'mt-1 px-1.5 py-0.5 rounded-full text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs',
-                    totalCount > 0 ? 'bg-[#E53E3E]' : 'bg-emerald-500'
-                  )}>
-                    {totalCount}
-                  </span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="font-bold text-[10px] bg-slate-900 text-white border border-slate-800 shadow-xl">
-                {totalCount > 0 ? `${totalCount} Active Reminders — Click to Expand` : 'All compliance permits valid'}
-              </TooltipContent>
-            </Tooltip>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="font-bold text-[10px] bg-slate-900 text-white border border-slate-800 shadow-xl">
+                  {totalCount > 0 ? `${totalCount} Active Reminders — Click to Expand` : 'All compliance permits valid'}
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
-            {/* Middle: Timeline Icon Strip */}
-            <div className="relative flex flex-col items-center gap-3 my-auto py-1 z-10 w-full">
+            {/* Middle: Timeline Icon Strip (Scrollable) */}
+            <div className="relative flex-1 flex flex-col items-center gap-2.5 my-2 py-1 z-10 w-full overflow-y-auto min-h-0 no-scrollbar">
               {totalCount > 0 ? (
                 <>
                   <div className="absolute top-2 bottom-2 w-[1.5px] bg-slate-100 dark:bg-slate-800 rounded-full left-1/2 -translate-x-1/2 -z-10" />
-                  {reminders.slice(0, 5).map((item) => {
+                  {reminders.map((item) => {
                     const Icon = item.BadgeIcon;
                     return (
                       <Tooltip key={item.id}>
                         <TooltipTrigger>
                           <div
-                            onClick={() => navigate(`/documents?filter=${item.filterParam}`)}
-                            className="relative z-10 flex items-center justify-center cursor-pointer group/item hover:scale-110 transition-transform duration-200"
+                            onClick={() => {
+                              if (item.entityLink) navigate(item.entityLink);
+                              else navigate(`/documents?filter=${item.filterParam}`);
+                            }}
+                            className="relative z-10 flex items-center justify-center cursor-pointer group/item hover:scale-110 transition-transform duration-200 shrink-0"
                           >
                             <div className="relative">
-                              <div className={`w-9 h-9 rounded-2xl ${item.iconBg} border flex items-center justify-center shadow-2xs group-hover/item:shadow-md transition-all duration-200`}>
-                                <Icon className="w-4.5 h-4.5 stroke-[2.2]" />
+                              <div className={`w-8.5 h-8.5 rounded-2xl ${item.iconBg} border flex items-center justify-center shadow-2xs group-hover/item:shadow-md transition-all duration-200`}>
+                                <Icon className="w-4 h-4 stroke-[2.2]" />
                               </div>
                               {item.ping && (
                                 <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
@@ -283,22 +284,33 @@ export default function ImportantReminders({
                   })}
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center gap-1 text-slate-400">
+                <div className="flex flex-col items-center justify-center gap-1 text-slate-400 my-auto">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                   <span className="text-[8px] font-bold uppercase text-emerald-600">Clear</span>
                 </div>
               )}
             </div>
+
+            {/* Bottom Status / Expand Hint */}
+            <div className="shrink-0 pt-0.5">
+              <button
+                onClick={onToggleCollapse}
+                className="text-[9px] font-bold text-slate-400 hover:text-brand cursor-pointer transition-colors"
+                title="Expand Reminders"
+              >
+                Expand
+              </button>
+            </div>
           </div>
 
           {/* ── LAYER 2: EXPANDED PANEL VIEW (w-[318px] Fixed Layout) ── */}
           <div
-            className={`w-[318px] shrink-0 flex flex-col h-full transition-opacity duration-200 ease-in-out ${
+            className={`w-[318px] shrink-0 flex flex-col h-full overflow-hidden transition-opacity duration-200 ease-in-out ${
               collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
             }`}
           >
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900 z-10">
               <div className="flex items-center gap-2 min-w-0">
                 <Bell className={cn('w-[18px] h-[18px] shrink-0', totalCount > 0 ? 'text-amber-500 fill-amber-500/20' : 'text-emerald-500')} />
                 <span className="text-[13px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight truncate">
@@ -314,7 +326,7 @@ export default function ImportantReminders({
             </div>
 
             {/* Status subheader row */}
-            <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 text-[11px] font-bold shrink-0">
+            <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 text-[11px] font-bold shrink-0 bg-slate-50/40 dark:bg-slate-800/30">
               <button
                 onClick={() => navigate('/documents?filter=expired')}
                 className="flex items-center gap-1.5 text-rose-600 hover:opacity-75 transition-opacity cursor-pointer shrink-0"
@@ -341,8 +353,8 @@ export default function ImportantReminders({
               </span>
             </div>
 
-            {/* Reminders items list */}
-            <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto min-h-0">
+            {/* Reminders items list (Scrollable with modern smooth scrollbar) */}
+            <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto min-h-0 overscroll-contain">
               {totalCount === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center p-6 text-center gap-2">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
@@ -391,7 +403,7 @@ export default function ImportantReminders({
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] shrink-0">
+            <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] shrink-0 bg-white dark:bg-slate-900">
               <div className="flex items-center gap-1.5 text-slate-500 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
                 Live compliance monitoring
@@ -409,4 +421,3 @@ export default function ImportantReminders({
     </TooltipProvider>
   );
 }
-
