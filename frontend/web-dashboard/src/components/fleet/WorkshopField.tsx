@@ -327,16 +327,26 @@ export default function WorkshopField({
               </Button>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => openAddDialogWith(value)}
-              className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50 cursor-pointer"
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              + Save New Workshop
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => openAddDialogWith(value)}
+                className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50 cursor-pointer"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                + Save New Workshop
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setIsOpen(false)}
+                className="h-7 text-xs font-bold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white px-2.5 cursor-pointer rounded-lg shadow-xs"
+              >
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       )}

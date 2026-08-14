@@ -231,10 +231,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
           </div>
 
           {/* Footer Action */}
-          <div className="shrink-0 p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">
-              Can't find what you need?
-            </span>
+          <div className="shrink-0 p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-2">
             <Button
               type="button"
               variant="outline"
@@ -246,7 +243,16 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
               className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50 cursor-pointer"
             >
               <Plus className="w-3 h-3 mr-1" />
-              + Add Custom Service Item
+              + Add Custom Item
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setIsOpen(false)}
+              className="h-7 text-xs font-bold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white px-3 cursor-pointer rounded-lg shadow-xs"
+            >
+              Done {selectedItems.length > 0 ? `(${selectedItems.length})` : ''} ✓
             </Button>
           </div>
         </div>
