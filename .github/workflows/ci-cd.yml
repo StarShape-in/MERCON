@@ -61,8 +61,8 @@ jobs:
           sudo nginx -s reload 2>/dev/null || true
 
           # Ensure host uploads directory exists with full 777 write permissions
-          mkdir -p ./backend/api-server/uploads /tmp/uploads
-          chmod -R 777 ./backend/api-server/uploads /tmp/uploads 2>/dev/null || true
+          mkdir -p /tmp/mercon-uploads /tmp/uploads ./backend/api-server/uploads
+          chmod -R 777 /tmp/mercon-uploads /tmp/uploads ./backend/api-server/uploads 2>/dev/null || true
 
           # Build and start services in detached mode
           docker compose up -d --build

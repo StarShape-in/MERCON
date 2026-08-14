@@ -46,7 +46,7 @@ services:
       ICCES_ACCT: "${ICCES_ACCT:-}"
       PORT: 3000
     volumes:
-      - "${UPLOADS_DIR:-./backend/api-server/uploads}:/app/backend/api-server/uploads" # Local VPS storage for files
+      - "/tmp/mercon-uploads:/app/backend/api-server/uploads"
       - "/tmp/uploads:/tmp/uploads"
     depends_on:
       postgres-db:
