@@ -184,11 +184,27 @@ export default function DocumentsCenterPage() {
   });
 
   const [isAiOcrRunning, setIsAiOcrRunning] = useState(false);
+  const [extractingRowId, setExtractingRowId] = useState<string | null>(null);
+
+  const handleSingleDocAiOcr = async (docId: string, docLabel: string) => {
+    setExtractingRowId(docId);
+    toast.info(`Extracting metadata via Gemini AI Vision for ${docLabel}...`);
+    try {
+      await documentService.extractDocumentOcr(docId);
+      toast.success(`✨ Successfully extracted & saved AI metadata for ${docLabel}!`);
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    } catch (err: any) {
+      toast.error('AI extraction error: ' + (err.message || 'Failed to extract metadata'));
+    } finally {
+      setExtractingRowId(null);
+    }
+  };
 
   const handleRunAiOcrExtract = async () => {
     setIsAiOcrRunning(true);
     try {
-      const res = await documentService.bulkOcrExtract(true, 200);
+      const res = await documentService.bulkOcrExtract(false, 200);
       toast.success(res.message || 'Successfully extracted document dates with AI OCR!');
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -923,9 +939,17 @@ export default function DocumentsCenterPage() {
                 accessor: (row) => (
                   <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
+                      onClick={() => handleSingleDocAiOcr(row.id, docTypeLabel(row.doc_type))}
+                      disabled={extractingRowId === row.id}
+                      className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors disabled:opacity-50"
+                      title="AI Vision Auto-Extract Metadata (Serial #, Plate #, Issue/Expiry Date, Authority)"
+                    >
+                      {extractingRowId === row.id ? <Loader2 size={14} className="animate-spin text-amber-600" /> : <Sparkles size={14} />}
+                    </button>
+                    <button
                       onClick={() => setPreviewDoc(row)}
                       className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
-                      title="Preview File"
+                      title="Preview File & AI Details"
                     >
                       <Eye size={14} />
                     </button>
