@@ -200,6 +200,9 @@ model Vehicle {
   status           AssetStatus @default(Available)
   capacity_kg      Int
   current_odometer Float       @default(0.0)
+  // When current_odometer was last changed — drives the "reading is stale,
+  // ask the operator to update it" prompt. Null means never recorded.
+  odometer_updated_at DateTime? @db.Timestamptz
   gps_device_id    String?
   last_lat         Float?
   last_lng         Float?

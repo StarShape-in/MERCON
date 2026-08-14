@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
@@ -37,6 +37,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -142,6 +143,23 @@ export default function VehicleListPage() {
 
   // Vehicles selected for the "send to workshop" dialog (one row, or a bulk selection).
   const [workshopVehicles, setWorkshopVehicles] = useState<Vehicle[]>([]);
+
+  // Odometer quick-update popover — which row is open, and the value being typed.
+  const [odometerEditId, setOdometerEditId] = useState<string | null>(null);
+  const [odometerDraft, setOdometerDraft] = useState('');
+
+  const updateOdometerMutation = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: number }) =>
+      vehicleService.update(id, { current_odometer: value }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      setOdometerEditId(null);
+      toast.success('Odometer reading updated.');
+    },
+    onError: () => {
+      toast.error('Failed to update odometer reading.');
+    },
+  });
 
   const debouncedSearch = useDebouncedValue(search, 300);
 
@@ -428,14 +446,77 @@ export default function VehicleListPage() {
       accessor: (row: Vehicle) => {
         const mileagePct = Math.min(100, Math.round(((row.current_odometer || 0) / 300000) * 100));
         const mileageColor = mileagePct > 80 ? 'bg-rose-500' : mileagePct > 50 ? 'bg-amber-500' : 'bg-indigo-500';
+        const daysSinceUpdate = row.odometer_updated_at
+          ? Math.floor((Date.now() - new Date(row.odometer_updated_at).getTime()) / 86_400_000)
+          : Infinity;
+        const isStale = daysSinceUpdate >= 15;
+        const isEditing = odometerEditId === row.id;
+
         return (
-          <div className="space-y-1">
-            <span className="text-xs text-slate-700 dark:text-slate-300 font-mono font-bold block">
-              {(row.current_odometer || 184500).toLocaleString()} km
-            </span>
-            <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-              <div className={cn("h-full rounded-full transition-all duration-300", mileageColor)} style={{ width: `${mileagePct}%` }} />
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <div className="space-y-1">
+              <span className="text-xs text-slate-700 dark:text-slate-300 font-mono font-bold block">
+                {(row.current_odometer || 0).toLocaleString()} km
+              </span>
+              <div className="w-20 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div className={cn("h-full rounded-full transition-all duration-300", mileageColor)} style={{ width: `${mileagePct}%` }} />
+              </div>
             </div>
+
+            {isStale && (
+              <Popover
+                open={isEditing}
+                onOpenChange={(open) => {
+                  if (open) {
+                    setOdometerEditId(row.id);
+                    setOdometerDraft(row.current_odometer ? String(row.current_odometer) : '');
+                  } else {
+                    setOdometerEditId(null);
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    title={
+                      row.odometer_updated_at
+                        ? `Odometer reading is ${daysSinceUpdate} days old — click to update`
+                        : 'Odometer reading has never been recorded — click to update'
+                    }
+                    className="shrink-0 w-6 h-6 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-600 flex items-center justify-center hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-56 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl z-[9999]">
+                  <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2">
+                    Update odometer reading
+                  </p>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={odometerDraft}
+                    onChange={(e) => setOdometerDraft(e.target.value)}
+                    placeholder="Odometer (km)"
+                    className="h-8 text-xs mb-2"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!odometerDraft || updateOdometerMutation.isPending}
+                    onClick={() => {
+                      const value = Number(odometerDraft);
+                      if (!Number.isFinite(value) || value < 0) return;
+                      updateOdometerMutation.mutate({ id: row.id, value });
+                    }}
+                    className="h-8 w-full text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white"
+                  >
+                    {updateOdometerMutation.isPending ? 'Saving...' : 'Save'}
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         );
       },

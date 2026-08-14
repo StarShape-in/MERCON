@@ -21,6 +21,8 @@ export interface Vehicle {
   status: AssetStatus;
   capacity_kg: number;
   current_odometer: number;
+  /** When current_odometer was last changed. Null means never recorded. */
+  odometer_updated_at?: string | null;
   gps_device_id: string | null;
   trailer_number: string | null;
   trailer_type: AssetType | null;
@@ -164,7 +166,7 @@ export const vehicleService = {
     return res.data.data;
   },
 
-  async update(id: string, payload: Partial<CreateVehiclePayload & { status: AssetStatus }>): Promise<Vehicle> {
+  async update(id: string, payload: Partial<CreateVehiclePayload & { status: AssetStatus; current_odometer: number }>): Promise<Vehicle> {
     const res = await api.patch<ApiResponse<Vehicle>>(`/vehicles/${id}`, payload);
     return res.data.data;
   },

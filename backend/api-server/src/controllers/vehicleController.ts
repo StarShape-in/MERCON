@@ -488,6 +488,9 @@ export const updateVehicle = async (req: Request, res: Response) => {
         ...req.body,
         asset_type: req.body.asset_type ? (req.body.asset_type as AssetType) : undefined,
         trailer_type: req.body.trailer_type ? (req.body.trailer_type as AssetType) : undefined,
+        // Stamped server-side, not client-supplied, so it always reflects
+        // when the reading actually changed.
+        odometer_updated_at: req.body.current_odometer !== undefined ? new Date() : undefined,
         updated_by: (req as any).user?.id
       }
     });
