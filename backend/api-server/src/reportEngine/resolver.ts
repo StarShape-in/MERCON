@@ -243,7 +243,7 @@ export async function runReportQuery(spec: ReportQuerySpec): Promise<ReportResul
 
   // Group by rows+columns dimension key (or one group per record if none chosen).
   const groupKeyOf = (record: any) =>
-    [...rows, ...columns].map((k) => String(extractDimensionValue(k, record, root.key, joinInfo) ?? '—')).join(' ');
+    [...rows, ...columns].map((k) => String(extractDimensionValue(k, record, root.key, joinInfo) ?? '—')).join('||');
 
   const groups = new Map<string, { dims: Record<string, any>; records: any[] }>();
   for (const record of filtered) {
