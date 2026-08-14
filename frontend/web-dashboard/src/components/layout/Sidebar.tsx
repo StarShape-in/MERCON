@@ -126,7 +126,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin', moduleKey: 'recycle-bin' as ModuleKey },
       ],
     },
-  ].map((group) => ({ ...group, items: group.items.filter((item) => moduleEnabled(item.moduleKey)) }))
+  ].map((group) => ({ ...group, items: group.items.filter((item: any) => !item.moduleKey || moduleEnabled(item.moduleKey)) }))
     .filter((group) => group.items.length > 0);
 
   return (

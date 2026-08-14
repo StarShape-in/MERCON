@@ -840,8 +840,34 @@ export default function DocumentsCenterPage() {
                 )
               },
               {
+                header: 'Doc # / AI Metadata',
+                accessor: (row) => {
+                  const docNum = row.ai_extracted_json?.document_number;
+                  const confidence = row.ai_extracted_json?.confidence;
+                  return (
+                    <div className="flex flex-col">
+                      <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                        {docNum || `DOC-${row.id.slice(0, 8)}`}
+                      </span>
+                      {confidence ? (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>{Math.round(confidence * 100)}% AI Vision</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">Manual Entry</span>
+                      )}
+                    </div>
+                  );
+                }
+              },
+              {
                 header: 'Issuer Authority',
-                accessor: (row) => <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">{row.issuer}</span>
+                accessor: (row) => (
+                  <span className="text-xs text-slate-700 dark:text-slate-200 font-semibold">
+                    {row.ai_extracted_json?.issuing_authority || row.issuer}
+                  </span>
+                )
               },
               {
                 header: 'Uploaded Date',
@@ -1226,6 +1252,48 @@ export default function DocumentsCenterPage() {
                 )}
               </div>
 
+              {/* AI Vision OCR Extracted Metadata Card */}
+              {previewDoc.ai_extracted_json && (
+                <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Gemini Vision AI Extracted Metadata</span>
+                    </span>
+                    {previewDoc.ai_extracted_json.confidence && (
+                      <span className="text-[10px] bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-mono font-bold">
+                        {Math.round(previewDoc.ai_extracted_json.confidence * 100)}% Confidence
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {previewDoc.ai_extracted_json.document_number && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Doc / Policy #</span>
+                        <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400">{previewDoc.ai_extracted_json.document_number}</span>
+                      </div>
+                    )}
+                    {previewDoc.ai_extracted_json.issuing_authority && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Issuing Authority</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json.issuing_authority}</span>
+                      </div>
+                    )}
+                    {previewDoc.ai_extracted_json.vehicle_plate && (
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Extracted Vehicle Plate</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json.vehicle_plate}</span>
+                      </div>
+                    )}
+                  </div>
+                  {previewDoc.ai_extracted_json.notes && (
+                    <div className="pt-1.5 border-t border-amber-200/50 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-200 italic">
+                      "{previewDoc.ai_extracted_json.notes}"
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Metadata Key-Value Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1">
@@ -1240,7 +1308,7 @@ export default function DocumentsCenterPage() {
 
                 <div className="space-y-1">
                   <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Issuing Regulatory Body</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{REGULATORY_BODY[previewDoc.doc_type] || 'Saudi Authority'}</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json?.issuing_authority || REGULATORY_BODY[previewDoc.doc_type] || 'Saudi Authority'}</p>
                 </div>
 
                 <div className="space-y-1">

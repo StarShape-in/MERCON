@@ -16,6 +16,14 @@ export interface MerconDocument {
   folder?: MerconFolder | null;
   issue_date: string | null;
   expiry_date: string | null;
+  ocr_raw_text?: string | null;
+  ai_extracted_json?: {
+    document_number?: string | null;
+    vehicle_plate?: string | null;
+    issuing_authority?: string | null;
+    notes?: string | null;
+    confidence?: number;
+  } | null;
   is_confidential: boolean;
   isActive: boolean;
   createdAt: string;
