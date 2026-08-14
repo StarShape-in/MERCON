@@ -306,47 +306,32 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         </div>
 
         {/* ── Standard Project Select Dropdown Control Bar ───────────────── */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex-1">
-            <Select value={categoryFilter} onValueChange={(val: any) => setCategoryFilter(val)}>
-              <SelectTrigger className="h-8 w-full text-xs font-bold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-1 focus:ring-[#E8450F] shadow-2xs">
-                <div className="flex items-center gap-2 truncate">
-                  <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <SelectValue placeholder="All Delay Categories" />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
-                <SelectItem value="all" className="text-xs font-bold cursor-pointer">
-                  All Delay Categories ({counts.all})
-                </SelectItem>
-                <SelectItem value="traffic" className="text-xs font-semibold cursor-pointer">
-                  Traffic Congestion ({counts.traffic})
-                </SelectItem>
-                <SelectItem value="breakdown" className="text-xs font-semibold cursor-pointer">
-                  Mechanical Breakdown ({counts.breakdown})
-                </SelectItem>
-                <SelectItem value="loading" className="text-xs font-semibold cursor-pointer">
-                  Dock &amp; Loading Queue ({counts.loading})
-                </SelectItem>
-                <SelectItem value="weather" className="text-xs font-semibold cursor-pointer">
-                  Weather &amp; Sandstorm ({counts.weather})
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setCategoryFilter('all')}
-            className={cn(
-              'h-8 px-3 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-all cursor-pointer shrink-0 shadow-xs',
-              categoryFilter === 'all'
-                ? 'bg-[#E8450F] hover:bg-[#cf3c0b] text-white border-[#E8450F]'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
-            )}
-          >
-            Show All
-          </button>
+        <div className="w-full">
+          <Select value={categoryFilter} onValueChange={(val: any) => setCategoryFilter(val)}>
+            <SelectTrigger className="h-8 w-full text-xs font-bold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-1 focus:ring-[#E8450F] shadow-2xs">
+              <div className="flex items-center gap-2 truncate">
+                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <SelectValue placeholder="All Delay Categories" />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
+              <SelectItem value="all" className="text-xs font-bold cursor-pointer">
+                All Delay Categories ({counts.all})
+              </SelectItem>
+              <SelectItem value="traffic" className="text-xs font-semibold cursor-pointer">
+                Traffic Congestion ({counts.traffic})
+              </SelectItem>
+              <SelectItem value="breakdown" className="text-xs font-semibold cursor-pointer">
+                Mechanical Breakdown ({counts.breakdown})
+              </SelectItem>
+              <SelectItem value="loading" className="text-xs font-semibold cursor-pointer">
+                Dock &amp; Loading Queue ({counts.loading})
+              </SelectItem>
+              <SelectItem value="weather" className="text-xs font-semibold cursor-pointer">
+                Weather &amp; Sandstorm ({counts.weather})
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

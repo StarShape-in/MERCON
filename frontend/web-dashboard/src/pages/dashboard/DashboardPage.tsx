@@ -8,12 +8,15 @@ import {
   Download,
   Maximize2,
   ArrowUpRight,
+  Truck,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ImportantReminders from '@/components/dashboard/ImportantReminders';
 import MonthlyOverview from '@/components/dashboard/MonthlyOverview';
 import OperatorActionCenter from '@/components/dashboard/OperatorActionCenter';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
@@ -180,6 +183,8 @@ export default function DashboardPage() {
       const origin = t.stops?.[0]?.location_name || t.rateCard?.route_origin || 'Riyadh Hub';
       const destination = t.stops?.[t.stops.length - 1]?.location_name || t.rateCard?.route_destination || 'Jeddah Gateway';
       const route = `${origin} → ${destination}`;
+      const customerName = t.customer?.name || 'Saudi Aramco Logistics';
+      const price = t.billing_amount ?? t.trip_charges ?? t.rateCard?.base_price ?? (t.planned_distance ? t.planned_distance * 3 : 2450);
 
       let mappedStatus = 'In Transit';
       let progress = 65;
@@ -222,14 +227,19 @@ export default function DashboardPage() {
       const item = {
         id: t.ref_id || `TRP-${t.id.slice(0, 6).toUpperCase()}`,
         rawId: t.id,
+        pickup: origin,
+        dropoff: destination,
         route,
+        customerName,
+        price,
         driver: driverName,
         initials,
         avatarBg: 'bg-blue-100 text-blue-700',
         vehicle: vehiclePlate,
         status: mappedStatus,
+        rawStatus: t.status || mappedStatus,
         startTime: t.planned_start
-          ? new Date(t.planned_start).toLocaleDateString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+          ? new Date(t.planned_start).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
           : new Date(t.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
         eta,
         progress,
@@ -251,19 +261,19 @@ export default function DashboardPage() {
 
     // Fallback seed trips if system is fresh with 0 database records
     const fallbackCurrent = [
-      { id: 'TRP-0030', rawId: 'TRP-0030', route: 'Dammam → Jeddah', driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', plate: 'VSA-3871', tripId: 'TRP-0030', status: 'In Transit', startTime: 'Today, 08:30 AM', eta: '2h 15m', progress: 76, distance: '1,234 km', lat: 26.20, lng: 43.80 },
-      { id: 'TRP-0029', rawId: 'TRP-0029', route: 'Riyadh → Dammam', driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'To Pickup', startTime: 'Today, 07:45 AM', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67 },
-      { id: 'TRP-0028', rawId: 'TRP-0028', route: 'Abu Dhabi → Dammam', driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'At Pickup', startTime: 'Today, 07:10 AM', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17 },
-      { id: 'TRP-0027', rawId: 'TRP-0027', route: 'Jeddah → Riyadh', driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'To Delivery', startTime: 'Today, 09:15 AM', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10 },
+      { id: 'TRP-0030', rawId: 'TRP-0030', pickup: 'Dammam', dropoff: 'Jeddah', route: 'Dammam → Jeddah', customerName: 'Saudi Aramco Logistics', price: 3450, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', plate: 'VSA-3871', tripId: 'TRP-0030', status: 'In Transit', rawStatus: 'InTransit', startTime: 'Today', eta: '2h 15m', progress: 76, distance: '1,234 km', lat: 26.20, lng: 43.80 },
+      { id: 'TRP-0029', rawId: 'TRP-0029', pickup: 'Riyadh', dropoff: 'Dammam', route: 'Riyadh → Dammam', customerName: 'SABIC Petrochemicals', price: 2100, driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'To Pickup', rawStatus: 'Dispatched', startTime: 'Today', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67 },
+      { id: 'TRP-0028', rawId: 'TRP-0028', pickup: 'Abu Dhabi', dropoff: 'Dammam', route: 'Abu Dhabi → Dammam', customerName: 'Almarai Dairy Fleet', price: 4200, driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'At Pickup', rawStatus: 'AtPickup', startTime: 'Today', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17 },
+      { id: 'TRP-0027', rawId: 'TRP-0027', pickup: 'Jeddah', dropoff: 'Riyadh', route: 'Jeddah → Riyadh', customerName: 'Panda Retail Operations', price: 1850, driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'To Delivery', rawStatus: 'AtDelivery', startTime: 'Today', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10 },
     ];
 
     const fallbackUpcoming = [
-      { id: 'TRP-0033', rawId: 'TRP-0033', route: 'Riyadh → Madinah', driver: 'Khalid Saeed', initials: 'KS', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6485', plate: 'DRA-6485', tripId: 'TRP-0033', status: 'Scheduled', startTime: 'Tomorrow, 11:00 AM', eta: '5h 00m', progress: 0, distance: '310 km', lat: 24.68, lng: 46.72 },
-      { id: 'TRP-0032', rawId: 'TRP-0032', route: 'Jeddah → Taif', driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'KSA-7712', plate: 'KSA-7712', tripId: 'TRP-0032', status: 'Scheduled', startTime: 'Tomorrow, 12:30 PM', eta: '2h 30m', progress: 0, distance: '98 km', lat: 21.38, lng: 39.86 },
+      { id: 'TRP-0033', rawId: 'TRP-0033', pickup: 'Riyadh', dropoff: 'Madinah', route: 'Riyadh → Madinah', customerName: 'Jarir Marketing Co.', price: 1950, driver: 'Khalid Saeed', initials: 'KS', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6485', plate: 'DRA-6485', tripId: 'TRP-0033', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '5h 00m', progress: 0, distance: '310 km', lat: 24.68, lng: 46.72 },
+      { id: 'TRP-0032', rawId: 'TRP-0032', pickup: 'Jeddah', dropoff: 'Taif', route: 'Jeddah → Taif', customerName: 'BinDawood Superstores', price: 1200, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'KSA-7712', plate: 'KSA-7712', tripId: 'TRP-0032', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '2h 30m', progress: 0, distance: '98 km', lat: 21.38, lng: 39.86 },
     ];
 
     const fallbackRecent = [
-      { id: 'TRP-0025', rawId: 'TRP-0025', route: 'Riyadh → Qassim', driver: 'Faizan Malik', initials: 'FM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-9873', plate: 'DRA-9873', tripId: 'TRP-0025', status: 'Completed', startTime: 'Yesterday', eta: 'Done', progress: 100, distance: '180 km', lat: 26.32, lng: 43.97 },
+      { id: 'TRP-0025', rawId: 'TRP-0025', pickup: 'Riyadh', dropoff: 'Qassim', route: 'Riyadh → Qassim', customerName: 'Al-Othaim Commercial', price: 2600, driver: 'Faizan Malik', initials: 'FM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-9873', plate: 'DRA-9873', tripId: 'TRP-0025', status: 'Completed', rawStatus: 'Completed', startTime: 'Yesterday', eta: 'Done', progress: 100, distance: '180 km', lat: 26.32, lng: 43.97 },
     ];
 
     return {
@@ -275,6 +285,124 @@ export default function DashboardPage() {
 
   const activeTrips = tripTab === 'current' ? currentTrips : tripTab === 'upcoming' ? upcomingTrips : recentTrips;
   const activeFleet = activeTrips;
+
+  // Exact Trip Ledger Columns matching TripListPage
+  const tripLedgerColumns = useMemo<Column<any>[]>(() => [
+    {
+      header: 'Trip ID',
+      className: 'w-[90px] shrink-0',
+      accessor: (row: any) => (
+        <span className="font-mono text-xs font-bold text-brand truncate block">
+          {row.id || row.tripId || row.ref_id || 'Draft'}
+        </span>
+      ),
+    },
+    {
+      header: 'Customer',
+      className: 'max-w-[130px] truncate',
+      accessor: (row: any) => (
+        <div className="flex flex-col max-w-[130px] truncate">
+          <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 leading-tight truncate" title={row.customerName || 'Standard Freight'}>
+            {row.customerName || 'Standard Freight'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Route',
+      className: 'max-w-[170px] truncate',
+      accessor: (row: any) => {
+        const pickup = row.pickup || (row.route || '').split('→')[0]?.trim() || 'Riyadh';
+        const dropoff = row.dropoff || (row.route || '').split('→')[1]?.trim() || 'Jeddah';
+        return (
+          <div className="flex flex-col gap-0 py-0.5 max-w-[170px] truncate" title={`From: ${pickup}\nTo: ${dropoff}`}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {pickup}
+              </span>
+            </div>
+            <div className="ml-[2.5px] w-0 h-2 border-l border-dotted border-slate-400 dark:border-slate-500 my-0.5" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {dropoff}
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Driver',
+      className: 'max-w-[150px] truncate',
+      accessor: (row: any) => (
+        <div className="flex items-center gap-1.5 max-w-[150px]">
+          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
+            {row.initials || (row.driver ? `${row.driver[0]}` : 'U')}
+          </div>
+          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={row.driver}>
+            {row.driver || 'Unassigned'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Vehicle',
+      className: 'w-[95px] shrink-0',
+      accessor: (row: any) => (
+        <div className="flex items-center gap-1">
+          <Truck size={12} className="text-slate-400 shrink-0" />
+          {row.vehicle ? (
+            <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate">
+              {row.vehicle}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400 italic">Unassigned</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Rate (SAR)',
+      className: 'w-[100px] shrink-0',
+      accessor: (row: any) => {
+        const price = row.price;
+        return (
+          <div className="flex items-center font-mono text-xs">
+            <span className="font-extrabold text-slate-900 dark:text-slate-200">
+              {price !== undefined && price !== null && Number(price) > 0
+                ? `SAR ${Number(price).toLocaleString('en-US')}`
+                : (row.distance || '—')}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Status',
+      className: 'w-[110px] shrink-0',
+      accessor: (row: any) => (
+        <StatusBadge status={row.rawStatus || row.status} />
+      ),
+    },
+    {
+      header: 'Planned Start',
+      className: 'w-[95px] shrink-0',
+      accessor: (row: any) => (
+        <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
+          {row.startTime}
+        </span>
+      ),
+    },
+    {
+      header: '',
+      className: 'w-[40px] text-right shrink-0',
+      accessor: () => (
+        <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand transition-colors ml-auto" />
+      ),
+    },
+  ], []);
 
   return (
     <TooltipProvider>
@@ -459,194 +587,58 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* ── BOTTOM ROW: Active Transit Overview Table (Full Width) ──── */}
-          <div className="w-full bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden flex flex-col min-h-[460px]">
-            {/* Table Header */}
-            <div className="px-5 py-3.5 border-b border-black/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/40">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-extrabold text-slate-900 uppercase tracking-wider">
-                    Active Transit Overview
-                  </span>
-                  <Badge className="bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0] text-[9px] font-extrabold px-2 py-0 h-4 rounded-full">
-                    {activeTrips.length} {tripTab}
-                  </Badge>
-                </div>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                  Real-time dispatch overview of {tripTab} trips
-                </p>
+          {/* ── BOTTOM ROW: Trip Ledger (Matches Trips Page) ──── */}
+          <DataTable
+            title={
+              <span className="flex items-center gap-2 font-extrabold text-slate-900 dark:text-slate-100">
+                <Truck className="w-4 h-4 text-brand" />
+                <span>Trip Ledger</span>
+              </span>
+            }
+            filterElement={
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                {(['current', 'upcoming', 'recent'] as const).map((tab) => {
+                  const count = tab === 'current' ? currentTrips.length : tab === 'upcoming' ? upcomingTrips.length : recentTrips.length;
+                  const isActive = tripTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setTripTab(tab)}
+                      className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isActive
+                          ? 'bg-brand text-white shadow-xs'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Recent'}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-
-              <div className="flex items-center gap-4">
-                {/* Tab Pills */}
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-                  {(['current', 'upcoming', 'recent'] as const).map((tab) => {
-                    const count = tab === 'current' ? currentTrips.length : tab === 'upcoming' ? upcomingTrips.length : recentTrips.length;
-                    const isActive = tripTab === tab;
-                    return (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => setTripTab(tab)}
-                        className={`px-3 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
-                          isActive
-                            ? 'bg-brand text-white shadow-xs'
-                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
-                      >
-                        <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Recent'}</span>
-                        <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => navigate('/trips')}
-                  className="text-[11px] font-extrabold text-brand hover:underline flex items-center gap-1 whitespace-nowrap cursor-pointer"
-                >
-                  View Full Dispatch Map <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Table Area with Generous Min-Height — Fitted Neatly Without Horizontal Scroll */}
-            <div className="flex-1 flex flex-col justify-between overflow-hidden">
-              <div className="min-h-[360px] max-h-[520px] overflow-y-auto overflow-x-hidden">
-                <table className="w-full text-left table-fixed">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/20 text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
-                      <th className="px-3.5 py-3 w-[100px] sm:w-[110px]">Trip ID</th>
-                      <th className="px-3.5 py-3 w-[180px] lg:w-[220px]">Route</th>
-                      <th className="px-3.5 py-3 w-[130px] lg:w-[150px]">Driver</th>
-                      <th className="px-3.5 py-3 w-[100px] hidden sm:table-cell">Vehicle</th>
-                      <th className="px-3.5 py-3 w-[115px]">Status</th>
-                      <th className="px-3.5 py-3 w-[110px] hidden lg:table-cell">Start Time</th>
-                      <th className="px-3.5 py-3 w-[70px]">ETA</th>
-                      <th className="px-3.5 py-3 w-[110px] sm:w-[130px]">Progress</th>
-                      <th className="px-3.5 py-3 w-[75px] text-right hidden xl:table-cell">Distance</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100/70 text-xs">
-                    {activeTrips.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="px-5 py-16 text-center text-slate-400">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
-                              <FileText className="w-6 h-6" />
-                            </div>
-                            <p className="text-sm font-bold text-slate-700">No {tripTab} trips active</p>
-                            <p className="text-xs text-slate-400">There are currently no dispatch records in this category.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      activeTrips.map((trip) => {
-                        const s = STATUS_STYLE[trip.status] || STATUS_STYLE['In Transit'];
-                        return (
-                          <tr
-                            key={trip.rawId || trip.id}
-                            onClick={() => navigate(`/trips/${trip.rawId || trip.id}`)}
-                            className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
-                          >
-                            {/* Trip ID */}
-                            <td className="px-3.5 py-3">
-                              <span className="font-extrabold text-brand font-mono text-[11px] truncate block">
-                                {trip.id}
-                              </span>
-                            </td>
-
-                            {/* Route */}
-                            <td className="px-3.5 py-3">
-                              <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate block" title={trip.route}>
-                                {trip.route}
-                              </span>
-                            </td>
-
-                            {/* Driver */}
-                            <td className="px-3.5 py-3">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-extrabold shrink-0 ${trip.avatarBg}`}>
-                                  {trip.initials}
-                                </div>
-                                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate" title={trip.driver}>
-                                  {trip.driver}
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* Vehicle */}
-                            <td className="px-3.5 py-3 hidden sm:table-cell">
-                              <span className="text-[10px] font-bold font-mono text-slate-700 dark:text-slate-300 truncate block">
-                                {trip.vehicle}
-                              </span>
-                            </td>
-
-                            {/* Status */}
-                            <td className="px-3.5 py-3">
-                              <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${s.badge}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                                {trip.status}
-                              </span>
-                            </td>
-
-                            {/* Start Time */}
-                            <td className="px-3.5 py-3 hidden lg:table-cell">
-                              <span className="text-[10px] text-slate-500 font-medium truncate block">
-                                {trip.startTime}
-                              </span>
-                            </td>
-
-                            {/* ETA */}
-                            <td className="px-3.5 py-3">
-                              <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100 truncate block">
-                                {trip.eta}
-                              </span>
-                            </td>
-
-                            {/* Progress */}
-                            <td className="px-3.5 py-3">
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-brand rounded-full transition-all duration-300"
-                                    style={{ width: `${trip.progress}%` }}
-                                  />
-                                </div>
-                                <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 shrink-0">
-                                  {trip.progress}%
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* Distance */}
-                            <td className="px-3.5 py-3 text-right hidden xl:table-cell">
-                              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
-                                {trip.distance}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Table Ledger Footer */}
-              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/40 flex items-center justify-between text-[11px] text-slate-500 font-semibold mt-auto shrink-0">
-                <span>Showing {activeTrips.length} active dispatch entries</span>
-                <button
-                  onClick={() => navigate('/trips')}
-                  className="text-brand hover:underline font-extrabold flex items-center gap-1 cursor-pointer text-[11px]"
-                >
-                  View All Trips &rarr;
-                </button>
-              </div>
-            </div>
-          </div>
+            }
+            actionsElement={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/trips')}
+                className="h-8 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                <span>View All Trips</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
+              </Button>
+            }
+            columns={tripLedgerColumns}
+            data={activeTrips}
+            enableSelection={false}
+            pageSize={10}
+            onRowClick={(row) => navigate(`/trips/${row.rawId || row.id}`)}
+            emptyTitle={`No ${tripTab} trips found`}
+            emptyMessage="There are currently no dispatch records in this category."
+          />
 
         </div>
       </DashboardLayout>
