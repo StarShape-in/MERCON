@@ -126,7 +126,7 @@ export default function ReportBuilderLandingPage() {
       desc: 'Billed invoices, pending collections, and outstanding customer ledger.',
       spec: {
         rootModule: 'customers',
-        rows: ['customers.company_name', 'customers.credit_limit'],
+        rows: ['customers.name', 'customers.credit_limit'],
         values: [
           { field: 'invoices.total_amount', agg: 'sum' },
           { field: 'invoices.outstanding', agg: 'sum' },
@@ -140,7 +140,7 @@ export default function ReportBuilderLandingPage() {
       desc: 'Categorized operational expenses, driver payouts, and trip costs.',
       spec: {
         rootModule: 'expenses',
-        rows: ['expenses.category', 'expenses.expense_type'],
+        rows: ['expenses.category', 'expenses.payment_method'],
         values: [
           { field: 'expenses.amount', agg: 'sum' },
         ],

@@ -38,7 +38,7 @@ export function parseNaturalLanguageQuery(query: string, _schema?: ReportModule[
       values.push({ field: 'trips.revenue', agg: 'sum' });
     }
   } else if (rootModule === 'invoices') {
-    rows.push('invoices.invoice_number');
+    rows.push('invoices.ref_id');
     values.push({ field: 'invoices.total_amount', agg: 'sum' });
     if (q.includes('overdue')) {
       filters.push({ field: 'invoices.status', op: 'eq', value: 'Overdue' });
@@ -46,17 +46,17 @@ export function parseNaturalLanguageQuery(query: string, _schema?: ReportModule[
       filters.push({ field: 'invoices.status', op: 'eq', value: 'Pending' });
     }
   } else if (rootModule === 'customers') {
-    rows.push('customers.company_name');
+    rows.push('customers.name');
     values.push({ field: 'invoices.total_amount', agg: 'sum' });
   } else if (rootModule === 'expenses') {
     rows.push('expenses.category');
     values.push({ field: 'expenses.amount', agg: 'sum' });
   } else if (rootModule === 'maintenance') {
-    rows.push('maintenance.service_type');
+    rows.push('maintenance.maintenance_type');
     values.push({ field: 'maintenance.cost', agg: 'sum' });
   } else {
     // trips
-    rows.push('trips.trip_number');
+    rows.push('trips.ref_id');
     values.push({ field: 'trips.revenue', agg: 'sum' });
     if (q.includes('completed')) {
       filters.push({ field: 'trips.status', op: 'eq', value: 'Completed' });

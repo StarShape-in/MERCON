@@ -186,7 +186,7 @@ export default function AdvancedBuilderPage() {
 
   // Query spec state
   const [rootModule, setRootModule] = useState<string>(initialSpec?.rootModule || 'trips');
-  const [rows, setRows] = useState<string[]>(initialSpec?.rows || ['trips.trip_number']);
+  const [rows, setRows] = useState<string[]>(initialSpec?.rows || ['trips.ref_id']);
   const [columns, setColumns] = useState<string[]>(initialSpec?.columns || []);
   const [values, setValues] = useState<ReportValueSpec[]>(
     initialSpec?.values || [{ field: 'trips.revenue', agg: 'sum' }]
