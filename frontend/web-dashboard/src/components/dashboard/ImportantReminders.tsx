@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -10,6 +10,9 @@ import {
   Truck,
   FileText,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { documentService } from '@/services/documentService';
@@ -25,6 +28,11 @@ interface ImportantRemindersProps {
 
 interface LiveReminderItem {
   id: string;
+  typeKey: string;
+  typeLabel: string;
+  entityType: string;
+  entityId: string;
+  entityName: string;
   title: string;
   subtext: string;
   shortBadge: string;
@@ -41,11 +49,39 @@ interface LiveReminderItem {
   daysRemaining: number;
 }
 
+interface ReminderGroup {
+  typeKey: string;
+  typeLabel: string;
+  entityType: string;
+  badgeText: string;
+  BadgeIcon: React.ElementType;
+  items: LiveReminderItem[];
+  count: number;
+  worstDaysRemaining: number;
+  worstStatus: 'expired' | 'critical' | 'warning';
+  hasExpired: boolean;
+  hasCritical: boolean;
+  iconBg: string;
+  badgeClass: string;
+  subtextColor: string;
+  titleColor: string;
+  summarySubtext: string;
+}
+
 export default function ImportantReminders({
   collapsed = false,
   onToggleCollapse,
 }: ImportantRemindersProps) {
   const navigate = useNavigate();
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (typeKey: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [typeKey]: !prev[typeKey],
+    }));
+  };
 
   const { data: docs = [] } = useQuery({
     queryKey: ['documents', 'all'],
@@ -72,7 +108,7 @@ export default function ImportantReminders({
     };
   }, [drivers, vehicles]);
 
-  // Build live reminders from real document vault + driver records
+  // Build individual live reminders
   const reminders = useMemo<LiveReminderItem[]>(() => {
     const list: LiveReminderItem[] = [];
     const seenDriverDocIds = new Set<string>();
@@ -94,30 +130,49 @@ export default function ImportantReminders({
         else if (doc.entity_type === 'Vehicle') BadgeIcon = Truck;
         else if (isExpired) BadgeIcon = ShieldAlert;
 
+        let entityLink: string | undefined;
+        if (doc.entity_type === 'Driver') {
+          entityLink = `/drivers/${doc.entity_id}/documents`;
+        } else if (doc.entity_type === 'Vehicle') {
+          entityLink = `/vehicles/${doc.entity_id}/documents`;
+        }
+
         list.push({
           id: `doc-${doc.id}`,
+          typeKey: doc.doc_type || 'GeneralDoc',
+          typeLabel,
+          entityType: doc.entity_type,
+          entityId: doc.entity_id,
+          entityName,
           title: `${typeLabel} - ${entityName}`,
-          subtext: isExpired 
-            ? (days === 0 ? 'Expires today' : `Expired ${Math.abs(days)}d ago`)
+          subtext: isExpired
+            ? days === 0
+              ? 'Expires today'
+              : `Expired ${Math.abs(days)}d ago`
             : `Expires in ${days} day${days === 1 ? '' : 's'}`,
           shortBadge: isExpired ? 'Expired' : `In ${days}d`,
           subtextColor: isExpired ? 'text-rose-600' : isCritical ? 'text-rose-500' : 'text-amber-600',
-          titleColor: isExpired ? 'text-rose-600 font-bold' : 'text-slate-900',
+          titleColor: isExpired ? 'text-rose-600 font-bold' : 'text-slate-900 dark:text-slate-100',
           badgeText: categoryForEntity(doc.entity_type),
           badgeClass: isExpired
             ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30'
             : isCritical
-              ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/20'
-              : 'text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/20',
+            ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/20'
+            : 'text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/20',
           iconBg: isExpired
-            ? 'bg-rose-50 text-rose-600 border-rose-200'
+            ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40'
             : isCritical
-              ? 'bg-rose-50 text-rose-600 border-rose-200'
-              : 'bg-amber-50 text-amber-600 border-amber-200',
-          pillBg: isExpired ? 'bg-rose-50 text-rose-600' : isCritical ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-700',
+            ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40'
+            : 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/40',
+          pillBg: isExpired
+            ? 'bg-rose-50 text-rose-600'
+            : isCritical
+            ? 'bg-rose-50 text-rose-500'
+            : 'bg-amber-50 text-amber-700',
           BadgeIcon,
           ping: isExpired,
           filterParam: isExpired ? 'expired' : isCritical ? 'critical' : 'warning',
+          entityLink,
           daysRemaining: days,
         });
       }
@@ -134,25 +189,36 @@ export default function ImportantReminders({
 
           list.push({
             id: `driver-lic-${d.id}`,
+            typeKey: 'DriverLicense',
+            typeLabel: 'Driver License',
+            entityType: 'Driver',
+            entityId: d.id,
+            entityName: driverName,
             title: `Driver License - ${driverName}`,
-            subtext: isExpired 
-              ? (days === 0 ? 'Expires today' : `Expired ${Math.abs(days)}d ago`)
+            subtext: isExpired
+              ? days === 0
+                ? 'Expires today'
+                : `Expired ${Math.abs(days)}d ago`
               : `Expires in ${days} day${days === 1 ? '' : 's'}`,
             shortBadge: isExpired ? 'Expired' : `In ${days}d`,
             subtextColor: isExpired ? 'text-rose-600' : isCritical ? 'text-rose-500' : 'text-amber-600',
-            titleColor: isExpired ? 'text-rose-600 font-bold' : 'text-slate-900',
+            titleColor: isExpired ? 'text-rose-600 font-bold' : 'text-slate-900 dark:text-slate-100',
             badgeText: 'Driver',
             badgeClass: isExpired
               ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30'
               : isCritical
-                ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/20'
-                : 'text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/20',
+              ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/20'
+              : 'text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/20',
             iconBg: isExpired
-              ? 'bg-rose-50 text-rose-600 border-rose-200'
+              ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40'
               : isCritical
-                ? 'bg-rose-50 text-rose-600 border-rose-200'
-                : 'bg-amber-50 text-amber-600 border-amber-200',
-            pillBg: isExpired ? 'bg-rose-50 text-rose-600' : isCritical ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-700',
+              ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/40'
+              : 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/40',
+            pillBg: isExpired
+              ? 'bg-rose-50 text-rose-600'
+              : isCritical
+              ? 'bg-rose-50 text-rose-500'
+              : 'bg-amber-50 text-amber-700',
             BadgeIcon: UserCheck,
             ping: isExpired,
             filterParam: isExpired ? 'expired' : isCritical ? 'critical' : 'warning',
@@ -165,6 +231,88 @@ export default function ImportantReminders({
 
     return list.sort((a, b) => a.daysRemaining - b.daysRemaining);
   }, [docs, drivers, nameFor]);
+
+  // Group reminders of the same type together
+  const groups = useMemo<ReminderGroup[]>(() => {
+    const map = new Map<string, LiveReminderItem[]>();
+
+    for (const item of reminders) {
+      const key = item.typeKey;
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key)!.push(item);
+    }
+
+    const result: ReminderGroup[] = [];
+
+    map.forEach((items, typeKey) => {
+      // Sort items by most urgent first
+      items.sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+      const first = items[0];
+      const count = items.length;
+      const worstDaysRemaining = Math.min(...items.map((i) => i.daysRemaining));
+      const hasExpired = worstDaysRemaining <= 0;
+      const hasCritical = worstDaysRemaining > 0 && worstDaysRemaining <= 7;
+      const worstStatus: 'expired' | 'critical' | 'warning' = hasExpired
+        ? 'expired'
+        : hasCritical
+        ? 'critical'
+        : 'warning';
+
+      const entityNames = items.map((i) => i.entityName);
+      const namesSummary =
+        entityNames.length <= 2
+          ? entityNames.join(', ')
+          : `${entityNames.slice(0, 2).join(', ')} +${entityNames.length - 2} more`;
+
+      const earliestText =
+        worstDaysRemaining <= 0
+          ? worstDaysRemaining === 0
+            ? 'Expires today'
+            : `Expired ${Math.abs(worstDaysRemaining)}d ago`
+          : `Earliest in ${worstDaysRemaining}d`;
+
+      const summarySubtext =
+        count === 1 ? first.subtext : `${namesSummary} • ${earliestText}`;
+
+      result.push({
+        typeKey,
+        typeLabel: first.typeLabel,
+        entityType: first.entityType,
+        badgeText: first.badgeText,
+        BadgeIcon: first.BadgeIcon,
+        items,
+        count,
+        worstDaysRemaining,
+        worstStatus,
+        hasExpired,
+        hasCritical,
+        iconBg: hasExpired
+          ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900/50'
+          : hasCritical
+          ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:border-amber-900/50'
+          : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900/50',
+        badgeClass: hasExpired
+          ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/30'
+          : hasCritical
+          ? 'text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/20'
+          : 'text-amber-700 border-amber-200 bg-amber-50 dark:bg-amber-950/20',
+        subtextColor: hasExpired
+          ? 'text-rose-600'
+          : hasCritical
+          ? 'text-rose-500'
+          : 'text-amber-600',
+        titleColor: hasExpired
+          ? 'text-rose-600 font-bold'
+          : 'text-slate-900 dark:text-slate-100',
+        summarySubtext,
+      });
+    });
+
+    return result.sort((a, b) => a.worstDaysRemaining - b.worstDaysRemaining);
+  }, [reminders]);
 
   const expiredCount = reminders.filter((r) => r.daysRemaining <= 0).length;
   const criticalCount = reminders.filter((r) => r.daysRemaining > 0 && r.daysRemaining <= 7).length;
@@ -245,39 +393,77 @@ export default function ImportantReminders({
               </Tooltip>
             </div>
 
-            {/* Middle: Timeline Icon Strip (Scrollable) */}
+            {/* Middle: Grouped Timeline Icon Strip with Number Badges */}
             <div className="relative flex-1 flex flex-col items-center gap-2.5 my-2 py-1 z-10 w-full overflow-y-auto min-h-0 no-scrollbar">
-              {totalCount > 0 ? (
+              {groups.length > 0 ? (
                 <>
                   <div className="absolute top-2 bottom-2 w-[1.5px] bg-slate-100 dark:bg-slate-800 rounded-full left-1/2 -translate-x-1/2 -z-10" />
-                  {reminders.map((item) => {
-                    const Icon = item.BadgeIcon;
+                  {groups.map((group) => {
+                    const Icon = group.BadgeIcon;
                     return (
-                      <Tooltip key={item.id}>
+                      <Tooltip key={group.typeKey}>
                         <TooltipTrigger>
                           <div
                             onClick={() => {
-                              if (item.entityLink) navigate(item.entityLink);
-                              else navigate(`/documents?filter=${item.filterParam}`);
+                              if (group.count === 1 && group.items[0].entityLink) {
+                                navigate(group.items[0].entityLink);
+                              } else {
+                                navigate(`/documents?filter=${group.worstStatus}`);
+                              }
                             }}
                             className="relative z-10 flex items-center justify-center cursor-pointer group/item hover:scale-110 transition-transform duration-200 shrink-0"
                           >
                             <div className="relative">
-                              <div className={`w-8.5 h-8.5 rounded-2xl ${item.iconBg} border flex items-center justify-center shadow-2xs group-hover/item:shadow-md transition-all duration-200`}>
+                              <div className={`w-8.5 h-8.5 rounded-2xl ${group.iconBg} border flex items-center justify-center shadow-2xs group-hover/item:shadow-md transition-all duration-200`}>
                                 <Icon className="w-4 h-4 stroke-[2.2]" />
                               </div>
-                              {item.ping && (
-                                <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+
+                              {/* Number Badge with Icon when same type has multiple reminders */}
+                              {group.count > 1 && (
+                                <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-sm">
+                                  {group.count}
+                                </span>
+                              )}
+
+                              {group.hasExpired && (
+                                <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-2 ring-white" />
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 ring-1.5 ring-white" />
                                 </span>
                               )}
                             </div>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="left" className="bg-slate-900 text-white p-2.5 rounded-xl text-[10px] space-y-0.5 border border-slate-800 shadow-xl max-w-[200px]">
-                          <p className="font-extrabold text-white leading-tight">{item.title}</p>
-                          <p className={cn('font-semibold text-[9.5px]', item.subtextColor)}>{item.subtext}</p>
+                        <TooltipContent side="left" className="bg-slate-900 text-white p-2.5 rounded-xl text-[10px] space-y-1 border border-slate-800 shadow-xl max-w-[220px]">
+                          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                            <p className="font-extrabold text-white leading-tight">
+                              {group.count > 1 ? `${group.count} ${group.typeLabel}s` : group.items[0].title}
+                            </p>
+                            {group.count > 1 && (
+                              <span className="bg-brand/20 text-brand px-1.5 py-0.2 rounded text-[9px] font-bold">
+                                {group.count} items
+                              </span>
+                            )}
+                          </div>
+                          {group.count > 1 ? (
+                            <div className="space-y-1 pt-0.5">
+                              {group.items.slice(0, 3).map((item) => (
+                                <div key={item.id} className="flex items-center justify-between gap-2 text-[9.5px]">
+                                  <span className="text-slate-300 truncate font-medium">{item.entityName}</span>
+                                  <span className={cn('font-bold shrink-0', item.subtextColor)}>{item.shortBadge}</span>
+                                </div>
+                              ))}
+                              {group.items.length > 3 && (
+                                <p className="text-[8.5px] text-slate-400 font-semibold italic">
+                                  +{group.items.length - 3} more records
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className={cn('font-semibold text-[9.5px]', group.subtextColor)}>
+                              {group.items[0].subtext}
+                            </p>
+                          )}
                         </TooltipContent>
                       </Tooltip>
                     );
@@ -353,9 +539,9 @@ export default function ImportantReminders({
               </span>
             </div>
 
-            {/* Reminders items list (Scrollable with modern smooth scrollbar) */}
+            {/* Reminders grouped items list (Scrollable) */}
             <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto min-h-0 overscroll-contain">
-              {totalCount === 0 ? (
+              {groups.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center p-6 text-center gap-2">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
                     <CheckCircle2 className="w-5 h-5" />
@@ -370,32 +556,135 @@ export default function ImportantReminders({
                   </div>
                 </div>
               ) : (
-                reminders.map((item) => {
-                  const Icon = item.BadgeIcon;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        if (item.entityLink) {
-                          navigate(item.entityLink);
-                        } else {
-                          navigate(`/documents?filter=${item.filterParam}`);
-                        }
-                      }}
-                      className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-[12px] font-bold leading-tight truncate ${item.titleColor} group-hover:opacity-80 transition-opacity`}>
-                          {item.title}
-                        </p>
-                        <p className={`text-[11px] font-semibold mt-0.5 ${item.subtextColor}`}>
-                          {item.subtext}
-                        </p>
+                groups.map((group) => {
+                  const Icon = group.BadgeIcon;
+                  const isGroupExpanded = !!expandedGroups[group.typeKey];
+
+                  if (group.count === 1) {
+                    const item = group.items[0];
+                    return (
+                      <div
+                        key={group.typeKey}
+                        onClick={() => {
+                          if (item.entityLink) {
+                            navigate(item.entityLink);
+                          } else {
+                            navigate(`/documents?filter=${item.filterParam}`);
+                          }
+                        }}
+                        className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className={`w-8 h-8 rounded-xl ${group.iconBg} border flex items-center justify-center shrink-0`}>
+                            <Icon className="w-4 h-4 stroke-[2.2]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-[12px] font-bold leading-tight truncate ${item.titleColor} group-hover:opacity-80 transition-opacity`}>
+                              {item.title}
+                            </p>
+                            <p className={`text-[11px] font-semibold mt-0.5 ${item.subtextColor}`}>
+                              {item.subtext}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.badgeClass} whitespace-nowrap`}>
+                          <Icon className="w-3 h-3" />
+                          {item.badgeText}
+                        </span>
                       </div>
-                      <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.badgeClass} whitespace-nowrap`}>
-                        <Icon className="w-3 h-3" />
-                        {item.badgeText}
-                      </span>
+                    );
+                  }
+
+                  // Grouped row when multiple reminders of same type exist
+                  return (
+                    <div key={group.typeKey} className="flex flex-col bg-white dark:bg-slate-900">
+                      <div
+                        onClick={(e) => toggleGroup(group.typeKey, e)}
+                        className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {/* Icon with prominent count number badge */}
+                          <div className="relative shrink-0">
+                            <div className={`w-8.5 h-8.5 rounded-xl ${group.iconBg} border flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform`}>
+                              <Icon className="w-4 h-4 stroke-[2.2]" />
+                            </div>
+                            <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] px-1 rounded-full bg-brand text-white text-[9.5px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs">
+                              {group.count}
+                            </span>
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className={`text-[12px] font-bold leading-tight truncate ${group.titleColor}`}>
+                                {group.typeLabel}
+                              </p>
+                              <span className="text-[9.5px] font-extrabold text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 px-1.5 py-0.5 rounded-md">
+                                {group.count}
+                              </span>
+                            </div>
+                            <p className={`text-[11px] font-semibold mt-0.5 truncate ${group.subtextColor}`}>
+                              {group.summarySubtext}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${group.badgeClass} whitespace-nowrap`}>
+                            <Icon className="w-3 h-3" />
+                            {group.count} {group.badgeText}s
+                          </span>
+                          <button
+                            onClick={(e) => toggleGroup(group.typeKey, e)}
+                            className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                            aria-label="Toggle group details"
+                          >
+                            {isGroupExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-slate-400" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Accordion / Nested Individual Reminders List */}
+                      {isGroupExpanded && (
+                        <div className="bg-slate-50/70 dark:bg-slate-800/40 border-t border-b border-slate-100 dark:border-slate-800/60 px-4 py-2 space-y-1.5 animate-in fade-in-50 duration-200">
+                          {group.items.map((item) => (
+                            <div
+                              key={item.id}
+                              onClick={() => {
+                                if (item.entityLink) {
+                                  navigate(item.entityLink);
+                                } else {
+                                  navigate(`/documents?filter=${item.filterParam}`);
+                                }
+                              }}
+                              className="pl-3 pr-2 py-1.5 rounded-lg flex items-center justify-between gap-2 hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-200/80 dark:hover:border-slate-700"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={cn(
+                                  'w-1.5 h-1.5 rounded-full shrink-0',
+                                  item.daysRemaining <= 0
+                                    ? 'bg-rose-500'
+                                    : item.daysRemaining <= 7
+                                    ? 'bg-amber-500'
+                                    : 'bg-blue-500'
+                                )} />
+                                <p className="text-[11.5px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                                  {item.entityName}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className={cn('text-[10px] font-bold', item.subtextColor)}>
+                                  {item.shortBadge}
+                                </span>
+                                <ExternalLink className="w-3 h-3 text-slate-400" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })
