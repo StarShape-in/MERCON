@@ -500,6 +500,10 @@ export default function VehicleListPage() {
                     onKeyDown={(e) => {
                       if (e.key !== 'Enter') return;
                       e.preventDefault();
+                      // Otherwise this bubbles to the table row's own Enter
+                      // handler, which treats it as "open this vehicle" and
+                      // navigates away.
+                      e.stopPropagation();
                       const value = Number(odometerDraft);
                       if (!odometerDraft || !Number.isFinite(value) || value < 0) return;
                       updateOdometerMutation.mutate({ id: row.id, value });
