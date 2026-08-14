@@ -32,6 +32,7 @@ export const TRIP_FIELD_ALIASES: Record<TripReportFieldKey, string[]> = {
   trip_charges: ['trip charges', 'trip charge'],
   balance_amount: ['balance amount', 'balance', 'net'],
   status: ['status', 'trip status'],
+  rate_category: ['rate category', 'category', 'rate type', 'trip type', 'trip category'],
 };
 
 export const normaliseHeader = (header: string): string =>

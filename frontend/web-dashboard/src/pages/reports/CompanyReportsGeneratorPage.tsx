@@ -21,7 +21,7 @@ import {
   type TemplateInspection,
   type ReportTemplateSummary,
 } from '@/services/reportTemplateService';
-import type { TemplateLayout } from '@mercon/shared-types';
+import { RATE_CATEGORIES, type TemplateLayout } from '@mercon/shared-types';
 
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
@@ -33,6 +33,7 @@ export default function CompanyReportsGeneratorPage() {
   const [customEnd, setCustomEnd] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [rateCategoryFilter, setRateCategoryFilter] = useState<string>('all');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -78,6 +79,7 @@ export default function CompanyReportsGeneratorPage() {
     endDate: endDate || undefined,
     customerId: selectedCustomerId !== 'all' ? selectedCustomerId : undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
+    rateCategory: rateCategoryFilter !== 'all' ? rateCategoryFilter : undefined,
   };
 
   const { data: previewData, isFetching: previewLoading } = useQuery({
@@ -336,7 +338,7 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Filters + generate ─── */}
         <div className="bg-white rounded-xl border border-black/[0.08] p-3 shadow-2xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Customer Company</label>
               <select value={selectedCustomerId} onChange={(e) => setSelectedCustomerId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-brand">
@@ -363,6 +365,15 @@ export default function CompanyReportsGeneratorPage() {
                 <option value="InTransit">In Transit</option>
                 <option value="Dispatched">Dispatched</option>
                 <option value="AtPickup">At Pickup</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Rate Category</label>
+              <select value={rateCategoryFilter} onChange={(e) => setRateCategoryFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-brand">
+                <option value="all">💰 All Rate Categories</option>
+                {RATE_CATEGORIES.map((rc) => (
+                  <option key={rc} value={rc}>{rc}</option>
+                ))}
               </select>
             </div>
             <Button onClick={handleGenerate} disabled={isGenerating || !selectedTemplateId} className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-1.5 shadow-xs">

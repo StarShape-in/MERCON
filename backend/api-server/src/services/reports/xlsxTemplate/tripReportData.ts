@@ -6,6 +6,15 @@ export interface TripReportFilters {
   endDate?: string;
   customerId?: string;
   status?: string;
+  /**
+   * Trip.rate_category (e.g. "Trip", "Monthly Round", "Extra Trip/Round
+   * Trip" — see RATE_CATEGORIES in @mercon/shared-types). Real customer
+   * templates split by this: a JDL or IMILE workbook has separate sheets
+   * for trip-rate vs monthly-rate business, so a saved template like
+   * "IMILE Extra" needs to pull only its own slice of trips rather than
+   * everything for the customer.
+   */
+  rateCategory?: string;
 }
 
 const PAGE_SIZE = 1000;
@@ -24,7 +33,7 @@ const PAGE_SIZE = 1000;
 export async function fetchTripRows(
   filters: TripReportFilters
 ): Promise<Record<TripReportFieldKey, unknown>[]> {
-  const { startDate, endDate, customerId, status } = filters;
+  const { startDate, endDate, customerId, status, rateCategory } = filters;
 
   const dateRange: { gte?: Date; lte?: Date } = {};
   if (startDate) dateRange.gte = new Date(startDate);
@@ -43,6 +52,7 @@ export async function fetchTripRows(
   }
   if (customerId && customerId !== 'all') whereClause.customerId = customerId;
   if (status && status !== 'all') whereClause.status = status;
+  if (rateCategory && rateCategory !== 'all') whereClause.rate_category = rateCategory;
 
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   const defaultCarrierName = settings?.companyLegalName || 'MERCON Logistics';
@@ -97,6 +107,7 @@ export async function fetchTripRows(
         trip_charges: t.trip_charges,
         balance_amount: balance,
         status: t.status,
+        rate_category: t.rate_category || 'N/A',
       });
     }
 

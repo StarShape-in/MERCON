@@ -166,12 +166,13 @@ export const deleteReportTemplate = async (req: Request, res: Response) => {
 
 /* ─── Preview & generate ──────────────────────────────────────────────────── */
 function filtersFromBody(req: Request): TripReportFilters {
-  const { startDate, endDate, customerId, status } = req.body ?? {};
+  const { startDate, endDate, customerId, status, rateCategory } = req.body ?? {};
   return {
     startDate: startDate as string | undefined,
     endDate: endDate as string | undefined,
     customerId: customerId as string | undefined,
     status: status as string | undefined,
+    rateCategory: rateCategory as string | undefined,
   };
 }
 

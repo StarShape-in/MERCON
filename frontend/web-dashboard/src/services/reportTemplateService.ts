@@ -40,6 +40,7 @@ export interface ReportTemplateFilters {
   endDate?: string;
   customerId?: string;
   status?: string;
+  rateCategory?: string;
 }
 
 export interface TemplatePreview {

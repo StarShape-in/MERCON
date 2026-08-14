@@ -116,6 +116,7 @@ export const TRIP_REPORT_FIELDS = [
   { key: 'trip_charges', label: 'Trip charges', type: 'money' },
   { key: 'balance_amount', label: 'Balance amount', type: 'money' },
   { key: 'status', label: 'Trip status', type: 'string' },
+  { key: 'rate_category', label: 'Rate category', type: 'string' },
 ] as const;
 export type TripReportFieldKey = (typeof TRIP_REPORT_FIELDS)[number]['key'];
 
