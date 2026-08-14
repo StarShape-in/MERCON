@@ -4,6 +4,7 @@ import fs from 'fs';
 import { prisma } from '../db';
 import { DocType, DocStatus, AssetType } from '@prisma/client';
 import { env } from '../config/env';
+import { getUploadDir } from '../middlewares/upload';
 
 /**
  * Classify document type based on Saudi transport keywords in filename.
@@ -378,5 +379,72 @@ export const importUploadedTrucksDocsFolder = async (req: Request, res: Response
         message: error.message || 'Failed to process uploaded folder',
       },
     });
+  }
+};
+
+/**
+ * Controller endpoint to handle 300KB micro-chunked uploads for large PDFs
+ */
+export const uploadRawFileChunk = async (req: Request, res: Response) => {
+  try {
+    const { filename, chunk, isFirst, isLast, cleanId } = req.body;
+    if (!filename || !chunk) {
+      return res.status(400).json({ success: false, message: 'Missing filename or chunk' });
+    }
+
+    const uploadsDir = getUploadDir();
+    const filePath = path.join(uploadsDir, filename);
+    const buffer = Buffer.from(chunk, 'base64');
+
+    if (isFirst) {
+      fs.writeFileSync(filePath, buffer);
+    } else {
+      fs.appendFileSync(filePath, buffer);
+    }
+
+    if (isLast && cleanId) {
+      let vehicle = await prisma.vehicle.findFirst({
+        where: {
+          deletedAt: null,
+          OR: [
+            { plate_number: { contains: cleanId, mode: 'insensitive' } },
+            { ref_id: { contains: cleanId, mode: 'insensitive' } },
+          ],
+        },
+      });
+
+      const file_url = env.BASE_URL ? `${env.BASE_URL}/uploads/${filename}` : `/uploads/${filename}`;
+      const doc_type = classifyDocType(filename);
+
+      if (vehicle) {
+        const existingDoc = await prisma.document.findFirst({
+          where: { entity_id: vehicle.id, doc_type, deletedAt: null },
+        });
+
+        if (existingDoc) {
+          await prisma.document.update({
+            where: { id: existingDoc.id },
+            data: { file_url, status: DocStatus.Verified },
+          });
+        } else {
+          await prisma.document.create({
+            data: {
+              entity_type: 'Vehicle',
+              entity_id: vehicle.id,
+              doc_type,
+              status: DocStatus.Verified,
+              file_url,
+              mime_type: getMimeType(filename),
+              is_confidential: false,
+            },
+          });
+        }
+      }
+    }
+
+    res.json({ success: true, filename, received: buffer.length });
+  } catch (err: any) {
+    console.error('Failed uploadRawFileChunk:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
