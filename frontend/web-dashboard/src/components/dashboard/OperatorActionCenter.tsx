@@ -9,20 +9,11 @@ import {
   ChevronRight,
   ShieldAlert,
   CheckCircle2,
-  BarChart2,
   MessageSquare,
-  Filter,
   Send,
   Truck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -65,7 +56,6 @@ export interface DelayItem {
 
 export default function OperatorActionCenter({ trips }: OperatorActionCenterProps) {
   const navigate = useNavigate();
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'traffic' | 'breakdown' | 'loading' | 'weather'>('all');
   const [selectedDelayForMsg, setSelectedDelayForMsg] = useState<DelayItem | null>(null);
   const [quickMsgText, setQuickMsgText] = useState('');
   const [isSendingMsg, setIsSendingMsg] = useState(false);
@@ -263,26 +253,107 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           iconBg: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
           iconColor: 'text-slate-700',
         },
+        {
+          id: 'delay-demo-5',
+          tripId: 'TRP-0036',
+          rawId: 'demo-5',
+          category: 'traffic',
+          title: 'Expressway Route 40 Bottleneck',
+          route: 'Jubail Industrial → Riyadh Hub',
+          origin: 'Jubail Industrial',
+          destination: 'Riyadh Hub',
+          driverName: 'Sultan Mansoor',
+          driverPhone: '+966 55 837 1928',
+          vehiclePlate: '7821-XDA',
+          delayDuration: '+1h 00m Delay',
+          delayNote: 'Lane closure & heavy freight queue near Salbukh',
+          badgeText: 'TRAFFIC +1H',
+          solidBadgeBg: 'bg-[#EA580C] text-white',
+          cardBorderAccent: 'border-l-4 border-l-[#EA580C]',
+          squareBg: 'bg-orange-50/75 dark:bg-orange-950/25 hover:bg-orange-100/80 dark:hover:bg-orange-950/40',
+          squareBorder: 'border-orange-200/90 dark:border-orange-900/60 hover:border-orange-400 dark:hover:border-orange-700',
+          plateTextColor: 'text-orange-950 dark:text-orange-100',
+          icon: Clock,
+          iconBg: 'bg-orange-100 dark:bg-orange-950/60 text-orange-600',
+          iconColor: 'text-orange-600',
+        },
+        {
+          id: 'delay-demo-6',
+          tripId: 'TRP-0041',
+          rawId: 'demo-6',
+          category: 'breakdown',
+          title: 'Cooling Radiator Hose Repair',
+          route: 'Yanbu Port → Rabigh Sorting',
+          origin: 'Yanbu Port',
+          destination: 'Rabigh Sorting',
+          driverName: 'Hassan Al-Zahrani',
+          driverPhone: '+966 53 910 4482',
+          vehiclePlate: '9014-VSA',
+          delayDuration: '+40m Delay',
+          delayNote: 'Overheating alert; mobile mechanic dispatched at km 84',
+          badgeText: 'BREAKDOWN',
+          solidBadgeBg: 'bg-[#E11D48] text-white',
+          cardBorderAccent: 'border-l-4 border-l-[#E11D48]',
+          squareBg: 'bg-rose-50/75 dark:bg-rose-950/25 hover:bg-rose-100/80 dark:hover:bg-rose-950/40',
+          squareBorder: 'border-rose-200/90 dark:border-rose-900/60 hover:border-rose-400 dark:hover:border-rose-700',
+          plateTextColor: 'text-rose-950 dark:text-rose-100',
+          icon: Wrench,
+          iconBg: 'bg-rose-100 dark:bg-rose-950/60 text-rose-600',
+          iconColor: 'text-rose-600',
+        },
+        {
+          id: 'delay-demo-7',
+          tripId: 'TRP-0029',
+          rawId: 'demo-7',
+          category: 'loading',
+          title: 'Receiving Dock Gate Congestion',
+          route: 'Dammam Customs → Al-Khobar Center',
+          origin: 'Dammam Customs Gate 3',
+          destination: 'Al-Khobar Center',
+          driverName: 'Tariq Al-Harbi',
+          driverPhone: '+966 50 712 3901',
+          vehiclePlate: '5523-KSA',
+          delayDuration: '+1h 20m Delay',
+          delayNote: 'Consignment clearance queue; bay backlog at receiver dock',
+          badgeText: 'DOCK QUEUE',
+          solidBadgeBg: 'bg-[#2563EB] text-white',
+          cardBorderAccent: 'border-l-4 border-l-[#2563EB]',
+          squareBg: 'bg-blue-50/75 dark:bg-blue-950/25 hover:bg-blue-100/80 dark:hover:bg-blue-950/40',
+          squareBorder: 'border-blue-200/90 dark:border-blue-900/60 hover:border-blue-400 dark:hover:border-blue-700',
+          plateTextColor: 'text-blue-950 dark:text-blue-100',
+          icon: Timer,
+          iconBg: 'bg-blue-100 dark:bg-blue-950/60 text-blue-600',
+          iconColor: 'text-blue-600',
+        },
+        {
+          id: 'delay-demo-8',
+          tripId: 'TRP-0038',
+          rawId: 'demo-8',
+          category: 'weather',
+          title: 'Dense Fog Visibility Advisory',
+          route: 'Abha Highland → Jazan Coastal',
+          origin: 'Abha Highland',
+          destination: 'Jazan Coastal Hub',
+          driverName: 'Bader Al-Dosari',
+          driverPhone: '+966 54 391 8820',
+          vehiclePlate: '6219-HRA',
+          delayDuration: '+35m Delay',
+          delayNote: 'Mountain descent pace limited to 30 km/h due to dense fog',
+          badgeText: 'WEATHER',
+          solidBadgeBg: 'bg-[#475569] text-white',
+          cardBorderAccent: 'border-l-4 border-l-[#475569]',
+          squareBg: 'bg-slate-50/90 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70',
+          squareBorder: 'border-slate-200/90 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600',
+          plateTextColor: 'text-slate-900 dark:text-slate-100',
+          icon: CloudRain,
+          iconBg: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
+          iconColor: 'text-slate-700',
+        },
       ];
     }
 
     return list;
   }, [trips]);
-
-  const filteredDelays = useMemo(() => {
-    if (categoryFilter === 'all') return delayItems;
-    return delayItems.filter((item) => item.category === categoryFilter);
-  }, [delayItems, categoryFilter]);
-
-  const counts = useMemo(() => {
-    return {
-      all: delayItems.length,
-      traffic: delayItems.filter((i) => i.category === 'traffic').length,
-      breakdown: delayItems.filter((i) => i.category === 'breakdown').length,
-      loading: delayItems.filter((i) => i.category === 'loading').length,
-      weather: delayItems.filter((i) => i.category === 'weather').length,
-    };
-  }, [delayItems]);
 
   const handleOpenQuickMsg = (item: DelayItem, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -306,10 +377,10 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
     <div className="bg-white dark:bg-slate-900 rounded-[18px] border border-black/[0.06] dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-full overflow-hidden">
       
       {/* ── Header with Title & Highlighted Delayed Units Badge ────────────────────────── */}
-      <div className="space-y-2 pb-2 border-b border-black/[0.05] dark:border-slate-800 shrink-0">
+      <div className="pb-2.5 border-b border-black/[0.05] dark:border-slate-800 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-red-50 dark:bg-red-950/60 flex items-center justify-center text-red-600">
+            <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/60 flex items-center justify-center text-red-600">
               <ShieldAlert className="w-4 h-4 text-red-600" />
             </div>
             <div>
@@ -324,53 +395,24 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           <div
             className={cn(
               'px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-sm transition-all select-none',
-              filteredDelays.length > 0
+              delayItems.length > 0
                 ? 'bg-red-600 text-white shadow-red-600/30 ring-2 ring-red-600/20'
                 : 'bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-600/20'
             )}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
             <span className="text-[11px] font-black uppercase tracking-tight text-white">
-              {filteredDelays.length} {filteredDelays.length === 1 ? 'Delayed Unit' : 'Delayed Units'}
+              {delayItems.length} {delayItems.length === 1 ? 'Delayed Unit' : 'Delayed Units'}
             </span>
           </div>
-        </div>
-
-        {/* ── Standard Project Select Dropdown Control Bar ───────────────── */}
-        <div className="w-full">
-          <Select value={categoryFilter} onValueChange={(val: any) => setCategoryFilter(val)}>
-            <SelectTrigger className="h-7.5 w-full text-xs font-bold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-600 shadow-2xs">
-              <div className="flex items-center gap-2 truncate">
-                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <SelectValue placeholder="All Delay Categories" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
-              <SelectItem value="all" className="text-xs font-bold cursor-pointer">
-                All Delay Categories ({counts.all})
-              </SelectItem>
-              <SelectItem value="traffic" className="text-xs font-semibold cursor-pointer">
-                Traffic Congestion ({counts.traffic})
-              </SelectItem>
-              <SelectItem value="breakdown" className="text-xs font-semibold cursor-pointer">
-                Mechanical Breakdown ({counts.breakdown})
-              </SelectItem>
-              <SelectItem value="loading" className="text-xs font-semibold cursor-pointer">
-                Dock &amp; Loading Queue ({counts.loading})
-              </SelectItem>
-              <SelectItem value="weather" className="text-xs font-semibold cursor-pointer">
-                Weather &amp; Sandstorm ({counts.weather})
-              </SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
       {/* ── Grid of Delayed Truck Squares (License Plate Prominent with Problem Colors) ── */}
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 my-1.5 custom-scrollbar">
-        {filteredDelays.length > 0 ? (
+        {delayItems.length > 0 ? (
           <div className="grid grid-cols-2 gap-2">
-            {filteredDelays.map((item) => {
+            {delayItems.map((item) => {
               const Icon = item.icon;
               return (
                 <div
