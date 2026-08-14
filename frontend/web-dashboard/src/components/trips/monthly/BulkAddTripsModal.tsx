@@ -2018,27 +2018,6 @@ export default function BulkAddTripsModal({
                           </div>
                         </div>
                       </div>
-
-                      {/* Footer Actions */}
-                      <div className="flex items-center justify-end pt-3 border-t border-black/[0.06]">
-                        <Button
-                          disabled={bulkMutation.isPending || batchTripRows.length === 0}
-                          onClick={handleContractSubmit}
-                          className="h-10 rounded-xl px-6 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
-                        >
-                          {bulkMutation.isPending ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Generating Trips...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="h-4 w-4 mr-1.5" />
-                              Generate {batchTripRows.length} Trips
-                            </>
-                          )}
-                        </Button>
-                      </div>
                     </div>
                   )}
                 </div>
