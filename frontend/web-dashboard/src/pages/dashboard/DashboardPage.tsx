@@ -628,12 +628,12 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* ── BOTTOM ROW: Trip Ledger (Matches Trips Page) ──── */}
+          {/* ── BOTTOM ROW: Active Transit Fleet (Matches Trips Page) ──── */}
           <DataTable
             title={
               <span className="flex items-center gap-2 font-extrabold text-slate-900 dark:text-slate-100">
                 <Truck className="w-4 h-4 text-brand" />
-                <span>Trip Ledger</span>
+                <span>Active Transit Fleet</span>
               </span>
             }
             filterElement={
@@ -675,7 +675,8 @@ export default function DashboardPage() {
             columns={tripLedgerColumns}
             data={activeTrips}
             enableSelection={false}
-            pageSize={10}
+            pageSize={25}
+            pageSizeOptions={[10, 25, 50, 100]}
             onRowClick={(row) => navigate(`/trips/${row.rawId || row.id}`)}
             emptyTitle={`No ${tripTab} trips found`}
             emptyMessage="There are currently no dispatch records in this category."
