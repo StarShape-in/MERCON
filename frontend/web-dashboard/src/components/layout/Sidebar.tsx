@@ -8,8 +8,6 @@ import {
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
-import { settingsService } from '@/services/settingsService';
-import type { ModuleKey } from '@mercon/shared-types';
 
 interface SidebarProps {
   active?: string;
@@ -54,15 +52,6 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
 
   const unreadCount = notificationsRes?.data?.filter((n: any) => !n.is_read).length || 0;
 
-  const { data: settings } = useQuery({
-    queryKey: ['settings'],
-    queryFn: settingsService.get,
-    staleTime: 60000,
-  });
-
-  const moduleEnabled = (moduleKey?: ModuleKey) =>
-    !moduleKey || !settings || settings.enabledModules.includes(moduleKey);
-
   const groups = [
     {
       label: 'OVERVIEW',
@@ -79,25 +68,25 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
         { icon: Users, label: 'Drivers', path: '/drivers' },
         { icon: Car, label: 'Vehicles', path: '/vehicles' },
         { icon: Building2, label: 'Third-Party Fleet', path: '/third-party' },
-        { icon: Wrench, label: 'Maintenance', path: '/maintenance', moduleKey: 'maintenance' as ModuleKey },
+        { icon: Wrench, label: 'Maintenance', path: '/maintenance' },
         { icon: Building2, label: 'Customers', path: '/customers' },
       ],
     },
     {
       label: 'FINANCE',
       items: [
-        { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards', moduleKey: 'rate-cards' as ModuleKey },
-        { icon: MapPin, label: 'Locations', path: '/locations', moduleKey: 'locations' as ModuleKey },
-        { icon: ReceiptText, label: 'Invoices', path: '/invoices', moduleKey: 'invoices' as ModuleKey },
-        { icon: Wallet, label: 'Expenses', path: '/expenses', moduleKey: 'expenses' as ModuleKey },
+        { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards' },
+        { icon: MapPin, label: 'Locations', path: '/locations' },
+        { icon: ReceiptText, label: 'Invoices', path: '/invoices' },
+        { icon: Wallet, label: 'Expenses', path: '/expenses' },
         { icon: DollarSign, label: 'Vehicle P&L', path: '/vehicles/financials' },
       ],
     },
     {
       label: 'COMPLIANCE',
       items: [
-        { icon: FileText, label: 'Documents', path: '/documents', moduleKey: 'documents' as ModuleKey },
-        { icon: BarChart3, label: 'Reports', path: '/reports', moduleKey: 'reports' as ModuleKey },
+        { icon: FileText, label: 'Documents', path: '/documents' },
+        { icon: BarChart3, label: 'Reports', path: '/reports' },
       ],
     },
     {
@@ -106,11 +95,10 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
         { icon: User, label: 'Profile', path: '/settings/profile' },
         ...(user?.role === 'Admin' || user?.role === 'Operator' ? [{ icon: Users, label: 'User Management', path: '/settings/users' }] : []),
-        { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin', moduleKey: 'recycle-bin' as ModuleKey },
+        { icon: Trash2, label: 'Recycle Bin', path: '/recycle-bin' },
       ],
     },
-  ].map((group) => ({ ...group, items: group.items.filter((item: any) => !item.moduleKey || moduleEnabled(item.moduleKey)) }))
-    .filter((group) => group.items.length > 0);
+  ];
 
   return (
     <>
