@@ -169,10 +169,10 @@ export default function WorkshopField({
 
         <PopoverContent
           align="start"
-          className="w-[var(--radix-popover-trigger-width)] min-w-[320px] p-0 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 overflow-hidden z-[9999]"
+          className="w-[var(--radix-popover-trigger-width)] min-w-[320px] p-0 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 overflow-hidden z-[9999] flex flex-col max-h-[min(24rem,var(--radix-popover-content-available-height))]"
         >
           {/* Search Header */}
-          <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center gap-2">
+          <div className="shrink-0 p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center gap-2">
             <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <Input
               value={searchQuery}
@@ -193,7 +193,7 @@ export default function WorkshopField({
           </div>
 
           {/* List Content */}
-          <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+          <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
             {/* If user typed a custom workshop name that doesn't exist, show clickable Add option */}
             {searchQuery.trim() !== '' && !exactMatchExists && (
               <div
@@ -226,24 +226,29 @@ export default function WorkshopField({
                   )}
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    {w.id && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleCheckedForDelete(w.id!);
-                        }}
-                        title={isCheckedForDelete ? 'Unselect for deletion' : 'Select for deletion'}
-                        className={cn(
-                          'w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 transition-colors',
-                          isCheckedForDelete
-                            ? 'bg-emerald-500 border-emerald-500'
-                            : 'border-slate-300 dark:border-slate-600 hover:border-emerald-400'
-                        )}
-                      >
-                        {isCheckedForDelete && <Check className="w-3 h-3 text-white stroke-[3]" />}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      disabled={!w.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (w.id) toggleCheckedForDelete(w.id);
+                      }}
+                      title={
+                        !w.id
+                          ? 'Not a saved workshop — used on a past record but nothing to delete here'
+                          : isCheckedForDelete ? 'Unselect for deletion' : 'Select for deletion'
+                      }
+                      className={cn(
+                        'w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 transition-colors',
+                        !w.id
+                          ? 'border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-40'
+                          : isCheckedForDelete
+                          ? 'bg-emerald-500 border-emerald-500'
+                          : 'border-slate-300 dark:border-slate-600 hover:border-emerald-400'
+                      )}
+                    >
+                      {isCheckedForDelete && <Check className="w-3 h-3 text-white stroke-[3]" />}
+                    </button>
                     <Wrench className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span className="truncate font-medium">{w.name}</span>
                   </div>
@@ -269,7 +274,7 @@ export default function WorkshopField({
           </div>
 
           {/* Footer Action */}
-          <div className="p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+          <div className="shrink-0 p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
             <Button
               type="button"
               variant="ghost"
