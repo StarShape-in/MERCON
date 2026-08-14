@@ -14,3 +14,5 @@ pnpm-debug.log*
 reference/
 .env.production
 *.tsbuildinfo
+uploads/
+backend/api-server/uploads/
