@@ -188,7 +188,7 @@ export default function AppRouter() {
           <Route path="/reports/client-templates" element={<CompanyReportTemplatesPage />} />
           <Route path="/reports/fleet"            element={<FleetPerformancePage />} />
           <Route path="/reports/revenue"          element={<RevenueReportsPage />} />
-          <Route path="/reports/drivers"          element={<DriverPerformancePage />} />
+          <Route path="/reports/drivers"          element={<Navigate to="/reports" replace />} />
           <Route path="/reports/delays"           element={<DelayReportPage />} />
 
           {/* Settings & Governance */}
