@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { reportBuilderService, ReportQuerySpec } from '@/services/reportBuilderService';
 
 interface SaveReportModalProps {
@@ -62,11 +64,11 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Report Name *</label>
-            <input
+            <Input
               type="text"
               required
               placeholder="e.g. Monthly Driver Revenue & Performance"
-              className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E8450F]"
+              className="text-xs bg-white border-slate-300"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -102,20 +104,21 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
           </div>
 
           <DialogFooter className="pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl"
+              className="text-xs font-medium text-slate-600 hover:text-slate-900"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={saving || !name.trim()}
-              className="px-4 py-2 text-xs font-semibold text-white bg-[#E8450F] hover:bg-[#c43809] disabled:opacity-50 rounded-xl shadow-sm transition-colors"
+              className="text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white shadow-2xs"
             >
               {saving ? 'Saving...' : 'Save Report'}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

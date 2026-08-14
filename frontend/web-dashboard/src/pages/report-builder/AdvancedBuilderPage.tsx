@@ -52,6 +52,10 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import KpiCard from '@/components/ui/KpiCard';
 import DataTable from '@/components/ui/DataTable';
 import {
@@ -93,7 +97,7 @@ const DraggableFieldItem: React.FC<{
       style={style}
       {...listeners}
       {...attributes}
-      className="flex items-center justify-between p-2 rounded-xl border border-slate-200 bg-white hover:border-[#E8450F] hover:shadow-xs transition-all cursor-grab active:cursor-grabbing text-xs group"
+      className="flex items-center justify-between p-2 rounded-xl border border-slate-200 bg-white hover:border-[#E8450F] hover:shadow-2xs transition-all cursor-grab active:cursor-grabbing text-xs group"
     >
       <div className="flex items-center gap-2 overflow-hidden">
         <GripVertical className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0" />
@@ -110,7 +114,7 @@ const DraggableFieldItem: React.FC<{
             e.stopPropagation();
             onAddField(field.key, 'rows');
           }}
-          className="px-1.5 py-0.5 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold"
+          className="px-1.5 py-0.5 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold cursor-pointer"
           title="Add to Rows"
         >
           +Row
@@ -122,7 +126,7 @@ const DraggableFieldItem: React.FC<{
               e.stopPropagation();
               onAddField(field.key, 'values');
             }}
-            className="px-1.5 py-0.5 text-[10px] bg-orange-50 hover:bg-orange-100 text-[#E8450F] rounded font-semibold"
+            className="px-1.5 py-0.5 text-[10px] bg-orange-50 hover:bg-orange-100 text-[#E8450F] rounded font-semibold cursor-pointer"
             title="Add to Values"
           >
             +Val
@@ -146,15 +150,15 @@ const DroppableZone: React.FC<{
     <div
       ref={setNodeRef}
       className={`p-3.5 rounded-2xl border transition-all ${
-        isOver ? 'border-[#E8450F] bg-orange-50/40 shadow-sm' : 'border-slate-200 bg-white'
+        isOver ? 'border-[#E8450F] bg-orange-50/40 shadow-xs' : 'border-slate-200 bg-white'
       }`}
     >
       <div className="flex items-center justify-between mb-2.5">
         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">{title}</h4>
         {badge && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+          <Badge variant="outline" className="text-[10px] font-semibold bg-slate-100 text-slate-600 border-slate-200">
             {badge}
-          </span>
+          </Badge>
         )}
       </div>
       <div className="space-y-2">{children}</div>
@@ -324,12 +328,14 @@ export default function AdvancedBuilderPage() {
           {/* Header Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => navigate('/report-builder')}
-                className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+                className="text-slate-500 hover:text-slate-900"
               >
                 <ArrowLeft className="w-5 h-5" />
-              </button>
+              </Button>
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
@@ -348,118 +354,128 @@ export default function AdvancedBuilderPage() {
 
             {/* Action Bar */}
             <div className="flex items-center gap-2.5">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleClearAll}
-                className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900"
               >
                 Clear Workspace
-              </button>
+              </Button>
 
-              <button
+              <Button
+                size="sm"
                 onClick={() => setSaveModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#E8450F] hover:bg-[#c43809] rounded-xl shadow-sm transition-colors"
+                className="gap-1.5 text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white shadow-2xs"
               >
                 <Save className="w-3.5 h-3.5" /> Save Report
-              </button>
+              </Button>
 
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setScheduleModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl transition-colors shadow-sm"
+                className="gap-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300"
               >
                 <Calendar className="w-3.5 h-3.5" /> Schedule
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* 3-Panel Main Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Panel 1: Left Data Panel (3 Cols) */}
-            <div className="lg:col-span-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4 max-h-[calc(100vh-140px)] overflow-y-auto">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">Data Fields</h3>
-                <span className="text-[11px] text-slate-400 font-medium">{allSchemaFields.length} available</span>
-              </div>
-
-              {/* Search input */}
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Filter fields..."
-                  value={fieldSearch}
-                  onChange={(e) => setFieldSearch(e.target.value)}
-                  className="w-full text-xs pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#E8450F]"
-                />
-              </div>
-
-              {/* Module Accordions */}
-              {loadingSchema ? (
-                <div className="p-4 text-center text-xs text-slate-400 animate-pulse">Loading schema...</div>
-              ) : (
-                <div className="space-y-3">
-                  {schemaModules.map((mod) => {
-                    const isExpanded = expandedModules[mod.key] ?? false;
-                    const matchingFields = mod.fields.filter(
-                      (f) =>
-                        f.label.toLowerCase().includes(fieldSearch.toLowerCase()) ||
-                        f.key.toLowerCase().includes(fieldSearch.toLowerCase())
-                    );
-                    if (fieldSearch && matchingFields.length === 0) return null;
-
-                    return (
-                      <div key={mod.key} className="border border-slate-200/80 rounded-xl overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => toggleModuleExpand(mod.key)}
-                          className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/80 flex items-center justify-between text-xs font-bold text-slate-800 transition-colors"
-                        >
-                          <span>{mod.label}</span>
-                          {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-500" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-500" />}
-                        </button>
-
-                        {isExpanded && (
-                          <div className="p-2 space-y-1.5 bg-white">
-                            {matchingFields.map((field) => (
-                              <DraggableFieldItem key={field.key} field={field} onAddField={handleAddField} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+            <Card className="lg:col-span-3 border-slate-200 shadow-xs max-h-[calc(100vh-140px)] overflow-hidden flex flex-col">
+              <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-800">Data Fields</CardTitle>
+                  <CardDescription className="text-[11px] text-slate-400 font-medium">{allSchemaFields.length} available</CardDescription>
                 </div>
-              )}
-            </div>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4 overflow-y-auto flex-1">
+                {/* Search input */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Input
+                    type="text"
+                    placeholder="Filter fields..."
+                    value={fieldSearch}
+                    onChange={(e) => setFieldSearch(e.target.value)}
+                    className="text-xs pl-8 bg-slate-50 border-slate-200"
+                  />
+                </div>
+
+                {/* Module Accordions */}
+                {loadingSchema ? (
+                  <div className="p-4 text-center text-xs text-slate-400 animate-pulse">Loading schema...</div>
+                ) : (
+                  <div className="space-y-3">
+                    {schemaModules.map((mod) => {
+                      const isExpanded = expandedModules[mod.key] ?? false;
+                      const matchingFields = mod.fields.filter(
+                        (f) =>
+                          f.label.toLowerCase().includes(fieldSearch.toLowerCase()) ||
+                          f.key.toLowerCase().includes(fieldSearch.toLowerCase())
+                      );
+                      if (fieldSearch && matchingFields.length === 0) return null;
+
+                      return (
+                        <div key={mod.key} className="border border-slate-200/80 rounded-xl overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => toggleModuleExpand(mod.key)}
+                            className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/80 flex items-center justify-between text-xs font-bold text-slate-800 transition-colors cursor-pointer"
+                          >
+                            <span>{mod.label}</span>
+                            {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-500" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-500" />}
+                          </button>
+
+                          {isExpanded && (
+                            <div className="p-2 space-y-1.5 bg-white">
+                              {matchingFields.map((field) => (
+                                <DraggableFieldItem key={field.key} field={field} onAddField={handleAddField} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Panel 2: Center Structure Builder (4 Cols) */}
             <div className="lg:col-span-4 space-y-4">
               {/* Primary Module Selector & Auto-Connect Badge */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Primary Root Module</label>
-                  {isMultiModule && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
-                      <CheckCircle className="w-3 h-3 text-emerald-600" /> Connected automatically
-                    </span>
-                  )}
-                </div>
+              <Card className="border-slate-200 shadow-xs">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Primary Root Module</label>
+                    {isMultiModule && (
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-semibold gap-1">
+                        <CheckCircle className="w-3 h-3 text-emerald-600" /> Connected automatically
+                      </Badge>
+                    )}
+                  </div>
 
-                <select
-                  value={rootModule}
-                  onChange={(e) => setRootModule(e.target.value)}
-                  className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E8450F]"
-                >
-                  {schemaModules.map((m) => (
-                    <option key={m.key} value={m.key}>
-                      {m.label} ({m.key})
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    value={rootModule}
+                    onChange={(e) => setRootModule(e.target.value)}
+                    className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E8450F]"
+                  >
+                    {schemaModules.map((m) => (
+                      <option key={m.key} value={m.key}>
+                        {m.label} ({m.key})
+                      </option>
+                    ))}
+                  </select>
 
-                <p className="text-[11px] text-slate-500 leading-normal">
-                  Sets the primary driving entity for row generation and automatically joins 1-hop related data.
-                </p>
-              </div>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Sets the primary driving entity for row generation and automatically joins 1-hop related data.
+                  </p>
+                </CardContent>
+              </Card>
 
               {/* Rows Droppable Zone */}
               <DroppableZone id="rows" title="Rows (Dimensions)" badge={`${rows.length} fields`}>
@@ -473,7 +489,7 @@ export default function AdvancedBuilderPage() {
                     return (
                       <div key={key} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                         <span className="font-semibold text-slate-800">{f?.label || key}</span>
-                        <button onClick={() => handleRemoveRow(key)} className="text-slate-400 hover:text-red-500 p-1">
+                        <button onClick={() => handleRemoveRow(key)} className="text-slate-400 hover:text-red-500 p-1 cursor-pointer">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -506,7 +522,7 @@ export default function AdvancedBuilderPage() {
                             <option value="max">Max</option>
                             <option value="count">Count</option>
                           </select>
-                          <button onClick={() => handleRemoveValue(v.field)} className="text-slate-400 hover:text-red-500 p-1">
+                          <button onClick={() => handleRemoveValue(v.field)} className="text-slate-400 hover:text-red-500 p-1 cursor-pointer">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -517,21 +533,21 @@ export default function AdvancedBuilderPage() {
               </DroppableZone>
 
               {/* Filters Zone */}
-              <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
+              <Card className="border-slate-200 shadow-xs p-3.5 space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Filters</h4>
                 <FilterBuilder filters={filters} onChange={setFilters} availableFields={allSchemaFields} />
-              </div>
+              </Card>
             </div>
 
             {/* Panel 3: Right Live Preview & Visualization (5 Cols) */}
             <div className="lg:col-span-5 space-y-4">
               {/* Header & Visualization Switcher */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+              <Card className="border-slate-200 shadow-xs p-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">Live Preview</h3>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-bold">
                     Active
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
@@ -548,8 +564,8 @@ export default function AdvancedBuilderPage() {
                       <button
                         key={mode.id}
                         onClick={() => setVisualization(mode.id)}
-                        className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
-                          isActive ? 'bg-white text-[#E8450F] shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                        className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
+                          isActive ? 'bg-white text-[#E8450F] shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                         title={mode.label}
                       >
@@ -560,17 +576,17 @@ export default function AdvancedBuilderPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <button onClick={handleExportCSV} className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">
+                  <Button size="sm" variant="outline" onClick={handleExportCSV} className="h-7 text-xs font-semibold">
                     CSV
-                  </button>
-                  <button onClick={handleExportExcel} className="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100">
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportExcel} className="h-7 text-xs font-semibold text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100">
                     Excel
-                  </button>
-                  <button onClick={handleExportPDF} className="px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100">
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportPDF} className="h-7 text-xs font-semibold text-red-700 bg-red-50 border-red-200 hover:bg-red-100">
                     PDF
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
 
               {/* Execution State */}
               {querying ? (
@@ -603,7 +619,7 @@ export default function AdvancedBuilderPage() {
 
                   {/* Visualization Canvas */}
                   {visualization !== 'table' && chartData.length > 0 && (
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm h-64">
+                    <Card className="border-slate-200 shadow-xs p-4 h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         {visualization === 'bar' ? (
                           <BarChart data={chartData}>
@@ -640,11 +656,11 @@ export default function AdvancedBuilderPage() {
                           </AreaChart>
                         )}
                       </ResponsiveContainer>
-                    </div>
+                    </Card>
                   )}
 
                   {/* Data Table Canvas */}
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                  <Card className="border-slate-200 shadow-xs p-4">
                     <DataTable
                       columns={
                         queryResult.rows.length > 0
@@ -652,7 +668,7 @@ export default function AdvancedBuilderPage() {
                               header: col.replace(/_/g, ' ').toUpperCase(),
                               accessor: (row: any) => {
                                 const val = row[col];
-                                if (val === null || val === undefined) return <span className="text-slate-300">—</span>;
+                                if (val === null || val === undefined) return '—';
                                 if (typeof val === 'number') return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
                                 return String(val);
                               },
@@ -663,7 +679,7 @@ export default function AdvancedBuilderPage() {
                       emptyTitle="No records found"
                       emptyMessage="Drag dimensions and values to inspect report rows."
                     />
-                  </div>
+                  </Card>
                 </div>
               ) : null}
             </div>

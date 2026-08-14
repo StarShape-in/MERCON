@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { reportBuilderService, SavedReport } from '@/services/reportBuilderService';
 
 interface ScheduleReportModalProps {
@@ -99,9 +101,9 @@ export const ScheduleReportModal: React.FC<ScheduleReportModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Execution Time</label>
-              <input
+              <Input
                 type="time"
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E8450F]"
+                className="text-xs bg-white border-slate-300"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
               />
@@ -111,11 +113,11 @@ export const ScheduleReportModal: React.FC<ScheduleReportModalProps> = ({
           {frequency === 'monthly' && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Day of Month</label>
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={28}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E8450F]"
+                className="text-xs bg-white border-slate-300"
                 value={dayOfMonth}
                 onChange={(e) => setDayOfMonth(Number(e.target.value))}
               />
@@ -126,10 +128,10 @@ export const ScheduleReportModal: React.FC<ScheduleReportModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Recipients (Comma-separated emails)
             </label>
-            <input
+            <Input
               type="text"
               placeholder="admin@mercon.com, ops@mercon.com"
-              className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E8450F]"
+              className="text-xs bg-white border-slate-300"
               value={recipients}
               onChange={(e) => setRecipients(e.target.value)}
             />
@@ -145,7 +147,7 @@ export const ScheduleReportModal: React.FC<ScheduleReportModalProps> = ({
                     key={channel}
                     type="button"
                     onClick={() => toggleDelivery(channel)}
-                    className={`text-xs px-3 py-1.5 rounded-lg border font-medium capitalize transition-colors ${
+                    className={`text-xs px-3 py-1.5 rounded-lg border font-medium capitalize transition-colors cursor-pointer ${
                       active
                         ? 'bg-orange-50 text-[#E8450F] border-orange-300 font-semibold'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -159,20 +161,21 @@ export const ScheduleReportModal: React.FC<ScheduleReportModalProps> = ({
           </div>
 
           <DialogFooter className="pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl"
+              className="text-xs font-medium text-slate-600 hover:text-slate-900"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-xs font-semibold text-white bg-[#E8450F] hover:bg-[#c43809] disabled:opacity-50 rounded-xl shadow-sm transition-colors"
+              className="text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white shadow-2xs"
             >
               {submitting ? 'Saving...' : 'Save Schedule'}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

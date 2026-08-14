@@ -22,6 +22,10 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { reportBuilderService, SavedReport, ScheduledReport } from '@/services/reportBuilderService';
 import { parseNaturalLanguageQuery } from '@/utils/askMerconParser';
 import { ScheduleReportModal } from '@/components/report-builder/ScheduleReportModal';
@@ -31,7 +35,7 @@ export default function ReportBuilderLandingPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [nlQuery, setNlQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'saved' | 'scheduled'>('saved');
+  const [activeTab, setActiveTab] = useState<string>('saved');
   const [selectedReportForSchedule, setSelectedReportForSchedule] = useState<SavedReport | undefined>(undefined);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
@@ -153,12 +157,12 @@ export default function ReportBuilderLandingPage() {
   return (
     <DashboardLayout active="Report Builder" title="Smart Report Builder">
       <div className="space-y-6 pb-12">
-        {/* Top Bar Header Layout adhering to UI rules */}
+        {/* Top Bar Header Layout adhering strictly to MERCON UI rules */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-slate-200 rounded-full text-xs font-semibold text-slate-700">
               <Building2 className="w-3.5 h-3.5 text-slate-500" />
-              <span>MERCON Logistics</span>
+              <span>🏢 MERCON Logistics</span>
               <span className="text-slate-400">↕</span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
@@ -171,120 +175,133 @@ export default function ReportBuilderLandingPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleExportSavedList}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl transition-colors shadow-sm"
+              className="gap-1.5 text-xs font-medium"
             >
               <Download className="w-3.5 h-3.5" /> Export CSV
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => navigate('/report-builder/quick')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-800 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-xl transition-colors shadow-sm"
+              className="gap-1.5 text-xs font-semibold bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100"
             >
               <Zap className="w-3.5 h-3.5 text-amber-600" /> Quick Report
-            </button>
+            </Button>
 
-            <button
+            <Button
+              size="sm"
               onClick={() => navigate('/report-builder/advanced')}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[#E8450F] hover:bg-[#c43809] rounded-xl shadow-sm transition-colors"
+              className="gap-1.5 text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" /> Advanced Builder
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => { refetchSaved(); refetchScheduled(); }}
-              className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
               title="Refresh Data"
             >
               <RotateCw className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Entry Point Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Quick Report */}
-          <div className="bg-gradient-to-br from-amber-50/70 to-orange-50/50 p-5 rounded-2xl border border-amber-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
+          {/* Quick Report Card */}
+          <Card className="bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-amber-50/20 border-amber-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2.5 bg-amber-100 text-amber-700 rounded-xl shadow-2xs">
                   <Zap className="w-5 h-5" />
                 </span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-full">
+                <Badge className="bg-amber-100/80 text-amber-800 border-amber-200 text-[10px] uppercase tracking-wider font-bold">
                   Fast & Preset
-                </span>
+                </Badge>
               </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1">Quick Report Generator</h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+              <CardTitle className="text-base font-bold text-slate-900">Quick Report Generator</CardTitle>
+              <CardDescription className="text-xs text-slate-600 leading-relaxed">
                 Step-by-step wizard for standard fleet management questions. Pick a primary module, question, and time period.
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/report-builder/quick')}
-              className="w-full py-2.5 px-4 bg-white hover:bg-amber-100/60 text-slate-800 font-semibold text-xs rounded-xl border border-amber-300/80 flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-            >
-              Start Quick Wizard <ChevronRight className="w-4 h-4 text-amber-600" />
-            </button>
-          </div>
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="pt-2">
+              <Button
+                variant="outline"
+                className="w-full text-xs font-semibold bg-white hover:bg-amber-100/60 border-amber-300 text-slate-800 gap-1.5 shadow-2xs"
+                onClick={() => navigate('/report-builder/quick')}
+              >
+                Start Quick Wizard <ChevronRight className="w-4 h-4 text-amber-600" />
+              </Button>
+            </CardFooter>
+          </Card>
 
-          {/* Advanced Builder */}
-          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 p-5 rounded-2xl border border-orange-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="p-2.5 bg-[#E8450F] text-white rounded-xl shadow-sm">
+          {/* Advanced Builder Card */}
+          <Card className="bg-gradient-to-br from-orange-500/10 via-orange-600/5 to-orange-500/5 border-orange-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2.5 bg-[#E8450F] text-white rounded-xl shadow-xs">
                   <SlidersHorizontal className="w-5 h-5" />
                 </span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#E8450F] bg-orange-100/80 px-2 py-0.5 rounded-full">
+                <Badge className="bg-orange-100 text-[#E8450F] border-orange-200 text-[10px] uppercase tracking-wider font-bold">
                   3-Panel Pivot
-                </span>
+                </Badge>
               </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1">Advanced Ad-hoc Builder</h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+              <CardTitle className="text-base font-bold text-slate-900">Advanced Ad-hoc Builder</CardTitle>
+              <CardDescription className="text-xs text-slate-600 leading-relaxed">
                 Drag-and-drop workspace across Drivers, Vehicles, Trips, Invoices & Maintenance with live visual previews.
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/report-builder/advanced')}
-              className="w-full py-2.5 px-4 bg-[#E8450F] hover:bg-[#c43809] text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-            >
-              Open Advanced Builder <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="pt-2">
+              <Button
+                className="w-full text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white gap-1.5 shadow-2xs"
+                onClick={() => navigate('/report-builder/advanced')}
+              >
+                Open Advanced Builder <ChevronRight className="w-4 h-4" />
+              </Button>
+            </CardFooter>
+          </Card>
 
-          {/* Ask Mercon */}
-          <div className="bg-gradient-to-br from-indigo-50/70 to-blue-50/50 p-5 rounded-2xl border border-indigo-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl">
+          {/* Ask Mercon Card */}
+          <Card className="bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-indigo-50/20 border-indigo-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl shadow-2xs">
                   <Sparkles className="w-5 h-5" />
                 </span>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100/60 px-2 py-0.5 rounded-full">
+                <Badge className="bg-indigo-100/80 text-indigo-800 border-indigo-200 text-[10px] uppercase tracking-wider font-bold">
                   NL Query
-                </span>
+                </Badge>
               </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1">Ask Mercon Assistant</h3>
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">
-                Type your question in natural language (e.g. "show driver revenue this month").
-              </p>
-              <form onSubmit={handleAskMercon} className="space-y-2">
-                <input
+              <CardTitle className="text-base font-bold text-slate-900">Ask Mercon Assistant</CardTitle>
+              <CardDescription className="text-xs text-slate-600 leading-relaxed">
+                Type your request in plain natural language (e.g. "driver revenue this month").
+              </CardDescription>
+              <form onSubmit={handleAskMercon} className="pt-2">
+                <Input
                   type="text"
                   placeholder="e.g. driver revenue and trips..."
                   value={nlQuery}
                   onChange={(e) => setNlQuery(e.target.value)}
-                  className="w-full text-xs bg-white border border-indigo-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 shadow-inner"
+                  className="text-xs bg-white border-indigo-200 focus-visible:ring-indigo-500 shadow-2xs"
                 />
               </form>
-            </div>
-            <button
-              onClick={() => handleAskMercon()}
-              disabled={!nlQuery.trim()}
-              className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-sm mt-3"
-            >
-              Ask Mercon <Sparkles className="w-3.5 h-3.5" />
-            </button>
-          </div>
+            </CardHeader>
+            <CardFooter className="pt-0">
+              <Button
+                className="w-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 shadow-2xs"
+                disabled={!nlQuery.trim()}
+                onClick={() => handleAskMercon()}
+              >
+                Ask Mercon <Sparkles className="w-3.5 h-3.5" />
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
 
         {/* Popular Templates Grid */}
@@ -299,225 +316,220 @@ export default function ReportBuilderLandingPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {popularTemplates.map((tmpl) => (
-              <div
+              <Card
                 key={tmpl.id}
                 onClick={() => handleOpenTemplate(tmpl.spec)}
-                className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-[#E8450F] hover:shadow-md cursor-pointer transition-all group flex flex-col justify-between"
+                className="hover:border-[#E8450F] hover:shadow-md cursor-pointer transition-all group flex flex-col justify-between border-slate-200"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-600 bg-slate-100 border-slate-200">
                       {tmpl.category}
-                    </span>
+                    </Badge>
                     <Play className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#E8450F] transition-colors" />
                   </div>
-                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#E8450F] transition-colors mb-1">
+                  <CardTitle className="text-xs font-bold text-slate-900 group-hover:text-[#E8450F] transition-colors">
                     {tmpl.title}
-                  </h4>
-                  <p className="text-[11px] text-slate-500 leading-snug">
+                  </CardTitle>
+                  <CardDescription className="text-[11px] text-slate-500 leading-snug">
                     {tmpl.desc}
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-slate-100 mt-3 text-[11px] font-semibold text-[#E8450F] flex items-center gap-1">
-                  Launch Spec <ChevronRight className="w-3 h-3" />
-                </div>
-              </div>
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter className="p-4 pt-2 border-t border-slate-100 text-[11px] font-semibold text-[#E8450F] flex items-center justify-between">
+                  <span>Launch Spec</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </CardFooter>
+              </Card>
             ))}
           </div>
         </div>
 
-        {/* Saved & Scheduled Reports Section */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          {/* Header Bar */}
-          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setActiveTab('saved')}
-                className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors ${
-                  activeTab === 'saved'
-                    ? 'bg-[#E8450F] text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                Report Library ({savedReports.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('scheduled')}
-                className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors ${
-                  activeTab === 'scheduled'
-                    ? 'bg-[#E8450F] text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                Scheduled Deliveries ({scheduledReports.length})
-              </button>
+        {/* Saved & Scheduled Reports Section with Tabs */}
+        <Card className="border-slate-200 shadow-xs">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+              <TabsList className="bg-slate-200/70 p-1">
+                <TabsTrigger value="saved" className="text-xs font-bold px-3 py-1">
+                  Report Library ({savedReports.length})
+                </TabsTrigger>
+                <TabsTrigger value="scheduled" className="text-xs font-bold px-3 py-1">
+                  Scheduled Deliveries ({scheduledReports.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="text"
+                  placeholder="Search title or category..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="text-xs pl-8 bg-white border-slate-300"
+                />
+              </div>
             </div>
 
-            <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search report title or category..."
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full text-xs pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-[#E8450F]"
-              />
-            </div>
-          </div>
-
-          {/* Saved Reports Tab */}
-          {activeTab === 'saved' && (
-            <div className="overflow-x-auto">
-              {loadingSaved ? (
-                <div className="p-8 text-center text-xs text-slate-500 animate-pulse">
-                  Loading report library...
-                </div>
-              ) : filteredSaved.length === 0 ? (
-                <div className="p-12 text-center space-y-2">
-                  <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
-                    <FileSpreadsheet className="w-6 h-6" />
+            {/* Saved Reports Tab */}
+            <TabsContent value="saved" className="m-0">
+              <div className="overflow-x-auto">
+                {loadingSaved ? (
+                  <div className="p-8 text-center text-xs text-slate-500 animate-pulse">
+                    Loading report library...
                   </div>
-                  <h4 className="text-sm font-bold text-slate-800">No saved reports yet</h4>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Build a custom query in the Advanced Builder and click "Save Report" to store it here for future execution.
-                  </p>
-                </div>
-              ) : (
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-100/70 text-slate-700 font-semibold uppercase tracking-wider text-[11px]">
-                      <th className="py-3 px-4">Report Name</th>
-                      <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4">Primary Module</th>
-                      <th className="py-3 px-4">Visualization</th>
-                      <th className="py-3 px-4">Last Updated</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 text-slate-800">
-                    {filteredSaved.map((report) => (
-                      <tr key={report.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900">
-                          {report.name}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-md text-[11px] font-medium text-slate-700">
-                            {report.category}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 capitalize font-medium text-slate-700">
-                          {report.spec.rootModule}
-                        </td>
-                        <td className="py-3 px-4 capitalize text-slate-600">
-                          {report.visualization || 'table'}
-                        </td>
-                        <td className="py-3 px-4 text-slate-500">
-                          {new Date(report.updatedAt).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="inline-flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleRunSaved(report)}
-                              className="px-2.5 py-1 bg-orange-50 text-[#E8450F] hover:bg-orange-100 rounded-lg text-xs font-semibold flex items-center gap-1 border border-orange-200 transition-colors"
-                            >
-                              <Play className="w-3 h-3 fill-current" /> Run
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedReportForSchedule(report);
-                                setScheduleModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-xs font-medium flex items-center gap-1 border border-slate-300 transition-colors"
-                            >
-                              <Calendar className="w-3 h-3" /> Schedule
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSaved(report.id)}
-                              className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-100 transition-colors"
-                              title="Delete report"
+                ) : filteredSaved.length === 0 ? (
+                  <div className="p-12 text-center space-y-2">
+                    <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+                      <FileSpreadsheet className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800">No saved reports yet</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Build a custom query in the Advanced Builder and click "Save Report" to store it here.
+                    </p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-100/70 text-slate-700 font-semibold uppercase tracking-wider text-[11px]">
+                        <th className="py-3 px-4">Report Name</th>
+                        <th className="py-3 px-4">Category</th>
+                        <th className="py-3 px-4">Primary Module</th>
+                        <th className="py-3 px-4">Visualization</th>
+                        <th className="py-3 px-4">Last Updated</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-slate-800">
+                      {filteredSaved.map((report) => (
+                        <tr key={report.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-4 font-bold text-slate-900">
+                            {report.name}
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge variant="outline" className="text-[11px] font-medium text-slate-700 bg-slate-100">
+                              {report.category}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 capitalize font-medium text-slate-700">
+                            {report.spec.rootModule}
+                          </td>
+                          <td className="py-3 px-4 capitalize text-slate-600">
+                            {report.visualization || 'table'}
+                          </td>
+                          <td className="py-3 px-4 text-slate-500">
+                            {new Date(report.updatedAt).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="inline-flex items-center gap-1.5">
+                              <Button
+                                size="sm"
+                                onClick={() => handleRunSaved(report)}
+                                className="h-7 px-2.5 bg-orange-50 text-[#E8450F] hover:bg-orange-100 border border-orange-200 text-xs font-semibold gap-1"
+                              >
+                                <Play className="w-3 h-3 fill-current" /> Run
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedReportForSchedule(report);
+                                  setScheduleModalOpen(true);
+                                }}
+                                className="h-7 px-2.5 text-slate-700 text-xs font-medium gap-1"
+                              >
+                                <Calendar className="w-3 h-3" /> Schedule
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleDeleteSaved(report.id)}
+                                className="h-7 w-7 text-slate-400 hover:text-red-600"
+                                title="Delete report"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Scheduled Reports Tab */}
+            <TabsContent value="scheduled" className="m-0">
+              <div className="overflow-x-auto">
+                {loadingScheduled ? (
+                  <div className="p-8 text-center text-xs text-slate-500 animate-pulse">
+                    Loading schedules...
+                  </div>
+                ) : scheduledReports.length === 0 ? (
+                  <div className="p-12 text-center space-y-2">
+                    <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+                      <Clock className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800">No scheduled deliveries</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Schedule automated email or dashboard deliveries for any saved report.
+                    </p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-100/70 text-slate-700 font-semibold uppercase tracking-wider text-[11px]">
+                        <th className="py-3 px-4">Report Name</th>
+                        <th className="py-3 px-4">Frequency</th>
+                        <th className="py-3 px-4">Time</th>
+                        <th className="py-3 px-4">Recipients</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-slate-800">
+                      {scheduledReports.map((sch: ScheduledReport) => (
+                        <tr key={sch.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-4 font-bold text-slate-900">
+                            {sch.savedReport?.name || 'Report'}
+                          </td>
+                          <td className="py-3 px-4 capitalize font-semibold text-slate-700">
+                            {sch.frequency}
+                          </td>
+                          <td className="py-3 px-4 text-slate-600">{sch.time}</td>
+                          <td className="py-3 px-4 text-slate-600">
+                            {sch.recipients.length > 0 ? sch.recipients.join(', ') : 'All Admins'}
+                          </td>
+                          <td className="py-3 px-4">
+                            {sch.isActive ? (
+                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-semibold gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200 text-[11px] gap-1">
+                                <XCircle className="w-3 h-3" /> Paused
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleDeleteScheduled(sch.id)}
+                              className="h-7 w-7 text-slate-400 hover:text-red-600"
+                              title="Cancel schedule"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-
-          {/* Scheduled Reports Tab */}
-          {activeTab === 'scheduled' && (
-            <div className="overflow-x-auto">
-              {loadingScheduled ? (
-                <div className="p-8 text-center text-xs text-slate-500 animate-pulse">
-                  Loading schedules...
-                </div>
-              ) : scheduledReports.length === 0 ? (
-                <div className="p-12 text-center space-y-2">
-                  <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
-                    <Clock className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-800">No scheduled deliveries</h4>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Schedule automated email or dashboard deliveries for any saved report.
-                  </p>
-                </div>
-              ) : (
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-100/70 text-slate-700 font-semibold uppercase tracking-wider text-[11px]">
-                      <th className="py-3 px-4">Report Name</th>
-                      <th className="py-3 px-4">Frequency</th>
-                      <th className="py-3 px-4">Time</th>
-                      <th className="py-3 px-4">Recipients</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 text-slate-800">
-                    {scheduledReports.map((sch: ScheduledReport) => (
-                      <tr key={sch.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900">
-                          {sch.savedReport?.name || 'Report'}
-                        </td>
-                        <td className="py-3 px-4 capitalize font-semibold text-slate-700">
-                          {sch.frequency}
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">{sch.time}</td>
-                        <td className="py-3 px-4 text-slate-600">
-                          {sch.recipients.length > 0 ? sch.recipients.join(', ') : 'All Admins'}
-                        </td>
-                        <td className="py-3 px-4">
-                          {sch.isActive ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px] font-semibold">
-                              <CheckCircle2 className="w-3 h-3" /> Active
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full text-[11px]">
-                              <XCircle className="w-3 h-3" /> Paused
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => handleDeleteScheduled(sch.id)}
-                            className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-100 transition-colors"
-                            title="Cancel schedule"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-        </div>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </Card>
       </div>
 
       <ScheduleReportModal

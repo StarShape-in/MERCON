@@ -1,6 +1,8 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { ReportFilter, ReportField } from '@/services/reportBuilderService';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface FilterBuilderProps {
   filters: ReportFilter[];
@@ -39,7 +41,7 @@ export const FilterBuilder: React.FC<FilterBuilderProps> = ({ filters, onChange,
   return (
     <div className="space-y-3">
       {filters.length === 0 ? (
-        <div className="text-xs text-slate-400 italic py-2 text-center border border-dashed border-slate-200 rounded-xl">
+        <div className="text-xs text-slate-400 italic py-3 text-center border border-dashed border-slate-200 rounded-xl">
           No filters added. Click below to add a filter.
         </div>
       ) : (
@@ -85,35 +87,39 @@ export const FilterBuilder: React.FC<FilterBuilderProps> = ({ filters, onChange,
                   ))}
                 </select>
               ) : (
-                <input
+                <Input
                   type={fieldObj?.type === 'number' || fieldObj?.type === 'money' ? 'number' : fieldObj?.type === 'date' ? 'date' : 'text'}
-                  className="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#E8450F] flex-1 min-w-[120px]"
+                  className="text-xs bg-white border-slate-300 flex-1 min-w-[120px] h-8"
                   placeholder="Value..."
                   value={filter.value !== undefined && filter.value !== null ? String(filter.value) : ''}
                   onChange={(e) => handleChange(index, 'value', e.target.value)}
                 />
               )}
 
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => handleRemove(index)}
-                className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-200 transition-colors"
+                className="h-8 w-8 text-slate-400 hover:text-red-500 shrink-0"
                 title="Remove filter"
               >
                 <Trash2 className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           );
         })
       )}
 
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={handleAdd}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#E8450F] hover:text-[#c43809] bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg border border-orange-200 transition-colors"
+        className="gap-1.5 text-xs font-semibold text-[#E8450F] bg-orange-50 border-orange-200 hover:bg-orange-100"
       >
         <Plus className="w-3.5 h-3.5" /> Add Filter
-      </button>
+      </Button>
     </div>
   );
 };
