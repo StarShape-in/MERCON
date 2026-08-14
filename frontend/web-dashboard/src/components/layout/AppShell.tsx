@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { LayoutProvider, useLayoutMeta } from '@/context/LayoutContext';
+import OperationsAssistant from '../assistant/OperationsAssistant';
 
 /** Inner shell — reads metadata from context set by each page's DashboardLayout */
 function ShellInner() {
@@ -68,6 +69,9 @@ function ShellInner() {
           </Suspense>
         </div>
       </div>
+
+      {/* Floating Operations Assistant Overlay */}
+      <OperationsAssistant />
     </div>
   );
 }
