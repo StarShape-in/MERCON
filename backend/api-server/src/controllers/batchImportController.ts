@@ -313,17 +313,36 @@ export const importUploadedTrucksDocsFolder = async (req: Request, res: Response
           : `/uploads/${file.filename}`;
         const doc_type = classifyDocType(file.originalname);
 
-        await prisma.document.create({
-          data: {
-            entity_type: 'Vehicle',
+        const existingDoc = await prisma.document.findFirst({
+          where: {
             entity_id: vehicle.id,
             doc_type,
-            status: DocStatus.Verified,
-            file_url,
-            mime_type: file.mimetype,
-            is_confidential: false,
+            deletedAt: null,
           },
         });
+
+        if (existingDoc) {
+          await prisma.document.update({
+            where: { id: existingDoc.id },
+            data: {
+              file_url,
+              mime_type: file.mimetype,
+              status: DocStatus.Verified,
+            },
+          });
+        } else {
+          await prisma.document.create({
+            data: {
+              entity_type: 'Vehicle',
+              entity_id: vehicle.id,
+              doc_type,
+              status: DocStatus.Verified,
+              file_url,
+              mime_type: file.mimetype,
+              is_confidential: false,
+            },
+          });
+        }
 
         createdForVehicle++;
         totalDocsCreated++;
