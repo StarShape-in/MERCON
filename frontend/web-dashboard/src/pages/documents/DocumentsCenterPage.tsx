@@ -249,6 +249,24 @@ export default function DocumentsCenterPage() {
     }
   };
 
+  const handleSingleAssignEntity = async (docId: string, entityType: string, entityId: string) => {
+    if (!docId || !entityType || !entityId || entityId === 'unassigned') return;
+    try {
+      toast.loading('Linking document to ' + entityType + '...', { id: 'assign-doc' });
+      await documentService.confirmAutoAssign([{ docId, entityType, entityId }]);
+      toast.success('Document entity updated successfully!', { id: 'assign-doc' });
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['folders'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      await queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      if (previewDoc && previewDoc.id === docId) {
+        setPreviewDoc((prev) => prev ? { ...prev, entity_type: entityType, entity_id: entityId } : null);
+      }
+    } catch (err: any) {
+      toast.error('Failed assigning document: ' + (err.message || 'Error'), { id: 'assign-doc' });
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ queryKey: ['documents'] });
@@ -1167,12 +1185,48 @@ export default function DocumentsCenterPage() {
               },
               {
                 header: 'Entity Owner',
-                accessor: (row) => (
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-900 dark:text-slate-100 font-semibold truncate max-w-[170px]">{row.entityName}</span>
-                    <span className="text-[10px] text-slate-400 font-medium">{row.entity_type}</span>
-                  </div>
-                )
+                accessor: (row) => {
+                  const isUnknown = row.entityName.includes('Unknown') || !row.entity_id;
+
+                  return (
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={`${row.entity_type}:${row.entity_id}`}
+                        onValueChange={(val) => {
+                          const [type, id] = val.split(':');
+                          handleSingleAssignEntity(row.id, type, id);
+                        }}
+                      >
+                        <SelectTrigger className={cn(
+                          'h-7 text-xs font-bold px-2 py-0 border rounded-lg max-w-[185px] shrink-0',
+                          isUnknown
+                            ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 font-mono'
+                            : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                        )}>
+                          <SelectValue placeholder={row.entityName} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60 text-xs">
+                          <SelectItem value="Vehicle:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                            ── Vehicles ({vehicles.length}) ──
+                          </SelectItem>
+                          {vehicles.map((v) => (
+                            <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
+                              🚚 {v.plate_number || v.ref_id}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                            ── Drivers ({drivers.length}) ──
+                          </SelectItem>
+                          {drivers.map((d) => (
+                            <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
+                              👨‍✈️ {d.first_name} {d.last_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                }
               },
               {
                 header: 'Doc # / AI Metadata',
@@ -1704,6 +1758,49 @@ export default function DocumentsCenterPage() {
                         </span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Interactive Entity Re-assignment Control Card */}
+                  <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 space-y-2.5 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                        <Truck size={14} className="text-indigo-600 dark:text-indigo-400" />
+                        <span>Assigned Fleet Entity Owner</span>
+                      </span>
+                      <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300 font-mono font-bold text-[10px] px-2 py-0.5 border-0">
+                        {previewDoc.entity_type}
+                      </Badge>
+                    </div>
+
+                    <Select
+                      value={`${previewDoc.entity_type}:${previewDoc.entity_id}`}
+                      onValueChange={(val) => {
+                        const [type, id] = val.split(':');
+                        handleSingleAssignEntity(previewDoc.id, type, id);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-xs font-extrabold bg-white dark:bg-slate-800 border-indigo-300 dark:border-indigo-700 shadow-2xs text-slate-900 dark:text-slate-100">
+                        <SelectValue placeholder={nameFor(previewDoc)} />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="Vehicle:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                          ── Vehicles ({vehicles.length}) ──
+                        </SelectItem>
+                        {vehicles.map((v) => (
+                          <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
+                            🚚 {v.plate_number || v.ref_id}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                          ── Drivers ({drivers.length}) ──
+                        </SelectItem>
+                        {drivers.map((d) => (
+                          <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
+                            👨‍✈️ {d.first_name} {d.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Gemini AI Vision OCR Extracted Intelligence Card */}
