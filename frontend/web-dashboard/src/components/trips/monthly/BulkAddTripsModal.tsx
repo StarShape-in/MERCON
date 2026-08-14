@@ -1050,7 +1050,7 @@ export default function BulkAddTripsModal({
                                 <Button
                                   type="button"
                                   size="sm"
-                                  className="h-7 text-[11px] font-bold text-white bg-[#E8450F] hover:bg-[#d03d0c] active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
+                                  className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
                                   onClick={() => handleAddSlotIntermediate(slot.id)}
                                 >
                                   <Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />
@@ -1084,7 +1084,7 @@ export default function BulkAddTripsModal({
                                     <Button
                                       type="button"
                                       size="sm"
-                                      className="h-7 text-[11px] font-bold text-white bg-[#E8450F] hover:bg-[#d03d0c] active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
+                                      className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
                                       onClick={() => handleAddSlotIntermediate(slot.id)}
                                     >
                                       <Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />
@@ -1244,7 +1244,7 @@ export default function BulkAddTripsModal({
                                     <Button
                                       type="button"
                                       size="sm"
-                                      className="h-7 text-[11px] font-bold text-white bg-[#E8450F] hover:bg-[#d03d0c] active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
+                                      className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
                                       onClick={() => handleAddSlotReturnIntermediate(slot.id)}
                                     >
                                       <Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />

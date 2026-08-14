@@ -209,7 +209,7 @@ export default function MaintenanceRecordModal({
         {/* Crisp Header Bar */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 shrink-0">
           <div className="flex items-center gap-3 pr-6">
-            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] border border-orange-200/60 dark:border-orange-900/40 shrink-0">
+            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand border border-orange-200/60 dark:border-orange-900/40 shrink-0">
               <ClipboardList className="w-5 h-5" />
             </div>
             <div>
@@ -246,7 +246,7 @@ export default function MaintenanceRecordModal({
           {/* Section 1: Vehicle & Classification */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-[#E8450F]" />
+              <Truck className="w-4 h-4 text-brand" />
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Asset &amp; Classification
               </h3>
@@ -339,7 +339,7 @@ export default function MaintenanceRecordModal({
           {/* Section 2: Dates, Workshop & Cost */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <CalendarDays className="w-4 h-4 text-[#E8450F]" />
+              <CalendarDays className="w-4 h-4 text-brand" />
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Dates, Workshop &amp; Expenses
               </h3>
@@ -434,7 +434,7 @@ export default function MaintenanceRecordModal({
           {/* Section 3: Work Done & Notes */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-[#E8450F]" />
+              <Wrench className="w-4 h-4 text-brand" />
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Service Details &amp; Notes
               </h3>
@@ -453,7 +453,7 @@ export default function MaintenanceRecordModal({
                 onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
                 placeholder="Internal notes, next service recommendations, spare parts installed..."
                 rows={2.5}
-                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-brand resize-none"
               />
             </div>
           </div>
@@ -474,7 +474,7 @@ export default function MaintenanceRecordModal({
               type="submit"
               size="sm"
               disabled={isSaving}
-              className="text-xs h-9 bg-[#E8450F] hover:bg-[#d03c0b] text-white font-extrabold px-6 rounded-xl shadow-sm cursor-pointer"
+              className="text-xs h-9 bg-brand hover:bg-[#d03c0b] text-white font-extrabold px-6 rounded-xl shadow-sm cursor-pointer"
             >
               {isSaving ? 'Saving...' : editingRecord ? 'Update Record' : 'Save Maintenance Record'}
             </Button>

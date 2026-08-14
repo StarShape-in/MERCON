@@ -2,13 +2,18 @@
  * MERCON Logistics Design System — React Native Tokens
  * All design decisions in one place. Never hardcode values in components.
  */
+import Constants from 'expo-constants';
+
+const extra = Constants.expoConfig?.extra ?? {};
 
 // ─── Brand Colors ────────────────────────────────────────────────────────────
 export const Colors = {
-  // Primary
-  primary:        '#E8450F',
-  primaryLight:   '#FFF0EB',
-  primaryDark:    '#C7380A',
+  // Primary — sourced from this client's app.config.ts profile (single
+  // source of truth), not redefined here. Falls back to Mercon's values if
+  // Constants isn't populated yet (e.g. some test/SSR contexts).
+  primary:        (extra.brandColor as string) ?? '#E8450F',
+  primaryLight:   (extra.brandColorLight as string) ?? '#FFF0EB',
+  primaryDark:    (extra.brandColorDark as string) ?? '#C7380A',
 
   /**
    * Drivers-feature accent. Slightly warmer than `primary`; the drivers

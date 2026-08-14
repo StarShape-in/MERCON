@@ -1,16 +1,29 @@
 /**
- * API client for the MERCON backend.
+ * API client for this build's backend.
  * Base URL comes from EXPO_PUBLIC_API_URL (set in .env or eas.json),
- * falling back to the production server.
+ * falling back to this client's own API (app.config.ts's `extra.apiUrl`,
+ * set per CLIENT_PROFILES entry) — never another client's, so a
+ * misconfigured build fails loudly instead of silently talking to the
+ * wrong backend.
  */
 import axios from 'axios';
+import Constants from 'expo-constants';
 import { safeSecureStore as SecureStore } from './secure-store';
 import { router } from 'expo-router';
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://mercon.tech/api';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (Constants.expoConfig?.extra?.apiUrl as string);
 
-export const TOKEN_KEY = 'mercon_token';
-export const SESSION_KEY = 'mercon_session';
+if (!API_URL) {
+  throw new Error(
+    'No API URL configured: set EXPO_PUBLIC_API_URL, or apiUrl in this client\'s app.config.ts profile.',
+  );
+}
+
+// Namespaced per client (app.config.ts's `slug`) so two clients' apps
+// installed side by side on the same device never collide on session storage.
+const KEY_PREFIX = `${Constants.expoConfig?.slug ?? 'mercon-app'}_`;
+export const TOKEN_KEY = `${KEY_PREFIX}token`;
+export const SESSION_KEY = `${KEY_PREFIX}session`;
 
 const LOGIN_PATHS = ['/auth/login', '/mobile/auth/login'];
 

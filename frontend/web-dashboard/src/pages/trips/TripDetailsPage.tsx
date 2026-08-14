@@ -509,13 +509,20 @@ export default function TripDetailsPage() {
 
                 <div className="text-right shrink-0">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] mb-1.5">Status</p>
-                  <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-                    style={{ color: tone.color, backgroundColor: tone.bg }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
-                    {statusLabel(trip.status)}
-                  </span>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    {trip.is_third_party && (
+                      <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 text-xs font-semibold">
+                        3PL Rented
+                      </Badge>
+                    )}
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+                      style={{ color: tone.color, backgroundColor: tone.bg }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
+                      {statusLabel(trip.status)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -538,8 +545,10 @@ export default function TripDetailsPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Driver</p>
-                      {trip.driver && !isClosed && (
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+                        {trip.is_third_party ? '3PL Driver' : 'Driver'}
+                      </p>
+                      {trip.driver && !isClosed && !trip.is_third_party && (
                         <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
                           <PopoverTrigger asChild>
                             <button type="button" aria-label="Replace driver" className="text-[#9898A4] hover:text-brand transition-colors shrink-0">
@@ -571,9 +580,17 @@ export default function TripDetailsPage() {
                       )}
                     </div>
                     <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
-                      {trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned'}
+                      {trip.is_third_party
+                        ? trip.third_party_driver_name || trip.thirdPartyProvider?.name || 'Rented Driver'
+                        : trip.driver
+                        ? `${trip.driver.first_name} ${trip.driver.last_name}`
+                        : 'Unassigned'}
                     </p>
-                    {trip.driver?.phone_primary && <p className="text-xs text-[#6E6E80] truncate">{trip.driver.phone_primary}</p>}
+                    {trip.is_third_party ? (
+                      trip.third_party_driver_phone && <p className="text-xs text-[#6E6E80] truncate">{trip.third_party_driver_phone}</p>
+                    ) : (
+                      trip.driver?.phone_primary && <p className="text-xs text-[#6E6E80] truncate">{trip.driver.phone_primary}</p>
+                    )}
                   </div>
                 </div>
 
@@ -582,9 +599,21 @@ export default function TripDetailsPage() {
                     <Truck size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Vehicle</p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.vehicle?.plate_number || 'Unassigned'}</p>
-                    {trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>}
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+                      {trip.is_third_party ? 'Rented Vehicle' : 'Vehicle'}
+                    </p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
+                      {trip.is_third_party
+                        ? trip.third_party_vehicle_plate || 'Rented Truck'
+                        : trip.vehicle?.plate_number || 'Unassigned'}
+                    </p>
+                    {trip.is_third_party ? (
+                      <p className="text-xs text-[#6E6E80] truncate">
+                        {trip.thirdPartyProvider?.name || 'Third-Party'}
+                      </p>
+                    ) : (
+                      trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>
+                    )}
                   </div>
                 </div>
 

@@ -106,6 +106,14 @@ export const createTripBody = z.object({
   // onto the trip regardless so it survives that rate card being edited later.
   vehicle_type: vehicleTypeField,
   rate_category: rateCategoryField,
+  // Third-Party Logistics & Rental fields
+  is_third_party: z.boolean().optional(),
+  third_party_provider_id: z.string().uuid('Invalid provider').nullable().optional(),
+  third_party_driver_name: z.string().trim().optional(),
+  third_party_driver_phone: z.string().trim().optional(),
+  third_party_vehicle_plate: z.string().trim().optional(),
+  third_party_vehicle_type: z.string().trim().optional(),
+  third_party_cost: z.coerce.number().optional(),
   stops: z.array(z.object({
     stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']),
     // Client + controller use lat/lng (controller reads stop.lat/stop.lng), not location_*.

@@ -94,6 +94,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         { icon: CalendarRange, label: 'Monthly Trips', path: '/trips/monthly' },
         { icon: Users, label: 'Drivers', path: '/drivers' },
         { icon: Car, label: 'Vehicles', path: '/vehicles' },
+        { icon: Building2, label: 'Third-Party Fleet', path: '/third-party' },
         { icon: Wrench, label: 'Maintenance', path: '/maintenance', moduleKey: 'maintenance' as ModuleKey },
         { icon: Building2, label: 'Customers', path: '/customers' },
       ],

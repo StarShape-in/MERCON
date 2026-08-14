@@ -1,0 +1,81 @@
+# Template for a new client's Nginx reverse proxy config — copy this file to
+# nginx/<client>-api.conf, fill in the placeholders below, and point that
+# client's CI/CD deploy step at the new filename. Mercon's own
+# nginx/mercon-api.conf is untouched by this template and keeps deploying
+# exactly as it does today.
+#
+# Placeholders to replace:
+#   __API_DOMAIN__       e.g. api.mtl.example.com
+#   __WEB_DOMAIN__       e.g. mtl.example.com, www.mtl.example.com
+#   __API_PORT__         the client's host port for mercon-api (API_PORT in docker-compose)
+#   __FRONTEND_PORT__    the client's host port for mercon-frontend (FRONTEND_PORT in docker-compose)
+#
+# See PROGRESS.md's new-client provisioning notes for the full sequence
+# (separate VPS, separate database, separate docker-compose env — this file
+# is one step in that sequence, not something to run against Mercon's VPS).
+
+# ── API Subdomain ─────────────────────────────────────────────────────────────
+server {
+    listen 80;
+    server_name __API_DOMAIN__;
+
+    # Allow real photo uploads (default nginx limit is 1MB — way too small).
+    # Multer on the Express side allows up to 10MB; set this slightly higher
+    # so nginx never rejects before Express can return a useful error.
+    client_max_body_size 250m;
+
+    location / {
+        proxy_pass         http://127.0.0.1:__API_PORT__;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        # Generous timeouts for large file uploads on mobile connections
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+}
+
+# ── Main Web Dashboard + API Proxy ───────────────────────────────────────────
+server {
+    listen 80;
+    server_name __WEB_DOMAIN__;
+
+    client_max_body_size 250m;
+
+    location /api/ {
+        proxy_pass         http://127.0.0.1:__API_PORT__/;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+
+    location /uploads/ {
+        proxy_pass         http://127.0.0.1:__API_PORT__/uploads/;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass         http://127.0.0.1:__FRONTEND_PORT__;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}

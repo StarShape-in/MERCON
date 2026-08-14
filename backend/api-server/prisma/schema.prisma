@@ -312,6 +312,16 @@ model Trip {
   carrier_name            String?
   is_post_trip_settled    Boolean @default(false)
 
+  // Third-Party / Rental Carrier Details
+  is_third_party            Boolean             @default(false)
+  thirdPartyProviderId      String?             @db.Uuid
+  thirdPartyProvider        ThirdPartyProvider? @relation(fields: [thirdPartyProviderId], references: [id])
+  third_party_driver_name   String?
+  third_party_driver_phone  String?
+  third_party_vehicle_plate String?
+  third_party_vehicle_type  String?
+  third_party_cost          Float?              @default(0.0)
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid
@@ -325,6 +335,33 @@ model Trip {
   invoices Invoice[]
 
   @@index([vehicleId, driverId])
+  @@index([thirdPartyProviderId])
+}
+
+// -----------------------------------------
+// 2B. THIRD-PARTY LOGISTICS (Subcontractors & Rental Fleet)
+// -----------------------------------------
+model ThirdPartyProvider {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @unique
+  contact_person String?
+  phone          String?
+  email          String?
+  address        String?  @db.Text
+  tax_id         String?
+  rating         Float    @default(5.0)
+  notes          String?  @db.Text
+
+  trips Trip[]
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  isActive   Boolean   @default(true)
+  version    Int       @default(1)
 }
 
 model TripStop {

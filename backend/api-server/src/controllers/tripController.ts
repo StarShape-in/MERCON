@@ -162,6 +162,7 @@ export const getTrips = async (req: Request, res: Response) => {
           vehicle: true,
           customer: true,
           rateCard: true,
+          thirdPartyProvider: true,
           stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
         }
       }),
@@ -205,6 +206,7 @@ export const getTripById = async (req: Request, res: Response) => {
         customer: true,
         invoices: true,
         rateCard: true,
+        thirdPartyProvider: true,
         stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
       }
     });
@@ -235,6 +237,13 @@ export const createTrip = async (req: Request, res: Response) => {
       rate_category,
       status: requestedStatus,
       dispatch_now,
+      is_third_party,
+      third_party_provider_id,
+      third_party_driver_name,
+      third_party_driver_phone,
+      third_party_vehicle_plate,
+      third_party_vehicle_type,
+      third_party_cost,
     } = req.body;
 
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
@@ -417,6 +426,15 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
               trip_charges: finalTripCharges,
+              is_third_party: is_third_party === true,
+              ...(is_third_party ? {
+                thirdPartyProviderId: third_party_provider_id || null,
+                third_party_driver_name: third_party_driver_name || null,
+                third_party_driver_phone: third_party_driver_phone || null,
+                third_party_vehicle_plate: third_party_vehicle_plate || null,
+                third_party_vehicle_type: third_party_vehicle_type || null,
+                third_party_cost: third_party_cost ? Number(third_party_cost) : 0,
+              } : {}),
               stops: {
                 create: resolvedStops.map((stop: any, index: number) => ({
                   stop_sequence: index + 1,

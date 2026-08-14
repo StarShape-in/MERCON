@@ -24,6 +24,7 @@ const CreateTripPage          = lazy(() => import('@/pages/trips/CreateTripPage'
 const EditTripPage            = lazy(() => import('@/pages/trips/EditTripPage'));
 const TripTrackingPage        = lazy(() => import('@/pages/trips/TripTrackingPage'));
 const TripCompletionPage      = lazy(() => import('@/pages/trips/TripCompletionPage'));
+const ThirdPartyListPage      = lazy(() => import('@/pages/third-party/ThirdPartyListPage'));
 
 // Drivers
 const DriverListPage          = lazy(() => import('@/pages/drivers/DriverListPage'));
@@ -128,6 +129,7 @@ export default function AppRouter() {
           <Route path="/trips/:id/completion"     element={<TripCompletionPage />} />
 
           {/* Drivers */}
+          <Route path="/third-party"              element={<ThirdPartyListPage />} />
           <Route path="/drivers"                  element={<DriverListPage />} />
           <Route path="/drivers/new"              element={<AddDriverPage />} />
           <Route path="/drivers/:id"              element={<DriverDetailsPage />} />

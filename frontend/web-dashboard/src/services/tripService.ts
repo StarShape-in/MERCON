@@ -20,6 +20,19 @@ export interface Trip {
   billing_amount?: number;
   carrier_name?: string;
   is_post_trip_settled?: boolean;
+  is_third_party?: boolean;
+  thirdPartyProviderId?: string | null;
+  third_party_driver_name?: string | null;
+  third_party_driver_phone?: string | null;
+  third_party_vehicle_plate?: string | null;
+  third_party_vehicle_type?: string | null;
+  third_party_cost?: number | null;
+  thirdPartyProvider?: {
+    id: string;
+    name: string;
+    contact_person?: string | null;
+    phone?: string | null;
+  } | null;
   created_by?: string | null;
   updated_by?: string | null;
   createdAt: string;
@@ -77,6 +90,14 @@ export interface CreateTripPayload {
    *  rate card being edited later. Omit to inherit whatever rate_card_id carries. */
   vehicle_type?: string | null;
   rate_category?: string | null;
+  /** Third-Party Logistics fields */
+  is_third_party?: boolean;
+  third_party_provider_id?: string;
+  third_party_driver_name?: string;
+  third_party_driver_phone?: string;
+  third_party_vehicle_plate?: string;
+  third_party_vehicle_type?: string;
+  third_party_cost?: number;
   stops: {
     stop_type: string;
     lat: number;
