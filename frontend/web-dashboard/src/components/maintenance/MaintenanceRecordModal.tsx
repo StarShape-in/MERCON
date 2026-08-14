@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Wrench, AlertTriangle, AlertCircle, ClipboardList, CheckCircle2, XCircle, CalendarDays, DollarSign, Phone, Truck } from 'lucide-react';
+import { Wrench, AlertTriangle, AlertCircle, ClipboardList, CheckCircle2, XCircle, CalendarDays, DollarSign, Phone, Truck, Gauge, Receipt } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
 import WorkDoneSelect from '@/components/maintenance/WorkDoneSelect';
@@ -59,85 +59,86 @@ export default function MaintenanceRecordModal({
     work_done: '',
     odometer_reading: 0,
     cost: 0,
+    invoice_number: '',
     remarks: '',
   });
 
   const [costInput, setCostInput] = useState<string>('');
+  const [odometerInput, setOdometerInput] = useState<string>('');
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Track the modal open session to initialize form state only once per open
-  const prevOpenRef = useRef(false);
-  const prevEditingIdRef = useRef<string | null>(null);
-
+  // Initialize form state when modal opens or editing record changes
   useEffect(() => {
-    if (!open) {
-      prevOpenRef.current = false;
-      prevEditingIdRef.current = null;
-      return;
+    if (!open) return;
+
+    setFormError('');
+
+    if (editingRecord) {
+      setFormData({
+        vehicle_id: editingRecord.vehicleId,
+        workshop_name: editingRecord.workshop_name || '',
+        workshop_contact: editingRecord.workshop_contact || '',
+        maintenance_type: editingRecord.maintenance_type,
+        status: editingRecord.status,
+        start_date: editingRecord.start_date ? editingRecord.start_date.split('T')[0] : TODAY_ISO,
+        end_date: editingRecord.end_date ? editingRecord.end_date.split('T')[0] : TODAY_ISO,
+        work_done: editingRecord.work_done || '',
+        odometer_reading: editingRecord.odometer_reading || 0,
+        cost: editingRecord.cost || 0,
+        invoice_number: editingRecord.invoice_number || '',
+        remarks: editingRecord.remarks || '',
+      });
+      setCostInput(editingRecord.cost !== undefined && editingRecord.cost !== null ? String(editingRecord.cost) : '');
+      setOdometerInput(editingRecord.odometer_reading ? String(editingRecord.odometer_reading) : '');
+    } else {
+      const targetVehicleId = initialVehicleId || (bulkVehicles.length > 0 ? bulkVehicles[0].id : (vehicles[0]?.id || ''));
+      const foundVehicle = vehicles.find((v) => v.id === targetVehicleId) || bulkVehicles.find((v) => v.id === targetVehicleId);
+      const odo = foundVehicle?.current_odometer || 0;
+
+      setFormData({
+        vehicle_id: targetVehicleId,
+        workshop_name: '',
+        workshop_contact: '',
+        maintenance_type: 'Routine',
+        status: 'Completed',
+        start_date: TODAY_ISO,
+        end_date: TODAY_ISO,
+        work_done: '',
+        odometer_reading: odo,
+        cost: 0,
+        invoice_number: '',
+        remarks: '',
+      });
+      setCostInput('');
+      setOdometerInput(odo ? String(odo) : '');
     }
+  }, [open, editingRecord?.id]);
 
-    const isFreshOpen = !prevOpenRef.current;
-    const isEditingChanged = editingRecord?.id !== prevEditingIdRef.current;
-
-    if (isFreshOpen || isEditingChanged) {
-      prevOpenRef.current = true;
-      prevEditingIdRef.current = editingRecord?.id || null;
-      setFormError('');
-
-      if (editingRecord) {
-        setFormData({
-          vehicle_id: editingRecord.vehicleId,
-          workshop_name: editingRecord.workshop_name || '',
-          workshop_contact: editingRecord.workshop_contact || '',
-          maintenance_type: editingRecord.maintenance_type,
-          status: editingRecord.status,
-          start_date: editingRecord.start_date ? editingRecord.start_date.split('T')[0] : TODAY_ISO,
-          end_date: editingRecord.end_date ? editingRecord.end_date.split('T')[0] : TODAY_ISO,
-          work_done: editingRecord.work_done || '',
-          odometer_reading: editingRecord.odometer_reading || 0,
-          cost: editingRecord.cost || 0,
-          remarks: editingRecord.remarks || '',
-        });
-        setCostInput(editingRecord.cost !== undefined && editingRecord.cost !== null ? String(editingRecord.cost) : '');
-      } else {
-        const targetVehicleId = initialVehicleId || (bulkVehicles.length > 0 ? bulkVehicles[0].id : (vehicles[0]?.id || ''));
-        const foundVehicle = vehicles.find((v) => v.id === targetVehicleId) || bulkVehicles.find((v) => v.id === targetVehicleId);
-
-        setFormData({
-          vehicle_id: targetVehicleId,
-          workshop_name: '',
-          workshop_contact: '',
-          maintenance_type: 'Routine',
-          status: 'Completed',
-          start_date: TODAY_ISO,
-          end_date: TODAY_ISO,
-          work_done: '',
-          odometer_reading: foundVehicle?.current_odometer || 0,
-          cost: 0,
-          remarks: '',
-        });
-        setCostInput('');
-      }
-    } else if (!editingRecord && !formData.vehicle_id && vehicles.length > 0) {
-      // Background vehicle fetch completed and no vehicle was selected yet
+  // Background fallback if vehicles fetch completes after open
+  useEffect(() => {
+    if (open && !editingRecord && !formData.vehicle_id && vehicles.length > 0) {
       const targetVehicleId = initialVehicleId || (bulkVehicles.length > 0 ? bulkVehicles[0].id : vehicles[0].id);
       const foundVehicle = vehicles.find((v) => v.id === targetVehicleId);
+      const odo = foundVehicle?.current_odometer || 0;
       setFormData((prev) => ({
         ...prev,
         vehicle_id: targetVehicleId,
-        odometer_reading: prev.odometer_reading || foundVehicle?.current_odometer || 0,
+        odometer_reading: prev.odometer_reading || odo,
       }));
+      setOdometerInput((prev) => prev || (odo ? String(odo) : ''));
     }
-  }, [open, editingRecord, initialVehicleId, bulkVehicles, vehicles, formData.vehicle_id]);
+  }, [open, vehicles, editingRecord]);
 
   const handleVehicleChange = (val: string) => {
     const v = vehicles.find((item) => item.id === val);
+    const newOdo = v?.current_odometer ?? formData.odometer_reading;
     setFormData((prev) => ({
       ...prev,
       vehicle_id: val,
-      odometer_reading: v?.current_odometer ?? prev.odometer_reading,
+      odometer_reading: newOdo,
     }));
+    setOdometerInput(newOdo ? String(newOdo) : '');
   };
 
   const invalidateCache = () => {
@@ -155,7 +156,7 @@ export default function MaintenanceRecordModal({
     const isBulk = !editingRecord && bulkVehicles.length > 1;
 
     if (!isBulk && !formData.vehicle_id) {
-      setFormError('Please select a vehicle.');
+      setFormError('Please select a vehicle asset.');
       return;
     }
     if (!formData.workshop_name.trim()) {
@@ -336,12 +337,12 @@ export default function MaintenanceRecordModal({
 
           <hr className="border-slate-100 dark:border-slate-800/80" />
 
-          {/* Section 2: Dates, Workshop & Cost */}
+          {/* Section 2: Dates, Odometer, Workshop & Cost */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <CalendarDays className="w-4 h-4 text-brand" />
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                Dates, Workshop &amp; Expenses
+                Dates, Odometer &amp; Workshop
               </h3>
             </div>
 
@@ -379,22 +380,22 @@ export default function MaintenanceRecordModal({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Cost / Expense (SAR)</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Odometer Reading (km)</Label>
                 <div className="relative">
-                  <DollarSign className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Gauge className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     type="number"
                     min="0"
-                    step="0.01"
-                    value={costInput}
+                    step="1"
+                    value={odometerInput}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setCostInput(val);
-                      const parsed = parseFloat(val);
-                      setFormData(prev => ({ ...prev, cost: isNaN(parsed) ? 0 : parsed }));
+                      setOdometerInput(val);
+                      const parsed = parseInt(val, 10);
+                      setFormData(prev => ({ ...prev, odometer_reading: isNaN(parsed) ? 0 : parsed }));
                     }}
-                    placeholder="0.00"
-                    className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold rounded-xl"
+                    placeholder="0"
+                    className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-mono font-semibold rounded-xl"
                   />
                 </div>
               </div>
@@ -423,6 +424,40 @@ export default function MaintenanceRecordModal({
                     onChange={(e) => setFormData(prev => ({ ...prev, workshop_contact: e.target.value }))}
                     placeholder="+966 5x xxx xxxx"
                     className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Cost / Expense (SAR)</Label>
+                <div className="relative">
+                  <DollarSign className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={costInput}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCostInput(val);
+                      const parsed = parseFloat(val);
+                      setFormData(prev => ({ ...prev, cost: isNaN(parsed) ? 0 : parsed }));
+                    }}
+                    placeholder="0.00"
+                    className="h-9.5 text-xs pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Invoice / Bill Number</Label>
+                <div className="relative">
+                  <Receipt className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={formData.invoice_number || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
+                    placeholder="e.g. INV-884920"
+                    className="h-9.5 text-xs pl-8 font-mono bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
                   />
                 </div>
               </div>

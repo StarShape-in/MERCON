@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wrench, Plus, Building2, Phone, Search, ChevronsUpDown, Check, X, Trash2, CheckCircle2 } from 'lucide-react';
+import { Wrench, Plus, Building2, Phone, ChevronsUpDown, Check, X, Trash2, CheckCircle2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,8 +34,8 @@ export default function WorkshopField({
 }: WorkshopFieldProps) {
   const queryClient = useQueryClient();
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newWorkshopName, setNewWorkshopName] = useState('');
@@ -48,7 +48,6 @@ export default function WorkshopField({
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
@@ -60,7 +59,7 @@ export default function WorkshopField({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isOpen]);
+  }, []);
 
   const { data: workshops = [], isLoading } = useQuery({
     queryKey: ['workshops'],
@@ -89,7 +88,6 @@ export default function WorkshopField({
       setNewWorkshopPhone('');
       setNewWorkshopAddress('');
       setSaveError('');
-      setSearchQuery('');
     },
     onError: (err: any) => {
       setSaveError(err.response?.data?.error?.message || 'Failed to save workshop.');
@@ -113,7 +111,8 @@ export default function WorkshopField({
     },
   });
 
-  const toggleCheckedForDelete = (name: string) => {
+  const toggleCheckedForDelete = (name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setCheckedForDeleteNames((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
@@ -123,37 +122,32 @@ export default function WorkshopField({
   };
 
   const checkedWorkshops = workshops.filter((w) => checkedForDeleteNames.has(w.name));
-  const checkedWorkshopNames = checkedWorkshops.map((w) => w.name);
 
   const handleSelectWorkshop = (w: Workshop) => {
     onChange(w.name);
     onPick?.(w);
     setIsOpen(false);
-    setSearchQuery('');
   };
 
-  const handleUseTypedName = (typedName: string) => {
-    const trimmed = typedName.trim();
-    if (!trimmed) return;
-    const existing = workshops.find((w) => w.name.toLowerCase() === trimmed.toLowerCase());
-    if (existing) {
-      handleSelectWorkshop(existing);
+  const handleInputChange = (typedValue: string) => {
+    onChange(typedValue);
+    const matched = workshops.find((w) => w.name.toLowerCase() === typedValue.trim().toLowerCase());
+    if (matched) {
+      onPick?.(matched);
     } else {
-      onChange(trimmed);
       onPick?.({
-        name: trimmed,
+        name: typedValue,
         contact: null,
         address: null,
         order_count: 0,
         is_saved: false,
       });
-      setIsOpen(false);
-      setSearchQuery('');
     }
+    if (!isOpen) setIsOpen(true);
   };
 
   const openAddDialogWith = (initialName: string = '') => {
-    setNewWorkshopName(initialName);
+    setNewWorkshopName(initialName || value);
     setNewWorkshopPhone('');
     setNewWorkshopAddress('');
     setSaveError('');
@@ -162,6 +156,7 @@ export default function WorkshopField({
 
   const handleSaveNewWorkshop = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Stop React event bubbling to parent form
     if (!newWorkshopName.trim()) {
       setSaveError('Workshop name is required.');
       return;
@@ -175,119 +170,68 @@ export default function WorkshopField({
 
   const filteredWorkshops = workshops.filter(
     (w) =>
-      w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (w.contact && w.contact.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (w.address && w.address.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const exactMatchExists = workshops.some(
-    (w) => w.name.trim().toLowerCase() === searchQuery.trim().toLowerCase()
+      w.name.toLowerCase().includes((value || '').toLowerCase()) ||
+      (w.contact && w.contact.toLowerCase().includes((value || '').toLowerCase())) ||
+      (w.address && w.address.toLowerCase().includes((value || '').toLowerCase()))
   );
 
   return (
     <div ref={containerRef} className="relative w-full">
-      {/* Trigger Button */}
+      {/* Combobox Direct Input Field */}
       <div className="relative flex items-center w-full">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
+        <Building2 className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-brand shrink-0 pointer-events-none z-10" />
+        <Input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          placeholder={isLoading ? 'Loading workshops...' : placeholder}
           className={cn(
-            'w-full h-9.5 px-3 pr-8 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 cursor-pointer shadow-2xs',
-            isOpen
-              ? 'border-brand ring-2 ring-brand/20'
-              : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700',
+            'h-9.5 text-xs pl-8 pr-14 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl font-semibold focus-visible:ring-2 focus-visible:ring-brand/30',
             className
           )}
-        >
-          {value ? (
-            <div className="flex items-center gap-2 truncate font-semibold text-slate-900 dark:text-slate-100">
-              <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
-              <span className="truncate">{value}</span>
-            </div>
-          ) : (
-            <span className="text-slate-400 flex items-center gap-2 min-w-0 truncate">
-              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="truncate whitespace-nowrap">{isLoading ? 'Loading workshops...' : placeholder}</span>
-            </span>
-          )}
-          <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0 ml-auto" />
-        </button>
+        />
 
-        {value && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+          {value && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange('');
+                onPick?.({
+                  name: '',
+                  contact: null,
+                  address: null,
+                  order_count: 0,
+                  is_saved: false,
+                });
+                inputRef.current?.focus();
+              }}
+              title="Clear workshop"
+              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer rounded-md"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange('');
-              onPick?.({
-                name: '',
-                contact: null,
-                address: null,
-                order_count: 0,
-                is_saved: false,
-              });
-            }}
-            title="Clear selected workshop"
-            className="absolute right-7 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+            onClick={() => setIsOpen(!isOpen)}
+            title="Toggle suggestions list"
+            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer rounded-md"
           >
-            <X className="w-3.5 h-3.5" />
+            <ChevronsUpDown className="w-4 h-4" />
           </button>
-        )}
+        </div>
       </div>
 
-      {/* Inline Dropdown Panel (100% Reliable, Zero Portal Conflicts) */}
+      {/* Suggestions Dropdown Panel */}
       {isOpen && (
-        <div
-          className="absolute top-full left-0 mt-1.5 w-full min-w-[340px] sm:min-w-[420px] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900 overflow-hidden z-[9999] flex flex-col max-h-[380px] animate-in fade-in-0 zoom-in-95 duration-100"
-        >
-          {/* Search Header */}
-          <div className="shrink-0 p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center gap-2">
-            <Search className="w-4 h-4 text-slate-400 shrink-0" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (searchQuery.trim()) {
-                    handleUseTypedName(searchQuery);
-                  }
-                }
-              }}
-              placeholder="Search or type workshop name..."
-              className="h-8 text-xs border-none shadow-none focus-visible:ring-0 bg-transparent p-0 flex-1"
-              autoFocus
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
+        <div className="absolute top-full left-0 mt-1.5 w-full min-w-[320px] sm:min-w-[400px] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900 overflow-hidden z-[9999] flex flex-col max-h-[300px] animate-in fade-in-0 zoom-in-95 duration-100">
+          
           {/* List Content */}
           <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
-            {/* Quick Add option if user typed custom text */}
-            {searchQuery.trim() !== '' && !exactMatchExists && (
-              <div className="space-y-1 pb-1">
-                <button
-                  type="button"
-                  onClick={() => handleUseTypedName(searchQuery)}
-                  className="w-full px-3 py-2.5 rounded-xl text-xs font-bold bg-orange-50/90 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/80 flex items-center justify-between gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-brand" />
-                    <span className="truncate">Use "<strong>{searchQuery.trim()}</strong>"</span>
-                  </div>
-                  <span className="text-[10px] font-semibold opacity-75 shrink-0">Press Enter ↵</span>
-                </button>
-              </div>
-            )}
-
             {filteredWorkshops.map((w) => {
               const isSelected = value?.trim().toLowerCase() === w.name.trim().toLowerCase();
               const isCheckedForDelete = checkedForDeleteNames.has(w.name);
@@ -307,10 +251,7 @@ export default function WorkshopField({
                   <div className="flex-1 flex items-center gap-2.5 min-w-0">
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleCheckedForDelete(w.name);
-                      }}
+                      onClick={(e) => toggleCheckedForDelete(w.name, e)}
                       title={isCheckedForDelete ? 'Unselect for deletion' : 'Select for deletion'}
                       className={cn(
                         'w-4 h-4 rounded shrink-0 flex items-center justify-center border transition-colors cursor-pointer',
@@ -359,9 +300,13 @@ export default function WorkshopField({
               );
             })}
 
-            {filteredWorkshops.length === 0 && searchQuery.trim() === '' && (
-              <div className="p-4 text-center text-xs text-slate-400">
-                No saved workshops found.
+            {filteredWorkshops.length === 0 && (
+              <div className="p-3 text-center text-xs text-slate-500">
+                {value.trim() ? (
+                  <span>Using custom workshop name: "<strong>{value}</strong>"</span>
+                ) : (
+                  <span>No saved workshops found. Type above or click + Save New Workshop.</span>
+                )}
               </div>
             )}
           </div>
@@ -375,7 +320,6 @@ export default function WorkshopField({
                 size="sm"
                 disabled={checkedForDeleteNames.size === 0}
                 onClick={() => setIsConfirmDeleteOpen(true)}
-                title={checkedForDeleteNames.size > 0 ? `Delete ${checkedForDeleteNames.size} selected workshop(s)` : 'Check a workshop to delete it'}
                 className="h-7 px-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-30 text-xs font-semibold cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1" />
@@ -387,7 +331,7 @@ export default function WorkshopField({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => openAddDialogWith(searchQuery)}
+              onClick={() => openAddDialogWith(value)}
               className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50 cursor-pointer"
             >
               <Plus className="w-3 h-3 mr-1" />

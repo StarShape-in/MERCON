@@ -4,7 +4,6 @@ import {
   BarChart3, 
   TrendingUp, 
   Truck, 
-  Users, 
   SlidersHorizontal, 
   Download, 
   RotateCw,
@@ -14,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 interface ReportsHeaderProps {
-  activeTab: 'overview' | 'revenue' | 'fleet' | 'drivers' | 'custom' | 'delays' | 'company';
+  activeTab: 'overview' | 'revenue' | 'fleet' | 'custom' | 'delays' | 'company';
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onExport?: () => void;
@@ -34,7 +33,6 @@ export default function ReportsHeader({
     { id: 'company', label: 'Company Formats', icon: FileSpreadsheet, path: '/reports/client-templates' },
     { id: 'revenue', label: 'Revenue Report', icon: TrendingUp, path: '/reports/revenue' },
     { id: 'fleet', label: 'Fleet Performance', icon: Truck, path: '/reports/fleet' },
-    { id: 'drivers', label: 'Driver Safety', icon: Users, path: '/reports/drivers' },
     { id: 'delays', label: 'Delay Report', icon: Clock, path: '/reports/delays' },
     { id: 'custom', label: 'Custom Generator', icon: SlidersHorizontal, path: '/reports/custom' },
   ];

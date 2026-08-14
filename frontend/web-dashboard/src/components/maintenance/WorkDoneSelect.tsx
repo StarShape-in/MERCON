@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wrench, Plus, Check, Search, ChevronsUpDown, X, Tag, CheckCircle2 } from 'lucide-react';
+import { Wrench, Plus, Check, Search, ChevronsUpDown, X, Tag } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +36,6 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
@@ -47,7 +47,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isOpen]);
+  }, []);
 
   const { data: workItems = [] } = useQuery({
     queryKey: ['workItems'],
@@ -89,28 +89,15 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
     onChange(updated.join(', '));
   };
 
-  const addCustomItem = (titleToAdd: string) => {
-    const trimmed = titleToAdd.trim();
-    if (!trimmed) return;
-    if (!selectedItems.includes(trimmed)) {
-      onChange([...selectedItems, trimmed].join(', '));
-    }
-    setSearchQuery('');
-  };
-
   const removeItem = (titleToRemove: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = selectedItems.filter((item) => item !== titleToRemove);
     onChange(updated.join(', '));
   };
 
-  const clearAll = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange('');
-  };
-
   const handleSaveNewItem = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Stop React synthetic event bubbling to parent form
     if (!newTitle.trim()) {
       setSaveError('Service title is required.');
       return;
@@ -127,93 +114,65 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
       (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const exactMatchExists = workItems.some(
-    (item) => item.title.trim().toLowerCase() === searchQuery.trim().toLowerCase()
-  );
-
   return (
     <div ref={containerRef} className="relative space-y-2 w-full">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
           Work Done / Service Details *
         </Label>
-        <div className="flex items-center gap-2">
-          {selectedItems.length > 0 && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="text-[11px] text-rose-500 hover:text-rose-700 font-semibold cursor-pointer"
-            >
-              Clear All
-            </button>
-          )}
-          <span className="text-[11px] text-slate-400 font-normal">
-            {selectedItems.length} item(s) selected
-          </span>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="text-xs font-semibold text-brand hover:underline cursor-pointer flex items-center gap-1"
+        >
+          <Wrench className="w-3 h-3" />
+          {isOpen ? 'Close suggestions' : 'Browse common service items'}
+        </button>
       </div>
 
-      {/* Field Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'w-full min-h-[42px] px-3 py-2 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 shadow-2xs cursor-pointer',
-          isOpen
-            ? 'border-brand ring-2 ring-brand/20'
-            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-        )}
-      >
-        <div className="flex-1 flex flex-wrap gap-1.5 items-center overflow-hidden">
-          {selectedItems.length > 0 ? (
-            selectedItems.map((title) => (
-              <span
-                key={title}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200 dark:border-orange-900/60"
+      {/* Selected Tags Pills */}
+      {selectedItems.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl">
+          {selectedItems.map((title) => (
+            <span
+              key={title}
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200 dark:border-orange-900/60"
+            >
+              <span>{title}</span>
+              <button
+                type="button"
+                onClick={(e) => removeItem(title, e)}
+                className="hover:text-rose-600 cursor-pointer ml-0.5 p-0.5 rounded"
               >
-                <span>{title}</span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => removeItem(title, e)}
-                  className="hover:text-rose-600 cursor-pointer ml-0.5 p-0.5 rounded"
-                >
-                  <X className="w-3 h-3" />
-                </span>
-              </span>
-            ))
-          ) : (
-            <span className="text-slate-400 font-normal flex items-center gap-1.5">
-              <Wrench className="w-3.5 h-3.5 text-slate-400" />
-              Select service details (e.g. Tire Puncture Repair, Oil Change)...
+                <X className="w-3 h-3" />
+              </button>
             </span>
-          )}
+          ))}
         </div>
-        <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-      </button>
+      )}
 
-      {/* Inline Dropdown Panel (100% Reliable, Zero Portal Conflicts) */}
+      {/* Direct Editable Textarea */}
+      <Textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setIsOpen(true)}
+        placeholder="Enter work performed (e.g., Oil & Filter replacement, Brake Inspection, Tire Puncture Repair)..."
+        rows={3}
+        className="w-full text-xs font-medium bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl focus-visible:ring-2 focus-visible:ring-brand/30 resize-y"
+      />
+
+      {/* Dropdown Panel of Predefined Items */}
       {isOpen && (
-        <div
-          className="absolute top-full left-0 mt-1.5 w-full min-w-[360px] sm:min-w-[480px] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900 overflow-hidden z-[9999] flex flex-col max-h-[360px] animate-in fade-in-0 zoom-in-95 duration-100"
-        >
-          {/* Search Bar Header */}
+        <div className="absolute top-full left-0 mt-1.5 w-full min-w-[320px] sm:min-w-[440px] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900 overflow-hidden z-[9999] flex flex-col max-h-[320px] animate-in fade-in-0 zoom-in-95 duration-100">
+          
+          {/* Search Header */}
           <div className="shrink-0 p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center gap-2">
             <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (searchQuery.trim()) {
-                    addCustomItem(searchQuery);
-                  }
-                }
-              }}
-              placeholder="Search or type service detail..."
+              placeholder="Search common service items..."
               className="h-8 text-xs border-none shadow-none focus-visible:ring-0 bg-transparent p-0"
-              autoFocus
             />
             {searchQuery && (
               <button
@@ -226,25 +185,8 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
             )}
           </div>
 
-          {/* Selectable Items List */}
+          {/* Items List */}
           <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
-            {/* Quick Add option if user typed custom text */}
-            {searchQuery.trim() !== '' && !exactMatchExists && (
-              <div className="pb-1">
-                <button
-                  type="button"
-                  onClick={() => addCustomItem(searchQuery)}
-                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-orange-50/90 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/80 flex items-center justify-between gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-brand" />
-                    <span className="truncate">Add "<strong>{searchQuery.trim()}</strong>"</span>
-                  </div>
-                  <span className="text-[10px] font-semibold opacity-75 shrink-0">Press Enter ↵</span>
-                </button>
-              </div>
-            )}
-
             {filteredWorkItems.map((item) => {
               const isSelected = selectedItems.includes(item.title);
               return (
@@ -281,9 +223,9 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
               );
             })}
 
-            {filteredWorkItems.length === 0 && searchQuery.trim() === '' && (
+            {filteredWorkItems.length === 0 && (
               <div className="p-4 text-center text-xs text-slate-400">
-                No predefined service items found.
+                No matching service items found. Type details directly into the text area above!
               </div>
             )}
           </div>
@@ -304,7 +246,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
               className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50 cursor-pointer"
             >
               <Plus className="w-3 h-3 mr-1" />
-              + Add Custom Service
+              + Add Custom Service Item
             </Button>
           </div>
         </div>
