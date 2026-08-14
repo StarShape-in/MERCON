@@ -830,7 +830,7 @@ export default function VehicleListPage() {
             trendValue={`${activePct}% Active`}
             description="Total assets in database"
             icon={FleetTruck}
-            onClick={() => { setSelectedStatus('All'); setViewMode('map'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('All'); setViewMode('list'); setCurrentPage(1); }}
             customFooter={
               <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-slate-50/70 dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">
                 <style>{`
@@ -941,7 +941,7 @@ export default function VehicleListPage() {
             description="Ready for operational trip"
             icon={CheckBadge}
             isActive={selectedStatus === 'Available'}
-            onClick={() => { setSelectedStatus('Available'); setViewMode('map'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('Available'); setViewMode('list'); setCurrentPage(1); }}
             customFooter={
               <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#F0F6FF] dark:bg-[#1E3A8A]/10 border-t border-blue-500/10">
                 <style>{`
@@ -1033,7 +1033,7 @@ export default function VehicleListPage() {
             description="Active servicing units"
             icon={MaintenanceWrench}
             isActive={selectedStatus === 'Maintenance'}
-            onClick={() => { setSelectedStatus('Maintenance'); setViewMode('map'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('Maintenance'); setViewMode('list'); setCurrentPage(1); }}
             customFooter={
               <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#FFF5F5] dark:bg-[#DC2626]/10 border-t border-red-500/10">
                 <style>{`
@@ -1138,7 +1138,7 @@ export default function VehicleListPage() {
             description="Currently dispatched on active trips"
             icon={Truck}
             isActive={selectedStatus === 'OnTrip'}
-            onClick={() => { setSelectedStatus('OnTrip'); setViewMode('map'); setCurrentPage(1); }}
+            onClick={() => { setSelectedStatus('OnTrip'); setViewMode('list'); setCurrentPage(1); }}
             customFooter={
               <div className="relative h-9 mt-4 -mx-5 overflow-hidden rounded-b-2xl bg-[#E8F5E9] dark:bg-[#1B5E20]/15 border-t border-emerald-500/10">
                 <style>{`
