@@ -199,6 +199,8 @@ export const extractAllDocumentsOcr = async (req: Request, res: Response) => {
   }
 };
 
+const isValidUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+
 /**
  * Endpoint to push extracted document metadata from local DB directly into Production DB
  */
@@ -213,13 +215,18 @@ export const syncLocalDocumentRecords = async (req: Request, res: Response) => {
     for (const rec of records) {
       const fileName = rec.file_url ? path.basename(rec.file_url) : '';
       
+      const orConditions: any[] = [];
+      if (isValidUuid(rec.id)) {
+        orConditions.push({ id: rec.id });
+      }
+      if (fileName && fileName.length > 3) {
+        orConditions.push({ file_url: { contains: fileName } });
+      }
+
+      if (orConditions.length === 0) continue;
+
       const matchingDoc = await prisma.document.findFirst({
-        where: {
-          OR: [
-            { id: rec.id },
-            ...(fileName ? [{ file_url: { contains: fileName } }] : []),
-          ],
-        },
+        where: { OR: orConditions },
       });
 
       if (matchingDoc) {
