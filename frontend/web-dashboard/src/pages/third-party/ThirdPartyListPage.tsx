@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Edit2,
+  Eye,
   Trash2,
   Search,
   Building2,
@@ -241,7 +242,7 @@ export default function ThirdPartyListPage() {
           <div className="flex flex-col">
             <span
               className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-brand transition-colors cursor-pointer"
-              onClick={() => setSelectedProviderForEdit(row)}
+              onClick={() => navigate(`/third-party/${row.id}`)}
             >
               {row.name}
             </span>
@@ -319,6 +320,9 @@ export default function ThirdPartyListPage() {
             <DropdownMenuLabel className="text-[11px] text-slate-400 font-bold uppercase">
               Manage Provider
             </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigate(`/third-party/${row.id}`)} className="text-xs font-medium cursor-pointer">
+              <Eye className="w-3.5 h-3.5 mr-2 text-purple-600" /> View Profile &amp; Trips
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setSelectedProviderForEdit(row)} className="text-xs font-medium cursor-pointer">
               <Edit2 className="w-3.5 h-3.5 mr-2 text-brand" /> Edit Provider Details
             </DropdownMenuItem>
@@ -577,7 +581,7 @@ export default function ThirdPartyListPage() {
                     <div>
                       <h4
                         className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-brand transition-colors cursor-pointer"
-                        onClick={() => setSelectedProviderForEdit(p)}
+                        onClick={() => navigate(`/third-party/${p.id}`)}
                       >
                         {p.name}
                       </h4>

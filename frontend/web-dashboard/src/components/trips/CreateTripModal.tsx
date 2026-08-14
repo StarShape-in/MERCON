@@ -66,6 +66,8 @@ export interface CreateTripModalProps {
   onClose: () => void;
   initialCustomerId?: string;
   initialDriverId?: string;
+  defaultIsThirdParty?: boolean;
+  defaultThirdPartyProviderId?: string;
   onTripCreated?: (trip: Trip) => void;
 }
 
@@ -74,6 +76,8 @@ export default function CreateTripModal({
   onClose,
   initialCustomerId,
   initialDriverId,
+  defaultIsThirdParty = false,
+  defaultThirdPartyProviderId = '',
   onTripCreated,
 }: CreateTripModalProps) {
   const queryClient = useQueryClient();
@@ -90,8 +94,8 @@ export default function CreateTripModal({
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
 
   // Third-Party Rental Carrier State
-  const [isThirdParty, setIsThirdParty] = useState(false);
-  const [thirdPartyProviderId, setThirdPartyProviderId] = useState('');
+  const [isThirdParty, setIsThirdParty] = useState(defaultIsThirdParty);
+  const [thirdPartyProviderId, setThirdPartyProviderId] = useState(defaultThirdPartyProviderId);
   const [thirdPartyDriverName, setThirdPartyDriverName] = useState('');
   const [thirdPartyDriverPhone, setThirdPartyDriverPhone] = useState('');
   const [thirdPartyVehiclePlate, setThirdPartyVehiclePlate] = useState('');
