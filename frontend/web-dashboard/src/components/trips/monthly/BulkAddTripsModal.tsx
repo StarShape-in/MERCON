@@ -28,6 +28,9 @@ import {
   DollarSign,
   Search,
   Link2,
+  Phone,
+  CreditCard,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 
@@ -911,6 +914,59 @@ export default function BulkAddTripsModal({
                             ))}
                           </SelectContent>
                         </Select>
+
+                        {/* Selected Customer Details Card */}
+                        {(() => {
+                          const selectedCust = customers.find((c) => c.id === contractCustomer);
+                          if (!selectedCust) return null;
+                          const initials = selectedCust.name.substring(0, 2).toUpperCase();
+                          return (
+                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5 animate-fade-in mt-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <span className="w-10 h-10 rounded-xl bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80">
+                                    {initials}
+                                  </span>
+                                  <div>
+                                    <h5 className="text-xs font-bold text-[#111111]">{selectedCust.name}</h5>
+                                    <p className="text-[11px] text-slate-500 font-medium">Commercial Shipper</p>
+                                  </div>
+                                </div>
+                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2.5 py-1 rounded-lg">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  Active Account
+                                </Badge>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-200/60">
+                                <div>
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <Phone className="w-3 h-3 text-slate-400" /> CONTACT PHONE
+                                  </span>
+                                  <span className="text-xs font-bold text-[#111111]">
+                                    {selectedCust.phone || '966500000007'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <CreditCard className="w-3 h-3 text-slate-400" /> PAYMENT TERMS
+                                  </span>
+                                  <span className="text-xs font-bold text-[#111111]">
+                                    {selectedCust.payment_terms || 'Net 30'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3 text-slate-400" /> ACCOUNT CREDIT
+                                  </span>
+                                  <span className="text-xs font-bold text-emerald-600">
+                                    Good Standing
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
