@@ -20,7 +20,9 @@ import {
   Calendar,
   Building2,
   Hash,
-  BrainCircuit
+  BrainCircuit,
+  XCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -329,12 +331,14 @@ export default function BatchVehicleDocModal({
     }
   };
 
-  // Upload folder via 1-file micro-batches + client image compression
+  // Upload folder via 1-file micro-batches + tracking successes and failures explicitly
   const handleUploadFolder = async () => {
     if (selectedFiles.length === 0) return;
     setIsLoading(true);
     setError(null);
     setResult(null);
+
+    const failedUploads: Array<{ filename: string; reason: string }> = [];
 
     try {
       setUploadProgress({
@@ -396,6 +400,8 @@ export default function BatchVehicleDocModal({
             }
           }
         } catch (singleErr: any) {
+          const reason = singleErr.response?.data?.error?.message || singleErr.message || 'Upload request failed';
+          failedUploads.push({ filename: currentFileName, reason });
           console.warn(`Failed uploading file ${currentFileName}:`, singleErr);
         }
 
@@ -412,11 +418,18 @@ export default function BatchVehicleDocModal({
         totalFoldersScanned: vehicleMap.size,
         totalVehiclesProcessed: vehicleMap.size,
         totalDocsCreated: aggregateDocsCreated,
+        totalFailed: failedUploads.length,
         details: detailsList,
+        failedUploads,
       };
 
       setResult(finalSummary);
-      toast.success(`Successfully uploaded & assigned ${aggregateDocsCreated} documents across ${vehicleMap.size} vehicle folders!`);
+      
+      if (failedUploads.length === 0) {
+        toast.success(`Successfully uploaded & assigned ${aggregateDocsCreated} documents across ${vehicleMap.size} vehicle folders!`);
+      } else {
+        toast.warning(`Uploaded ${aggregateDocsCreated} documents, but ${failedUploads.length} file(s) failed or skipped.`);
+      }
 
       // If auto-extract is checked, run AI OCR automatically
       if (autoExtractAi) {
@@ -472,7 +485,7 @@ export default function BatchVehicleDocModal({
     }
   };
 
-  const handleClose = () => {
+  const handleResetAndImportAnother = () => {
     setSelectedFiles([]);
     setFolderName('');
     setFolderSummary({});
@@ -482,6 +495,10 @@ export default function BatchVehicleDocModal({
     setUploadProgress(null);
     setExtractedRowData({});
     setExpandedRows({});
+  };
+
+  const handleClose = () => {
+    handleResetAndImportAnother();
     onClose();
   };
 
@@ -522,246 +539,248 @@ export default function BatchVehicleDocModal({
         {/* Scrollable Modal Body */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-130px)] space-y-5 flex-1 custom-scrollbar">
           
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-            <TabsList className="grid grid-cols-2 w-full bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-              <TabsTrigger value="upload" className="text-xs font-bold gap-2 rounded-lg py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-xs transition-all">
-                <FolderOpen size={15} className="text-indigo-600 dark:text-indigo-400" />
-                <span>Upload Folder (Browser Dropzone)</span>
-              </TabsTrigger>
-              <TabsTrigger value="local" className="text-xs font-bold gap-2 rounded-lg py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-xs transition-all">
-                <HardDrive size={15} className="text-indigo-600 dark:text-indigo-400" />
-                <span>Local Server Path Import</span>
-              </TabsTrigger>
-            </TabsList>
+          {!result && (
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+              <TabsList className="grid grid-cols-2 w-full bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                <TabsTrigger value="upload" className="text-xs font-bold gap-2 rounded-lg py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-xs transition-all">
+                  <FolderOpen size={15} className="text-indigo-600 dark:text-indigo-400" />
+                  <span>Upload Folder (Browser Dropzone)</span>
+                </TabsTrigger>
+                <TabsTrigger value="local" className="text-xs font-bold gap-2 rounded-lg py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-xs transition-all">
+                  <HardDrive size={15} className="text-indigo-600 dark:text-indigo-400" />
+                  <span>Local Server Path Import</span>
+                </TabsTrigger>
+              </TabsList>
 
-            {/* TAB 1: Native Browser Folder Chooser & Drag/Drop */}
-            <TabsContent value="upload" className="space-y-4 pt-4">
-              <input
-                type="file"
-                ref={folderInputRef}
-                // @ts-ignore
-                webkitdirectory=""
-                directory=""
-                multiple
-                onChange={handleFolderSelect}
-                className="hidden"
-              />
+              {/* TAB 1: Native Browser Folder Chooser & Drag/Drop */}
+              <TabsContent value="upload" className="space-y-4 pt-4">
+                <input
+                  type="file"
+                  ref={folderInputRef}
+                  // @ts-ignore
+                  webkitdirectory=""
+                  directory=""
+                  multiple
+                  onChange={handleFolderSelect}
+                  className="hidden"
+                />
 
-              {/* Drag & Drop Zone */}
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => folderInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-7 flex flex-col items-center justify-center cursor-pointer transition-all gap-3 text-center group relative overflow-hidden ${
-                  isDragging
-                    ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 ring-4 ring-indigo-500/10 scale-[0.99]'
-                    : folderName
-                    ? 'border-indigo-300 dark:border-indigo-800 bg-indigo-50/30 dark:bg-indigo-950/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/10'
-                }`}
-              >
-                <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
-                  {folderName ? <FolderTree className="w-7 h-7" /> : <UploadCloud className="w-7 h-7" />}
+                {/* Drag & Drop Zone */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => folderInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-7 flex flex-col items-center justify-center cursor-pointer transition-all gap-3 text-center group relative overflow-hidden ${
+                    isDragging
+                      ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 ring-4 ring-indigo-500/10 scale-[0.99]'
+                      : folderName
+                      ? 'border-indigo-300 dark:border-indigo-800 bg-indigo-50/30 dark:bg-indigo-950/20'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/10'
+                  }`}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                    {folderName ? <FolderTree className="w-7 h-7" /> : <UploadCloud className="w-7 h-7" />}
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      {folderName ? `Selected Folder: ${folderName}` : 'Drag & Drop Folder or Click to Browse'}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                      Select your root folder containing vehicle plate subfolders (e.g., <span className="font-mono font-bold text-slate-700 dark:text-slate-200">2541, 3071</span>). PDFs and images will be parsed automatically.
+                    </p>
+                  </div>
+
+                  {selectedFiles.length > 0 ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/80 dark:text-indigo-300 dark:border-indigo-800 text-xs font-bold px-3 py-1 rounded-full">
+                        ✓ {selectedFiles.length} valid files found in {vehicleFoldersCount} truck subfolders
+                      </Badge>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFiles([]);
+                          setFolderName('');
+                          setFolderSummary({});
+                        }}
+                        className="h-7 px-2 text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                      >
+                        <X className="w-3.5 h-3.5 mr-1" /> Clear
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                      <span className="flex items-center gap-1"><FileCheck2 size={13} /> PDF, JPG, PNG, WEBP</span>
+                      <span>•</span>
+                      <span>Auto compression enabled</span>
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                    {folderName ? `Selected Folder: ${folderName}` : 'Drag & Drop Folder or Click to Browse'}
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-                    Select your root folder containing vehicle plate subfolders (e.g., <span className="font-mono font-bold text-slate-700 dark:text-slate-200">2541, 3071</span>). PDFs and images will be parsed automatically.
+                {/* AI Auto-Extraction Feature Banner / Toggle Switch */}
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-200/60 dark:border-amber-800/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                        <span>AI Vision Auto-Extract</span>
+                        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 text-[9px] font-bold px-1.5 py-0 border-0">Gemini 2.5</Badge>
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Extracts Serial #, Vehicle Plate, Issue Date, Expiry Date & Authority automatically during import.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+                    <input
+                      type="checkbox"
+                      checked={autoExtractAi}
+                      onChange={(e) => setAutoExtractAi(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:after:border-slate-600 peer-checked:bg-amber-500"></div>
+                  </label>
+                </div>
+
+                {/* Progress Bar when uploading */}
+                {isLoading && uploadProgress && (
+                  <div className="space-y-3 p-4 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-xs animate-fade-in shadow-sm">
+                    <div className="flex items-center justify-between font-bold text-indigo-950 dark:text-indigo-100">
+                      <span className="flex items-center gap-2 truncate max-w-[80%]">
+                        <Loader2 className="w-4 h-4 animate-spin text-indigo-600 dark:text-indigo-400 shrink-0" />
+                        <span className="truncate">{uploadProgress.stage}</span>
+                      </span>
+                      <span className="font-mono text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/60 px-2.5 py-0.5 rounded-full text-xs font-extrabold">
+                        {Math.round((uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 bg-indigo-200/80 dark:bg-indigo-900/80 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-300 rounded-full shadow-xs"
+                        style={{ width: `${(uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] text-indigo-700/80 dark:text-indigo-300/80 font-mono">
+                      <span>Batch {uploadProgress.currentBatch} of {uploadProgress.totalBatches}</span>
+                      <span>{uploadProgress.processedFiles} / {uploadProgress.totalFiles} files processed</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Detected Vehicle Folders Grid & Search Filter */}
+                {selectedFiles.length > 0 && !isLoading && (
+                  <div className="space-y-3 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 bg-slate-50/40 dark:bg-slate-900/40">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                          Detected Vehicle Subfolders ({vehicleFoldersCount})
+                        </span>
+                      </div>
+
+                      {vehicleFoldersCount > 4 && (
+                        <div className="relative w-full sm:w-56">
+                          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <Input
+                            type="text"
+                            placeholder="Filter plate / folder..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="h-7 pl-8 pr-2 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 custom-scrollbar">
+                      {vehicleFoldersEntries.map(([vehId, files]) => (
+                        <div
+                          key={vehId}
+                          className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-800/40">
+                              <Truck size={14} />
+                            </div>
+                            <div className="truncate">
+                              <span className="font-extrabold text-slate-900 dark:text-slate-100 block truncate text-xs">
+                                {vehId === 'General' ? 'Unassigned' : `Vehicle #${vehId}`}
+                              </span>
+                              <span className="text-[10px] text-slate-400 block truncate">
+                                {files.length} document{files.length > 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="font-mono text-[10px] font-extrabold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 px-2 py-0.5 shrink-0 rounded-md">
+                            {files.length} files
+                          </Badge>
+                        </div>
+                      ))}
+
+                      {vehicleFoldersEntries.length === 0 && (
+                        <div className="col-span-full py-6 text-center text-xs text-slate-400">
+                          No vehicle subfolders match "{searchTerm}"
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Usage Guide */}
+                {selectedFiles.length === 0 && !isLoading && (
+                  <div className="rounded-xl border border-indigo-100 dark:border-indigo-950 bg-indigo-50/40 dark:bg-indigo-950/20 p-4 text-xs space-y-2 text-indigo-900 dark:text-indigo-200">
+                    <div className="flex items-center gap-2 font-bold text-indigo-950 dark:text-indigo-100">
+                      <Info className="w-4 h-4 text-indigo-600 shrink-0" />
+                      <span>How Batch Import Works</span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-400 pl-1 text-[11px] leading-relaxed">
+                      <li>Organize your documents in a parent folder with subfolders named by vehicle plate number (e.g. <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300">Trucks Docs / 2541 / istimara.pdf</span>).</li>
+                      <li>Files are processed locally and compressed if needed before uploading to avoid size limits.</li>
+                      <li>AI Vision automatically extracts <span className="font-bold text-indigo-700 dark:text-indigo-300">Serial #, Vehicle Plate, Issue & Expiry Dates, and Authority</span> directly into PostgreSQL.</li>
+                    </ul>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* TAB 2: Server Local Disk Path */}
+              <TabsContent value="local" className="space-y-4 pt-4">
+                <div className="space-y-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <HardDrive size={15} className="text-indigo-600" />
+                    Server Directory Absolute Path
+                  </label>
+                  <Input
+                    type="text"
+                    value={folderPath}
+                    onChange={(e) => setFolderPath(e.target.value)}
+                    placeholder="C:\Users\ILAN\Downloads\Trucks Docs\Trucks Docs"
+                    disabled={isLoading}
+                    className="text-xs font-mono bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Specify the absolute path on the host server disk. The backend will scan subfolders matching vehicle plate numbers directly.
                   </p>
                 </div>
 
-                {selectedFiles.length > 0 ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/80 dark:text-indigo-300 dark:border-indigo-800 text-xs font-bold px-3 py-1 rounded-full">
-                      ✓ {selectedFiles.length} valid files found in {vehicleFoldersCount} truck subfolders
-                    </Badge>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedFiles([]);
-                        setFolderName('');
-                        setFolderSummary({});
-                      }}
-                      className="h-7 px-2 text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
-                    >
-                      <X className="w-3.5 h-3.5 mr-1" /> Clear
-                    </Button>
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-900/50 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Direct Server Execution</span>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                    <span className="flex items-center gap-1"><FileCheck2 size={13} /> PDF, JPG, PNG, WEBP</span>
-                    <span>•</span>
-                    <span>Auto compression enabled</span>
-                  </div>
-                )}
-              </div>
-
-              {/* AI Auto-Extraction Feature Banner / Toggle Switch */}
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-200/60 dark:border-amber-800/40">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                      <span>AI Vision Auto-Extract</span>
-                      <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 text-[9px] font-bold px-1.5 py-0 border-0">Gemini 2.5</Badge>
-                    </span>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Extracts Serial #, Vehicle Plate, Issue Date, Expiry Date & Authority automatically during import.
-                    </p>
-                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Best for bulk imports of thousands of documents already stored on the server's local file system or mounted storage drives.
+                  </p>
                 </div>
-                
-                <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
-                  <input
-                    type="checkbox"
-                    checked={autoExtractAi}
-                    onChange={(e) => setAutoExtractAi(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:after:border-slate-600 peer-checked:bg-amber-500"></div>
-                </label>
-              </div>
-
-              {/* Progress Bar when uploading */}
-              {isLoading && uploadProgress && (
-                <div className="space-y-3 p-4 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-xs animate-fade-in shadow-sm">
-                  <div className="flex items-center justify-between font-bold text-indigo-950 dark:text-indigo-100">
-                    <span className="flex items-center gap-2 truncate max-w-[80%]">
-                      <Loader2 className="w-4 h-4 animate-spin text-indigo-600 dark:text-indigo-400 shrink-0" />
-                      <span className="truncate">{uploadProgress.stage}</span>
-                    </span>
-                    <span className="font-mono text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/60 px-2.5 py-0.5 rounded-full text-xs font-extrabold">
-                      {Math.round((uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100)}%
-                    </span>
-                  </div>
-                  <div className="w-full h-2.5 bg-indigo-200/80 dark:bg-indigo-900/80 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-300 rounded-full shadow-xs"
-                      style={{ width: `${(uploadProgress.currentBatch / Math.max(uploadProgress.totalBatches, 1)) * 100}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center text-[11px] text-indigo-700/80 dark:text-indigo-300/80 font-mono">
-                    <span>Batch {uploadProgress.currentBatch} of {uploadProgress.totalBatches}</span>
-                    <span>{uploadProgress.processedFiles} / {uploadProgress.totalFiles} files processed</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Detected Vehicle Folders Grid & Search Filter */}
-              {selectedFiles.length > 0 && !isLoading && (
-                <div className="space-y-3 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 bg-slate-50/40 dark:bg-slate-900/40">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                        Detected Vehicle Subfolders ({vehicleFoldersCount})
-                      </span>
-                    </div>
-
-                    {vehicleFoldersCount > 4 && (
-                      <div className="relative w-full sm:w-56">
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          type="text"
-                          placeholder="Filter plate / folder..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="h-7 pl-8 pr-2 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="max-h-64 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 custom-scrollbar">
-                    {vehicleFoldersEntries.map(([vehId, files]) => (
-                      <div
-                        key={vehId}
-                        className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-800/40">
-                            <Truck size={14} />
-                          </div>
-                          <div className="truncate">
-                            <span className="font-extrabold text-slate-900 dark:text-slate-100 block truncate text-xs">
-                              {vehId === 'General' ? 'Unassigned' : `Vehicle #${vehId}`}
-                            </span>
-                            <span className="text-[10px] text-slate-400 block truncate">
-                              {files.length} document{files.length > 1 ? 's' : ''}
-                            </span>
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="font-mono text-[10px] font-extrabold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 px-2 py-0.5 shrink-0 rounded-md">
-                          {files.length} files
-                        </Badge>
-                      </div>
-                    ))}
-
-                    {vehicleFoldersEntries.length === 0 && (
-                      <div className="col-span-full py-6 text-center text-xs text-slate-400">
-                        No vehicle subfolders match "{searchTerm}"
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Usage Guide */}
-              {selectedFiles.length === 0 && !isLoading && (
-                <div className="rounded-xl border border-indigo-100 dark:border-indigo-950 bg-indigo-50/40 dark:bg-indigo-950/20 p-4 text-xs space-y-2 text-indigo-900 dark:text-indigo-200">
-                  <div className="flex items-center gap-2 font-bold text-indigo-950 dark:text-indigo-100">
-                    <Info className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <span>How Batch Import Works</span>
-                  </div>
-                  <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-400 pl-1 text-[11px] leading-relaxed">
-                    <li>Organize your documents in a parent folder with subfolders named by vehicle plate number (e.g. <span className="font-mono font-bold text-indigo-700 dark:text-indigo-300">Trucks Docs / 2541 / istimara.pdf</span>).</li>
-                    <li>Files are processed locally and compressed if needed before uploading to avoid size limits.</li>
-                    <li>AI Vision automatically extracts <span className="font-bold text-indigo-700 dark:text-indigo-300">Serial #, Vehicle Plate, Issue & Expiry Dates, and Authority</span> directly into PostgreSQL.</li>
-                  </ul>
-                </div>
-              )}
-            </TabsContent>
-
-            {/* TAB 2: Server Local Disk Path */}
-            <TabsContent value="local" className="space-y-4 pt-4">
-              <div className="space-y-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <HardDrive size={15} className="text-indigo-600" />
-                  Server Directory Absolute Path
-                </label>
-                <Input
-                  type="text"
-                  value={folderPath}
-                  onChange={(e) => setFolderPath(e.target.value)}
-                  placeholder="C:\Users\ILAN\Downloads\Trucks Docs\Trucks Docs"
-                  disabled={isLoading}
-                  className="text-xs font-mono bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Specify the absolute path on the host server disk. The backend will scan subfolders matching vehicle plate numbers directly.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/50 dark:bg-slate-900/50 text-xs space-y-2">
-                <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Direct Server Execution</span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Best for bulk imports of thousands of documents already stored on the server's local file system or mounted storage drives.
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+            </Tabs>
+          )}
 
           {/* Error Alert */}
           {error && (
@@ -774,60 +793,107 @@ export default function BatchVehicleDocModal({
             </div>
           )}
 
-          {/* Results Summary & KPI Instrument Panel with AI Per-Row Extraction Ledger */}
+          {/* Results Summary & Detailed Success vs Failure Breakdown Panel */}
           {result && (
-            <div className="p-5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 space-y-4 animate-fade-in shadow-xs">
+            <div className="p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-5 animate-fade-in shadow-xs">
+              
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-200 font-extrabold text-sm">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <span>Import Completed Successfully!</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      Import Execution Results Breakdown
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Detailed status ledger of processed vehicle folders, uploaded documents, and skipped files.
+                    </p>
+                  </div>
                 </div>
+
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleExtractAllAI}
                     disabled={isExtractingAll}
-                    className="h-7 text-[11px] font-extrabold bg-amber-500 text-white border-amber-600 hover:bg-amber-600 gap-1.5 rounded-lg shadow-xs"
+                    className="h-8 text-xs font-extrabold bg-amber-500 text-white border-amber-600 hover:bg-amber-600 gap-1.5 rounded-xl shadow-xs"
                   >
-                    {isExtractingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                    <span>AI Extract All Rows</span>
+                    {isExtractingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    <span>AI Vision Extract All</span>
                   </Button>
-                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200 font-mono font-bold text-xs px-2.5 py-0.5 rounded-full border-0">
-                    DONE
-                  </Badge>
                 </div>
               </div>
 
-              {/* KPI Instrument Panel Cards */}
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-emerald-100 dark:border-slate-700 shadow-2xs">
+              {/* 4-Column KPI Instrument Panel Cards (Scanned, Matched, Success, Failures) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-2xs">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Folders Scanned</span>
                   <span className="text-xl font-black font-mono text-slate-900 dark:text-slate-100">{result.totalFoldersScanned}</span>
                 </div>
 
-                <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-emerald-100 dark:border-slate-700 shadow-2xs">
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-2xs">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vehicles Matched</span>
                   <span className="text-xl font-black font-mono text-indigo-600 dark:text-indigo-400">{result.totalVehiclesProcessed}</span>
                 </div>
 
-                <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-emerald-100 dark:border-slate-700 shadow-2xs">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Documents Created</span>
+                <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 shadow-2xs bg-emerald-50/20">
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">✓ Success Docs</span>
                   <span className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">{result.totalDocsCreated}</span>
+                </div>
+
+                <div className={`bg-white dark:bg-slate-800 p-3 rounded-xl border shadow-2xs ${
+                  result.totalFailed > 0 
+                    ? 'border-rose-300 dark:border-rose-800 bg-rose-50/30' 
+                    : 'border-slate-200/80 dark:border-slate-700'
+                }`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider block ${
+                    result.totalFailed > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'
+                  }`}>
+                    ❌ Failures / Skipped
+                  </span>
+                  <span className={`text-xl font-black font-mono ${
+                    result.totalFailed > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'
+                  }`}>
+                    {result.totalFailed || 0}
+                  </span>
                 </div>
               </div>
 
+              {/* Failures & Skipped Files Alert Panel (if any errors occurred) */}
+              {result.failedUploads && result.failedUploads.length > 0 && (
+                <div className="p-4 rounded-xl bg-rose-50/90 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 space-y-2.5 text-xs">
+                  <div className="flex items-center gap-2 text-rose-800 dark:text-rose-300 font-extrabold">
+                    <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>Upload Failures & Warnings ({result.failedUploads.length} file{result.failedUploads.length > 1 ? 's' : ''})</span>
+                  </div>
+                  <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                    {result.failedUploads.map((fail: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-rose-200/60 dark:border-rose-900/60 text-[11px]">
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 truncate max-w-[50%]">
+                          {fail.filename}
+                        </span>
+                        <span className="text-rose-600 dark:text-rose-400 font-semibold truncate max-w-[45%]">
+                          {fail.reason}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Scrollable details ledger with Per-Row AI Extraction Option */}
               {result.details && result.details.length > 0 && (
-                <div className="space-y-2 border-t border-emerald-200/60 dark:border-emerald-800/60 pt-3">
+                <div className="space-y-2 border-t border-slate-200/80 dark:border-slate-800 pt-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                      Assigned Documents per Vehicle ({result.details.length})
+                    <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider block">
+                      Assigned Vehicle Folders & Attached Documents ({result.details.length})
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">Click ✨ AI Extract on any row to view & save all fields</span>
+                    <span className="text-[10px] text-slate-400 font-medium">Click ✨ AI Extract Row to parse metadata & dates</span>
                   </div>
 
-                  <div className="max-h-56 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                  <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                     {result.details.map((item: any, idx: number) => {
                       const plateKey = item.vehiclePlate;
                       const isExtractingRow = extractingRowIndex === idx;
@@ -835,18 +901,22 @@ export default function BatchVehicleDocModal({
                       const isExpanded = expandedRows[plateKey];
 
                       return (
-                        <div key={`${item.folder}-${idx}`} className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shadow-2xs overflow-hidden transition-all">
+                        <div key={`${item.folder}-${idx}`} className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 shadow-2xs overflow-hidden transition-all">
                           <div className="flex items-center justify-between text-xs py-2.5 px-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/40">
+                              <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/40 shrink-0">
                                 <Truck size={14} />
                               </div>
                               <div>
                                 <span className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                   <span>Vehicle #{plateKey}</span>
-                                  {rowAi && (
+                                  {rowAi ? (
                                     <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 text-[9px] font-bold px-1.5 py-0">
                                       ✨ AI Extracted
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-[9px] font-bold px-1.5 py-0">
+                                      ✓ Uploaded
                                     </Badge>
                                   )}
                                 </span>
@@ -962,52 +1032,77 @@ export default function BatchVehicleDocModal({
           )}
         </div>
 
-        {/* Footer */}
-        <DialogFooter className="px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between shrink-0">
-          <Button variant="ghost" size="sm" onClick={handleClose} disabled={isLoading} className="text-xs font-bold rounded-xl text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
-            {result ? 'Close' : 'Cancel'}
-          </Button>
+        {/* Footer with Prominent DONE / Reset / Action buttons */}
+        <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between shrink-0">
+          {result ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetAndImportAnother}
+                className="text-xs font-bold rounded-xl border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 gap-1.5"
+              >
+                <RefreshCw size={14} />
+                <span>Import Another Folder</span>
+              </Button>
 
-          {activeTab === 'upload' ? (
-            <Button
-              size="sm"
-              onClick={handleUploadFolder}
-              disabled={isLoading || selectedFiles.length === 0}
-              className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md gap-2 px-5 py-2 rounded-xl transition-all disabled:opacity-50"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>
-                    {uploadProgress ? `Processing Batch ${uploadProgress.currentBatch}/${uploadProgress.totalBatches}...` : 'Uploading...'}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="w-4.5 h-4.5" />
-                  <span>Upload & Assign ({selectedFiles.length} files)</span>
-                </>
-              )}
-            </Button>
+              <Button
+                size="sm"
+                onClick={handleClose}
+                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold shadow-md gap-2 px-7 py-2 rounded-xl transition-all"
+              >
+                <CheckCircle2 size={16} />
+                <span>Done</span>
+              </Button>
+            </>
           ) : (
-            <Button
-              size="sm"
-              onClick={handleImportLocalPath}
-              disabled={isLoading || !folderPath.trim()}
-              className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md gap-2 px-5 py-2 rounded-xl transition-all disabled:opacity-50"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Importing...</span>
-                </>
+            <>
+              <Button variant="ghost" size="sm" onClick={handleClose} disabled={isLoading} className="text-xs font-bold rounded-xl text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100">
+                Cancel
+              </Button>
+
+              {activeTab === 'upload' ? (
+                <Button
+                  size="sm"
+                  onClick={handleUploadFolder}
+                  disabled={isLoading || selectedFiles.length === 0}
+                  className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md gap-2 px-6 py-2 rounded-xl transition-all disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>
+                        {uploadProgress ? `Processing Batch ${uploadProgress.currentBatch}/${uploadProgress.totalBatches}...` : 'Uploading...'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-4.5 h-4.5" />
+                      <span>Upload & Assign ({selectedFiles.length} files)</span>
+                    </>
+                  )}
+                </Button>
               ) : (
-                <>
-                  <UploadCloud className="w-4 h-4.5" />
-                  <span>Start Server Path Import</span>
-                </>
+                <Button
+                  size="sm"
+                  onClick={handleImportLocalPath}
+                  disabled={isLoading || !folderPath.trim()}
+                  className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md gap-2 px-6 py-2 rounded-xl transition-all disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Importing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-4 h-4.5" />
+                      <span>Start Server Path Import</span>
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
+            </>
           )}
         </DialogFooter>
 
