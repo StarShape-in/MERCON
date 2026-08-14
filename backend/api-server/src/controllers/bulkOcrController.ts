@@ -235,11 +235,16 @@ export const syncLocalDocumentRecords = async (req: Request, res: Response) => {
 
       // 2. Fallback: match by Vehicle plate_number and doc_type
       if (!matchingDoc && plate) {
+        const digits = plate.replace(/\D/g, '');
         const vehicle = await prisma.vehicle.findFirst({
           where: {
             OR: [
-              { plate_number: { contains: plate } },
-              { code: { contains: plate } },
+              { plate_number: { contains: plate, mode: 'insensitive' } },
+              { ref_id: { contains: plate, mode: 'insensitive' } },
+              ...(digits ? [
+                { plate_number: { contains: digits } },
+                { ref_id: { contains: digits } },
+              ] : []),
             ],
           },
         });

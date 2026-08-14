@@ -84,7 +84,6 @@ app.use(helmet.hsts({
 // logic ever runs.
 app.use(express.json({ limit: '250mb' }));
 app.use(express.urlencoded({ limit: '250mb', extended: true }));
-import path from 'path';
 import { getUploadDir } from './middlewares/upload';
 app.use('/uploads', express.static(getUploadDir()));
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
