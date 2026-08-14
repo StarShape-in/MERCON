@@ -10,10 +10,6 @@ export const getUploadDir = (): string => {
     if (!fs.existsSync(primaryDir)) {
       fs.mkdirSync(primaryDir, { recursive: true, mode: 0o777 });
     }
-    // Test write permission inside container
-    const testFile = path.join(primaryDir, `.write-test-${Date.now()}-${Math.random()}`);
-    fs.writeFileSync(testFile, 'ok');
-    fs.unlinkSync(testFile);
     return primaryDir;
   } catch (err) {
     console.warn('[Upload Middleware] Primary uploadDir is not writable in container, using /tmp/uploads fallback');
@@ -32,7 +28,17 @@ getUploadDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    const dir = getUploadDir();
+    let dir = getUploadDir();
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true, mode: 0o777 });
+      }
+    } catch (e) {
+      dir = '/tmp/uploads';
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true, mode: 0o777 });
+      }
+    }
     cb(null, dir);
   },
   filename: (_req, file, cb) => {
