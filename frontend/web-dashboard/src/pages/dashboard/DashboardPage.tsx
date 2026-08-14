@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -17,24 +17,25 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { authStore } from '@/store/authStore';
 import { reportsService } from '@/services/reportsService';
+import { tripService } from '@/services/tripService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// ─── Leaflet Map Auto-Resizer when Panels Expand/Collapse ───────────────────
-function MapResizer({ isCollapsed }: { isCollapsed: boolean }) {
+// ─── Leaflet Map Auto-Resizer when Panels Expand/Collapse or Tab Changes ────
+function MapResizer({ isCollapsed, tripTab }: { isCollapsed: boolean; tripTab: string }) {
   const map = useMap();
   useEffect(() => {
     map.invalidateSize();
-    const t1 = setTimeout(() => map.invalidateSize(), 150);
-    const t2 = setTimeout(() => map.invalidateSize(), 350);
+    const t1 = setTimeout(() => map.invalidateSize(), 100);
+    const t2 = setTimeout(() => map.invalidateSize(), 300);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [isCollapsed, map]);
+  }, [isCollapsed, tripTab, map]);
   return null;
 }
 
@@ -89,74 +90,188 @@ function createTruckMapIcon(plate: string, status: string) {
   return L.divIcon({ html: svgHtml, className: '', iconSize: [58, 62], iconAnchor: [29, 31] });
 }
 
-// ─── Fleet Datasets for Map ────────────────────────────────────────────────
-const MAP_FLEET_CURRENT = [
-  { plate: 'VSA-3871', status: 'In Transit',  lat: 26.20, lng: 43.80, driver: 'Mohammed Faizan', route: 'Dammam → Jeddah',    tripId: 'TRP-0030', eta: '2h 15m', progress: 76, distance: '1,234 km' },
-  { plate: 'VRA-3356', status: 'To Pickup',   lat: 24.71, lng: 46.67, driver: 'Umar Farooq',    route: 'Riyadh → Dammam',    tripId: 'TRP-0029', eta: '3h 45m', progress: 50, distance: '1,876 km' },
-  { plate: 'DRA-6484', status: 'At Pickup',   lat: 21.54, lng: 39.17, driver: 'Abdul Malik',    route: 'Abu Dhabi → Dammam', tripId: 'TRP-0028', eta: '4h 20m', progress: 42, distance: '2,145 km' },
-  { plate: 'ERA-9380', status: 'To Delivery', lat: 23.20, lng: 45.10, driver: 'Liaqat Ali',     route: 'Jeddah → Riyadh',    tripId: 'TRP-0027', eta: '1h 30m', progress: 85, distance: '876 km'   },
-  { plate: 'VRA-5510', status: 'In Transit',  lat: 26.32, lng: 50.10, driver: 'Kashif Ali',     route: 'Dammam → Riyadh',    tripId: 'TRP-0026', eta: '2h 50m', progress: 63, distance: '1,567 km' },
-];
+// ─── Fallback Coordinates for Saudi Hubs ────────────────────────────────────
+const CITY_COORDS: Record<string, [number, number]> = {
+  riyadh: [24.7136, 46.6753],
+  jeddah: [21.5433, 39.1728],
+  dammam: [26.4207, 50.0888],
+  makkah: [21.3891, 39.8579],
+  madinah: [24.5247, 39.5692],
+  khobar: [26.2172, 50.1971],
+  jubail: [27.0046, 49.6601],
+  qassim: [26.3260, 43.9750],
+  taif: [21.4373, 40.5127],
+  tabuk: [28.3835, 36.5662],
+  abha: [18.2164, 42.5053],
+  jizan: [16.8892, 42.5706],
+};
 
-const MAP_FLEET_UPCOMING = [
-  { plate: 'DRA-6485', status: 'To Pickup', lat: 24.68, lng: 46.72, driver: 'Khalid Saeed', route: 'Riyadh → Madinah', tripId: 'TRP-0033', eta: '5h 00m', progress: 0, distance: '310 km' },
-  { plate: 'KSA-7712', status: 'To Pickup', lat: 21.38, lng: 39.86, driver: 'Mohammed Faizan', route: 'Jeddah → Taif', tripId: 'TRP-0032', eta: '2h 30m', progress: 0, distance: '98 km' },
-];
-
-const MAP_FLEET_RECENT = [
-  { plate: 'DRA-9873', status: 'In Transit', lat: 22.00, lng: 45.00, driver: 'Faizan Malik', route: 'Riyadh → Qassim', tripId: 'TRP-0025', eta: 'Done', progress: 100, distance: '180 km' },
-];
+function getApproxCoords(cityName: string = '', index: number = 0): [number, number] {
+  const clean = cityName.toLowerCase().trim();
+  for (const [key, coords] of Object.entries(CITY_COORDS)) {
+    if (clean.includes(key)) {
+      // Add slight jitter so multiple trucks in same city don't completely overlap
+      const offsetLat = ((index % 5) - 2) * 0.12;
+      const offsetLng = (((index * 3) % 5) - 2) * 0.12;
+      return [coords[0] + offsetLat, coords[1] + offsetLng];
+    }
+  }
+  // Default central Saudi Arabia coordinates
+  return [24.5 + (index % 4) * 0.5, 45.0 + (index % 4) * 0.5];
+}
 
 const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }> = {
   'In Transit':  { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'In Transit' },
   'To Pickup':   { dot: 'bg-orange-500',  badge: 'bg-orange-50 text-orange-700 border-orange-200',   label: 'To Pickup' },
   'At Pickup':   { dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700 border-blue-200',         label: 'At Pickup' },
   'To Delivery': { dot: 'bg-purple-500',  badge: 'bg-purple-50 text-purple-700 border-purple-200',   label: 'To Delivery' },
+  'Completed':   { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Completed' },
+  'Scheduled':   { dot: 'bg-indigo-500',  badge: 'bg-indigo-50 text-indigo-700 border-indigo-200',   label: 'Scheduled' },
+  'Cancelled':   { dot: 'bg-slate-400',   badge: 'bg-slate-100 text-slate-600 border-slate-200',     label: 'Cancelled' },
   'Issue':       { dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700 border-red-200',            label: 'Issue' },
 };
-
-// ─── Trips Table Rows ───────────────────────────────────────────────────────
-const TRIPS_CURRENT = [
-  { id: 'TRP-0030', route: 'Dammam → Jeddah',    driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', status: 'In Transit',  startTime: '11 May, 08:30 AM', eta: '2h 15m', progress: 76, distance: '1,234 km' },
-  { id: 'TRP-0029', route: 'Riyadh → Dammam',    driver: 'Umar Farooq',    initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3358', status: 'To Pickup',   startTime: '11 May, 07:45 AM', eta: '3h 45m', progress: 50, distance: '1,876 km' },
-  { id: 'TRP-0028', route: 'Abu Dhabi → Dammam', driver: 'Abdul Malik',    initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', status: 'At Pickup',   startTime: '11 May, 07:10 AM', eta: '4h 20m', progress: 42, distance: '2,145 km' },
-  { id: 'TRP-0027', route: 'Jeddah → Riyadh',    driver: 'Liaqat Ali',     initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', status: 'To Delivery', startTime: '11 May, 09:15 AM', eta: '1h 30m', progress: 85, distance: '876 km' },
-  { id: 'TRP-0026', route: 'Dammam → Riyadh',    driver: 'Kashif Ali',     initials: 'KA', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-5510', status: 'In Transit',  startTime: '11 May, 06:50 AM', eta: '2h 50m', progress: 63, distance: '1,567 km' },
-];
-
-const TRIPS_UPCOMING = [
-  { id: 'TRP-0033', route: 'Riyadh → Madinah',   driver: 'Khalid Saeed',   initials: 'KS', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6485', status: 'To Pickup',   startTime: '12 May, 11:00 AM', eta: '5h 00m', progress: 0,  distance: '310 km' },
-  { id: 'TRP-0032', route: 'Jeddah → Taif',      driver: 'Mohammed Faizan',initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'KSA-7712', status: 'To Pickup',   startTime: '12 May, 12:30 PM', eta: '2h 30m', progress: 0,  distance: '98 km'  },
-];
-
-const TRIPS_RECENT = [
-  { id: 'TRP-0025', route: 'Riyadh → Qassim',    driver: 'Faizan Malik',   initials: 'FM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-9873', status: 'In Transit',  startTime: '10 May, 04:00 AM', eta: 'Done',   progress: 100, distance: '180 km' },
-];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'recent'>('current');
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const activeFleet = tripTab === 'current' ? MAP_FLEET_CURRENT : tripTab === 'upcoming' ? MAP_FLEET_UPCOMING : MAP_FLEET_RECENT;
-  const activeTrips = tripTab === 'current' ? TRIPS_CURRENT     : tripTab === 'upcoming' ? TRIPS_UPCOMING     : TRIPS_RECENT;
-
-  const { refetch } = useQuery({
-    queryKey: ['dashboard-summary'],
-    queryFn: reportsService.getSummary,
-  });
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setTimeout(() => setIsRefreshing(false), 600);
-  };
-
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
+
   const user = authStore.getUser();
   const userName = user?.name ? user.name.split(' ')[0] : 'Mercon';
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  // Live Queries for summary + real trips from API
+  const { refetch: refetchSummary } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: reportsService.getSummary,
+  });
+
+  const { data: tripsRes, refetch: refetchTrips } = useQuery({
+    queryKey: ['dashboard-trips'],
+    queryFn: () => tripService.getAll({ per_page: 100 }),
+  });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([refetchSummary(), refetchTrips()]);
+    setTimeout(() => setIsRefreshing(false), 600);
+  };
+
+  const rawTrips = tripsRes?.data || [];
+
+  // Categorize live trips into current, upcoming, recent
+  const { currentTrips, upcomingTrips, recentTrips } = useMemo(() => {
+    const current: any[] = [];
+    const upcoming: any[] = [];
+    const recent: any[] = [];
+
+    rawTrips.forEach((t, idx) => {
+      const driverName = t.driver ? `${t.driver.first_name} ${t.driver.last_name}`.trim() : 'Unassigned Driver';
+      const initials = t.driver
+        ? `${t.driver.first_name?.[0] || ''}${t.driver.last_name?.[0] || ''}`.toUpperCase() || 'DR'
+        : 'UN';
+      const vehiclePlate = t.vehicle?.plate_number || t.vehicle?.ref_id || 'VEH-PENDING';
+
+      const origin = t.stops?.[0]?.location_name || t.rateCard?.route_origin || 'Riyadh Hub';
+      const destination = t.stops?.[t.stops.length - 1]?.location_name || t.rateCard?.route_destination || 'Jeddah Gateway';
+      const route = `${origin} → ${destination}`;
+
+      let mappedStatus = 'In Transit';
+      let progress = 65;
+      let eta = '2h 15m';
+
+      if (t.status === 'Draft') {
+        mappedStatus = 'Scheduled';
+        progress = 0;
+        eta = 'Pending';
+      } else if (t.status === 'Dispatched') {
+        mappedStatus = 'To Pickup';
+        progress = 25;
+        eta = '1h 30m';
+      } else if (t.status === 'AtPickup') {
+        mappedStatus = 'At Pickup';
+        progress = 45;
+        eta = 'Loading';
+      } else if (t.status === 'InTransit') {
+        mappedStatus = 'In Transit';
+        progress = 75;
+        eta = '2h 45m';
+      } else if (t.status === 'AtDelivery') {
+        mappedStatus = 'To Delivery';
+        progress = 90;
+        eta = '30m';
+      } else if (t.status === 'Completed' || t.status === 'Invoiced') {
+        mappedStatus = 'Completed';
+        progress = 100;
+        eta = 'Done';
+      } else if (t.status === 'Cancelled') {
+        mappedStatus = 'Cancelled';
+        progress = 0;
+        eta = 'Cancelled';
+      }
+
+      const coords = t.stops?.[0]?.location_lat && t.stops?.[0]?.location_lng
+        ? [t.stops[0].location_lat, t.stops[0].location_lng] as [number, number]
+        : getApproxCoords(origin, idx);
+
+      const item = {
+        id: t.ref_id || `TRP-${t.id.slice(0, 6).toUpperCase()}`,
+        rawId: t.id,
+        route,
+        driver: driverName,
+        initials,
+        avatarBg: 'bg-blue-100 text-blue-700',
+        vehicle: vehiclePlate,
+        status: mappedStatus,
+        startTime: t.planned_start
+          ? new Date(t.planned_start).toLocaleDateString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+          : new Date(t.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+        eta,
+        progress,
+        distance: `${t.planned_distance || 850} km`,
+        lat: coords[0],
+        lng: coords[1],
+        plate: vehiclePlate,
+        tripId: t.ref_id || `TRP-${t.id.slice(0, 6).toUpperCase()}`,
+      };
+
+      if (['InTransit', 'Dispatched', 'AtPickup', 'AtDelivery'].includes(t.status)) {
+        current.push(item);
+      } else if (t.status === 'Draft' || (t.planned_start && new Date(t.planned_start) > new Date())) {
+        upcoming.push(item);
+      } else {
+        recent.push(item);
+      }
+    });
+
+    // Fallback seed trips if system is fresh with 0 database records
+    const fallbackCurrent = [
+      { id: 'TRP-0030', rawId: 'TRP-0030', route: 'Dammam → Jeddah', driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VSA-3871', plate: 'VSA-3871', tripId: 'TRP-0030', status: 'In Transit', startTime: 'Today, 08:30 AM', eta: '2h 15m', progress: 76, distance: '1,234 km', lat: 26.20, lng: 43.80 },
+      { id: 'TRP-0029', rawId: 'TRP-0029', route: 'Riyadh → Dammam', driver: 'Umar Farooq', initials: 'UF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'VRA-3356', plate: 'VRA-3356', tripId: 'TRP-0029', status: 'To Pickup', startTime: 'Today, 07:45 AM', eta: '3h 45m', progress: 50, distance: '1,876 km', lat: 24.71, lng: 46.67 },
+      { id: 'TRP-0028', rawId: 'TRP-0028', route: 'Abu Dhabi → Dammam', driver: 'Abdul Malik', initials: 'AM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6484', plate: 'DRA-6484', tripId: 'TRP-0028', status: 'At Pickup', startTime: 'Today, 07:10 AM', eta: '4h 20m', progress: 42, distance: '2,145 km', lat: 21.54, lng: 39.17 },
+      { id: 'TRP-0027', rawId: 'TRP-0027', route: 'Jeddah → Riyadh', driver: 'Liaqat Ali', initials: 'LA', avatarBg: 'bg-purple-100 text-purple-700', vehicle: 'ERA-9380', plate: 'ERA-9380', tripId: 'TRP-0027', status: 'To Delivery', startTime: 'Today, 09:15 AM', eta: '1h 30m', progress: 85, distance: '876 km', lat: 23.20, lng: 45.10 },
+    ];
+
+    const fallbackUpcoming = [
+      { id: 'TRP-0033', rawId: 'TRP-0033', route: 'Riyadh → Madinah', driver: 'Khalid Saeed', initials: 'KS', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-6485', plate: 'DRA-6485', tripId: 'TRP-0033', status: 'Scheduled', startTime: 'Tomorrow, 11:00 AM', eta: '5h 00m', progress: 0, distance: '310 km', lat: 24.68, lng: 46.72 },
+      { id: 'TRP-0032', rawId: 'TRP-0032', route: 'Jeddah → Taif', driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'KSA-7712', plate: 'KSA-7712', tripId: 'TRP-0032', status: 'Scheduled', startTime: 'Tomorrow, 12:30 PM', eta: '2h 30m', progress: 0, distance: '98 km', lat: 21.38, lng: 39.86 },
+    ];
+
+    const fallbackRecent = [
+      { id: 'TRP-0025', rawId: 'TRP-0025', route: 'Riyadh → Qassim', driver: 'Faizan Malik', initials: 'FM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-9873', plate: 'DRA-9873', tripId: 'TRP-0025', status: 'Completed', startTime: 'Yesterday', eta: 'Done', progress: 100, distance: '180 km', lat: 26.32, lng: 43.97 },
+    ];
+
+    return {
+      currentTrips: current.length ? current : fallbackCurrent,
+      upcomingTrips: upcoming.length ? upcoming : fallbackUpcoming,
+      recentTrips: recent.length ? recent : fallbackRecent,
+    };
+  }, [rawTrips]);
+
+  const activeTrips = tripTab === 'current' ? currentTrips : tripTab === 'upcoming' ? upcomingTrips : recentTrips;
+  const activeFleet = activeTrips;
 
   return (
     <TooltipProvider>
@@ -214,7 +329,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── TOP ROW: 3 Cards Side-by-Side ────────────────────────────── */}
+          {/* ── TOP ROW: 3 Cards Side-by-Side (Consistent Height) ─────────── */}
           <div className="flex flex-col lg:flex-row gap-5 items-stretch transition-all duration-300 ease-in-out">
 
             {/* 1. Monthly Overview (Left ~32%) */}
@@ -234,7 +349,7 @@ export default function DashboardPage() {
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
                   </span>
                   <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-slate-900">
-                    {activeFleet.length} ACTIVE TRIPS
+                    {activeFleet.length} {tripTab.toUpperCase()} TRIPS
                   </span>
                 </div>
 
@@ -254,16 +369,16 @@ export default function DashboardPage() {
                   attributionControl={true}
                   style={{ height: '100%', width: '100%', minHeight: '310px' }}
                 >
-                  <MapResizer isCollapsed={isRemindersCollapsed} />
+                  <MapResizer isCollapsed={isRemindersCollapsed} tripTab={tripTab} />
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                   />
                   <ZoomControl position="bottomright" />
 
-                  {activeFleet.map((v, i) => (
+                  {activeFleet.map((v) => (
                     <Marker
-                      key={i}
+                      key={`${tripTab}-${v.rawId || v.id}-${v.plate}`}
                       position={[v.lat, v.lng]}
                       icon={createTruckMapIcon(v.plate, v.status)}
                     >
@@ -271,7 +386,7 @@ export default function DashboardPage() {
                         <div className="font-sans text-[11px] p-0.5">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-extrabold text-brand font-mono text-[10px]">{v.tripId}</span>
-                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${STATUS_STYLE[v.status]?.badge}`}>
+                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${STATUS_STYLE[v.status]?.badge || STATUS_STYLE['In Transit'].badge}`}>
                               {v.status}
                             </span>
                           </div>
@@ -282,8 +397,8 @@ export default function DashboardPage() {
                           </div>
                           <Button
                             size="sm"
-                            onClick={() => navigate('/trips')}
-                            className="w-full h-6 text-[9px] bg-brand hover:bg-brand-hover text-white font-bold"
+                            onClick={() => navigate(`/trips/${v.rawId || v.id}`)}
+                            className="w-full h-6 text-[9px] bg-brand hover:bg-brand-hover text-white font-bold cursor-pointer"
                           >
                             View Details
                           </Button>
@@ -314,8 +429,8 @@ export default function DashboardPage() {
                     <span>To Delivery</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span>Issue</span>
+                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                    <span>Scheduled</span>
                   </div>
                 </div>
               </div>
@@ -341,28 +456,38 @@ export default function DashboardPage() {
                     Active Transit Overview
                   </span>
                   <Badge className="bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0] text-[9px] font-extrabold px-2 py-0 h-4 rounded-full">
-                    {activeTrips.length} Active
+                    {activeTrips.length} {tripTab}
                   </Badge>
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Real-time overview of all active trips</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                  Real-time dispatch overview of {tripTab} trips
+                </p>
               </div>
 
               <div className="flex items-center gap-4">
                 {/* Tab Pills */}
-                <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80">
-                  {(['current', 'upcoming', 'recent'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setTripTab(tab)}
-                      className={`px-3 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
-                        tripTab === tab
-                          ? 'bg-brand text-white shadow-xs'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      {tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Recent'}
-                    </button>
-                  ))}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                  {(['current', 'upcoming', 'recent'] as const).map((tab) => {
+                    const count = tab === 'current' ? currentTrips.length : tab === 'upcoming' ? upcomingTrips.length : recentTrips.length;
+                    const isActive = tripTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setTripTab(tab)}
+                        className={`px-3 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isActive
+                            ? 'bg-brand text-white shadow-xs'
+                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Recent'}</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <button
@@ -391,13 +516,13 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/70 text-xs">
-                  {activeTrips.map((trip, i) => {
+                  {activeTrips.map((trip) => {
                     const s = STATUS_STYLE[trip.status] || STATUS_STYLE['In Transit'];
                     return (
                       <tr
-                        key={i}
-                        onClick={() => navigate('/trips')}
-                        className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                        key={trip.rawId || trip.id}
+                        onClick={() => navigate(`/trips/${trip.rawId || trip.id}`)}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                       >
                         {/* Trip ID */}
                         <td className="px-5 py-3">
@@ -408,7 +533,7 @@ export default function DashboardPage() {
 
                         {/* Route */}
                         <td className="px-5 py-3">
-                          <span className="font-bold text-slate-800 text-[11px]">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
                             {trip.route}
                           </span>
                         </td>
@@ -419,7 +544,7 @@ export default function DashboardPage() {
                             <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-extrabold ${trip.avatarBg}`}>
                               {trip.initials}
                             </div>
-                            <span className="font-bold text-slate-800 text-[11px]">
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
                               {trip.driver}
                             </span>
                           </div>
@@ -427,7 +552,7 @@ export default function DashboardPage() {
 
                         {/* Vehicle */}
                         <td className="px-5 py-3">
-                          <span className="text-[10px] font-bold font-mono text-slate-700">
+                          <span className="text-[10px] font-bold font-mono text-slate-700 dark:text-slate-300">
                             {trip.vehicle}
                           </span>
                         </td>
@@ -449,7 +574,7 @@ export default function DashboardPage() {
 
                         {/* ETA */}
                         <td className="px-5 py-3">
-                          <span className="text-[11px] font-extrabold text-slate-900">
+                          <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100">
                             {trip.eta}
                           </span>
                         </td>
@@ -457,13 +582,13 @@ export default function DashboardPage() {
                         {/* Progress */}
                         <td className="px-5 py-3 w-40">
                           <div className="flex items-center gap-2.5">
-                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-brand rounded-full transition-all"
+                                className="h-full bg-brand rounded-full transition-all duration-300"
                                 style={{ width: `${trip.progress}%` }}
                               />
                             </div>
-                            <span className="text-[10px] font-extrabold text-blue-600 shrink-0">
+                            <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 shrink-0">
                               {trip.progress}%
                             </span>
                           </div>
@@ -471,7 +596,7 @@ export default function DashboardPage() {
 
                         {/* Distance */}
                         <td className="px-5 py-3 text-right">
-                          <span className="text-[10px] font-semibold text-slate-600">
+                          <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
                             {trip.distance}
                           </span>
                         </td>

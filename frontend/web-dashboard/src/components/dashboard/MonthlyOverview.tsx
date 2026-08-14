@@ -155,30 +155,26 @@ export default function MonthlyOverview() {
             </Tooltip>
 
             {/* Period Selector (1M / 6M / 1Y) */}
-            <ToggleGroup
-              value={[chartPeriod]}
-              onValueChange={(v) => v[0] && setChartPeriod(v[0] as PeriodType)}
-              className="border border-slate-200 bg-slate-100 p-0.5 rounded-lg"
-            >
-              <ToggleGroupItem
-                value="monthly"
-                className="text-[9px] font-extrabold h-5 px-2 rounded-md text-slate-600 transition-all data-[state=on]:!bg-[#18181B] data-[state=on]:!text-white"
-              >
-                1M
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="6months"
-                className="text-[9px] font-extrabold h-5 px-2 rounded-md text-slate-600 transition-all data-[state=on]:!bg-[#18181B] data-[state=on]:!text-white"
-              >
-                6M
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="yearly"
-                className="text-[9px] font-extrabold h-5 px-2 rounded-md text-slate-600 transition-all data-[state=on]:!bg-[#18181B] data-[state=on]:!text-white"
-              >
-                1Y
-              </ToggleGroupItem>
-            </ToggleGroup>
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+              {(['monthly', '6months', 'yearly'] as const).map((p) => {
+                const label = p === 'monthly' ? '1M' : p === '6months' ? '6M' : '1Y';
+                const isActive = chartPeriod === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setChartPeriod(p)}
+                    className={`text-[9px] font-extrabold h-5 px-2.5 rounded-md transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-slate-900 text-white shadow-xs dark:bg-white dark:text-slate-900'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
