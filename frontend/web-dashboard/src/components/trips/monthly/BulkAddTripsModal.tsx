@@ -666,9 +666,9 @@ export default function BulkAddTripsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose()}>
-      <DialogContent className="w-[92vw] max-w-5xl sm:max-w-5xl p-0 overflow-hidden bg-white border border-black/10 shadow-2xl rounded-2xl sm:max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[94vw] max-w-5xl sm:max-w-5xl p-0 overflow-hidden bg-white border border-black/10 shadow-2xl rounded-2xl max-h-[88vh] h-[88vh] flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-black/[0.06] bg-slate-50/50">
+        <div className="p-5 border-b border-black/[0.06] bg-slate-50/50 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-[#E8450F]/10 grid place-items-center shrink-0">
@@ -691,8 +691,8 @@ export default function BulkAddTripsModal({
 
         {/* Navigation Tabs & 5-Step Progress Pills */}
         {!submissionResult && (
-          <div className="border-b border-black/[0.06] bg-slate-50/50">
-            <div className="flex items-center gap-1.5 px-6 pt-4 pb-2">
+          <div className="border-b border-black/[0.06] bg-slate-50/50 shrink-0">
+            <div className="flex items-center gap-1.5 px-6 pt-3 pb-2">
               <button
                 type="button"
                 onClick={() => setActiveTab('contract')}
@@ -770,7 +770,7 @@ export default function BulkAddTripsModal({
         )}
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-[380px]">
+        <div className="flex-1 overflow-y-auto p-6 min-h-0">
           {/* Submission Result Screen */}
           {submissionResult ? (
             <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
