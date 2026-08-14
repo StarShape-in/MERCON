@@ -177,7 +177,7 @@ export default function ExpenseModal({
         <DialogHeader className="px-6 py-4.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-[#E8450F] border border-orange-500/20 shadow-sm shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-brand border border-orange-500/20 shadow-sm shrink-0">
                 <Wallet className="w-5 h-5" />
               </div>
               <div>
@@ -185,7 +185,7 @@ export default function ExpenseModal({
                   <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                     {editingExpense ? 'Edit Expense Record' : 'New Expense Record'}
                   </DialogTitle>
-                  <Badge className="bg-orange-50 text-[#E8450F] border-orange-200/80 dark:bg-orange-950/30 dark:border-orange-800/50 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
+                  <Badge className="bg-orange-50 text-brand border-orange-200/80 dark:bg-orange-950/30 dark:border-orange-800/50 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 shadow-none">
                     Finance Module
                   </Badge>
                 </div>
@@ -382,10 +382,10 @@ export default function ExpenseModal({
                 <button
                   type="button"
                   onClick={() => handleToggleVehicleLink(true)}
-                  className="w-full flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 hover:bg-orange-50/30 dark:bg-slate-900/30 dark:hover:bg-orange-950/10 text-slate-600 dark:text-slate-400 hover:text-[#E8450F] dark:hover:text-[#E8450F] hover:border-orange-300 dark:hover:border-orange-900 transition-all group"
+                  className="w-full flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 hover:bg-orange-50/30 dark:bg-slate-900/30 dark:hover:bg-orange-950/10 text-slate-600 dark:text-slate-400 hover:text-brand dark:hover:text-brand hover:border-orange-300 dark:hover:border-orange-900 transition-all group"
                 >
                   <div className="flex items-center gap-2.5 text-xs font-semibold">
-                    <div className="p-1.5 rounded-lg bg-slate-200/60 dark:bg-slate-800 group-hover:bg-orange-100 dark:group-hover:bg-orange-950/40 text-slate-500 group-hover:text-[#E8450F] transition-colors">
+                    <div className="p-1.5 rounded-lg bg-slate-200/60 dark:bg-slate-800 group-hover:bg-orange-100 dark:group-hover:bg-orange-950/40 text-slate-500 group-hover:text-brand transition-colors">
                       <Truck className="w-4 h-4" />
                     </div>
                     <span>+ Link expense to a specific vehicle / asset</span>
@@ -398,7 +398,7 @@ export default function ExpenseModal({
                 <div className="bg-orange-50/40 dark:bg-orange-950/10 border border-orange-200/70 dark:border-orange-900/30 rounded-xl p-4.5 space-y-3 animate-in fade-in duration-200">
                   <div className="flex items-center justify-between">
                     <SectionLabel
-                      icon={<Truck className="w-4 h-4 text-[#E8450F]" />}
+                      icon={<Truck className="w-4 h-4 text-brand" />}
                       label="Vehicle / Asset Linkage"
                     />
                     <Button
@@ -447,7 +447,7 @@ export default function ExpenseModal({
                 onChange={(e) => set('description', e.target.value)}
                 placeholder="Additional details, invoice numbers, receipt reference, or context…"
                 rows={3}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-[#E8450F] resize-none transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand resize-none transition-colors"
               />
             </div>
           </div>
@@ -472,7 +472,7 @@ export default function ExpenseModal({
                 type="submit"
                 size="sm"
                 disabled={isSaving}
-                className="text-xs h-9 px-6 bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold rounded-xl shadow-md shadow-orange-500/20 transition-all"
+                className="text-xs h-9 px-6 bg-brand hover:bg-[#d03c0b] text-white font-bold rounded-xl shadow-md shadow-orange-500/20 transition-all"
               >
                 {isSaving ? (
                   <span className="flex items-center gap-1.5">

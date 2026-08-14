@@ -69,7 +69,7 @@ export default function InvoicePaymentPage() {
             </div>
             <div className="text-right">
               <p className="text-sm text-[#6E6E80] font-medium">Total Amount Due</p>
-              <h3 className="text-2xl font-bold text-[#E8450F]">{invoice.currency} {invoice.total_amount.toLocaleString()}</h3>
+              <h3 className="text-2xl font-bold text-brand">{invoice.currency} {invoice.total_amount.toLocaleString()}</h3>
             </div>
           </div>
 

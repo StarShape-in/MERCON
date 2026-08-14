@@ -202,8 +202,8 @@ export default function MonthlyTripsPage() {
           {/* Row 1 — who/what, and the actions that change the whole page */}
           <div className="flex items-start justify-between gap-4 flex-wrap p-5 border-b border-slate-100">
             <div className="flex items-start gap-3 min-w-0">
-              <span className="h-10 w-10 rounded-lg bg-[#E8450F]/10 border border-[#E8450F]/20 grid place-items-center shrink-0">
-                <CalendarRange className="h-[18px] w-[18px] text-[#E8450F]" />
+              <span className="h-10 w-10 rounded-lg bg-brand/10 border border-brand/20 grid place-items-center shrink-0">
+                <CalendarRange className="h-[18px] w-[18px] text-brand" />
               </span>
               <div className="min-w-0">
                 <h1 className="text-xl font-bold text-slate-900 leading-tight">Monthly Trips</h1>
@@ -242,7 +242,7 @@ export default function MonthlyTripsPage() {
 
               <Button
                 variant="outline"
-                className="h-9 rounded-lg px-3.5 text-xs font-bold border-[#E8450F]/30 bg-[#E8450F]/5 text-[#E8450F] hover:bg-[#E8450F]/10 shadow-none"
+                className="h-9 rounded-lg px-3.5 text-xs font-bold border-brand/30 bg-brand/5 text-brand hover:bg-brand/10 shadow-none"
                 onClick={() => setIsBulkModalOpen(true)}
               >
                 <Layers className="h-3.5 w-3.5 mr-1.5" />
@@ -250,7 +250,7 @@ export default function MonthlyTripsPage() {
               </Button>
 
               <Button
-                className="h-9 rounded-lg px-4 text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none text-white"
+                className="h-9 rounded-lg px-4 text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none text-white"
                 onClick={() => navigate('/trips?new=true')}
               >
                 <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -354,7 +354,7 @@ export default function MonthlyTripsPage() {
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="text-[11px] font-bold text-[#E8450F] hover:underline px-1"
+                    className="text-[11px] font-bold text-brand hover:underline px-1"
                   >
                     Clear all
                   </button>
@@ -408,7 +408,7 @@ export default function MonthlyTripsPage() {
                 </Button>
               ) : (
                 <Button
-                  className="h-9 rounded-lg text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none"
+                  className="h-9 rounded-lg text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none"
                   onClick={() => navigate('/trips?new=true')}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -440,7 +440,7 @@ export default function MonthlyTripsPage() {
       {selectedTripIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[92vw] sm:w-auto bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs font-extrabold bg-[#E8450F] text-white px-2.5 py-1 rounded-lg shadow-2xs">
+            <div className="flex items-center gap-1.5 text-xs font-extrabold bg-brand text-white px-2.5 py-1 rounded-lg shadow-2xs">
               <span>{selectedTripIds.length}</span>
               <span>Selected</span>
             </div>
@@ -577,7 +577,7 @@ function MonthStepper({ month, onChange }: { month: string; onChange: (month: st
         <button
           type="button"
           onClick={() => onChange(currentMonthKey())}
-          className="h-9 px-2.5 text-[11px] font-bold text-[#E8450F] hover:bg-[#E8450F]/[0.06] transition-colors whitespace-nowrap"
+          className="h-9 px-2.5 text-[11px] font-bold text-brand hover:bg-brand/[0.06] transition-colors whitespace-nowrap"
         >
           Today
         </button>

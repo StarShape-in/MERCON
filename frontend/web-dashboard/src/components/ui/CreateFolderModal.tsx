@@ -73,7 +73,7 @@ export default function CreateFolderModal({ isOpen, onClose, onSuccess }: Create
       <DialogContent className="w-full max-w-md rounded-2xl p-0 border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#FFF0EB] dark:bg-[#E8450F]/10 flex items-center justify-center text-[#E8450F]">
+            <div className="w-9 h-9 rounded-xl bg-brand-light dark:bg-brand/10 flex items-center justify-center text-brand">
               <FolderPlus className="w-5 h-5" />
             </div>
             <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
@@ -100,7 +100,7 @@ export default function CreateFolderModal({ isOpen, onClose, onSuccess }: Create
               placeholder="e.g. Q3 Transport Licenses"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+              className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
             />
           </div>
 
@@ -112,7 +112,7 @@ export default function CreateFolderModal({ isOpen, onClose, onSuccess }: Create
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+              className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30"
             >
               {CATEGORY_OPTIONS.map((cat) => (
                 <option key={cat} value={cat}>{cat} Category</option>
@@ -130,7 +130,7 @@ export default function CreateFolderModal({ isOpen, onClose, onSuccess }: Create
               placeholder="Brief description of stored documents..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#E8450F]/30 resize-none"
+              className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
             />
           </div>
 
@@ -170,7 +170,7 @@ export default function CreateFolderModal({ isOpen, onClose, onSuccess }: Create
               type="submit"
               size="sm"
               disabled={createMutation.isPending}
-              className="bg-[#E8450F] hover:bg-[#d03d0c] text-white text-xs font-bold gap-1.5 px-4"
+              className="bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5 px-4"
             >
               {createMutation.isPending ? (
                 <>

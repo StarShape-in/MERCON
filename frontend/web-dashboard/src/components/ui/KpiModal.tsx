@@ -98,7 +98,7 @@ export function KpiModal({
                   )}
                 >
                   {/* Top Bar Accent */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#E8450F] via-orange-400 to-amber-500" />
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand via-orange-400 to-amber-500" />
 
                   {/* Header */}
                   {(title || badge || subtitle) && (

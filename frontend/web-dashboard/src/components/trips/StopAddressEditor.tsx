@@ -78,7 +78,7 @@ export default function StopAddressEditor({ tripId, stop, title, editable }: Sto
     <div className="rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-bold text-[#111] dark:text-slate-100 flex items-center gap-1.5">
-          <MapPin size={13} className="text-[#E8450F]" />
+          <MapPin size={13} className="text-brand" />
           {title}
         </span>
         {editable && (
@@ -91,7 +91,7 @@ export default function StopAddressEditor({ tripId, stop, title, editable }: Sto
               'h-7 gap-1.5 px-3 text-[11px] font-bold',
               saved
                 ? 'bg-emerald-600 hover:bg-emerald-600 text-white'
-                : 'bg-[#E8450F] hover:bg-[#d03d0c] text-white'
+                : 'bg-brand hover:bg-brand-hover text-white'
             )}
           >
             {saveMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}

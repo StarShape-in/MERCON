@@ -122,8 +122,8 @@ export default function AddMaintenanceCostModal({
       <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
         {/* Header */}
         <DialogHeader className="px-6 py-4 bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2.5 text-[#E8450F]">
-            <div className="w-8 h-8 rounded-xl bg-[#E8450F]/10 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-2.5 text-brand">
+            <div className="w-8 h-8 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
               <Banknote className="w-4 h-4" />
             </div>
             <div>
@@ -268,7 +268,7 @@ export default function AddMaintenanceCostModal({
               type="submit"
               size="sm"
               disabled={updateMutation.isPending}
-              className="text-xs h-9 rounded-xl bg-[#E8450F] hover:bg-[#d03c0b] text-white font-extrabold px-5 gap-1.5 shadow-sm"
+              className="text-xs h-9 rounded-xl bg-brand hover:bg-[#d03c0b] text-white font-extrabold px-5 gap-1.5 shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5" />
               {updateMutation.isPending ? 'Saving…' : 'Save Cost'}

@@ -229,7 +229,7 @@ export default function ExcelImportDialog({
               className={cn(
                 'flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 cursor-pointer transition-colors',
                 isDragging
-                  ? 'border-[#E8450F] bg-[#E8450F]/5'
+                  ? 'border-brand bg-brand/5'
                   : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
               )}
             >
@@ -254,7 +254,7 @@ export default function ExcelImportDialog({
               <a
                 href={templateUrl}
                 download
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#E8450F] hover:underline"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand hover:underline"
               >
                 <Download className="w-3.5 h-3.5" /> Download the {entityLabel} template
               </a>
@@ -381,7 +381,7 @@ export default function ExcelImportDialog({
               <Button variant="outline" size="sm" onClick={reset} className="h-9 gap-1.5 text-xs">
                 <ArrowLeft className="w-3.5 h-3.5" /> Import another file
               </Button>
-              <Button size="sm" onClick={onClose} className="h-9 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white">
+              <Button size="sm" onClick={onClose} className="h-9 text-xs font-bold bg-brand hover:bg-brand-hover text-white">
                 Done
               </Button>
             </>
@@ -394,7 +394,7 @@ export default function ExcelImportDialog({
                 size="sm"
                 onClick={() => importMutation.mutate()}
                 disabled={!canImport || importMutation.isPending}
-                className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white"
+                className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white"
               >
                 {importMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Import {parsed?.rows.length ? `${parsed.rows.length} ` : ''}{entityLabel.toLowerCase()}

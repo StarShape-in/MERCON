@@ -187,7 +187,7 @@ export default function DashboardPage() {
 
               <Button
                 onClick={() => navigate('/trips/new')}
-                className="h-8 gap-1.5 px-3.5 bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-extrabold rounded-lg shadow-sm transition-all active:scale-[0.97]"
+                className="h-8 gap-1.5 px-3.5 bg-brand hover:bg-brand-hover text-white text-xs font-extrabold rounded-lg shadow-sm transition-all active:scale-[0.97]"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                 New Trip
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                   onClick={handleRefresh}
                   className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white shadow-2xs text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
                 >
-                  <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#E8450F]' : ''}`} />
+                  <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-brand' : ''}`} />
                 </TooltipTrigger>
                 <TooltipContent><p className="text-xs">Refresh dashboard data</p></TooltipContent>
               </Tooltip>
@@ -270,7 +270,7 @@ export default function DashboardPage() {
                       <Popup maxWidth={240} minWidth={220}>
                         <div className="font-sans text-[11px] p-0.5">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-extrabold text-[#E8450F] font-mono text-[10px]">{v.tripId}</span>
+                            <span className="font-extrabold text-brand font-mono text-[10px]">{v.tripId}</span>
                             <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${STATUS_STYLE[v.status]?.badge}`}>
                               {v.status}
                             </span>
@@ -283,7 +283,7 @@ export default function DashboardPage() {
                           <Button
                             size="sm"
                             onClick={() => navigate('/trips')}
-                            className="w-full h-6 text-[9px] bg-[#E8450F] hover:bg-[#C7380A] text-white font-bold"
+                            className="w-full h-6 text-[9px] bg-brand hover:bg-brand-hover text-white font-bold"
                           >
                             View Details
                           </Button>
@@ -356,7 +356,7 @@ export default function DashboardPage() {
                       onClick={() => setTripTab(tab)}
                       className={`px-3 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
                         tripTab === tab
-                          ? 'bg-[#E8450F] text-white shadow-xs'
+                          ? 'bg-brand text-white shadow-xs'
                           : 'text-slate-500 hover:text-slate-900'
                       }`}
                     >
@@ -367,7 +367,7 @@ export default function DashboardPage() {
 
                 <button
                   onClick={() => navigate('/trips')}
-                  className="text-[11px] font-extrabold text-[#E8450F] hover:underline flex items-center gap-1 whitespace-nowrap cursor-pointer"
+                  className="text-[11px] font-extrabold text-brand hover:underline flex items-center gap-1 whitespace-nowrap cursor-pointer"
                 >
                   View Full Dispatch Map <ArrowUpRight className="w-3.5 h-3.5" />
                 </button>
@@ -401,7 +401,7 @@ export default function DashboardPage() {
                       >
                         {/* Trip ID */}
                         <td className="px-5 py-3">
-                          <span className="font-extrabold text-[#E8450F] font-mono text-[11px]">
+                          <span className="font-extrabold text-brand font-mono text-[11px]">
                             {trip.id}
                           </span>
                         </td>
@@ -459,7 +459,7 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-2.5">
                             <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#E8450F] rounded-full transition-all"
+                                className="h-full bg-brand rounded-full transition-all"
                                 style={{ width: `${trip.progress}%` }}
                               />
                             </div>

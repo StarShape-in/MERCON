@@ -170,7 +170,7 @@ export default function CustomReportPage() {
   const columns = [
     { header: 'S/L', accessor: (_row: any, idx: number) => <span className="text-gray-400 font-mono text-xs">{idx + 1}</span> },
     { header: 'Date', accessor: (row: any) => format(new Date(row.date), 'dd-MM-yyyy') },
-    { header: 'Job #', accessor: (row: any) => <span className="font-mono text-xs font-bold text-[#E8450F]">{row.ref_id}</span> },
+    { header: 'Job #', accessor: (row: any) => <span className="font-mono text-xs font-bold text-brand">{row.ref_id}</span> },
     { header: 'Driver Name', accessor: (row: any) => <span className="font-semibold text-[#111]">{row.driver}</span> },
     { header: 'Vehicle No:', accessor: (row: any) => <span className="font-mono text-xs">{row.vehicle}</span> },
     { header: 'Carrier / Provider', accessor: (row: any) => <span className="text-xs text-gray-600">{row.carrier_name || 'MERCON LOGISTICS'}</span> },
@@ -200,7 +200,7 @@ export default function CustomReportPage() {
               <select 
                 value={preset} 
                 onChange={(e) => setPreset(e.target.value as DatePreset)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand"
               >
                 <option value="this_week">This Week</option>
                 <option value="this_month">This Month</option>
@@ -217,7 +217,7 @@ export default function CustomReportPage() {
                     type="date"
                     value={customStart}
                     onChange={e => setCustomStart(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand"
                   />
                 </div>
                 <div>
@@ -226,7 +226,7 @@ export default function CustomReportPage() {
                     type="date"
                     value={customEnd}
                     onChange={e => setCustomEnd(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand"
                   />
                 </div>
               </>
@@ -237,7 +237,7 @@ export default function CustomReportPage() {
               <select 
                 value={customerId} 
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-[#E8450F]"
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand"
               >
                 <option value="all">All Customers</option>
                 {customers.map((c: any) => (
@@ -294,7 +294,7 @@ export default function CustomReportPage() {
               <DataTable
                 title={
                   <span className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-[#E8450F]" />
+                    <BarChart3 className="w-4 h-4 text-brand" />
                     <span>
                       {customerId !== 'all' && customers.find((c: any) => c.id === customerId)
                         ? `Customer Report: ${customers.find((c: any) => c.id === customerId)?.name || customers.find((c: any) => c.id === customerId)?.company_name}`

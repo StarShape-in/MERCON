@@ -65,7 +65,7 @@ function CarouselToolbar({ total }: { total: number }) {
             onClick={() => scrollTo(i)}
             className={cn(
               'h-1.5 w-1.5 rounded-full transition-colors',
-              i === selectedIndex ? 'bg-[#E8450F]' : 'bg-foreground/15 hover:bg-foreground/30'
+              i === selectedIndex ? 'bg-brand' : 'bg-foreground/15 hover:bg-foreground/30'
             )}
           />
         ))}
@@ -92,11 +92,11 @@ export default function TripCardSwiper() {
         <Card className="overflow-hidden rounded-lg bg-white shadow-md ring-1 ring-black/[0.06]">
           <CardHeader className="border-b border-black/[0.04] pb-3.5">
             <CardTitle className="flex items-center gap-2 text-sm font-extrabold tracking-tight text-[#111]">
-              <span className="inline-flex size-2 rounded-full bg-[#E8450F]" />
+              <span className="inline-flex size-2 rounded-full bg-brand" />
               Active Freight Trips Carousel
               <Badge
                 variant="outline"
-                className="border-[#E8450F]/25 bg-[#E8450F]/8 font-mono text-[10px] text-[#E8450F]"
+                className="border-brand/25 bg-brand/8 font-mono text-[10px] text-brand"
               >
                 {fleet.length} TRIPS
               </Badge>
@@ -131,19 +131,19 @@ export default function TripCardSwiper() {
                     className={cn(
                       'group relative cursor-pointer select-none space-y-2.5 rounded-lg border border-black/[0.08] bg-white p-3.5',
                       'transition-colors duration-150',
-                      'hover:border-[#E8450F]/50 hover:shadow-sm',
-                      'focus-visible:border-[#E8450F]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/40'
+                      'hover:border-brand/50 hover:shadow-sm',
+                      'focus-visible:border-brand/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40'
                     )}
                   >
                     {/* Header: Ref ID, plate & status */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#E8450F]">
+                        <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-brand">
                           {truck.refId}
                         </span>
-                        <p className="flex items-center gap-1 text-xs font-black leading-tight text-[#111] transition-colors group-hover:text-[#E8450F]">
+                        <p className="flex items-center gap-1 text-xs font-black leading-tight text-[#111] transition-colors group-hover:text-brand">
                           <span className="truncate">{truck.plateNumber}</span>
-                          <ArrowRight size={12} className="shrink-0 text-[#E8450F]" />
+                          <ArrowRight size={12} className="shrink-0 text-brand" />
                         </p>
                       </div>
                       <StatusBadge status={truck.status} />
@@ -178,11 +178,11 @@ export default function TripCardSwiper() {
                         <RouteIcon size={9} /> Route Corridor
                       </p>
                       <div className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-[#111]">
-                        <MapPin size={10} className="shrink-0 text-[#E8450F]" />
+                        <MapPin size={10} className="shrink-0 text-brand" />
                         <span className="truncate">{truck.originName.split(' ')[0]}</span>
                         <Separator className="flex-1" />
                         <span className="truncate text-right">{truck.destinationName.split(' ')[0]}</span>
-                        <Flag size={10} className="shrink-0 text-[#E8450F]" />
+                        <Flag size={10} className="shrink-0 text-brand" />
                       </div>
                     </div>
 
@@ -202,7 +202,7 @@ export default function TripCardSwiper() {
                           </p>
                           <div className="mt-0.5 flex items-center gap-1.5">
                             <Avatar className="size-4">
-                              <AvatarFallback className="bg-[#E8450F]/10 text-[7px] font-bold text-[#E8450F]">
+                              <AvatarFallback className="bg-brand/10 text-[7px] font-bold text-brand">
                                 {truck.driverName ? truck.driverName.charAt(0) : 'D'}
                               </AvatarFallback>
                             </Avatar>
@@ -219,7 +219,7 @@ export default function TripCardSwiper() {
                               Assigned Fleet Driver — Mercon Logistics
                             </p>
                             {truck.driverPhone && (
-                              <p className="font-mono text-[10px] font-semibold text-[#E8450F]">
+                              <p className="font-mono text-[10px] font-semibold text-brand">
                                 {truck.driverPhone}
                               </p>
                             )}
@@ -240,7 +240,7 @@ export default function TripCardSwiper() {
                             <Truck size={9} /> Vehicle
                           </p>
                           <div className="mt-0.5 flex items-center gap-1.5">
-                            <Package size={10} className="shrink-0 text-[#E8450F]" />
+                            <Package size={10} className="shrink-0 text-brand" />
                             <span className="truncate text-[10px] font-bold text-[#111]">
                               {truck.assetType}
                             </span>
@@ -255,7 +255,7 @@ export default function TripCardSwiper() {
                     {/* Speed & progress */}
                     <div className="space-y-1.5 pt-0.5">
                       <div className="flex items-center justify-between text-[10px] font-bold">
-                        <span className="flex items-center gap-1 text-[#E8450F]">
+                        <span className="flex items-center gap-1 text-brand">
                           <Gauge size={11} />
                           {truck.speedKmH} km/h
                         </span>
@@ -267,7 +267,7 @@ export default function TripCardSwiper() {
                         value={truck.progressPercentage}
                         className={cn(
                           '[&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-track]]:bg-black/[0.06]',
-                          '[&_[data-slot=progress-indicator]]:bg-[#E8450F] [&_[data-slot=progress-indicator]]:duration-500'
+                          '[&_[data-slot=progress-indicator]]:bg-brand [&_[data-slot=progress-indicator]]:duration-500'
                         )}
                       />
                       <div className="flex justify-between font-mono text-[9px] text-muted-foreground">
@@ -279,7 +279,7 @@ export default function TripCardSwiper() {
                     {/* CTA */}
                     <Button
                       size="sm"
-                      className="h-7 w-full gap-1 rounded-md bg-[#1C1C2E] text-[10px] font-bold text-white transition-colors group-hover:bg-[#E8450F]"
+                      className="h-7 w-full gap-1 rounded-md bg-[#1C1C2E] text-[10px] font-bold text-white transition-colors group-hover:bg-brand"
                       tabIndex={-1}
                     >
                       View Full Details

@@ -256,7 +256,7 @@ export default function RateCardListPage() {
         const seq = (currentPage - 1) * pageSize + (index ?? 0) + 1;
         return (
           <div className="flex items-center min-w-[100px]">
-            <span className="font-mono text-xs font-bold text-[#E8450F]">
+            <span className="font-mono text-xs font-bold text-brand">
               RC-{String(seq).padStart(3, '0')}
             </span>
           </div>
@@ -281,7 +281,7 @@ export default function RateCardListPage() {
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span>{row.route_origin}</span>
-            <ArrowRight className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
+            <ArrowRight className="w-3.5 h-3.5 text-brand shrink-0" />
             <span>{row.route_destination}</span>
             {(!row.originLocationId || !row.destinationLocationId) && (
               <Badge
@@ -533,7 +533,7 @@ export default function RateCardListPage() {
             <Button
               size="sm"
               onClick={() => setIsAddOpen(true)}
-              className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-md px-4"
             >
               <Plus className="w-4 h-4" /> Add Rate
             </Button>
@@ -630,22 +630,22 @@ export default function RateCardListPage() {
         {(statusFilter !== 'all' || vehicleTypeFilter || rateCategoryFilter) && (
           <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-900/40 px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold text-orange-900 dark:text-orange-200 animate-fade-in shrink-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="h-3.5 w-3.5 text-[#E8450F] shrink-0" />
+              <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
               <span>
                 Filtered by:{' '}
                 {statusFilter !== 'all' && (
                   <span className="mr-2">
-                    Status: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
+                    Status: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{statusFilter === 'active' ? 'Active Only' : 'Inactive Only'}</strong>
                   </span>
                 )}
                 {vehicleTypeFilter && (
                   <span className="mr-2">
-                    Vehicle Type: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{vehicleTypeFilter}</strong>
+                    Vehicle Type: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{vehicleTypeFilter}</strong>
                   </span>
                 )}
                 {rateCategoryFilter && (
                   <span className="mr-2">
-                    Rate Category: <strong className="underline decoration-[#E8450F] text-slate-900 dark:text-slate-100 font-bold">{rateCategoryFilter}</strong>
+                    Rate Category: <strong className="underline decoration-brand text-slate-900 dark:text-slate-100 font-bold">{rateCategoryFilter}</strong>
                   </span>
                 )}
                 ({totalCount} agreement{totalCount === 1 ? '' : 's'} matching)
@@ -658,7 +658,7 @@ export default function RateCardListPage() {
                 setRateCategoryFilter('');
                 setCurrentPage(1);
               }}
-              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-[#E8450F] hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="px-2.5 py-1 rounded-md bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 text-[11px] font-bold text-brand hover:bg-orange-100 dark:hover:bg-orange-950 transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5 shrink-0"
             >
               <span>Show All Rates</span>
               <X className="w-3 h-3 shrink-0" />
@@ -810,7 +810,7 @@ export default function RateCardListPage() {
               <Card 
                 key={rc.id} 
                 onClick={() => navigate(`/rate-cards/${rc.id}`)}
-                className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs hover:border-[#E8450F]/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
+                className="border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs hover:border-brand/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out cursor-pointer bg-white dark:bg-slate-900 flex flex-col justify-between group rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
                 tabIndex={0}
                 role="button"
                 aria-label={`Rate card ${rc.name}, price ${rc.currency || 'SAR'} ${rc.base_price}`}
@@ -837,7 +837,7 @@ export default function RateCardListPage() {
                       {rc.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
-                  <CardTitle className="text-sm font-extrabold text-slate-955 dark:text-slate-50 group-hover:text-[#E8450F] transition-colors mt-1">
+                  <CardTitle className="text-sm font-extrabold text-slate-955 dark:text-slate-50 group-hover:text-brand transition-colors mt-1">
                     {rc.name}
                   </CardTitle>
                   <CardDescription className="text-xs text-slate-500 flex items-center gap-1">
@@ -848,7 +848,7 @@ export default function RateCardListPage() {
                 <CardContent className="py-3 space-y-2">
                   <div className="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                     <span className="font-bold text-slate-700 dark:text-slate-300">{rc.route_origin}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#E8450F]/70" />
+                    <ArrowRight className="w-3.5 h-3.5 text-brand/70" />
                     <span className="font-bold text-slate-700 dark:text-slate-300">{rc.route_destination}</span>
                   </div>
                 </CardContent>
@@ -911,7 +911,7 @@ export default function RateCardListPage() {
                   <div className="font-bold text-slate-900 dark:text-slate-100">Active Rate Contracts</div>
                   <div className="text-[10px] text-slate-400">Total rate agreements in effect</div>
                 </div>
-                <Badge className="bg-[#E8450F] text-white font-mono font-bold text-xs">{kpis.activeCount} Active</Badge>
+                <Badge className="bg-brand text-white font-mono font-bold text-xs">{kpis.activeCount} Active</Badge>
               </div>
             </div>
 

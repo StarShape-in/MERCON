@@ -15,7 +15,7 @@ const pickupPinIcon = L.divIcon({
 });
 
 const dropoffPinIcon = L.divIcon({
-  html: `<div style="background-color: #E8450F; color: white; border: 2.5px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0,0,0,0.3); width: 28px; height: 28px;"></div>`,
+  html: `<div style="background-color: var(--color-brand); color: white; border: 2.5px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0,0,0,0.3); width: 28px; height: 28px;"></div>`,
   className: '',
   iconSize: [28, 28],
   iconAnchor: [14, 28],
@@ -111,7 +111,7 @@ export default function TripStopMap({
 
       <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 dark:text-slate-400">
         <span className="flex items-center gap-1.5 text-[10px]">
-          <Crosshair className={cn("w-3 h-3 shrink-0", tone === 'pickup' ? "text-emerald-600" : "text-[#E8450F]")} />
+          <Crosshair className={cn("w-3 h-3 shrink-0", tone === 'pickup' ? "text-emerald-600" : "text-brand")} />
           Click map or drag marker to set exact location
         </span>
         {hasPin && (

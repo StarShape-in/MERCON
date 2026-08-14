@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const pinIcon = L.divIcon({
-  html: `<div style="background-color: #E8450F; color: white; padding: 5px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;"></div>`,
+  html: `<div style="background-color: var(--color-brand); color: white; padding: 5px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;"></div>`,
   className: '',
   iconSize: [26, 26],
   iconAnchor: [13, 26],

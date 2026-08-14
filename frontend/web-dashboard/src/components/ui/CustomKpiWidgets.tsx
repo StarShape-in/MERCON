@@ -163,7 +163,7 @@ export function CreditExposureKpi({ usedAmount, limitAmount, currency = 'SAR' }:
 
       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden p-0.5 border border-black/[0.04]">
         <div 
-          className={cn("h-full rounded-full transition-all duration-300", isHighRisk ? "bg-rose-500" : "bg-[#E8450F]")}
+          className={cn("h-full rounded-full transition-all duration-300", isHighRisk ? "bg-rose-500" : "bg-brand")}
           style={{ width: `${pct}%` }} 
         />
       </div>

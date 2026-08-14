@@ -3,7 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { authStore } from '@/store/authStore';
 import FullPageSpinner from '@/components/ui/FullPageSpinner';
 import RequireRole from '@/components/auth/RequireRole';
+import RequireSuperAdmin from '@/components/auth/RequireSuperAdmin';
+import RequireModule from '@/components/auth/RequireModule';
 import AppShell from '@/components/layout/AppShell';
+import { useApplyBranding } from '@/hooks/useBranding';
 
 /* ─── Auth pages (eager — small, always needed) ──────────────────────────── */
 import LoginPage         from '@/pages/auth/LoginPage';
@@ -89,6 +92,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 /* ─── App Router ─────────────────────────────────────────────────────────── */
 export default function AppRouter() {
+  useApplyBranding();
+
   return (
     <BrowserRouter>
       <Routes>
@@ -137,7 +142,7 @@ export default function AppRouter() {
           <Route path="/vehicles/:id/edit"        element={<EditVehiclePage />} />
           <Route path="/vehicles/:id/documents"   element={<VehicleDocumentsPage />} />
           <Route path="/vehicles/:id/financials"  element={<VehicleFinancialsPage />} />
-          <Route path="/maintenance"              element={<MaintenanceListPage />} />
+          <Route path="/maintenance"              element={<RequireModule moduleKey="maintenance"><MaintenanceListPage /></RequireModule>} />
           <Route path="/maintenance/:id"          element={<MaintenanceDetailsPage />} />
 
           {/* Customers */}
@@ -148,30 +153,30 @@ export default function AppRouter() {
           <Route path="/customers/:id/contracts"  element={<CustomerContractsPage />} />
 
           {/* Locations */}
-          <Route path="/locations"                element={<LocationListPage />} />
+          <Route path="/locations"                element={<RequireModule moduleKey="locations"><LocationListPage /></RequireModule>} />
 
           {/* Rate Cards */}
-          <Route path="/rate-cards"               element={<RateCardListPage />} />
+          <Route path="/rate-cards"               element={<RequireModule moduleKey="rate-cards"><RateCardListPage /></RequireModule>} />
           <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />
           <Route path="/rate-cards/:id/edit"      element={<EditRateCardPage />} />
           <Route path="/rate-cards/:id/documents" element={<RateCardDocsPage />} />
 
           {/* Invoices */}
-          <Route path="/invoices"                 element={<InvoiceListPage />} />
+          <Route path="/invoices"                 element={<RequireModule moduleKey="invoices"><InvoiceListPage /></RequireModule>} />
           <Route path="/invoices/new"             element={<Navigate to="/invoices?action=mark" replace />} />
           <Route path="/invoices/:id"             element={<InvoiceDetailsPage />} />
           <Route path="/invoices/:id/print"       element={<InvoicePrintTemplate />} />
           <Route path="/invoices/:id/payment"     element={<PaymentStatusPage />} />
 
           {/* Expenses */}
-          <Route path="/expenses"                 element={<ExpenseListPage />} />
+          <Route path="/expenses"                 element={<RequireModule moduleKey="expenses"><ExpenseListPage /></RequireModule>} />
 
           {/* Documents */}
-          <Route path="/documents"                element={<DocumentsCenterPage />} />
+          <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
           <Route path="/documents/expiry"         element={<Navigate to="/documents" replace />} />
 
           {/* Reports */}
-          <Route path="/reports"                  element={<ReportsDashboardPage />} />
+          <Route path="/reports"                  element={<RequireModule moduleKey="reports"><ReportsDashboardPage /></RequireModule>} />
           <Route path="/reports/custom"           element={<CustomReportPage />} />
           <Route path="/reports/fleet"            element={<FleetPerformancePage />} />
           <Route path="/reports/revenue"          element={<RevenueReportsPage />} />
@@ -182,7 +187,7 @@ export default function AppRouter() {
           <Route path="/settings"                 element={<SettingsPage />} />
           <Route path="/settings/profile"         element={<OperatorProfilePage />} />
           <Route path="/settings/users"           element={<RequireRole roles={['Admin']}><UserManagementPage /></RequireRole>} />
-          <Route path="/recycle-bin"              element={<RecycleBinPage />} />
+          <Route path="/recycle-bin"              element={<RequireModule moduleKey="recycle-bin"><RecycleBinPage /></RequireModule>} />
         </Route>
 
         {/* Fallback */}

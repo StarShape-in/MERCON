@@ -41,7 +41,7 @@ function HeroStat({
   tone: 'brand' | 'emerald' | 'blue' | 'amber' | 'rose' | 'indigo';
 }) {
   const tones = {
-    brand: 'bg-[#E8450F]/10 text-[#E8450F]',
+    brand: 'bg-brand/10 text-brand',
     emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     blue: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
     amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
@@ -178,7 +178,7 @@ export default function DriverDetailsPage() {
           <p className="text-xs text-slate-500 max-w-md">
             The requested driver profile does not exist or may have been deleted from the MERCON roster.
           </p>
-          <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-sm">
+          <Button onClick={() => navigate('/drivers')} size="sm" className="mt-2 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm">
             Return to Driver Roster
           </Button>
         </div>
@@ -221,7 +221,7 @@ export default function DriverDetailsPage() {
         {/* ── HERO: identity + actions + integrated stats, all in ONE card ─────── */}
         <Card className="relative overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)] py-0 gap-0 ring-0">
           {/* brand accent rail */}
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#E8450F] via-indigo-500 to-emerald-500" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-indigo-500 to-emerald-500" />
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 pt-5">
             <div className="flex items-center gap-3 min-w-0">
@@ -287,7 +287,7 @@ export default function DriverDetailsPage() {
                   className="h-9 w-9 p-0 rounded-none text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                   title="Refresh Data"
                 >
-                  <RotateCw className={cn('w-4 h-4', isRefreshing && 'animate-spin text-[#E8450F]')} />
+                  <RotateCw className={cn('w-4 h-4', isRefreshing && 'animate-spin text-brand')} />
                 </Button>
                 <span className="w-px h-5 bg-slate-200 dark:bg-slate-800" />
                 <Button
@@ -334,7 +334,7 @@ export default function DriverDetailsPage() {
               <Button
                 size="sm"
                 onClick={() => setIsCreateTripOpen(true)}
-                className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-sm rounded-lg px-3.5"
+                className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-3.5"
               >
                 <Plus className="w-4 h-4" />
                 New Trip
@@ -425,7 +425,7 @@ export default function DriverDetailsPage() {
             <Tabs defaultValue="schedule" className="gap-0">
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                 <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#E8450F]" /> Trip Operations
+                  <MapPin className="w-4 h-4 text-brand" /> Trip Operations
                 </h3>
                 <TabsList className="h-8 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
                   <TabsTrigger value="schedule" className="h-7 gap-1.5 rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
@@ -457,7 +457,7 @@ export default function DriverDetailsPage() {
                     <Button
                       size="sm"
                       onClick={() => setIsCreateTripOpen(true)}
-                      className="mt-3 h-8 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs"
+                      className="mt-3 h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" /> Schedule a Trip
                     </Button>
@@ -520,7 +520,7 @@ export default function DriverDetailsPage() {
                             className="cursor-pointer border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40"
                           >
                             <TableCell className="py-2.5">
-                              <span className="font-mono text-xs font-extrabold text-[#E8450F]">{trip.ref_id}</span>
+                              <span className="font-mono text-xs font-extrabold text-brand">{trip.ref_id}</span>
                             </TableCell>
                             <TableCell className="py-2.5">
                               <span className="text-slate-600 dark:text-slate-300 font-mono text-xs">
@@ -549,7 +549,7 @@ export default function DriverDetailsPage() {
             {/* Credentials */}
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
               <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#E8450F]" /> Driver Profile
+                <ShieldCheck className="w-4 h-4 text-brand" /> Driver Profile
               </h3>
             </div>
 

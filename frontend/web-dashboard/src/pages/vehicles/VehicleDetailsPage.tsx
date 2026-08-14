@@ -233,7 +233,7 @@ export default function VehicleDetailsPage() {
           <p className="text-xs text-slate-500 max-w-md">
             The requested vehicle asset does not exist or may have been removed from the MERCON fleet.
           </p>
-          <Button onClick={() => navigate('/vehicles')} size="sm" className="mt-2 text-xs font-bold bg-[#E8450F] text-white">
+          <Button onClick={() => navigate('/vehicles')} size="sm" className="mt-2 text-xs font-bold bg-brand text-white">
             Return to Fleet Roster
           </Button>
         </div>
@@ -305,7 +305,7 @@ export default function VehicleDetailsPage() {
             <Button
               size="sm"
               onClick={() => openLogMaintModal()}
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white shadow-2xs"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-[#d03c0b] text-white shadow-2xs"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Maintenance
@@ -470,7 +470,7 @@ export default function VehicleDetailsPage() {
                 {/* Footer bar */}
                 <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-400 uppercase tracking-widest pt-1 border-t border-slate-200/80 dark:border-slate-800">
                   <span>SAUDI ARABIA</span>
-                  <span className="font-mono text-[#E8450F]">{vehicle.asset_type || 'HEAVY TRUCK'}</span>
+                  <span className="font-mono text-brand">{vehicle.asset_type || 'HEAVY TRUCK'}</span>
                 </div>
               </div>
 
@@ -478,7 +478,7 @@ export default function VehicleDetailsPage() {
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   {vehicle.asset_type && (
-                    <Badge className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-xs font-extrabold uppercase font-mono px-3 py-1">
+                    <Badge className="bg-brand-light text-brand border-brand/30 text-xs font-extrabold uppercase font-mono px-3 py-1">
                       {vehicle.asset_type}
                     </Badge>
                   )}
@@ -555,7 +555,7 @@ export default function VehicleDetailsPage() {
               {/* Net Profit Tile */}
               <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 text-center min-w-[130px]">
                 <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-[#E8450F]" /> Net Profit
+                  <DollarSign className="w-3.5 h-3.5 text-brand" /> Net Profit
                 </div>
                 <div className={cn(
                   "text-base font-mono font-extrabold mt-1",
@@ -743,7 +743,7 @@ export default function VehicleDetailsPage() {
                 <Button
                   size="sm"
                   onClick={() => openLogMaintModal()}
-                  className="h-7 text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white gap-1"
+                  className="h-7 text-xs font-bold bg-brand hover:bg-[#d03c0b] text-white gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add Maintenance
                 </Button>
@@ -939,7 +939,7 @@ export default function VehicleDetailsPage() {
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
                 <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#E8450F]" /> Telematics & Dispatch Radar
+                  <MapPin className="w-4 h-4 text-brand" /> Telematics & Dispatch Radar
                 </CardTitle>
               </CardHeader>
 
@@ -989,7 +989,7 @@ export default function VehicleDetailsPage() {
         <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
           <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 shrink-0">
             <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-[#E8450F]" /> Maintenance Record for {vehicle.plate_number}
+              <Wrench className="w-5 h-5 text-brand" /> Maintenance Record for {vehicle.plate_number}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 mt-1">
               Log a past service, record an ongoing repair, or schedule a future maintenance for this vehicle.
@@ -1048,12 +1048,12 @@ export default function VehicleDetailsPage() {
 
               {selectedTypeSelect === 'Other' ? (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-[#E8450F]">Custom Maintenance Type *</Label>
+                  <Label className="text-xs font-bold text-brand">Custom Maintenance Type *</Label>
                   <Input
                     value={customTypeInput}
                     onChange={(e) => setCustomTypeInput(e.target.value)}
                     placeholder="e.g. Transmission Service, Brake Replacement..."
-                    className="h-9 text-xs border-[#E8450F]/50 focus:border-[#E8450F]"
+                    className="h-9 text-xs border-brand/50 focus:border-brand"
                     required
                   />
                 </div>
@@ -1209,7 +1209,7 @@ export default function VehicleDetailsPage() {
                 onChange={(e) => setMaintFormData(prev => ({ ...prev, work_done: e.target.value }))}
                 placeholder="Details of oil replacement, brake pad repair, renewal fees paid..."
                 rows={3}
-                className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F]"
+                className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-brand"
               />
             </div>
 
@@ -1227,7 +1227,7 @@ export default function VehicleDetailsPage() {
                 type="submit"
                 size="sm"
                 disabled={createMaintMutation.isPending}
-                className="text-xs bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
+                className="text-xs bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
               >
                 {createMaintMutation.isPending ? 'Saving...' : 'Save Maintenance Log'}
               </Button>

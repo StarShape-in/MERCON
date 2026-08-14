@@ -72,6 +72,23 @@ export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 export const EXPENSE_PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Cheque', 'Card'] as const;
 export type ExpensePaymentMethod = (typeof EXPENSE_PAYMENT_METHODS)[number];
 
+/**
+ * Optional modules a deployment's superadmin can toggle via Settings.
+ * Core modules (auth, trips, drivers, vehicles, customers, settings) are
+ * always available and are not listed here — only the toggleable ones.
+ */
+export const MODULE_KEYS = [
+  'invoices',
+  'expenses',
+  'maintenance',
+  'reports',
+  'rate-cards',
+  'documents',
+  'locations',
+  'recycle-bin',
+] as const;
+export type ModuleKey = (typeof MODULE_KEYS)[number];
+
 // ─── Domain entities ─────────────────────────────────────────────
 export interface User {
   id: string;
@@ -82,7 +99,22 @@ export interface User {
   role: UserRole;
   status?: UserStatus;
   lastLogin?: string;
+  isSuperAdmin?: boolean;
 }
+
+/** This deployment's branding + module config. Singleton — one row per client database. */
+export interface Settings {
+  id: string;
+  appName: string;
+  companyLegalName: string;
+  logoUrl?: string | null;
+  primaryColor: string;
+  enabledModules: ModuleKey[];
+  updatedAt: string;
+}
+
+/** Subset returned by the unauthenticated GET /settings/public endpoint. */
+export type PublicSettings = Pick<Settings, 'appName' | 'logoUrl' | 'primaryColor'>;
 
 // ─── API envelope ────────────────────────────────────────────────
 /** Standard response wrapper returned by the API (`res.json({ data })`). */

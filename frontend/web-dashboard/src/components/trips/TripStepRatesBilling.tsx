@@ -51,7 +51,7 @@ export default function TripStepRatesBilling({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-[#E8450F]" /> Lane Rate Card &amp; Billing Calculation
+            <Receipt className="w-4 h-4 text-brand" /> Lane Rate Card &amp; Billing Calculation
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Select from available contract rate cards or set custom pricing for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'}.
@@ -59,7 +59,7 @@ export default function TripStepRatesBilling({
         </div>
 
         <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-          <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+          <Keyboard className="w-3.5 h-3.5 text-brand" />
           <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">1-3</kbd> for Rate Card, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">Ctrl+↵</kbd> Schedule</span>
         </div>
       </div>
@@ -178,7 +178,7 @@ export default function TripStepRatesBilling({
               className={cn(
                 "w-full p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all cursor-pointer mt-1",
                 !selectedRateCardId
-                  ? "border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F] font-bold"
+                  ? "border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand font-bold"
                   : "border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400"
               )}
             >
@@ -186,7 +186,7 @@ export default function TripStepRatesBilling({
                 <Pencil className="w-3.5 h-3.5 text-slate-500" />
                 <span>Custom Billing Amount / Enter Manual Rate</span>
               </span>
-              {!selectedRateCardId && <span className="text-[10px] font-bold px-2 py-0.5 bg-[#E8450F] text-white rounded-md">Custom Mode</span>}
+              {!selectedRateCardId && <span className="text-[10px] font-bold px-2 py-0.5 bg-brand text-white rounded-md">Custom Mode</span>}
             </button>
           </div>
         ) : null}
@@ -217,7 +217,7 @@ export default function TripStepRatesBilling({
                     name="save_rate_as"
                     checked={saveRateAs === opt.key}
                     onChange={() => onSaveRateAsChange(opt.key)}
-                    className="mt-0.5 accent-[#E8450F]"
+                    className="mt-0.5 accent-brand"
                   />
                   <div>
                     <span className="font-semibold text-slate-900 dark:text-slate-100">{opt.label}</span>
@@ -242,7 +242,7 @@ export default function TripStepRatesBilling({
               <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Trip Billing Amount (SAR) <span className="text-rose-500">*</span>
             </Label>
             {billingAmount && (
-              <span className="text-xs font-mono font-extrabold text-[#E8450F]">
+              <span className="text-xs font-mono font-extrabold text-brand">
                 Total Billed: SAR {Number(billingAmount).toLocaleString()}
               </span>
             )}
@@ -260,7 +260,7 @@ export default function TripStepRatesBilling({
               value={billingAmount}
               onChange={(e) => onBillingAmountChange(e.target.value)}
               placeholder={matchedRateCard ? String(matchedRateCard.base_price) : 'e.g. 3500.00'}
-              className="h-11 pl-12 rounded-xl font-mono text-sm font-bold border-slate-200 dark:border-slate-800 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+              className="h-11 pl-12 rounded-xl font-mono text-sm font-bold border-slate-200 dark:border-slate-800 focus-visible:ring-brand/20 focus-visible:border-brand"
             />
           </div>
 

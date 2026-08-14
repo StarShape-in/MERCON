@@ -89,7 +89,7 @@ export default function TripStepStopsSLA({
     <div className="space-y-5 animate-in fade-in-50 duration-200">
       <div>
         <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Navigation className="w-4 h-4 text-[#E8450F]" /> Route Stops &amp; Schedule
+          <Navigation className="w-4 h-4 text-brand" /> Route Stops &amp; Schedule
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
           Select origin and destination locations and set planned arrival delivery windows.

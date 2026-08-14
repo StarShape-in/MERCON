@@ -111,56 +111,73 @@ export const extractAllDocumentsOcr = async (req: Request, res: Response) => {
       status: string;
     }> = [];
 
-    for (const doc of documents) {
-      const localPath = getLocalFilePathFromUrl(doc.file_url);
-      if (!localPath) {
-        detailsResults.push({
-          id: doc.id,
-          doc_type: doc.doc_type,
-          expiry_date: null,
-          document_number: null,
-          status: 'File Not Found',
-        });
-        continue;
-      }
+    // Parallel batch processing with 5 concurrent workers
+    const batchSize = 5;
+    for (let i = 0; i < documents.length; i += batchSize) {
+      const chunk = documents.slice(i, i + batchSize);
+      await Promise.all(
+        chunk.map(async (doc) => {
+          const localPath = getLocalFilePathFromUrl(doc.file_url);
+          if (!localPath) {
+            detailsResults.push({
+              id: doc.id,
+              doc_type: doc.doc_type,
+              expiry_date: null,
+              document_number: null,
+              status: 'File Not Found',
+            });
+            return;
+          }
 
-      const ocrResult = await analyzeDocumentWithAI(localPath);
+          try {
+            const ocrResult = await analyzeDocumentWithAI(localPath);
 
-      const updateData: any = {
-        doc_type: ocrResult.doc_type,
-        status: DocStatus.Verified,
-        ai_extracted_json: {
-          document_number: ocrResult.document_number,
-          vehicle_plate: ocrResult.vehicle_plate,
-          issuing_authority: ocrResult.issuing_authority,
-          confidence: ocrResult.confidence,
-          notes: ocrResult.notes,
-        },
-      };
+            const updateData: any = {
+              doc_type: ocrResult.doc_type,
+              status: DocStatus.Verified,
+              ai_extracted_json: {
+                document_number: ocrResult.document_number,
+                vehicle_plate: ocrResult.vehicle_plate,
+                issuing_authority: ocrResult.issuing_authority,
+                confidence: ocrResult.confidence,
+                notes: ocrResult.notes,
+              },
+            };
 
-      if (ocrResult.expiry_date) {
-        updateData.expiry_date = new Date(ocrResult.expiry_date);
-      }
-      if (ocrResult.issue_date) {
-        updateData.issue_date = new Date(ocrResult.issue_date);
-      }
-      if (ocrResult.raw_text) {
-        updateData.ocr_raw_text = ocrResult.raw_text;
-      }
+            if (ocrResult.expiry_date) {
+              updateData.expiry_date = new Date(ocrResult.expiry_date);
+            }
+            if (ocrResult.issue_date) {
+              updateData.issue_date = new Date(ocrResult.issue_date);
+            }
+            if (ocrResult.raw_text) {
+              updateData.ocr_raw_text = ocrResult.raw_text;
+            }
 
-      await prisma.document.update({
-        where: { id: doc.id },
-        data: updateData,
-      });
+            await prisma.document.update({
+              where: { id: doc.id },
+              data: updateData,
+            });
 
-      totalUpdated++;
-      detailsResults.push({
-        id: doc.id,
-        doc_type: ocrResult.doc_type,
-        expiry_date: ocrResult.expiry_date,
-        document_number: ocrResult.document_number,
-        status: 'Extracted & Updated',
-      });
+            totalUpdated++;
+            detailsResults.push({
+              id: doc.id,
+              doc_type: ocrResult.doc_type,
+              expiry_date: ocrResult.expiry_date,
+              document_number: ocrResult.document_number,
+              status: 'Extracted & Updated',
+            });
+          } catch (err: any) {
+            detailsResults.push({
+              id: doc.id,
+              doc_type: doc.doc_type,
+              expiry_date: null,
+              document_number: null,
+              status: `Error: ${err.message}`,
+            });
+          }
+        })
+      );
     }
 
     res.json({

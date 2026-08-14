@@ -8,6 +8,8 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { authService } from '@/services/authService';
+import { settingsService } from '@/services/settingsService';
+import { MODULE_KEYS, type ModuleKey } from '@mercon/shared-types';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -64,6 +66,47 @@ export default function SettingsPage() {
       });
     }
   }, [user]);
+
+  // Deployment branding + modules (superadmin-editable) — only fetched once
+  // logged in, so it's fine to always call this; the tab itself is gated.
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsService.get,
+  });
+
+  const [brandingForm, setBrandingForm] = useState({
+    appName: '',
+    companyLegalName: '',
+    logoUrl: '',
+    primaryColor: '#E8450F',
+  });
+  const [enabledModules, setEnabledModules] = useState<ModuleKey[]>([]);
+  const [brandingSuccess, setBrandingSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (settings) {
+      setBrandingForm({
+        appName: settings.appName,
+        companyLegalName: settings.companyLegalName,
+        logoUrl: settings.logoUrl || '',
+        primaryColor: settings.primaryColor,
+      });
+      setEnabledModules(settings.enabledModules);
+    }
+  }, [settings]);
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: () => settingsService.update({ ...brandingForm, enabledModules }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      setBrandingSuccess('Branding & modules updated!');
+      setTimeout(() => setBrandingSuccess(null), 4000);
+    },
+  });
+
+  const toggleModule = (key: ModuleKey) => {
+    setEnabledModules((prev) => (prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key]));
+  };
 
   // Update Profile Mutation (Real Backend)
   const updateProfileMutation = useMutation({
@@ -188,7 +231,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('profile')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
                 activeTab === 'profile'
-                  ? 'bg-[#E8450F] text-white shadow-xs'
+                  ? 'bg-brand text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -199,7 +242,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('company')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
                 activeTab === 'company'
-                  ? 'bg-[#E8450F] text-white shadow-xs'
+                  ? 'bg-brand text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -210,7 +253,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('security')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
                 activeTab === 'security'
-                  ? 'bg-[#E8450F] text-white shadow-xs'
+                  ? 'bg-brand text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -221,7 +264,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('notifications')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${
                 activeTab === 'notifications'
-                  ? 'bg-[#E8450F] text-white shadow-xs'
+                  ? 'bg-brand text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -246,7 +289,7 @@ export default function SettingsPage() {
               <CardContent className="pt-5 space-y-6">
                 
                 <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700">
-                  <div className="w-14 h-14 rounded-full bg-[#E8450F] text-white font-extrabold text-lg flex items-center justify-center shadow-xs shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-brand text-white font-extrabold text-lg flex items-center justify-center shadow-xs shrink-0">
                     {initials}
                   </div>
                   <div>
@@ -265,7 +308,7 @@ export default function SettingsPage() {
                       id="prof_name"
                       value={profileForm.name}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="h-9 text-xs font-semibold border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs font-semibold border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -276,7 +319,7 @@ export default function SettingsPage() {
                       type="email"
                       value={profileForm.email}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                      className="h-9 text-xs font-semibold border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs font-semibold border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -287,7 +330,7 @@ export default function SettingsPage() {
                       value={profileForm.phone}
                       onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
                       placeholder="+966 50 000 0000"
-                      className="h-9 text-xs font-mono font-medium border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs font-mono font-medium border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -321,7 +364,7 @@ export default function SettingsPage() {
                 <Button 
                   type="submit" 
                   disabled={updateProfileMutation.isPending}
-                  className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
+                  className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
                 >
                   <Save className="h-3.5 w-3.5" />
                   {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile Details'}
@@ -331,47 +374,116 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* Tab 2: Company Details */}
+        {/* Tab 2: Company Details / Branding & Modules */}
         {activeTab === 'company' && (
           <Card className="border border-slate-200 dark:border-slate-800 shadow-2xs rounded-xl bg-white dark:bg-slate-900">
             <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
               <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Building2 className="h-4.5 w-4.5 text-indigo-600" /> Commercial & Legal Entity Settings
+                <Building2 className="h-4.5 w-4.5 text-indigo-600" /> Deployment Branding & Modules
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Official commercial registration and organization details for tax invoices and transport manifests.
+                {user?.isSuperAdmin
+                  ? 'This deployment’s name, logo, brand color, and which optional modules are visible.'
+                  : 'Deployment branding and modules — editable by a superadmin only.'}
               </CardDescription>
             </CardHeader>
 
             <CardContent className="pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">App Name</Label>
+                  <Input
+                    value={brandingForm.appName}
+                    readOnly={!user?.isSuperAdmin}
+                    onChange={(e) => setBrandingForm((f) => ({ ...f, appName: e.target.value }))}
+                    className="h-9 text-xs font-bold border-slate-200"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Company Legal Name</Label>
-                  <Input value="MERCON Operations Ltd." readOnly className="h-9 text-xs font-bold border-slate-200 bg-slate-50" />
+                  <Input
+                    value={brandingForm.companyLegalName}
+                    readOnly={!user?.isSuperAdmin}
+                    onChange={(e) => setBrandingForm((f) => ({ ...f, companyLegalName: e.target.value }))}
+                    className="h-9 text-xs font-bold border-slate-200"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Commercial Registration (CR)</Label>
-                  <Input value="CR-1010992812" readOnly className="h-9 text-xs font-mono border-slate-200 bg-slate-50" />
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Logo URL</Label>
+                  <Input
+                    value={brandingForm.logoUrl}
+                    readOnly={!user?.isSuperAdmin}
+                    onChange={(e) => setBrandingForm((f) => ({ ...f, logoUrl: e.target.value }))}
+                    placeholder="Uploaded via Documents, then pasted here"
+                    className="h-9 text-xs font-mono border-slate-200"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">VAT / Tax Identification</Label>
-                  <Input value="VAT-301928301900003" readOnly className="h-9 text-xs font-mono border-slate-200 bg-slate-50" />
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Primary Brand Color</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={brandingForm.primaryColor}
+                      disabled={!user?.isSuperAdmin}
+                      onChange={(e) => setBrandingForm((f) => ({ ...f, primaryColor: e.target.value }))}
+                      className="h-9 w-9 rounded border border-slate-200 disabled:opacity-60"
+                    />
+                    <Input
+                      value={brandingForm.primaryColor}
+                      readOnly={!user?.isSuperAdmin}
+                      onChange={(e) => setBrandingForm((f) => ({ ...f, primaryColor: e.target.value }))}
+                      className="h-9 text-xs font-mono border-slate-200"
+                    />
+                  </div>
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Support Operations Email</Label>
-                  <Input value="support@mercon.tech" readOnly className="h-9 text-xs font-mono border-slate-200 bg-slate-50" />
+              <div className="pt-2">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Enabled Modules</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {MODULE_KEYS.map((key) => (
+                    <label
+                      key={key}
+                      className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg border cursor-pointer ${
+                        enabledModules.includes(key)
+                          ? 'border-brand/40 bg-brand/5 text-brand'
+                          : 'border-slate-200 text-slate-500'
+                      } ${!user?.isSuperAdmin ? 'pointer-events-none opacity-70' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={enabledModules.includes(key)}
+                        onChange={() => toggleModule(key)}
+                        disabled={!user?.isSuperAdmin}
+                      />
+                      {key}
+                    </label>
+                  ))}
                 </div>
               </div>
             </CardContent>
 
             <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-between items-center">
-              <span className="text-xs text-slate-500">Legal entity details are locked by System Administrator.</span>
-              <Button disabled variant="outline" size="sm" className="h-9 text-xs font-semibold">
-                Locked
-              </Button>
+              <span className="text-xs text-slate-500">
+                {brandingSuccess || (user?.isSuperAdmin ? 'Changes apply to everyone on this deployment.' : 'Locked by System Administrator.')}
+              </span>
+              {user?.isSuperAdmin ? (
+                <Button
+                  size="sm"
+                  className="h-9 text-xs font-semibold bg-brand hover:bg-brand-hover text-white"
+                  onClick={() => updateSettingsMutation.mutate()}
+                  disabled={updateSettingsMutation.isPending}
+                >
+                  <Save className="h-3.5 w-3.5 mr-1.5" /> Save
+                </Button>
+              ) : (
+                <Button disabled variant="outline" size="sm" className="h-9 text-xs font-semibold">
+                  Locked
+                </Button>
+              )}
             </CardFooter>
           </Card>
         )}
@@ -400,7 +512,7 @@ export default function SettingsPage() {
                       value={passwordForm.current_password}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, current_password: e.target.value }))}
                       placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -412,7 +524,7 @@ export default function SettingsPage() {
                       value={passwordForm.new_password}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password: e.target.value }))}
                       placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -424,7 +536,7 @@ export default function SettingsPage() {
                       value={passwordForm.confirm_password}
                       onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm_password: e.target.value }))}
                       placeholder="••••••••"
-                      className="h-9 text-xs border-slate-200 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+                      className="h-9 text-xs border-slate-200 focus-visible:ring-brand/20 focus-visible:border-brand"
                     />
                   </div>
 
@@ -450,7 +562,7 @@ export default function SettingsPage() {
                 <Button 
                   type="submit" 
                   disabled={changePasswordMutation.isPending}
-                  className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
+                  className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
                 >
                   <Key className="h-3.5 w-3.5" />
                   {changePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
@@ -484,7 +596,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={notifPrefs.email_dispatch}
                     onChange={(e) => setNotifPrefs(prev => ({ ...prev, email_dispatch: e.target.checked }))}
-                    className="w-4 h-4 rounded text-[#E8450F] focus:ring-[#E8450F] cursor-pointer"
+                    className="w-4 h-4 rounded text-brand focus:ring-brand cursor-pointer"
                   />
                 </div>
 
@@ -497,7 +609,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={notifPrefs.document_expiry}
                     onChange={(e) => setNotifPrefs(prev => ({ ...prev, document_expiry: e.target.checked }))}
-                    className="w-4 h-4 rounded text-[#E8450F] focus:ring-[#E8450F] cursor-pointer"
+                    className="w-4 h-4 rounded text-brand focus:ring-brand cursor-pointer"
                   />
                 </div>
 
@@ -510,7 +622,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={notifPrefs.sms_alerts}
                     onChange={(e) => setNotifPrefs(prev => ({ ...prev, sms_alerts: e.target.checked }))}
-                    className="w-4 h-4 rounded text-[#E8450F] focus:ring-[#E8450F] cursor-pointer"
+                    className="w-4 h-4 rounded text-brand focus:ring-brand cursor-pointer"
                   />
                 </div>
 
@@ -527,7 +639,7 @@ export default function SettingsPage() {
             <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex justify-end">
               <Button 
                 onClick={handleNotifSave}
-                className="h-9 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
+                className="h-9 text-xs bg-brand hover:bg-brand-hover text-white font-bold px-5 shadow-xs rounded-md gap-1.5"
               >
                 <Save className="h-3.5 w-3.5" /> Save Preferences
               </Button>

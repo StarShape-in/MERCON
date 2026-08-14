@@ -99,7 +99,7 @@ export function Combobox({
                     className={cn(
                       'flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-colors text-xs my-0.5',
                       isSelected
-                        ? 'bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] font-semibold'
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-brand font-semibold'
                         : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300',
                       option.disabled && 'opacity-50 cursor-not-allowed pointer-events-none'
                     )}
@@ -112,7 +112,7 @@ export function Combobox({
                     <span className="truncate flex-1">{option.label}</span>
                     <Check
                       className={cn(
-                        'h-4 w-4 text-[#E8450F] shrink-0 ml-2',
+                        'h-4 w-4 text-brand shrink-0 ml-2',
                         isSelected ? 'opacity-100' : 'opacity-0'
                       )}
                     />

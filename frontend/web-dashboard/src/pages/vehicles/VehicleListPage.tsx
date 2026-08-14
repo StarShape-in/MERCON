@@ -333,7 +333,7 @@ export default function VehicleListPage() {
       header: 'Vehicle ID',
       accessor: (row: Vehicle) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-xs font-extrabold text-[#E8450F] block">
+          <span className="font-mono text-xs font-extrabold text-brand block">
             {row.ref_id || `VEH-${row.id.slice(0, 6).toUpperCase()}`}
           </span>
           <span className="text-[10px] text-slate-400 font-mono">ID: {row.id.slice(0, 6)}</span>
@@ -388,7 +388,7 @@ export default function VehicleListPage() {
             </div>
             <div className="flex flex-col min-w-0">
               <span 
-                className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-[#E8450F] transition-colors cursor-pointer truncate"
+                className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-brand transition-colors cursor-pointer truncate"
                 onClick={() => navigate(`/drivers/${driver.id}`)}
                 title={driverName}
               >
@@ -790,7 +790,7 @@ export default function VehicleListPage() {
 
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-lg px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-lg px-4"
               onClick={() => navigate('/vehicles/new')}
             >
               <Plus className="h-4 w-4" />
@@ -869,7 +869,7 @@ export default function VehicleListPage() {
                   <path 
                     d="M -10 24 C 70 10, 150 38, 290 24" 
                     fill="none" 
-                    stroke="#E8450F" 
+                    stroke="var(--color-brand)" 
                     strokeWidth="3" 
                     strokeDasharray="6,6"
                     strokeLinecap="round"
@@ -1262,7 +1262,7 @@ export default function VehicleListPage() {
                       setCurrentPage(1);
                     }}
                   >
-                    <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-[#E8450F]/20">
+                    <SelectTrigger className="h-9 w-36 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1303,7 +1303,7 @@ export default function VehicleListPage() {
             ) : vehicles.map((v) => (
               <Card
                 key={v.id}
-                className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs hover:border-[#E8450F]/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
+                className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs hover:border-brand/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
                 tabIndex={0}
                 role="button"
                 aria-label={`Vehicle plate ${v.plate_number}, type ${v.asset_type}, status ${v.status}`}
@@ -1334,7 +1334,7 @@ export default function VehicleListPage() {
                   <div>
                     <h4 
                       onClick={() => navigate(`/vehicles/${v.id}`)}
-                      className="font-extrabold text-sm text-slate-950 dark:text-slate-50 hover:text-[#E8450F] cursor-pointer truncate"
+                      className="font-extrabold text-sm text-slate-950 dark:text-slate-50 hover:text-brand cursor-pointer truncate"
                     >
                       {v.plate_number}
                     </h4>
@@ -1382,7 +1382,7 @@ export default function VehicleListPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate(`/vehicles/${v.id}`)}
-                    className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#E8450F] gap-1"
+                    className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-brand gap-1"
                   >
                     <Eye size={13} /> Details
                   </Button>
@@ -1481,7 +1481,7 @@ export default function VehicleListPage() {
                           <Button
                             size="sm"
                             onClick={() => navigate(`/vehicles/${v.id}/edit`)}
-                            className="flex-1 h-8 bg-[#E8450F] hover:bg-[#D94800] text-white text-xs font-bold gap-1 border-0"
+                            className="flex-1 h-8 bg-brand hover:bg-[#D94800] text-white text-xs font-bold gap-1 border-0"
                           >
                             <Edit2 size={12} />
                             <span>Edit Vehicle</span>
@@ -1511,7 +1511,7 @@ export default function VehicleListPage() {
                     ? 'bg-[#090A0F]/90 backdrop-blur-xl border-white/10 text-white'
                     : 'bg-white/95 backdrop-blur-xl border-black/[0.08] text-[#111]'
                 }`}>
-                  <Navigation size={18} className="mx-auto mb-1.5 text-[#E8450F]" />
+                  <Navigation size={18} className="mx-auto mb-1.5 text-brand" />
                   <p className="text-xs font-bold">No Vehicles Found</p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     No vehicles match the selected filter.

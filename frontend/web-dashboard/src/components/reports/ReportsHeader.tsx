@@ -42,7 +42,7 @@ export default function ReportsHeader({
       {/* Top Scope & Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#FFF0EB] dark:bg-[#E8450F]/10 flex items-center justify-center text-[#E8450F] shrink-0 border border-[#E8450F]/20">
+          <div className="w-9 h-9 rounded-xl bg-brand-light dark:bg-brand/10 flex items-center justify-center text-brand shrink-0 border border-brand/20">
             <BarChart3 className="w-5 h-5" />
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -67,7 +67,7 @@ export default function ReportsHeader({
           <Button 
             size="sm" 
             onClick={onExport}
-            className="h-9 gap-1.5 text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs rounded-md px-3.5"
+            className="h-9 gap-1.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs rounded-md px-3.5"
           >
             <Download className="w-3.5 h-3.5" /> Export CSV
           </Button>
@@ -90,7 +90,7 @@ export default function ReportsHeader({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#E8450F]' : 'text-slate-400'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-brand' : 'text-slate-400'}`} />
               <span>{tab.label}</span>
             </button>
           );

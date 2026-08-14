@@ -37,7 +37,7 @@ export default function InvoicePrintTemplate() {
       <div className="max-w-4xl mx-auto p-10 bg-white" style={{ width: '210mm', minHeight: '297mm' }}>
         
         {/* Header */}
-        <div className="flex justify-between items-start border-b-2 border-[#E8450F] pb-6 mb-8 overflow-visible relative">
+        <div className="flex justify-between items-start border-b-2 border-brand pb-6 mb-8 overflow-visible relative">
           <div className="-ml-16 pt-2">
             <img src="/invoice-logo.png" alt="MERCON Logo" className="h-40 w-auto mb-2 object-contain scale-[1.3] origin-left" />
             <div className="mt-4 text-sm text-gray-600">
@@ -111,7 +111,7 @@ export default function InvoicePrintTemplate() {
               <span>Tax (0%)</span>
               <span>{invoice.currency} 0.00</span>
             </div>
-            <div className="flex justify-between py-4 text-xl font-bold text-[#E8450F]">
+            <div className="flex justify-between py-4 text-xl font-bold text-brand">
               <span>Total Due</span>
               <span>{invoice.currency} {invoice.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>

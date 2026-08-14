@@ -190,8 +190,8 @@ export default function ImportantReminders({
               w-7 h-7 items-center justify-center rounded-full
               bg-white border border-slate-200 text-slate-600 shadow-md shadow-black/10
               before:absolute before:-inset-2 before:content-['']
-              hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
+              hover:bg-brand hover:border-brand hover:text-white
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand
               transition-colors duration-150 cursor-pointer
             "
           >
@@ -224,7 +224,7 @@ export default function ImportantReminders({
                     <div className={cn(
                       'relative w-9 h-9 rounded-full flex items-center justify-center border shadow-2xs group-hover/bell:scale-105 transition-transform duration-200',
                       totalCount > 0 
-                        ? 'bg-[#FFF3EE] border-orange-200 text-[#E8450F]'
+                        ? 'bg-[#FFF3EE] border-orange-200 text-brand'
                         : 'bg-emerald-50 border-emerald-200 text-emerald-600'
                     )}>
                       {totalCount > 0 ? (
@@ -307,7 +307,7 @@ export default function ImportantReminders({
               </div>
               <button
                 onClick={() => navigate('/documents?radar=open')}
-                className="text-[10px] font-bold text-[#E8450F] hover:underline cursor-pointer"
+                className="text-[10px] font-bold text-brand hover:underline cursor-pointer"
               >
                 Expiry Radar ↗
               </button>
@@ -398,7 +398,7 @@ export default function ImportantReminders({
               </div>
               <button
                 onClick={() => navigate('/documents')}
-                className="font-bold text-[#E8450F] hover:underline flex items-center gap-0.5 cursor-pointer transition-colors"
+                className="font-bold text-brand hover:underline flex items-center gap-0.5 cursor-pointer transition-colors"
               >
                 View Vault <span className="ml-0.5 text-[13px] leading-none">↗</span>
               </button>

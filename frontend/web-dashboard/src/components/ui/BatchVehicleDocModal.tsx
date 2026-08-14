@@ -314,7 +314,7 @@ export default function BatchVehicleDocModal({
       <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#FFF0EB] dark:bg-[#E8450F]/10 flex items-center justify-center text-[#E8450F] shrink-0 border border-[#E8450F]/20">
+            <div className="w-9 h-9 rounded-xl bg-brand-light dark:bg-brand/10 flex items-center justify-center text-brand shrink-0 border border-brand/20">
               <Truck className="w-5 h-5" />
             </div>
             <div>
@@ -354,9 +354,9 @@ export default function BatchVehicleDocModal({
 
               <div
                 onClick={() => folderInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-[#E8450F] dark:hover:border-[#E8450F] bg-slate-50/60 dark:bg-slate-900/60 hover:bg-[#FFF0EB]/40 dark:hover:bg-[#E8450F]/10 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all gap-2 text-center group"
+                className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-brand dark:hover:border-brand bg-slate-50/60 dark:bg-slate-900/60 hover:bg-brand-light/40 dark:hover:bg-brand/10 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all gap-2 text-center group"
               >
-                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[#E8450F] group-hover:scale-105 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 flex items-center justify-center text-brand group-hover:scale-105 transition-transform">
                   <FolderOpen className="w-6 h-6" />
                 </div>
                 <div>
@@ -369,7 +369,7 @@ export default function BatchVehicleDocModal({
                 </div>
 
                 {selectedFiles.length > 0 && (
-                  <Badge variant="outline" className="bg-[#FFF0EB] text-[#E8450F] border-[#E8450F]/30 text-[10px] font-bold mt-1">
+                  <Badge variant="outline" className="bg-brand-light text-brand border-brand/30 text-[10px] font-bold mt-1">
                     {selectedFiles.length} valid files across {vehicleFoldersCount} vehicle folders
                   </Badge>
                 )}
@@ -401,7 +401,7 @@ export default function BatchVehicleDocModal({
                 <div className="space-y-1.5 border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400">
                     <span>Detected Vehicle Subfolders ({vehicleFoldersCount})</span>
-                    <span className="font-mono text-[#E8450F]">{selectedFiles.length} files</span>
+                    <span className="font-mono text-brand">{selectedFiles.length} files</span>
                   </div>
                   <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
                     {Object.entries(folderSummary).map(([vehId, files]) => (
@@ -470,7 +470,7 @@ export default function BatchVehicleDocModal({
 
                 <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-emerald-100 dark:border-slate-700">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Documents</span>
-                  <span className="text-base font-extrabold font-mono text-[#E8450F]">{result.totalDocsCreated}</span>
+                  <span className="text-base font-extrabold font-mono text-brand">{result.totalDocsCreated}</span>
                 </div>
               </div>
 
@@ -505,7 +505,7 @@ export default function BatchVehicleDocModal({
               size="sm"
               onClick={handleUploadFolder}
               disabled={isLoading || selectedFiles.length === 0}
-              className="text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs gap-1.5 px-4"
+              className="text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs gap-1.5 px-4"
             >
               {isLoading ? (
                 <>
@@ -526,7 +526,7 @@ export default function BatchVehicleDocModal({
               size="sm"
               onClick={handleImportLocalPath}
               disabled={isLoading || !folderPath.trim()}
-              className="text-xs bg-[#E8450F] hover:bg-[#d03d0c] text-white font-bold shadow-xs gap-1.5 px-4"
+              className="text-xs bg-brand hover:bg-brand-hover text-white font-bold shadow-xs gap-1.5 px-4"
             >
               {isLoading ? (
                 <>

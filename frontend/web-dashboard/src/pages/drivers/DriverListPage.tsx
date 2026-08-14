@@ -227,7 +227,7 @@ export default function DriverListPage() {
       header: 'Driver ID',
       accessor: (row: Driver) => (
         <div className="flex flex-col">
-          <span className="font-mono text-xs font-bold text-[#E8450F]">
+          <span className="font-mono text-xs font-bold text-brand">
             {row.ref_id || `DRV-${row.id.slice(0, 5).toUpperCase()}`}
           </span>
           <span className="text-[10px] text-slate-400 font-medium">
@@ -246,7 +246,7 @@ export default function DriverListPage() {
               {initials}
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-slate-900 text-xs hover:text-[#E8450F] transition-colors cursor-pointer" onClick={() => navigate(`/drivers/${row.id}`)}>
+              <span className="font-bold text-slate-900 text-xs hover:text-brand transition-colors cursor-pointer" onClick={() => navigate(`/drivers/${row.id}`)}>
                 {row.first_name} {row.last_name}
               </span>
               <span className="text-[11px] text-slate-500 flex items-center gap-1">
@@ -279,7 +279,7 @@ export default function DriverListPage() {
             </div>
             <div className="flex flex-col">
               <span 
-                className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-[#E8450F] transition-colors cursor-pointer"
+                className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:text-brand transition-colors cursor-pointer"
                 onClick={() => navigate(`/vehicles/${vehicle.id}`)}
               >
                 {vehicle.plate_number}
@@ -576,7 +576,7 @@ export default function DriverListPage() {
 
             <Button
               size="sm"
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
               onClick={() => navigate('/drivers/new')}
             >
               <Plus className="h-4 w-4" />
@@ -831,7 +831,7 @@ export default function DriverListPage() {
               return (
                 <div 
                   key={d.id} 
-                  className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-[#E8450F]/40 hover:-translate-y-0.5 hover:shadow-xs transition-all duration-150 ease-in-out cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
+                  className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-brand/40 hover:-translate-y-0.5 hover:shadow-xs transition-all duration-150 ease-in-out cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
                   tabIndex={0}
                   role="button"
                   aria-label={`Driver: ${d.first_name} ${d.last_name}, status: ${d.status}`}
@@ -852,7 +852,7 @@ export default function DriverListPage() {
                         <span className="font-bold text-slate-950 dark:text-slate-50 text-sm">
                           {d.first_name} {d.last_name}
                         </span>
-                        <span className="font-mono text-[11px] text-[#E8450F] font-bold">
+                        <span className="font-mono text-[11px] text-brand font-bold">
                           {d.ref_id || `DRV-${d.id.slice(0, 5).toUpperCase()}`}
                         </span>
                       </div>
@@ -905,7 +905,7 @@ export default function DriverListPage() {
                 Share to WhatsApp
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Send <span className="font-bold text-[#E8450F]">{whatsappDriver?.first_name} {whatsappDriver?.last_name}</span>'s profile directly via WhatsApp web or mobile app.
+                Send <span className="font-bold text-brand">{whatsappDriver?.first_name} {whatsappDriver?.last_name}</span>'s profile directly via WhatsApp web or mobile app.
               </DialogDescription>
             </DialogHeader>
 

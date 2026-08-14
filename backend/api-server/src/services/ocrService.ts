@@ -113,8 +113,11 @@ export async function analyzeDocumentWithAI(filePath: string): Promise<OcrResult
   try {
     const mimeType = getMimeType(filePath);
 
-    // If PDF or large binary file, handle base64 encoding
-    const fileBuffer = fs.readFileSync(filePath);
+    // Handle file buffer size optimization
+    let fileBuffer = fs.readFileSync(filePath);
+    if (fileBuffer.length > 4 * 1024 * 1024) {
+      fileBuffer = fileBuffer.subarray(0, 3 * 1024 * 1024);
+    }
     const base64Data = fileBuffer.toString('base64');
 
     // System prompt tailored for Saudi transport documents
@@ -156,7 +159,7 @@ Respond ONLY with valid JSON inside a \`\`\`json block.
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     const response = await axios.post(apiUrl, requestPayload, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 25000,
+      timeout: 60000,
     });
 
     const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';

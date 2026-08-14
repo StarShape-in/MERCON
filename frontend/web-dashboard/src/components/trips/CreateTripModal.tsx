@@ -927,7 +927,7 @@ export default function CreateTripModal({
                   className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   title="Keyboard Shortcuts Cheat Sheet (Press ?)"
                 >
-                  <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+                  <Keyboard className="w-3.5 h-3.5 text-brand" />
                   <span>Shortcuts</span>
                   <span className="font-mono bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.2 rounded text-[10px] text-slate-500">?</span>
                 </Button>
@@ -952,7 +952,7 @@ export default function CreateTripModal({
                 className={cn(
                   'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer',
                   step === 1
-                    ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
                     : selectedCustomer
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
@@ -972,7 +972,7 @@ export default function CreateTripModal({
                 className={cn(
                   'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 2
-                    ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
                     : !missingLocation && !missingName
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
@@ -996,7 +996,7 @@ export default function CreateTripModal({
                 className={cn(
                   'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 3
-                    ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
                     : !missingSchedule && !isScheduleInvalid
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
@@ -1020,7 +1020,7 @@ export default function CreateTripModal({
                 className={cn(
                   'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 4
-                    ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
                     : (selectedDriver || assignDriverLater) && (selectedVehicle || assignVehicleLater)
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
@@ -1044,7 +1044,7 @@ export default function CreateTripModal({
                 className={cn(
                   'flex items-center gap-1.5 p-2 rounded-xl text-left border transition-all text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                   step === 5
-                    ? 'border-[#E8450F] bg-orange-50/50 dark:bg-orange-950/20 text-[#E8450F]'
+                    ? 'border-brand bg-orange-50/50 dark:bg-orange-950/20 text-brand'
                     : isFormValid && billingAmount
                     ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-800 text-slate-500'
@@ -1227,7 +1227,7 @@ export default function CreateTripModal({
                   type="button"
                   size="sm"
                   onClick={nextStep}
-                  className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-5"
+                  className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5"
                   title="Keyboard Shortcut: Enter or Alt + RightArrow"
                 >
                   <span>Next Step</span>
@@ -1241,7 +1241,7 @@ export default function CreateTripModal({
                     size="sm"
                     onClick={() => handleSubmit(false)}
                     disabled={createMutation.isPending || !isFormValid}
-                    className="h-9 gap-1.5 text-xs font-extrabold bg-[#E8450F] hover:bg-[#C7380A] text-white shadow-sm px-5 disabled:opacity-50"
+                    className="h-9 gap-1.5 text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-sm px-5 disabled:opacity-50"
                     title="Keyboard Shortcut: Ctrl + Enter"
                   >
                     {createMutation.isPending ? (
@@ -1283,14 +1283,14 @@ export default function CreateTripModal({
         <DialogContent className="max-w-md rounded-2xl p-5 space-y-4">
           <DialogHeader>
             <DialogTitle className="text-base font-extrabold flex items-center gap-2">
-              <Keyboard className="w-5 h-5 text-[#E8450F]" />
+              <Keyboard className="w-5 h-5 text-brand" />
               New Trip Keyboard Shortcuts
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 text-xs">
             <div className="space-y-1.5">
-              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 1 — Customer</h4>
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Step 1 — Customer</h4>
               <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Shift</kbd> Search Accounts</div>
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1 - 4</kbd> Frequent Shippers</div>
@@ -1298,7 +1298,7 @@ export default function CreateTripModal({
             </div>
 
             <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 2 — Route Stops</h4>
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Step 2 — Route Stops</h4>
               <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">\</kbd> Pickup Location</div>
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Shift + \</kbd> Dropoff Location</div>
@@ -1306,7 +1306,7 @@ export default function CreateTripModal({
             </div>
 
             <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 3 — Schedule</h4>
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Step 3 — Schedule</h4>
               <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">1 / 2</kbd> +4h / +8h Offset</div>
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">3 / 4</kbd> +24h / EOD Target</div>
@@ -1314,7 +1314,7 @@ export default function CreateTripModal({
             </div>
 
             <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 4 — Assignments</h4>
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Step 4 — Assignments</h4>
               <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">D</kbd> Select Driver</div>
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">L</kbd> Defer Assignment</div>
@@ -1322,7 +1322,7 @@ export default function CreateTripModal({
             </div>
 
             <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="font-bold text-[#E8450F] uppercase tracking-wider text-[10px]">Step 5 &amp; Navigation</h4>
+              <h4 className="font-bold text-brand uppercase tracking-wider text-[10px]">Step 5 &amp; Navigation</h4>
               <div className="grid grid-cols-2 gap-1 text-slate-600 dark:text-slate-300">
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Alt + T</kbd> Open Modal</div>
                 <div><kbd className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold border">Enter</kbd> Next / Schedule</div>

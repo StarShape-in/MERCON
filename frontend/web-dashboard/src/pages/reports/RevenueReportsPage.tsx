@@ -182,7 +182,7 @@ export default function RevenueReportsPage() {
                     <XAxis type="number" hide />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: '#444', fontWeight: 600 }} axisLine={false} tickLine={false} width={80} />
                     <Tooltip cursor={{ fill: 'transparent' }} formatter={(val) => sar(Number(val))} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Bar dataKey="value" name="Revenue (SAR)" fill="#E8450F" radius={[0, 4, 4, 0]} barSize={24} />
+                    <Bar dataKey="value" name="Revenue (SAR)" fill="var(--color-brand)" radius={[0, 4, 4, 0]} barSize={24} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

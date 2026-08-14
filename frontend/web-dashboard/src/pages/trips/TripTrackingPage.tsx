@@ -332,7 +332,7 @@ export default function TripTrackingPage() {
           </div>
 
           <div className="border-t border-black/[0.04] pt-4">
-            <div className="bg-[#FFF0EB] border border-[#FF5500]/10 p-3 rounded-xl flex items-start gap-2.5">
+            <div className="bg-brand-light border border-[#FF5500]/10 p-3 rounded-xl flex items-start gap-2.5">
               <Navigation size={16} className="text-[#FF5500] shrink-0 mt-0.5 stroke-[2.2]" />
               <div>
                 <p className="text-xs font-bold text-[#FF5500]">{connected ? 'Live Telemetry Connected' : 'Reconnecting…'}</p>

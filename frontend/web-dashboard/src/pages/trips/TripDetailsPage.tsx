@@ -354,7 +354,7 @@ export default function TripDetailsPage() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="h-8.5 px-3.5 rounded-lg bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-bold gap-1.5 shadow-2xs transition-all active:scale-[0.98] cursor-pointer">
+                <Button className="h-8.5 px-3.5 rounded-lg bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5 shadow-2xs transition-all active:scale-[0.98] cursor-pointer">
                   More Actions
                   <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                 </Button>
@@ -455,14 +455,14 @@ export default function TripDetailsPage() {
             <Card className="rounded-xl border border-black/[0.12] bg-white p-6 gap-0">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-[#E8450F]/10 text-[#E8450F] flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
                     <Truck size={20} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Trip ID</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <p className="text-xl font-bold font-mono tracking-tight text-[#111] truncate">{trip.ref_id || trip.id}</p>
-                      <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-[#E8450F] transition-colors shrink-0">
+                      <button type="button" onClick={handleCopyId} aria-label="Copy trip ID" className="text-[#9898A4] hover:text-brand transition-colors shrink-0">
                         {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                       </button>
                     </div>
@@ -535,7 +535,7 @@ export default function TripDetailsPage() {
                       {trip.driver && !isClosed && (
                         <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
                           <PopoverTrigger asChild>
-                            <button type="button" aria-label="Replace driver" className="text-[#9898A4] hover:text-[#E8450F] transition-colors shrink-0">
+                            <button type="button" aria-label="Replace driver" className="text-[#9898A4] hover:text-brand transition-colors shrink-0">
                               <RefreshCcw size={10} />
                             </button>
                           </PopoverTrigger>
@@ -641,13 +641,13 @@ export default function TripDetailsPage() {
                     onClick={() => setDocTab('documents')}
                     className={cn(
                       'flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors cursor-pointer',
-                      docTab === 'documents' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
+                      docTab === 'documents' ? 'border-brand text-brand' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
                     )}
                   >
                     <FileStack size={15} />
                     Documents
                     {documents.length > 0 && (
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-[#E8450F] border border-orange-200">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-brand border border-orange-200">
                         {documents.length}
                       </span>
                     )}
@@ -657,7 +657,7 @@ export default function TripDetailsPage() {
                     onClick={() => setDocTab('invoice')}
                     className={cn(
                       'flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors cursor-pointer',
-                      docTab === 'invoice' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
+                      docTab === 'invoice' ? 'border-brand text-brand' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
                     )}
                   >
                     <ReceiptText size={15} />
@@ -673,7 +673,7 @@ export default function TripDetailsPage() {
                     onClick={() => setDocTab('rate-card')}
                     className={cn(
                       'flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm font-semibold transition-colors cursor-pointer',
-                      docTab === 'rate-card' ? 'border-[#E8450F] text-[#E8450F]' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
+                      docTab === 'rate-card' ? 'border-brand text-brand' : 'border-transparent text-[#6E6E80] hover:text-[#111]',
                     )}
                   >
                     <ReceiptText size={15} />
@@ -693,7 +693,7 @@ export default function TripDetailsPage() {
                     size="sm"
                     icon={<UploadCloud size={14} />}
                     onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
-                    className="bg-[#E8450F] hover:bg-[#C7380A] text-white rounded-xl shadow-2xs font-semibold text-xs mb-2 cursor-pointer"
+                    className="bg-brand hover:bg-brand-hover text-white rounded-xl shadow-2xs font-semibold text-xs mb-2 cursor-pointer"
                   />
                 )}
               </div>
@@ -729,7 +729,7 @@ export default function TripDetailsPage() {
                           onClick={() => { setUploadDocType(trip.status === 'Completed' ? 'POD' : undefined); setIsUploadModalOpen(true); }}
                           className="h-8.5 px-4 rounded-xl text-xs font-semibold border-black/[0.12] text-[#111] hover:bg-black/[0.03] gap-1.5 cursor-pointer"
                         >
-                          <UploadCloud size={14} className="text-[#E8450F]" />
+                          <UploadCloud size={14} className="text-brand" />
                           Upload Document Manually
                         </Button>
                       </div>
@@ -741,7 +741,7 @@ export default function TripDetailsPage() {
                             className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-black/[0.18] dark:hover:border-slate-700 transition-all group shadow-2xs"
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
+                              <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand flex items-center justify-center shrink-0 border border-orange-100 dark:border-orange-900/50">
                                 <FileText size={18} />
                               </div>
                               <div className="min-w-0">
@@ -760,7 +760,7 @@ export default function TripDetailsPage() {
                                 href={doc.file_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-8 h-8 rounded-lg bg-black/[0.03] dark:bg-slate-800 text-[#6E6E80] dark:text-slate-300 hover:bg-[#E8450F] hover:text-white dark:hover:bg-[#E8450F] flex items-center justify-center transition-colors border border-black/[0.08] dark:border-slate-700"
+                                className="w-8 h-8 rounded-lg bg-black/[0.03] dark:bg-slate-800 text-[#6E6E80] dark:text-slate-300 hover:bg-brand hover:text-white dark:hover:bg-brand flex items-center justify-center transition-colors border border-black/[0.08] dark:border-slate-700"
                                 aria-label="View document"
                                 title="Open Document"
                               >
@@ -864,7 +864,7 @@ export default function TripDetailsPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-semibold text-[#9898A4]">Base Price</p>
-                        <p className="text-lg font-bold text-[#E8450F] font-mono">
+                        <p className="text-lg font-bold text-brand font-mono">
                           {trip.rateCard?.currency || 'SAR'} {Number(trip.rateCard?.base_price ?? trip.trip_charges ?? trip.billing_amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
@@ -896,7 +896,7 @@ export default function TripDetailsPage() {
                         </div>
                         <div className="flex items-center justify-between px-4 py-3.5 bg-orange-50/50 dark:bg-orange-950/20 font-bold">
                           <span className="text-[#111] dark:text-slate-100">Total Billing Amount</span>
-                          <span className="text-sm font-mono text-[#E8450F]">
+                          <span className="text-sm font-mono text-brand">
                             SAR {Number(trip.billing_amount ?? ((trip.trip_charges || trip.rateCard?.base_price || 0) + (trip.waiting_labor_charges || 0) + (trip.additional_stop_charges || 0))).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
@@ -923,7 +923,7 @@ export default function TripDetailsPage() {
                 </p>
                 <Progress
                   value={trip.status === 'Cancelled' ? 0 : stageProgress}
-                  className="h-1.5 mt-2.5 [&_[data-slot=progress-track]]:bg-black/[0.04] dark:[&_[data-slot=progress-track]]:bg-slate-800 [&_[data-slot=progress-indicator]]:bg-[#E8450F]"
+                  className="h-1.5 mt-2.5 [&_[data-slot=progress-track]]:bg-black/[0.04] dark:[&_[data-slot=progress-track]]:bg-slate-800 [&_[data-slot=progress-indicator]]:bg-brand"
                 />
               </div>
 
@@ -963,7 +963,7 @@ export default function TripDetailsPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <span className="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                     <MapPin size={12} />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -1025,7 +1025,7 @@ export default function TripDetailsPage() {
                 )}
                 <Button
                   size="sm"
-                  className="w-full h-8.5 rounded-xl bg-[#E8450F] hover:bg-[#C7380A] text-white text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer active:scale-[0.98] transition-all"
+                  className="w-full h-8.5 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer active:scale-[0.98] transition-all"
                   onClick={() => navigate(`/trips/${trip.id}/track`)}
                 >
                   <Navigation size={13} />
@@ -1056,7 +1056,7 @@ export default function TripDetailsPage() {
                       {step.time ? (
                         <p className="text-[11px] text-[#6E6E80] mt-0.5">{fullDateTime(step.time)}</p>
                       ) : step.sub ? (
-                        <p className={cn('text-[11px] mt-0.5', timelineStatus[i] === 'active' ? 'text-[#E8450F] font-semibold' : 'text-[#9898A4]')}>{step.sub}</p>
+                        <p className={cn('text-[11px] mt-0.5', timelineStatus[i] === 'active' ? 'text-brand font-semibold' : 'text-[#9898A4]')}>{step.sub}</p>
                       ) : null}
                     </div>
                   </div>
@@ -1127,7 +1127,7 @@ function StepCircle({ status, useTruckForDone }: { status: StepStatus; useTruckF
   }
   if (status === 'active') {
     return (
-      <span className="w-6 h-6 rounded-full bg-[#E8450F] text-white flex items-center justify-center shrink-0">
+      <span className="w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shrink-0">
         <span className="w-2 h-2 rounded-full bg-white" />
       </span>
     );

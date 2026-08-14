@@ -161,7 +161,7 @@ export default function UploadDocumentModal({
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all
-                  ${selectedFile ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-700 hover:border-[#E8450F] hover:bg-[#FFF0EB]/40 dark:hover:bg-[#E8450F]/10'}`}
+                  ${selectedFile ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-700 hover:border-brand hover:bg-brand-light/40 dark:hover:bg-brand/10'}`}
               >
                 <input 
                   type="file" 
@@ -202,7 +202,7 @@ export default function UploadDocumentModal({
                       setSelectedEntityType(e.target.value);
                       setSelectedEntityId('');
                     }}
-                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
                   >
                     <option value="Driver">Driver</option>
                     <option value="Vehicle">Vehicle</option>
@@ -218,7 +218,7 @@ export default function UploadDocumentModal({
                     <select
                       value={selectedEntityId}
                       onChange={(e) => setSelectedEntityId(e.target.value)}
-                      className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+                      className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
                     >
                       {selectedEntityType === 'Driver' && drivers.map((d: any) => (
                         <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>
@@ -243,7 +243,7 @@ export default function UploadDocumentModal({
                   <select 
                     value={selectedDocType}
                     onChange={(e) => setSelectedDocType(e.target.value as DocType)}
-                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
                     disabled={!!docType}
                   >
                     <option value="POD">Proof of Delivery (POD)</option>
@@ -263,7 +263,7 @@ export default function UploadDocumentModal({
                   <select 
                     value={selectedFolderId}
                     onChange={(e) => setSelectedFolderId(e.target.value)}
-                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[#E8450F]/30"
+                    className="w-full h-9 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand/30"
                   >
                     <option value="">No Folder (Root)</option>
                     {folders.map((f: MerconFolder) => (
@@ -298,7 +298,7 @@ export default function UploadDocumentModal({
                   type="checkbox" 
                   checked={isConfidential}
                   onChange={(e) => setIsConfidential(e.target.checked)}
-                  className="w-4 h-4 text-[#E8450F] rounded border-slate-300 focus:ring-[#E8450F]"
+                  className="w-4 h-4 text-brand rounded border-slate-300 focus:ring-brand"
                 />
                 <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold">Mark document as confidential</span>
               </label>

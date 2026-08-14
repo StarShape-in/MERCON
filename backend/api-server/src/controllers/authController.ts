@@ -48,11 +48,12 @@ export const login = async (req: Request, res: Response) => {
       data: {
         token,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        user: { 
-          id: user.id, 
-          username: user.username, 
+        user: {
+          id: user.id,
+          username: user.username,
           role: user.role,
           name: user.name,
+          isSuperAdmin: user.isSuperAdmin,
           driver: user.driver ? {
             id: user.driver.id,
             first_name: user.driver.first_name,
@@ -88,6 +89,7 @@ export const getMe = async (req: Request, res: Response) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        isSuperAdmin: user.isSuperAdmin,
         driver: user.driver ? {
           id: user.driver.id,
           first_name: user.driver.first_name,

@@ -129,7 +129,7 @@ export default function UserManagementPage() {
       header: 'Name',
       accessor: (row: UserRow) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-[#E8450F] font-bold text-xs border border-black/[0.05]">
+          <div className="w-8 h-8 rounded-full bg-[#F5F5F7] flex items-center justify-center text-brand font-bold text-xs border border-black/[0.05]">
             {row.name?.substring(0, 2).toUpperCase() || 'U'}
           </div>
           <span className="font-semibold text-[#111]">{row.name}</span>
@@ -242,7 +242,7 @@ export default function UserManagementPage() {
 
               <Button
                 size="sm"
-                className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+                className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
                 onClick={() => { setEditingUser(null); setIsModalOpen(true); }}
               >
                 <Plus className="h-4 w-4" />

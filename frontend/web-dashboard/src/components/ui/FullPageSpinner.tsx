@@ -11,7 +11,7 @@ export default function FullPageSpinner() {
         width: 40,
         height: 40,
         border: '3px solid #F0F0F2',
-        borderTopColor: '#E8450F',
+        borderTopColor: 'var(--color-brand)',
         borderRadius: '50%',
         animation: 'spin 0.7s linear infinite',
       }} />

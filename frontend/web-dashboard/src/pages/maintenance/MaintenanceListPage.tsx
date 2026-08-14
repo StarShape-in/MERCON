@@ -384,7 +384,7 @@ export default function MaintenanceListPage() {
             <Button
               size="sm"
               onClick={handleOpenCreateModal}
-              className="h-9 gap-1.5 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white shadow-xs rounded-md px-4"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs rounded-md px-4"
             >
               <Plus className="h-4 w-4" />
               Add Maintenance
@@ -593,7 +593,7 @@ export default function MaintenanceListPage() {
                           <button
                             onClick={() => setCostModalRecord(r)}
                             title="Add / Update Cost"
-                            className="p-1.5 rounded-lg text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer"
                           >
                             <Banknote className="w-3.5 h-3.5" />
                           </button>
@@ -612,7 +612,7 @@ export default function MaintenanceListPage() {
                                 onClick={() => setCostModalRecord(r)}
                                 className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
                               >
-                                <Banknote className="w-3.5 h-3.5 mr-2 text-[#E8450F]" /> Add / Update Cost
+                                <Banknote className="w-3.5 h-3.5 mr-2 text-brand" /> Add / Update Cost
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleOpenEditModal(r)}
@@ -657,7 +657,7 @@ export default function MaintenanceListPage() {
                         Clear Filters
                       </Button>
                     ) : !isFetching && records.length === 0 ? (
-                      <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-[#E8450F] text-white h-9">
+                      <Button size="sm" onClick={handleOpenCreateModal} className="text-xs font-bold bg-brand text-white h-9">
                         + Add First Maintenance Record
                       </Button>
                     ) : undefined
@@ -745,7 +745,7 @@ export default function MaintenanceListPage() {
                       <button
                         onClick={() => setCostModalRecord(r)}
                         title="Add / Update Cost"
-                        className="p-1.5 rounded-lg text-[#E8450F] hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-brand hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer"
                       >
                         <Banknote className="w-3.5 h-3.5" />
                       </button>

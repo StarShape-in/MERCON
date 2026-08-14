@@ -170,7 +170,7 @@ export function TripScheduleSelector({
           <div
             className={cn(
               'size-6 rounded-lg flex items-center justify-center text-white shadow-2xs',
-              isPickup ? 'bg-emerald-600' : 'bg-[#E8450F]'
+              isPickup ? 'bg-emerald-600' : 'bg-brand'
             )}
           >
             <Clock className="size-3.5" />
@@ -227,7 +227,7 @@ export function TripScheduleSelector({
                 activeDatePreset === 'today'
                   ? isPickup
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                    : 'bg-[#E8450F] text-white border-[#E8450F] shadow-2xs'
+                    : 'bg-brand text-white border-brand shadow-2xs'
                   : 'bg-muted/40 hover:bg-muted text-foreground border-border'
               )}
             >
@@ -242,7 +242,7 @@ export function TripScheduleSelector({
                 activeDatePreset === 'tomorrow'
                   ? isPickup
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                    : 'bg-[#E8450F] text-white border-[#E8450F] shadow-2xs'
+                    : 'bg-brand text-white border-brand shadow-2xs'
                   : 'bg-muted/40 hover:bg-muted text-foreground border-border'
               )}
             >
@@ -257,7 +257,7 @@ export function TripScheduleSelector({
                 activeDatePreset === 'dayAfter'
                   ? isPickup
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                    : 'bg-[#E8450F] text-white border-[#E8450F] shadow-2xs'
+                    : 'bg-brand text-white border-brand shadow-2xs'
                   : 'bg-muted/40 hover:bg-muted text-foreground border-border'
               )}
             >
@@ -321,7 +321,7 @@ export function TripScheduleSelector({
                     isSelected
                       ? isPickup
                         ? 'bg-emerald-600 text-white border-emerald-600 font-extrabold shadow-2xs'
-                        : 'bg-[#E8450F] text-white border-[#E8450F] font-extrabold shadow-2xs'
+                        : 'bg-brand text-white border-brand font-extrabold shadow-2xs'
                       : 'bg-muted/30 hover:bg-muted text-foreground border-border/80'
                   )}
                 >
@@ -404,7 +404,7 @@ export function TripScheduleSelector({
             )}
           >
             <div className="flex items-center gap-2">
-              <Check className={cn('size-4 font-bold', isPickup ? 'text-emerald-600' : 'text-[#E8450F]')} />
+              <Check className={cn('size-4 font-bold', isPickup ? 'text-emerald-600' : 'text-brand')} />
               <span className="font-semibold">
                 Scheduled Target:{' '}
                 <strong className="font-mono font-bold text-foreground">

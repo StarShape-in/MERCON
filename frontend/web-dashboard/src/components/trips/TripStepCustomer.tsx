@@ -53,7 +53,7 @@ export default function TripStepCustomer({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-[#E8450F]" /> Select Customer Account
+            <Building2 className="w-4 h-4 text-brand" /> Select Customer Account
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Pick the client responsible for freight billing and contracted lane rates.
@@ -61,7 +61,7 @@ export default function TripStepCustomer({
         </div>
 
         <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-          <Keyboard className="w-3.5 h-3.5 text-[#E8450F]" />
+          <Keyboard className="w-3.5 h-3.5 text-brand" />
           <span>Press <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">Shift</kbd> to search, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">1-4</kbd> for quick select, <kbd className="font-mono bg-white dark:bg-slate-900 px-1 py-0.2 border rounded text-slate-700 dark:text-slate-300 font-bold">↵</kbd> for Next</span>
         </div>
       </div>
@@ -86,14 +86,14 @@ export default function TripStepCustomer({
                   className={cn(
                     'p-3 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden group',
                     isSelected
-                      ? 'border-[#E8450F] bg-orange-50/60 dark:bg-orange-950/30 text-[#E8450F] shadow-xs'
+                      ? 'border-brand bg-orange-50/60 dark:bg-orange-950/30 text-brand shadow-xs'
                       : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/40 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300'
                   )}
                 >
                   <div className="flex items-center justify-between gap-1 mb-1">
                     <div className={cn(
                       "w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px]",
-                      isSelected ? "bg-[#E8450F] text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                      isSelected ? "bg-brand text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                     )}>
                       {c.name.substring(0, 2).toUpperCase()}
                     </div>
@@ -101,7 +101,7 @@ export default function TripStepCustomer({
                       <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">
                         {index + 1}
                       </span>
-                      {isSelected && <Check className="w-4 h-4 text-[#E8450F]" />}
+                      {isSelected && <Check className="w-4 h-4 text-brand" />}
                     </div>
                   </div>
                   <span className="font-extrabold text-xs block truncate text-slate-900 dark:text-slate-100">
@@ -142,7 +142,7 @@ export default function TripStepCustomer({
             >
               {selectedCustomer ? (
                 <div className="flex items-center gap-2.5 min-w-0 truncate">
-                  <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-[#E8450F] font-bold text-[10px] shrink-0 border border-orange-200 dark:border-orange-900/60">
+                  <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-bold text-[10px] shrink-0 border border-orange-200 dark:border-orange-900/60">
                     {selectedCustomer.name.substring(0, 2).toUpperCase()}
                   </div>
                   <span className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">
@@ -197,7 +197,7 @@ export default function TripStepCustomer({
                         className={cn(
                           "flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors text-xs",
                           isSelected
-                            ? "bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] font-bold"
+                            ? "bg-orange-50 dark:bg-orange-950/40 text-brand font-bold"
                             : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                         )}
                       >
@@ -205,7 +205,7 @@ export default function TripStepCustomer({
                           <div className={cn(
                             "w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] shrink-0",
                             isSelected
-                              ? "bg-[#E8450F] text-white"
+                              ? "bg-brand text-white"
                               : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                           )}>
                             {c.name.substring(0, 2).toUpperCase()}
@@ -227,7 +227,7 @@ export default function TripStepCustomer({
                           )}
                           <Check
                             className={cn(
-                              "h-4 w-4 text-[#E8450F]",
+                              "h-4 w-4 text-brand",
                               isSelected ? "opacity-100" : "opacity-0"
                             )}
                           />
@@ -247,7 +247,7 @@ export default function TripStepCustomer({
         <Card className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-2xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-[#E8450F] font-extrabold text-sm border border-orange-200/60 dark:border-orange-900/60">
+              <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-brand font-extrabold text-sm border border-orange-200/60 dark:border-orange-900/60">
                 {selectedCustomer.name.substring(0, 2).toUpperCase()}
               </div>
               <div>

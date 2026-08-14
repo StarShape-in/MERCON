@@ -51,7 +51,7 @@ export default function MonthlyCompanyCard({
 
   return (
     <div className={`rounded-xl border bg-white shadow-sm transition-all overflow-hidden flex flex-col ${
-      someSelected || allSelected ? 'border-[#E8450F]/40 ring-1 ring-[#E8450F]/20' : 'border-slate-200 hover:border-slate-300'
+      someSelected || allSelected ? 'border-brand/40 ring-1 ring-brand/20' : 'border-slate-200 hover:border-slate-300'
     }`}>
       {/* ── Company header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-slate-50/70 border-b border-slate-200">
@@ -61,13 +61,13 @@ export default function MonthlyCompanyCard({
               <Checkbox
                 checked={allSelected ? true : someSelected ? 'indeterminate' : false}
                 onCheckedChange={() => onToggleCompany(companyTripIds)}
-                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-[#E8450F] data-[state=checked]:border-[#E8450F]"
+                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
                 aria-label={`Select all trips for ${company.customer.name}`}
               />
             </div>
           )}
 
-          <span className="h-9 w-9 shrink-0 rounded-lg bg-[#E8450F]/10 border border-[#E8450F]/20 text-[#E8450F] grid place-items-center text-xs font-bold">
+          <span className="h-9 w-9 shrink-0 rounded-lg bg-brand/10 border border-brand/20 text-brand grid place-items-center text-xs font-bold">
             {initialsOf(company.customer.name)}
           </span>
 
@@ -118,7 +118,7 @@ export default function MonthlyCompanyCard({
                   <Checkbox
                     checked={allSelected ? true : someSelected ? 'indeterminate' : false}
                     onCheckedChange={() => onToggleCompany(companyTripIds)}
-                    className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-[#E8450F] data-[state=checked]:border-[#E8450F]"
+                    className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
                   />
                 </TableHead>
               )}
@@ -179,7 +179,7 @@ function TripRow({
           <Checkbox
             checked={isSelected}
             onCheckedChange={onToggle}
-            className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-[#E8450F] data-[state=checked]:border-[#E8450F]"
+            className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
           />
         </TableCell>
       )}
@@ -301,7 +301,7 @@ function TripDetailDialog({
                   </Button>
                 )}
                 <Button
-                  className="flex-1 h-10 rounded-lg text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none"
+                  className="flex-1 h-10 rounded-lg text-xs font-bold bg-brand hover:bg-[#d13d0d] shadow-none"
                   onClick={() => navigate(`/trips/${trip.id}`)}
                 >
                   Open full trip

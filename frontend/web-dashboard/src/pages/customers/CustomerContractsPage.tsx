@@ -107,7 +107,7 @@ export default function CustomerContractsPage() {
           <div className="lg:col-span-1">
             <div className="bg-white border border-black/[0.08] rounded-lg p-5 shadow-sm sticky top-24">
               <h3 className="text-sm font-bold text-[#111] mb-4 flex items-center gap-2">
-                <UploadCloud size={16} className="text-[#E8450F]" /> Upload Contract
+                <UploadCloud size={16} className="text-brand" /> Upload Contract
               </h3>
               
               <form onSubmit={handleUpload} className="space-y-4">
@@ -148,7 +148,7 @@ export default function CustomerContractsPage() {
                   <input
                     type="file"
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-bold file:bg-[#E8450F]/10 file:text-[#E8450F] hover:file:bg-[#E8450F]/20 cursor-pointer text-[#6E6E80]"
+                    className="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-bold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 cursor-pointer text-[#6E6E80]"
                     required
                   />
                 </div>
@@ -172,7 +172,7 @@ export default function CustomerContractsPage() {
             <div className="bg-white border border-black/[0.08] rounded-lg shadow-sm overflow-hidden min-h-[400px]">
               <div className="p-5 border-b border-black/[0.04]">
                 <h3 className="text-sm font-bold text-[#111] flex items-center gap-2">
-                  <FileText size={16} className="text-[#E8450F]" /> Uploaded Contracts
+                  <FileText size={16} className="text-brand" /> Uploaded Contracts
                 </h3>
               </div>
               
@@ -195,7 +195,7 @@ export default function CustomerContractsPage() {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-white border border-black/[0.06] flex items-center justify-center">
-                              <FileText size={14} className="text-[#E8450F]" />
+                              <FileText size={14} className="text-brand" />
                             </div>
                             <div>
                               <p className="text-sm font-bold text-[#111]">{doc.doc_type}</p>

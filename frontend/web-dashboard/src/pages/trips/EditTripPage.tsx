@@ -147,7 +147,7 @@ export default function EditTripPage() {
     return (
       <DashboardLayout active="Trips" title="Edit Trip Manifest">
         <div className="p-12 flex flex-col items-center justify-center gap-3">
-          <div className="h-8 w-8 border-2 border-[#E8450F] border-t-transparent rounded-full animate-spin"></div>
+          <div className="h-8 w-8 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
           <p className="text-xs text-[#6E6E80] font-medium">Loading trip manifest details...</p>
         </div>
       </DashboardLayout>
@@ -194,7 +194,7 @@ export default function EditTripPage() {
           <button
             type="button"
             onClick={() => setShowHelpGuide(!showHelpGuide)}
-            className="flex items-center gap-1.5 text-xs text-[#E8450F] font-semibold hover:underline"
+            className="flex items-center gap-1.5 text-xs text-brand font-semibold hover:underline"
           >
             <HelpCircle size={14} />
             {showHelpGuide ? 'Hide Help Guide' : 'Why edit a trip manifest?'}
@@ -309,7 +309,7 @@ export default function EditTripPage() {
                 <select
                   value={selectedDriverId}
                   onChange={(e) => setSelectedDriverId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-black/10 bg-white text-xs font-medium text-[#111] focus:border-[#E8450F] focus:outline-none transition-colors"
+                  className="w-full h-10 px-3 rounded-lg border border-black/10 bg-white text-xs font-medium text-[#111] focus:border-brand focus:outline-none transition-colors"
                 >
                   <option value="">-- No driver assigned (Assign Later) --</option>
                   {driversRes?.data?.map((d) => (
@@ -332,7 +332,7 @@ export default function EditTripPage() {
                 <select
                   value={selectedVehicleId}
                   onChange={(e) => setSelectedVehicleId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-black/10 bg-white text-xs font-medium text-[#111] focus:border-[#E8450F] focus:outline-none transition-colors"
+                  className="w-full h-10 px-3 rounded-lg border border-black/10 bg-white text-xs font-medium text-[#111] focus:border-brand focus:outline-none transition-colors"
                 >
                   <option value="">-- No truck assigned (Assign Later) --</option>
                   {vehiclesRes?.data?.map((v) => (

@@ -449,7 +449,7 @@ export default function DelayReportPage() {
                 type="checkbox"
                 checked={needsReasonOnly}
                 onChange={(e) => { setNeedsReasonOnly(e.target.checked); setPage(1); }}
-                className="accent-[#E8450F]"
+                className="accent-brand"
               />
               Needs a reason
             </label>
@@ -566,7 +566,7 @@ export default function DelayReportPage() {
                   {
                     header: 'Reason',
                     accessor: (r: DelayLogRow) => r.needs_reason ? (
-                      <span className="inline-flex items-center gap-1 text-[#E8450F] font-bold">
+                      <span className="inline-flex items-center gap-1 text-brand font-bold">
                         <AlertTriangle size={11} /> Add reason
                       </span>
                     ) : (

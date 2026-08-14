@@ -162,7 +162,7 @@ export default function EditRateCardPage() {
                         placeholder="From..."
                       />
                     </div>
-                    <ArrowRight className="w-4 h-4 shrink-0 text-[#E8450F]" />
+                    <ArrowRight className="w-4 h-4 shrink-0 text-brand" />
                     <div className="flex-1 min-w-0">
                       <LocationCombobox
                         value={destinationId}

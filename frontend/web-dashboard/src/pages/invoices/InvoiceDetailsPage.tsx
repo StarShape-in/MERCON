@@ -53,7 +53,7 @@ export default function InvoiceDetailsPage() {
           </div>
           <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Invoice Not Found</h2>
           <p className="text-xs text-slate-500">This invoice record does not exist or has been archived.</p>
-          <Button onClick={() => navigate('/invoices')} size="sm" className="mt-2 text-xs font-bold bg-[#E8450F] text-white">
+          <Button onClick={() => navigate('/invoices')} size="sm" className="mt-2 text-xs font-bold bg-brand text-white">
             Back to Billing Ledger
           </Button>
         </div>
@@ -166,7 +166,7 @@ export default function InvoiceDetailsPage() {
             <div className="flex items-center gap-2 mb-1">
               <Truck className="w-4 h-4 text-slate-400" />
               <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">Linked Trip</h3>
-              <span className="font-mono text-xs font-bold text-[#E8450F] ml-auto">{trip.ref_id}</span>
+              <span className="font-mono text-xs font-bold text-brand ml-auto">{trip.ref_id}</span>
             </div>
             <Separator />
             <div className="grid grid-cols-2 gap-3">
@@ -180,7 +180,7 @@ export default function InvoiceDetailsPage() {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Destination</p>
                 <div className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-[#E8450F] shrink-0" />
+                  <MapPin className="w-3 h-3 text-brand shrink-0" />
                   <p className="text-xs text-slate-700 dark:text-slate-300 truncate">{destination}</p>
                 </div>
               </div>

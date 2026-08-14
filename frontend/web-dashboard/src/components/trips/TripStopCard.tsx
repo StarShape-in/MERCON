@@ -301,7 +301,7 @@ export default function TripStopCard({
           <span
             className={cn(
               'w-2.5 h-2.5 rounded-full ring-4 shrink-0',
-              isPickup ? 'bg-emerald-500 ring-emerald-500/20' : 'bg-[#E8450F] ring-orange-500/20'
+              isPickup ? 'bg-emerald-500 ring-emerald-500/20' : 'bg-brand ring-orange-500/20'
             )}
           />
           <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100">{title}</span>
@@ -326,7 +326,7 @@ export default function TripStopCard({
         <div className={cn("space-y-1.5 relative", isDropdownOpen ? "z-40" : "z-10")} ref={containerRef}>
           <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <MapPin className={cn('w-3.5 h-3.5', isPickup ? 'text-emerald-600' : 'text-[#E8450F]')} />
+              <MapPin className={cn('w-3.5 h-3.5', isPickup ? 'text-emerald-600' : 'text-brand')} />
               {isPickup ? 'Pickup Location' : 'Dropoff Location'} <span className="text-rose-500">*</span>
             </span>
             <span className="text-[10px] text-slate-400 font-semibold">Google Maps &amp; Rate Cards</span>
@@ -341,7 +341,7 @@ export default function TripStopCard({
               onChange={(e) => handleQueryChange(e.target.value)}
               onFocus={() => setIsDropdownOpen(true)}
               placeholder={isPickup ? "Type pickup city, address or Google Maps place..." : "Type dropoff city, address or Google Maps place..."}
-              className="h-10 pl-9 pr-8 rounded-xl text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-[#E8450F]/20 focus-visible:border-[#E8450F]"
+              className="h-10 pl-9 pr-8 rounded-xl text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-brand/20 focus-visible:border-brand"
             />
             {query && (
               <button
@@ -381,7 +381,7 @@ export default function TripStopCard({
                       className={cn(
                         'w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs transition-colors cursor-pointer',
                         locationId === loc.id
-                          ? 'bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] font-extrabold'
+                          ? 'bg-orange-50 dark:bg-orange-950/40 text-brand font-extrabold'
                           : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
                       )}
                     >
@@ -389,7 +389,7 @@ export default function TripStopCard({
                         <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                         <span className="truncate font-semibold">{loc.name}</span>
                       </div>
-                      {locationId === loc.id && <Check className="w-4 h-4 text-[#E8450F] shrink-0" />}
+                      {locationId === loc.id && <Check className="w-4 h-4 text-brand shrink-0" />}
                     </button>
                   ))
                 )}
@@ -420,7 +420,7 @@ export default function TripStopCard({
                     disabled={isResolvingPlace}
                     className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-xs hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    <MapPin className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
+                    <MapPin className="w-3.5 h-3.5 text-brand shrink-0" />
                     <span className="truncate">{s.label}</span>
                   </button>
                 ))}
@@ -449,11 +449,11 @@ export default function TripStopCard({
                 isMapExpanded
                   ? isPickup
                     ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
-                    : "border-orange-300 bg-orange-50 text-[#E8450F] dark:bg-orange-950/40 dark:border-orange-800 dark:text-orange-300"
+                    : "border-orange-300 bg-orange-50 text-brand dark:bg-orange-950/40 dark:border-orange-800 dark:text-orange-300"
                   : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
               )}
             >
-              <MapPin className={cn("w-3.5 h-3.5", isMapExpanded ? (isPickup ? "text-emerald-600" : "text-[#E8450F]") : "text-slate-500")} />
+              <MapPin className={cn("w-3.5 h-3.5", isMapExpanded ? (isPickup ? "text-emerald-600" : "text-brand") : "text-slate-500")} />
               <span>{isMapExpanded ? 'Hide Map' : 'Map Pin'}</span>
             </button>
           </div>

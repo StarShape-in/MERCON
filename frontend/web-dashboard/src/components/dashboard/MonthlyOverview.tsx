@@ -130,8 +130,8 @@ export default function MonthlyOverview() {
         {/* ── Top Bar: Title + Live Badge + Period Switcher ── */}
         <div className="px-5 py-3.5 border-b border-black/[0.04] flex items-center justify-between bg-slate-50/40">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-[#FFF0EB] flex items-center justify-center border border-[#FFE2D6]">
-              <DollarSign className="w-3.5 h-3.5 text-[#E8450F]" />
+            <div className="w-6 h-6 rounded-full bg-brand-light flex items-center justify-center border border-[#FFE2D6]">
+              <DollarSign className="w-3.5 h-3.5 text-brand" />
             </div>
             <span className="text-[10px] font-extrabold text-slate-800 uppercase tracking-widest">
               Financial Overview
@@ -149,7 +149,7 @@ export default function MonthlyOverview() {
                 onClick={() => refetch()}
                 className="w-6 h-6 inline-flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
               >
-                <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin text-[#E8450F]' : ''}`} />
+                <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin text-brand' : ''}`} />
               </TooltipTrigger>
               <TooltipContent className="text-[10px] font-bold">Refresh Overview</TooltipContent>
             </Tooltip>

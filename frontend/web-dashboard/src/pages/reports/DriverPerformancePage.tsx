@@ -195,7 +195,7 @@ export default function DriverPerformancePage() {
                     <YAxis type="number" dataKey="y" name="Risk" domain={[0, 10]} tick={{ fontSize: 11, fill: '#9898A4' }} axisLine={false} tickLine={false} />
                     <ZAxis type="number" dataKey="z" range={[100, 400]} name="Completed" />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Scatter name="Drivers" data={scatter} fill="#E8450F" opacity={0.8} />
+                    <Scatter name="Drivers" data={scatter} fill="var(--color-brand)" opacity={0.8} />
                   </ScatterChart>
                 </ResponsiveContainer>
               ) : <Fallback empty={scatter.length === 0} />}
