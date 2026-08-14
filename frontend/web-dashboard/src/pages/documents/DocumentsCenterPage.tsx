@@ -35,6 +35,7 @@ import ExpiryRadarModal from '@/components/ui/ExpiryRadarModal';
 import CreateFolderModal from '@/components/ui/CreateFolderModal';
 import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
+import { AutoAssignModal } from '@/components/ui/AutoAssignModal';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
@@ -122,6 +123,7 @@ export default function DocumentsCenterPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'folders' | 'list' | 'grid'>('folders');
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
+  const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
   const [docRotation, setDocRotation] = useState<number>(0);
@@ -223,21 +225,8 @@ export default function DocumentsCenterPage() {
     }
   };
 
-  const handleAutoAssignUnlinkedDocs = async () => {
-    setIsAutoAssigning(true);
-    try {
-      toast.info('⚡ Auto-matching unassigned documents against Vehicles & Drivers...');
-      const res = await documentService.autoAssignUnlinked();
-      toast.success(res.message || '⚡ Successfully matched and assigned documents!');
-      await queryClient.invalidateQueries({ queryKey: ['documents'] });
-      await queryClient.invalidateQueries({ queryKey: ['folders'] });
-      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-      await queryClient.invalidateQueries({ queryKey: ['drivers'] });
-    } catch (err: any) {
-      toast.error('Auto-assign failed: ' + (err.message || 'Error processing request'));
-    } finally {
-      setIsAutoAssigning(false);
-    }
+  const handleAutoAssignUnlinkedDocs = () => {
+    setIsAutoAssignModalOpen(true);
   };
 
   const handleBulkDownload = async () => {
@@ -1996,6 +1985,16 @@ export default function DocumentsCenterPage() {
         confirmLabel="Delete Folder"
         isDestructive={true}
         isLoading={isDeleting}
+      />
+      <AutoAssignModal
+        isOpen={isAutoAssignModalOpen}
+        onClose={() => setIsAutoAssignModalOpen(false)}
+        onSuccess={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['documents'] });
+          await queryClient.invalidateQueries({ queryKey: ['folders'] });
+          await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+          await queryClient.invalidateQueries({ queryKey: ['drivers'] });
+        }}
       />
     </DashboardLayout>
   );

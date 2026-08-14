@@ -120,4 +120,14 @@ export const documentService = {
     const res = await api.post('/documents/auto-assign-unlinked');
     return res.data;
   },
+
+  async previewAutoAssign(): Promise<any> {
+    const res = await api.get('/documents/preview-auto-assign');
+    return res.data;
+  },
+
+  async confirmAutoAssign(assignments: Array<{ docId: string; entityType: string; entityId: string }>): Promise<any> {
+    const res = await api.post('/documents/confirm-auto-assign', { assignments });
+    return res.data;
+  },
 };

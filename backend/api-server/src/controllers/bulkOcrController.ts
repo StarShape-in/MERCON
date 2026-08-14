@@ -452,3 +452,209 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message || 'Auto-assign failed' });
   }
 };
+
+/**
+ * Generate proposed auto-assignments for unassigned documents.
+ * Returns proposed matches with confidence ratings and reasoning for interactive approval.
+ */
+export const previewAutoAssignUnlinkedDocs = async (req: Request, res: Response) => {
+  try {
+    const allDocs = await prisma.document.findMany({
+      where: { deletedAt: null },
+    });
+
+    const vehicles = await prisma.vehicle.findMany({
+      where: { deletedAt: null },
+      select: { id: true, plate_number: true, ref_id: true, trailer_number: true },
+    });
+
+    const drivers = await prisma.driver.findMany({
+      where: { deletedAt: null },
+      select: { id: true, first_name: true, last_name: true, license_number: true, phone_primary: true, ref_id: true },
+    });
+
+    const vehicleMap = new Map(vehicles.map((v) => [v.id, v]));
+    const driverMap = new Map(drivers.map((d) => [d.id, d]));
+
+    const proposals: Array<{
+      docId: string;
+      fileName: string;
+      docType: string;
+      fileUrl: string;
+      entityType: string;
+      entityId: string;
+      proposedType: 'Vehicle' | 'Driver' | null;
+      proposedId: string | null;
+      proposedName: string | null;
+      confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+      matchReason: string;
+    }> = [];
+
+    for (const doc of allDocs) {
+      const fileName = path.basename(doc.file_url || '');
+      const rawText = (doc.ocr_raw_text || '').toLowerCase();
+      const aiJson: any = doc.ai_extracted_json || {};
+      const aiPlate = (aiJson.vehicle_plate || '').toString().toLowerCase();
+      const aiDocNum = (aiJson.document_number || '').toString().toLowerCase();
+
+      let proposedType: 'Vehicle' | 'Driver' | null = null;
+      let proposedId: string | null = null;
+      let proposedName: string | null = null;
+      let confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE' = 'NONE';
+      let matchReason = 'No automatic match found';
+
+      // 1. Try Vehicle Match
+      for (const v of vehicles) {
+        const plateStr = (v.plate_number || '').toLowerCase().trim();
+        const plateDigits = plateStr.replace(/\D/g, '');
+        const refStr = (v.ref_id || '').toLowerCase().trim();
+        const trailerStr = (v.trailer_number || '').toLowerCase().trim();
+
+        // Check plate digits (e.g. "2541", "3071", "6708", "9973", "5510", "4244", "3531")
+        if (plateDigits && plateDigits.length >= 3) {
+          if (fileName.includes(plateDigits) || aiPlate.includes(plateDigits) || aiDocNum.includes(plateDigits)) {
+            proposedType = 'Vehicle';
+            proposedId = v.id;
+            proposedName = v.plate_number || v.ref_id || 'Vehicle';
+            confidence = 'HIGH';
+            matchReason = `Matched plate number digits '${plateDigits}' in filename / AI text`;
+            break;
+          } else if (rawText.includes(plateDigits)) {
+            proposedType = 'Vehicle';
+            proposedId = v.id;
+            proposedName = v.plate_number || v.ref_id || 'Vehicle';
+            confidence = 'MEDIUM';
+            matchReason = `Matched plate number digits '${plateDigits}' inside raw OCR body text`;
+            break;
+          }
+        }
+
+        // Check plate string
+        if (plateStr && (fileName.toLowerCase().includes(plateStr) || aiPlate.includes(plateStr))) {
+          proposedType = 'Vehicle';
+          proposedId = v.id;
+          proposedName = v.plate_number || v.ref_id || 'Vehicle';
+          confidence = 'HIGH';
+          matchReason = `Exact match for vehicle plate '${v.plate_number}'`;
+          break;
+        }
+
+        // Check ref_id
+        if (refStr && refStr.length >= 3 && (fileName.toLowerCase().includes(refStr) || rawText.includes(refStr))) {
+          proposedType = 'Vehicle';
+          proposedId = v.id;
+          proposedName = v.plate_number || v.ref_id || 'Vehicle';
+          confidence = 'MEDIUM';
+          matchReason = `Matched vehicle reference ID '${v.ref_id}'`;
+          break;
+        }
+      }
+
+      // 2. Try Driver Match if no vehicle match
+      if (!proposedId) {
+        for (const d of drivers) {
+          const license = (d.license_number || '').toString().trim();
+          const refId = (d.ref_id || '').toString().trim().toLowerCase();
+          const firstName = (d.first_name || '').toString().trim().toLowerCase();
+          const lastName = (d.last_name || '').toString().trim().toLowerCase();
+          const fullName = `${firstName} ${lastName}`.trim();
+
+          if (license && license.length >= 5 && (rawText.includes(license) || fileName.includes(license) || aiDocNum.includes(license))) {
+            proposedType = 'Driver';
+            proposedId = d.id;
+            proposedName = fullName;
+            confidence = 'HIGH';
+            matchReason = `Matched driver license/IQAMA number '${license}'`;
+            break;
+          }
+
+          if (firstName && firstName.length >= 3 && (fileName.toLowerCase().includes(firstName) || rawText.includes(firstName))) {
+            proposedType = 'Driver';
+            proposedId = d.id;
+            proposedName = fullName;
+            confidence = 'MEDIUM';
+            matchReason = `Matched driver name '${firstName}' in document`;
+            break;
+          }
+        }
+      }
+
+      const isCurrentlyLinked = (
+        (doc.entity_type === 'Vehicle' && vehicleMap.has(doc.entity_id)) ||
+        (doc.entity_type === 'Driver' && driverMap.has(doc.entity_id))
+      );
+
+      proposals.push({
+        docId: doc.id,
+        fileName,
+        docType: doc.doc_type,
+        fileUrl: doc.file_url,
+        entityType: doc.entity_type,
+        entityId: doc.entity_id,
+        proposedType,
+        proposedId,
+        proposedName,
+        confidence: isCurrentlyLinked ? 'HIGH' : confidence,
+        matchReason: isCurrentlyLinked ? 'Already assigned to existing entity' : matchReason,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: proposals,
+      vehicles,
+      drivers,
+    });
+  } catch (error: any) {
+    console.error('Failed previewAutoAssignUnlinkedDocs:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed generating proposals' });
+  }
+};
+
+/**
+ * Confirm and apply user-approved document assignments in batch.
+ */
+export const confirmAutoAssignDocs = async (req: Request, res: Response) => {
+  try {
+    const { assignments } = req.body as {
+      assignments: Array<{ docId: string; entityType: 'Vehicle' | 'Driver' | 'Company' | 'Operations'; entityId: string }>;
+    };
+
+    if (!Array.isArray(assignments) || assignments.length === 0) {
+      return res.status(400).json({ success: false, message: 'No assignments provided' });
+    }
+
+    const folders = await prisma.folder.findMany({ where: { deletedAt: null } });
+    const vehicleFolder = folders.find((f) => f.category === 'Vehicles');
+    const driverFolder = folders.find((f) => f.category === 'Drivers');
+
+    let updatedCount = 0;
+
+    for (const item of assignments) {
+      if (!item.docId || !item.entityType || !item.entityId) continue;
+
+      let folderIdToSet: string | undefined = undefined;
+      if (item.entityType === 'Vehicle' && vehicleFolder) folderIdToSet = vehicleFolder.id;
+      if (item.entityType === 'Driver' && driverFolder) folderIdToSet = driverFolder.id;
+
+      await prisma.document.update({
+        where: { id: item.docId },
+        data: {
+          entity_type: item.entityType,
+          entity_id: item.entityId,
+          ...(folderIdToSet ? { folderId: folderIdToSet } : {}),
+        },
+      });
+      updatedCount++;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully linked ${updatedCount} document(s)!`,
+      updatedCount,
+    });
+  } catch (error: any) {
+    console.error('Failed confirmAutoAssignDocs:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed confirming assignments' });
+  }
+};
