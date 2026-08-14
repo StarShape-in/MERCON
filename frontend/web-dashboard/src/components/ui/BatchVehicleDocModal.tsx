@@ -15,6 +15,33 @@ interface BatchVehicleDocModalProps {
   onSuccess?: () => void;
 }
 
+// Chunk files into small HTTP payloads (max 3 files or max 3MB per batch) to prevent NGINX HTTP 413
+function createMicroBatches(files: File[], maxBatchBytes = 3 * 1024 * 1024, maxFilesPerBatch = 3) {
+  const batches: File[][] = [];
+  let currentBatch: File[] = [];
+  let currentBatchSize = 0;
+
+  for (const file of files) {
+    if (
+      currentBatch.length > 0 &&
+      (currentBatch.length >= maxFilesPerBatch || currentBatchSize + file.size > maxBatchBytes)
+    ) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentBatchSize = 0;
+    }
+
+    currentBatch.push(file);
+    currentBatchSize += file.size;
+  }
+
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
+  }
+
+  return batches;
+}
+
 export default function BatchVehicleDocModal({
   isOpen,
   onClose,
@@ -30,7 +57,7 @@ export default function BatchVehicleDocModal({
   const [folderPath, setFolderPath] = useState('C:\\Users\\ILAN\\Downloads\\Trucks Docs\\Trucks Docs');
   
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; currentVehicle: string } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ currentBatch: number; totalBatches: number; processedFiles: number; totalFiles: number } | null>(null);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,33 +107,36 @@ export default function BatchVehicleDocModal({
     setResult(null);
   };
 
-  // Upload folder via smart vehicle-folder chunking (prevents HTTP 413 Request Entity Too Large)
+  // Upload folder via strict micro-batching (max 3MB / 3 files per HTTP request) to guarantee no HTTP 413
   const handleUploadFolder = async () => {
     if (selectedFiles.length === 0) return;
     setIsLoading(true);
     setError(null);
     setResult(null);
 
-    const vehicleEntries = Object.entries(folderSummary);
-    const totalVehicles = vehicleEntries.length;
+    const fileBatches = createMicroBatches(selectedFiles);
+    const totalBatches = fileBatches.length;
 
-    let aggregateVehiclesProcessed = 0;
+    const vehicleMap = new Map<string, number>();
     let aggregateDocsCreated = 0;
     const aggregatedDetails: any[] = [];
+    let processedFilesCount = 0;
 
     try {
-      for (let i = 0; i < totalVehicles; i++) {
-        const [vehPlate, files] = vehicleEntries[i];
+      for (let i = 0; i < totalBatches; i++) {
+        const batch = fileBatches[i];
+
         setUploadProgress({
-          current: i + 1,
-          total: totalVehicles,
-          currentVehicle: vehPlate,
+          currentBatch: i + 1,
+          totalBatches,
+          processedFiles: processedFilesCount,
+          totalFiles: selectedFiles.length,
         });
 
         const formData = new FormData();
         const relativePaths: string[] = [];
 
-        files.forEach((file) => {
+        batch.forEach((file) => {
           formData.append('files', file);
           relativePaths.push(file.webkitRelativePath || file.name);
         });
@@ -115,23 +145,34 @@ export default function BatchVehicleDocModal({
 
         const res = await documentService.batchUploadFolder(formData);
         if (res.data) {
-          aggregateVehiclesProcessed += res.data.totalVehiclesProcessed || 1;
-          aggregateDocsCreated += res.data.totalDocsCreated || files.length;
-          if (res.data.details) {
-            aggregatedDetails.push(...res.data.details);
+          aggregateDocsCreated += res.data.totalDocsCreated || batch.length;
+          if (res.data.details && Array.isArray(res.data.details)) {
+            res.data.details.forEach((d: any) => {
+              const currentCount = vehicleMap.get(d.vehiclePlate) || 0;
+              vehicleMap.set(d.vehiclePlate, currentCount + d.docsCount);
+            });
           }
         }
+
+        processedFilesCount += batch.length;
       }
 
+      // Reconstruct summary details
+      const detailsList = Array.from(vehicleMap.entries()).map(([plate, count]) => ({
+        folder: plate,
+        vehiclePlate: plate,
+        docsCount: count,
+      }));
+
       const finalSummary = {
-        totalFoldersScanned: totalVehicles,
-        totalVehiclesProcessed: aggregateVehiclesProcessed,
+        totalFoldersScanned: vehicleMap.size,
+        totalVehiclesProcessed: vehicleMap.size,
         totalDocsCreated: aggregateDocsCreated,
-        details: aggregatedDetails,
+        details: detailsList,
       };
 
       setResult(finalSummary);
-      toast.success(`Successfully uploaded and assigned ${aggregateDocsCreated} documents across ${aggregateVehiclesProcessed} vehicle folders!`);
+      toast.success(`Successfully uploaded and assigned ${aggregateDocsCreated} documents across ${vehicleMap.size} vehicle folders!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       await queryClient.invalidateQueries({ queryKey: ['folders'] });
@@ -254,16 +295,16 @@ export default function BatchVehicleDocModal({
                   <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
                     <span className="flex items-center gap-1.5">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
-                      <span>Uploading Vehicle #{uploadProgress.currentVehicle} ({uploadProgress.current}/{uploadProgress.total})</span>
+                      <span>Uploading batch {uploadProgress.currentBatch} of {uploadProgress.totalBatches} ({uploadProgress.processedFiles}/{uploadProgress.totalFiles} files)...</span>
                     </span>
                     <span className="font-mono">
-                      {Math.round((uploadProgress.current / uploadProgress.total) * 100)}%
+                      {Math.round((uploadProgress.currentBatch / uploadProgress.totalBatches) * 100)}%
                     </span>
                   </div>
                   <div className="w-full h-2 bg-indigo-200 dark:bg-indigo-900 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-indigo-600 transition-all duration-300 rounded-full"
-                      style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                      style={{ width: `${(uploadProgress.currentBatch / uploadProgress.totalBatches) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -384,7 +425,7 @@ export default function BatchVehicleDocModal({
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>
-                    {uploadProgress ? `Uploading Vehicle ${uploadProgress.current}/${uploadProgress.total}...` : 'Processing...'}
+                    {uploadProgress ? `Batch ${uploadProgress.currentBatch}/${uploadProgress.totalBatches}...` : 'Processing...'}
                   </span>
                 </>
               ) : (
