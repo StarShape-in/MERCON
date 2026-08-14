@@ -512,21 +512,21 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Table Area with Generous Min-Height */}
-            <div className="overflow-x-auto flex-1 flex flex-col justify-between">
-              <div className="min-h-[360px] max-h-[520px] overflow-y-auto">
-                <table className="w-full whitespace-nowrap text-left">
+            {/* Table Area with Generous Min-Height — Fitted Neatly Without Horizontal Scroll */}
+            <div className="flex-1 flex flex-col justify-between overflow-hidden">
+              <div className="min-h-[360px] max-h-[520px] overflow-y-auto overflow-x-hidden">
+                <table className="w-full text-left table-fixed">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/20 text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
-                      <th className="px-5 py-3">Trip ID</th>
-                      <th className="px-5 py-3">Route</th>
-                      <th className="px-5 py-3">Driver</th>
-                      <th className="px-5 py-3">Vehicle</th>
-                      <th className="px-5 py-3">Status</th>
-                      <th className="px-5 py-3">Start Time</th>
-                      <th className="px-5 py-3">ETA</th>
-                      <th className="px-5 py-3">Progress</th>
-                      <th className="px-5 py-3 text-right">Distance</th>
+                      <th className="px-3.5 py-3 w-[100px] sm:w-[110px]">Trip ID</th>
+                      <th className="px-3.5 py-3 w-[180px] lg:w-[220px]">Route</th>
+                      <th className="px-3.5 py-3 w-[130px] lg:w-[150px]">Driver</th>
+                      <th className="px-3.5 py-3 w-[100px] hidden sm:table-cell">Vehicle</th>
+                      <th className="px-3.5 py-3 w-[115px]">Status</th>
+                      <th className="px-3.5 py-3 w-[110px] hidden lg:table-cell">Start Time</th>
+                      <th className="px-3.5 py-3 w-[70px]">ETA</th>
+                      <th className="px-3.5 py-3 w-[110px] sm:w-[130px]">Progress</th>
+                      <th className="px-3.5 py-3 w-[75px] text-right hidden xl:table-cell">Distance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100/70 text-xs">
@@ -552,63 +552,63 @@ export default function DashboardPage() {
                             className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                           >
                             {/* Trip ID */}
-                            <td className="px-5 py-3.5">
-                              <span className="font-extrabold text-brand font-mono text-[11px]">
+                            <td className="px-3.5 py-3">
+                              <span className="font-extrabold text-brand font-mono text-[11px] truncate block">
                                 {trip.id}
                               </span>
                             </td>
 
                             {/* Route */}
-                            <td className="px-5 py-3.5">
-                              <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                            <td className="px-3.5 py-3">
+                              <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate block" title={trip.route}>
                                 {trip.route}
                               </span>
                             </td>
 
                             {/* Driver */}
-                            <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-extrabold ${trip.avatarBg}`}>
+                            <td className="px-3.5 py-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-extrabold shrink-0 ${trip.avatarBg}`}>
                                   {trip.initials}
                                 </div>
-                                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate" title={trip.driver}>
                                   {trip.driver}
                                 </span>
                               </div>
                             </td>
 
                             {/* Vehicle */}
-                            <td className="px-5 py-3.5">
-                              <span className="text-[10px] font-bold font-mono text-slate-700 dark:text-slate-300">
+                            <td className="px-3.5 py-3 hidden sm:table-cell">
+                              <span className="text-[10px] font-bold font-mono text-slate-700 dark:text-slate-300 truncate block">
                                 {trip.vehicle}
                               </span>
                             </td>
 
                             {/* Status */}
-                            <td className="px-5 py-3.5">
-                              <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full border ${s.badge}`}>
+                            <td className="px-3.5 py-3">
+                              <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${s.badge}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
                                 {trip.status}
                               </span>
                             </td>
 
                             {/* Start Time */}
-                            <td className="px-5 py-3.5">
-                              <span className="text-[10px] text-slate-500 font-medium">
+                            <td className="px-3.5 py-3 hidden lg:table-cell">
+                              <span className="text-[10px] text-slate-500 font-medium truncate block">
                                 {trip.startTime}
                               </span>
                             </td>
 
                             {/* ETA */}
-                            <td className="px-5 py-3.5">
-                              <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100">
+                            <td className="px-3.5 py-3">
+                              <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100 truncate block">
                                 {trip.eta}
                               </span>
                             </td>
 
                             {/* Progress */}
-                            <td className="px-5 py-3.5 w-40">
-                              <div className="flex items-center gap-2.5">
+                            <td className="px-3.5 py-3">
+                              <div className="flex items-center gap-2">
                                 <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                   <div
                                     className="h-full bg-brand rounded-full transition-all duration-300"
@@ -622,7 +622,7 @@ export default function DashboardPage() {
                             </td>
 
                             {/* Distance */}
-                            <td className="px-5 py-3.5 text-right">
+                            <td className="px-3.5 py-3 text-right hidden xl:table-cell">
                               <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
                                 {trip.distance}
                               </span>
@@ -636,7 +636,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Table Ledger Footer */}
-              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/40 flex items-center justify-between text-[11px] text-slate-500 font-semibold mt-auto">
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/40 flex items-center justify-between text-[11px] text-slate-500 font-semibold mt-auto shrink-0">
                 <span>Showing {activeTrips.length} active dispatch entries</span>
                 <button
                   onClick={() => navigate('/trips')}

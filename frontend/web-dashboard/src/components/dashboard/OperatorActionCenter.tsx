@@ -350,8 +350,8 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         </div>
       </div>
 
-      {/* ── Scrollable Bigger Delay Boxes Ledger ───────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-1 my-1.5 custom-scrollbar">
+      {/* ── Scrollable Thinner Delay Boxes Ledger ───────────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1 my-1.5 custom-scrollbar">
         {filteredDelays.map((item) => {
           const Icon = item.icon;
           return (
@@ -359,66 +359,52 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
               key={item.id}
               onClick={() => navigate(`/trips/${item.rawId}`)}
               className={cn(
-                'p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 shadow-xs transition-colors cursor-pointer group flex flex-col justify-between gap-2.5',
+                'p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 shadow-2xs transition-colors cursor-pointer group flex flex-col gap-1.5',
                 item.cardBorderAccent
               )}
             >
-              {/* Top Row: Ref ID, Solid Category Badge & Delay Time */}
+              {/* Top Row: Icon + Ref ID + Route + Solid Category Badge + Quick Ping Action */}
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className={cn('w-7 h-7 rounded-xl flex items-center justify-center shrink-0 font-bold shadow-2xs', item.iconBg)}>
-                    <Icon className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  <div className={cn('w-5 h-5 rounded-md flex items-center justify-center shrink-0 font-bold', item.iconBg)}>
+                    <Icon className="w-3 h-3" />
                   </div>
-                  <span className="font-mono font-black text-sm text-slate-900 dark:text-slate-100 tracking-tight">
+                  <span className="font-mono font-black text-xs text-slate-900 dark:text-slate-100 shrink-0">
                     {item.tripId}
                   </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <span className={cn('text-[9.5px] font-black uppercase px-2.5 py-0.5 rounded-md tracking-wider shadow-2xs', item.solidBadgeBg)}>
-                    {item.badgeText}
-                  </span>
-                </div>
-              </div>
-
-              {/* Middle Row: Route Description */}
-              <div className="space-y-1">
-                <div className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <span>{item.route}</span>
-                </div>
-
-                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-snug">
-                  {item.delayNote}
-                </p>
-              </div>
-
-              {/* Bottom Row: Driver, Truck Plate Pill & Action Buttons */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2 font-mono text-[10px] text-slate-500 dark:text-slate-400">
-                  <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-bold text-slate-700 dark:text-slate-200">
-                    <User className="w-3 h-3 text-slate-400" />
-                    {item.driverName}
-                  </span>
-                  <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-bold text-slate-700 dark:text-slate-200">
-                    <Truck className="w-3 h-3 text-slate-400" />
-                    {item.vehiclePlate}
+                  <span className="text-slate-300 dark:text-slate-600 shrink-0">•</span>
+                  <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 truncate">
+                    {item.route}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
+                  <span className={cn('text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded tracking-wide shadow-2xs', item.solidBadgeBg)}>
+                    {item.badgeText}
+                  </span>
                   <button
                     type="button"
                     onClick={(e) => handleOpenQuickMsg(item, e)}
                     title="Ping Driver"
-                    className="h-6 px-2.5 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                    className="h-5 px-1.5 rounded-md text-[9px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
                   >
-                    <MessageSquare className="w-3 h-3 text-slate-500" />
+                    <MessageSquare className="w-2.5 h-2.5 text-slate-500" />
                     <span>Ping</span>
                   </button>
+                </div>
+              </div>
 
-                  <span className="text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all">
-                    <ChevronRight className="w-4 h-4" />
-                  </span>
+              {/* Bottom Row: Delay Cause Note + Driver / Vehicle Info */}
+              <div className="flex items-center justify-between gap-2 text-[10px] pt-0.5 border-t border-slate-100/70 dark:border-slate-800/60">
+                <p className="text-slate-600 dark:text-slate-400 font-medium truncate flex-1">
+                  {item.delayNote}
+                </p>
+
+                <div className="flex items-center gap-1.5 font-mono text-[9.5px] text-slate-400 dark:text-slate-500 shrink-0">
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">{item.driverName}</span>
+                  <span>•</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-200">{item.vehiclePlate}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all ml-0.5" />
                 </div>
               </div>
             </div>
@@ -426,29 +412,29 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         })}
 
         {filteredDelays.length === 0 && (
-          <div className="h-full min-h-[160px] flex flex-col items-center justify-center text-center p-6 text-xs text-slate-400">
-            <CheckCircle2 className="w-9 h-9 text-emerald-500 mb-2" />
+          <div className="h-full min-h-[140px] flex flex-col items-center justify-center text-center p-6 text-xs text-slate-400">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-1.5" />
             <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">No Active Delays</p>
             <p className="text-[11px] text-slate-400 mt-0.5">Selected category is running smoothly.</p>
           </div>
         )}
       </div>
 
-      {/* ── Footer ──────────────────────────────────────────────── */}
-      <div className="pt-2.5 border-t border-black/[0.04] dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
-        <span className="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1.5">
-          <Activity className="w-3 h-3 text-emerald-500" /> Live corridor monitoring
-        </span>
+      {/* ── Map-Matched Thin Footer Status Bar ─────────────────────── */}
+      <div className="-mx-4 -mb-4 px-4 py-2 border-t border-black/[0.04] dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between flex-wrap gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span>Live corridor monitoring</span>
+        </div>
 
-        <Button
-          size="sm"
+        <button
+          type="button"
           onClick={() => navigate('/reports/delays')}
-          variant="ghost"
-          className="h-7 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 px-2 cursor-pointer gap-1"
+          className="text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:text-[#E8450F] flex items-center gap-1 cursor-pointer transition-colors"
         >
           <BarChart2 className="w-3 h-3 text-slate-400" />
-          Delay Report ↗
-        </Button>
+          <span>Delay Report ↗</span>
+        </button>
       </div>
 
       {/* ── Quick Driver Dispatch Notice Dialog ────────────────────────── */}
