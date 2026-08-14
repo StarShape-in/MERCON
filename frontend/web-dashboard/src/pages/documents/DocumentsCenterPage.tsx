@@ -21,7 +21,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
-import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText } from '@/lib/documents';
+import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl } from '@/lib/documents';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -988,20 +988,22 @@ export default function DocumentsCenterPage() {
             </div>
           </DialogHeader>
 
-          {previewDoc && (
+          {previewDoc && (() => {
+            const resolvedUrl = resolveFileUrl(previewDoc.file_url);
+            return (
             <div className="p-6 space-y-5">
               {/* Real File Media Viewer (Images, PDFs & Fallbacks) */}
               <div className="w-full rounded-2xl bg-slate-950/5 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col items-center justify-center min-h-[220px] max-h-[380px] relative group p-2">
-                {previewDoc.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(previewDoc.file_url) ? (
+                {previewDoc.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(resolvedUrl) ? (
                   <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl bg-slate-900/10 dark:bg-slate-950/60 p-2">
                     <img
-                      src={previewDoc.file_url}
+                      src={resolvedUrl}
                       alt={docTypeLabel(previewDoc.doc_type)}
                       className="max-h-72 w-full object-contain rounded-lg transition-transform duration-200 group-hover:scale-[1.01]"
                     />
                     <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
                       <a
-                        href={previewDoc.file_url}
+                        href={resolvedUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3.5 py-2 rounded-xl bg-white text-slate-900 font-extrabold text-xs shadow-lg hover:bg-slate-100 flex items-center gap-1.5"
@@ -1010,10 +1012,10 @@ export default function DocumentsCenterPage() {
                       </a>
                     </div>
                   </div>
-                ) : previewDoc.mime_type === 'application/pdf' || /\.pdf$/i.test(previewDoc.file_url) ? (
+                ) : previewDoc.mime_type === 'application/pdf' || /\.pdf$/i.test(resolvedUrl) ? (
                   <div className="w-full h-80 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white">
                     <iframe
-                      src={`${previewDoc.file_url}#toolbar=0`}
+                      src={`${resolvedUrl}#toolbar=0`}
                       title="PDF Document Preview"
                       className="w-full h-full rounded-xl border-none"
                     />
@@ -1028,7 +1030,7 @@ export default function DocumentsCenterPage() {
                       <p className="text-[11px] text-slate-400 font-mono mt-0.5">#{previewDoc.id}</p>
                     </div>
                     <a
-                      href={previewDoc.file_url}
+                      href={resolvedUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs font-bold text-[#E8450F] hover:underline"
@@ -1064,7 +1066,8 @@ export default function DocumentsCenterPage() {
                 </div>
               </div>
             </div>
-          )}
+          );
+          })()}
 
           <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(null)} className="text-xs">

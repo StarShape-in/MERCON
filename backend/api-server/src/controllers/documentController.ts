@@ -102,9 +102,10 @@ export const uploadDocument = async (req: Request, res: Response) => {
       });
     }
 
-    // Build the public URL for the uploaded file
-    const baseUrl = env.BASE_URL || `http://localhost:${env.PORT}`;
-    const file_url = `${baseUrl}/uploads/${req.file.filename}`;
+    // Build the public URL for the uploaded file (relative by default)
+    const file_url = env.BASE_URL 
+      ? `${env.BASE_URL}/uploads/${req.file.filename}` 
+      : `/uploads/${req.file.filename}`;
     const targetFolderId = folder_id || folderId || null;
 
     const document = await prisma.document.create({

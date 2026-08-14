@@ -95,3 +95,43 @@ export function formatExpiryText(days: number | null): string {
   return `${days}d left`;
 }
 
+/**
+ * Resolves a file_url to a valid browser URL regardless of environment or hardcoded localhost ports.
+ */
+export function resolveFileUrl(fileUrl: string | null | undefined): string {
+  if (!fileUrl) return '';
+
+  const rawUrl = fileUrl.trim();
+
+  // If stored file_url is legacy 'http://localhost:3000/uploads/xyz.jpg' or 'http://localhost:4000/uploads/xyz.jpg',
+  // strip hardcoded origin so browser resolves it via current API origin/relative path!
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(rawUrl)) {
+    try {
+      const parsed = new URL(rawUrl);
+      const apiBase = import.meta.env.VITE_API_URL || '';
+      if (apiBase.startsWith('http')) {
+        const apiOrigin = new URL(apiBase).origin;
+        return `${apiOrigin}${parsed.pathname}`;
+      }
+      return parsed.pathname;
+    } catch {
+      // fallback
+    }
+  }
+
+  // If relative path like '/uploads/file-123.jpg', attach API origin if VITE_API_URL is an absolute HTTP url
+  if (rawUrl.startsWith('/')) {
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    if (apiBase.startsWith('http')) {
+      try {
+        const apiOrigin = new URL(apiBase).origin;
+        return `${apiOrigin}${rawUrl}`;
+      } catch {
+        // fallback
+      }
+    }
+  }
+
+  return rawUrl;
+}
+
