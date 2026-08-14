@@ -53,8 +53,9 @@ jobs:
             exit 1
           fi
 
-          # Remove old containers to force clean restart
-          docker compose rm -f mercon-postgres mercon-api mercon-frontend 2>/dev/null || true
+          # Ensure host uploads directory exists with full 777 write permissions
+          mkdir -p ./backend/api-server/uploads
+          chmod 777 ./backend/api-server/uploads 2>/dev/null || true
 
           # Build and start services in detached mode
           docker compose up -d --build

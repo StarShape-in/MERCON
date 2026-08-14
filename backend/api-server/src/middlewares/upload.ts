@@ -3,29 +3,21 @@ import path from 'path';
 import fs from 'fs';
 import { imageOrPdfFileFilter } from './uploadFileFilter';
 
-// Get and guarantee that the uploads directory exists and is 100% writable on disk
+// Get and guarantee that the uploads directory exists and is 100% writable inside Docker container
 export const getUploadDir = (): string => {
-  const primaryDir = path.resolve(process.cwd(), 'uploads');
   try {
+    const primaryDir = path.resolve(process.cwd(), 'uploads');
     if (!fs.existsSync(primaryDir)) {
       fs.mkdirSync(primaryDir, { recursive: true, mode: 0o777 });
-    } else {
-      const stat = fs.statSync(primaryDir);
-      if (!stat.isDirectory()) {
-        fs.unlinkSync(primaryDir);
-        fs.mkdirSync(primaryDir, { recursive: true, mode: 0o777 });
-      }
     }
-
-    // Verify write permissions with a temporary test file
-    const testFile = path.join(primaryDir, `.write-test-${Date.now()}`);
-    fs.writeFileSync(testFile, 'writable');
+    // Test write permission inside container
+    const testFile = path.join(primaryDir, `.write-test-${Date.now()}-${Math.random()}`);
+    fs.writeFileSync(testFile, 'ok');
     fs.unlinkSync(testFile);
-
     return primaryDir;
   } catch (err) {
-    console.warn('[Upload Middleware] Primary uploadDir not writable, using /tmp/uploads fallback:', err);
-    const fallbackDir = path.resolve('/tmp', 'uploads');
+    console.warn('[Upload Middleware] Primary uploadDir is not writable in container, using /tmp/uploads fallback');
+    const fallbackDir = '/tmp/uploads';
     try {
       if (!fs.existsSync(fallbackDir)) {
         fs.mkdirSync(fallbackDir, { recursive: true, mode: 0o777 });
@@ -40,12 +32,8 @@ getUploadDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    try {
-      const dir = getUploadDir();
-      cb(null, dir);
-    } catch (err: any) {
-      cb(err, '/tmp/uploads');
-    }
+    const dir = getUploadDir();
+    cb(null, dir);
   },
   filename: (_req, file, cb) => {
     // Clean original filename for safe disk naming
