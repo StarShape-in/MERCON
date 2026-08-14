@@ -4,7 +4,7 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
   Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
-  CalendarRange, Wallet, Wand2
+  CalendarRange, Wallet, Wand2, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -14,9 +14,15 @@ interface SidebarProps {
   /** Mobile drawer open state — ignored at lg and above, where the sidebar is always visible */
   open?: boolean;
   onClose?: () => void;
+  /**
+   * Desktop-only rail mode — collapses to an icon strip at lg and above. Mobile drawer is
+   * unaffected. Toggled from the handle on the sidebar's own right edge.
+   */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export default function Sidebar({ active, open = false, onClose }: SidebarProps) {
+export default function Sidebar({ active, open = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
@@ -117,16 +123,22 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
         role="navigation"
         aria-label="Main navigation"
         className={`
-          flex flex-col w-[260px] sm:w-[280px] lg:w-[220px] shrink-0 h-[100dvh] lg:h-full
+          flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
           bg-[#18181B] border-r border-white/10
-          fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
-          transform transition-transform duration-200 ease-out lg:transform-none
+          fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
+          transform transition-[transform,width] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${collapsed ? 'lg:w-[76px]' : 'lg:w-[220px]'}
         `}
       >
         {/* Logo */}
-        <div className="relative flex items-center shrink-0 justify-center bg-[#18181B] border-b border-white/10 h-[72px] lg:h-[88px] overflow-hidden">
-          <img src="/navbar-logo-final.png" alt="MERCON Logo" className="w-full h-full object-contain scale-[2.5] origin-center" />
+        <div className={`relative flex items-center shrink-0 justify-center bg-[#18181B] border-b border-white/10 h-[72px] lg:h-[88px] overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
+          {collapsed ? (
+            <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
+              M
+            </div>
+          ) : null}
+          <img src="/navbar-logo-final.png" alt="MERCON Logo" className={`w-full h-full object-contain scale-[2.5] origin-center ${collapsed ? 'lg:hidden' : ''}`} />
           <button
             onClick={onClose}
             aria-label="Close navigation menu"
@@ -136,11 +148,33 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
           </button>
         </div>
 
+        {/*
+          Desktop rail toggle button. Sits on the sidebar's own right edge, level with the logo
+          divider, so it stays in exactly the same place whether the rail is expanded or
+          collapsed — nothing in the header shifts when you use it.
+        */}
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+          title={`${collapsed ? 'Expand' : 'Collapse'} sidebar (⌘B)`}
+          className="
+            hidden lg:flex absolute -right-3 top-[76px] z-30 w-6 h-6 items-center justify-center
+            rounded-full bg-[#18181B] border border-white/15 text-white/70 shadow-md
+            hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
+            transition-colors cursor-pointer
+          "
+        >
+          {collapsed ? <ChevronRight size={13} className="stroke-[2.5]" /> : <ChevronLeft size={13} className="stroke-[2.5]" />}
+        </button>
+
         {/* Nav groups */}
-        <div className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+        <div className={`flex-1 py-4 space-y-5 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
           {groups.map((g) => (
             <div key={g.label}>
-              <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest px-3 mb-2">{g.label}</p>
+              <p className={`text-[9px] font-bold text-white/50 uppercase tracking-widest px-3 mb-2 ${collapsed ? 'lg:hidden' : ''}`}>{g.label}</p>
               <div className="space-y-0.5">
                 {g.items.map((item: any) => {
                   const isActive = isItemActive(item.path, item.end);
@@ -149,8 +183,10 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
                       key={item.label}
                       to={item.path}
                       onClick={onClose}
+                      title={collapsed ? item.label : undefined}
                       className={`
-                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group
+                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative
+                        ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
                           ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15'
                           : 'text-white/60 hover:bg-white/5 hover:text-white'
@@ -161,11 +197,14 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
                         size={16}
                         className={`transition-transform duration-150 group-hover:scale-105 shrink-0 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`}
                       />
-                      <span className="text-xs font-semibold flex-1">{item.label}</span>
+                      <span className={`text-xs font-semibold flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
                       {item.badge !== undefined && item.badge > 0 && !isActive && (
-                        <span className="w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0">
+                        <span className={`w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
                           {item.badge > 9 ? '9+' : item.badge}
                         </span>
+                      )}
+                      {collapsed && item.badge !== undefined && item.badge > 0 && !isActive && (
+                        <span aria-hidden="true" className="hidden lg:block absolute top-1.5 right-2 w-2 h-2 rounded-full bg-[#E8450F] animate-pulse" />
                       )}
                     </NavLink>
                   );
@@ -176,11 +215,14 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
         </div>
 
         {/* User footer */}
-        <div className="px-4 py-3.5 border-t border-white/10 flex items-center gap-2.5 bg-black/20 shrink-0">
-          <div className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none">
+        <div className={`px-4 py-3.5 border-t border-white/10 flex items-center gap-2.5 bg-black/20 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+          <div
+            title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
+            className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none"
+          >
             {initials}
           </div>
-          <div className="flex-1 min-w-0">
+          <div className={`flex-1 min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
             <p className="text-xs font-semibold text-white truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
             <p className="text-[9px] text-white/50 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>

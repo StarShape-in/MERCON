@@ -10,6 +10,35 @@ function ShellInner() {
   const location = useLocation();
   const { meta } = useLayoutMeta();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('mercon_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('mercon_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Global shortcut (⌘B or Ctrl+B) to toggle rail mode on desktop
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebarCollapse();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Close mobile drawer on navigation
   useEffect(() => {
@@ -41,6 +70,8 @@ function ShellInner() {
         active={meta.active}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
       />
 
       <div className="flex flex-col flex-1 min-w-0 bg-white">
