@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wrench, Plus, Check, Search, ChevronsUpDown, X, Tag } from 'lucide-react';
+import { Wrench, Plus, Check, Search, ChevronsUpDown, X, Tag, CheckCircle2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
       setIsAddDialogOpen(false);
       setNewTitle('');
       setSaveError('');
+      setSearchQuery('');
     },
     onError: (err: any) => {
       setSaveError(err.response?.data?.error?.message || 'Failed to save service item.');
@@ -72,10 +73,24 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
     onChange(updated.join(', '));
   };
 
+  const addCustomItem = (titleToAdd: string) => {
+    const trimmed = titleToAdd.trim();
+    if (!trimmed) return;
+    if (!selectedItems.includes(trimmed)) {
+      onChange([...selectedItems, trimmed].join(', '));
+    }
+    setSearchQuery('');
+  };
+
   const removeItem = (titleToRemove: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = selectedItems.filter((item) => item !== titleToRemove);
     onChange(updated.join(', '));
+  };
+
+  const clearAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange('');
   };
 
   const handleSaveNewItem = (e: React.FormEvent) => {
@@ -96,26 +111,41 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
       (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const exactMatchExists = workItems.some(
+    (item) => item.title.trim().toLowerCase() === searchQuery.trim().toLowerCase()
+  );
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
           Work Done / Service Details *
         </Label>
-        <span className="text-[11px] text-slate-400 font-normal">
-          {selectedItems.length} item(s) selected
-        </span>
+        <div className="flex items-center gap-2">
+          {selectedItems.length > 0 && (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="text-[11px] text-rose-500 hover:text-rose-700 font-semibold cursor-pointer"
+            >
+              Clear All
+            </button>
+          )}
+          <span className="text-[11px] text-slate-400 font-normal">
+            {selectedItems.length} item(s) selected
+          </span>
+        </div>
       </div>
 
       {/* Field Trigger Button opening Popover Dropdown */}
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen} modal={false}>
         <PopoverTrigger asChild>
           <button
             type="button"
             className={cn(
               'w-full min-h-[42px] px-3 py-2 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 shadow-2xs cursor-pointer',
               popoverOpen
-                ? 'border-brand ring-2 ring-brand/20'
+                ? 'border-[#E8450F] ring-2 ring-[#E8450F]/20'
                 : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
             )}
           >
@@ -124,14 +154,14 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                 selectedItems.map((title) => (
                   <span
                     key={title}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200 dark:border-orange-900/60"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] dark:text-orange-400 border border-orange-200 dark:border-orange-900/60"
                   >
                     <span>{title}</span>
                     <span
                       role="button"
                       tabIndex={0}
                       onClick={(e) => removeItem(title, e)}
-                      className="hover:text-rose-600 cursor-pointer ml-0.5"
+                      className="hover:text-rose-600 cursor-pointer ml-0.5 p-0.5 rounded"
                     >
                       <X className="w-3 h-3" />
                     </span>
@@ -144,7 +174,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                 </span>
               )}
             </div>
-            <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0" />
+            <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
           </button>
         </PopoverTrigger>
 
@@ -158,8 +188,16 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search service details (e.g. Tire, Oil, Brakes)..."
-              className="h-8 text-xs border-none shadow-none focus-visible:ring-0 bg-transparent"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (searchQuery.trim()) {
+                    addCustomItem(searchQuery);
+                  }
+                }
+              }}
+              placeholder="Search or type service detail..."
+              className="h-8 text-xs border-none shadow-none focus-visible:ring-0 bg-transparent p-0"
               autoFocus
             />
             {searchQuery && (
@@ -175,16 +213,34 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
 
           {/* Selectable Items List */}
           <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+            {/* Quick Add option if user typed custom text */}
+            {searchQuery.trim() !== '' && !exactMatchExists && (
+              <div className="pb-1">
+                <button
+                  type="button"
+                  onClick={() => addCustomItem(searchQuery)}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-orange-50/90 dark:bg-orange-950/40 text-[#E8450F] dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/80 flex items-center justify-between gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-[#E8450F]" />
+                    <span className="truncate">Add "<strong>{searchQuery.trim()}</strong>"</span>
+                  </div>
+                  <span className="text-[10px] font-semibold opacity-75 shrink-0">Press Enter ↵</span>
+                </button>
+              </div>
+            )}
+
             {filteredWorkItems.map((item) => {
               const isSelected = selectedItems.includes(item.title);
               return (
-                <div
+                <button
+                  type="button"
                   key={item.id}
                   onClick={() => toggleItem(item.title)}
                   className={cn(
-                    'px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors',
+                    'w-full px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors text-left border-0 bg-transparent',
                     isSelected
-                      ? 'bg-orange-50/80 dark:bg-orange-950/30 text-brand dark:text-orange-300 font-bold'
+                      ? 'bg-orange-50/80 dark:bg-orange-950/30 text-[#E8450F] dark:text-orange-300 font-bold'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
                   )}
                 >
@@ -193,7 +249,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                       className={cn(
                         'w-4 h-4 rounded border flex items-center justify-center transition-colors',
                         isSelected
-                          ? 'bg-brand border-brand text-white'
+                          ? 'bg-[#E8450F] border-[#E8450F] text-white'
                           : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'
                       )}
                     >
@@ -207,32 +263,33 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                       {item.category}
                     </span>
                   )}
-                </div>
+                </button>
               );
             })}
 
-            {filteredWorkItems.length === 0 && (
+            {filteredWorkItems.length === 0 && searchQuery.trim() === '' && (
               <div className="p-4 text-center text-xs text-slate-400">
-                No service items matching "{searchQuery}"
+                No saved service items found.
               </div>
             )}
           </div>
 
           {/* Footer Action: Save New Service Item */}
           <div className="p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-medium">Don't see your service item?</span>
+            <span className="text-[11px] text-slate-500 font-medium">Want to save a reusable preset?</span>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => {
+                setNewTitle(searchQuery.trim());
                 setPopoverOpen(false);
                 setIsAddDialogOpen(true);
               }}
-              className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
+              className="h-7 text-xs font-bold text-[#E8450F] border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
             >
               <Plus className="w-3 h-3 mr-1" />
-              + Save New Service Item
+              + Save Preset Item
             </Button>
           </div>
         </PopoverContent>
@@ -243,8 +300,8 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
         <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
           <DialogHeader className="px-5 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
             <DialogTitle className="text-sm font-extrabold flex items-center gap-2 text-slate-900 dark:text-slate-100">
-              <Tag className="w-4 h-4 text-brand" />
-              Save New Service Item
+              <Tag className="w-4 h-4 text-[#E8450F]" />
+              Save New Reusable Service Item
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
               Save common service work (e.g. Tire Puncture, Brake Pads) to quickly select it anytime.
@@ -293,7 +350,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                 type="submit"
                 size="sm"
                 disabled={saveWorkItemMutation.isPending}
-                className="h-8 text-xs bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
+                className="h-8 text-xs bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
               >
                 {saveWorkItemMutation.isPending ? 'Saving...' : 'Save Service Item'}
               </Button>

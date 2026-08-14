@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Wrench, AlertTriangle, AlertCircle, ClipboardList, CheckCircle2, XCircle, CalendarDays, DollarSign, Phone, Truck } from 'lucide-react';
 
@@ -42,7 +42,7 @@ export default function MaintenanceRecordModal({
 
   const { data: vehiclesRes } = useQuery({
     queryKey: ['vehicles'],
-    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+    queryFn: () => vehicleService.getAll({ per_page: 200 }),
     enabled: open,
   });
 
@@ -66,45 +66,70 @@ export default function MaintenanceRecordModal({
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Track the modal open session to initialize form state only once per open
+  const prevOpenRef = useRef(false);
+  const prevEditingIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!open) return;
-
-    setFormError('');
-    if (editingRecord) {
-      setFormData({
-        vehicle_id: editingRecord.vehicleId,
-        workshop_name: editingRecord.workshop_name,
-        workshop_contact: editingRecord.workshop_contact || '',
-        maintenance_type: editingRecord.maintenance_type,
-        status: editingRecord.status,
-        start_date: editingRecord.start_date ? editingRecord.start_date.split('T')[0] : TODAY_ISO,
-        end_date: editingRecord.end_date ? editingRecord.end_date.split('T')[0] : TODAY_ISO,
-        work_done: editingRecord.work_done || '',
-        odometer_reading: editingRecord.odometer_reading || 0,
-        cost: editingRecord.cost || 0,
-        remarks: editingRecord.remarks || '',
-      });
-      setCostInput(editingRecord.cost !== undefined && editingRecord.cost !== null ? String(editingRecord.cost) : '');
-    } else {
-      const targetVehicleId = initialVehicleId || (bulkVehicles.length > 0 ? bulkVehicles[0].id : (vehicles[0]?.id || ''));
-      const foundVehicle = vehicles.find((v) => v.id === targetVehicleId) || bulkVehicles.find((v) => v.id === targetVehicleId);
-
-      setFormData({
-        vehicle_id: targetVehicleId,
-        workshop_name: '',
-        workshop_contact: '',
-        maintenance_type: 'Routine',
-        status: 'Completed',
-        start_date: TODAY_ISO,
-        end_date: TODAY_ISO,
-        work_done: '',
-        odometer_reading: foundVehicle?.current_odometer || 0,
-        cost: 0,
-        remarks: '',
-      });
-      setCostInput('');
+    if (!open) {
+      prevOpenRef.current = false;
+      prevEditingIdRef.current = null;
+      return;
     }
-  }, [open, editingRecord, initialVehicleId, bulkVehicles, vehicles]);
+
+    const isFreshOpen = !prevOpenRef.current;
+    const isEditingChanged = editingRecord?.id !== prevEditingIdRef.current;
+
+    if (isFreshOpen || isEditingChanged) {
+      prevOpenRef.current = true;
+      prevEditingIdRef.current = editingRecord?.id || null;
+      setFormError('');
+
+      if (editingRecord) {
+        setFormData({
+          vehicle_id: editingRecord.vehicleId,
+          workshop_name: editingRecord.workshop_name || '',
+          workshop_contact: editingRecord.workshop_contact || '',
+          maintenance_type: editingRecord.maintenance_type,
+          status: editingRecord.status,
+          start_date: editingRecord.start_date ? editingRecord.start_date.split('T')[0] : TODAY_ISO,
+          end_date: editingRecord.end_date ? editingRecord.end_date.split('T')[0] : TODAY_ISO,
+          work_done: editingRecord.work_done || '',
+          odometer_reading: editingRecord.odometer_reading || 0,
+          cost: editingRecord.cost || 0,
+          remarks: editingRecord.remarks || '',
+        });
+        setCostInput(editingRecord.cost !== undefined && editingRecord.cost !== null ? String(editingRecord.cost) : '');
+      } else {
+        const targetVehicleId = initialVehicleId || (bulkVehicles.length > 0 ? bulkVehicles[0].id : (vehicles[0]?.id || ''));
+        const foundVehicle = vehicles.find((v) => v.id === targetVehicleId) || bulkVehicles.find((v) => v.id === targetVehicleId);
+
+        setFormData({
+          vehicle_id: targetVehicleId,
+          workshop_name: '',
+          workshop_contact: '',
+          maintenance_type: 'Routine',
+          status: 'Completed',
+          start_date: TODAY_ISO,
+          end_date: TODAY_ISO,
+          work_done: '',
+          odometer_reading: foundVehicle?.current_odometer || 0,
+          cost: 0,
+          remarks: '',
+        });
+        setCostInput('');
+      }
+    } else if (!editingRecord && !formData.vehicle_id && vehicles.length > 0) {
+      // Background vehicle fetch completed and no vehicle was selected yet
+      const targetVehicleId = initialVehicleId || (bulkVehicles.length > 0 ? bulkVehicles[0].id : vehicles[0].id);
+      const foundVehicle = vehicles.find((v) => v.id === targetVehicleId);
+      setFormData((prev) => ({
+        ...prev,
+        vehicle_id: targetVehicleId,
+        odometer_reading: prev.odometer_reading || foundVehicle?.current_odometer || 0,
+      }));
+    }
+  }, [open, editingRecord, initialVehicleId, bulkVehicles, vehicles, formData.vehicle_id]);
 
   const handleVehicleChange = (val: string) => {
     const v = vehicles.find((item) => item.id === val);
@@ -184,7 +209,7 @@ export default function MaintenanceRecordModal({
         {/* Crisp Header Bar */}
         <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-white dark:bg-slate-950 shrink-0">
           <div className="flex items-center gap-3 pr-6">
-            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-brand border border-orange-200/60 dark:border-orange-900/40 shrink-0">
+            <div className="p-2.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-[#E8450F] border border-orange-200/60 dark:border-orange-900/40 shrink-0">
               <ClipboardList className="w-5 h-5" />
             </div>
             <div>
@@ -221,7 +246,7 @@ export default function MaintenanceRecordModal({
           {/* Section 1: Vehicle & Classification */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-brand" />
+              <Truck className="w-4 h-4 text-[#E8450F]" />
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Asset &amp; Classification
               </h3>
@@ -232,7 +257,7 @@ export default function MaintenanceRecordModal({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Vehicle Asset *</Label>
                   <Select
-                    value={formData.vehicle_id}
+                    value={formData.vehicle_id || undefined}
                     onValueChange={handleVehicleChange}
                     disabled={!!editingRecord}
                   >
@@ -314,7 +339,7 @@ export default function MaintenanceRecordModal({
           {/* Section 2: Dates, Workshop & Cost */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <CalendarDays className="w-4 h-4 text-brand" />
+              <CalendarDays className="w-4 h-4 text-[#E8450F]" />
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Dates, Workshop &amp; Expenses
               </h3>
@@ -379,7 +404,11 @@ export default function MaintenanceRecordModal({
                 <WorkshopField
                   value={formData.workshop_name}
                   onChange={(name) => setFormData(prev => ({ ...prev, workshop_name: name }))}
-                  onPick={(w) => setFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
+                  onPick={(w) => setFormData(prev => ({
+                    ...prev,
+                    workshop_name: w.name,
+                    workshop_contact: (w.contact !== undefined && w.contact !== null) ? w.contact : prev.workshop_contact,
+                  }))}
                   placeholder="Select or enter workshop name"
                   className="h-9.5"
                 />
@@ -405,7 +434,7 @@ export default function MaintenanceRecordModal({
           {/* Section 3: Work Done & Notes */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-brand" />
+              <Wrench className="w-4 h-4 text-[#E8450F]" />
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                 Service Details &amp; Notes
               </h3>
@@ -424,7 +453,7 @@ export default function MaintenanceRecordModal({
                 onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
                 placeholder="Internal notes, next service recommendations, spare parts installed..."
                 rows={2.5}
-                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-brand resize-none"
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-[#E8450F] resize-none"
               />
             </div>
           </div>
@@ -445,7 +474,7 @@ export default function MaintenanceRecordModal({
               type="submit"
               size="sm"
               disabled={isSaving}
-              className="text-xs h-9 bg-brand hover:bg-[#d03c0b] text-white font-extrabold px-6 rounded-xl shadow-sm"
+              className="text-xs h-9 bg-[#E8450F] hover:bg-[#d03c0b] text-white font-extrabold px-6 rounded-xl shadow-sm cursor-pointer"
             >
               {isSaving ? 'Saving...' : editingRecord ? 'Update Record' : 'Save Maintenance Record'}
             </Button>

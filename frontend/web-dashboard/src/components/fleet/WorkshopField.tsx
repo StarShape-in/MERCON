@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wrench, Plus, Building2, Phone, Search, ChevronsUpDown, Check, X, Trash2 } from 'lucide-react';
+import { Wrench, Plus, Building2, Phone, Search, ChevronsUpDown, Check, X, Trash2, CheckCircle2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,13 +55,15 @@ export default function WorkshopField({
   const saveWorkshopMutation = useMutation({
     mutationFn: (payload: { name: string; contact_phone?: string; address?: string }) =>
       maintenanceService.createWorkshop(payload),
-    onSuccess: (saved) => {
+    onSuccess: (saved: any) => {
       queryClient.invalidateQueries({ queryKey: ['workshops'] });
+      const contactVal = saved.contact_phone || saved.contact || newWorkshopPhone.trim() || null;
       onChange(saved.name);
       onPick?.({
+        id: saved.id,
         name: saved.name,
-        contact: saved.contact || newWorkshopPhone || null,
-        address: saved.address || newWorkshopAddress || null,
+        contact: contactVal,
+        address: saved.address || newWorkshopAddress.trim() || null,
         order_count: 0,
         is_saved: true,
       });
@@ -71,6 +73,7 @@ export default function WorkshopField({
       setNewWorkshopPhone('');
       setNewWorkshopAddress('');
       setSaveError('');
+      setSearchQuery('');
     },
     onError: (err: any) => {
       setSaveError(err.response?.data?.error?.message || 'Failed to save workshop.');
@@ -86,7 +89,6 @@ export default function WorkshopField({
       ),
     onSuccess: (_data, targets) => {
       queryClient.invalidateQueries({ queryKey: ['workshops'] });
-      // Clearing a name off historical records changes what maintenance records show.
       queryClient.invalidateQueries({ queryKey: ['maintenance'] });
       const deletedNames = targets.map((w) => w.name);
       if (deletedNames.includes(value)) onChange('');
@@ -111,6 +113,27 @@ export default function WorkshopField({
     onChange(w.name);
     onPick?.(w);
     setPopoverOpen(false);
+    setSearchQuery('');
+  };
+
+  const handleUseTypedName = (typedName: string) => {
+    const trimmed = typedName.trim();
+    if (!trimmed) return;
+    const existing = workshops.find((w) => w.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      handleSelectWorkshop(existing);
+    } else {
+      onChange(trimmed);
+      onPick?.({
+        name: trimmed,
+        contact: null,
+        address: null,
+        order_count: 0,
+        is_saved: false,
+      });
+      setPopoverOpen(false);
+      setSearchQuery('');
+    }
   };
 
   const openAddDialogWith = (initialName: string = '') => {
@@ -147,31 +170,54 @@ export default function WorkshopField({
   return (
     <div className="relative w-full">
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen} modal={false}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              'w-full h-9.5 px-3 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 cursor-pointer shadow-2xs',
-              popoverOpen
-                ? 'border-brand ring-2 ring-brand/20'
-                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700',
-              className
-            )}
-          >
-            {value ? (
-              <div className="flex items-center gap-2 truncate font-semibold text-slate-900 dark:text-slate-100">
-                <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
-                <span className="truncate">{value}</span>
-              </div>
-            ) : (
-              <span className="text-slate-400 flex items-center gap-2 min-w-0 truncate">
-                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="truncate whitespace-nowrap">{isLoading ? 'Loading...' : 'Select workshop'}</span>
-              </span>
-            )}
-            <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0" />
-          </button>
-        </PopoverTrigger>
+        <div className="relative flex items-center w-full">
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                'w-full h-9.5 px-3 pr-8 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 cursor-pointer shadow-2xs',
+                popoverOpen
+                  ? 'border-[#E8450F] ring-2 ring-[#E8450F]/20'
+                  : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700',
+                className
+              )}
+            >
+              {value ? (
+                <div className="flex items-center gap-2 truncate font-semibold text-slate-900 dark:text-slate-100">
+                  <Building2 className="w-3.5 h-3.5 text-[#E8450F] shrink-0" />
+                  <span className="truncate">{value}</span>
+                </div>
+              ) : (
+                <span className="text-slate-400 flex items-center gap-2 min-w-0 truncate">
+                  <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate whitespace-nowrap">{isLoading ? 'Loading workshops...' : placeholder}</span>
+                </span>
+              )}
+              <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0 ml-auto" />
+            </button>
+          </PopoverTrigger>
+
+          {value && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('');
+                onPick?.({
+                  name: '',
+                  contact: null,
+                  address: null,
+                  order_count: 0,
+                  is_saved: false,
+                });
+              }}
+              title="Clear selected workshop"
+              className="absolute right-7 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
 
         <PopoverContent
           align="start"
@@ -183,6 +229,14 @@ export default function WorkshopField({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (searchQuery.trim()) {
+                    handleUseTypedName(searchQuery);
+                  }
+                }
+              }}
               placeholder="Search or type workshop name..."
               className="h-8 text-xs border-none shadow-none focus-visible:ring-0 bg-transparent p-0"
               autoFocus
@@ -200,18 +254,20 @@ export default function WorkshopField({
 
           {/* List Content */}
           <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
-            {/* If user typed a custom workshop name that doesn't exist, show clickable Add option */}
+            {/* If user typed a custom workshop name that doesn't exist, show quick assign + save options */}
             {searchQuery.trim() !== '' && !exactMatchExists && (
-              <div
-                onClick={() => {
-                  const typed = searchQuery.trim();
-                  onChange(typed);
-                  openAddDialogWith(typed);
-                }}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-orange-50/80 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200/60 dark:border-orange-900/60 flex items-center gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors"
-              >
-                <Plus className="w-4 h-4 shrink-0" />
-                <span className="truncate">Add "{searchQuery.trim()}" as new workshop</span>
+              <div className="space-y-1 pb-1">
+                <button
+                  type="button"
+                  onClick={() => handleUseTypedName(searchQuery)}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-orange-50/90 dark:bg-orange-950/40 text-[#E8450F] dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/80 flex items-center justify-between gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-[#E8450F]" />
+                    <span className="truncate">Use "<strong>{searchQuery.trim()}</strong>"</span>
+                  </div>
+                  <span className="text-[10px] font-semibold opacity-75 shrink-0">Press Enter ↵</span>
+                </button>
               </div>
             )}
 
@@ -221,17 +277,20 @@ export default function WorkshopField({
               return (
                 <div
                   key={w.name}
-                  onClick={() => handleSelectWorkshop(w)}
                   className={cn(
-                    'px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors select-none',
+                    'w-full px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors select-none group',
                     isCheckedForDelete
                       ? 'bg-emerald-50 dark:bg-emerald-950/30'
                       : isSelected
-                      ? 'bg-orange-50/80 dark:bg-orange-950/30 text-brand dark:text-orange-300 font-bold'
+                      ? 'bg-orange-50/80 dark:bg-orange-950/30 text-[#E8450F] dark:text-orange-300 font-bold'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
                   )}
                 >
-                  <div className="flex items-center gap-2.5 truncate">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectWorkshop(w)}
+                    className="flex-1 flex items-center gap-2.5 truncate text-left cursor-pointer bg-transparent border-0 p-0"
+                  >
                     <button
                       type="button"
                       onClick={(e) => {
@@ -240,7 +299,7 @@ export default function WorkshopField({
                       }}
                       title={isCheckedForDelete ? 'Unselect for deletion' : 'Select for deletion'}
                       className={cn(
-                        'w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 transition-colors',
+                        'w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 transition-colors cursor-pointer',
                         isCheckedForDelete
                           ? 'bg-emerald-500 border-emerald-500'
                           : 'border-slate-300 dark:border-slate-600 hover:border-emerald-400'
@@ -251,18 +310,21 @@ export default function WorkshopField({
                     <Wrench className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span className="truncate font-medium">{w.name}</span>
                     {!w.id && (
-                      <span className="text-[9px] text-slate-400 font-medium shrink-0">(unsaved)</span>
+                      <span className="text-[9px] text-slate-400 font-medium shrink-0">(history)</span>
                     )}
-                  </div>
+                  </button>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div
+                    onClick={() => handleSelectWorkshop(w)}
+                    className="flex items-center gap-2 shrink-0 cursor-pointer pl-2"
+                  >
                     {w.contact && (
-                      <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                      <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
                         <Phone className="w-2.5 h-2.5" />
                         {w.contact}
                       </span>
                     )}
-                    {isSelected && <Check className="w-3.5 h-3.5 text-brand stroke-[3]" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-[#E8450F] stroke-[3]" />}
                   </div>
                 </div>
               );
@@ -293,7 +355,7 @@ export default function WorkshopField({
               variant="outline"
               size="sm"
               onClick={() => openAddDialogWith(searchQuery)}
-              className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
+              className="h-7 text-xs font-bold text-[#E8450F] border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
             >
               <Plus className="w-3 h-3 mr-1" />
               + Save New Workshop
@@ -328,7 +390,7 @@ export default function WorkshopField({
         <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
           <DialogHeader className="px-5 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
             <DialogTitle className="text-sm font-extrabold flex items-center gap-2 text-slate-900 dark:text-slate-100">
-              <Building2 className="w-4 h-4 text-brand" />
+              <Building2 className="w-4 h-4 text-[#E8450F]" />
               Save New Workshop
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
@@ -388,7 +450,7 @@ export default function WorkshopField({
                 type="submit"
                 size="sm"
                 disabled={saveWorkshopMutation.isPending}
-                className="h-8 text-xs bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
+                className="h-8 text-xs bg-[#E8450F] hover:bg-[#d03c0b] text-white font-bold px-4"
               >
                 {saveWorkshopMutation.isPending ? 'Saving...' : 'Save Workshop'}
               </Button>

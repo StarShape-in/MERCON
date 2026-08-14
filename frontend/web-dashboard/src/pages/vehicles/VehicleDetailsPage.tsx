@@ -10,11 +10,12 @@ import {
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
+import MaintenanceRecordModal from '@/components/maintenance/MaintenanceRecordModal';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
 import { vehicleService, AssetStatus } from '@/services/vehicleService';
-import { maintenanceService, CreateMaintenancePayload } from '@/services/maintenanceService';
+import { maintenanceService, CreateMaintenancePayload, MaintenanceRecord } from '@/services/maintenanceService';
 import { documentService, DocType, MerconDocument } from '@/services/documentService';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 
@@ -43,25 +44,9 @@ export default function VehicleDetailsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  // Centered Maintenance Log Dialog Modal State
+  // Maintenance Modal State
   const [isLogMaintModalOpen, setIsLogMaintModalOpen] = useState(false);
-  const [selectedTypeSelect, setSelectedTypeSelect] = useState<string>('Routine');
-  const [customTypeInput, setCustomTypeInput] = useState<string>('');
-  const [maintFormData, setMaintFormData] = useState<CreateMaintenancePayload>({
-    vehicle_id: id || '',
-    workshop_name: '',
-    workshop_contact: '',
-    maintenance_type: 'Routine',
-    status: 'Completed',
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: new Date().toISOString().split('T')[0],
-    work_done: '',
-    odometer_reading: 0,
-    cost: 0,
-    invoice_number: '',
-    remarks: '',
-  });
-  const [maintFormError, setMaintFormError] = useState('');
+  const [maintRecordToEdit, setMaintRecordToEdit] = useState<MaintenanceRecord | null>(null);
 
   // Upload Document Modal State
   const [isUploadDocModalOpen, setIsUploadDocModalOpen] = useState(false);
@@ -94,34 +79,9 @@ export default function VehicleDetailsPage() {
   const maintenanceRecords = maintenanceRes?.data || [];
   const documents = docsRes?.data || [];
 
-  // Open Add Maintenance Modal helper
-  const openLogMaintModal = (initialData?: Partial<CreateMaintenancePayload>) => {
-    const type = initialData?.maintenance_type || 'Routine';
-    const standardTypes = ['Routine', 'Repair', 'Inspection', 'Renewal', 'Emergency', 'Tires', 'Oil_Change'];
-    
-    if (standardTypes.includes(type)) {
-      setSelectedTypeSelect(type);
-      setCustomTypeInput('');
-    } else {
-      setSelectedTypeSelect('Other');
-      setCustomTypeInput(type);
-    }
-
-    setMaintFormData({
-      vehicle_id: id || '',
-      workshop_name: initialData?.workshop_name || '',
-      workshop_contact: initialData?.workshop_contact || '',
-      maintenance_type: type,
-      status: initialData?.status || 'Completed',
-      start_date: initialData?.start_date ? initialData.start_date.split('T')[0] : new Date().toISOString().split('T')[0],
-      end_date: initialData?.end_date ? initialData.end_date.split('T')[0] : '',
-      work_done: initialData?.work_done || '',
-      odometer_reading: initialData?.odometer_reading || vehicle?.current_odometer || 0,
-      cost: initialData?.cost || 0,
-      invoice_number: initialData?.invoice_number || '',
-      remarks: initialData?.remarks || '',
-    });
-    setMaintFormError('');
+  // Open Add / Edit Maintenance Modal helper
+  const openLogMaintModal = (recordToEdit?: MaintenanceRecord | null) => {
+    setMaintRecordToEdit(recordToEdit || null);
     setIsLogMaintModalOpen(true);
   };
 
@@ -135,10 +95,6 @@ export default function VehicleDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ['vehicle-financials', id] });
       queryClient.invalidateQueries({ queryKey: ['workshops'] });
       setIsLogMaintModalOpen(false);
-      setMaintFormError('');
-    },
-    onError: (err: any) => {
-      setMaintFormError(err.response?.data?.error?.message || 'Failed to save maintenance log.');
     },
   });
 
@@ -193,7 +149,7 @@ export default function VehicleDetailsPage() {
     if (!id || newStatus === vehicle?.status) return;
     // The workshop state belongs to the service order, so route those two through it.
     if (newStatus === 'Maintenance') {
-      openLogMaintModal({ status: 'In_Progress' });
+      openLogMaintModal();
       return;
     }
     if (vehicle?.status === 'Maintenance') {
@@ -984,257 +940,17 @@ export default function VehicleDetailsPage() {
         }}
       />
 
-      {/* ── Add Maintenance Record Dialog Modal ─────────────────────── */}
-      <Dialog open={isLogMaintModalOpen} onOpenChange={(open) => !open && setIsLogMaintModalOpen(false)}>
-        <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
-          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 shrink-0">
-            <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-brand" /> Maintenance Record for {vehicle.plate_number}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 mt-1">
-              Log a past service, record an ongoing repair, or schedule a future maintenance for this vehicle.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (!maintFormData.workshop_name.trim()) {
-              setMaintFormError('Workshop name is required.');
-              return;
-            }
-            const finalType = selectedTypeSelect === 'Other' ? (customTypeInput.trim() || 'Other') : selectedTypeSelect;
-            createMaintMutation.mutate({ 
-              ...maintFormData, 
-              vehicle_id: vehicle.id,
-              maintenance_type: finalType as any,
-            });
-          }} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
-            
-            {maintFormError && (
-              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                <span>{maintFormError}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Maintenance Type *</Label>
-                <Select
-                  value={selectedTypeSelect}
-                  onValueChange={(val) => {
-                    setSelectedTypeSelect(val);
-                    if (val !== 'Other') {
-                      setMaintFormData(prev => ({ ...prev, maintenance_type: val as any }));
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-9 text-xs font-medium">
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Routine">Routine Service</SelectItem>
-                    <SelectItem value="Repair">Repair</SelectItem>
-                    <SelectItem value="Inspection">Inspection</SelectItem>
-                    <SelectItem value="Renewal">Renewal / Istimara</SelectItem>
-                    <SelectItem value="Emergency">Emergency Repair</SelectItem>
-                    <SelectItem value="Tires">Tire Replacement</SelectItem>
-                    <SelectItem value="Oil_Change">Oil & Filter Change</SelectItem>
-                    <SelectItem value="Other">Other / Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedTypeSelect === 'Other' ? (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-brand">Custom Maintenance Type *</Label>
-                  <Input
-                    value={customTypeInput}
-                    onChange={(e) => setCustomTypeInput(e.target.value)}
-                    placeholder="e.g. Transmission Service, Brake Replacement..."
-                    className="h-9 text-xs border-brand/50 focus:border-brand"
-                    required
-                  />
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold">Status *</Label>
-                  <Select
-                    value={maintFormData.status}
-                    onValueChange={(val: any) => setMaintFormData(prev => ({ ...prev, status: val }))}
-                  >
-                    <SelectTrigger className="h-9 text-xs font-medium">
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Completed">
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                          <span>Completed (Past Log)</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="In_Progress">
-                        <div className="flex items-center gap-1.5">
-                          <Wrench className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                          <span>In Progress (Active)</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Scheduled">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                          <span>Scheduled (Future)</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Cancelled">
-                        <div className="flex items-center gap-1.5">
-                          <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                          <span>Cancelled</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {selectedTypeSelect === 'Other' && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold">Status *</Label>
-                  <Select
-                    value={maintFormData.status}
-                    onValueChange={(val: any) => setMaintFormData(prev => ({ ...prev, status: val }))}
-                  >
-                    <SelectTrigger className="h-9 text-xs font-medium">
-                      <SelectValue placeholder="Select Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Completed">
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                          <span>Completed (Past Log)</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="In_Progress">
-                        <div className="flex items-center gap-1.5">
-                          <Wrench className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                          <span>In Progress (Active)</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Scheduled">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-                          <span>Scheduled (Future)</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Cancelled">
-                        <div className="flex items-center gap-1.5">
-                          <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                          <span>Cancelled</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Cost / Expense (SAR) *</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={maintFormData.cost}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
-                  placeholder="0.00"
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Odometer Reading (km)</Label>
-                <Input
-                  type="number"
-                  value={maintFormData.odometer_reading}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, odometer_reading: parseFloat(e.target.value) || 0 }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Start Date ("When Put") *</Label>
-                <Input
-                  type="date"
-                  value={maintFormData.start_date}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">End Date ("When Ends")</Label>
-                <Input
-                  type="date"
-                  value={maintFormData.end_date || ''}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Workshop / Service Center *</Label>
-                <WorkshopField
-                  value={maintFormData.workshop_name}
-                  onChange={(name) => setMaintFormData(prev => ({ ...prev, workshop_name: name }))}
-                  onPick={(w) => setMaintFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
-                  placeholder="Al-Riyadh Workshop"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Invoice Ref Number</Label>
-                <Input
-                  value={maintFormData.invoice_number || ''}
-                  onChange={(e) => setMaintFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                  placeholder="INV-1092"
-                  className="h-9 text-xs"
-                />
-              </div>
-
-            </div>
-
-            <div className="space-y-1.5 pt-2">
-              <Label className="text-xs font-bold">Work Done Details ("What All Was Done") *</Label>
-              <textarea
-                value={maintFormData.work_done || ''}
-                onChange={(e) => setMaintFormData(prev => ({ ...prev, work_done: e.target.value }))}
-                placeholder="Details of oil replacement, brake pad repair, renewal fees paid..."
-                rows={3}
-                className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:ring-2 focus:ring-brand"
-              />
-            </div>
-
-            <DialogFooter className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsLogMaintModalOpen(false)}
-                className="text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={createMaintMutation.isPending}
-                className="text-xs bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
-              >
-                {createMaintMutation.isPending ? 'Saving...' : 'Save Maintenance Log'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* ── Maintenance Record Modal ─────────────────────── */}
+      <MaintenanceRecordModal
+        open={isLogMaintModalOpen}
+        onOpenChange={(open) => {
+          setIsLogMaintModalOpen(open);
+          if (!open) setMaintRecordToEdit(null);
+        }}
+        initialVehicleId={vehicle?.id || id}
+        editingRecord={maintRecordToEdit}
+        onSuccess={refreshVehicle}
+      />
 
       {/* ── Delete Vehicle Confirmation Modal ────────────────────────────── */}
       <Dialog open={isDeleteModalOpen} onOpenChange={(open) => !open && setIsDeleteModalOpen(false)}>
