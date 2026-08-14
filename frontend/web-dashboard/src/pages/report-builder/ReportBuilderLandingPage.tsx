@@ -16,7 +16,6 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Building2,
   ChevronRight,
   Search
 } from 'lucide-react';
@@ -157,21 +156,25 @@ export default function ReportBuilderLandingPage() {
   return (
     <DashboardLayout active="Report Builder" title="Smart Report Builder">
       <div className="space-y-6 pb-12">
-        {/* Top Bar Header Layout adhering strictly to MERCON UI rules */}
+        {/* Top Bar Header Layout */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 border border-slate-200 rounded-full text-xs font-semibold text-slate-700">
-              <Building2 className="w-3.5 h-3.5 text-slate-500" />
-              <span>🏢 MERCON Logistics</span>
-              <span className="text-slate-400">↕</span>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-orange-50 text-[#E8450F] rounded-2xl border border-orange-100 shadow-2xs">
+              <Wand2 className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Wand2 className="w-6 h-6 text-[#E8450F]" />
-              Smart Report Builder
-            </h1>
-            <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold">
-              Analytics & BI Module
-            </Badge>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  Smart Report Builder
+                </h1>
+                <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold">
+                  Analytics & BI Module
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Build ad-hoc pivot reports, wizard presets, and natural language analytics across fleet operations.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -196,7 +199,7 @@ export default function ReportBuilderLandingPage() {
             <Button
               size="sm"
               onClick={() => navigate('/report-builder/advanced')}
-              className="gap-1.5 text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white shadow-sm"
+              className="gap-1.5 text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" /> Advanced Builder
             </Button>
@@ -212,12 +215,12 @@ export default function ReportBuilderLandingPage() {
           </div>
         </div>
 
-        {/* Entry Point Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Entry Point Cards - Perfectly Aligned Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
           {/* Quick Report Card */}
-          <Card className="bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-amber-50/20 border-amber-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between mb-2">
+          <Card className="bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-amber-50/20 border-amber-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between mb-3">
                 <span className="p-2.5 bg-amber-100 text-amber-700 rounded-xl shadow-2xs">
                   <Zap className="w-5 h-5" />
                 </span>
@@ -226,14 +229,19 @@ export default function ReportBuilderLandingPage() {
                 </Badge>
               </div>
               <CardTitle className="text-base font-bold text-slate-900">Quick Report Generator</CardTitle>
-              <CardDescription className="text-xs text-slate-600 leading-relaxed">
+              <CardDescription className="text-xs text-slate-600 leading-relaxed mt-1">
                 Step-by-step wizard for standard fleet management questions. Pick a primary module, question, and time period.
               </CardDescription>
             </CardHeader>
-            <CardFooter className="pt-2">
+            <CardContent className="p-5 pt-0 flex-1">
+              <div className="text-[11px] text-amber-800/80 bg-amber-100/40 p-2.5 rounded-xl border border-amber-200/50">
+                Preset workflows: Driver Revenue, Vehicle Repairs, Outstanding Invoices & Operating Expenses.
+              </div>
+            </CardContent>
+            <CardFooter className="p-5 pt-0">
               <Button
                 variant="outline"
-                className="w-full text-xs font-semibold bg-white hover:bg-amber-100/60 border-amber-300 text-slate-800 gap-1.5 shadow-2xs"
+                className="w-full text-xs font-semibold bg-white hover:bg-amber-100/60 border-amber-300 text-slate-800 gap-1.5 shadow-2xs cursor-pointer"
                 onClick={() => navigate('/report-builder/quick')}
               >
                 Start Quick Wizard <ChevronRight className="w-4 h-4 text-amber-600" />
@@ -242,10 +250,10 @@ export default function ReportBuilderLandingPage() {
           </Card>
 
           {/* Advanced Builder Card */}
-          <Card className="bg-gradient-to-br from-orange-500/10 via-orange-600/5 to-orange-500/5 border-orange-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="p-2.5 bg-[#E8450F] text-white rounded-xl shadow-xs">
+          <Card className="bg-gradient-to-br from-orange-500/10 via-orange-600/5 to-orange-500/5 border-orange-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between mb-3">
+                <span className="p-2.5 bg-[#E8450F] text-white rounded-xl shadow-2xs">
                   <SlidersHorizontal className="w-5 h-5" />
                 </span>
                 <Badge className="bg-orange-100 text-[#E8450F] border-orange-200 text-[10px] uppercase tracking-wider font-bold">
@@ -253,13 +261,18 @@ export default function ReportBuilderLandingPage() {
                 </Badge>
               </div>
               <CardTitle className="text-base font-bold text-slate-900">Advanced Ad-hoc Builder</CardTitle>
-              <CardDescription className="text-xs text-slate-600 leading-relaxed">
+              <CardDescription className="text-xs text-slate-600 leading-relaxed mt-1">
                 Drag-and-drop workspace across Drivers, Vehicles, Trips, Invoices & Maintenance with live visual previews.
               </CardDescription>
             </CardHeader>
-            <CardFooter className="pt-2">
+            <CardContent className="p-5 pt-0 flex-1">
+              <div className="text-[11px] text-orange-900/80 bg-orange-100/40 p-2.5 rounded-xl border border-orange-200/50">
+                Custom layout: Droppable Rows, Columns, Values, AND/OR Filters with real-time Prisma queries.
+              </div>
+            </CardContent>
+            <CardFooter className="p-5 pt-0">
               <Button
-                className="w-full text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white gap-1.5 shadow-2xs"
+                className="w-full text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white gap-1.5 shadow-2xs cursor-pointer"
                 onClick={() => navigate('/report-builder/advanced')}
               >
                 Open Advanced Builder <ChevronRight className="w-4 h-4" />
@@ -267,10 +280,10 @@ export default function ReportBuilderLandingPage() {
             </CardFooter>
           </Card>
 
-          {/* Ask Mercon Card */}
-          <Card className="bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-indigo-50/20 border-indigo-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between mb-2">
+          {/* Ask Mercon Assistant Card */}
+          <Card className="bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-indigo-50/20 border-indigo-200/80 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between h-full">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-center justify-between mb-3">
                 <span className="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl shadow-2xs">
                   <Sparkles className="w-5 h-5" />
                 </span>
@@ -279,22 +292,24 @@ export default function ReportBuilderLandingPage() {
                 </Badge>
               </div>
               <CardTitle className="text-base font-bold text-slate-900">Ask Mercon Assistant</CardTitle>
-              <CardDescription className="text-xs text-slate-600 leading-relaxed">
+              <CardDescription className="text-xs text-slate-600 leading-relaxed mt-1">
                 Type your request in plain natural language (e.g. "driver revenue this month").
               </CardDescription>
-              <form onSubmit={handleAskMercon} className="pt-2">
+            </CardHeader>
+            <CardContent className="p-5 pt-0 flex-1">
+              <form onSubmit={handleAskMercon}>
                 <Input
                   type="text"
                   placeholder="e.g. driver revenue and trips..."
                   value={nlQuery}
                   onChange={(e) => setNlQuery(e.target.value)}
-                  className="text-xs bg-white border-indigo-200 focus-visible:ring-indigo-500 shadow-2xs"
+                  className="text-xs bg-white border-indigo-200 focus-visible:ring-indigo-500 shadow-2xs h-9"
                 />
               </form>
-            </CardHeader>
-            <CardFooter className="pt-0">
+            </CardContent>
+            <CardFooter className="p-5 pt-0">
               <Button
-                className="w-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 shadow-2xs"
+                className="w-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 shadow-2xs cursor-pointer"
                 disabled={!nlQuery.trim()}
                 onClick={() => handleAskMercon()}
               >
@@ -305,13 +320,13 @@ export default function ReportBuilderLandingPage() {
         </div>
 
         {/* Popular Templates Grid */}
-        <div className="space-y-3">
+        <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <FileSpreadsheet className="w-4 h-4 text-[#E8450F]" />
               Popular Pre-built Templates
             </h2>
-            <span className="text-xs text-slate-500">Click any template to customize</span>
+            <span className="text-xs text-slate-500 font-medium">Click any template to launch & customize</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -322,16 +337,16 @@ export default function ReportBuilderLandingPage() {
                 className="hover:border-[#E8450F] hover:shadow-md cursor-pointer transition-all group flex flex-col justify-between border-slate-200"
               >
                 <CardHeader className="p-4 pb-2">
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-2">
                     <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-600 bg-slate-100 border-slate-200">
                       {tmpl.category}
                     </Badge>
-                    <Play className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#E8450F] transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#E8450F] transition-colors" />
                   </div>
-                  <CardTitle className="text-xs font-bold text-slate-900 group-hover:text-[#E8450F] transition-colors">
+                  <CardTitle className="text-xs font-bold text-slate-900 group-hover:text-[#E8450F] transition-colors leading-tight">
                     {tmpl.title}
                   </CardTitle>
-                  <CardDescription className="text-[11px] text-slate-500 leading-snug">
+                  <CardDescription className="text-[11px] text-slate-500 leading-snug pt-1">
                     {tmpl.desc}
                   </CardDescription>
                 </CardHeader>
@@ -344,15 +359,15 @@ export default function ReportBuilderLandingPage() {
           </div>
         </div>
 
-        {/* Saved & Scheduled Reports Section with Tabs */}
-        <Card className="border-slate-200 shadow-xs">
+        {/* Saved & Scheduled Reports Section */}
+        <Card className="border-slate-200 shadow-2xs">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
               <TabsList className="bg-slate-200/70 p-1">
-                <TabsTrigger value="saved" className="text-xs font-bold px-3 py-1">
+                <TabsTrigger value="saved" className="text-xs font-bold px-3 py-1 cursor-pointer">
                   Report Library ({savedReports.length})
                 </TabsTrigger>
-                <TabsTrigger value="scheduled" className="text-xs font-bold px-3 py-1">
+                <TabsTrigger value="scheduled" className="text-xs font-bold px-3 py-1 cursor-pointer">
                   Scheduled Deliveries ({scheduledReports.length})
                 </TabsTrigger>
               </TabsList>
@@ -364,7 +379,7 @@ export default function ReportBuilderLandingPage() {
                   placeholder="Search title or category..."
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
-                  className="text-xs pl-8 bg-white border-slate-300"
+                  className="text-xs pl-8 bg-white border-slate-300 h-9"
                 />
               </div>
             </div>
