@@ -983,7 +983,7 @@ export default function BulkAddTripsModal({
                                 <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-lg">
                                   Trip Slot #{slotIdx + 1}
                                 </span>
-                                {slot.isOvernight && (
+                                {slot.isOvernight && Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
                                   <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md flex items-center gap-1">
                                     <Moon className="w-3 h-3 fill-indigo-600" /> Overnight (+1 Day)
                                   </span>

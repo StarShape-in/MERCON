@@ -53,9 +53,16 @@ jobs:
             exit 1
           fi
 
+          # Update host NGINX client_max_body_size to 250M and reload configuration
+          sudo sed -i 's/client_max_body_size.*/client_max_body_size 250m;/g' /etc/nginx/nginx.conf 2>/dev/null || true
+          sudo sed -i 's/client_max_body_size.*/client_max_body_size 250m;/g' /etc/nginx/sites-available/default 2>/dev/null || true
+          sudo cp nginx/mercon-api.conf /etc/nginx/sites-available/default 2>/dev/null || true
+          sudo cp nginx/mercon-api.conf /etc/nginx/sites-available/mercon-api.conf 2>/dev/null || true
+          sudo nginx -s reload 2>/dev/null || true
+
           # Ensure host uploads directory exists with full 777 write permissions
-          mkdir -p ./backend/api-server/uploads
-          chmod 777 ./backend/api-server/uploads 2>/dev/null || true
+          mkdir -p ./backend/api-server/uploads /tmp/uploads
+          chmod -R 777 ./backend/api-server/uploads /tmp/uploads 2>/dev/null || true
 
           # Build and start services in detached mode
           docker compose up -d --build
