@@ -3,7 +3,7 @@ import {
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
-  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -13,6 +13,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import BulkActionBar from '@/components/ui/BulkActionBar';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
 import { documentService, type MerconDocument, type DocType } from '@/services/documentService';
 import { folderService, type MerconFolder } from '@/services/folderService';
@@ -130,6 +131,8 @@ export default function DocumentsCenterPage() {
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
   const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Sync state with URL params when they change
@@ -321,9 +324,28 @@ export default function DocumentsCenterPage() {
       await documentService.delete(deleteDocId);
       toast.success('Document deleted successfully');
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['folders'] });
       setDeleteDocId(null);
     } catch (err) {
       toast.error('Failed to delete document');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteDocuments = async () => {
+    if (bulkDeleteIds.length === 0) return;
+    setIsDeleting(true);
+    try {
+      await documentService.bulkDelete(bulkDeleteIds);
+      toast.success(`Successfully deleted ${bulkDeleteIds.length} document${bulkDeleteIds.length > 1 ? 's' : ''}`);
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['folders'] });
+      setSelectedDocIds([]);
+      setBulkDeleteIds([]);
+      setIsBulkDeleteOpen(false);
+    } catch (err) {
+      toast.error('Failed to delete selected documents');
     } finally {
       setIsDeleting(false);
     }
@@ -640,6 +662,29 @@ export default function DocumentsCenterPage() {
               </SelectContent>
             </Select>
 
+            {/* Select All Toggle Button */}
+            <Button
+              variant={selectedDocIds.length > 0 ? "default" : "outline"}
+              size="sm"
+              onClick={toggleSelectAll}
+              className={cn(
+                "h-9 text-xs font-semibold px-3 shadow-2xs gap-1.5 transition-colors",
+                selectedDocIds.length > 0
+                  ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+              )}
+              title={selectedDocIds.length === filteredDocs.length && filteredDocs.length > 0 ? "Deselect All Documents" : "Select All Filtered Documents"}
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span>
+                {selectedDocIds.length === filteredDocs.length && filteredDocs.length > 0
+                  ? `Deselect All (${selectedDocIds.length})`
+                  : selectedDocIds.length > 0
+                  ? `Selected (${selectedDocIds.length}/${filteredDocs.length})`
+                  : "Select All"}
+              </span>
+            </Button>
+
             {/* View Mode Switcher */}
             <div className="flex items-center bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
               <button
@@ -876,6 +921,15 @@ export default function DocumentsCenterPage() {
                 onClick: (selectedRows: EnrichedDocument[]) => {
                   downloadCSV(selectedRows, 'documents_export.csv');
                 }
+              },
+              {
+                label: 'Delete Selected',
+                icon: <Trash2 size={13} />,
+                variant: 'danger' as const,
+                onClick: (selectedRows: EnrichedDocument[]) => {
+                  setBulkDeleteIds(selectedRows.map(r => r.id));
+                  setIsBulkDeleteOpen(true);
+                }
               }
             ]}
             enableSelection={true}
@@ -888,88 +942,169 @@ export default function DocumentsCenterPage() {
         ) : (
           
           /* GRID VIEW MODE */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 shrink-0">
-            {filteredDocs.map((doc) => {
-              const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
-              const expBadge = EXPIRY_BADGE[doc.expStatus];
-              const catCfg = CATEGORY_CONFIG[doc.category];
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 shrink-0">
+              {filteredDocs.map((doc) => {
+                const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
+                const expBadge = EXPIRY_BADGE[doc.expStatus];
+                const catCfg = CATEGORY_CONFIG[doc.category];
+                const isSelected = selectedDocIds.includes(doc.id);
 
-              return (
-                <Card
-                  key={doc.id}
-                  className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs hover:border-[#E8450F]/45 hover:-translate-y-0.5 transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30"
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Document: ${docTypeLabel(doc.doc_type)} for ${doc.entityName}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setPreviewDoc(doc);
-                    }
+                return (
+                  <Card
+                    key={doc.id}
+                    className={cn(
+                      "border rounded-2xl overflow-hidden shadow-2xs hover:shadow-xs transition-all duration-150 ease-in-out bg-white dark:bg-slate-900 flex flex-col justify-between outline-none focus-visible:ring-2 focus-visible:ring-[#E8450F]/30 relative",
+                      isSelected
+                        ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/10 dark:bg-indigo-950/20"
+                        : "border-slate-200 dark:border-slate-800 hover:border-[#E8450F]/45 hover:-translate-y-0.5"
+                    )}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Document: ${docTypeLabel(doc.doc_type)} for ${doc.entityName}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setPreviewDoc(doc);
+                      }
+                    }}
+                  >
+                    <CardContent className="p-4 space-y-3">
+                      {/* Header Top */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleSelectRow(doc.id);
+                            }}
+                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            aria-label={`Select document ${docTypeLabel(doc.doc_type)}`}
+                          />
+                          <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', catCfg.iconBg)}>
+                            <DocIcon className={cn('w-4.5 h-4.5', catCfg.color)} />
+                          </div>
+                        </div>
+                        <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', expBadge.className)}>
+                          {expBadge.label}
+                        </span>
+                      </div>
+
+                      {/* Document Info */}
+                      <div>
+                        <h4 
+                          onClick={() => setPreviewDoc(doc)}
+                          className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-[#E8450F] cursor-pointer truncate"
+                        >
+                          {docTypeLabel(doc.doc_type)}
+                        </h4>
+                        <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{doc.entityName}</p>
+                      </div>
+
+                      {/* Issuer & Expiry */}
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1 text-[11px]">
+                        <div className="flex justify-between text-slate-500">
+                          <span>Issuer:</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{doc.issuer}</span>
+                        </div>
+                        {doc.expiry_date && (
+                          <div className="flex justify-between text-slate-500">
+                            <span>Expires:</span>
+                            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                              {new Date(doc.expiry_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+
+                    {/* Actions Footer */}
+                    <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPreviewDoc(doc)}
+                        className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#E8450F] gap-1 px-2"
+                      >
+                        <Eye size={13} /> Preview
+                      </Button>
+
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={doc.file_url}
+                          download
+                          className="h-7 px-2 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 flex items-center gap-1 shadow-2xs"
+                        >
+                          <Download size={13} /> Download
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteDocId(doc.id);
+                          }}
+                          className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md"
+                          title="Delete Document"
+                        >
+                          <Trash2 size={13} />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Grid View Floating Bulk Action Bar */}
+            {viewMode === 'grid' && selectedDocIds.length > 0 && (
+              <BulkActionBar
+                selectedCount={selectedDocIds.length}
+                onClear={() => setSelectedDocIds([])}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800"
+                  onClick={() => {
+                    setMoveTargetDocIds(selectedDocIds);
+                    setIsMoveModalOpen(true);
                   }}
                 >
-                  <CardContent className="p-4 space-y-3">
-                    {/* Header Top */}
-                    <div className="flex items-center justify-between">
-                      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', catCfg.iconBg)}>
-                        <DocIcon className={cn('w-4.5 h-4.5', catCfg.color)} />
-                      </div>
-                      <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full border', expBadge.className)}>
-                        {expBadge.label}
-                      </span>
-                    </div>
-
-                    {/* Document Info */}
-                    <div>
-                      <h4 
-                        onClick={() => setPreviewDoc(doc)}
-                        className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-[#E8450F] cursor-pointer truncate"
-                      >
-                        {docTypeLabel(doc.doc_type)}
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{doc.entityName}</p>
-                    </div>
-
-                    {/* Issuer & Expiry */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1 text-[11px]">
-                      <div className="flex justify-between text-slate-500">
-                        <span>Issuer:</span>
-                        <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{doc.issuer}</span>
-                      </div>
-                      {doc.expiry_date && (
-                        <div className="flex justify-between text-slate-500">
-                          <span>Expires:</span>
-                          <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                            {new Date(doc.expiry_date).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-
-                  {/* Actions Footer */}
-                  <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setPreviewDoc(doc)}
-                      className="h-7 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#E8450F] gap-1"
-                    >
-                      <Eye size={13} /> Preview
-                    </Button>
-
-                    <a
-                      href={doc.file_url}
-                      download
-                      className="h-7 px-2.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 flex items-center gap-1 shadow-2xs"
-                    >
-                      <Download size={13} /> Download
-                    </a>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+                  <FolderInput size={13} /> Move to Folder
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800"
+                  onClick={handleBulkDownload}
+                  disabled={isDownloadingZip}
+                >
+                  <Download size={13} /> Bulk Download ZIP
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800"
+                  onClick={() => downloadCSV(filteredDocs.filter(d => selectedDocIds.includes(d.id)), 'documents_export.csv')}
+                >
+                  <Download size={13} /> Export CSV
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs font-semibold gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
+                  onClick={() => {
+                    setBulkDeleteIds(selectedDocIds);
+                    setIsBulkDeleteOpen(true);
+                  }}
+                >
+                  <Trash2 size={13} /> Delete Selected
+                </Button>
+              </BulkActionBar>
+            )}
+          </>
         )}
 
       </div>
@@ -1117,6 +1252,21 @@ export default function DocumentsCenterPage() {
       <ExpiryRadarModal
         isOpen={isExpiryModalOpen}
         onClose={() => setIsExpiryModalOpen(false)}
+      />
+
+      {/* ── Confirm Bulk Delete Documents Modal ─────────────────────────── */}
+      <ConfirmModal
+        isOpen={isBulkDeleteOpen}
+        onClose={() => {
+          setIsBulkDeleteOpen(false);
+          setBulkDeleteIds([]);
+        }}
+        onConfirm={handleBulkDeleteDocuments}
+        title="Delete Selected Documents"
+        message={`Are you sure you want to permanently delete ${bulkDeleteIds.length} selected document${bulkDeleteIds.length > 1 ? 's' : ''} from the compliance vault? This action cannot be undone.`}
+        confirmLabel="Delete Documents"
+        isDestructive={true}
+        isLoading={isDeleting}
       />
 
       {/* ── Confirm Delete Document Modal ────────────────────────────────── */}
