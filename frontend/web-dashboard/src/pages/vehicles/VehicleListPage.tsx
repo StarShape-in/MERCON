@@ -408,7 +408,7 @@ export default function VehicleListPage() {
       header: 'Payload Capacity',
       accessor: (row: Vehicle) => (
         <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
-          {((row.capacity_kg || 24000) / 1000).toFixed(1)} t
+          {Math.round((row.capacity_kg || 24000) / 1000)} ton
         </span>
       ),
     },
@@ -1263,22 +1263,6 @@ export default function VehicleListPage() {
                     </SelectContent>
                   </Select>
 
-                  {/* Asset Type Dropdown using shadcn Select */}
-                  <Select
-                    value={selectedType}
-                    onValueChange={(val) => setSelectedType(val)}
-                  >
-                    <SelectTrigger className="h-9 w-40 text-xs font-semibold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-[#E8450F]/20">
-                      <SelectValue placeholder="Asset Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="All" className="text-xs font-semibold">All Asset Types</SelectItem>
-                      <SelectItem value="Tractor" className="text-xs font-semibold">Heavy Tractor</SelectItem>
-                      <SelectItem value="Reefer" className="text-xs font-semibold">Reefer Truck</SelectItem>
-                      <SelectItem value="Flatbed" className="text-xs font-semibold">Flatbed Trailer</SelectItem>
-                      <SelectItem value="Tanker" className="text-xs font-semibold">Tanker Unit</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               }
             />
@@ -1358,7 +1342,7 @@ export default function VehicleListPage() {
                     {v.capacity_kg ? (
                       <div className="flex justify-between text-slate-500">
                         <span>Payload Capacity:</span>
-                        <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{(v.capacity_kg / 1000).toFixed(1)} t</span>
+                        <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{Math.round(v.capacity_kg / 1000)} ton</span>
                       </div>
                     ) : null}
                     <div className="flex justify-between text-slate-500">
