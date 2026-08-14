@@ -1,14 +1,15 @@
 import { Router } from 'express';
-import { 
-  getMaintenanceRecords, 
+import {
+  getMaintenanceRecords,
   getMaintenanceRecordById,
-  createMaintenanceRecord, 
+  createMaintenanceRecord,
   updateMaintenanceRecord,
   deleteMaintenanceRecord,
   returnVehicleToService,
   getWorkshops,
   createSavedWorkshop,
   deleteSavedWorkshop,
+  clearWorkshopNameFromHistory,
   getSavedWorkItems,
   createSavedWorkItem,
   deleteSavedWorkItem
@@ -26,6 +27,7 @@ router.get('/', getMaintenanceRecords);
 // Workshop routes (must stay above '/:id' so 'workshops' isn't read as a UUID/ref_id)
 router.get('/workshops', getWorkshops);
 router.post('/workshops', createSavedWorkshop);
+router.delete('/workshops/by-name', clearWorkshopNameFromHistory);
 router.delete('/workshops/:id', deleteSavedWorkshop);
 
 // Work Items / Service Details presets routes

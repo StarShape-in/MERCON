@@ -270,6 +270,47 @@ export const deleteSavedWorkshop = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Some entries in the workshop picker aren't SavedWorkshop rows at all —
+ * they're just a name someone typed directly into a past maintenance record.
+ * There's no id to delete, so "deleting" one here means scrubbing that name
+ * (and its contact) off every past record that used it.
+ */
+export const clearWorkshopNameFromHistory = async (req: Request, res: Response) => {
+  try {
+    const name = ((req.query.name as string) || '').trim();
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Workshop name is required' },
+      });
+    }
+
+    const savedMatch = await prisma.savedWorkshop.findFirst({
+      where: { deletedAt: null, name: { equals: name, mode: 'insensitive' } },
+    });
+    if (savedMatch) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'This is a saved workshop — delete it by id instead.' },
+      });
+    }
+
+    const result = await prisma.maintenanceRecord.updateMany({
+      where: { deletedAt: null, workshop_name: { equals: name, mode: 'insensitive' } },
+      data: { workshop_name: '', workshop_contact: null },
+    });
+
+    res.json({ success: true, message: `Cleared "${name}" from ${result.count} maintenance record(s)` });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to clear workshop name from history');
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: 'Failed to clear workshop name' },
+    });
+  }
+};
+
 export const getSavedWorkItems = async (_req: Request, res: Response) => {
   try {
     const items = await prisma.savedWorkDone.findMany({

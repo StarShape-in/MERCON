@@ -130,6 +130,11 @@ export const maintenanceService = {
     await api.delete(`/maintenance/workshops/${id}`);
   },
 
+  /** For a name that was only ever typed into a record, never saved — clears it off every record that used it. */
+  async clearWorkshopName(name: string): Promise<void> {
+    await api.delete('/maintenance/workshops/by-name', { params: { name } });
+  },
+
   /** Saved work items / service details presets. */
   async getWorkItems(): Promise<SavedWorkItem[]> {
     const res = await api.get<ApiResponse<SavedWorkItem[]>>('/maintenance/work-items');
