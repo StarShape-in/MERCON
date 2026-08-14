@@ -82,15 +82,11 @@ function QuickTripSummaryModal({
   trip,
   open,
   onClose,
-  onMark,
-  onUnmark,
   navigate,
 }: {
   trip: BillingLedgerTrip | null;
   open: boolean;
   onClose: () => void;
-  onMark: (trip: BillingLedgerTrip) => void;
-  onUnmark: (trip: BillingLedgerTrip) => void;
   navigate: (path: string) => void;
 }) {
   if (!trip) return null;
@@ -209,37 +205,15 @@ function QuickTripSummaryModal({
           )}
         </div>
 
-        <DialogFooter className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
-          <div>
-            {trip.status === 'Completed' ? (
-              <Button
-                size="sm"
-                onClick={() => { onClose(); onMark(trip); }}
-                className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" /> Mark Invoiced
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => { onClose(); onUnmark(trip); }}
-                className="h-8 text-xs font-semibold text-amber-600 border-amber-300 hover:bg-amber-50 gap-1.5"
-              >
-                <X className="w-3.5 h-3.5" /> Unmark Invoiced
-              </Button>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClose}>Close</Button>
-            <Button
-              size="sm"
-              onClick={() => { onClose(); navigate(`/trips/${trip.id}`); }}
-              className="h-8 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white gap-1.5"
-            >
-              View Full Details <ExternalLink className="w-3.5 h-3.5" />
-            </Button>
-          </div>
+        <DialogFooter className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClose}>Close</Button>
+          <Button
+            size="sm"
+            onClick={() => { onClose(); navigate(`/trips/${trip.id}`); }}
+            className="h-8 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white gap-1.5"
+          >
+            View Full Details <ExternalLink className="w-3.5 h-3.5" />
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -707,14 +681,10 @@ function CompanyInvoiceStatementModal({
 // ── Expandable trip sub-table with Date Range Preset Filter ────────────────────
 function TripSubTable({
   row,
-  onMark,
-  onUnmark,
   onSelectTrip,
   onOpenStatement,
 }: {
   row: CustomerBillingRow;
-  onMark: (trip: BillingLedgerTrip) => void;
-  onUnmark: (trip: BillingLedgerTrip) => void;
   onSelectTrip: (trip: BillingLedgerTrip) => void;
   onOpenStatement: (row: CustomerBillingRow, preset?: string, from?: string, to?: string) => void;
 }) {
@@ -850,13 +820,12 @@ function TripSubTable({
               <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Cargo / Vehicle</th>
               <th className="px-4 py-2 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500">Status</th>
               <th className="px-4 py-2 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">ZATCA / Ext Ref</th>
-              <th className="px-4 py-2 text-right font-bold text-[10px] uppercase tracking-wider text-slate-500">Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredTrips.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400 text-xs">
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-400 text-xs">
                   No trips found for the selected period.
                 </td>
               </tr>
@@ -896,26 +865,6 @@ function TripSubTable({
                     <td className="px-4 py-2.5 font-mono text-[10px] text-slate-400 max-w-[120px] truncate">
                       {inv?.zatca_ref || inv?.ref_id || '—'}
                     </td>
-                    <td className="px-4 py-2.5 text-right" onClick={e => e.stopPropagation()}>
-                      {trip.status === 'Completed' ? (
-                        <Button
-                          size="sm"
-                          onClick={() => onMark(trip)}
-                          className="h-7 px-2.5 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                        >
-                          <CheckCircle2 className="w-3 h-3" /> Mark Invoiced
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onUnmark(trip)}
-                          className="h-7 px-2.5 text-[10px] font-semibold text-amber-600 border-amber-300 hover:bg-amber-50 gap-1"
-                        >
-                          <X className="w-3 h-3" /> Unmark
-                        </Button>
-                      )}
-                    </td>
                   </tr>
                 );
               })
@@ -932,16 +881,12 @@ function CompanyRow({
   row,
   expanded,
   onToggle,
-  onMark,
-  onUnmark,
   onSelectTrip,
   onOpenStatement,
 }: {
   row: CustomerBillingRow;
   expanded: boolean;
   onToggle: () => void;
-  onMark: (trip: BillingLedgerTrip) => void;
-  onUnmark: (trip: BillingLedgerTrip) => void;
   onSelectTrip: (trip: BillingLedgerTrip) => void;
   onOpenStatement: (row: CustomerBillingRow, preset?: string, from?: string, to?: string) => void;
 }) {
@@ -957,24 +902,18 @@ function CompanyRow({
         )}
         onClick={onToggle}
       >
-        {/* Expand toggle + company name */}
         <td className="px-5 py-3.5">
           <div className="flex items-center gap-3">
-            <span className={cn(
-              'flex items-center justify-center w-5 h-5 rounded-md border transition-colors shrink-0',
-              expanded
-                ? 'bg-indigo-600 border-indigo-600 text-white'
-                : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500'
-            )}>
-              {expanded
-                ? <ChevronDown className="w-3.5 h-3.5" />
-                : <ChevronRight className="w-3.5 h-3.5" />
-              }
+            <span className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+              {expanded ? <ChevronDown className="w-4 h-4 text-indigo-600" /> : <ChevronRight className="w-4 h-4" />}
             </span>
-            <div className="min-w-0">
-              <p className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{row.customer.name}</p>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50 shrink-0">
+              <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{row.customer.name}</span>
               {row.customer.contact_phone && (
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{row.customer.contact_phone}</p>
+                <span className="text-xs text-slate-400 block font-normal">{row.customer.contact_phone}</span>
               )}
             </div>
           </div>
@@ -1001,8 +940,6 @@ function CompanyRow({
           <td colSpan={4} className="p-0">
             <TripSubTable
               row={row}
-              onMark={onMark}
-              onUnmark={onUnmark}
               onSelectTrip={onSelectTrip}
               onOpenStatement={onOpenStatement}
             />
@@ -1037,11 +974,6 @@ export default function InvoiceListPage() {
     to?: string;
   }>({ row: null });
 
-  // Mark-as-Invoiced modal state
-  const [markModal, setMarkModal] = useState<{ open: boolean; trip: BillingLedgerTrip | null }>({ open: false, trip: null });
-  const [zatcaRef, setZatcaRef] = useState('');
-  const [invoicingNote, setInvoicingNote] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   const debouncedSearch = useDebouncedValue(search, 350);
 
@@ -1098,41 +1030,6 @@ export default function InvoiceListPage() {
       else next.add(id);
       return next;
     });
-  };
-
-  const openMarkModal = (trip: BillingLedgerTrip) => {
-    setMarkModal({ open: true, trip });
-    setZatcaRef('');
-    setInvoicingNote('');
-  };
-
-  const handleMarkInvoiced = async () => {
-    if (!markModal.trip) return;
-    setIsSaving(true);
-    try {
-      await tripService.markInvoiced(markModal.trip.id, {
-        zatca_ref: zatcaRef.trim() || undefined,
-        invoicing_note: invoicingNote.trim() || undefined,
-      });
-      toast.success(`Trip ${markModal.trip.ref_id} marked as Invoiced`);
-      setMarkModal({ open: false, trip: null });
-      queryClient.invalidateQueries({ queryKey: ['customer-billing-ledger'] });
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error?.message || 'Failed to mark trip as invoiced');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleUnmark = async (trip: BillingLedgerTrip) => {
-    if (!confirm(`Unmark ${trip.ref_id} as Invoiced and revert to Completed?`)) return;
-    try {
-      await tripService.unmarkInvoiced(trip.id);
-      toast.success(`Trip ${trip.ref_id} reverted to Completed`);
-      queryClient.invalidateQueries({ queryKey: ['customer-billing-ledger'] });
-    } catch (e: any) {
-      toast.error(e?.response?.data?.error?.message || 'Failed to unmark trip');
-    }
   };
 
   const handleExportAllExcel = async () => {
@@ -1315,8 +1212,6 @@ export default function InvoiceListPage() {
                       row={row}
                       expanded={expandedIds.has(row.customer.id)}
                       onToggle={() => toggleExpand(row.customer.id)}
-                      onMark={openMarkModal}
-                      onUnmark={handleUnmark}
                       onSelectTrip={t => setSelectedTrip(t)}
                       onOpenStatement={(r, preset, from, to) => setStatementConfig({ row: r, preset, from, to })}
                     />
@@ -1333,8 +1228,6 @@ export default function InvoiceListPage() {
         trip={selectedTrip}
         open={!!selectedTrip}
         onClose={() => setSelectedTrip(null)}
-        onMark={openMarkModal}
-        onUnmark={handleUnmark}
         navigate={navigate}
       />
 
@@ -1348,71 +1241,6 @@ export default function InvoiceListPage() {
         onClose={() => setStatementConfig({ row: null })}
         onSelectTrip={t => setSelectedTrip(t)}
       />
-
-      {/* ── Mark as Invoiced Modal ──────────────────────────────────────── */}
-      <Dialog open={markModal.open} onOpenChange={open => { if (!open) setMarkModal({ open: false, trip: null }); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">Mark as Invoiced</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Record that an external invoice has been issued for this trip. MERCON tracks the reference only.
-            </DialogDescription>
-          </DialogHeader>
-
-          {markModal.trip && (
-            <div className="space-y-4 pt-1">
-              <div className="bg-slate-50 dark:bg-slate-900/60 rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Trip</span>
-                  <span className="font-mono text-xs font-bold text-[#E8450F]">{markModal.trip.ref_id}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Company</span>
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{(markModal.trip as any).customer?.name}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Route</span>
-                  <span className="text-xs text-slate-600 dark:text-slate-400">{getTripOrigin(markModal.trip)} → {getTripDest(markModal.trip)}</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Hash className="w-3.5 h-3.5 text-slate-400" />
-                  External / ZATCA Invoice Reference <span className="text-slate-400 font-normal">(optional)</span>
-                </Label>
-                <Input
-                  value={zatcaRef}
-                  onChange={e => setZatcaRef(e.target.value)}
-                  placeholder="e.g. INV-2026-1042 or ZATCA reference"
-                  className="h-9 text-xs font-mono border-slate-200 dark:border-slate-700"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <StickyNote className="w-3.5 h-3.5 text-slate-400" />
-                  Notes <span className="text-slate-400 font-normal">(optional)</span>
-                </Label>
-                <Textarea
-                  value={invoicingNote}
-                  onChange={e => setInvoicingNote(e.target.value)}
-                  placeholder="Any additional notes about this invoice..."
-                  className="text-xs min-h-[72px] resize-none border-slate-200 dark:border-slate-700"
-                />
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 pt-2">
-            <Button variant="outline" size="sm" className="text-xs" onClick={() => setMarkModal({ open: false, trip: null })}>Cancel</Button>
-            <Button size="sm" onClick={handleMarkInvoiced} disabled={isSaving}
-              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
-              {isSaving ? 'Saving...' : <><CheckCircle2 className="w-3.5 h-3.5" /> Confirm Invoiced</>}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }
