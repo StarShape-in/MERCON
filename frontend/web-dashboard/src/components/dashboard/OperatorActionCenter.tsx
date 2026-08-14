@@ -356,7 +356,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
         <div className="flex items-center gap-1.5">
           <Button
             size="sm"
-            onClick={() => navigate('/reports/delay-analysis')}
+            onClick={() => navigate('/reports/delays')}
             variant="ghost"
             className="h-7 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 px-2 cursor-pointer gap-1"
           >

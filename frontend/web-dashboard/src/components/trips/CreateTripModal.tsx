@@ -40,6 +40,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { authStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 
 function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -961,7 +962,7 @@ export default function CreateTripModal({
                   Create New Trip
                 </DialogTitle>
                 <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
-                  Operations Module
+                  {authStore.getUser()?.role === 'Admin' ? 'Admin Module' : 'Operator Module'}
                 </Badge>
               </div>
 

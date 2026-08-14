@@ -39,13 +39,14 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
+  const isAdmin = user?.role === 'Admin';
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isDashboard = location.pathname === '/' || title === 'Dashboard' || !!hideBackButton;
-  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
-  const firstName = user?.name ? user.name.split(' ')[0] : 'Operator';
+  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
+  const firstName = user?.name ? user.name.split(' ')[0] : (isAdmin ? 'Admin' : 'Operator');
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -202,17 +203,23 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
           >
             <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-bold select-none">
-              MA
+              {initials}
             </div>
-            <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[80px] truncate">Mercon</span>
+            <span className="hidden sm:inline text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[90px] truncate">
+              {user?.name || (isAdmin ? 'Admin' : 'Operator')}
+            </span>
             <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1.5 animate-fade-in origin-top-right z-50">
               <div className="px-4 py-2 border-b border-slate-200/60 dark:border-slate-800">
-                <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{user?.name || 'Mercon Operator'}</p>
-                <p className="text-[10px] text-slate-500 truncate">{user?.role || 'Operator'}</p>
+                <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                  {user?.name || (isAdmin ? 'Mercon Admin' : 'Mercon Operator')}
+                </p>
+                <p className="text-[10px] font-semibold text-brand truncate">
+                  {isAdmin ? 'Admin Module' : 'Operator Module'}
+                </p>
               </div>
               
               <Link 

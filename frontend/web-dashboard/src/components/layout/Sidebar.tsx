@@ -20,7 +20,8 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
   const navigate = useNavigate();
   const location = useLocation();
   const user = authStore.getUser();
-  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OP';
+  const isAdmin = user?.role === 'Admin';
+  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
 
   const isItemActive = (itemPath: string, itemEnd?: boolean) => {
     const currentPath = location.pathname;
@@ -180,8 +181,8 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate">{user?.name || 'Mohammed Al-Harbi'}</p>
-            <p className="text-[9px] text-white/50 truncate">{user?.email || 'operator@mercon.sa'}</p>
+            <p className="text-xs font-semibold text-white truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
+            <p className="text-[9px] text-white/50 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>
           <button
             onClick={handleLogout}
