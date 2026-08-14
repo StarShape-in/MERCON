@@ -309,10 +309,10 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
               className="w-full h-8 pl-8 pr-7 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#E8450F] appearance-none cursor-pointer transition-colors"
             >
               <option value="all">All Delay Categories ({counts.all})</option>
-              <option value="traffic">🚦 Traffic Congestion ({counts.traffic})</option>
-              <option value="breakdown">🔧 Mechanical Breakdown ({counts.breakdown})</option>
-              <option value="loading">📦 Dock & Loading Queue ({counts.loading})</option>
-              <option value="weather">⛈️ Weather & Sandstorm ({counts.weather})</option>
+              <option value="traffic">Traffic Congestion ({counts.traffic})</option>
+              <option value="breakdown">Mechanical Breakdown ({counts.breakdown})</option>
+              <option value="loading">Dock &amp; Loading Queue ({counts.loading})</option>
+              <option value="weather">Weather &amp; Sandstorm ({counts.weather})</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>

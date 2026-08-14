@@ -456,10 +456,10 @@ export default function CompanyReportTemplatesPage() {
                 onChange={(e) => setSelectedCustomerId(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-brand"
               >
-                <option value="all">🏢 All Customer Companies</option>
+                <option value="all">All Customer Companies</option>
                 {customers.map((c: any) => (
                   <option key={c.id} value={c.id}>
-                    🏢 {c.name || c.company_name}
+                    {c.name || c.company_name}
                   </option>
                 ))}
               </select>
@@ -475,10 +475,10 @@ export default function CompanyReportTemplatesPage() {
                 onChange={(e) => setPreset(e.target.value as DatePreset)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-brand"
               >
-                <option value="this_week">📅 This Week</option>
-                <option value="this_month">📅 This Month</option>
-                <option value="last_month">📅 Last Month</option>
-                <option value="custom">📅 Custom Range</option>
+                <option value="this_week">This Week</option>
+                <option value="this_month">This Month</option>
+                <option value="last_month">Last Month</option>
+                <option value="custom">Custom Range</option>
               </select>
             </div>
 
@@ -492,10 +492,10 @@ export default function CompanyReportTemplatesPage() {
                 onChange={(e) => handleSelectPreset(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-brand"
               >
-                <option value="none">📁 Pick Saved Company Preset...</option>
+                <option value="none">Pick Saved Company Preset...</option>
                 {savedPresets.map((p) => (
                   <option key={p.id} value={p.id}>
-                    📁 {p.companyName} — {p.templateName}
+                    {p.companyName} — {p.templateName}
                   </option>
                 ))}
               </select>
@@ -511,7 +511,7 @@ export default function CompanyReportTemplatesPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-brand"
               >
-                <option value="all">🔀 All Trip Statuses</option>
+                <option value="all">All Trip Statuses</option>
                 <option value="completed">Completed</option>
                 <option value="intransit">In Transit</option>
                 <option value="dispatched">Dispatched</option>
