@@ -102,10 +102,11 @@ export const documentService = {
     return res.data;
   },
 
-  async bulkOcrExtract(onlyMissingExpiry = true, limit = 200): Promise<any> {
+  async bulkOcrExtract(onlyMissingExpiry = true, limit = 200, ids?: string[]): Promise<any> {
     const res = await api.post('/documents/bulk-ocr-extract', {
-      only_missing_expiry: onlyMissingExpiry,
+      only_missing_expiry: ids && ids.length > 0 ? false : onlyMissingExpiry,
       limit,
+      ids,
     });
     return res.data;
   },

@@ -203,11 +203,16 @@ export default function DocumentsCenterPage() {
     }
   };
 
-  const handleRunAiOcrExtract = async () => {
+  const handleBulkExtractSelectedDocs = async (targetIds: string[]) => {
+    if (!targetIds || targetIds.length === 0) {
+      toast.error('Please select at least one document row');
+      return;
+    }
     setIsAiOcrRunning(true);
     try {
-      const res = await documentService.bulkOcrExtract(false, 200);
-      toast.success(res.message || 'Successfully extracted document dates with AI OCR!');
+      toast.info(`Extracting AI metadata via Gemini Vision for ${targetIds.length} selected document(s)...`);
+      const res = await documentService.bulkOcrExtract(false, targetIds.length, targetIds);
+      toast.success(res.message || `✨ Successfully extracted AI metadata for ${targetIds.length} document(s)!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     } catch (err: any) {
@@ -468,26 +473,7 @@ export default function DocumentsCenterPage() {
               Batch Import Trucks Docs
             </Button>
 
-            {/* AI Auto-Extract Expiries Action */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-9 gap-1.5 text-xs font-bold border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300 shadow-2xs"
-              onClick={handleRunAiOcrExtract}
-              disabled={isAiOcrRunning}
-            >
-              {isAiOcrRunning ? (
-                <>
-                  <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
-                  <span>Extracting Expiries with AI...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-amber-500/20" />
-                  <span>AI Auto-Extract Expiries</span>
-                </>
-              )}
-            </Button>
+
 
             {/* Upload Button */}
             <Button
@@ -991,6 +977,14 @@ export default function DocumentsCenterPage() {
             pageSizeOptions={[10, 25, 50, 100]}
             bulkActions={[
               {
+                label: 'AI Vision Auto-Extract',
+                icon: <Sparkles size={13} className="text-amber-500 fill-amber-500/20" />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: EnrichedDocument[]) => {
+                  handleBulkExtractSelectedDocs(selectedRows.map(r => r.id));
+                }
+              },
+              {
                 label: 'Move to Folder',
                 icon: <FolderInput size={13} />,
                 variant: 'secondary' as const,
@@ -1176,6 +1170,25 @@ export default function DocumentsCenterPage() {
                   }}
                 >
                   <FolderInput size={13} /> Move to Folder
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs font-extrabold gap-1.5 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                  onClick={() => handleBulkExtractSelectedDocs(selectedDocIds)}
+                  disabled={isAiOcrRunning}
+                >
+                  {isAiOcrRunning ? (
+                    <>
+                      <Loader2 size={13} className="text-amber-600 animate-spin" />
+                      <span>Extracting AI...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} className="text-amber-600 dark:text-amber-400 fill-amber-500/20" />
+                      <span>AI Vision Auto-Extract</span>
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
