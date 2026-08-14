@@ -9,6 +9,11 @@ import {
 } from 'lucide-react';
 
 import { downloadCSV } from '@/utils/exportUtils';
+import {
+  exportCustomerInvoiceExcel,
+  exportAllLedgerExcel,
+  InvoiceExcelFormat,
+} from '@/utils/exportInvoiceExcel';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import {
@@ -27,6 +32,14 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -374,6 +387,18 @@ function CompanyInvoiceStatementModal({
     downloadCSV(csvRows, `${row.customer.name.replace(/\s+/g, '_')}_Invoice_Statement_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
+  const handleExportExcel = async (format: InvoiceExcelFormat = 'ALL') => {
+    try {
+      const periodLabel = datePreset === 'CUSTOM'
+        ? `${customFrom || 'Start'} to ${customTo || 'End'}`
+        : datePreset.replace('_', ' ');
+      await exportCustomerInvoiceExcel(row, filteredTrips, format, periodLabel);
+      toast.success(`Excel statement downloaded (${filteredTrips.length} trips)`);
+    } catch (e: any) {
+      toast.error('Failed to generate Excel file: ' + (e?.message || 'Error'));
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -404,14 +429,55 @@ function CompanyInvoiceStatementModal({
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCompanyCSV}
-                className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs"
-              >
-                <Download className="w-3.5 h-3.5 text-emerald-600" /> Export CSV ({totalFiltered})
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" /> Download Excel ({totalFiltered})
+                    <ChevronDown className="w-3 h-3 opacity-80" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel>Choose Excel Format</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handleExportExcel('ALL')} className="flex items-center gap-2.5 font-medium cursor-pointer">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <p className="font-bold text-xs text-slate-800 dark:text-slate-200">Complete Workbook (.xlsx)</p>
+                      <p className="text-[10px] text-slate-400">All 3 sheets in one package</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleExportExcel('TRIP_BILLING')} className="flex items-center gap-2.5 cursor-pointer">
+                    <Truck className="w-4 h-4 text-blue-600 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-xs text-slate-800 dark:text-slate-200">Trip Confirmation Billing</p>
+                      <p className="text-[10px] text-slate-400">UUID, Route, Plate & Charges</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportExcel('TAX_INVOICE')} className="flex items-center gap-2.5 cursor-pointer">
+                    <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-xs text-slate-800 dark:text-slate-200">Official Tax Invoice</p>
+                      <p className="text-[10px] text-slate-400">VAT statement with Bank & Words</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportExcel('VEHICLE_MONTHLY')} className="flex items-center gap-2.5 cursor-pointer">
+                    <Building2 className="w-4 h-4 text-rose-600 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-xs text-slate-800 dark:text-slate-200">Monthly Vehicle Rental</p>
+                      <p className="text-[10px] text-slate-400">Vehicle tonnage & days breakdown</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleExportCompanyCSV} className="flex items-center gap-2.5 text-slate-600 cursor-pointer">
+                    <Download className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span>Plain CSV (.csv)</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -747,8 +813,21 @@ function TripSubTable({
           )}
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <span className="text-slate-500 font-semibold text-xs font-mono">Showing {filteredTrips.length} of {trips.length} trips</span>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const periodLabel = datePreset === 'CUSTOM'
+                ? `${customFrom || 'Start'} to ${customTo || 'End'}`
+                : datePreset.replace('_', ' ');
+              await exportCustomerInvoiceExcel(row, filteredTrips, 'ALL', periodLabel);
+              toast.success(`Excel statement downloaded (${filteredTrips.length} trips)`);
+            }}
+            className="h-7 px-2.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-2xs"
+          >
+            <Download className="w-3.5 h-3.5" /> Download Excel ({filteredTrips.length})
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -1056,6 +1135,15 @@ export default function InvoiceListPage() {
     }
   };
 
+  const handleExportAllExcel = async () => {
+    try {
+      await exportAllLedgerExcel(rows);
+      toast.success('Master Company Billing Ledger Excel exported');
+    } catch (e: any) {
+      toast.error('Failed to export Excel: ' + (e?.message || 'Error'));
+    }
+  };
+
   const hasFilters = !!(invoiceStatusFilter || search);
 
   return (
@@ -1069,8 +1157,11 @@ export default function InvoiceListPage() {
             <Badge className="bg-indigo-50 text-indigo-600 border-indigo-200 font-semibold text-xs">Invoicing Module</Badge>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportAllExcel} className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800">
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Export Excel
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExportCSV} className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-              <Download className="w-3.5 h-3.5 text-emerald-600" /> Export CSV
+              <Download className="w-3.5 h-3.5 text-slate-600" /> Export CSV
             </Button>
             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="h-8 w-8 p-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
               <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
