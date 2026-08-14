@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
+import WorkDoneSelect from '@/components/maintenance/WorkDoneSelect';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -797,7 +798,11 @@ export default function MaintenanceDetailsPage() {
                 <WorkshopField
                   value={editFormData.workshop_name}
                   onChange={(name) => setEditFormData(prev => ({ ...prev, workshop_name: name }))}
-                  onPick={(w) => setEditFormData(prev => ({ ...prev, workshop_contact: w.contact ?? prev.workshop_contact }))}
+                  onPick={(w) => setEditFormData(prev => ({
+                    ...prev,
+                    workshop_name: w.name,
+                    workshop_contact: (w.contact !== undefined && w.contact !== null) ? w.contact : prev.workshop_contact,
+                  }))}
                   className="h-8.5"
                 />
               </div>
@@ -832,24 +837,20 @@ export default function MaintenanceDetailsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold">Work done *</Label>
-                <Textarea
-                  value={editFormData.work_done || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, work_done: e.target.value }))}
-                  rows={2.5}
-                  className="text-xs resize-none p-2.5"
-                />
-              </div>
+            <div className="space-y-3 pt-2">
+              <WorkDoneSelect
+                value={editFormData.work_done || ''}
+                onChange={(text) => setEditFormData(prev => ({ ...prev, work_done: text }))}
+              />
 
               <div className="space-y-1">
-                <Label className="text-xs font-bold">Remarks</Label>
+                <Label className="text-xs font-bold">Additional Remarks / Notes</Label>
                 <Textarea
                   value={editFormData.remarks || ''}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, remarks: e.target.value }))}
                   rows={2.5}
                   className="text-xs resize-none p-2.5"
+                  placeholder="Internal notes, technician remarks..."
                 />
               </div>
             </div>

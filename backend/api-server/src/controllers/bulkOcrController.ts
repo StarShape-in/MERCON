@@ -199,6 +199,8 @@ export const extractAllDocumentsOcr = async (req: Request, res: Response) => {
   }
 };
 
+const isValidUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+
 /**
  * Endpoint to push extracted document metadata from local DB directly into Production DB
  */
@@ -212,15 +214,60 @@ export const syncLocalDocumentRecords = async (req: Request, res: Response) => {
     let updated = 0;
     for (const rec of records) {
       const fileName = rec.file_url ? path.basename(rec.file_url) : '';
+      const plate = rec.vehicle_plate ? String(rec.vehicle_plate).trim() : '';
       
-      const matchingDoc = await prisma.document.findFirst({
-        where: {
-          OR: [
-            { id: rec.id },
-            ...(fileName ? [{ file_url: { contains: fileName } }] : []),
-          ],
-        },
-      });
+      let matchingDoc = null;
+
+      // 1. Try finding by UUID or filename
+      const orConditions: any[] = [];
+      if (isValidUuid(rec.id)) {
+        orConditions.push({ id: rec.id });
+      }
+      if (fileName && fileName.length > 3) {
+        orConditions.push({ file_url: { contains: fileName } });
+      }
+
+      if (orConditions.length > 0) {
+        matchingDoc = await prisma.document.findFirst({
+          where: { OR: orConditions },
+        });
+      }
+
+      // 2. Fallback: match by Vehicle plate_number and doc_type
+      if (!matchingDoc && plate) {
+        const digits = plate.replace(/\D/g, '');
+        const vehicle = await prisma.vehicle.findFirst({
+          where: {
+            OR: [
+              { plate_number: { contains: plate, mode: 'insensitive' } },
+              { ref_id: { contains: plate, mode: 'insensitive' } },
+              ...(digits ? [
+                { plate_number: { contains: digits } },
+                { ref_id: { contains: digits } },
+              ] : []),
+            ],
+          },
+        });
+
+        if (vehicle) {
+          matchingDoc = await prisma.document.findFirst({
+            where: {
+              entity_id: vehicle.id,
+              doc_type: rec.doc_type,
+            },
+          });
+
+          // If no doc_type match, find any unverified document for vehicle
+          if (!matchingDoc) {
+            matchingDoc = await prisma.document.findFirst({
+              where: {
+                entity_id: vehicle.id,
+                expiry_date: null,
+              },
+            });
+          }
+        }
+      }
 
       if (matchingDoc) {
         await prisma.document.update({
