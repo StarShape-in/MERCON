@@ -8,7 +8,6 @@ import {
   Download,
   Maximize2,
   ArrowUpRight,
-  Truck,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -515,30 +514,30 @@ export default function DashboardPage() {
 
             {/* Table Area with Generous Min-Height */}
             <div className="overflow-x-auto flex-1 flex flex-col justify-between">
-              <div className="min-h-[360px] max-h-[520px] overflow-y-auto custom-scrollbar">
+              <div className="min-h-[360px] max-h-[520px] overflow-y-auto">
                 <table className="w-full whitespace-nowrap text-left">
                   <thead>
-                    <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 text-[10.5px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      <th className="px-5 py-3">Trip Ref</th>
-                      <th className="px-5 py-3">Shipping Route</th>
-                      <th className="px-5 py-3">Assigned Driver</th>
-                      <th className="px-5 py-3">Vehicle Plate</th>
-                      <th className="px-5 py-3">Transit Status</th>
-                      <th className="px-5 py-3">Departure</th>
-                      <th className="px-5 py-3">Arrival ETA</th>
-                      <th className="px-5 py-3">Live Progress</th>
+                    <tr className="border-b border-slate-100 bg-slate-50/20 text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
+                      <th className="px-5 py-3">Trip ID</th>
+                      <th className="px-5 py-3">Route</th>
+                      <th className="px-5 py-3">Driver</th>
+                      <th className="px-5 py-3">Vehicle</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Start Time</th>
+                      <th className="px-5 py-3">ETA</th>
+                      <th className="px-5 py-3">Progress</th>
                       <th className="px-5 py-3 text-right">Distance</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                  <tbody className="divide-y divide-slate-100/70 text-xs">
                     {activeTrips.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="px-5 py-16 text-center text-slate-400">
                           <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-1">
+                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
                               <FileText className="w-6 h-6" />
                             </div>
-                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">No {tripTab} trips active</p>
+                            <p className="text-sm font-bold text-slate-700">No {tripTab} trips active</p>
                             <p className="text-xs text-slate-400">There are currently no dispatch records in this category.</p>
                           </div>
                         </td>
@@ -550,74 +549,73 @@ export default function DashboardPage() {
                           <tr
                             key={trip.rawId || trip.id}
                             onClick={() => navigate(`/trips/${trip.rawId || trip.id}`)}
-                            className="hover:bg-slate-50/90 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group"
+                            className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                           >
-                            {/* Trip Ref ID */}
+                            {/* Trip ID */}
                             <td className="px-5 py-3.5">
-                              <span className="font-mono font-black text-xs sm:text-[13px] text-brand tracking-tight group-hover:underline">
+                              <span className="font-extrabold text-brand font-mono text-[11px]">
                                 {trip.id}
                               </span>
                             </td>
 
                             {/* Route */}
                             <td className="px-5 py-3.5">
-                              <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs sm:text-[12.5px] tracking-tight block">
+                              <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
                                 {trip.route}
                               </span>
                             </td>
 
                             {/* Driver */}
                             <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-2.5">
-                                <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black shadow-2xs ${trip.avatarBg}`}>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-extrabold ${trip.avatarBg}`}>
                                   {trip.initials}
                                 </div>
-                                <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs sm:text-[12.5px]">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
                                   {trip.driver}
                                 </span>
                               </div>
                             </td>
 
-                            {/* Vehicle Plate */}
+                            {/* Vehicle */}
                             <td className="px-5 py-3.5">
-                              <span className="inline-flex items-center gap-1.5 text-xs font-black font-mono text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                                <Truck className="w-3.5 h-3.5 text-slate-500" />
+                              <span className="text-[10px] font-bold font-mono text-slate-700 dark:text-slate-300">
                                 {trip.vehicle}
                               </span>
                             </td>
 
-                            {/* Status Badge */}
+                            {/* Status */}
                             <td className="px-5 py-3.5">
-                              <span className={`inline-flex items-center gap-1.5 text-[10.5px] font-black px-2.5 py-0.5 rounded-full border shadow-2xs ${s.badge}`}>
-                                <span className={`w-2 h-2 rounded-full ${s.dot} animate-pulse`} />
+                              <span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full border ${s.badge}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
                                 {trip.status}
                               </span>
                             </td>
 
-                            {/* Start Time / Departure */}
+                            {/* Start Time */}
                             <td className="px-5 py-3.5">
-                              <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                              <span className="text-[10px] text-slate-500 font-medium">
                                 {trip.startTime}
                               </span>
                             </td>
 
-                            {/* Arrival ETA */}
+                            {/* ETA */}
                             <td className="px-5 py-3.5">
-                              <span className="text-xs sm:text-[13px] font-black text-slate-900 dark:text-slate-100 font-mono">
+                              <span className="text-[11px] font-extrabold text-slate-900 dark:text-slate-100">
                                 {trip.eta}
                               </span>
                             </td>
 
-                            {/* Live Progress Bar */}
-                            <td className="px-5 py-3.5 w-44">
+                            {/* Progress */}
+                            <td className="px-5 py-3.5 w-40">
                               <div className="flex items-center gap-2.5">
-                                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-black/5 dark:border-white/5">
+                                <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                   <div
-                                    className="h-full bg-brand rounded-full transition-all duration-300 shadow-2xs"
+                                    className="h-full bg-brand rounded-full transition-all duration-300"
                                     style={{ width: `${trip.progress}%` }}
                                   />
                                 </div>
-                                <span className="text-xs font-black font-mono text-slate-800 dark:text-slate-200 shrink-0">
+                                <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 shrink-0">
                                   {trip.progress}%
                                 </span>
                               </div>
@@ -625,7 +623,7 @@ export default function DashboardPage() {
 
                             {/* Distance */}
                             <td className="px-5 py-3.5 text-right">
-                              <span className="text-xs font-black font-mono text-slate-800 dark:text-slate-200">
+                              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400">
                                 {trip.distance}
                               </span>
                             </td>
