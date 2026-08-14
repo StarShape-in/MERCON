@@ -505,13 +505,9 @@ export default function DashboardPage() {
           {/* ── TOP ROW: 3 Cards Side-by-Side (Consistent Height) ─────────── */}
           <div className="flex flex-col lg:flex-row gap-5 items-stretch transition-all duration-300 ease-in-out">
 
-            {/* 1. Left Card (~32%): Monthly Financial Overview for Admin, Urgent Action Center for Operator */}
+            {/* 1. Left Card (~32%): Live Delay Watch / Action Center */}
             <div className="w-full lg:w-[33%] xl:w-[32%] shrink-0 flex flex-col h-[390px] max-h-[390px] transition-all duration-300 ease-in-out">
-              {isAdmin ? (
-                <MonthlyOverview />
-              ) : (
-                <OperatorActionCenter trips={rawTrips} />
-              )}
+              <OperatorActionCenter trips={rawTrips} />
             </div>
 
             {/* 2. Active Trips Live Map (expands when reminders collapses) */}
