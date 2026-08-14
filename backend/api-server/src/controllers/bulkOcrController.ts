@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import path from 'path';
 import { prisma } from '../db';
 import { analyzeDocumentWithAI, getLocalFilePathFromUrl } from '../services/ocrService';
 import { DocStatus } from '@prisma/client';
@@ -195,5 +196,55 @@ export const extractAllDocumentsOcr = async (req: Request, res: Response) => {
       success: false,
       error: { code: 'SERVER_ERROR', message: error.message || 'Bulk AI OCR extraction failed' },
     });
+  }
+};
+
+/**
+ * Endpoint to push extracted document metadata from local DB directly into Production DB
+ */
+export const syncLocalDocumentRecords = async (req: Request, res: Response) => {
+  try {
+    const { records } = req.body;
+    if (!Array.isArray(records) || records.length === 0) {
+      return res.status(400).json({ success: false, message: 'No records provided' });
+    }
+
+    let updated = 0;
+    for (const rec of records) {
+      const fileName = rec.file_url ? path.basename(rec.file_url) : '';
+      
+      const matchingDoc = await prisma.document.findFirst({
+        where: {
+          OR: [
+            { id: rec.id },
+            ...(fileName ? [{ file_url: { contains: fileName } }] : []),
+          ],
+        },
+      });
+
+      if (matchingDoc) {
+        await prisma.document.update({
+          where: { id: matchingDoc.id },
+          data: {
+            doc_type: rec.doc_type || matchingDoc.doc_type,
+            status: DocStatus.Verified,
+            expiry_date: rec.expiry_date ? new Date(rec.expiry_date) : matchingDoc.expiry_date,
+            issue_date: rec.issue_date ? new Date(rec.issue_date) : matchingDoc.issue_date,
+            ai_extracted_json: rec.ai_extracted_json || matchingDoc.ai_extracted_json,
+            ocr_raw_text: rec.ocr_raw_text || matchingDoc.ocr_raw_text,
+          },
+        });
+        updated++;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: { totalReceived: records.length, updated },
+      message: `Successfully synced ${updated}/${records.length} extracted records into Production Database!`,
+    });
+  } catch (err: any) {
+    console.error('Failed syncLocalDocumentRecords:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };

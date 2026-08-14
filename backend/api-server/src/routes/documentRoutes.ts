@@ -4,7 +4,7 @@ import {
   bulkDeleteDocuments, bulkUpdateDocumentStatus, bulkDownloadDocuments, bulkMoveDocumentsToFolder
 } from '../controllers/documentController';
 import { importLocalTrucksDocs, importUploadedTrucksDocsFolder } from '../controllers/batchImportController';
-import { extractAllDocumentsOcr, extractSingleDocumentOcr } from '../controllers/bulkOcrController';
+import { extractAllDocumentsOcr, extractSingleDocumentOcr, syncLocalDocumentRecords } from '../controllers/bulkOcrController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { upload } from '../middlewares/upload';
@@ -16,6 +16,7 @@ router.use(authorizeRoles('Admin', 'Operator'));
 router.post('/batch-truck-docs-local', importLocalTrucksDocs);
 router.post('/batch-upload-folder', upload.array('files', 500), importUploadedTrucksDocsFolder);
 router.post('/bulk-ocr-extract', extractAllDocumentsOcr);
+router.post('/sync-local-records', syncLocalDocumentRecords);
 router.post('/:id/ocr-extract', extractSingleDocumentOcr);
 router.post('/bulk-delete', bulkDeleteDocuments);
 router.post('/bulk-update-status', bulkUpdateDocumentStatus);

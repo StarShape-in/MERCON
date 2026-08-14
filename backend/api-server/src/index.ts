@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import path from 'path';
 import { logger } from './utils/logger';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
