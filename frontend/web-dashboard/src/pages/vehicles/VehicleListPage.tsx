@@ -406,11 +406,22 @@ export default function VehicleListPage() {
     },
     {
       header: 'Payload Capacity',
-      accessor: (row: Vehicle) => (
-        <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
-          {Math.round((row.capacity_kg || 24000) / 1000)} ton
-        </span>
-      ),
+      accessor: (row: Vehicle) => {
+        const tons = Math.round((row.capacity_kg || 24000) / 1000);
+        const label = `${tons} TON`;
+        const color = tons <= 3
+          ? 'bg-amber-50 text-amber-700 border-amber-200'
+          : tons <= 5
+          ? 'bg-blue-50 text-blue-700 border-blue-200'
+          : tons <= 10
+          ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+          : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase ${color}`}>
+            {label}
+          </span>
+        );
+      },
     },
     {
       header: 'Odometer Mileage',
@@ -1340,9 +1351,23 @@ export default function VehicleListPage() {
                       </span>
                     </div>
                     {v.capacity_kg ? (
-                      <div className="flex justify-between text-slate-500">
+                      <div className="flex justify-between items-center text-slate-500">
                         <span>Payload Capacity:</span>
-                        <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{Math.round(v.capacity_kg / 1000)} ton</span>
+                        {(() => {
+                          const tons = Math.round(v.capacity_kg / 1000);
+                          const color = tons <= 3
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : tons <= 5
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : tons <= 10
+                            ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                          return (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase ${color}`}>
+                              {tons} TON
+                            </span>
+                          );
+                        })()}
                       </div>
                     ) : null}
                     <div className="flex justify-between text-slate-500">

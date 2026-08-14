@@ -297,7 +297,7 @@ export default function RateCardListPage() {
       ),
     },
     {
-      header: 'Vehicle Type',
+      header: 'Payload Capacity',
       accessor: (row: RateCard) => {
         if (!row.vehicle_type) {
           return (
