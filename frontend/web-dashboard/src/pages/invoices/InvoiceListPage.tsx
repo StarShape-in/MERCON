@@ -356,6 +356,7 @@ function CompanyInvoiceStatementModal({
   const totalFiltered = filteredTrips.length;
   const invoicedFiltered = filteredTrips.filter(t => t.status === 'Invoiced').length;
   const pendingFiltered = filteredTrips.filter(t => t.status !== 'Invoiced').length;
+  const hasActiveFilters = datePreset !== 'ALL' || customFrom !== '' || customTo !== '' || statusFilter !== 'ALL' || statementSearch !== '';
 
   const handleExportCompanyCSV = () => {
     const csvRows = filteredTrips.map(trip => ({
@@ -379,19 +380,25 @@ function CompanyInvoiceStatementModal({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-4xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
-        <DialogHeader className="p-5 pb-4 bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-900/40">
+      <DialogContent className="w-[96vw] max-w-[1360px] sm:max-w-[1360px] rounded-2xl p-0 sm:p-0 gap-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[92vh] flex flex-col shadow-2xl">
+        {/* Header bar */}
+        <DialogHeader className="p-5 sm:px-6 bg-slate-50 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 pr-6">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center border border-indigo-200/80 dark:border-indigo-800">
                 <Building2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                  Company Invoice Statement
+                <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <span>{row.customer.name}</span>
+                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-bold uppercase tracking-wider">
+                    Company Statement
+                  </Badge>
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500 font-bold mt-0.5">
-                  {row.customer.name} {row.customer.contact_phone ? `· ${row.customer.contact_phone}` : ''}
+                <DialogDescription className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-2">
+                  <span>{row.customer.contact_phone ? `Tel: ${row.customer.contact_phone}` : 'Corporate Account'}</span>
+                  <span>•</span>
+                  <span>{row.trips.length} Total Trips on Ledger</span>
                 </DialogDescription>
               </div>
             </div>
@@ -401,7 +408,7 @@ function CompanyInvoiceStatementModal({
                 variant="outline"
                 size="sm"
                 onClick={handleExportCompanyCSV}
-                className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-600" /> Export CSV ({totalFiltered})
               </Button>
@@ -409,7 +416,7 @@ function CompanyInvoiceStatementModal({
                 variant="outline"
                 size="sm"
                 onClick={handlePrint}
-                className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs"
               >
                 <Printer className="w-3.5 h-3.5 text-slate-600" /> Print
               </Button>
@@ -417,13 +424,13 @@ function CompanyInvoiceStatementModal({
           </div>
         </DialogHeader>
 
-        {/* Statement Controls: Date Preset Filter + Status Filter + Search */}
-        <div className="p-3 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
-          <div className="flex flex-wrap items-center gap-2">
+        {/* Statement Toolbar: Date Preset Filter + Status Filter + Search */}
+        <div className="px-6 py-3 bg-slate-50/70 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-1.5">
-              <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />
+              <CalendarDays className="w-4 h-4 text-indigo-500" />
               <Select value={datePreset} onValueChange={handlePresetChange}>
-                <SelectTrigger className="h-7 text-xs w-36 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium">
+                <SelectTrigger className="h-8 text-xs w-44 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium shadow-2xs">
                   <SelectValue placeholder="Select Period" />
                 </SelectTrigger>
                 <SelectContent>
@@ -432,31 +439,31 @@ function CompanyInvoiceStatementModal({
                   <SelectItem value="THIS_WEEK">This Week</SelectItem>
                   <SelectItem value="THIS_MONTH">This Month</SelectItem>
                   <SelectItem value="LAST_MONTH">Last Month</SelectItem>
-                  <SelectItem value="CUSTOM">Custom Range</SelectItem>
+                  <SelectItem value="CUSTOM">Custom Date Range</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {(datePreset === 'CUSTOM' || customFrom || customTo) && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-0.5 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
                 <input
                   type="date"
                   value={customFrom}
                   onChange={e => { setCustomFrom(e.target.value); setDatePreset('CUSTOM'); }}
-                  className="h-7 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-2 text-slate-700 dark:text-slate-200"
+                  className="h-7 text-xs bg-transparent border-0 text-slate-700 dark:text-slate-200 focus:outline-none"
                 />
-                <span className="text-xs text-slate-400">—</span>
+                <span className="text-xs text-slate-400 font-bold">—</span>
                 <input
                   type="date"
                   value={customTo}
                   onChange={e => { setCustomTo(e.target.value); setDatePreset('CUSTOM'); }}
-                  className="h-7 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-2 text-slate-700 dark:text-slate-200"
+                  className="h-7 text-xs bg-transparent border-0 text-slate-700 dark:text-slate-200 focus:outline-none"
                 />
               </div>
             )}
 
             <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
-              <SelectTrigger className="h-7 text-xs w-32 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium">
+              <SelectTrigger className="h-8 text-xs w-36 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium shadow-2xs">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -465,58 +472,79 @@ function CompanyInvoiceStatementModal({
                 <SelectItem value="NotInvoiced">Pending Only</SelectItem>
               </SelectContent>
             </Select>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setDatePreset('ALL');
+                  setCustomFrom('');
+                  setCustomTo('');
+                  setStatusFilter('ALL');
+                  setStatementSearch('');
+                }}
+                className="h-8 text-xs text-slate-500 hover:text-slate-900 gap-1 px-2"
+              >
+                <X className="w-3.5 h-3.5" /> Reset
+              </Button>
+            )}
           </div>
 
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search statement trips..."
+              placeholder="Search ref, route, vehicle, driver, ZATCA..."
               value={statementSearch}
               onChange={e => setStatementSearch(e.target.value)}
-              className="pl-7 pr-2.5 h-7 text-xs w-48 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="pl-8 pr-3 h-8 text-xs w-72 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-2xs"
             />
           </div>
         </div>
 
         {/* Summary metric bar */}
-        <div className="bg-indigo-50/60 dark:bg-indigo-950/30 px-5 py-3 border-b border-indigo-100 dark:border-indigo-900/40 grid grid-cols-3 gap-3 text-center shrink-0">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Filtered Trips</p>
+        <div className="px-6 py-3 bg-indigo-50/50 dark:bg-indigo-950/20 border-b border-indigo-100/80 dark:border-indigo-900/40 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center shrink-0">
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/70 dark:bg-slate-900/60 border border-indigo-100/60 dark:border-indigo-900/30">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Filtered Statement Trips</p>
             <p className="font-extrabold text-base text-slate-900 dark:text-slate-100">
-              {totalFiltered} <span className="text-[11px] font-normal text-slate-500">/ {row.trips.length} total</span>
+              {totalFiltered} <span className="text-xs font-normal text-slate-500">of {row.trips.length} total</span>
             </p>
           </div>
-          <div>
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/70 dark:bg-slate-900/60 border border-indigo-100/60 dark:border-indigo-900/30">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Invoiced</p>
             <p className="font-extrabold text-base text-emerald-600">{invoicedFiltered}</p>
           </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Pending</p>
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/70 dark:bg-slate-900/60 border border-indigo-100/60 dark:border-indigo-900/30">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Pending Invoicing</p>
             <p className="font-extrabold text-base text-amber-600">{pendingFiltered}</p>
           </div>
         </div>
 
         {/* Statement Trip Ledger Table */}
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto shadow-2xs">
             <table className="w-full text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+              <thead className="bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th className="px-3.5 py-2.5 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Trip Ref</th>
-                  <th className="px-3.5 py-2.5 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Date</th>
-                  <th className="px-3.5 py-2.5 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Route</th>
-                  <th className="px-3.5 py-2.5 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Vehicle / Driver</th>
-                  <th className="px-3.5 py-2.5 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Cargo</th>
-                  <th className="px-3.5 py-2.5 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500">Status</th>
-                  <th className="px-3.5 py-2.5 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">ZATCA Ref</th>
+                  <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500 whitespace-nowrap min-w-[150px]">Trip Ref</th>
+                  <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500 whitespace-nowrap min-w-[110px]">Date</th>
+                  <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500 whitespace-nowrap min-w-[280px]">Route Path</th>
+                  <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500 whitespace-nowrap min-w-[220px]">Vehicle & Driver</th>
+                  <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500 whitespace-nowrap min-w-[130px]">Cargo</th>
+                  <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500 whitespace-nowrap min-w-[110px]">Status</th>
+                  <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500 whitespace-nowrap min-w-[150px]">ZATCA / External Ref</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredTrips.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-slate-400 text-xs">
-                      No trips found matching the selected filters.
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-2 text-slate-400">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <p className="font-bold text-slate-700 dark:text-slate-300 text-sm">No trips match the selected filters</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Try selecting a different date period or clearing the search keyword.</p>
                     </td>
                   </tr>
                 ) : (
@@ -526,32 +554,66 @@ function CompanyInvoiceStatementModal({
                     return (
                       <tr
                         key={trip.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer"
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                         onClick={() => onSelectTrip?.(trip)}
                       >
-                        <td className="px-3.5 py-2.5 font-mono font-bold text-[#E8450F] flex items-center gap-1">
-                          {trip.ref_id}
-                          <Eye className="w-3 h-3 text-slate-400 opacity-60" />
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="font-mono font-bold text-[#E8450F] flex items-center gap-1.5">
+                            {trip.ref_id}
+                            <Eye className="w-3.5 h-3.5 text-slate-400 opacity-60 hover:opacity-100" />
+                          </span>
                         </td>
-                        <td className="px-3.5 py-2.5 text-slate-500 whitespace-nowrap">
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">
                           {d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
-                        <td className="px-3.5 py-2.5 text-slate-700 dark:text-slate-300 font-semibold max-w-[180px] truncate">
-                          {getTripOrigin(trip)} → {getTripDest(trip)}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold">
+                            <span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold max-w-[130px] truncate">
+                              {getTripOrigin(trip)}
+                            </span>
+                            <span className="text-slate-400 font-bold">→</span>
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold max-w-[130px] truncate">
+                              {getTripDest(trip)}
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-3.5 py-2.5 text-slate-600 dark:text-slate-400">
-                          {getVehicleDesc(trip)} · {getDriverDesc(trip)}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="space-y-0.5 text-xs">
+                            <p className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                              <Truck className="w-3 h-3 text-slate-400 shrink-0" />
+                              {getVehicleDesc(trip)}
+                            </p>
+                            <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                              <User className="w-3 h-3 text-slate-400 shrink-0" />
+                              {getDriverDesc(trip)}
+                            </p>
+                          </div>
                         </td>
-                        <td className="px-3.5 py-2.5 text-slate-600 dark:text-slate-400 font-medium">{getCargoDesc(trip)}</td>
-                        <td className="px-3.5 py-2.5 text-center">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium">
+                            <Package className="w-3 h-3 text-slate-400" />
+                            {getCargoDesc(trip)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center whitespace-nowrap">
                           {trip.status === 'Invoiced' ? (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-1.5">✓ Invoiced</Badge>
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5">
+                              ✓ Invoiced
+                            </Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px] uppercase tracking-wider px-1.5">Pending</Badge>
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px] uppercase tracking-wider px-2 py-0.5">
+                              Pending
+                            </Badge>
                           )}
                         </td>
-                        <td className="px-3.5 py-2.5 font-mono text-[10px] text-slate-500">
-                          {inv?.zatca_ref || inv?.ref_id || '—'}
+                        <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
+                          {inv?.zatca_ref || inv?.ref_id ? (
+                            <span className="text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-semibold">
+                              {inv?.zatca_ref || inv?.ref_id}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -562,8 +624,14 @@ function CompanyInvoiceStatementModal({
           </div>
         </div>
 
-        <DialogFooter className="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 shrink-0">
-          <Button size="sm" variant="outline" className="text-xs" onClick={onClose}>Close Statement</Button>
+        {/* Modal Footer */}
+        <DialogFooter className="px-6 py-3.5 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+          <span className="text-xs text-slate-500 font-mono">
+            Showing {totalFiltered} of {row.trips.length} statement records for {row.customer.name}
+          </span>
+          <Button size="sm" variant="outline" className="text-xs font-semibold px-4" onClick={onClose}>
+            Close Statement
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -811,8 +879,8 @@ function CompanyRow({
         onClick={onToggle}
       >
         {/* Expand toggle + company name */}
-        <td className="px-4 py-3.5">
-          <div className="flex items-center gap-2.5">
+        <td className="px-5 py-3.5">
+          <div className="flex items-center gap-3">
             <span className={cn(
               'flex items-center justify-center w-5 h-5 rounded-md border transition-colors shrink-0',
               expanded
@@ -820,48 +888,38 @@ function CompanyRow({
                 : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500'
             )}>
               {expanded
-                ? <ChevronDown className="w-3 h-3" />
-                : <ChevronRight className="w-3 h-3" />
+                ? <ChevronDown className="w-3.5 h-3.5" />
+                : <ChevronRight className="w-3.5 h-3.5" />
               }
             </span>
             <div className="min-w-0">
               <p className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{row.customer.name}</p>
               {row.customer.contact_phone && (
-                <p className="text-[10px] text-slate-400 font-mono">{row.customer.contact_phone}</p>
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{row.customer.contact_phone}</p>
               )}
             </div>
           </div>
         </td>
-        {/* Trip counts */}
-        <td className="px-4 py-3.5 text-center">
+        {/* Trip counts moved to the right */}
+        <td className="px-5 py-3.5 text-right whitespace-nowrap">
           <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{row.total_trips}</span>
+          <span className="text-[11px] text-slate-400 font-medium ml-1">trips</span>
         </td>
-        <td className="px-4 py-3.5 text-center">
+        <td className="px-5 py-3.5 text-right whitespace-nowrap">
           {row.completed > 0
-            ? <span className="font-bold text-sm text-amber-600">{row.completed}</span>
-            : <span className="text-sm text-slate-300 font-semibold">—</span>
+            ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:border-amber-800/60 dark:text-amber-400">{row.completed}</span>
+            : <span className="text-sm text-slate-300 dark:text-slate-600 font-semibold">—</span>
           }
         </td>
-        <td className="px-4 py-3.5 text-center">
-          <span className="font-bold text-sm text-emerald-600">{row.invoiced}</span>
-        </td>
-        {/* Actions */}
-        <td className="px-4 py-3.5 text-right" onClick={e => e.stopPropagation()}>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onOpenStatement(row)}
-            className="h-7 px-2.5 text-[11px] font-bold border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 gap-1.5"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" /> Invoice Statement
-          </Button>
+        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-400">{row.invoiced}</span>
         </td>
       </tr>
 
       {/* Expandable trip sub-table */}
       {expanded && (
         <tr>
-          <td colSpan={5} className="p-0">
+          <td colSpan={4} className="p-0">
             <TripSubTable
               row={row}
               onMark={onMark}
@@ -1153,11 +1211,10 @@ export default function InvoiceListPage() {
               <table className="w-full">
                 <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80">
                   <tr>
-                    <th className="px-4 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500 min-w-[200px]">Company</th>
-                    <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500">Total Trips</th>
-                    <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-amber-500">Pending</th>
-                    <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-emerald-600">Invoiced</th>
-                    <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-slate-500">Actions</th>
+                    <th className="px-5 py-3 text-left font-bold text-[10px] uppercase tracking-wider text-slate-500">Company</th>
+                    <th className="px-5 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-slate-500 w-36">Total Trips</th>
+                    <th className="px-5 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-amber-500 w-32">Pending</th>
+                    <th className="px-5 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-emerald-600 w-32">Invoiced</th>
                   </tr>
                 </thead>
                 <tbody>
