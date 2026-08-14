@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -63,19 +63,6 @@ function getCargoDesc(trip: BillingLedgerTrip) {
   return 'General Cargo';
 }
 
-// ── Coverage badge ────────────────────────────────────────────────────────────
-function CoverageBadge({ pct }: { pct: number }) {
-  const cls = pct >= 100
-    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    : pct >= 60
-    ? 'bg-amber-50 text-amber-700 border-amber-300'
-    : 'bg-rose-50 text-rose-700 border-rose-200';
-  return (
-    <Badge variant="outline" className={`font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 ${cls}`}>
-      {pct}% Invoiced
-    </Badge>
-  );
-}
 
 // ── Quick Trip Summary Modal (Short Descriptive View) ──────────────────────────
 function QuickTripSummaryModal({
@@ -249,19 +236,129 @@ function QuickTripSummaryModal({
 // ── Company Invoice Statement Modal (Batch Filter Solution) ─────────────────────
 function CompanyInvoiceStatementModal({
   row,
+  initialPreset = 'ALL',
+  initialCustomFrom = '',
+  initialCustomTo = '',
   open,
   onClose,
+  onSelectTrip,
 }: {
   row: CustomerBillingRow | null;
+  initialPreset?: string;
+  initialCustomFrom?: string;
+  initialCustomTo?: string;
   open: boolean;
   onClose: () => void;
+  onSelectTrip?: (trip: BillingLedgerTrip) => void;
 }) {
   if (!row) return null;
 
-  const coverageRatio = row.coverage_pct ?? Math.round((row.invoiced / (row.total_trips || 1)) * 100);
+  const [datePreset, setDatePreset] = useState<string>(initialPreset);
+  const [customFrom, setCustomFrom] = useState<string>(initialCustomFrom);
+  const [customTo, setCustomTo] = useState<string>(initialCustomTo);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'Invoiced' | 'NotInvoiced'>('ALL');
+  const [statementSearch, setStatementSearch] = useState<string>('');
+
+  useEffect(() => {
+    if (open) {
+      setDatePreset(initialPreset || 'ALL');
+      setCustomFrom(initialCustomFrom || '');
+      setCustomTo(initialCustomTo || '');
+      setStatusFilter('ALL');
+      setStatementSearch('');
+    }
+  }, [open, row?.customer?.id, initialPreset, initialCustomFrom, initialCustomTo]);
+
+  const handlePresetChange = (preset: string) => {
+    setDatePreset(preset);
+    if (preset !== 'CUSTOM') {
+      setCustomFrom('');
+      setCustomTo('');
+    }
+  };
+
+  const filteredTrips = useMemo(() => {
+    if (!row?.trips) return [];
+    let list = row.trips;
+
+    // 1. Status filter
+    if (statusFilter === 'Invoiced') {
+      list = list.filter(t => t.status === 'Invoiced');
+    } else if (statusFilter === 'NotInvoiced') {
+      list = list.filter(t => t.status !== 'Invoiced');
+    }
+
+    // 2. Date preset / custom range filter
+    if (datePreset !== 'ALL' || customFrom || customTo) {
+      const now = new Date();
+      let fromDate: Date | null = null;
+      let toDate: Date | null = null;
+
+      if (datePreset === 'TODAY') {
+        fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      } else if (datePreset === 'THIS_WEEK') {
+        const dayOfWeek = now.getDay();
+        fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0);
+        toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      } else if (datePreset === 'THIS_MONTH') {
+        fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      } else if (datePreset === 'LAST_MONTH') {
+        fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+        toDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      } else if (datePreset === 'CUSTOM' || customFrom || customTo) {
+        if (customFrom) {
+          fromDate = new Date(customFrom);
+          fromDate.setHours(0, 0, 0, 0);
+        }
+        if (customTo) {
+          toDate = new Date(customTo);
+          toDate.setHours(23, 59, 59, 999);
+        }
+      }
+
+      list = list.filter(t => {
+        const d = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
+        if (isNaN(d.getTime())) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+        return true;
+      });
+    }
+
+    // 3. Search query filter
+    if (statementSearch.trim()) {
+      const q = statementSearch.toLowerCase().trim();
+      list = list.filter(t => {
+        const refId = (t.ref_id || '').toLowerCase();
+        const origin = getTripOrigin(t).toLowerCase();
+        const dest = getTripDest(t).toLowerCase();
+        const driver = getDriverDesc(t).toLowerCase();
+        const vehicle = getVehicleDesc(t).toLowerCase();
+        const cargo = getCargoDesc(t).toLowerCase();
+        const zatca = (getInvoiceRec(t)?.zatca_ref || getInvoiceRec(t)?.ref_id || '').toLowerCase();
+        return (
+          refId.includes(q) ||
+          origin.includes(q) ||
+          dest.includes(q) ||
+          driver.includes(q) ||
+          vehicle.includes(q) ||
+          cargo.includes(q) ||
+          zatca.includes(q)
+        );
+      });
+    }
+
+    return list;
+  }, [row?.trips, datePreset, customFrom, customTo, statusFilter, statementSearch]);
+
+  const totalFiltered = filteredTrips.length;
+  const invoicedFiltered = filteredTrips.filter(t => t.status === 'Invoiced').length;
+  const pendingFiltered = filteredTrips.filter(t => t.status !== 'Invoiced').length;
 
   const handleExportCompanyCSV = () => {
-    const csvRows = row.trips.map(trip => ({
+    const csvRows = filteredTrips.map(trip => ({
       company: row.customer.name,
       trip_ref: trip.ref_id,
       origin: getTripOrigin(trip),
@@ -282,7 +379,7 @@ function CompanyInvoiceStatementModal({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-3xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
         <DialogHeader className="p-5 pb-4 bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
@@ -306,7 +403,7 @@ function CompanyInvoiceStatementModal({
                 onClick={handleExportCompanyCSV}
                 className="h-8 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
               >
-                <Download className="w-3.5 h-3.5 text-emerald-600" /> Export CSV
+                <Download className="w-3.5 h-3.5 text-emerald-600" /> Export CSV ({totalFiltered})
               </Button>
               <Button
                 variant="outline"
@@ -320,25 +417,83 @@ function CompanyInvoiceStatementModal({
           </div>
         </DialogHeader>
 
+        {/* Statement Controls: Date Preset Filter + Status Filter + Search */}
+        <div className="p-3 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />
+              <Select value={datePreset} onValueChange={handlePresetChange}>
+                <SelectTrigger className="h-7 text-xs w-36 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium">
+                  <SelectValue placeholder="Select Period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Time ({row.trips.length})</SelectItem>
+                  <SelectItem value="TODAY">Today</SelectItem>
+                  <SelectItem value="THIS_WEEK">This Week</SelectItem>
+                  <SelectItem value="THIS_MONTH">This Month</SelectItem>
+                  <SelectItem value="LAST_MONTH">Last Month</SelectItem>
+                  <SelectItem value="CUSTOM">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(datePreset === 'CUSTOM' || customFrom || customTo) && (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={e => { setCustomFrom(e.target.value); setDatePreset('CUSTOM'); }}
+                  className="h-7 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-2 text-slate-700 dark:text-slate-200"
+                />
+                <span className="text-xs text-slate-400">—</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={e => { setCustomTo(e.target.value); setDatePreset('CUSTOM'); }}
+                  className="h-7 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md px-2 text-slate-700 dark:text-slate-200"
+                />
+              </div>
+            )}
+
+            <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
+              <SelectTrigger className="h-7 text-xs w-32 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                <SelectItem value="Invoiced">Invoiced Only</SelectItem>
+                <SelectItem value="NotInvoiced">Pending Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search statement trips..."
+              value={statementSearch}
+              onChange={e => setStatementSearch(e.target.value)}
+              className="pl-7 pr-2.5 h-7 text-xs w-48 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
         {/* Summary metric bar */}
-        <div className="bg-indigo-50/60 dark:bg-indigo-950/30 px-5 py-3 border-b border-indigo-100 dark:border-indigo-900/40 grid grid-cols-4 gap-3 text-center shrink-0">
+        <div className="bg-indigo-50/60 dark:bg-indigo-950/30 px-5 py-3 border-b border-indigo-100 dark:border-indigo-900/40 grid grid-cols-3 gap-3 text-center shrink-0">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Trips</p>
-            <p className="font-extrabold text-base text-slate-900 dark:text-slate-100">{row.total_trips}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Filtered Trips</p>
+            <p className="font-extrabold text-base text-slate-900 dark:text-slate-100">
+              {totalFiltered} <span className="text-[11px] font-normal text-slate-500">/ {row.trips.length} total</span>
+            </p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Invoiced</p>
-            <p className="font-extrabold text-base text-emerald-600">{row.invoiced}</p>
+            <p className="font-extrabold text-base text-emerald-600">{invoicedFiltered}</p>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Pending</p>
-            <p className="font-extrabold text-base text-amber-600">{row.completed}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Coverage Ratio</p>
-            <p className="font-extrabold text-base text-indigo-600 dark:text-indigo-400">
-              {coverageRatio}%
-            </p>
+            <p className="font-extrabold text-base text-amber-600">{pendingFiltered}</p>
           </div>
         </div>
 
@@ -358,35 +513,50 @@ function CompanyInvoiceStatementModal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {row.trips.map(trip => {
-                  const inv = getInvoiceRec(trip);
-                  const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
-                  return (
-                    <tr key={trip.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="px-3.5 py-2.5 font-mono font-bold text-[#E8450F]">{trip.ref_id}</td>
-                      <td className="px-3.5 py-2.5 text-slate-500 whitespace-nowrap">
-                        {d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-slate-700 dark:text-slate-300 font-semibold max-w-[180px] truncate">
-                        {getTripOrigin(trip)} → {getTripDest(trip)}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-slate-600 dark:text-slate-400">
-                        {getVehicleDesc(trip)} · {getDriverDesc(trip)}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-slate-600 dark:text-slate-400 font-medium">{getCargoDesc(trip)}</td>
-                      <td className="px-3.5 py-2.5 text-center">
-                        {trip.status === 'Invoiced' ? (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-1.5">✓ Invoiced</Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px] uppercase tracking-wider px-1.5">Pending</Badge>
-                        )}
-                      </td>
-                      <td className="px-3.5 py-2.5 font-mono text-[10px] text-slate-500">
-                        {inv?.zatca_ref || inv?.ref_id || '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filteredTrips.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-slate-400 text-xs">
+                      No trips found matching the selected filters.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTrips.map(trip => {
+                    const inv = getInvoiceRec(trip);
+                    const d = trip.planned_start ? new Date(trip.planned_start) : new Date(trip.createdAt);
+                    return (
+                      <tr
+                        key={trip.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer"
+                        onClick={() => onSelectTrip?.(trip)}
+                      >
+                        <td className="px-3.5 py-2.5 font-mono font-bold text-[#E8450F] flex items-center gap-1">
+                          {trip.ref_id}
+                          <Eye className="w-3 h-3 text-slate-400 opacity-60" />
+                        </td>
+                        <td className="px-3.5 py-2.5 text-slate-500 whitespace-nowrap">
+                          {d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-slate-700 dark:text-slate-300 font-semibold max-w-[180px] truncate">
+                          {getTripOrigin(trip)} → {getTripDest(trip)}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-slate-600 dark:text-slate-400">
+                          {getVehicleDesc(trip)} · {getDriverDesc(trip)}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-slate-600 dark:text-slate-400 font-medium">{getCargoDesc(trip)}</td>
+                        <td className="px-3.5 py-2.5 text-center">
+                          {trip.status === 'Invoiced' ? (
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] uppercase tracking-wider px-1.5">✓ Invoiced</Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px] uppercase tracking-wider px-1.5">Pending</Badge>
+                          )}
+                        </td>
+                        <td className="px-3.5 py-2.5 font-mono text-[10px] text-slate-500">
+                          {inv?.zatca_ref || inv?.ref_id || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -402,16 +572,19 @@ function CompanyInvoiceStatementModal({
 
 // ── Expandable trip sub-table with Date Range Preset Filter ────────────────────
 function TripSubTable({
-  trips,
+  row,
   onMark,
   onUnmark,
   onSelectTrip,
+  onOpenStatement,
 }: {
-  trips: BillingLedgerTrip[];
+  row: CustomerBillingRow;
   onMark: (trip: BillingLedgerTrip) => void;
   onUnmark: (trip: BillingLedgerTrip) => void;
   onSelectTrip: (trip: BillingLedgerTrip) => void;
+  onOpenStatement: (row: CustomerBillingRow, preset?: string, from?: string, to?: string) => void;
 }) {
+  const trips = row.trips;
   const [datePreset, setDatePreset] = useState<string>('ALL');
   const [customFrom, setCustomFrom] = useState<string>('');
   const [customTo, setCustomTo] = useState<string>('');
@@ -468,7 +641,7 @@ function TripSubTable({
 
   return (
     <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-3 space-y-2.5">
-      {/* Sub-table control bar: Date Range Preset + custom inputs + summary */}
+      {/* Sub-table control bar: Date Range Preset + custom inputs + statement action */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 px-1 py-1">
         <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />
@@ -506,8 +679,16 @@ function TripSubTable({
           )}
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-mono">
-          <span className="text-slate-500 font-semibold">Showing {filteredTrips.length} of {trips.length} trips</span>
+        <div className="flex items-center gap-2.5">
+          <span className="text-slate-500 font-semibold text-xs font-mono">Showing {filteredTrips.length} of {trips.length} trips</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onOpenStatement(row, datePreset, customFrom, customTo)}
+            className="h-7 px-2.5 text-xs font-bold border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 gap-1.5"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" /> Statement ({filteredTrips.length})
+          </Button>
         </div>
       </div>
 
@@ -615,10 +796,8 @@ function CompanyRow({
   onMark: (trip: BillingLedgerTrip) => void;
   onUnmark: (trip: BillingLedgerTrip) => void;
   onSelectTrip: (trip: BillingLedgerTrip) => void;
-  onOpenStatement: (row: CustomerBillingRow) => void;
+  onOpenStatement: (row: CustomerBillingRow, preset?: string, from?: string, to?: string) => void;
 }) {
-  const coverageRatio = row.coverage_pct ?? Math.round((row.invoiced / (row.total_trips || 1)) * 100);
-
   return (
     <>
       {/* Company summary row */}
@@ -666,10 +845,6 @@ function CompanyRow({
         <td className="px-4 py-3.5 text-center">
           <span className="font-bold text-sm text-emerald-600">{row.invoiced}</span>
         </td>
-        {/* Coverage ratio */}
-        <td className="px-4 py-3.5 text-center">
-          <CoverageBadge pct={coverageRatio} />
-        </td>
         {/* Actions */}
         <td className="px-4 py-3.5 text-right" onClick={e => e.stopPropagation()}>
           <Button
@@ -686,12 +861,13 @@ function CompanyRow({
       {/* Expandable trip sub-table */}
       {expanded && (
         <tr>
-          <td colSpan={6} className="p-0">
+          <td colSpan={5} className="p-0">
             <TripSubTable
-              trips={row.trips}
+              row={row}
               onMark={onMark}
               onUnmark={onUnmark}
               onSelectTrip={onSelectTrip}
+              onOpenStatement={onOpenStatement}
             />
           </td>
         </tr>
@@ -717,7 +893,12 @@ export default function InvoiceListPage() {
   const [selectedTrip, setSelectedTrip] = useState<BillingLedgerTrip | null>(null);
 
   // Selected Company Statement Modal state
-  const [statementRow, setStatementRow] = useState<CustomerBillingRow | null>(null);
+  const [statementConfig, setStatementConfig] = useState<{
+    row: CustomerBillingRow | null;
+    preset?: string;
+    from?: string;
+    to?: string;
+  }>({ row: null });
 
   // Mark-as-Invoiced modal state
   const [markModal, setMarkModal] = useState<{ open: boolean; trip: BillingLedgerTrip | null }>({ open: false, trip: null });
@@ -976,7 +1157,6 @@ export default function InvoiceListPage() {
                     <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500">Total Trips</th>
                     <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-amber-500">Pending</th>
                     <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-emerald-600">Invoiced</th>
-                    <th className="px-4 py-3 text-center font-bold text-[10px] uppercase tracking-wider text-slate-500">Coverage Status</th>
                     <th className="px-4 py-3 text-right font-bold text-[10px] uppercase tracking-wider text-slate-500">Actions</th>
                   </tr>
                 </thead>
@@ -990,7 +1170,7 @@ export default function InvoiceListPage() {
                       onMark={openMarkModal}
                       onUnmark={handleUnmark}
                       onSelectTrip={t => setSelectedTrip(t)}
-                      onOpenStatement={r => setStatementRow(r)}
+                      onOpenStatement={(r, preset, from, to) => setStatementConfig({ row: r, preset, from, to })}
                     />
                   ))}
                 </tbody>
@@ -1012,9 +1192,13 @@ export default function InvoiceListPage() {
 
       {/* ── Company Invoice Statement Modal ─────────────────────────────── */}
       <CompanyInvoiceStatementModal
-        row={statementRow}
-        open={!!statementRow}
-        onClose={() => setStatementRow(null)}
+        row={statementConfig.row}
+        initialPreset={statementConfig.preset}
+        initialCustomFrom={statementConfig.from}
+        initialCustomTo={statementConfig.to}
+        open={!!statementConfig.row}
+        onClose={() => setStatementConfig({ row: null })}
+        onSelectTrip={t => setSelectedTrip(t)}
       />
 
       {/* ── Mark as Invoiced Modal ──────────────────────────────────────── */}
