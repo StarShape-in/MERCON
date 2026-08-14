@@ -66,6 +66,7 @@ const PaymentStatusPage       = lazy(() => import('@/pages/invoices/PaymentStatu
 
 // Expenses
 const ExpenseListPage         = lazy(() => import('@/pages/expenses/ExpenseListPage'));
+const ExpenseDetailsPage      = lazy(() => import('@/pages/expenses/ExpenseDetailsPage'));
 
 // Documents
 const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCenterPage'));
@@ -175,6 +176,7 @@ export default function AppRouter() {
 
           {/* Expenses */}
           <Route path="/expenses"                 element={<RequireModule moduleKey="expenses"><ExpenseListPage /></RequireModule>} />
+          <Route path="/expenses/:id"             element={<RequireModule moduleKey="expenses"><ExpenseDetailsPage /></RequireModule>} />
 
           {/* Documents */}
           <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
