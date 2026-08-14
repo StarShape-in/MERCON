@@ -168,10 +168,10 @@ export default function NotificationsPage() {
 
         const expFormatted = doc.expiry_date ? doc.expiry_date.split('T')[0] : '';
         const title = isExpired
-          ? `⚠️ Expired: ${typeLabel} (${entityName})`
+          ? `Expired: ${typeLabel} (${entityName})`
           : isCritical
-          ? `🚨 Critical Renewal: ${typeLabel} (${entityName})`
-          : `🔔 Reminder: ${typeLabel} Expiring Soon (${entityName})`;
+          ? `Critical Renewal: ${typeLabel} (${entityName})`
+          : `Reminder: ${typeLabel} Expiring Soon (${entityName})`;
 
         const message = isExpired
           ? `${typeLabel} for ${entityName} expired ${Math.abs(days)} day(s) ago (${expFormatted}). Immediate regulatory renewal required.`
@@ -212,10 +212,10 @@ export default function NotificationsPage() {
           const isRead = readReminderIds.has(reminderId);
 
           const title = isExpired
-            ? `⚠️ Expired: Driver License (${driverName})`
+            ? `Expired: Driver License (${driverName})`
             : isCritical
-            ? `🚨 Critical License Expiry: ${driverName}`
-            : `🔔 Reminder: Driver License Expiring (${driverName})`;
+            ? `Critical License Expiry: ${driverName}`
+            : `Reminder: Driver License Expiring (${driverName})`;
 
           const message = isExpired
             ? `Driver License for ${driverName} (${d.phone_primary}) expired ${Math.abs(days)} day(s) ago. Driver cannot be legally dispatched until renewed.`

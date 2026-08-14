@@ -16,11 +16,15 @@ import {
   Send,
   Truck,
   User,
-  ArrowRight,
-  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -270,12 +274,12 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[18px] border border-black/[0.06] dark:border-slate-800 shadow-sm p-4 flex flex-col justify-between h-full overflow-hidden">
       
-      {/* ── Header with Title & Filter Dropdown Menu ────────────────────────── */}
+      {/* ── Header with Title & Highlighted Delayed Units Badge ────────────────────────── */}
       <div className="space-y-2.5 pb-2.5 border-b border-black/[0.05] dark:border-slate-800 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300">
-              <ShieldAlert className="w-4 h-4 text-[#E8450F]" />
+            <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/60 flex items-center justify-center text-red-600">
+              <ShieldAlert className="w-4 h-4 text-red-600" />
             </div>
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
@@ -285,44 +289,59 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
             </div>
           </div>
 
-          <Badge
+          {/* Prominent Red Fill & Pure White Text Badge */}
+          <div
             className={cn(
-              'text-[10px] font-black px-2.5 py-0.5 border flex items-center gap-1.5 shadow-2xs',
+              'px-3 py-1 rounded-xl flex items-center gap-2 shadow-sm transition-all select-none',
               delayItems.length > 0
-                ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/60'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-red-600 text-white shadow-red-600/30 ring-2 ring-red-600/20'
+                : 'bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-600/20'
             )}
           >
-            <span className={cn('w-2 h-2 rounded-full', delayItems.length > 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500')} />
-            {delayItems.length} Delayed Unit{delayItems.length === 1 ? '' : 's'}
-          </Badge>
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
+            <span className="text-xs font-black uppercase tracking-tight text-white">
+              {delayItems.length} Delayed Unit{delayItems.length === 1 ? '' : 's'}
+            </span>
+          </div>
         </div>
 
-        {/* ── Solid Filter Dropdown Control Bar ───────────────────────────────── */}
+        {/* ── Standard Project Select Dropdown Control Bar ───────────────── */}
         <div className="flex items-center justify-between gap-2">
-          <div className="relative flex-1">
-            <Filter className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as any)}
-              className="w-full h-8 pl-8 pr-7 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#E8450F] appearance-none cursor-pointer transition-colors"
-            >
-              <option value="all">All Delay Categories ({counts.all})</option>
-              <option value="traffic">🚦 Traffic Congestion ({counts.traffic})</option>
-              <option value="breakdown">🔧 Mechanical Breakdown ({counts.breakdown})</option>
-              <option value="loading">📦 Dock & Loading Queue ({counts.loading})</option>
-              <option value="weather">⛈️ Weather & Sandstorm ({counts.weather})</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <div className="flex-1">
+            <Select value={categoryFilter} onValueChange={(val: any) => setCategoryFilter(val)}>
+              <SelectTrigger className="h-8 w-full text-xs font-bold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-1 focus:ring-[#E8450F] shadow-2xs">
+                <div className="flex items-center gap-2 truncate">
+                  <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <SelectValue placeholder="All Delay Categories" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900">
+                <SelectItem value="all" className="text-xs font-bold cursor-pointer">
+                  All Delay Categories ({counts.all})
+                </SelectItem>
+                <SelectItem value="traffic" className="text-xs font-semibold cursor-pointer">
+                  Traffic Congestion ({counts.traffic})
+                </SelectItem>
+                <SelectItem value="breakdown" className="text-xs font-semibold cursor-pointer">
+                  Mechanical Breakdown ({counts.breakdown})
+                </SelectItem>
+                <SelectItem value="loading" className="text-xs font-semibold cursor-pointer">
+                  Dock &amp; Loading Queue ({counts.loading})
+                </SelectItem>
+                <SelectItem value="weather" className="text-xs font-semibold cursor-pointer">
+                  Weather &amp; Sandstorm ({counts.weather})
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <button
             type="button"
             onClick={() => setCategoryFilter('all')}
             className={cn(
-              'h-8 px-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wide border transition-all cursor-pointer shrink-0',
+              'h-8 px-3 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-all cursor-pointer shrink-0 shadow-xs',
               categoryFilter === 'all'
-                ? 'bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
+                ? 'bg-[#E8450F] hover:bg-[#cf3c0b] text-white border-[#E8450F]'
                 : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
             )}
           >
@@ -340,7 +359,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
               key={item.id}
               onClick={() => navigate(`/trips/${item.rawId}`)}
               className={cn(
-                'p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 hover:border-slate-400 dark:hover:border-slate-600 shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between gap-2.5',
+                'p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 shadow-xs transition-colors cursor-pointer group flex flex-col justify-between gap-2.5',
                 item.cardBorderAccent
               )}
             >
@@ -356,7 +375,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <span className={cn('text-[9.5px] font-black uppercase px-2 py-0.5 rounded-md tracking-wider shadow-2xs', item.solidBadgeBg)}>
+                  <span className={cn('text-[9.5px] font-black uppercase px-2.5 py-0.5 rounded-md tracking-wider shadow-2xs', item.solidBadgeBg)}>
                     {item.badgeText}
                   </span>
                 </div>
@@ -368,7 +387,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
                   <span>{item.route}</span>
                 </div>
 
-                <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 leading-snug">
+                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-snug">
                   {item.delayNote}
                 </p>
               </div>
@@ -391,13 +410,13 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
                     type="button"
                     onClick={(e) => handleOpenQuickMsg(item, e)}
                     title="Ping Driver"
-                    className="h-6 px-2 rounded-lg text-[10px] font-extrabold bg-slate-100 hover:bg-[#E8450F] text-slate-700 hover:text-white dark:bg-slate-800 dark:text-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
+                    className="h-6 px-2.5 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
                   >
-                    <MessageSquare className="w-3 h-3" />
+                    <MessageSquare className="w-3 h-3 text-slate-500" />
                     <span>Ping</span>
                   </button>
 
-                  <span className="text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all">
+                  <span className="text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all">
                     <ChevronRight className="w-4 h-4" />
                   </span>
                 </div>
@@ -421,25 +440,15 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
           <Activity className="w-3 h-3 text-emerald-500" /> Live corridor monitoring
         </span>
 
-        <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            onClick={() => navigate('/reports/delays')}
-            variant="ghost"
-            className="h-7 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 px-2 cursor-pointer gap-1"
-          >
-            <BarChart2 className="w-3 h-3 text-slate-400" />
-            Delay Report
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => navigate('/trips')}
-            className="h-7 text-xs font-extrabold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 rounded-lg px-2.5 shadow-xs cursor-pointer"
-          >
-            All Trips →
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          onClick={() => navigate('/reports/delays')}
+          variant="ghost"
+          className="h-7 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 px-2 cursor-pointer gap-1"
+        >
+          <BarChart2 className="w-3 h-3 text-slate-400" />
+          Delay Report ↗
+        </Button>
       </div>
 
       {/* ── Quick Driver Dispatch Notice Dialog ────────────────────────── */}
@@ -472,7 +481,7 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
                 value={quickMsgText}
                 onChange={(e) => setQuickMsgText(e.target.value)}
                 rows={3}
-                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-brand focus:border-brand resize-none bg-white dark:bg-slate-900"
+                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-[#E8450F] resize-none bg-white dark:bg-slate-900"
               />
             </div>
           </div>

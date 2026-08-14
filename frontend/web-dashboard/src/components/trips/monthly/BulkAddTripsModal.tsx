@@ -1466,7 +1466,7 @@ export default function BulkAddTripsModal({
                                             title="Toggle Overnight / Next-Day Return trip (+1 Day)"
                                           >
                                             <Moon className={`w-3 h-3 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
-                                            {slot.isOvernight ? '🌙 +1 Day' : '+1 Day'}
+                                            +1 Day
                                           </button>
                                         </div>
                                       )}
@@ -1822,8 +1822,9 @@ export default function BulkAddTripsModal({
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               {/* Driver/Truck A */}
                               <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-2">
-                                <span className="text-[11px] font-bold text-indigo-900 block">
-                                  🔵 Team A (Odd Trips: 1, 3, 5...)
+                                <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+                                  Team A (Odd Trips: 1, 3, 5...)
                                 </span>
                                 <div className="grid grid-cols-2 gap-2">
                                   <Select value={loopDriverA} onValueChange={setLoopDriverA}>
@@ -1858,8 +1859,9 @@ export default function BulkAddTripsModal({
 
                               {/* Driver/Truck B */}
                               <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-2">
-                                <span className="text-[11px] font-bold text-indigo-900 block">
-                                  🟠 Team B (Even Trips: 2, 4, 6...)
+                                <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
+                                  Team B (Even Trips: 2, 4, 6...)
                                 </span>
                                 <div className="grid grid-cols-2 gap-2">
                                   <Select value={loopDriverB} onValueChange={setLoopDriverB}>
@@ -2069,7 +2071,7 @@ export default function BulkAddTripsModal({
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assignment Mode</span>
                             <span className="text-xs font-semibold text-slate-700">
-                              {assignMode === 'alternating' ? '🔄 Alternating A/B Rotation' : 'Single Master Apply'}
+                              {assignMode === 'alternating' ? 'Alternating A/B Rotation' : 'Single Master Apply'}
                             </span>
                           </div>
                         </div>

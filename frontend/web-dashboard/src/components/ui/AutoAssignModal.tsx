@@ -397,12 +397,12 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                           {currentEntityType === 'Vehicle'
                             ? vehicles.map((v) => (
                                 <SelectItem key={v.id} value={v.id} className="text-xs font-semibold font-mono">
-                                  🚛 {v.plate_number || v.ref_id}
+                                  {v.plate_number || v.ref_id}
                                 </SelectItem>
                               ))
                             : drivers.map((d) => (
                                 <SelectItem key={d.id} value={d.id} className="text-xs font-semibold">
-                                  👨‍✈️ {d.first_name} {d.last_name}
+                                  {d.first_name} {d.last_name}
                                 </SelectItem>
                               ))}
                         </SelectContent>

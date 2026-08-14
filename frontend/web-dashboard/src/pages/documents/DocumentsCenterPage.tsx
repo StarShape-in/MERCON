@@ -1211,7 +1211,7 @@ export default function DocumentsCenterPage() {
                           </SelectItem>
                           {vehicles.map((v) => (
                             <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
-                              🚚 {v.plate_number || v.ref_id}
+                              {v.plate_number || v.ref_id}
                             </SelectItem>
                           ))}
                           <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
@@ -1219,7 +1219,7 @@ export default function DocumentsCenterPage() {
                           </SelectItem>
                           {drivers.map((d) => (
                             <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
-                              👨‍✈️ {d.first_name} {d.last_name}
+                              {d.first_name} {d.last_name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1788,7 +1788,7 @@ export default function DocumentsCenterPage() {
                         </SelectItem>
                         {vehicles.map((v) => (
                           <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
-                            🚚 {v.plate_number || v.ref_id}
+                            {v.plate_number || v.ref_id}
                           </SelectItem>
                         ))}
                         <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
@@ -1796,7 +1796,7 @@ export default function DocumentsCenterPage() {
                         </SelectItem>
                         {drivers.map((d) => (
                           <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
-                            👨‍✈️ {d.first_name} {d.last_name}
+                            {d.first_name} {d.last_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
