@@ -252,7 +252,7 @@ export default function QuickReportPage() {
 
   return (
     <DashboardLayout active="Report Builder" title="Quick Report Wizard">
-      <div className="space-y-6 pb-12">
+      <div className="px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-6 pb-12">
         {/* Header Layout */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
