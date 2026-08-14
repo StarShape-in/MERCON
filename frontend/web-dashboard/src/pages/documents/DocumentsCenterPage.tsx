@@ -40,7 +40,7 @@ import { matchesSearch } from '@/lib/search';
 
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
-const CATEGORY_TABS: Array<'All' | DocCategory> = ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'];
+const CATEGORY_TABS: Array<'All' | DocCategory | 'Unassigned'> = ['All', 'Drivers', 'Vehicles', 'Operations', 'Company', 'Unassigned'];
 
 const CATEGORY_CONFIG: Record<DocCategory, {
   icon: React.ElementType;
@@ -113,8 +113,8 @@ export default function DocumentsCenterPage() {
   // State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [activeCategory, setActiveCategory] = useState<'All' | DocCategory>(
-    ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'].includes(initialCategory) ? initialCategory : 'All'
+  const [activeCategory, setActiveCategory] = useState<'All' | DocCategory | 'Unassigned'>(
+    ['All', 'Drivers', 'Vehicles', 'Operations', 'Company', 'Unassigned'].includes(initialCategory) ? initialCategory : 'All'
   );
   const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>(
     ['all', 'expired', 'critical', 'warning', 'valid'].includes(initialFilter) ? initialFilter : 'all'
@@ -314,7 +314,19 @@ export default function DocumentsCenterPage() {
         issuer: REGULATORY_BODY[d.doc_type] || 'Saudi Authority',
       }))
       .filter((d) => {
-        const matchesCat = activeCategory === 'All' || d.category === activeCategory;
+        const vIds = new Set(vehicles.map((v) => v.id));
+        const dIds = new Set(drivers.map((d) => d.id));
+        const isUnlinked = (
+          (d.entity_type === 'Vehicle' && !vIds.has(d.entity_id)) ||
+          (d.entity_type === 'Driver' && !dIds.has(d.entity_id)) ||
+          (!['Vehicle', 'Driver', 'Trip', 'Customer', 'Company'].includes(d.entity_type))
+        );
+
+        const matchesCat = activeCategory === 'All'
+          ? true
+          : activeCategory === 'Unassigned'
+            ? isUnlinked
+            : d.category === activeCategory;
         const matchesExpiry = expiryFilter === 'all' 
           ? true 
           : expiryFilter === 'warning' 
@@ -718,8 +730,14 @@ export default function DocumentsCenterPage() {
           {/* Category Filter Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
             {CATEGORY_TABS.map((cat) => {
-              const count = cat === 'All' ? docs.length : (foldersByCategory[cat]?.count || 0);
+              const count = cat === 'All'
+                ? docs.length
+                : cat === 'Unassigned'
+                  ? groupedEntityFolders.unlinked.length
+                  : (foldersByCategory[cat]?.count || 0);
               const isActive = activeCategory === cat;
+              const isUnassignedPill = cat === 'Unassigned';
+
               return (
                 <button
                   key={cat}
@@ -727,11 +745,16 @@ export default function DocumentsCenterPage() {
                   className={cn(
                     'px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap',
                     isActive
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/70 border border-slate-200/70 dark:border-slate-700'
+                      ? isUnassignedPill
+                        ? 'bg-amber-600 text-white shadow-2xs'
+                        : 'bg-brand text-white shadow-2xs'
+                      : isUnassignedPill && count > 0
+                        ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-100'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/70 border border-slate-200/70 dark:border-slate-700'
                   )}
                 >
-                  <span>{cat} Category</span>
+                  {isUnassignedPill && <Sparkles size={13} className={isActive ? 'text-white' : 'text-amber-500'} />}
+                  <span>{cat === 'All' ? 'All Documents' : isUnassignedPill ? 'Unassigned Docs' : `${cat} Category`}</span>
                   <span className={cn(
                     'text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold',
                     isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
@@ -1043,6 +1066,68 @@ export default function DocumentsCenterPage() {
                       </div>
                     </Card>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Unassigned / Loose Documents Group Section */}
+            {(activeCategory === 'All' || activeCategory === 'Unassigned') && groupedEntityFolders.unlinked.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-amber-800 dark:text-amber-300 tracking-wider uppercase flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500/20" />
+                    <span>Unassigned Documents ({groupedEntityFolders.unlinked.length} Files Needing Assignment)</span>
+                  </h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs font-bold border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                    onClick={handleAutoAssignUnlinkedDocs}
+                    disabled={isAutoAssigning}
+                  >
+                    {isAutoAssigning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    <span>Run Auto-Assign</span>
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {groupedEntityFolders.unlinked.map((doc) => {
+                    const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
+                    return (
+                      <Card
+                        key={doc.id}
+                        onClick={() => setPreviewDoc(doc)}
+                        className="border border-amber-200/80 dark:border-amber-900/60 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-amber-400 dark:hover:border-amber-700 transition-all cursor-pointer flex flex-col justify-between"
+                      >
+                        <div className="space-y-2.5">
+                          <div className="flex items-start justify-between">
+                            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 shrink-0">
+                              <DocIcon className="w-4 h-4" />
+                            </div>
+                            <Badge variant="outline" className="bg-amber-100/60 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300/60 text-[10px] font-bold">
+                              Unassigned
+                            </Badge>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                              {docTypeLabel(doc.doc_type)}
+                            </h4>
+                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5 truncate">
+                              {doc.ai_extracted_json?.document_number || `DOC-${doc.id.slice(0, 8)}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2.5 mt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                          <span className="truncate">{doc.issuer}</span>
+                          <span className="font-bold text-amber-600 flex items-center gap-1">
+                            <span>Assign</span>
+                            <ChevronRight size={10} />
+                          </span>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )}
