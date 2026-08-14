@@ -223,7 +223,7 @@ export default function WorkshopField({
                   key={w.name}
                   onClick={() => handleSelectWorkshop(w)}
                   className={cn(
-                    'px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors',
+                    'px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors select-none',
                     isCheckedForDelete
                       ? 'bg-emerald-50 dark:bg-emerald-950/30'
                       : isSelected
