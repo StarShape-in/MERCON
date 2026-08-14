@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight } from 'lucide-react';
+import { Truck, AlertTriangle, ArrowRight, Phone, ArrowUpRight, Trash2 } from 'lucide-react';
 
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -16,6 +17,10 @@ const FIELD_LABEL = 'text-[9px] font-bold uppercase tracking-wider text-[#9898A4
 
 interface MonthlyCompanyCardProps {
   company: MonthlyBoardCompany;
+  selectedTripIds?: string[];
+  onToggleTrip?: (id: string) => void;
+  onToggleCompany?: (tripIds: string[]) => void;
+  onSingleDelete?: (tripId: string) => void;
 }
 
 /**
@@ -25,18 +30,43 @@ interface MonthlyCompanyCardProps {
  * Clicking a row opens a detail dialog on the board rather than navigating
  * away, so scanning a month never costs you your place in it.
  */
-export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps) {
+export default function MonthlyCompanyCard({
+  company,
+  selectedTripIds = [],
+  onToggleTrip,
+  onToggleCompany,
+  onSingleDelete,
+}: MonthlyCompanyCardProps) {
   const [selectedTrip, setSelectedTrip] = useState<MonthlyBoardTrip | null>(null);
 
   // Backend already sorts trips by planned_start/createdAt within each day
   // and returns days in date order — flattening preserves that order.
   const trips = company.days.flatMap((day) => day.trips);
+  const companyTripIds = useMemo(() => trips.map((t) => t.id), [trips]);
+
+  const allSelected =
+    companyTripIds.length > 0 && companyTripIds.every((id) => selectedTripIds.includes(id));
+  const someSelected =
+    !allSelected && companyTripIds.some((id) => selectedTripIds.includes(id));
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm hover:border-slate-300 transition-all overflow-hidden flex flex-col">
+    <div className={`rounded-xl border bg-white shadow-sm transition-all overflow-hidden flex flex-col ${
+      someSelected || allSelected ? 'border-[#E8450F]/40 ring-1 ring-[#E8450F]/20' : 'border-slate-200 hover:border-slate-300'
+    }`}>
       {/* ── Company header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-slate-50/70 border-b border-slate-200">
         <div className="flex items-center gap-3 min-w-0">
+          {onToggleCompany && (
+            <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+              <Checkbox
+                checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                onCheckedChange={() => onToggleCompany(companyTripIds)}
+                className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-[#E8450F] data-[state=checked]:border-[#E8450F]"
+                aria-label={`Select all trips for ${company.customer.name}`}
+              />
+            </div>
+          )}
+
           <span className="h-9 w-9 shrink-0 rounded-lg bg-[#E8450F]/10 border border-[#E8450F]/20 text-[#E8450F] grid place-items-center text-xs font-bold">
             {initialsOf(company.customer.name)}
           </span>
@@ -83,9 +113,15 @@ export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps)
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-100/60 hover:bg-slate-100/60 border-b border-slate-200">
-              {/* Route, category and amount are one click away in the detail
-                  dialog — keeping them out of the row is what makes the row
-                  scannable at a glance instead of a wall of columns. */}
+              {onToggleCompany && (
+                <TableHead className="w-9 px-3.5">
+                  <Checkbox
+                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                    onCheckedChange={() => onToggleCompany(companyTripIds)}
+                    className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-[#E8450F] data-[state=checked]:border-[#E8450F]"
+                  />
+                </TableHead>
+              )}
               <TableHead className="h-8 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">Date</TableHead>
               <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Driver</TableHead>
               <TableHead className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Vehicle</TableHead>
@@ -94,26 +130,59 @@ export default function MonthlyCompanyCard({ company }: MonthlyCompanyCardProps)
           </TableHeader>
           <TableBody className="divide-y divide-slate-100">
             {trips.map((trip) => (
-              <TripRow key={trip.id} trip={trip} onOpen={() => setSelectedTrip(trip)} />
+              <TripRow
+                key={trip.id}
+                trip={trip}
+                isSelected={selectedTripIds.includes(trip.id)}
+                onToggle={onToggleTrip ? () => onToggleTrip(trip.id) : undefined}
+                onOpen={() => setSelectedTrip(trip)}
+              />
             ))}
           </TableBody>
         </Table>
       </div>
 
-      <TripDetailDialog trip={selectedTrip} onClose={() => setSelectedTrip(null)} />
+      <TripDetailDialog
+        trip={selectedTrip}
+        onClose={() => setSelectedTrip(null)}
+        onDelete={onSingleDelete ? (id) => { setSelectedTrip(null); onSingleDelete(id); } : undefined}
+      />
     </div>
   );
 }
 
-function TripRow({ trip, onOpen }: { trip: MonthlyBoardTrip; onOpen: () => void }) {
+function TripRow({
+  trip,
+  isSelected = false,
+  onToggle,
+  onOpen,
+}: {
+  trip: MonthlyBoardTrip;
+  isSelected?: boolean;
+  onToggle?: () => void;
+  onOpen: () => void;
+}) {
   const gap = isUnassigned(trip);
   return (
     <TableRow
       onClick={onOpen}
       className={`cursor-pointer transition-colors ${
-        gap ? 'bg-amber-50/40 hover:bg-amber-50/80 border-b border-amber-100/60' : 'hover:bg-slate-50/80 border-b border-slate-100'
+        isSelected
+          ? 'bg-orange-50/70 hover:bg-orange-50 border-b border-orange-200'
+          : gap
+          ? 'bg-amber-50/40 hover:bg-amber-50/80 border-b border-amber-100/60'
+          : 'hover:bg-slate-50/80 border-b border-slate-100'
       }`}
     >
+      {onToggle && (
+        <TableCell className="w-9 px-3.5 py-2.5" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={onToggle}
+            className="h-4 w-4 rounded border-slate-300 data-[state=checked]:bg-[#E8450F] data-[state=checked]:border-[#E8450F]"
+          />
+        </TableCell>
+      )}
       <TableCell className="px-4 py-2.5 whitespace-nowrap">
         <span className="text-xs font-bold text-slate-900">{formatDayHeading(trip.date)}</span>
         <span className="ml-1.5 text-[11px] font-medium text-slate-400">{formatTime(trip.planned_start)}</span>
@@ -144,7 +213,15 @@ function TripRow({ trip, onOpen }: { trip: MonthlyBoardTrip; onOpen: () => void 
 }
 
 /** Full detail for one trip, without leaving the monthly board. */
-function TripDetailDialog({ trip, onClose }: { trip: MonthlyBoardTrip | null; onClose: () => void }) {
+function TripDetailDialog({
+  trip,
+  onClose,
+  onDelete,
+}: {
+  trip: MonthlyBoardTrip | null;
+  onClose: () => void;
+  onDelete?: (id: string) => void;
+}) {
   const navigate = useNavigate();
 
   return (
@@ -212,13 +289,25 @@ function TripDetailDialog({ trip, onClose }: { trip: MonthlyBoardTrip | null; on
                 />
               </div>
 
-              <Button
-                className="w-full h-10 rounded-lg text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none mt-1"
-                onClick={() => navigate(`/trips/${trip.id}`)}
-              >
-                Open full trip
-                <ArrowUpRight className="h-3.5 w-3.5 ml-1.5" />
-              </Button>
+              <div className="flex items-center gap-2 mt-1">
+                {onDelete && (
+                  <Button
+                    variant="outline"
+                    className="h-10 rounded-lg text-xs font-bold border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-3"
+                    onClick={() => onDelete(trip.id)}
+                    title="Delete Trip"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  className="flex-1 h-10 rounded-lg text-xs font-bold bg-[#E8450F] hover:bg-[#d13d0d] shadow-none"
+                  onClick={() => navigate(`/trips/${trip.id}`)}
+                >
+                  Open full trip
+                  <ArrowUpRight className="h-3.5 w-3.5 ml-1.5" />
+                </Button>
+              </div>
             </div>
           </>
         )}

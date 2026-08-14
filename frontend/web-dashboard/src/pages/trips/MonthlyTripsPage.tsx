@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   CalendarRange, ChevronLeft, ChevronRight, RotateCw, FileSpreadsheet,
-  Plus, Search, X, Info, SlidersHorizontal, Layers,
+  Plus, Search, X, Info, SlidersHorizontal, Layers, Trash2, CheckSquare, Square, Check,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import MonthlyCompanyCard from '@/components/trips/monthly/MonthlyCompanyCard';
 import BulkAddTripsModal from '@/components/trips/monthly/BulkAddTripsModal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { currentMonthKey, monthLabel, monthOptions, shiftMonth } from '@/components/trips/monthly/monthlyBoardUtils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -50,6 +51,12 @@ export default function MonthlyTripsPage() {
   const [status, setStatus] = useState('');
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
+  // Selection & Batch Actions State
+  const [selectedTripIds, setSelectedTripIds] = useState<string[]>([]);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isSingleDeleteConfirmOpen, setIsSingleDeleteConfirmOpen] = useState(false);
+  const [tripToDelete, setTripToDelete] = useState<string | null>(null);
+
   const filters = {
     month,
     ...(search.trim() ? { search: search.trim() } : {}),
@@ -72,6 +79,62 @@ export default function MonthlyTripsPage() {
   const companies = board?.companies ?? [];
   const summary = board?.summary;
   const customers = customersRes?.data ?? [];
+
+  // All trip IDs across all companies currently rendered
+  const allVisibleTripIds = useMemo(
+    () => companies.flatMap((c) => c.days.flatMap((d) => d.trips.map((t) => t.id))),
+    [companies],
+  );
+
+  const handleToggleTrip = (id: string) => {
+    setSelectedTripIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
+
+  const handleToggleCompany = (companyTripIds: string[]) => {
+    setSelectedTripIds((prev) => {
+      const allSelected = companyTripIds.length > 0 && companyTripIds.every((id) => prev.includes(id));
+      if (allSelected) {
+        return prev.filter((id) => !companyTripIds.includes(id));
+      } else {
+        const set = new Set([...prev, ...companyTripIds]);
+        return Array.from(set);
+      }
+    });
+  };
+
+  const handleSelectAllVisible = () => {
+    if (selectedTripIds.length === allVisibleTripIds.length && allVisibleTripIds.length > 0) {
+      setSelectedTripIds([]);
+    } else {
+      setSelectedTripIds(allVisibleTripIds);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedTripIds([]);
+  };
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => tripService.bulkDelete(ids),
+    onSuccess: () => {
+      setSelectedTripIds([]);
+      setIsDeleteConfirmOpen(false);
+      setIsSingleDeleteConfirmOpen(false);
+      setTripToDelete(null);
+      refetch();
+    },
+  });
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: ({ ids, status }: { ids: string[]; status: string }) =>
+      tripService.bulkUpdateStatus(ids, status),
+    onSuccess: () => {
+      setSelectedTripIds([]);
+      refetch();
+    },
+  });
 
   // Every applied filter as a removable chip — one place, so the chip row and
   // the "clear all" count can never disagree about what is actually applied.
@@ -355,13 +418,107 @@ export default function MonthlyTripsPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start pb-16">
             {companies.map((company) => (
-              <MonthlyCompanyCard key={company.customer.id} company={company} />
+              <MonthlyCompanyCard
+                key={company.customer.id}
+                company={company}
+                selectedTripIds={selectedTripIds}
+                onToggleTrip={handleToggleTrip}
+                onToggleCompany={handleToggleCompany}
+                onSingleDelete={(id) => {
+                  setTripToDelete(id);
+                  setIsSingleDeleteConfirmOpen(true);
+                }}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* ── Floating Selection & Bulk Action Bar ── */}
+      {selectedTripIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[92vw] sm:w-auto bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-800 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-200">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs font-extrabold bg-[#E8450F] text-white px-2.5 py-1 rounded-lg shadow-2xs">
+              <span>{selectedTripIds.length}</span>
+              <span>Selected</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleSelectAllVisible}
+              className="text-xs text-slate-300 hover:text-white font-semibold transition-colors hidden sm:inline"
+            >
+              {selectedTripIds.length === allVisibleTripIds.length ? 'Deselect all' : `Select all (${allVisibleTripIds.length})`}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Select
+              onValueChange={(val: string) => {
+                if (val) bulkStatusMutation.mutate({ ids: selectedTripIds, status: val });
+              }}
+            >
+              <SelectTrigger className="h-8 rounded-lg bg-slate-800 border-slate-700 text-white text-xs font-medium w-36 focus:ring-0">
+                <SelectValue placeholder="Update Status" />
+              </SelectTrigger>
+              <SelectContent align="end" className="w-44 bg-slate-900 border-slate-800 text-white">
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] uppercase font-bold text-slate-400">Bulk Change Status</SelectLabel>
+                  {STATUS_OPTIONS.map((st) => (
+                    <SelectItem key={st} value={st} className="text-xs text-slate-200 focus:bg-slate-800 focus:text-white cursor-pointer">
+                      Set to {st}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={bulkDeleteMutation.isPending}
+              onClick={() => setIsDeleteConfirmOpen(true)}
+              className="h-8 rounded-lg text-xs font-extrabold bg-rose-600 hover:bg-rose-700 text-white gap-1.5 px-3 shadow-2xs"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Delete ({selectedTripIds.length})</span>
+            </Button>
+
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-1"
+              title="Clear selection"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modals */}
+      <ConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={() => bulkDeleteMutation.mutate(selectedTripIds)}
+        title={`Delete ${selectedTripIds.length} Selected Trips?`}
+        message={`Are you sure you want to permanently delete the ${selectedTripIds.length} selected trips from the database? This action cannot be undone.`}
+        confirmLabel={bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete Selected Trips'}
+        isDestructive
+        isLoading={bulkDeleteMutation.isPending}
+      />
+
+      <ConfirmModal
+        isOpen={isSingleDeleteConfirmOpen}
+        onClose={() => { setIsSingleDeleteConfirmOpen(false); setTripToDelete(null); }}
+        onConfirm={() => tripToDelete && bulkDeleteMutation.mutate([tripToDelete])}
+        title="Delete Trip?"
+        message="Are you sure you want to permanently delete this trip from the database? This action cannot be undone."
+        confirmLabel={bulkDeleteMutation.isPending ? 'Deleting...' : 'Delete Trip'}
+        isDestructive
+        isLoading={bulkDeleteMutation.isPending}
+      />
 
       <BulkAddTripsModal
         isOpen={isBulkModalOpen}
