@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Wrench, Plus, Check, Search, ChevronsUpDown, X, Tag, CheckCircle2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +23,8 @@ interface WorkDoneSelectProps {
 
 export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps) {
   const queryClient = useQueryClient();
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Add custom item dialog
@@ -32,6 +32,22 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('General');
   const [saveError, setSaveError] = useState('');
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const { data: workItems = [] } = useQuery({
     queryKey: ['workItems'],
@@ -116,7 +132,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
   );
 
   return (
-    <div className="space-y-2">
+    <div ref={containerRef} className="relative space-y-2 w-full">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
           Work Done / Service Details *
@@ -137,53 +153,52 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
         </div>
       </div>
 
-      {/* Field Trigger Button opening Popover Dropdown */}
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen} modal={false}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              'w-full min-h-[42px] px-3 py-2 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 shadow-2xs cursor-pointer',
-              popoverOpen
-                ? 'border-brand ring-2 ring-brand/20'
-                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-            )}
-          >
-            <div className="flex-1 flex flex-wrap gap-1.5 items-center overflow-hidden">
-              {selectedItems.length > 0 ? (
-                selectedItems.map((title) => (
-                  <span
-                    key={title}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200 dark:border-orange-900/60"
-                  >
-                    <span>{title}</span>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => removeItem(title, e)}
-                      className="hover:text-rose-600 cursor-pointer ml-0.5 p-0.5 rounded"
-                    >
-                      <X className="w-3 h-3" />
-                    </span>
-                  </span>
-                ))
-              ) : (
-                <span className="text-slate-400 font-normal flex items-center gap-1.5">
-                  <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                  Select service details (e.g. Tire Puncture Repair, Oil Change)...
+      {/* Field Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          'w-full min-h-[42px] px-3 py-2 rounded-xl border bg-white dark:bg-slate-900 text-left text-xs transition-all flex items-center justify-between gap-2 shadow-2xs cursor-pointer',
+          isOpen
+            ? 'border-brand ring-2 ring-brand/20'
+            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+        )}
+      >
+        <div className="flex-1 flex flex-wrap gap-1.5 items-center overflow-hidden">
+          {selectedItems.length > 0 ? (
+            selectedItems.map((title) => (
+              <span
+                key={title}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200 dark:border-orange-900/60"
+              >
+                <span>{title}</span>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => removeItem(title, e)}
+                  className="hover:text-rose-600 cursor-pointer ml-0.5 p-0.5 rounded"
+                >
+                  <X className="w-3 h-3" />
                 </span>
-              )}
-            </div>
-            <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-          </button>
-        </PopoverTrigger>
+              </span>
+            ))
+          ) : (
+            <span className="text-slate-400 font-normal flex items-center gap-1.5">
+              <Wrench className="w-3.5 h-3.5 text-slate-400" />
+              Select service details (e.g. Tire Puncture Repair, Oil Change)...
+            </span>
+          )}
+        </div>
+        <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+      </button>
 
-        <PopoverContent
-          align="start"
-          className="w-[360px] sm:w-[480px] p-0 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 overflow-hidden z-[9999]"
+      {/* Inline Dropdown Panel (100% Reliable, Zero Portal Conflicts) */}
+      {isOpen && (
+        <div
+          className="absolute top-full left-0 mt-1.5 w-full min-w-[360px] sm:min-w-[480px] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900 overflow-hidden z-[9999] flex flex-col max-h-[360px] animate-in fade-in-0 zoom-in-95 duration-100"
         >
           {/* Search Bar Header */}
-          <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center gap-2">
+          <div className="shrink-0 p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center gap-2">
             <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <Input
               value={searchQuery}
@@ -204,7 +219,7 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -212,24 +227,13 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
           </div>
 
           {/* Selectable Items List */}
-          <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+          <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
             {/* Quick Add option if user typed custom text */}
             {searchQuery.trim() !== '' && !exactMatchExists && (
               <div className="pb-1">
                 <button
                   type="button"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    addCustomItem(searchQuery);
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    addCustomItem(searchQuery);
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    addCustomItem(searchQuery);
-                  }}
+                  onClick={() => addCustomItem(searchQuery)}
                   className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-orange-50/90 dark:bg-orange-950/40 text-brand dark:text-orange-400 border border-orange-200/80 dark:border-orange-900/80 flex items-center justify-between gap-2 cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors text-left"
                 >
                   <div className="flex items-center gap-2 truncate">
@@ -244,23 +248,11 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
             {filteredWorkItems.map((item) => {
               const isSelected = selectedItems.includes(item.title);
               return (
-                <button
-                  type="button"
+                <div
                   key={item.id}
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    toggleItem(item.title);
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    toggleItem(item.title);
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toggleItem(item.title);
-                  }}
+                  onClick={() => toggleItem(item.title)}
                   className={cn(
-                    'w-full px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors text-left border-0 bg-transparent',
+                    'w-full px-3 py-2 rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors text-left select-none',
                     isSelected
                       ? 'bg-orange-50/80 dark:bg-orange-950/30 text-brand dark:text-orange-300 font-bold'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
@@ -285,86 +277,96 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                       {item.category}
                     </span>
                   )}
-                </button>
+                </div>
               );
             })}
 
             {filteredWorkItems.length === 0 && searchQuery.trim() === '' && (
               <div className="p-4 text-center text-xs text-slate-400">
-                No saved service items found.
+                No predefined service items found.
               </div>
             )}
           </div>
 
-          {/* Footer Action: Save New Service Item */}
-          <div className="p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-medium">Want to save a reusable preset?</span>
+          {/* Footer Action */}
+          <div className="shrink-0 p-2.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400">
+              Can't find what you need?
+            </span>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => {
                 setNewTitle(searchQuery.trim());
-                setPopoverOpen(false);
                 setIsAddDialogOpen(true);
               }}
-              className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50"
+              className="h-7 text-xs font-bold text-brand border-orange-200 dark:border-orange-900/50 hover:bg-orange-50 cursor-pointer"
             >
               <Plus className="w-3 h-3 mr-1" />
-              + Save Preset Item
+              + Add Custom Service
             </Button>
           </div>
-        </PopoverContent>
-      </Popover>
+        </div>
+      )}
 
-      {/* Dialog for adding custom new service item */}
+      {/* Add Custom Work Item Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
-          <DialogHeader className="px-5 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-            <DialogTitle className="text-sm font-extrabold flex items-center gap-2 text-slate-900 dark:text-slate-100">
-              <Tag className="w-4 h-4 text-brand" />
-              Save New Reusable Service Item
-            </DialogTitle>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 text-brand mb-1">
+              <div className="w-8 h-8 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center">
+                <Tag className="w-4 h-4" />
+              </div>
+              <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100">
+                Add New Service Detail Item
+              </DialogTitle>
+            </div>
             <DialogDescription className="text-xs text-slate-500">
-              Save common service work (e.g. Tire Puncture, Brake Pads) to quickly select it anytime.
+              Create a reusable service item (e.g. Engine Overhaul, Brake Pad Replacement).
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveNewItem} className="p-5 space-y-3.5 text-xs">
+          <form onSubmit={handleSaveNewItem} className="space-y-3.5 py-2">
             {saveError && (
-              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
                 {saveError}
               </div>
             )}
 
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Service Detail / Item Title *</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Service Title *
+              </Label>
               <Input
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="e.g. Tire Puncture Repair"
-                className="h-8.5 text-xs"
+                placeholder="e.g. Hydraulic Cylinder Seal Replacement"
+                className="h-9 text-xs"
+                required
                 autoFocus
               />
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Category</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Category
+              </Label>
               <Input
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="e.g. Tires, Brakes, Oil & Fluids, Engine"
-                className="h-8.5 text-xs"
+                placeholder="e.g. Engine, Brakes, Transmission, Body"
+                className="h-9 text-xs"
               />
             </div>
 
-            <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+            <DialogFooter className="pt-3">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsAddDialogOpen(false)}
-                className="h-8 text-xs"
+                className="text-xs font-semibold"
               >
                 Cancel
               </Button>
@@ -372,9 +374,9 @@ export default function WorkDoneSelect({ value, onChange }: WorkDoneSelectProps)
                 type="submit"
                 size="sm"
                 disabled={saveWorkItemMutation.isPending}
-                className="h-8 text-xs bg-brand hover:bg-[#d03c0b] text-white font-bold px-4"
+                className="text-xs font-bold bg-brand hover:bg-brand-hover text-white"
               >
-                {saveWorkItemMutation.isPending ? 'Saving...' : 'Save Service Item'}
+                {saveWorkItemMutation.isPending ? 'Saving...' : 'Save & Select'}
               </Button>
             </DialogFooter>
           </form>
