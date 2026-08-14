@@ -25,6 +25,7 @@ COPY backend/api-server ./backend/api-server
 RUN npm run build -w @mercon/api-server
 
 WORKDIR /app/backend/api-server
+RUN mkdir -p /app/backend/api-server/uploads
 
 EXPOSE 3000
 
