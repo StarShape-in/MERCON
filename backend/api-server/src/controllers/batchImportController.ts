@@ -15,7 +15,10 @@ export function classifyDocType(filename: string): DocType {
   if (
     upper.includes('INSURANCE') ||
     upper.includes('TAMEEN') ||
-    upper.includes('INURANCE')
+    upper.includes('INURANCE') ||
+    upper.includes('POLICY') ||
+    filename.includes('تأمين') ||
+    filename.includes('بوليصة')
   ) {
     return DocType.Insurance;
   }
@@ -25,14 +28,23 @@ export function classifyDocType(filename: string): DocType {
     upper.includes('OPEARTION CARD') ||
     upper.includes('AUTHORIZATION') ||
     upper.includes('AUTHARISATION') ||
+    upper.includes('WAYBILL') ||
+    upper.includes('PERMIT') ||
     filename.includes('العقد') ||
     filename.includes('ترخيص') ||
-    filename.includes('تفويض')
+    filename.includes('تفويض') ||
+    filename.includes('تشغيل') ||
+    filename.includes('كرت_تشغيل')
   ) {
     return DocType.Waybill;
   }
 
-  if (upper.includes('CONTRACT') || upper.includes('AGREEMENT')) {
+  if (
+    upper.includes('CONTRACT') || 
+    upper.includes('AGREEMENT') ||
+    filename.includes('عقد') ||
+    filename.includes('اتفاقية')
+  ) {
     return DocType.Contract;
   }
 
@@ -76,10 +88,7 @@ export async function processLocalTrucksDocsFolder(basePath: string) {
     return fs.statSync(full).isDirectory();
   });
 
-  const uploadsDir = path.join(process.cwd(), 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
+  const uploadsDir = getUploadDir();
 
   let totalVehiclesProcessed = 0;
   let totalDocsCreated = 0;
@@ -247,8 +256,6 @@ export const importUploadedTrucksDocsFolder = async (req: Request, res: Response
       const relPath = relativePaths[i] || file.originalname;
       const parts = relPath.replace(/\\/g, '/').split('/').filter(Boolean);
 
-      // Folder identifier is parts[1] if parts is [rootFolder, vehicleFolder, filename]
-      // or parts[0] if parts is [vehicleFolder, filename]
       let vehicleIdStr = '';
       if (parts.length >= 3) {
         vehicleIdStr = parts[1];
@@ -313,37 +320,20 @@ export const importUploadedTrucksDocsFolder = async (req: Request, res: Response
           ? `${env.BASE_URL}/uploads/${file.filename}`
           : `/uploads/${file.filename}`;
         const doc_type = classifyDocType(file.originalname);
+        const mime_type = getMimeType(file.originalname);
 
-        const existingDoc = await prisma.document.findFirst({
-          where: {
+        // Always create a distinct document record for each file so multiple PDFs are never overwritten
+        await prisma.document.create({
+          data: {
+            entity_type: 'Vehicle',
             entity_id: vehicle.id,
             doc_type,
-            deletedAt: null,
+            status: DocStatus.Verified,
+            file_url,
+            mime_type,
+            is_confidential: false,
           },
         });
-
-        if (existingDoc) {
-          await prisma.document.update({
-            where: { id: existingDoc.id },
-            data: {
-              file_url,
-              mime_type: file.mimetype,
-              status: DocStatus.Verified,
-            },
-          });
-        } else {
-          await prisma.document.create({
-            data: {
-              entity_type: 'Vehicle',
-              entity_id: vehicle.id,
-              doc_type,
-              status: DocStatus.Verified,
-              file_url,
-              mime_type: file.mimetype,
-              is_confidential: false,
-            },
-          });
-        }
 
         createdForVehicle++;
         totalDocsCreated++;
@@ -415,30 +405,20 @@ export const uploadRawFileChunk = async (req: Request, res: Response) => {
 
       const file_url = env.BASE_URL ? `${env.BASE_URL}/uploads/${filename}` : `/uploads/${filename}`;
       const doc_type = classifyDocType(filename);
+      const mime_type = getMimeType(filename);
 
       if (vehicle) {
-        const existingDoc = await prisma.document.findFirst({
-          where: { entity_id: vehicle.id, doc_type, deletedAt: null },
+        await prisma.document.create({
+          data: {
+            entity_type: 'Vehicle',
+            entity_id: vehicle.id,
+            doc_type,
+            status: DocStatus.Verified,
+            file_url,
+            mime_type,
+            is_confidential: false,
+          },
         });
-
-        if (existingDoc) {
-          await prisma.document.update({
-            where: { id: existingDoc.id },
-            data: { file_url, status: DocStatus.Verified },
-          });
-        } else {
-          await prisma.document.create({
-            data: {
-              entity_type: 'Vehicle',
-              entity_id: vehicle.id,
-              doc_type,
-              status: DocStatus.Verified,
-              file_url,
-              mime_type: getMimeType(filename),
-              is_confidential: false,
-            },
-          });
-        }
       }
     }
 
