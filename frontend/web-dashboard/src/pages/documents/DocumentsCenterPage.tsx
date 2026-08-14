@@ -990,23 +990,53 @@ export default function DocumentsCenterPage() {
 
           {previewDoc && (
             <div className="p-6 space-y-5">
-              {/* Document File Viewer Placeholder Card */}
-              <div className="w-full h-48 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-3 p-4 text-center">
-                <FileText className="w-8 h-8 text-[#E8450F]" />
-                <div>
-                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
-                    {docTypeLabel(previewDoc.doc_type)} File
-                  </h4>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">#{previewDoc.id}</p>
-                </div>
-                <a
-                  href={previewDoc.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#E8450F] hover:underline"
-                >
-                  <ExternalLink size={13} /> Open Full Resolution File
-                </a>
+              {/* Real File Media Viewer (Images, PDFs & Fallbacks) */}
+              <div className="w-full rounded-2xl bg-slate-950/5 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col items-center justify-center min-h-[220px] max-h-[380px] relative group p-2">
+                {previewDoc.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(previewDoc.file_url) ? (
+                  <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl bg-slate-900/10 dark:bg-slate-950/60 p-2">
+                    <img
+                      src={previewDoc.file_url}
+                      alt={docTypeLabel(previewDoc.doc_type)}
+                      className="max-h-72 w-full object-contain rounded-lg transition-transform duration-200 group-hover:scale-[1.01]"
+                    />
+                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
+                      <a
+                        href={previewDoc.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 rounded-xl bg-white text-slate-900 font-extrabold text-xs shadow-lg hover:bg-slate-100 flex items-center gap-1.5"
+                      >
+                        <ExternalLink size={13} /> Open Full Resolution
+                      </a>
+                    </div>
+                  </div>
+                ) : previewDoc.mime_type === 'application/pdf' || /\.pdf$/i.test(previewDoc.file_url) ? (
+                  <div className="w-full h-80 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white">
+                    <iframe
+                      src={`${previewDoc.file_url}#toolbar=0`}
+                      title="PDF Document Preview"
+                      className="w-full h-full rounded-xl border-none"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+                    <FileText className="w-10 h-10 text-[#E8450F]" />
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                        {docTypeLabel(previewDoc.doc_type)} File
+                      </h4>
+                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">#{previewDoc.id}</p>
+                    </div>
+                    <a
+                      href={previewDoc.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-[#E8450F] hover:underline"
+                    >
+                      <ExternalLink size={13} /> Open File in New Tab
+                    </a>
+                  </div>
+                )}
               </div>
 
               {/* Metadata Key-Value Grid */}
