@@ -146,7 +146,7 @@ export default function WorkshopField({
 
   return (
     <div className="relative w-full">
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen} modal={false}>
         <PopoverTrigger asChild>
           <button
             type="button"
