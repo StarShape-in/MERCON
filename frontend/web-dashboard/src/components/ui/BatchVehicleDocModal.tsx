@@ -28,6 +28,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { documentService } from '@/services/documentService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './dialog';
+import { formatBilingualAuthority } from '@/lib/documents';
 import { Button } from './button';
 import { Input } from './input';
 import { Badge } from './badge';
@@ -1047,7 +1048,7 @@ export default function BatchVehicleDocModal({
                               <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-1">
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Building2 size={11} className="text-slate-400" />
-                                  <span>Issuer: {rowAi.issuing_authority || 'المرور (Saudi Traffic Dept)'}</span>
+                                  <span>Issuer: {formatBilingualAuthority(rowAi.issuing_authority)}</span>
                                 </span>
                                 <span>Issue Date: {rowAi.issue_date || '2024-01-15'}</span>
                               </div>

@@ -132,7 +132,7 @@ Extract the metadata into a JSON object matching this schema:
   "issue_date": "YYYY-MM-DD" or null (Gregorian ISO date format),
   "expiry_date": "YYYY-MM-DD" or null (Gregorian ISO date format. CONVERT Hijri dates like 1447/05/12 or 1446/10/15 to standard Gregorian ISO YYYY-MM-DD date!),
   "vehicle_plate": string or null (e.g. "2541", "3071"),
-  "issuing_authority": string or null (e.g. "المرور", "الهيئة العامة للنقل", "Tawuniya", "Malath"),
+  "issuing_authority": string or null (CRITICAL: Always provide BOTH English and Arabic names! For example: "Malath Insurance (شركة ملاذ للتأمين)", "Saudi Traffic Dept (المرور)", "Transport General Authority (الهيئة العامة للنقل)", "Vehicles Safety Center (مركز سلامة المركبات)", "Capital Symbol Motors (معرض رمز العاصمة للسيارات)", "Power Barriers Factory (مصنع حواجز القوة للصناعة)"),
   "notes": string or null,
   "confidence": number between 0.0 and 1.0
 }
