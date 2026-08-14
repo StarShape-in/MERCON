@@ -28,6 +28,9 @@ export interface ReportJoin {
   toModule: string;
   /** Human label for the "Connected automatically" indicator. */
   via: string;
+  /** Prisma relation field name on THIS module's model pointing at toModule. */
+  relationField: string;
+  cardinality: 'toOne' | 'toMany';
 }
 
 export interface ReportModule {
@@ -57,9 +60,9 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'drivers.ai_risk_score', label: 'Risk Score', type: 'number', aggregatable: true },
     ],
     joins: [
-      { toModule: 'vehicles', via: 'Assigned Vehicle' },
-      { toModule: 'trips', via: 'Trips Driven' },
-      { toModule: 'expenses', via: 'Driver Expenses' },
+      { toModule: 'vehicles', via: 'Assigned Vehicle', relationField: 'assignedVehicle', cardinality: 'toOne' },
+      { toModule: 'trips', via: 'Trips Driven', relationField: 'trips', cardinality: 'toMany' },
+      { toModule: 'expenses', via: 'Driver Expenses', relationField: 'expenses', cardinality: 'toMany' },
     ],
   },
   {
@@ -75,10 +78,10 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'vehicles.current_odometer', label: 'Odometer', type: 'number', aggregatable: true },
     ],
     joins: [
-      { toModule: 'drivers', via: 'Assigned Driver' },
-      { toModule: 'trips', via: 'Trips' },
-      { toModule: 'maintenance', via: 'Maintenance Records' },
-      { toModule: 'expenses', via: 'Vehicle Expenses' },
+      { toModule: 'drivers', via: 'Assigned Driver', relationField: 'assignedDriver', cardinality: 'toOne' },
+      { toModule: 'trips', via: 'Trips', relationField: 'trips', cardinality: 'toMany' },
+      { toModule: 'maintenance', via: 'Maintenance Records', relationField: 'maintenanceRecords', cardinality: 'toMany' },
+      { toModule: 'expenses', via: 'Vehicle Expenses', relationField: 'expenses', cardinality: 'toMany' },
     ],
   },
   {
@@ -96,11 +99,11 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'trips.count', label: 'Trip Count', type: 'number', aggregatable: true },
     ],
     joins: [
-      { toModule: 'drivers', via: 'Driver' },
-      { toModule: 'vehicles', via: 'Vehicle' },
-      { toModule: 'customers', via: 'Customer' },
-      { toModule: 'thirdParty', via: 'Third-Party Provider' },
-      { toModule: 'invoices', via: 'Trip Invoices' },
+      { toModule: 'drivers', via: 'Driver', relationField: 'driver', cardinality: 'toOne' },
+      { toModule: 'vehicles', via: 'Vehicle', relationField: 'vehicle', cardinality: 'toOne' },
+      { toModule: 'customers', via: 'Customer', relationField: 'customer', cardinality: 'toOne' },
+      { toModule: 'thirdParty', via: 'Third-Party Provider', relationField: 'thirdPartyProvider', cardinality: 'toOne' },
+      { toModule: 'invoices', via: 'Trip Invoices', relationField: 'invoices', cardinality: 'toMany' },
     ],
   },
   {
@@ -114,8 +117,8 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'customers.credit_limit', label: 'Credit Limit', type: 'money', aggregatable: true },
     ],
     joins: [
-      { toModule: 'trips', via: 'Customer Trips' },
-      { toModule: 'invoices', via: 'Customer Invoices' },
+      { toModule: 'trips', via: 'Customer Trips', relationField: 'trips', cardinality: 'toMany' },
+      { toModule: 'invoices', via: 'Customer Invoices', relationField: 'invoices', cardinality: 'toMany' },
     ],
   },
   {
@@ -128,7 +131,7 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'thirdParty.contact_person', label: 'Contact Person', type: 'string' },
       { key: 'thirdParty.rating', label: 'Rating', type: 'number', aggregatable: true },
     ],
-    joins: [{ toModule: 'trips', via: 'Provider Trips' }],
+    joins: [{ toModule: 'trips', via: 'Provider Trips', relationField: 'trips', cardinality: 'toMany' }],
   },
   {
     key: 'maintenance',
@@ -143,7 +146,7 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'maintenance.next_service_due', label: 'Next Service', type: 'date' },
       { key: 'maintenance.cost', label: 'Cost', type: 'money', aggregatable: true },
     ],
-    joins: [{ toModule: 'vehicles', via: 'Vehicle' }],
+    joins: [{ toModule: 'vehicles', via: 'Vehicle', relationField: 'vehicle', cardinality: 'toOne' }],
   },
   {
     key: 'expenses',
@@ -158,8 +161,8 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'expenses.payment_method', label: 'Payment Method', type: 'string' },
     ],
     joins: [
-      { toModule: 'vehicles', via: 'Vehicle' },
-      { toModule: 'drivers', via: 'Driver' },
+      { toModule: 'vehicles', via: 'Vehicle', relationField: 'vehicle', cardinality: 'toOne' },
+      { toModule: 'drivers', via: 'Driver', relationField: 'driver', cardinality: 'toOne' },
     ],
   },
   {
@@ -176,8 +179,8 @@ export const REPORT_SCHEMA: ReportModule[] = [
       { key: 'invoices.outstanding', label: 'Outstanding Amount', type: 'money', aggregatable: true },
     ],
     joins: [
-      { toModule: 'trips', via: 'Trip' },
-      { toModule: 'customers', via: 'Customer' },
+      { toModule: 'trips', via: 'Trip', relationField: 'trip', cardinality: 'toOne' },
+      { toModule: 'customers', via: 'Customer', relationField: 'customer', cardinality: 'toOne' },
     ],
   },
   {

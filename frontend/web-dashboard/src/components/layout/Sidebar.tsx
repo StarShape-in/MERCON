@@ -4,7 +4,7 @@ import {
   Home, Bell, Truck, Users, Car, Building2,
   CreditCard, ReceiptText, FileText, BarChart3,
   Settings, User, LogOut, Wrench, X, MapPin, DollarSign, Trash2,
-  CalendarRange, Wallet
+  CalendarRange, Wallet, Wand2
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
@@ -87,6 +87,7 @@ export default function Sidebar({ active, open = false, onClose }: SidebarProps)
       items: [
         { icon: FileText, label: 'Documents', path: '/documents' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
+        { icon: Wand2, label: 'Report Builder', path: '/report-builder' },
       ],
     },
     {

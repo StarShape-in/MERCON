@@ -74,17 +74,18 @@ export type ExpensePaymentMethod = (typeof EXPENSE_PAYMENT_METHODS)[number];
 
 /**
  * Optional modules a deployment's superadmin can toggle via Settings.
- * Core modules (auth, trips, drivers, vehicles, customers, settings) are
- * always available and are not listed here — only the toggleable ones.
+ * Core modules (auth, trips, drivers, vehicles, customers, settings,
+ * locations, rate-cards) are always available and are not listed here —
+ * locations/rate-cards were considered toggleable at first but are actually
+ * infrastructure trip creation depends on (locations are auto-created by
+ * trip creation; rate cards drive pricing), so they were moved to core.
  */
 export const MODULE_KEYS = [
   'invoices',
   'expenses',
   'maintenance',
   'reports',
-  'rate-cards',
   'documents',
-  'locations',
   'recycle-bin',
 ] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];

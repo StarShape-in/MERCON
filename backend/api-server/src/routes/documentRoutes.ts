@@ -6,13 +6,14 @@ import {
 import { importLocalTrucksDocs, importUploadedTrucksDocsFolder, uploadRawFileChunk } from '../controllers/batchImportController';
 import { extractAllDocumentsOcr, extractSingleDocumentOcr, syncLocalDocumentRecords, autoAssignUnlinkedDocs, previewAutoAssignUnlinkedDocs, confirmAutoAssignDocs } from '../controllers/bulkOcrController';
 import { authenticateJWT } from '../middlewares/auth';
-import { authorizeRoles } from '../middlewares/rbac';
+import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 import { upload } from '../middlewares/upload';
 
 const router = Router();
 
 router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
+router.use(requireModuleEnabled('documents'));
 router.get('/preview-auto-assign', previewAutoAssignUnlinkedDocs);
 router.post('/confirm-auto-assign', confirmAutoAssignDocs);
 router.post('/auto-assign-unlinked', autoAssignUnlinkedDocs);
