@@ -8,13 +8,10 @@ import {
   FileSpreadsheet, FileText, RefreshCw, AlertTriangle, ArrowUpDown, Wallet,
   Layers, CalendarRange, Route, ReceiptText,
 } from 'lucide-react';
-import {
-  CartesianGrid, XAxis, YAxis, Area, AreaChart, Line, ComposedChart,
-} from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService } from '@/services/vehicleService';
-import type { FleetVehicleFinancials, MonthlyPoint } from '@/services/vehicleService';
+import type { FleetVehicleFinancials } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,8 +22,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
-import type { ChartConfig } from '@/components/ui/chart';
 import DataTable from '@/components/ui/DataTable';
 import type { Column } from '@/components/ui/DataTable';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
@@ -36,18 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
 
-const INCOME = '#059669';   // emerald-600
-const EXPENSE = '#e11d48';  // rose-600
-const PROFIT = '#4f46e5';   // indigo-600
-
 const sar = (n: number) => `SAR ${Math.round(n).toLocaleString()}`;
-
-const compact = (n: number) => {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${Math.round(n / 1_000)}k`;
-  return String(Math.round(n));
-};
 
 const monthLabel = (key: string) => {
   const [y, m] = key.split('-');
@@ -68,12 +52,6 @@ const rangeFor = (period: string): { from?: string; to?: string } => {
   from.setMonth(from.getMonth() - Number(period));
   return { from: from.toISOString() };
 };
-
-const chartConfig = {
-  income: { label: 'Revenue', color: INCOME },
-  expenses: { label: 'Expenses', color: EXPENSE },
-  profit: { label: 'Net Profit', color: PROFIT },
-} satisfies ChartConfig;
 
 type Tone = 'income' | 'expense' | 'profit' | 'neutral';
 
@@ -288,9 +266,6 @@ export default function VehicleFinancialsPage() {
     const { total_expenses, completed_trips_count } = financials.summary;
     return completed_trips_count > 0 ? Math.round(total_expenses / completed_trips_count) : 0;
   }, [financials]);
-
-  const withLabels = (points: MonthlyPoint[] = []) =>
-    points.map((p) => ({ ...p, label: monthLabel(p.month) }));
 
   /* Export --------------------------------------------------------------- */
 
@@ -651,51 +626,6 @@ export default function VehicleFinancialsPage() {
                   />
                 </div>
 
-                {/* Monthly fleet trend */}
-                <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-emerald-600" /> Fleet Income vs Expenses Over Time
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Monthly earned revenue against maintenance spend for the whole fleet.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {(fleet?.monthly.length ?? 0) === 0 ? (
-                      <NoData message="No dated activity to plot in this period." />
-                    ) : (
-                      <ChartContainer config={chartConfig} className="w-full aspect-auto h-[280px]">
-                        <AreaChart data={withLabels(fleet?.monthly)} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={INCOME} stopOpacity={0.35} />
-                              <stop offset="95%" stopColor={INCOME} stopOpacity={0.02} />
-                            </linearGradient>
-                            <linearGradient id="fillExpenses" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={EXPENSE} stopOpacity={0.3} />
-                              <stop offset="95%" stopColor={EXPENSE} stopOpacity={0.02} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                          <YAxis tickFormatter={compact} tickLine={false} axisLine={false} width={48} />
-                          <ChartTooltip content={<ChartTooltipContent formatter={(v) => sar(Number(v))} />} />
-                          <ChartLegend content={<ChartLegendContent />} />
-                          <Area
-                            dataKey="income" type="monotone" stroke={INCOME} strokeWidth={2}
-                            fill="url(#fillIncome)"
-                          />
-                          <Area
-                            dataKey="expenses" type="monotone" stroke={EXPENSE} strokeWidth={2}
-                            fill="url(#fillExpenses)"
-                          />
-                        </AreaChart>
-                      </ChartContainer>
-                    )}
-                  </CardContent>
-                </Card>
-
                 {/* Full comparison table */}
                 <DataTable<FleetVehicleFinancials>
                   title="🥞 Vehicle Profitability Ledger"
@@ -808,38 +738,6 @@ export default function VehicleFinancialsPage() {
                         icon={<Route className="w-4 h-4 text-slate-400" />}
                       />
                     </div>
-
-                    {/* Trend Chart */}
-                    <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-bold flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-indigo-600" /> Monthly Performance Trend
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                          Income and expense curves with the resulting profit line for this vehicle.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        {financials.monthly.length === 0 ? (
-                          <NoData message="No dated activity to plot for this vehicle." />
-                        ) : (
-                          <ChartContainer config={chartConfig} className="w-full aspect-auto h-[300px]">
-                            <ComposedChart
-                              data={withLabels(financials.monthly)}
-                              margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
-                            >
-                              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                              <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                              <YAxis tickFormatter={compact} tickLine={false} axisLine={false} width={48} />
-                              <ChartTooltip content={<ChartTooltipContent formatter={(v) => sar(Number(v))} />} />
-                              <ChartLegend content={<ChartLegendContent />} />
-                              <Area dataKey="income" fill={INCOME} stroke={INCOME} strokeWidth={1.5} fillOpacity={0.15} />
-                              <Area dataKey="expenses" fill={EXPENSE} stroke={EXPENSE} strokeWidth={1.5} fillOpacity={0.1} />
-                            </ComposedChart>
-                          </ChartContainer>
-                        )}
-                      </CardContent>
-                    </Card>
 
                     {/* Ledgers */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -1012,7 +910,6 @@ function FleetSkeleton() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
       </div>
-      <Skeleton className="h-[360px] rounded-2xl" />
       <Skeleton className="h-[320px] rounded-2xl" />
     </div>
   );
