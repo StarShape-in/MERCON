@@ -62,7 +62,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
   const groups = [
     {
       label: 'OVERVIEW',
-      color: 'text-[#E8450F]',
       items: [
         { icon: Home, label: 'Dashboard', path: '/' },
         { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
@@ -70,7 +69,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
     {
       label: 'OPERATIONS',
-      color: 'text-[#D9531E]',
       items: [
         { icon: Truck, label: 'Trips', path: '/trips' },
         { icon: CalendarRange, label: 'Monthly Trips', path: '/trips/monthly' },
@@ -83,7 +81,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
     {
       label: 'FINANCE',
-      color: 'text-[#C44916]',
       items: [
         { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards' },
         { icon: MapPin, label: 'Locations', path: '/locations' },
@@ -94,7 +91,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
     {
       label: 'COMPLIANCE',
-      color: 'text-[#E0602B]',
       items: [
         { icon: FileText, label: 'Documents', path: '/documents' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
@@ -104,7 +100,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
     {
       label: 'ACCOUNT',
-      color: 'text-[#B05C28]',
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
         { icon: User, label: 'Profile', path: '/settings/profile' },
@@ -120,7 +115,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] transition-opacity duration-200 lg:hidden ${
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] transition-opacity duration-200 lg:hidden ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       />
@@ -130,7 +125,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         aria-label="Main navigation"
         className={`
           flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
-          bg-[#FAF6F0] border-r border-[#EAE3D9] shadow-xs
+          bg-[#0F172A] border-r border-slate-800/80 shadow-md
           fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
           transform transition-[transform,width] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -138,7 +133,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         `}
       >
         {/* Logo */}
-        <div className={`relative flex items-center shrink-0 justify-center bg-[#FAF6F0] border-b border-[#EAE3D9] h-[72px] lg:h-[88px] overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className={`relative flex items-center shrink-0 justify-center bg-[#0F172A] border-b border-slate-800/80 h-[72px] lg:h-[88px] overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
           {collapsed ? (
             <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
               M
@@ -148,7 +143,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           <button
             onClick={onClose}
             aria-label="Close navigation menu"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-[#7A6E5F] hover:text-[#E8450F] hover:bg-[#F2ECE1] transition-colors lg:hidden cursor-pointer"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors lg:hidden cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -156,7 +151,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
 
         {/*
           Desktop rail toggle button. Sits in the vertical middle of the sidebar's right edge,
-          matching the exact same design and feel as ImportantReminders in warm theme.
+          matching the exact same design and feel as ImportantReminders in cool dark slate theme.
         */}
         <button
           type="button"
@@ -167,7 +162,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           className="
             group hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30
             w-7 h-7 items-center justify-center rounded-full
-            bg-white border border-[#E5DDD0] text-[#7A6E5F] shadow-sm
+            bg-[#0F172A] border border-slate-700/80 text-slate-300 shadow-md shadow-black/40
             before:absolute before:-inset-2 before:content-['']
             hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
@@ -185,7 +180,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         <div className={`flex-1 py-4 space-y-5 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
           {groups.map((g) => (
             <div key={g.label}>
-              <p className={`text-[9.5px] font-extrabold ${g.color} uppercase tracking-wider px-3 mb-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+              <p className={`text-[9.5px] font-extrabold text-slate-400 uppercase tracking-wider px-3 mb-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
                 {g.label}
               </p>
               <div className="space-y-0.5">
@@ -201,15 +196,15 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                         flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative border-l-2
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
-                          ? 'bg-gradient-to-r from-[#E8450F] to-[#FA5B25] text-white shadow-md shadow-[#E8450F]/20 font-bold border-[#C7380A]'
-                          : 'text-[#4A3E31] hover:bg-[#FFF4EC] hover:text-[#C7380A] font-semibold border-transparent hover:border-[#E8450F]'
+                          ? 'bg-gradient-to-r from-[#E8450F] to-[#FA5B25] text-white shadow-md shadow-[#E8450F]/25 font-bold border-[#FF7E52]'
+                          : 'text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium border-transparent hover:border-[#E8450F]'
                         }
                       `}
                     >
                       <item.icon
                         size={16}
                         className={`transition-transform duration-150 group-hover:scale-110 shrink-0 ${
-                          isActive ? 'stroke-[2.2] text-white' : `${g.color} group-hover:text-[#E8450F] stroke-[1.8]`
+                          isActive ? 'stroke-[2.2] text-white' : 'stroke-[1.8] text-slate-400 group-hover:text-orange-400'
                         }`}
                       />
                       <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
@@ -230,7 +225,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </div>
 
         {/* User footer */}
-        <div className={`px-4 py-3.5 border-t border-[#EAE3D9] flex items-center gap-2.5 bg-[#F2ECE1]/70 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        <div className={`px-4 py-3.5 border-t border-slate-800/80 flex items-center gap-2.5 bg-[#0B132B]/90 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
             className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none"
@@ -238,12 +233,12 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
             {initials}
           </div>
           <div className={`flex-1 min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
-            <p className="text-xs font-semibold text-[#3B332B] truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
-            <p className="text-[9px] text-[#7A6E5F] truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
+            <p className="text-xs font-semibold text-slate-100 truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
+            <p className="text-[9px] text-slate-400 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-[#8C7D6B] hover:text-[#E8450F] p-1 rounded-lg hover:bg-[#E8DFD1] transition-colors shrink-0 cursor-pointer"
+            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/80 transition-colors shrink-0 cursor-pointer"
             title="Logout"
           >
             <LogOut size={14} />
