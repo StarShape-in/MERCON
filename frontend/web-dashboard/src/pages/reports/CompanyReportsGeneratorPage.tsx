@@ -7,20 +7,16 @@ import {
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Map, Table2, ShieldCheck, Globe, FileText, Navigation, ExternalLink } from 'lucide-react';
+
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import DataTable from '@/components/ui/DataTable';
 import TemplateMappingEditor from '@/components/reports/TemplateMappingEditor';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import {
@@ -41,6 +37,85 @@ import { RATE_CATEGORIES, type TemplateLayout } from '@mercon/shared-types';
 
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
+const COMPANY_MAP_OPTIONS: ComboboxOption[] = [
+  {
+    value: 'our_company',
+    label: 'Our Company Name',
+    keywords: 'our company name mercon logistics',
+    icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+  },
+  {
+    value: 'separate_row',
+    label: 'Separate value for each row',
+    keywords: 'separate value for each row per row custom company',
+    icon: <FileText className="w-3.5 h-3.5 text-indigo-500" />,
+  },
+  {
+    value: 'separate_text',
+    label: 'Separate text for each',
+    keywords: 'separate text for each vehicle truck carrier',
+    icon: <FileText className="w-3.5 h-3.5 text-purple-500" />,
+  },
+  {
+    value: 'mercon',
+    label: 'MERCON Logistics',
+    keywords: 'mercon logistics fleet',
+    icon: <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />,
+  },
+  {
+    value: 'all',
+    label: 'All Companies',
+    keywords: 'all companies',
+    icon: <Globe className="w-3.5 h-3.5 text-slate-400" />,
+  },
+  {
+    value: 'aramco',
+    label: 'Saudi Aramco Logistics',
+    keywords: 'saudi aramco logistics',
+    icon: <Building2 className="w-3.5 h-3.5 text-blue-500" />,
+  },
+  {
+    value: 'sabic',
+    label: 'SABIC Supply Chain',
+    keywords: 'sabic supply chain',
+    icon: <Building2 className="w-3.5 h-3.5 text-purple-500" />,
+  },
+];
+
+function createReportTruckMapIcon(plate: string) {
+  const svgIconHtml = `
+    <div style="position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;">
+      <div class="animate-ping" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background-color: rgba(255, 85, 0, 0.4);"></div>
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: #0F1017; color: #FF5500; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px rgba(255,85,0,0.8); border: 2px solid #FF5500; z-index: 2;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      </div>
+      <div style="position: absolute; bottom: -6px; background: #0F1017; color: #FFFFFF; font-family: monospace; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 4px; white-space: nowrap; border: 1px solid #FF5500; z-index: 3;">
+        ${plate || 'MERCON'}
+      </div>
+    </div>
+  `;
+  return L.divIcon({
+    html: svgIconHtml,
+    className: '',
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+  });
+}
+
+const getApproxCoords = (idx: number): [number, number] => {
+  const points: [number, number][] = [
+    [24.7136, 46.6753], // Riyadh
+    [21.5433, 39.1728], // Jeddah
+    [26.4350, 50.1040], // Dammam
+    [24.4672, 39.6112], // Medina
+    [21.3891, 39.8579], // Mecca
+    [28.3835, 36.5662], // Tabuk
+    [25.3835, 49.5862], // Al Ahsa
+    [26.2172, 50.1971], // Khobar
+  ];
+  return points[idx % points.length];
+};
+
 export default function CompanyReportsGeneratorPage() {
   const queryClient = useQueryClient();
 
@@ -53,6 +128,22 @@ export default function CompanyReportsGeneratorPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+  // View & Per-Row Company Map State
+  const [viewMode, setViewMode] = useState<'ledger' | 'map'>('ledger');
+  const [companyFilter, setCompanyFilter] = useState<string>('our_company');
+  const [rowCompanies, setRowCompanies] = useState<Record<string, string>>({});
+
+  const getReportCompanyLabel = (row: any) => {
+    const rowId = row.ref_id || row.id;
+    if (rowCompanies[rowId]) return rowCompanies[rowId];
+    if (companyFilter === 'our_company' || companyFilter === 'mercon') return 'MERCON Logistics';
+    if (companyFilter === 'separate_row') return `${row.ref_id || 'TRP'} • MERCON Fleet`;
+    if (companyFilter === 'separate_text') return `${row.ref_id || 'TRP'} • ${row.driver_name || 'Fleet Truck'}`;
+    if (companyFilter === 'aramco') return 'Saudi Aramco Logistics';
+    if (companyFilter === 'sabic') return 'SABIC Supply Chain';
+    return 'MERCON Logistics';
+  };
 
   // Upload → mapping flow state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -244,9 +335,75 @@ export default function CompanyReportsGeneratorPage() {
     { header: 'Driver', accessor: (row: any) => row.driver_name },
     { header: 'Vehicle', accessor: (row: any) => row.vehicle_plate },
     { header: 'Customer', accessor: (row: any) => row.customer_name },
+    {
+      header: 'Company Name (Editable)',
+      accessor: (row: any) => {
+        const rowId = row.ref_id || row.id;
+        const currentVal = rowCompanies[rowId] ?? getReportCompanyLabel(row);
+        return (
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 min-w-[170px]">
+            <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+            <input
+              type="text"
+              value={currentVal}
+              onChange={(e) => {
+                const val = e.target.value;
+                setRowCompanies((prev) => ({ ...prev, [rowId]: val }));
+              }}
+              placeholder="Add company name..."
+              className="w-full text-xs font-semibold bg-transparent outline-none text-slate-900 dark:text-slate-100"
+            />
+          </div>
+        );
+      },
+    },
     { header: 'Billing', accessor: (row: any) => <span className="font-medium text-slate-700 dark:text-slate-200">SAR {Number(row.billing_amount || 0).toLocaleString()}</span> },
     { header: 'Total', accessor: (row: any) => <span className="font-bold text-slate-900 dark:text-slate-100">SAR {Number(row.total_amount || 0).toLocaleString()}</span> },
   ];
+
+  const templateComboboxOptions: ComboboxOption[] = useMemo(() => {
+    if (templates.length === 0) return [{ value: '', label: 'No templates uploaded' }];
+    return templates.map((t: ReportTemplateSummary) => ({
+      value: t.id,
+      label: `📄 ${t.name} (${t.customer?.name || 'Shared'})`,
+      keywords: `${t.name} ${t.customer?.name || ''}`,
+    }));
+  }, [templates]);
+
+  const customerComboboxOptions: ComboboxOption[] = useMemo(() => {
+    const list: ComboboxOption[] = [{ value: 'all', label: '🏢 All Customer Companies' }];
+    customers.forEach((c: any) => {
+      list.push({
+        value: c.id,
+        label: `🏢 ${c.name || c.company_name}`,
+        keywords: c.name || c.company_name,
+      });
+    });
+    return list;
+  }, [customers]);
+
+  const presetComboboxOptions: ComboboxOption[] = [
+    { value: 'this_week', label: '📅 This Week' },
+    { value: 'this_month', label: '📅 This Month' },
+    { value: 'last_month', label: '📅 Last Month' },
+    { value: 'custom', label: '📅 Custom Range' },
+  ];
+
+  const statusComboboxOptions: ComboboxOption[] = [
+    { value: 'all', label: '🔀 All Trip Statuses' },
+    { value: 'Completed', label: 'Completed' },
+    { value: 'InTransit', label: 'In Transit' },
+    { value: 'Dispatched', label: 'Dispatched' },
+    { value: 'AtPickup', label: 'At Pickup' },
+  ];
+
+  const rateCategoryComboboxOptions: ComboboxOption[] = useMemo(() => {
+    const list: ComboboxOption[] = [{ value: 'all', label: '💰 All Rate Categories' }];
+    RATE_CATEGORIES.forEach((rc) => {
+      list.push({ value: rc, label: rc });
+    });
+    return list;
+  }, []);
 
   return (
     <DashboardLayout active="Company Reports" title="Company Reports Studio">
@@ -291,30 +448,14 @@ export default function CompanyReportsGeneratorPage() {
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-brand" /> Active Format
               </label>
-              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="Select template..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Available Company Formats</SelectLabel>
-                    {templatesLoading ? (
-                      <SelectItem value="loading" disabled>Loading templates...</SelectItem>
-                    ) : templates.length === 0 ? (
-                      <SelectItem value="empty" disabled>No formats uploaded</SelectItem>
-                    ) : (
-                      templates.map((t: ReportTemplateSummary) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          <span className="flex items-center justify-between w-full gap-2">
-                            <span>📄 {t.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">({t.customer?.name || 'Shared'})</span>
-                          </span>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={templateComboboxOptions}
+                value={selectedTemplateId}
+                onChange={setSelectedTemplateId}
+                placeholder="Select template..."
+                searchPlaceholder="Search report format..."
+                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+              />
             </div>
 
             {/* Customer Company Filter */}
@@ -322,19 +463,14 @@ export default function CompanyReportsGeneratorPage() {
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5 text-blue-500" /> Customer Company
               </label>
-              <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="All Customer Companies" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">🏢 All Customer Companies</SelectItem>
-                  {customers.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      🏢 {c.name || c.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={customerComboboxOptions}
+                value={selectedCustomerId}
+                onChange={setSelectedCustomerId}
+                placeholder="All Customer Companies"
+                searchPlaceholder="Search customer company..."
+                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+              />
             </div>
 
             {/* Time Horizon Filter */}
@@ -342,17 +478,14 @@ export default function CompanyReportsGeneratorPage() {
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-emerald-500" /> Time Horizon
               </label>
-              <Select value={preset} onValueChange={(val) => setPreset(val as DatePreset)}>
-                <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="Time horizon" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="this_week">📅 This Week</SelectItem>
-                  <SelectItem value="this_month">📅 This Month</SelectItem>
-                  <SelectItem value="last_month">📅 Last Month</SelectItem>
-                  <SelectItem value="custom">📅 Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={presetComboboxOptions}
+                value={preset}
+                onChange={(val) => setPreset(val as DatePreset)}
+                placeholder="Time horizon"
+                searchPlaceholder="Search preset..."
+                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+              />
             </div>
 
             {/* Trip Status Filter */}
@@ -360,18 +493,14 @@ export default function CompanyReportsGeneratorPage() {
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5 text-amber-500" /> Trip Status
               </label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">🔀 All Trip Statuses</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="InTransit">In Transit</SelectItem>
-                  <SelectItem value="Dispatched">Dispatched</SelectItem>
-                  <SelectItem value="AtPickup">At Pickup</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={statusComboboxOptions}
+                value={statusFilter}
+                onChange={setStatusFilter}
+                placeholder="All Statuses"
+                searchPlaceholder="Search status..."
+                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+              />
             </div>
 
             {/* Rate Category Filter */}
@@ -379,19 +508,14 @@ export default function CompanyReportsGeneratorPage() {
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
                 <Layers className="w-3.5 h-3.5 text-purple-500" /> Rate Category
               </label>
-              <Select value={rateCategoryFilter} onValueChange={setRateCategoryFilter}>
-                <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="All Rate Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">💰 All Rate Categories</SelectItem>
-                  {RATE_CATEGORIES.map((rc) => (
-                    <SelectItem key={rc} value={rc}>
-                      {rc}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={rateCategoryComboboxOptions}
+                value={rateCategoryFilter}
+                onChange={setRateCategoryFilter}
+                placeholder="All Rate Categories"
+                searchPlaceholder="Search category..."
+                triggerClassName="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"
+              />
             </div>
           </div>
 
@@ -459,42 +583,148 @@ export default function CompanyReportsGeneratorPage() {
           </div>
         </div>
 
-        {/* ─── Full-Focus Live Trip Ledger with Compact Inline Summary ─── */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs">
-          <DataTable
-            title={
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full pr-4 gap-2">
-                <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4 text-brand" />
-                  <span className="font-bold text-slate-800 dark:text-slate-100">Live Trip Ledger</span>
-                  {selectedTemplate && (
-                    <span className="text-xs text-slate-400 font-normal hidden sm:inline">
-                      — {selectedTemplate.name}
-                    </span>
+        {/* ─── Main View Segment Switcher (Ledger Table vs. Maps & Radar) ─── */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center gap-1 border border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={() => setViewMode('ledger')}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-1.5",
+                    viewMode === 'ledger'
+                      ? "bg-brand text-white shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
                   )}
-                </div>
+                >
+                  <Table2 className="w-3.5 h-3.5" /> Live Trip Ledger
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-bold rounded-md transition-all flex items-center gap-1.5",
+                    viewMode === 'map'
+                      ? "bg-brand text-white shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                  )}
+                >
+                  <Map className="w-3.5 h-3.5" /> Maps & Live Telemetry Radar
+                </button>
+              </div>
 
-                {/* Compact Inline Metrics Strip */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold text-xs px-2.5 py-1 border border-slate-200 dark:border-slate-700">
-                    <PackageCheck className="w-3 h-3 mr-1 text-brand" />
-                    {previewData?.total ?? 0} Trips
-                  </Badge>
-                  <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-mono font-bold text-xs px-2.5 py-1 border border-emerald-200 dark:border-emerald-800">
-                    <DollarSign className="w-3 h-3 mr-0.5 text-emerald-500" />
-                    Billing: SAR {totalBilling.toLocaleString()}
-                  </Badge>
-                  <Badge className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-mono font-bold text-xs px-2.5 py-1 border border-blue-200 dark:border-blue-800">
-                    Total: SAR {totalAmount.toLocaleString()}
-                  </Badge>
+              {selectedTemplate && (
+                <span className="text-xs text-slate-400 font-normal hidden md:inline">
+                  — {selectedTemplate.name}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Company Combobox Selector for Maps & Ledger */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5 text-brand" /> Maps Company:
+                </span>
+                <div className="w-56">
+                  <Combobox
+                    options={COMPANY_MAP_OPTIONS}
+                    value={companyFilter}
+                    onChange={setCompanyFilter}
+                    placeholder="Select company..."
+                    searchPlaceholder="Search company mode..."
+                    triggerClassName="h-8 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-bold"
+                  />
                 </div>
               </div>
-            }
-            columns={previewColumns}
-            data={previewData?.rows ?? []}
-            compact={true}
-            isLoading={previewLoading}
-          />
+
+              {/* Compact Metrics */}
+              <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold text-xs px-2.5 py-1 border border-slate-200 dark:border-slate-700">
+                <PackageCheck className="w-3 h-3 mr-1 text-brand" />
+                {previewData?.total ?? 0} Trips
+              </Badge>
+            </div>
+          </div>
+
+          {viewMode === 'ledger' ? (
+            <DataTable
+              title={<span className="text-xs font-bold text-slate-500">Filtered Live Trips Ledger</span>}
+              columns={previewColumns}
+              data={previewData?.rows ?? []}
+              compact={true}
+              isLoading={previewLoading}
+            />
+          ) : (
+            <div className="relative h-[520px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner">
+              
+              {/* Floating Top Left HUD Info */}
+              <div className="absolute top-3 left-3 z-[1000] px-3.5 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white/90 dark:bg-[#090A0F]/90 backdrop-blur-xl text-slate-900 dark:text-white text-xs flex items-center gap-2.5 font-mono font-bold">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping shrink-0" />
+                <span>{previewData?.rows?.length || 0} REPORT VEHICLES ON MAP</span>
+                <span className="opacity-40">|</span>
+                <span className="text-brand flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 inline" />
+                  {companyFilter === 'our_company'
+                    ? 'MERCON Logistics (Our Company)'
+                    : companyFilter === 'separate_row'
+                    ? 'Separate Row Custom Value'
+                    : companyFilter === 'separate_text'
+                    ? 'Separate Text per Vehicle'
+                    : companyFilter === 'mercon'
+                    ? 'MERCON Logistics'
+                    : companyFilter === 'all'
+                    ? 'All Companies'
+                    : 'Company Selected'}
+                </span>
+              </div>
+
+              <MapContainer
+                center={[24.0, 45.0]}
+                zoom={5}
+                scrollWheelZoom={true}
+                zoomControl={false}
+                style={{ height: '100%', width: '100%' }}
+              >
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                />
+                <ZoomControl position="bottomright" />
+
+                {(previewData?.rows || []).map((row: any, idx: number) => {
+                  const coords = getApproxCoords(idx);
+                  const displayCompany = getReportCompanyLabel(row);
+                  return (
+                    <Marker
+                      key={row.ref_id || row.id || idx}
+                      position={coords}
+                      icon={createReportTruckMapIcon(row.vehicle_plate)}
+                    >
+                      <Popup className="custom-map-popup">
+                        <div className="p-1 space-y-2 min-w-[200px] text-slate-900">
+                          <div className="flex items-center justify-between border-b pb-1.5">
+                            <span className="text-[10px] text-gray-500 font-bold uppercase">{row.ref_id}</span>
+                            <span className="text-xs font-bold text-brand">{row.vehicle_plate}</span>
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            <p className="font-semibold text-slate-800">Driver: {row.driver_name || 'Assigned Driver'}</p>
+                            <p className="text-[11px] text-slate-500">Customer: {row.customer_name}</p>
+                            <div className="bg-brand/10 p-1.5 rounded border border-brand/20 flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase text-slate-500">Operating Company</span>
+                              <span className="text-xs font-bold text-brand">{displayCompany}</span>
+                            </div>
+                            <div className="pt-1 flex justify-between font-mono text-[11px] text-slate-700">
+                              <span>Billing: SAR {Number(row.billing_amount || 0).toLocaleString()}</span>
+                              <span className="font-bold">Total: SAR {Number(row.total_amount || 0).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MapContainer>
+            </div>
+          )}
         </div>
 
         {/* ─── Add Template Dialog Modal ─── */}
