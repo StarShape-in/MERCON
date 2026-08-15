@@ -1,22 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import {
-  DndContext,
-  useDraggable,
-  useDroppable,
-  DragEndEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
 import {
   SlidersHorizontal,
   ArrowLeft,
   Search,
   Plus,
   Trash2,
-  Play,
   Save,
   Calendar,
   RotateCw,
@@ -25,13 +15,30 @@ import {
   BarChart3,
   LineChart as LineChartIcon,
   PieChart as PieChartIcon,
-  AreaChart as AreaChartIcon,
-  Sparkles,
-  ChevronDown,
-  ChevronRight,
-  GripVertical,
+  BarChart2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronRight,
+  ChevronDown,
+  Filter,
+  Sparkles,
+  Edit3,
+  ArrowRight,
+  Check,
+  Truck,
+  Users,
+  Car,
+  Wrench,
+  Building2,
+  MapPin,
+  FileText,
+  ReceiptText,
+  Wallet,
+  Building,
+  Layers,
+  CheckSquare,
+  Square,
+  HelpCircle,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -46,8 +53,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  AreaChart,
-  Area,
 } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -55,7 +60,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import KpiCard from '@/components/ui/KpiCard';
 import DataTable from '@/components/ui/DataTable';
 import {
@@ -71,166 +75,199 @@ import {
 import { FilterBuilder } from '@/components/report-builder/FilterBuilder';
 import { SaveReportModal } from '@/components/report-builder/SaveReportModal';
 import { ScheduleReportModal } from '@/components/report-builder/ScheduleReportModal';
-import { downloadCSV, exportExcel, exportPDF } from '@/utils/exportUtils';
+import { downloadCSVTable, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
 const CHART_COLORS = ['#E8450F', '#6366F1', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#3B82F6'];
 
-/* Draggable Field Item in Data Panel */
-const DraggableFieldItem: React.FC<{
-  field: ReportField;
-  onAddField: (fieldKey: string, target: 'rows' | 'values') => void;
-}> = ({ field, onAddField }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `field-${field.key}`,
-    data: { fieldKey: field.key, type: field.type },
-  });
-
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.5 : 1 }
-    : undefined;
-
-  const isNumeric = field.type === 'number' || field.type === 'money';
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className="flex items-center justify-between p-2 rounded-xl border border-slate-200 bg-white hover:border-[#E8450F] hover:shadow-2xs transition-all cursor-grab active:cursor-grabbing text-xs group"
-    >
-      <div className="flex items-center gap-2 overflow-hidden">
-        <GripVertical className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 shrink-0" />
-        <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${isNumeric ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-          {field.type === 'money' ? '$' : field.type === 'number' ? '#' : field.type === 'date' ? 'Date' : 'Aa'}
-        </span>
-        <span className="font-medium text-slate-800 truncate">{field.label}</span>
-      </div>
-
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddField(field.key, 'rows');
-          }}
-          className="px-1.5 py-0.5 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold cursor-pointer"
-          title="Add to Rows"
-        >
-          +Row
-        </button>
-        {isNumeric && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddField(field.key, 'values');
-            }}
-            className="px-1.5 py-0.5 text-[10px] bg-orange-50 hover:bg-orange-100 text-[#E8450F] rounded font-semibold cursor-pointer"
-            title="Add to Values"
-          >
-            +Val
-          </button>
-        )}
-      </div>
-    </div>
-  );
+// Logical category mapping for business areas
+const CATEGORY_MAP: Record<
+  string,
+  { category: 'OPERATIONS' | 'FINANCE' | 'CUSTOMERS'; icon: any; description: string }
+> = {
+  trips: { category: 'OPERATIONS', icon: Truck, description: 'View and analyze trip activity, charges, and completion status' },
+  drivers: { category: 'OPERATIONS', icon: Users, description: 'View driver activity, risk scores, and performance' },
+  vehicles: { category: 'OPERATIONS', icon: Car, description: 'View vehicle usage, odometer mileage, and asset details' },
+  maintenance: { category: 'OPERATIONS', icon: Wrench, description: 'View vehicle maintenance, service dates, and repair costs' },
+  thirdParty: { category: 'OPERATIONS', icon: Building2, description: 'View third-party fleet partners and outsourced trip costs' },
+  locations: { category: 'OPERATIONS', icon: MapPin, description: 'View operational pickup and delivery locations' },
+  documents: { category: 'OPERATIONS', icon: FileText, description: 'View compliance documents, licenses, and expiry tracking' },
+  invoices: { category: 'FINANCE', icon: ReceiptText, description: 'View customer invoices, total billing, and outstanding balances' },
+  expenses: { category: 'FINANCE', icon: Wallet, description: 'View operational expenses, fuel costs, labor, and repair payouts' },
+  customers: { category: 'CUSTOMERS', icon: Building, description: 'View customer accounts, credit limits, and historical billing' },
 };
 
-/* Droppable Zone Component */
-const DroppableZone: React.FC<{
-  id: string;
-  title: string;
-  badge?: string;
-  children: React.ReactNode;
-}> = ({ id, title, badge, children }) => {
-  const { setNodeRef, isOver } = useDroppable({ id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`p-3.5 rounded-2xl border transition-all ${
-        isOver ? 'border-[#E8450F] bg-orange-50/40 shadow-xs' : 'border-slate-200 bg-white'
-      }`}
-    >
-      <div className="flex items-center justify-between mb-2.5">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">{title}</h4>
-        {badge && (
-          <Badge variant="outline" className="text-[10px] font-semibold bg-slate-100 text-slate-600 border-slate-200">
-            {badge}
-          </Badge>
-        )}
-      </div>
-      <div className="space-y-2">{children}</div>
-    </div>
-  );
-};
+const TIME_RANGES = [
+  { id: 'this_month', label: 'This Month' },
+  { id: 'today', label: 'Today' },
+  { id: 'this_week', label: 'This Week' },
+  { id: 'last_month', label: 'Last Month' },
+  { id: 'this_quarter', label: 'This Quarter' },
+  { id: 'ytd', label: 'Year to Date (YTD)' },
+  { id: 'custom', label: 'Custom Range' },
+  { id: 'all', label: 'All Time' },
+];
 
 export default function AdvancedBuilderPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Sensors for DnD
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // Initial state passed from templates / saved reports
+  const initialSpec: ReportQuerySpec | undefined = location.state?.initialSpec;
+  const initialReportName: string | undefined = location.state?.reportName;
 
-  // Schema state
+  // Step state (1: Category/Module selection, 2: Field selection, 3: Live Report & Visualization)
+  const [step, setStep] = useState<1 | 2 | 3>(initialSpec ? 3 : 1);
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState<'ALL' | 'OPERATIONS' | 'FINANCE' | 'CUSTOMERS'>('ALL');
+  const [selectedModuleKey, setSelectedModuleKey] = useState<string>(initialSpec?.rootModule || '');
+
+  // Field selection state
+  const [selectedFields, setSelectedFields] = useState<string[]>(() => {
+    if (!initialSpec) return [];
+    const fields = new Set<string>();
+    if (initialSpec.rows) initialSpec.rows.forEach((r) => fields.add(r));
+    if (initialSpec.columns) initialSpec.columns.forEach((c) => fields.add(c));
+    if (initialSpec.values) initialSpec.values.forEach((v) => fields.add(v.field));
+    return Array.from(fields);
+  });
+
+  const [fieldSearch, setFieldSearch] = useState<string>('');
+  const [fieldAggOverrides, setFieldAggOverrides] = useState<Record<string, 'sum' | 'avg' | 'min' | 'max' | 'count'>>({});
+
+  // Filters & Time Period state
+  const [timeRange, setTimeRange] = useState<string>('this_month');
+  const [customStart, setCustomStart] = useState<string>('');
+  const [customEnd, setCustomEnd] = useState<string>('');
+  const [filters, setFilters] = useState<ReportFilter[]>(initialSpec?.filters || []);
+  const [showFilterPanel, setShowFilterPanel] = useState<boolean>(false);
+
+  // Visualization state
+  const [visualization, setVisualization] = useState<'table' | 'bar' | 'column' | 'line' | 'pie'>('table');
+  const [customTitle, setCustomTitle] = useState<string>(initialReportName || '');
+  const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false);
+
+  // Modals state
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [activeReport, setActiveReport] = useState<SavedReport | undefined>(undefined);
+
+  // Fetch schema from backend report engine API
   const { data: schemaModules = [], isLoading: loadingSchema } = useQuery({
     queryKey: ['reportSchema'],
     queryFn: reportBuilderService.getSchema,
   });
 
-  // Location state (initial spec passed from Quick Report / Ask Mercon / Templates)
-  const initialSpec: ReportQuerySpec | undefined = location.state?.initialSpec;
-  const initialActiveReportId: string | undefined = location.state?.activeReportId;
-  const initialReportName: string | undefined = location.state?.reportName;
+  // Flattened schema fields
+  const allSchemaFields: ReportField[] = useMemo(() => {
+    return schemaModules.flatMap((m) => m.fields);
+  }, [schemaModules]);
 
-  // Query spec state
-  const [rootModule, setRootModule] = useState<string>(initialSpec?.rootModule || 'trips');
-  const [rows, setRows] = useState<string[]>(initialSpec?.rows || ['trips.ref_id']);
-  const [columns, setColumns] = useState<string[]>(initialSpec?.columns || []);
-  const [values, setValues] = useState<ReportValueSpec[]>(
-    initialSpec?.values || [{ field: 'trips.revenue', agg: 'sum' }]
-  );
-  const [filters, setFilters] = useState<ReportFilter[]>(initialSpec?.filters || []);
-  const [visualization, setVisualization] = useState<string>('table');
-  const [fieldSearch, setFieldSearch] = useState('');
-  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({
-    drivers: true,
-    vehicles: true,
-    trips: true,
-  });
+  // Selected module schema object
+  const selectedModuleObj = useMemo(() => {
+    return schemaModules.find((m) => m.key === selectedModuleKey);
+  }, [schemaModules, selectedModuleKey]);
 
-  // Modal states
-  const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
-  const [activeReport, setActiveReport] = useState<SavedReport | undefined>(undefined);
+  // Valid selectable fields (Selected module + valid 1-hop joined modules only!)
+  const validSelectableModules = useMemo(() => {
+    if (!selectedModuleObj) return [];
+    const validJoinedKeys = new Set(selectedModuleObj.joins.map((j) => j.toModule));
+    return schemaModules.filter((m) => m.key === selectedModuleKey || validJoinedKeys.has(m.key));
+  }, [schemaModules, selectedModuleObj, selectedModuleKey]);
 
-  // Sync state if initialSpec changes via navigation
-  useEffect(() => {
-    if (initialSpec) {
-      if (initialSpec.rootModule) setRootModule(initialSpec.rootModule);
-      if (initialSpec.rows) setRows(initialSpec.rows);
-      if (initialSpec.columns) setColumns(initialSpec.columns);
-      if (initialSpec.values) setValues(initialSpec.values);
-      if (initialSpec.filters) setFilters(initialSpec.filters);
+  const validSelectableFields = useMemo(() => {
+    return validSelectableModules.flatMap((m) => m.fields);
+  }, [validSelectableModules]);
+
+  // Calculate Date Range ISO strings for backend query
+  const calculatedDateRange = useMemo(() => {
+    const now = new Date();
+    if (timeRange === 'today') {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      return { start: start.toISOString(), end: end.toISOString() };
     }
-  }, [initialSpec]);
+    if (timeRange === 'this_week') {
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const start = new Date(now.setDate(diff));
+      start.setHours(0, 0, 0, 0);
+      return { start: start.toISOString() };
+    }
+    if (timeRange === 'this_month') {
+      return { start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString() };
+    }
+    if (timeRange === 'last_month') {
+      return {
+        start: new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString(),
+        end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString(),
+      };
+    }
+    if (timeRange === 'this_quarter') {
+      const qMonth = Math.floor(now.getMonth() / 3) * 3;
+      return { start: new Date(now.getFullYear(), qMonth, 1).toISOString() };
+    }
+    if (timeRange === 'ytd') {
+      return { start: new Date(now.getFullYear(), 0, 1).toISOString() };
+    }
+    if (timeRange === 'custom') {
+      return {
+        start: customStart ? new Date(customStart).toISOString() : undefined,
+        end: customEnd ? new Date(`${customEnd}T23:59:59`).toISOString() : undefined,
+      };
+    }
+    return undefined;
+  }, [timeRange, customStart, customEnd]);
 
-  const activeModuleObj = schemaModules.find((m) => m.key === rootModule);
+  // Automatically assemble ReportQuerySpec from selected module & selected fields
+  const currentQuerySpec: ReportQuerySpec | null = useMemo(() => {
+    if (!selectedModuleKey || selectedFields.length === 0) return null;
 
-  // Flattened list of all available fields from schema
-  const allSchemaFields: ReportField[] = schemaModules.flatMap((m) => m.fields);
+    const selectedObjList = selectedFields.map((k) => allSchemaFields.find((f) => f.key === k)).filter(Boolean) as ReportField[];
 
-  // Build full QuerySpec for execution
-  const currentQuerySpec: ReportQuerySpec = {
-    rootModule,
-    rows,
-    columns,
-    values,
-    filters,
-  };
+    const dimFieldKeys = selectedObjList
+      .filter((f) => f.type === 'string' || f.type === 'enum' || f.type === 'date')
+      .map((f) => f.key);
 
-  // Run Report Query API hook
+    const valFieldObjs = selectedObjList.filter((f) => f.type === 'number' || f.type === 'money');
+
+    let rows: string[] = [];
+    let values: ReportValueSpec[] = [];
+
+    if (dimFieldKeys.length > 0) {
+      rows = dimFieldKeys;
+      values = valFieldObjs.map((f) => ({
+        field: f.key,
+        agg: fieldAggOverrides[f.key] || 'sum',
+      }));
+
+      // If no numeric field was selected, add default module count metric so query resolves rows
+      if (values.length === 0) {
+        const countFieldKey = `${selectedModuleKey}.count`;
+        const hasCountInSchema = allSchemaFields.some((f) => f.key === countFieldKey);
+        values = [{ field: hasCountInSchema ? countFieldKey : dimFieldKeys[0], agg: 'count' }];
+      }
+    } else {
+      // Only numeric fields selected -> use default date or identifier as row dimension
+      const defaultRowKey = selectedModuleObj?.defaultDateField
+        ? `${selectedModuleKey}.${selectedModuleObj.defaultDateField}`
+        : `${selectedModuleKey}.ref_id`;
+
+      rows = [allSchemaFields.some((f) => f.key === defaultRowKey) ? defaultRowKey : selectedFields[0]];
+      values = valFieldObjs.map((f) => ({
+        field: f.key,
+        agg: fieldAggOverrides[f.key] || 'sum',
+      }));
+    }
+
+    return {
+      rootModule: selectedModuleKey,
+      rows,
+      values,
+      filters,
+      dateRange: calculatedDateRange,
+    };
+  }, [selectedModuleKey, selectedFields, allSchemaFields, selectedModuleObj, fieldAggOverrides, filters, calculatedDateRange]);
+
+  // Execute report query via existing backend report engine API
   const {
     data: queryResult,
     isLoading: querying,
@@ -239,458 +276,663 @@ export default function AdvancedBuilderPage() {
     refetch,
   } = useQuery<ReportResult>({
     queryKey: ['reportEngineQuery', currentQuerySpec],
-    queryFn: () => reportBuilderService.runQuery(currentQuerySpec),
-    enabled: schemaModules.length > 0 && rows.length > 0,
+    queryFn: () => reportBuilderService.runQuery(currentQuerySpec!),
+    enabled: step === 3 && !!currentQuerySpec,
   });
 
-  // Check if multiple modules are connected
-  const referencedModules = new Set<string>();
-  [...rows, ...columns, ...values.map((v) => v.field), ...filters.map((f) => f.field)].forEach((key) => {
-    const mod = key.split('.')[0];
-    if (mod) referencedModules.add(mod);
-  });
-  const isMultiModule = referencedModules.size > 1;
+  // Auto-generate human readable report title
+  const autoReportTitle = useMemo(() => {
+    if (customTitle) return customTitle;
+    if (!selectedModuleObj) return 'Business Report';
 
-  // Add field handler
-  const handleAddField = (fieldKey: string, target: 'rows' | 'values' | 'columns') => {
-    if (target === 'rows') {
-      if (!rows.includes(fieldKey)) setRows([...rows, fieldKey]);
-    } else if (target === 'columns') {
-      if (!columns.includes(fieldKey)) setColumns([...columns, fieldKey]);
-    } else if (target === 'values') {
-      if (!values.some((v) => v.field === fieldKey)) {
-        setValues([...values, { field: fieldKey, agg: 'sum' }]);
-      }
+    const selectedObjList = selectedFields.map((k) => allSchemaFields.find((f) => f.key === k)).filter(Boolean) as ReportField[];
+
+    const dimFields = selectedObjList.filter((f) => f.type === 'string' || f.type === 'enum' || f.type === 'date');
+    const valFields = selectedObjList.filter((f) => f.type === 'number' || f.type === 'money');
+
+    const primaryDim = dimFields[0];
+    const primaryVal = valFields[0];
+
+    if (primaryDim && primaryVal) {
+      if (primaryDim.type === 'date') return `${primaryVal.label} Over Time`;
+      return `${primaryVal.label} by ${primaryDim.label}`;
+    }
+    if (primaryDim && !primaryVal) {
+      return `${selectedModuleObj.label} Count by ${primaryDim.label}`;
+    }
+    if (!primaryDim && primaryVal) {
+      return `Total ${primaryVal.label} Report`;
+    }
+    return `${selectedModuleObj.label} Report`;
+  }, [customTitle, selectedModuleObj, selectedFields, allSchemaFields]);
+
+  // Handlers for Module & Field selection
+  const handleSelectModule = (modKey: string) => {
+    setSelectedModuleKey(modKey);
+    // Pre-select first 5 fields belonging to this module
+    const modObj = schemaModules.find((m) => m.key === modKey);
+    if (modObj) {
+      setSelectedFields(modObj.fields.slice(0, 5).map((f) => f.key));
+    }
+    setStep(2);
+  };
+
+  const handleToggleField = (fieldKey: string) => {
+    setSelectedFields((prev) =>
+      prev.includes(fieldKey) ? prev.filter((k) => k !== fieldKey) : [...prev, fieldKey]
+    );
+  };
+
+  const handleSelectAllModuleFields = (modKey: string) => {
+    const modObj = schemaModules.find((m) => m.key === modKey);
+    if (!modObj) return;
+    const modFieldKeys = modObj.fields.map((f) => f.key);
+    const allSelected = modFieldKeys.every((k) => selectedFields.includes(k));
+
+    if (allSelected) {
+      setSelectedFields((prev) => prev.filter((k) => !modFieldKeys.includes(k)));
+    } else {
+      setSelectedFields((prev) => Array.from(new Set([...prev, ...modFieldKeys])));
     }
   };
 
-  // Drag & drop end handler
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-    const fieldKey = (active.data.current as any)?.fieldKey;
-    if (!fieldKey) return;
+  // Chart data prep
+  const chartRows = useMemo(() => (queryResult?.rows || []).slice(0, 30), [queryResult]);
+  const primaryDimKey = currentQuerySpec?.rows[0] || '';
+  const primaryMetricKey = currentQuerySpec?.values[0]?.field || '';
 
-    const destination = over.id as string;
-    if (destination === 'rows') {
-      handleAddField(fieldKey, 'rows');
-    } else if (destination === 'columns') {
-      handleAddField(fieldKey, 'columns');
-    } else if (destination === 'values') {
-      handleAddField(fieldKey, 'values');
-    }
-  };
+  const chartDimLabel = allSchemaFields.find((f) => f.key === primaryDimKey)?.label || primaryDimKey;
+  const chartMetricLabel = allSchemaFields.find((f) => f.key === primaryMetricKey)?.label || primaryMetricKey;
 
-  const handleRemoveRow = (key: string) => setRows(rows.filter((r) => r !== key));
-  const handleRemoveColumn = (key: string) => setColumns(columns.filter((c) => c !== key));
-  const handleRemoveValue = (key: string) => setValues(values.filter((v) => v.field !== key));
-
-  const handleAggChange = (fieldKey: string, agg: any) => {
-    setValues(values.map((v) => (v.field === fieldKey ? { ...v, agg } : v)));
-  };
-
-  const handleClearAll = () => {
-    setRows([]);
-    setColumns([]);
-    setValues([]);
-    setFilters([]);
-  };
-
-  const toggleModuleExpand = (modKey: string) => {
-    setExpandedModules((prev) => ({ ...prev, [modKey]: !prev[modKey] }));
-  };
-
-  // Export handlers
+  // Export handlers using actual query data
   const handleExportCSV = () => {
     if (!queryResult?.rows.length) return;
-    downloadCSV(queryResult.rows, `${rootModule}_adhoc_report.csv`);
+    const headers = Object.keys(queryResult.rows[0]);
+    const exportRows = queryResult.rows.map((r) => headers.map((h) => r[h] ?? '—'));
+    downloadCSVTable(headers, exportRows, `${selectedModuleKey}_report.csv`);
   };
 
   const handleExportExcel = () => {
     if (!queryResult?.rows.length) return;
-    exportExcel(queryResult.rows, 'Ad-hoc Report', `${rootModule}_adhoc_report.xlsx`);
+    const headers = Object.keys(queryResult.rows[0]);
+    const exportRows = queryResult.rows.map((r) => headers.map((h) => r[h] ?? '—'));
+    const subtitle = `Report: ${autoReportTitle} · Time: ${TIME_RANGES.find((r) => r.id === timeRange)?.label} · Generated: ${new Date().toLocaleString()}`;
+    exportExcelTable(autoReportTitle, headers, exportRows, `${selectedModuleKey}_report.xlsx`, { subtitle });
   };
 
   const handleExportPDF = () => {
     if (!queryResult?.rows.length) return;
-    exportPDF(queryResult.rows, `Ad-hoc Report (${rootModule})`, `${rootModule}_adhoc_report.pdf`);
+    const headers = Object.keys(queryResult.rows[0]);
+    const exportRows = queryResult.rows.map((r) => headers.map((h) => r[h] ?? '—'));
+    const subtitle = `Report: ${autoReportTitle} · Time: ${TIME_RANGES.find((r) => r.id === timeRange)?.label} · Generated: ${new Date().toLocaleString()}`;
+    exportPDFTable(autoReportTitle, headers, exportRows, `${selectedModuleKey}_report.pdf`, { subtitle });
   };
 
-  // Chart data prep
-  const chartData = (queryResult?.rows || []).slice(0, 30);
-  const primaryDimension = rows[0] || 'dimension';
-  const primaryMetric = values[0]?.field || 'value';
-
   return (
-    <DashboardLayout active="Report Builder" title="Advanced Report Builder">
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-6 pb-12">
-          {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/report-builder')}
-                className="text-slate-500 hover:text-slate-900"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                    <SlidersHorizontal className="w-5 h-5 text-[#E8450F]" />
-                    {initialReportName || 'Advanced Ad-hoc Builder'}
-                  </h1>
-                  <Badge className="bg-orange-50 text-[#E8450F] border-orange-200 font-semibold">
-                    Interactive Pivot
-                  </Badge>
-                </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Compose custom cross-module reports with real-time Prisma engine resolution.
-                </p>
+    <DashboardLayout active="Report Builder" title="Business Report Builder">
+      <div className="px-4 sm:px-6 lg:px-8 max-w-[1600px] mx-auto space-y-6 pb-16">
+        {/* Header Bar & Breadcrumb Stepper */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (step > 1) setStep((s) => (s - 1) as 1 | 2 | 3);
+                else navigate('/report-builder');
+              }}
+              className="text-slate-500 hover:text-slate-900"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              {/* Stepper Breadcrumb */}
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className={`hover:text-[#E8450F] transition-colors ${step === 1 ? 'text-[#E8450F] font-bold' : ''}`}
+                >
+                  1. Choose Area
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <button
+                  type="button"
+                  onClick={() => selectedModuleKey && setStep(2)}
+                  disabled={!selectedModuleKey}
+                  className={`hover:text-[#E8450F] transition-colors ${
+                    step === 2 ? 'text-[#E8450F] font-bold' : ''
+                  } ${!selectedModuleKey ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  2. Select Information {selectedModuleObj ? `(${selectedModuleObj.label})` : ''}
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <span className={step === 3 ? 'text-[#E8450F] font-bold' : ''}>3. View Live Report</span>
               </div>
-            </div>
 
-            {/* Action Bar */}
-            <div className="flex items-center gap-2.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClearAll}
-                className="text-xs font-medium text-slate-600 hover:text-slate-900"
-              >
-                Clear Workspace
-              </Button>
-
-              <Button
-                size="sm"
-                onClick={() => setSaveModalOpen(true)}
-                className="gap-1.5 text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white shadow-2xs"
-              >
-                <Save className="w-3.5 h-3.5" /> Save Report
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setScheduleModalOpen(true)}
-                className="gap-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300"
-              >
-                <Calendar className="w-3.5 h-3.5" /> Schedule
-              </Button>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5 text-[#E8450F]" />
+                {step === 1
+                  ? 'What area of the business do you want to report on?'
+                  : step === 2
+                  ? `Select information for ${selectedModuleObj?.label || 'Report'}`
+                  : autoReportTitle}
+              </h1>
             </div>
           </div>
 
-          {/* 3-Panel Main Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Panel 1: Left Data Panel (3 Cols) */}
-            <Card className="lg:col-span-3 border-slate-200 shadow-xs max-h-[calc(100vh-140px)] overflow-hidden flex flex-col">
-              <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-800">Data Fields</CardTitle>
-                  <CardDescription className="text-[11px] text-slate-400 font-medium">{allSchemaFields.length} available</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4 overflow-y-auto flex-1">
-                {/* Search input */}
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <Input
-                    type="text"
-                    placeholder="Filter fields..."
-                    value={fieldSearch}
-                    onChange={(e) => setFieldSearch(e.target.value)}
-                    className="text-xs pl-8 bg-slate-50 border-slate-200"
-                  />
-                </div>
-
-                {/* Module Accordions */}
-                {loadingSchema ? (
-                  <div className="p-4 text-center text-xs text-slate-400 animate-pulse">Loading schema...</div>
-                ) : (
-                  <div className="space-y-3">
-                    {schemaModules.map((mod) => {
-                      const isExpanded = expandedModules[mod.key] ?? false;
-                      const matchingFields = mod.fields.filter(
-                        (f) =>
-                          f.label.toLowerCase().includes(fieldSearch.toLowerCase()) ||
-                          f.key.toLowerCase().includes(fieldSearch.toLowerCase())
-                      );
-                      if (fieldSearch && matchingFields.length === 0) return null;
-
-                      return (
-                        <div key={mod.key} className="border border-slate-200/80 rounded-xl overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => toggleModuleExpand(mod.key)}
-                            className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/80 flex items-center justify-between text-xs font-bold text-slate-800 transition-colors cursor-pointer"
-                          >
-                            <span>{mod.label}</span>
-                            {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-500" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-500" />}
-                          </button>
-
-                          {isExpanded && (
-                            <div className="p-2 space-y-1.5 bg-white">
-                              {matchingFields.map((field) => (
-                                <DraggableFieldItem key={field.key} field={field} onAddField={handleAddField} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Panel 2: Center Structure Builder (4 Cols) */}
-            <div className="lg:col-span-4 space-y-4">
-              {/* Primary Module Selector & Auto-Connect Badge */}
-              <Card className="border-slate-200 shadow-xs">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Primary Root Module</label>
-                    {isMultiModule && (
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-semibold gap-1">
-                        <CheckCircle className="w-3 h-3 text-emerald-600" /> Connected automatically
-                      </Badge>
-                    )}
-                  </div>
-
-                  <select
-                    value={rootModule}
-                    onChange={(e) => setRootModule(e.target.value)}
-                    className="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E8450F]"
-                  >
-                    {schemaModules.map((m) => (
-                      <option key={m.key} value={m.key}>
-                        {m.label} ({m.key})
-                      </option>
-                    ))}
-                  </select>
-
-                  <p className="text-[11px] text-slate-500 leading-normal">
-                    Sets the primary driving entity for row generation and automatically joins 1-hop related data.
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Rows Droppable Zone */}
-              <DroppableZone id="rows" title="Rows (Dimensions)" badge={`${rows.length} fields`}>
-                {rows.length === 0 ? (
-                  <div className="text-xs text-slate-400 italic py-3 text-center border border-dashed border-slate-200 rounded-xl">
-                    Drag fields here or click +Row
-                  </div>
-                ) : (
-                  rows.map((key) => {
-                    const f = allSchemaFields.find((sf) => sf.key === key);
-                    return (
-                      <div key={key} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                        <span className="font-semibold text-slate-800">{f?.label || key}</span>
-                        <button onClick={() => handleRemoveRow(key)} className="text-slate-400 hover:text-red-500 p-1 cursor-pointer">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    );
-                  })
-                )}
-              </DroppableZone>
-
-              {/* Values Droppable Zone */}
-              <DroppableZone id="values" title="Values (Metrics & Aggregations)" badge={`${values.length} metrics`}>
-                {values.length === 0 ? (
-                  <div className="text-xs text-slate-400 italic py-3 text-center border border-dashed border-slate-200 rounded-xl">
-                    Drag numeric fields here or click +Val
-                  </div>
-                ) : (
-                  values.map((v) => {
-                    const f = allSchemaFields.find((sf) => sf.key === v.field);
-                    return (
-                      <div key={v.field} className="flex items-center justify-between p-2 bg-orange-50/50 rounded-xl border border-orange-200 text-xs">
-                        <span className="font-bold text-[#E8450F]">{f?.label || v.field}</span>
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={v.agg}
-                            onChange={(e) => handleAggChange(v.field, e.target.value)}
-                            className="text-[11px] font-bold bg-white border border-slate-300 rounded px-1.5 py-0.5"
-                          >
-                            <option value="sum">Sum</option>
-                            <option value="avg">Avg</option>
-                            <option value="min">Min</option>
-                            <option value="max">Max</option>
-                            <option value="count">Count</option>
-                          </select>
-                          <button onClick={() => handleRemoveValue(v.field)} className="text-slate-400 hover:text-red-500 p-1 cursor-pointer">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </DroppableZone>
-
-              {/* Filters Zone */}
-              <Card className="border-slate-200 shadow-xs p-3.5 space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Filters</h4>
-                <FilterBuilder filters={filters} onChange={setFilters} availableFields={allSchemaFields} />
-              </Card>
-            </div>
-
-            {/* Panel 3: Right Live Preview & Visualization (5 Cols) */}
-            <div className="lg:col-span-5 space-y-4">
-              {/* Header & Visualization Switcher */}
-              <Card className="border-slate-200 shadow-xs p-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">Live Preview</h3>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-bold">
-                    Active
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-                  {[
-                    { id: 'table', icon: TableIcon, label: 'Table' },
-                    { id: 'bar', icon: BarChart3, label: 'Bar' },
-                    { id: 'line', icon: LineChartIcon, label: 'Line' },
-                    { id: 'pie', icon: PieChartIcon, label: 'Pie' },
-                    { id: 'area', icon: AreaChartIcon, label: 'Area' },
-                  ].map((mode) => {
-                    const Icon = mode.icon;
-                    const isActive = visualization === mode.id;
-                    return (
-                      <button
-                        key={mode.id}
-                        onClick={() => setVisualization(mode.id)}
-                        className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
-                          isActive ? 'bg-white text-[#E8450F] shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                        title={mode.label}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <Button size="sm" variant="outline" onClick={handleExportCSV} className="h-7 text-xs font-semibold">
-                    CSV
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleExportExcel} className="h-7 text-xs font-semibold text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100">
-                    Excel
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleExportPDF} className="h-7 text-xs font-semibold text-red-700 bg-red-50 border-red-200 hover:bg-red-100">
-                    PDF
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Execution State */}
-              {querying ? (
-                <div className="p-12 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-200 animate-pulse">
-                  Querying database report engine...
-                </div>
-              ) : isError ? (
-                <div className="p-5 text-xs bg-red-50 text-red-700 border border-red-200 rounded-2xl flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold">Report Engine Error: </span>
-                    {(error as any)?.response?.data?.error?.message || (error as any)?.message || 'Invalid query configuration'}
-                  </div>
-                </div>
-              ) : queryResult ? (
-                <div className="space-y-4">
-                  {/* KPI Cards Row */}
-                  {Object.keys(queryResult.kpis).length > 0 && (
-                    <div className="grid grid-cols-2 gap-3">
-                      {Object.entries(queryResult.kpis).map(([k, val]) => (
-                        <KpiCard
-                          key={k}
-                          title={k.replace(/_/g, ' ').toUpperCase()}
-                          value={typeof val === 'number' ? val.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(val)}
-                          variant="amber"
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Visualization Canvas */}
-                  {visualization !== 'table' && chartData.length > 0 && (
-                    <Card className="border-slate-200 shadow-xs p-4 h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        {visualization === 'bar' ? (
-                          <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey={primaryDimension} tick={{ fontSize: 10 }} />
-                            <YAxis tick={{ fontSize: 10 }} />
-                            <RechartsTooltip />
-                            <Bar dataKey={primaryMetric} fill="#E8450F" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        ) : visualization === 'line' ? (
-                          <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey={primaryDimension} tick={{ fontSize: 10 }} />
-                            <YAxis tick={{ fontSize: 10 }} />
-                            <RechartsTooltip />
-                            <Line type="monotone" dataKey={primaryMetric} stroke="#E8450F" strokeWidth={2} />
-                          </LineChart>
-                        ) : visualization === 'pie' ? (
-                          <PieChart>
-                            <RechartsTooltip />
-                            <Pie data={chartData} dataKey={primaryMetric} nameKey={primaryDimension} cx="50%" cy="50%" outerRadius={80} fill="#8884d8">
-                              {chartData.map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                              ))}
-                            </Pie>
-                          </PieChart>
-                        ) : (
-                          <AreaChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey={primaryDimension} tick={{ fontSize: 10 }} />
-                            <YAxis tick={{ fontSize: 10 }} />
-                            <RechartsTooltip />
-                            <Area type="monotone" dataKey={primaryMetric} stroke="#E8450F" fill="#ffedd5" />
-                          </AreaChart>
-                        )}
-                      </ResponsiveContainer>
-                    </Card>
-                  )}
-
-                  {/* Data Table Canvas */}
-                  <Card className="border-slate-200 shadow-xs p-4">
-                    <DataTable
-                      columns={
-                        queryResult.rows.length > 0
-                          ? Object.keys(queryResult.rows[0]).map((col) => ({
-                              header: col.replace(/_/g, ' ').toUpperCase(),
-                              accessor: (row: any) => {
-                                const val = row[col];
-                                if (val === null || val === undefined) return '—';
-                                if (typeof val === 'number') return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
-                                return String(val);
-                              },
-                            }))
-                          : []
-                      }
-                      data={queryResult.rows}
-                      emptyTitle="No records found"
-                      emptyMessage="Drag dimensions and values to inspect report rows."
-                    />
-                  </Card>
-                </div>
-              ) : null}
-            </div>
+          {/* Top Bar Actions Group */}
+          <div className="flex items-center gap-2.5">
+            {step === 3 && (
+              <>
+                <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-1.5 text-xs font-medium">
+                  <Download className="w-3.5 h-3.5" /> Export CSV
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setSaveModalOpen(true)}
+                  className="gap-1.5 text-xs font-semibold bg-[#E8450F] hover:bg-[#c43809] text-white shadow-2xs"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save Report
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setScheduleModalOpen(true)}
+                  className="gap-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300"
+                >
+                  <Calendar className="w-3.5 h-3.5" /> Schedule
+                </Button>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              title="Refresh Report"
+              className="text-slate-500 hover:text-slate-900"
+            >
+              <RotateCw className="w-4 h-4" />
+            </Button>
           </div>
         </div>
-      </DndContext>
+
+        {/* ─── SCREEN 1: CATEGORY & MODULE SELECTION ─────────────────────────── */}
+        {step === 1 && (
+          <div className="space-y-6">
+            {/* Category Tabs Filter */}
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+              {(['ALL', 'OPERATIONS', 'FINANCE', 'CUSTOMERS'] as const).map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategoryTab(cat)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedCategoryTab === cat
+                      ? 'bg-slate-900 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {cat === 'ALL' ? 'All Areas' : cat}
+                </button>
+              ))}
+            </div>
+
+            {loadingSchema ? (
+              <div className="p-12 text-center text-xs text-slate-400 animate-pulse">Loading business modules...</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {schemaModules
+                  .filter((mod) => {
+                    const info = CATEGORY_MAP[mod.key] || { category: 'OPERATIONS' };
+                    if (selectedCategoryTab === 'ALL') return true;
+                    return info.category === selectedCategoryTab;
+                  })
+                  .map((mod) => {
+                    const info = CATEGORY_MAP[mod.key] || {
+                      category: 'OPERATIONS',
+                      icon: Layers,
+                      description: `View and analyze ${mod.label} data`,
+                    };
+                    const Icon = info.icon;
+                    const fieldCount = mod.fields.length;
+
+                    return (
+                      <Card
+                        key={mod.key}
+                        onClick={() => handleSelectModule(mod.key)}
+                        className="border-slate-200 hover:border-[#E8450F] hover:shadow-md cursor-pointer transition-all group flex flex-col justify-between"
+                      >
+                        <CardHeader className="p-5 pb-3">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="p-3 bg-orange-50 text-[#E8450F] rounded-2xl border border-orange-100 shadow-2xs group-hover:scale-105 transition-transform">
+                              <Icon className="w-6 h-6" />
+                            </div>
+                            <Badge variant="outline" className="text-[10px] uppercase font-bold text-slate-600 bg-slate-100 border-slate-200">
+                              {info.category}
+                            </Badge>
+                          </div>
+                          <CardTitle className="text-base font-bold text-slate-900 group-hover:text-[#E8450F] transition-colors">
+                            {mod.label}
+                          </CardTitle>
+                          <CardDescription className="text-xs text-slate-600 leading-relaxed pt-1">
+                            "{info.description}"
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-5 pt-0 flex items-center justify-between border-t border-slate-100 mt-4 text-xs">
+                          <span className="text-slate-400 font-medium">{fieldCount} available fields</span>
+                          <span className="font-bold text-[#E8450F] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            Select Module <ChevronRight className="w-4 h-4" />
+                          </span>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── SCREEN 2: FIELD SELECTION ─────────────────────────────────────── */}
+        {step === 2 && selectedModuleObj && (
+          <div className="space-y-6">
+            {/* Top Bar for Field Selection */}
+            <Card className="border-slate-200 p-4 bg-slate-50/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-orange-50 text-[#E8450F] rounded-xl border border-orange-200">
+                  {(() => {
+                    const Icon = (CATEGORY_MAP[selectedModuleKey] || {}).icon || Layers;
+                    return <Icon className="w-5 h-5" />;
+                  })()}
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">{selectedModuleObj.label} Fields</h3>
+                  <p className="text-xs text-slate-500">
+                    Check the fields you want to include in your report preview.
+                  </p>
+                </div>
+              </div>
+
+              {/* Counter & Action */}
+              <div className="flex items-center gap-3">
+                <Badge className="bg-[#E8450F] text-white px-3 py-1 text-xs font-bold shadow-2xs">
+                  {selectedFields.length} fields selected
+                </Badge>
+
+                <Button
+                  onClick={() => setStep(3)}
+                  disabled={selectedFields.length === 0}
+                  className="bg-[#E8450F] hover:bg-[#c43809] text-white text-xs font-bold px-4 shadow-2xs gap-1.5"
+                >
+                  Continue to Live Report <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </Card>
+
+            {/* Field Search Bar */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Input
+                type="text"
+                placeholder={`Search fields in ${selectedModuleObj.label} and connected modules...`}
+                value={fieldSearch}
+                onChange={(e) => setFieldSearch(e.target.value)}
+                className="text-xs pl-10 bg-white border-slate-200 h-10 shadow-2xs"
+              />
+            </div>
+
+            {/* Grouped Field Selection List */}
+            <div className="space-y-6">
+              {validSelectableModules.map((mod) => {
+                const matchingFields = mod.fields.filter(
+                  (f) =>
+                    f.label.toLowerCase().includes(fieldSearch.toLowerCase()) ||
+                    f.key.toLowerCase().includes(fieldSearch.toLowerCase())
+                );
+                if (fieldSearch && matchingFields.length === 0) return null;
+
+                const isPrimaryModule = mod.key === selectedModuleKey;
+                const allModSelected = matchingFields.every((f) => selectedFields.includes(f.key));
+
+                return (
+                  <Card key={mod.key} className="border-slate-200 shadow-xs">
+                    <CardHeader className="p-4 pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                          {mod.label} {isPrimaryModule ? '(Primary Module)' : '(Connected Automatically)'}
+                        </h4>
+                        {!isPrimaryModule && (
+                          <Badge variant="outline" className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border-emerald-200">
+                            Valid 1-hop relation
+                          </Badge>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSelectAllModuleFields(mod.key)}
+                        className="text-xs font-semibold text-[#E8450F] hover:underline cursor-pointer"
+                      >
+                        {allModSelected ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </CardHeader>
+
+                    <CardContent className="p-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {matchingFields.map((field) => {
+                          const isSelected = selectedFields.includes(field.key);
+                          const isNumeric = field.type === 'number' || field.type === 'money';
+
+                          return (
+                            <div
+                              key={field.key}
+                              onClick={() => handleToggleField(field.key)}
+                              className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'bg-orange-50/70 border-[#E8450F] text-slate-900 shadow-2xs'
+                                  : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 overflow-hidden">
+                                {isSelected ? (
+                                  <CheckSquare className="w-4 h-4 text-[#E8450F] shrink-0" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-slate-300 shrink-0" />
+                                )}
+                                <div>
+                                  <span className="text-xs font-semibold block truncate">{field.label}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono">{field.key}</span>
+                                </div>
+                              </div>
+
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] font-mono shrink-0 ml-2 ${
+                                  field.type === 'money'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : field.type === 'number'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : field.type === 'date'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}
+                              >
+                                {field.type === 'money' ? '$ Money' : field.type === 'number' ? '# Num' : field.type === 'date' ? 'Date' : 'Aa Text'}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Bottom Action Row */}
+            <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+              <Button variant="outline" size="sm" onClick={() => setStep(1)} className="text-xs font-semibold">
+                ← Change Business Area
+              </Button>
+
+              <Button
+                onClick={() => setStep(3)}
+                disabled={selectedFields.length === 0}
+                className="bg-[#E8450F] hover:bg-[#c43809] text-white text-xs font-bold px-6 shadow-2xs gap-1.5"
+              >
+                Continue to Live Report <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── SCREEN 3: LIVE REPORT & VISUALIZATION ─────────────────────────── */}
+        {step === 3 && (
+          <div className="space-y-5">
+            {/* Title Bar & Quick Controls */}
+            <Card className="border-slate-200 p-4 shadow-2xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  {isEditingTitle ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="text"
+                        value={customTitle || autoReportTitle}
+                        onChange={(e) => setCustomTitle(e.target.value)}
+                        className="text-base font-bold text-slate-900 bg-white border-slate-300 h-9"
+                      />
+                      <Button size="sm" onClick={() => setIsEditingTitle(false)} className="h-9 px-3 bg-[#E8450F] text-white text-xs font-semibold">
+                        Done
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsEditingTitle(true)}>
+                      <h2 className="text-lg font-bold text-slate-900 tracking-tight">{autoReportTitle}</h2>
+                      <Edit3 className="w-4 h-4 text-slate-400 group-hover:text-[#E8450F] transition-colors" />
+                    </div>
+                  )}
+                  <Badge variant="outline" className="text-[11px] font-semibold bg-orange-50 text-[#E8450F] border-orange-200">
+                    Live Data
+                  </Badge>
+                </div>
+
+                {/* Back to Edit Fields Button */}
+                <Button variant="outline" size="sm" onClick={() => setStep(2)} className="text-xs font-semibold text-slate-700">
+                  ← Edit Fields ({selectedFields.length})
+                </Button>
+              </div>
+
+              {/* Time Range & Compact Filter Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Time Range Selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-600">Date Range:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TIME_RANGES.map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setTimeRange(r.id)}
+                        className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors cursor-pointer ${
+                          timeRange === r.id
+                            ? 'bg-slate-900 text-white border-slate-900 font-semibold shadow-2xs'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Filter Toggle */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilterPanel(!showFilterPanel)}
+                  className={`gap-1.5 text-xs font-semibold ${
+                    filters.length > 0 ? 'bg-orange-50 text-[#E8450F] border-orange-200' : 'text-slate-700'
+                  }`}
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  {filters.length > 0 ? `${filters.length} Filters Applied` : '+ Add Filter'}
+                </Button>
+              </div>
+
+              {/* Custom Date Range Picker */}
+              {timeRange === 'custom' && (
+                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                  <span className="font-semibold text-slate-600">Start:</span>
+                  <input
+                    type="date"
+                    value={customStart}
+                    onChange={(e) => setCustomStart(e.target.value)}
+                    className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
+                  />
+                  <span className="font-semibold text-slate-600">End:</span>
+                  <input
+                    type="date"
+                    value={customEnd}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    className="px-2 py-1 bg-white border border-slate-300 rounded text-xs"
+                  />
+                </div>
+              )}
+
+              {/* Expandable Filter Panel */}
+              {showFilterPanel && (
+                <div className="pt-3 border-t border-slate-100">
+                  <FilterBuilder filters={filters} onChange={setFilters} availableFields={validSelectableFields} />
+                </div>
+              )}
+            </Card>
+
+            {/* Visualization Switcher Bar */}
+            <Card className="border-slate-200 p-3 shadow-2xs flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">View Format:</span>
+
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                {[
+                  { id: 'table', icon: TableIcon, label: 'Grid / Ledger' },
+                  { id: 'bar', icon: BarChart3, label: 'Bar Chart' },
+                  { id: 'column', icon: BarChart2, label: 'Column Chart' },
+                  { id: 'line', icon: LineChartIcon, label: 'Line Chart' },
+                  { id: 'pie', icon: PieChartIcon, label: 'Pie Chart' },
+                ].map((mode) => {
+                  const Icon = mode.icon;
+                  const isActive = visualization === mode.id;
+                  return (
+                    <button
+                      key={mode.id}
+                      onClick={() => setVisualization(mode.id as any)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        isActive ? 'bg-white text-[#E8450F] shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {mode.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Query Execution Output Canvas */}
+            {querying ? (
+              <div className="p-16 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-200 animate-pulse">
+                Fetching live business report records from database...
+              </div>
+            ) : isError ? (
+              <div className="p-5 text-xs bg-red-50 text-red-700 border border-red-200 rounded-2xl flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Failed to load live data: </span>
+                  {(error as any)?.response?.data?.error?.message || (error as any)?.message || 'Invalid parameters'}
+                </div>
+              </div>
+            ) : queryResult ? (
+              <div className="space-y-4">
+                {/* KPI Summary Cards */}
+                {Object.keys(queryResult.kpis).length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {Object.entries(queryResult.kpis).slice(0, 4).map(([k, val]) => (
+                      <KpiCard
+                        key={k}
+                        title={k.replace(/_/g, ' ').toUpperCase()}
+                        value={typeof val === 'number' ? val.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(val)}
+                        variant="amber"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Chart View */}
+                {visualization !== 'table' && chartRows.length > 0 && (
+                  <Card className="border-slate-200 p-5 h-80 shadow-2xs">
+                    <div className="mb-2 text-xs font-bold text-slate-600">
+                      {chartMetricLabel} by {chartDimLabel}
+                    </div>
+                    <ResponsiveContainer width="100%" height="90%">
+                      {visualization === 'bar' || visualization === 'column' ? (
+                        <BarChart data={chartRows} layout={visualization === 'bar' ? 'vertical' : 'horizontal'}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          {visualization === 'bar' ? (
+                            <>
+                              <XAxis type="number" tick={{ fontSize: 10 }} />
+                              <YAxis dataKey={primaryDimKey} type="category" tick={{ fontSize: 10 }} width={100} />
+                            </>
+                          ) : (
+                            <>
+                              <XAxis dataKey={primaryDimKey} tick={{ fontSize: 10 }} />
+                              <YAxis tick={{ fontSize: 10 }} />
+                            </>
+                          )}
+                          <RechartsTooltip />
+                          <Bar dataKey={primaryMetricKey} fill="#E8450F" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      ) : visualization === 'line' ? (
+                        <LineChart data={chartRows}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey={primaryDimKey} tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 10 }} />
+                          <RechartsTooltip />
+                          <Line type="monotone" dataKey={primaryMetricKey} stroke="#E8450F" strokeWidth={2.5} />
+                        </LineChart>
+                      ) : (
+                        <PieChart>
+                          <RechartsTooltip />
+                          <Pie data={chartRows} dataKey={primaryMetricKey} nameKey={primaryDimKey} cx="50%" cy="50%" outerRadius={90} fill="#8884d8">
+                            {chartRows.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      )}
+                    </ResponsiveContainer>
+                  </Card>
+                )}
+
+                {/* Data Table View */}
+                <Card className="border-slate-200 shadow-2xs p-4">
+                  <DataTable
+                    columns={
+                      queryResult.rows.length > 0
+                        ? Object.keys(queryResult.rows[0]).map((colKey) => {
+                            const fieldObj = allSchemaFields.find((f) => f.key === colKey);
+                            const headerLabel = fieldObj ? fieldObj.label.toUpperCase() : colKey.replace(/_/g, ' ').toUpperCase();
+
+                            return {
+                              header: headerLabel,
+                              accessor: (row: any) => {
+                                const val = row[colKey];
+                                if (val === null || val === undefined) return '—';
+                                if (typeof val === 'number') {
+                                  if (fieldObj?.type === 'money') {
+                                    return `₹${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                  }
+                                  return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                                }
+                                return String(val);
+                              },
+                            };
+                          })
+                        : []
+                    }
+                    data={queryResult.rows}
+                    emptyTitle="No records matching selected criteria"
+                    emptyMessage="Try adjusting your field selection or date range filters."
+                  />
+                </Card>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
 
       <SaveReportModal
         open={saveModalOpen}
         onOpenChange={setSaveModalOpen}
-        spec={currentQuerySpec}
+        spec={currentQuerySpec!}
         visualization={visualization}
         onSaved={() => navigate('/report-builder')}
       />
@@ -704,3 +946,4 @@ export default function AdvancedBuilderPage() {
     </DashboardLayout>
   );
 }
+

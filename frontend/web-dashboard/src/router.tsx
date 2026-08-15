@@ -186,14 +186,9 @@ export default function AppRouter() {
           <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
           <Route path="/documents/expiry"         element={<Navigate to="/documents" replace />} />
 
-          {/* Reports */}
-          <Route path="/reports"                  element={<RequireModule moduleKey="reports"><ReportsDashboardPage /></RequireModule>} />
-          <Route path="/reports/custom"           element={<CustomReportPage />} />
-          <Route path="/reports/client-templates" element={<Navigate to="/company-reports" replace />} />
-          <Route path="/reports/fleet"            element={<FleetPerformancePage />} />
-          <Route path="/reports/revenue"          element={<RevenueReportsPage />} />
-          <Route path="/reports/drivers"          element={<Navigate to="/reports" replace />} />
-          <Route path="/reports/delays"           element={<DelayReportPage />} />
+          {/* Reports (Legacy -> Redirect to Company Reports) */}
+          <Route path="/reports/*"                element={<Navigate to="/company-reports" replace />} />
+          <Route path="/reports"                  element={<Navigate to="/company-reports" replace />} />
 
           {/* Custom Company Reports Generator */}
           <Route path="/company-reports"          element={<RequireModule moduleKey="company-reports"><CompanyReportsGeneratorPage /></RequireModule>} />

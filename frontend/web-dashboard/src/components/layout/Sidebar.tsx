@@ -93,7 +93,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
       label: 'COMPLIANCE',
       items: [
         { icon: FileText, label: 'Documents', path: '/documents' },
-        { icon: BarChart3, label: 'Reports', path: '/reports' },
         { icon: FileSpreadsheet, label: 'Company Reports', path: '/company-reports' },
         { icon: Wand2, label: 'Report Builder', path: '/report-builder' },
       ],

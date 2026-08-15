@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { documentService } from '@/services/documentService';
+import { Combobox } from '@/components/ui/combobox';
 import { toast } from 'sonner';
 
 interface ProposalItem {
@@ -385,28 +386,27 @@ export const AutoAssignModal: React.FC<AutoAssignModalProps> = ({
                         </SelectContent>
                       </Select>
 
-                      {/* Specific Vehicle or Driver Choice Dropdown */}
-                      <Select
+                      {/* Specific Vehicle or Driver Searchable Combobox */}
+                      <Combobox
+                        options={
+                          currentEntityType === 'Vehicle'
+                            ? vehicles.map((v) => ({
+                                value: v.id,
+                                label: v.plate_number || v.ref_id || 'Vehicle',
+                                keywords: `${v.plate_number} ${v.ref_id}`,
+                              }))
+                            : drivers.map((d) => ({
+                                value: d.id,
+                                label: `${d.first_name} ${d.last_name}`,
+                                keywords: `${d.first_name} ${d.last_name} ${d.license_number || ''}`,
+                              }))
+                        }
                         value={currentEntityId}
-                        onValueChange={(val) => handleEntityChange(item.docId, currentEntityType, val)}
-                      >
-                        <SelectTrigger className="h-8 w-44 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                          <SelectValue placeholder="Select target..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-56">
-                          {currentEntityType === 'Vehicle'
-                            ? vehicles.map((v) => (
-                                <SelectItem key={v.id} value={v.id} className="text-xs font-semibold font-mono">
-                                  {v.plate_number || v.ref_id}
-                                </SelectItem>
-                              ))
-                            : drivers.map((d) => (
-                                <SelectItem key={d.id} value={d.id} className="text-xs font-semibold">
-                                  {d.first_name} {d.last_name}
-                                </SelectItem>
-                              ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(val) => handleEntityChange(item.docId, currentEntityType, val)}
+                        placeholder="Select target..."
+                        searchPlaceholder={`Search ${currentEntityType.toLowerCase()}...`}
+                        triggerClassName="h-8 w-48 text-xs font-semibold bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                      />
                     </div>
                   </div>
                 );

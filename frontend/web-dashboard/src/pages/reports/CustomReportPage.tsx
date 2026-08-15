@@ -170,7 +170,7 @@ export default function CustomReportPage() {
           </div>
           <Button
             size="sm"
-            onClick={() => navigate('/reports/client-templates')}
+            onClick={() => navigate('/company-reports')}
             className="bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5 shrink-0 shadow-sm"
           >
             <span>Open Company Excel Generator</span>

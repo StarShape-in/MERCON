@@ -36,6 +36,7 @@ import CreateFolderModal from '@/components/ui/CreateFolderModal';
 import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
 import { AutoAssignModal } from '@/components/ui/AutoAssignModal';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
@@ -489,6 +490,30 @@ export default function DocumentsCenterPage() {
       unlinked: unlinkedDocs,
     };
   }, [filteredDocs, vehicles, drivers]);
+
+  const entityComboboxOptions = useMemo(() => {
+    const opts: ComboboxOption[] = [
+      {
+        value: 'Vehicle:unassigned',
+        label: 'Unassigned / Root',
+        keywords: 'unassigned unlinked root none loose',
+        group: 'Status',
+      },
+      ...vehicles.map((v) => ({
+        value: `Vehicle:${v.id}`,
+        label: `Vehicle ${v.plate_number || v.ref_id} (${v.ref_id || 'Truck'})`,
+        keywords: `${v.plate_number} ${v.ref_id} vehicle truck ${v.trailer_number || ''}`,
+        group: `Vehicles (${vehicles.length})`,
+      })),
+      ...drivers.map((d) => ({
+        value: `Driver:${d.id}`,
+        label: `${d.first_name} ${d.last_name} (${d.license_number || d.phone_primary || 'Driver'})`,
+        keywords: `${d.first_name} ${d.last_name} ${d.license_number} driver ${d.phone_primary || ''}`,
+        group: `Drivers (${drivers.length})`,
+      })),
+    ];
+    return opts;
+  }, [vehicles, drivers]);
 
   return (
     <DashboardLayout active="Documents" title="Documents Center">
@@ -1190,40 +1215,25 @@ export default function DocumentsCenterPage() {
 
                   return (
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Select
+                      <Combobox
+                        options={entityComboboxOptions}
                         value={`${row.entity_type}:${row.entity_id}`}
-                        onValueChange={(val) => {
+                        onChange={(val) => {
                           const [type, id] = val.split(':');
-                          handleSingleAssignEntity(row.id, type, id);
+                          if (type && id) {
+                            handleSingleAssignEntity(row.id, type, id);
+                          }
                         }}
-                      >
-                        <SelectTrigger className={cn(
+                        placeholder={row.entityName || 'Assign owner...'}
+                        searchPlaceholder="Search vehicle plate or driver..."
+                        emptyText="No match."
+                        triggerClassName={cn(
                           'h-7 text-xs font-bold px-2 py-0 border rounded-lg max-w-[185px] shrink-0',
                           isUnknown
                             ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 font-mono'
                             : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
-                        )}>
-                          <SelectValue placeholder={row.entityName} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 text-xs">
-                          <SelectItem value="Vehicle:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                            ── Vehicles ({vehicles.length}) ──
-                          </SelectItem>
-                          {vehicles.map((v) => (
-                            <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
-                              {v.plate_number || v.ref_id}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                            ── Drivers ({drivers.length}) ──
-                          </SelectItem>
-                          {drivers.map((d) => (
-                            <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
-                              {d.first_name} {d.last_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        )}
+                      />
                     </div>
                   );
                 }
@@ -1772,35 +1782,20 @@ export default function DocumentsCenterPage() {
                       </Badge>
                     </div>
 
-                    <Select
+                    <Combobox
+                      options={entityComboboxOptions}
                       value={`${previewDoc.entity_type}:${previewDoc.entity_id}`}
-                      onValueChange={(val) => {
+                      onChange={(val) => {
                         const [type, id] = val.split(':');
-                        handleSingleAssignEntity(previewDoc.id, type, id);
+                        if (type && id) {
+                          handleSingleAssignEntity(previewDoc.id, type, id);
+                        }
                       }}
-                    >
-                      <SelectTrigger className="h-9 text-xs font-extrabold bg-white dark:bg-slate-800 border-indigo-300 dark:border-indigo-700 shadow-2xs text-slate-900 dark:text-slate-100">
-                        <SelectValue placeholder={nameFor(previewDoc)} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        <SelectItem value="Vehicle:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                          ── Vehicles ({vehicles.length}) ──
-                        </SelectItem>
-                        {vehicles.map((v) => (
-                          <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
-                            {v.plate_number || v.ref_id}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                          ── Drivers ({drivers.length}) ──
-                        </SelectItem>
-                        {drivers.map((d) => (
-                          <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
-                            {d.first_name} {d.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Search vehicle plate or driver name..."
+                      searchPlaceholder="Type plate number, ref ID, or driver..."
+                      emptyText="No matching vehicles or drivers found."
+                      triggerClassName="h-9 text-xs font-extrabold bg-white dark:bg-slate-800 border-indigo-300 dark:border-indigo-700 shadow-2xs text-slate-900 dark:text-slate-100"
+                    />
                   </div>
 
                   {/* Gemini AI Vision OCR Extracted Intelligence Card */}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Check, ChevronDown, Plus } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -19,6 +19,8 @@ export interface ComboboxOption {
   label: string;
   keywords?: string;
   disabled?: boolean;
+  group?: string;
+  icon?: React.ReactNode;
 }
 
 interface ComboboxProps {
@@ -53,6 +55,16 @@ export function Combobox({
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
 
+  const groupedMap = useMemo(() => {
+    const map = new Map<string, ComboboxOption[]>();
+    for (const option of options) {
+      const g = option.group || '';
+      if (!map.has(g)) map.set(g, []);
+      map.get(g)!.push(option);
+    }
+    return map;
+  }, [options]);
+
   return (
     <Popover open={disabled ? false : open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -69,7 +81,10 @@ export function Combobox({
             triggerClassName
           )}
         >
-          <span className="truncate">{selected ? selected.label : placeholder}</span>
+          <span className="truncate flex items-center gap-2">
+            {selected?.icon}
+            <span>{selected ? selected.label : placeholder}</span>
+          </span>
           <ChevronDown className="ml-1.5 h-4 w-4 shrink-0 opacity-50 text-slate-400" />
         </Button>
       </PopoverTrigger>
@@ -83,7 +98,7 @@ export function Combobox({
         <Command
           filter={(itemValue, search) => {
             const option = options.find((o) => o.value === itemValue);
-            return matchesSearch(search, [option?.label, option?.keywords]) ? 1 : 0;
+            return matchesSearch(search, [option?.label, option?.keywords, option?.group]) ? 1 : 0;
           }}
         >
           <CommandInput
@@ -109,38 +124,43 @@ export function Combobox({
                 </Button>
               )}
             </CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => {
-                const isSelected = value === option.value;
-                return (
-                  <CommandItem
-                    key={option.value}
-                    value={option.value}
-                    disabled={option.disabled}
-                    className={cn(
-                      'flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-colors text-xs my-0.5',
-                      isSelected
-                        ? 'bg-orange-50 dark:bg-orange-950/40 text-brand font-semibold'
-                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300',
-                      option.disabled && 'opacity-50 cursor-not-allowed pointer-events-none'
-                    )}
-                    onSelect={(currentValue) => {
-                      if (option.disabled) return;
-                      onChange(currentValue === value ? value : currentValue);
-                      setOpen(false);
-                    }}
-                  >
-                    <span className="truncate flex-1">{option.label}</span>
-                    <Check
+            {Array.from(groupedMap.entries()).map(([groupName, groupOptions]: [string, ComboboxOption[]]) => (
+              <CommandGroup key={groupName || 'ungrouped'} heading={groupName || undefined}>
+                {groupOptions.map((option: ComboboxOption) => {
+                  const isSelected = value === option.value;
+                  return (
+                    <CommandItem
+                      key={option.value}
+                      value={option.value}
+                      disabled={option.disabled}
                       className={cn(
-                        'h-4 w-4 text-brand shrink-0 ml-2',
-                        isSelected ? 'opacity-100' : 'opacity-0'
+                        'flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-colors text-xs my-0.5',
+                        isSelected
+                          ? 'bg-orange-50 dark:bg-orange-950/40 text-brand font-semibold'
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300',
+                        option.disabled && 'opacity-50 cursor-not-allowed pointer-events-none'
                       )}
-                    />
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                      onSelect={(currentValue) => {
+                        if (option.disabled) return;
+                        onChange(currentValue === value ? value : currentValue);
+                        setOpen(false);
+                      }}
+                    >
+                      <span className="truncate flex-1 flex items-center gap-2">
+                        {option.icon}
+                        <span>{option.label}</span>
+                      </span>
+                      <Check
+                        className={cn(
+                          'h-4 w-4 text-brand shrink-0 ml-2',
+                          isSelected ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            ))}
           </CommandList>
           {onAddNew && (
             <div className="p-1.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-xl">
