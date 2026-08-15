@@ -612,7 +612,6 @@ export default function DriverListPage() {
               segments: [
                 { label: "Available", count: availableCount, color: "#16A34A" },
                 { label: "On Trip", count: onTripCount, color: "#2563EB" },
-                { label: "Off Duty", count: Math.max(0, totalCount - availableCount - onTripCount), color: "#D97706" },
               ]
             }}
             onClick={() => {
