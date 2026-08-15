@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, Clock, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -211,7 +211,7 @@ export default function OperationsAssistant() {
 
           {/* ── HALF-BODY CHARACTER ── */}
           <div className={`relative shrink-0 select-none pointer-events-none z-10
-              w-28 h-40 sm:w-36 sm:h-52 ${visible ? 'char-in' : 'char-out'}`}>
+              w-36 h-52 sm:w-44 sm:h-64 ${visible ? 'char-in' : 'char-out'}`}>
             <img
               src={ASSETS[currentAsset]}
               alt="Operations Assistant character"
@@ -256,30 +256,33 @@ export default function OperationsAssistant() {
 
                 {/* VIEW 1 — Question */}
                 {panelView === 'question' && (
-                  <div className="msg-in space-y-3">
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-bold text-slate-900">Hey! 👋</p>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        Trip <strong className="text-slate-900">{activeReminder?.tripRef ?? 'TRP-0159'}</strong> has been completed.
+                  <div className="msg-in space-y-3.5">
+                    <div className="space-y-1">
+                      <p className="text-[15px] font-bold text-slate-900">Hey Ian! 👋</p>
+                      <p className="text-sm text-slate-700 leading-snug">
+                        Trip{' '}
+                        <strong className="text-[#E8450F] font-bold">
+                          {activeReminder?.tripRef ?? 'TRP-0159'}
+                        </strong>{' '}
+                        has been completed.
                       </p>
-                      <p className="text-xs font-extrabold text-slate-900 pt-0.5">
+                      <p className="text-sm text-slate-800 font-medium">
                         {activeReminder?.question ?? 'Was there any labor charge for this trip?'}
                       </p>
                     </div>
-                    <div className="space-y-2 pt-0.5">
-                      <div className="grid grid-cols-2 gap-2">
-                        <button type="button" onClick={handleYes}
-                          className="btn-hover h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm">
-                          ✓ Yes
-                        </button>
-                        <button type="button" onClick={handleNo}
-                          className="btn-hover h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold">
-                          ✕ No
-                        </button>
-                      </div>
+                    {/* All 3 buttons in one row — matching the reference design */}
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={handleYes}
+                        className="btn-hover flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm">
+                        Yes
+                      </button>
+                      <button type="button" onClick={handleNo}
+                        className="btn-hover flex-1 h-9 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold">
+                        No
+                      </button>
                       <button type="button" onClick={handleRemindLater}
-                        className="btn-hover w-full h-9 rounded-xl border border-[#E8450F]/25 bg-orange-50 hover:bg-orange-100 text-[#E8450F] text-xs font-bold">
-                        🔔 Remind Me Later
+                        className="btn-hover flex-[1.6] h-9 rounded-xl border border-[#E8450F] bg-white hover:bg-orange-50 text-[#E8450F] text-sm font-semibold whitespace-nowrap">
+                        Remind Me Later
                       </button>
                     </div>
                   </div>
