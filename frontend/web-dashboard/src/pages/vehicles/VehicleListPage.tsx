@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
   RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
-  Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown
+  Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown,
+  ArrowDown, ArrowUp
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
@@ -124,6 +125,7 @@ export default function VehicleListPage() {
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | 'All'>('All');
   const [selectedType, setSelectedType] = useState<string>('All');
   const [search, setSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -236,9 +238,14 @@ export default function VehicleListPage() {
 
   // Filter vehicles client-side by asset type if selected
   const vehicles = useMemo(() => {
-    if (selectedType === 'All') return rawVehicles;
-    return rawVehicles.filter(v => v.asset_type.toLowerCase().includes(selectedType.toLowerCase()));
-  }, [rawVehicles, selectedType]);
+    let filtered = selectedType === 'All' ? rawVehicles : rawVehicles.filter(v => v.asset_type.toLowerCase().includes(selectedType.toLowerCase()));
+    
+    return [...filtered].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [rawVehicles, selectedType, sortOrder]);
 
   // Saudi Arabia Hubs for vehicles awaiting initial GPS telematics fix
   const DEFAULT_SAUDI_HUBS = useMemo(() => [
@@ -1381,6 +1388,18 @@ export default function VehicleListPage() {
                     </SelectContent>
                   </Select>
 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
+                    className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
+                  >
+                    {sortOrder === 'latest' ? (
+                      <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
+                    ) : (
+                      <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
+                    )}
+                  </Button>
                 </div>
               }
             />
