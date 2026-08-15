@@ -422,9 +422,6 @@ export default function VehicleFinancialsPage() {
                   Financials
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Compare every truck's earnings against its running costs.
-              </p>
             </div>
           </div>
 
