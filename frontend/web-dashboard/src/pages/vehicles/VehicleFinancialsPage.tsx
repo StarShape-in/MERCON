@@ -1,13 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
-  ArrowLeft, DollarSign, TrendingUp, TrendingDown, Truck,
-  FileSpreadsheet, FileText, RefreshCw, AlertTriangle, ArrowUpDown, Wallet,
-  Layers, CalendarRange, Route, ReceiptText,
+  ArrowLeft, Truck, FileSpreadsheet, FileText, RefreshCw, AlertTriangle,
+  ArrowUpDown, Wallet, Layers, CalendarRange, ReceiptText, TrendingUp, TrendingDown,
 } from 'lucide-react';
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { vehicleService } from '@/services/vehicleService';
@@ -15,25 +15,21 @@ import type { FleetVehicleFinancials } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import DataTable from '@/components/ui/DataTable';
 import type { Column } from '@/components/ui/DataTable';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
 
 const INCOME_COLOR = '#00B074';
 const EXPENSE_COLOR = '#FF5B5B';
+
+const sar = (n: number) => `SAR ${Math.round(n).toLocaleString()}`;
 
 const compact = (n: number) => {
   const abs = Math.abs(n);
@@ -41,14 +37,6 @@ const compact = (n: number) => {
   if (abs >= 1_000) return `${Math.round(n / 1_000)}k`;
   return String(Math.round(n));
 };
-const sar = (n: number) => `SAR ${Math.round(n).toLocaleString()}`;
-
-const PROFIT_TIERS = [
-  { key: 'high', label: 'High + profit', test: (m: number) => m >= 20 },
-  { key: 'profitable', label: 'Medium chans profit', test: (m: number) => m >= 10 && m < 20 },
-  { key: 'low', label: 'Low profit', test: (m: number) => m >= 0 && m < 10 },
-  { key: 'loss', label: 'Average profit', test: (m: number) => m < 0 },
-] as const;
 
 const monthLabel = (key: string) => {
   const [y, m] = key.split('-');
@@ -69,6 +57,13 @@ const rangeFor = (period: string): { from?: string; to?: string } => {
   from.setMonth(from.getMonth() - Number(period));
   return { from: from.toISOString() };
 };
+
+const PROFIT_TIERS = [
+  { key: 'high', label: 'High + profit', test: (m: number) => m >= 20 },
+  { key: 'profitable', label: 'Medium chans profit', test: (m: number) => m >= 10 && m < 20 },
+  { key: 'low', label: 'Low profit', test: (m: number) => m >= 0 && m < 10 },
+  { key: 'loss', label: 'Average profit', test: (m: number) => m < 0 },
+] as const;
 
 type Tone = 'income' | 'expense' | 'profit' | 'neutral';
 
@@ -175,13 +170,10 @@ function SortHeader({
 type SortField = 'plate_number' | 'total_income' | 'total_expenses' | 'net_profit' | 'margin_percent' | 'trips_count';
 
 export default function VehicleFinancialsPage() {
-  const { id: urlId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState<'fleet' | 'vehicle'>(urlId ? 'vehicle' : 'fleet');
   const [period, setPeriod] = useState<string>('all');
   const [customRange, setCustomRange] = useState<DateRange | undefined>(undefined);
-  const [selectedId, setSelectedId] = useState<string>(urlId || '');
   const [sort, setSort] = useState<{ field: SortField; dir: 'asc' | 'desc' }>({
     field: 'net_profit',
     dir: 'desc',
@@ -200,56 +192,12 @@ export default function VehicleFinancialsPage() {
 
   /* Queries ------------------------------------------------------------- */
 
-  const { data: vehiclesRes, isLoading: isVehiclesLoading } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: () => vehicleService.getAll({ per_page: 100 }),
-  });
-  const vehiclesList = useMemo(() => vehiclesRes?.data ?? [], [vehiclesRes]);
-
   const {
     data: fleet, isLoading: isFleetLoading, refetch: refetchFleet,
   } = useQuery({
     queryKey: ['fleet-financials', period, range.from, range.to],
     queryFn: () => vehicleService.getFleetFinancials(range),
   });
-
-  const { data: vehicle } = useQuery({
-    queryKey: ['vehicle', selectedId],
-    queryFn: () => vehicleService.getById(selectedId),
-    enabled: !!selectedId,
-  });
-
-  const {
-    data: financials, isLoading: isFinancialsLoading, refetch: refetchFinancials,
-  } = useQuery({
-    queryKey: ['vehicle-financials', selectedId, period, range.from, range.to],
-    queryFn: () => vehicleService.getFinancials(selectedId, range),
-    enabled: !!selectedId,
-  });
-
-  useEffect(() => {
-    if (urlId) {
-      setSelectedId(urlId);
-      setTab('vehicle');
-    } else if (vehiclesList.length > 0 && !selectedId) {
-      setSelectedId(vehiclesList[0].id);
-    }
-  }, [urlId, vehiclesList]);
-
-  const openVehicle = (newId: string) => {
-    setSelectedId(newId);
-    setTab('vehicle');
-    navigate(`/vehicles/${newId}/financials`, { replace: true });
-  };
-
-  const switchTab = (next: string) => {
-    const value = next as 'fleet' | 'vehicle';
-    setTab(value);
-    navigate(
-      value === 'fleet' ? '/vehicles/financials' : `/vehicles/${selectedId}/financials`,
-      { replace: true }
-    );
-  };
 
   /* Derived fleet data --------------------------------------------------- */
 
@@ -263,17 +211,6 @@ export default function VehicleFinancialsPage() {
   const assetTypesForGrid = useMemo(
     () => Array.from(new Set(activeRows.map((r) => r.asset_type))).sort(),
     [activeRows]
-  );
-
-  const profitabilityGrid = useMemo(
-    () => PROFIT_TIERS.map((tier) => ({
-      tier,
-      cells: assetTypesForGrid.map((type) => ({
-        type,
-        vehicles: activeRows.filter((r) => r.asset_type === type && tier.test(r.margin_percent)),
-      })),
-    })),
-    [activeRows, assetTypesForGrid]
   );
 
   const gridRows = useMemo(() => {
@@ -335,12 +272,6 @@ export default function VehicleFinancialsPage() {
     return Math.round(s.total_expenses / s.total_trips);
   }, [fleet]);
 
-  const vehicleCostPerTrip = useMemo(() => {
-    if (!financials) return 0;
-    const { total_expenses, completed_trips_count } = financials.summary;
-    return completed_trips_count > 0 ? Math.round(total_expenses / completed_trips_count) : 0;
-  }, [financials]);
-
   /* Export --------------------------------------------------------------- */
 
   const exportFleet = () => {
@@ -364,28 +295,6 @@ export default function VehicleFinancialsPage() {
     );
   };
 
-  const exportVehicle = () => {
-    if (!financials || !vehicle) return;
-    exportExcelTable(
-      `MERCON Fleet - Vehicle P&L Statement (${vehicle.plate_number})`,
-      ['Reference / Type', 'Party / Workshop', 'Details / Date', 'Amount (SAR)'],
-      [
-        ['--- INCOME SOURCES ---', '', '', ''],
-        ...financials.income_sources.map((t) => [
-          t.ref_id || 'TRIP', t.customer_name, 'Completed Trip', `+SAR ${t.income.toLocaleString()}`,
-        ]),
-        ['--- MAINTENANCE EXPENSES ---', '', '', ''],
-        ...financials.expense_records.map((m) => [
-          m.maintenance_type, m.workshop_name,
-          m.start_date ? new Date(m.start_date).toLocaleDateString() : 'N/A',
-          `-SAR ${(m.cost || 0).toLocaleString()}`,
-        ]),
-        ['', '', 'NET VEHICLE PROFIT:', `SAR ${financials.summary.net_profit.toLocaleString()}`],
-      ],
-      `Vehicle_P&L_${vehicle.plate_number}.xlsx`
-    );
-  };
-
   const exportFleetPDF = () => {
     if (!fleet) return;
     exportPDFTable(
@@ -404,27 +313,6 @@ export default function VehicleFinancialsPage() {
           `${fleet.fleet_summary.margin_percent}%`],
       ],
       'Fleet_Profitability.pdf'
-    );
-  };
-
-  const exportVehiclePDF = () => {
-    if (!financials || !vehicle) return;
-    exportPDFTable(
-      `Vehicle P&L Statement — ${vehicle.plate_number}`,
-      ['Reference / Type', 'Party / Workshop', 'Date', 'Amount (SAR)'],
-      [
-        ...financials.income_sources.map((t) => [
-          t.ref_id || 'TRIP', t.customer_name, new Date(t.date).toLocaleDateString(),
-          `+${t.income.toLocaleString()}`,
-        ]),
-        ...financials.expense_records.map((m) => [
-          m.maintenance_type, m.workshop_name,
-          m.start_date ? new Date(m.start_date).toLocaleDateString() : 'N/A',
-          `-${(m.cost || 0).toLocaleString()}`,
-        ]),
-        ['TOTAL', '', '', financials.summary.net_profit.toLocaleString()],
-      ],
-      `Vehicle_P&L_${vehicle.plate_number}.pdf`
     );
   };
 
@@ -507,11 +395,6 @@ export default function VehicleFinancialsPage() {
   ];
 
   const summary = fleet?.fleet_summary;
-  const vehicleOptions = vehiclesList.map((v) => ({
-    value: v.id,
-    label: `${v.plate_number} — ${v.asset_type || 'Truck'}`,
-    keywords: `${v.ref_id ?? ''} ${v.plate_number} ${v.asset_type ?? ''}`,
-  }));
 
   return (
     <DashboardLayout active="Vehicle P&L" title="Vehicle Profit & Loss (P&L) Report">
@@ -539,7 +422,7 @@ export default function VehicleFinancialsPage() {
                 </Badge>
               </div>
               <p className="text-xs text-slate-500 font-medium">
-                Compare every truck's earnings against its running costs, then drill into one asset.
+                Compare every truck's earnings against its running costs.
               </p>
             </div>
           </div>
@@ -598,7 +481,7 @@ export default function VehicleFinancialsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => (tab === 'fleet' ? refetchFleet() : refetchFinancials())}
+              onClick={() => refetchFleet()}
               className="h-9 w-9 p-0 text-slate-600 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs"
               title="Refresh Data"
             >
@@ -608,8 +491,8 @@ export default function VehicleFinancialsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={tab === 'fleet' ? exportFleet : exportVehicle}
-              disabled={tab === 'fleet' ? !fleet : !financials}
+              onClick={exportFleet}
+              disabled={!fleet}
               className="h-9 gap-1.5 text-xs font-semibold border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 shadow-2xs"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
@@ -619,8 +502,8 @@ export default function VehicleFinancialsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={tab === 'fleet' ? exportFleetPDF : exportVehiclePDF}
-              disabled={tab === 'fleet' ? !fleet : !financials}
+              onClick={exportFleetPDF}
+              disabled={!fleet}
               className="h-9 gap-1.5 text-xs font-semibold border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 shadow-2xs"
             >
               <FileText className="w-3.5 h-3.5 text-rose-600" />
@@ -629,446 +512,216 @@ export default function VehicleFinancialsPage() {
           </div>
         </div>
 
-        <Tabs value={tab} onValueChange={switchTab} className="space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-            <TabsList className="h-9">
-              <TabsTrigger value="fleet" className="text-xs font-bold gap-1.5">
-                <Layers className="w-3.5 h-3.5" /> Fleet Comparison
-              </TabsTrigger>
-              <TabsTrigger value="vehicle" className="text-xs font-bold gap-1.5">
-                <Truck className="w-3.5 h-3.5" /> Vehicle Detail
-              </TabsTrigger>
-            </TabsList>
-
-            {tab === 'vehicle' && (
-              <div className="w-full sm:w-[280px]">
-                <Combobox
-                  options={vehicleOptions}
-                  value={selectedId}
-                  onChange={openVehicle}
-                  placeholder="Select a vehicle"
-                  searchPlaceholder="Search plate or ref…"
-                  emptyText="No vehicles match."
-                  disabled={isVehiclesLoading}
-                  triggerClassName="font-bold"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* ══ FLEET COMPARISON ═════════════════════════════════════════ */}
-          <TabsContent value="fleet" className="space-y-5 mt-0">
-            {isFleetLoading ? (
-              <FleetSkeleton />
-            ) : !summary ? (
-              <EmptyState
-                title="Fleet report unavailable"
-                message="The fleet profitability report could not be loaded. Try refreshing."
+        {isFleetLoading ? (
+          <FleetSkeleton />
+        ) : !summary ? (
+          <EmptyState
+            title="Fleet report unavailable"
+            message="The fleet profitability report could not be loaded. Try refreshing."
+          />
+        ) : (
+          <div className="space-y-5">
+            {/* KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                label="Fleet Revenue"
+                value={sar(summary.total_income)}
+                hint={`${summary.total_trips} earning trips across ${summary.vehicles_count} vehicles`}
+                tone="income"
+                icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
               />
-            ) : (
-              <>
-                {/* KPIs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <StatCard
-                    label="Fleet Revenue"
-                    value={sar(summary.total_income)}
-                    hint={`${summary.total_trips} earning trips across ${summary.vehicles_count} vehicles`}
-                    tone="income"
-                    icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
-                  />
-                  <StatCard
-                    label="Fleet Expenses"
-                    value={sar(summary.total_expenses)}
-                    hint={`${summary.total_maintenance} workshop & renewal records`}
-                    tone="expense"
-                    icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
-                    ratio={summary.total_income > 0 ? summary.total_expenses / summary.total_income : 0}
-                  />
-                  <StatCard
-                    label="Fleet Net Profit"
-                    value={sar(summary.net_profit)}
-                    hint={`${summary.margin_percent}% overall margin`}
-                    tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
-                    icon={<Wallet className="w-4 h-4 text-indigo-600" />}
-                  />
-                  <StatCard
-                    label="Avg Cost / Trip"
-                    value={sar(fleetCostPerTrip)}
-                    hint="Fleet-wide expense per earning trip"
-                    tone="neutral"
-                    icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
-                  />
-                </div>
+              <StatCard
+                label="Fleet Expenses"
+                value={sar(summary.total_expenses)}
+                hint={`${summary.total_maintenance} workshop & renewal records`}
+                tone="expense"
+                icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
+                ratio={summary.total_income > 0 ? summary.total_expenses / summary.total_income : 0}
+              />
+              <StatCard
+                label="Fleet Net Profit"
+                value={sar(summary.net_profit)}
+                hint={`${summary.margin_percent}% overall margin`}
+                tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
+                icon={<Wallet className="w-4 h-4 text-indigo-600" />}
+              />
+              <StatCard
+                label="Avg Cost / Trip"
+                value={sar(fleetCostPerTrip)}
+                hint="Fleet-wide expense per earning trip"
+                tone="neutral"
+                icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
+              />
+            </div>
 
-                {/* ── Grid & Chart Section ───────────────────────────────────── */}
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
-                  
-                  {/* Left Side: Asset Profitability Grid */}
-                  <Card className="xl:col-span-7 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
-                    <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-indigo-600" /> ASSET PROFITABILITY GRID
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Fleet-wide performance zone matrix of active assets.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-6 pb-6 flex-1 flex items-center justify-center">
-                      <div className="w-full flex justify-center overflow-x-auto py-2">
-                        <div className="w-fit flex flex-col items-center gap-3">
-                          
-                          {/* Top Header Label: Region */}
-                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none">
-                            Region
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            {/* Main Grid container */}
-                            <div className="flex flex-col gap-1.5 border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/10 p-3 rounded-2xl shadow-3xs">
-                              {/* Rows */}
-                              {gridRows.map(({ tier, items }) => (
-                                <div
-                                  key={tier.key}
-                                  className="flex items-center gap-2"
-                                >
-                                  {/* Row label */}
-                                  <div className="text-xs font-extrabold text-slate-500 dark:text-slate-400 text-right w-[140px] select-none pr-3">
-                                    {tier.label}
-                                  </div>
-
-                                  {/* Row Cells - exactly 8 boxes */}
-                                  <div className="flex items-center gap-1.5">
-                                    {items.map((item) => {
-                                      let boxStyle = '';
-                                      if (tier.key === 'high') {
-                                        boxStyle = 'bg-[#00B074] text-white hover:bg-[#009b66]';
-                                      } else if (tier.key === 'profitable') {
-                                        boxStyle = 'bg-[#2E7D32] text-white hover:bg-[#256428]';
-                                      } else if (tier.key === 'low') {
-                                        boxStyle = 'bg-[#374151] text-slate-200 hover:bg-[#1f2937]';
-                                      } else {
-                                        boxStyle = 'bg-[#FF5B5B] text-white hover:bg-[#e04f4f]';
-                                      }
-
-                                      return item.isPlaceholder ? (
-                                        <div
-                                          key={item.vehicleId}
-                                          className={cn(
-                                            'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center select-none shadow-3xs border border-transparent opacity-85',
-                                            boxStyle
-                                          )}
-                                        >
-                                          {item.plateNumber}
-                                        </div>
-                                      ) : (
-                                        <button
-                                          key={item.vehicleId}
-                                          type="button"
-                                          onClick={() => openVehicle(item.vehicleId)}
-                                          title={`${item.plateNumber} · ${sar(item.profit)} · ${item.margin}% margin`}
-                                          className={cn(
-                                            'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center transition-all active:scale-95 shadow-3xs hover:brightness-95',
-                                            boxStyle
-                                          )}
-                                        >
-                                          {item.plateNumber.slice(-6)}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Bottom Header Label: Vehicle Type */}
-                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mt-1">
-                            Vehicle Type
-                          </div>
-
-                        </div>
+            {/* ── Grid & Chart Section ───────────────────────────────────── */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+              
+              {/* Left Side: Asset Profitability Grid */}
+              <Card className="xl:col-span-7 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
+                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-600" /> ASSET PROFITABILITY GRID
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Fleet-wide performance zone matrix of active assets.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6 pb-6 flex-1 flex items-center justify-center">
+                  <div className="w-full flex justify-center overflow-x-auto py-2">
+                    <div className="w-fit flex flex-col items-center gap-3">
+                      
+                      {/* Top Header Label: Region */}
+                      <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none">
+                        Region
                       </div>
-                    </CardContent>
-                  </Card>
 
-                  {/* Right Side: Monthly P&L Trend Chart */}
-                  <Card className="xl:col-span-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
-                    <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-indigo-600" /> MONTHLY P&L TREND
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Gross revenue, expenses, and net profit trends over time.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-6 pb-6 flex-1 flex items-center justify-center">
-                      {fleetMonthlyPoints.length === 0 ? (
-                        <NoData message="No active monthly financial data found." />
-                      ) : (
-                        <div className="w-full h-[220px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart
-                              data={fleetMonthlyPoints}
-                              margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                      <div className="flex items-center gap-3">
+                        {/* Main Grid container */}
+                        <div className="flex flex-col gap-1.5 border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/10 p-3 rounded-2xl shadow-3xs">
+                          {/* Rows */}
+                          {gridRows.map(({ tier, items }) => (
+                            <div
+                              key={tier.key}
+                              className="flex items-center gap-2"
                             >
-                              <defs>
-                                <linearGradient id="gridIncome" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor={INCOME_COLOR} stopOpacity={0.2} />
-                                  <stop offset="95%" stopColor={INCOME_COLOR} stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="gridExpenses" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor={EXPENSE_COLOR} stopOpacity={0.15} />
-                                  <stop offset="95%" stopColor={EXPENSE_COLOR} stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.4} />
-                              <XAxis dataKey="label" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
-                              <YAxis tickFormatter={compact} stroke="#94a3b8" fontSize={9} width={36} tickLine={false} axisLine={false} />
-                              <Tooltip
-                                formatter={(v) => sar(Number(v))}
-                                contentStyle={{
-                                  borderRadius: '12px',
-                                  fontSize: '11px',
-                                  fontWeight: 'bold',
-                                }}
-                              />
-                              <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', marginTop: '10px' }} />
-                              <Area name="Revenue" type="monotone" dataKey="income" fill="url(#gridIncome)" stroke={INCOME_COLOR} strokeWidth={1.5} />
-                              <Area name="Expenses" type="monotone" dataKey="expenses" fill="url(#gridExpenses)" stroke={EXPENSE_COLOR} strokeWidth={1.5} />
-                              <Line name="Net Profit" type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 3 }} />
-                            </ComposedChart>
-                          </ResponsiveContainer>
+                              {/* Row label */}
+                              <div className="text-xs font-extrabold text-slate-500 dark:text-slate-400 text-right w-[140px] select-none pr-3">
+                                {tier.label}
+                              </div>
+
+                              {/* Row Cells - exactly 8 boxes */}
+                              <div className="flex items-center gap-1.5">
+                                {items.map((item) => {
+                                  let boxStyle = '';
+                                  if (tier.key === 'high') {
+                                    boxStyle = 'bg-[#00B074] text-white hover:bg-[#009b66]';
+                                  } else if (tier.key === 'profitable') {
+                                    boxStyle = 'bg-[#2E7D32] text-white hover:bg-[#256428]';
+                                  } else if (tier.key === 'low') {
+                                    boxStyle = 'bg-[#374151] text-slate-200 hover:bg-[#1f2937]';
+                                  } else {
+                                    boxStyle = 'bg-[#FF5B5B] text-white hover:bg-[#e04f4f]';
+                                  }
+
+                                  return item.isPlaceholder ? (
+                                    <div
+                                      key={item.vehicleId}
+                                      className={cn(
+                                        'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center select-none shadow-3xs border border-transparent opacity-85',
+                                        boxStyle
+                                      )}
+                                    >
+                                      {item.plateNumber}
+                                    </div>
+                                  ) : (
+                                    <button
+                                      key={item.vehicleId}
+                                      type="button"
+                                      onClick={() => navigate(`/vehicles/${item.vehicleId}`)}
+                                      title={`${item.plateNumber} · ${sar(item.profit)} · ${item.margin}% margin`}
+                                      className={cn(
+                                        'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center transition-all active:scale-95 shadow-3xs hover:brightness-95',
+                                        boxStyle
+                                      )}
+                                    >
+                                      {item.plateNumber}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                </div>
-
-                {/* Full comparison table */}
-                <DataTable<FleetVehicleFinancials>
-                  title="🥞 Vehicle Profitability Ledger"
-                  subtitle="Every vehicle, sortable by any financial column. Click a row to open its detailed statement."
-                  columns={columns}
-                  data={sortedRows}
-                  onRowClick={(r) => openVehicle(r.vehicle_id)}
-                  onExport={exportFleet}
-                  searchValue={tableSearch}
-                  onSearchChange={setTableSearch}
-                  searchPlaceholder="Search by plate number…"
-                  emptyTitle="No vehicles"
-                  emptyMessage="Add vehicles to the fleet to see their profitability here."
-                  compact
-                />
-              </>
-            )}
-          </TabsContent>
-
-          {/* ══ VEHICLE DETAIL ═══════════════════════════════════════════ */}
-          <TabsContent value="vehicle" className="space-y-5 mt-0">
-            {!selectedId ? (
-              <EmptyState
-                title="No Vehicle Selected"
-                message="Pick a truck from the selector above to view its Profit & Loss statement."
-              />
-            ) : (
-              <>
-                {/* Identity banner */}
-                {vehicle && (
-                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
-                        <Truck className="w-5 h-5" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                            {vehicle.plate_number}
-                          </h2>
-                          {vehicle.asset_type && (
-                            <Badge className="bg-brand-light text-brand border-brand/30 text-[10px] font-bold">
-                              {vehicle.asset_type}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 font-mono">
-                          Ref ID:{' '}
-                          <span className="font-bold text-slate-700 dark:text-slate-300">
-                            {vehicle.ref_id || `VEH-${vehicle.id.slice(0, 6).toUpperCase()}`}
-                          </span>{' '}
-                          • Odometer: {(vehicle.current_odometer ?? 0).toLocaleString()} km
-                        </p>
+
+                      {/* Bottom Header Label: Vehicle Type */}
+                      <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mt-1">
+                        Vehicle Type
                       </div>
+
                     </div>
-
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                      className="text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                    >
-                      View Full Vehicle Details →
-                    </Button>
                   </div>
-                )}
+                </CardContent>
+              </Card>
 
-                {isFinancialsLoading ? (
-                  <FleetSkeleton />
-                ) : !financials ? (
-                  <EmptyState
-                    title="No statement available"
-                    message="This vehicle's P&L could not be loaded. Try refreshing."
-                  />
-                ) : (
-                  <>
-                    {/* Ledgers */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                      <LedgerCard
-                        title="Trip Revenue Ledger"
-                        description="Income generated from completed freight runs for this vehicle."
-                        icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
-                        count={`${financials.income_sources.length} TRIPS`}
-                        countClass="bg-emerald-50 text-emerald-700 border-emerald-200"
-                        emptyMessage="No completed trip revenue recorded for this vehicle yet."
-                        headers={['Customer', 'Reference', 'Amount']}
-                        rows={financials.income_sources.map((trip) => ({
-                          key: trip.id,
-                          cells: [
-                            <span key="customer" className="font-bold text-slate-900 dark:text-slate-100">
-                              {trip.customer_name}
-                            </span>,
-                            <span key="ref" className="font-mono text-[10px] text-slate-400">
-                              {trip.ref_id || 'TRIP'}
-                            </span>,
-                            <span key="amount" className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                              +{sar(trip.income)}
-                            </span>,
-                          ],
-                        }))}
-                        total={sar(financials.summary.total_income)}
-                        totalClass="text-emerald-600 dark:text-emerald-400"
-                      />
-
-                      <LedgerCard
-                        title="Maintenance & Service Ledger"
-                        description="Itemized workshop repairs and document renewal costs."
-                        icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
-                        count={`${financials.expense_records.length} LOGS`}
-                        countClass="bg-rose-50 text-rose-700 border-rose-200"
-                        emptyMessage="No maintenance expense logs recorded for this vehicle yet."
-                        headers={['Workshop', 'Type / Date', 'Amount']}
-                        rows={financials.expense_records.map((m) => ({
-                          key: m.id,
-                          cells: [
-                            <div key="workshop">
-                              <div className="font-bold text-slate-900 dark:text-slate-100">{m.workshop_name}</div>
-                              <div className="text-[10px] text-slate-400 truncate max-w-[180px]">
-                                {m.work_done || m.remarks || 'Standard service work'}
-                              </div>
-                            </div>,
-                            <div key="type">
-                              <Badge variant="outline" className="text-[9px] font-semibold">{m.maintenance_type}</Badge>
-                              <div className="text-[10px] text-slate-400 mt-0.5">
-                                {m.start_date ? new Date(m.start_date).toLocaleDateString() : '—'}
-                              </div>
-                            </div>,
-                            <div key="amount">
-                              <div className="font-mono font-extrabold text-rose-600 dark:text-rose-400 tabular-nums">
-                                -{sar(m.cost || 0)}
-                              </div>
-                              {m.invoice_number && (
-                                <div className="text-[10px] text-slate-400 font-mono">Inv: {m.invoice_number}</div>
-                              )}
-                            </div>,
-                          ],
-                        }))}
-                        total={sar(financials.summary.total_expenses)}
-                        totalClass="text-rose-600 dark:text-rose-400"
-                      />
+              {/* Right Side: Monthly P&L Trend Chart */}
+              <Card className="xl:col-span-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
+                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-600" /> MONTHLY P&L TREND
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Gross revenue, expenses, and net profit trends over time.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6 pb-6 flex-1 flex items-center justify-center">
+                  {fleetMonthlyPoints.length === 0 ? (
+                    <NoData message="No active monthly financial data found." />
+                  ) : (
+                    <div className="w-full h-[220px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart
+                          data={fleetMonthlyPoints}
+                          margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                        >
+                          <defs>
+                            <linearGradient id="gridIncome" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={INCOME_COLOR} stopOpacity={0.2} />
+                              <stop offset="95%" stopColor={INCOME_COLOR} stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="gridExpenses" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={EXPENSE_COLOR} stopOpacity={0.15} />
+                              <stop offset="95%" stopColor={EXPENSE_COLOR} stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.4} />
+                          <XAxis dataKey="label" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                          <YAxis tickFormatter={compact} stroke="#94a3b8" fontSize={9} width={36} tickLine={false} axisLine={false} />
+                          <Tooltip
+                            formatter={(v) => sar(Number(v))}
+                            contentStyle={{
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                            }}
+                          />
+                          <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', marginTop: '10px' }} />
+                          <Area name="Revenue" type="monotone" dataKey="income" fill="url(#gridIncome)" stroke={INCOME_COLOR} strokeWidth={1.5} />
+                          <Area name="Expenses" type="monotone" dataKey="expenses" fill="url(#gridExpenses)" stroke={EXPENSE_COLOR} strokeWidth={1.5} />
+                          <Line name="Net Profit" type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 3 }} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
                     </div>
-                  </>
-                )}
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
+                  )}
+                </CardContent>
+              </Card>
+
+            </div>
+
+            {/* Full comparison table */}
+            <DataTable<FleetVehicleFinancials>
+              title="🥞 Vehicle Profitability Ledger"
+              subtitle="Every vehicle, sortable by any financial column. Click a row to open its detailed statement."
+              columns={columns}
+              data={sortedRows}
+              onRowClick={(r) => navigate(`/vehicles/${r.vehicle_id}`)}
+              onExport={exportFleet}
+              searchValue={tableSearch}
+              onSearchChange={setTableSearch}
+              searchPlaceholder="Search by plate number…"
+              emptyTitle="No vehicles"
+              emptyMessage="Add vehicles to the fleet to see their profitability here."
+              compact
+            />
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
 }
 
 /* ── Shared presentational pieces ─────────────────────────────────────── */
-
-function LedgerCard({
-  title, description, icon, count, countClass, headers, rows, emptyMessage, total, totalClass,
-}: {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  count: string;
-  countClass: string;
-  headers: string[];
-  rows: { key: string; cells: React.ReactNode[] }[];
-  emptyMessage: string;
-  total: string;
-  totalClass: string;
-}) {
-  return (
-    <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs overflow-hidden">
-      <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-start justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/40">
-        <div>
-          <CardTitle className="text-sm font-bold flex items-center gap-2">{icon} {title}</CardTitle>
-          <CardDescription className="text-xs">{description}</CardDescription>
-        </div>
-        <Badge className={cn('text-[10px] font-bold shrink-0', countClass)}>{count}</Badge>
-      </CardHeader>
-
-      <CardContent className="p-0">
-        {rows.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-xs font-medium italic">{emptyMessage}</div>
-        ) : (
-          <ScrollArea className="h-[340px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {headers.map((h, i) => (
-                    <TableHead key={h} className={cn('text-[10px] uppercase font-bold text-slate-500', i === headers.length - 1 && 'text-right')}>
-                      {h}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.key}>
-                    {r.cells.map((c, i) => (
-                      <TableCell
-                        key={i}
-                        className={cn('text-xs py-2.5', i === r.cells.length - 1 && 'text-right')}
-                      >
-                        {c}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={headers.length - 1} className="text-[11px] font-extrabold uppercase tracking-wide">
-                    Total
-                  </TableCell>
-                  <TableCell className={cn('text-right font-mono font-extrabold text-xs tabular-nums', totalClass)}>
-                    {total}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </ScrollArea>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 function NoData({ message }: { message: string }) {
   return (
