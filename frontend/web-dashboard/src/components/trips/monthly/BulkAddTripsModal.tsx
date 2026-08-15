@@ -872,25 +872,25 @@ export default function BulkAddTripsModal({
                                 key={c.id}
                                 type="button"
                                 onClick={() => setContractCustomer(c.id)}
-                                className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between h-18 ${
+                                className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[84px] h-auto space-y-2 ${
                                   isSelected
                                     ? 'bg-orange-50/70 border-brand ring-1 ring-brand/20 shadow-xs'
                                     : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
                                 }`}
                               >
-                                <div className="flex items-center justify-between">
-                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center ${
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center shrink-0 ${
                                     isSelected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'
                                   }`}>
                                     {initials}
                                   </span>
-                                  <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                                  <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md shrink-0">
                                     Key {idx + 1}
                                   </span>
                                 </div>
-                                <div className="truncate">
-                                  <p className="text-xs font-bold text-[#111111] truncate">{c.name}</p>
-                                  <p className="text-[9px] text-slate-400 font-medium">Commercial Account</p>
+                                <div className="space-y-0.5">
+                                  <p className="text-xs font-bold text-[#111111] leading-tight line-clamp-1" title={c.name}>{c.name}</p>
+                                  <p className="text-[10px] text-slate-400 font-medium leading-normal">Commercial Account</p>
                                 </div>
                               </button>
                             );
