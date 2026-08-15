@@ -5,8 +5,12 @@ import type { TripReportFieldKey } from '@mercon/shared-types';
  * TRIP_REPORT_FIELDS key, used only to produce a first-draft mapping
  * suggestion in `inspectTemplate`. The saved layout a human confirms in the
  * mapping editor is what generation actually reads — this table never runs
- * again after that point, so it can be loose without ever causing a wrong
- * export.
+ * again after that point.
+ *
+ * Matched by whole-word token overlap (see `suggestField` below), not raw
+ * substring — a header/alias only match if they share whole words, which is
+ * what stops a short alias like "to" from matching inside an unrelated word
+ * like "ton".
  *
  * Normalisation matches importUtils.ts's `normalise()` on the frontend:
  * lowercase, strip `*`, strip parenthesised unit hints, collapse punctuation
@@ -43,16 +47,43 @@ export const normaliseHeader = (header: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+/**
+ * Below this token-overlap ratio, a partial alias match is rejected rather
+ * than guessed at — e.g. alias "no" against header "no of vehicles" only
+ * overlaps 1 of 3 header words (ratio ≈0.33), too weak to trust.
+ */
+const MIN_OVERLAP_RATIO = 0.5;
+
 /** Best-guess field for a template header, or null if nothing matches well enough. */
 export function suggestField(header: string): TripReportFieldKey | null {
   const norm = normaliseHeader(header);
   if (!norm) return null;
 
+  // Exact match (the whole header equals a whole alias) always wins outright.
   for (const [field, aliases] of Object.entries(TRIP_FIELD_ALIASES) as [TripReportFieldKey, string[]][]) {
     if (aliases.includes(norm)) return field;
   }
+
+  // Partial match by whole-word token overlap, scored by the overlap ratio
+  // relative to the larger of the header's/alias's word count — the highest-
+  // scoring alias across ALL fields wins, not the first field whose alias
+  // happens to appear (so, e.g., "type of vehicle" correctly resolves to
+  // vehicle_type via its 2-of-3-word match on alias "vehicle type", beating
+  // vehicle_plate's 1-of-3-word match on the bare alias "vehicle").
+  const headerTokens = new Set(norm.split(/\s+/).filter(Boolean));
+  let best: { field: TripReportFieldKey; ratio: number; aliasTokenCount: number } | null = null;
+
   for (const [field, aliases] of Object.entries(TRIP_FIELD_ALIASES) as [TripReportFieldKey, string[]][]) {
-    if (aliases.some((alias) => norm.includes(alias) || alias.includes(norm))) return field;
+    for (const alias of aliases) {
+      const aliasTokens = alias.split(/\s+/).filter(Boolean);
+      if (aliasTokens.length === 0) continue;
+      const overlap = aliasTokens.filter((t) => headerTokens.has(t)).length;
+      if (overlap === 0) continue;
+      const ratio = overlap / Math.max(headerTokens.size, aliasTokens.length);
+      if (ratio < MIN_OVERLAP_RATIO) continue;
+      const better = !best || ratio > best.ratio || (ratio === best.ratio && aliasTokens.length > best.aliasTokenCount);
+      if (better) best = { field, ratio, aliasTokenCount: aliasTokens.length };
+    }
   }
-  return null;
+  return best?.field ?? null;
 }

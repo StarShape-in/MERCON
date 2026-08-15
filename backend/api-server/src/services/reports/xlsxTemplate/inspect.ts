@@ -35,7 +35,12 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
 
   const allSheets = workbook.worksheets.map((ws) => ws.name);
   let bestSheet: InspectedSheet | null = null;
-  let maxHits = 0;
+  // Diversity-aware, not just raw hit count: a row where every cell
+  // happens to match the same field (e.g. a merged banner title read as
+  // N duplicate "headers") must never outrank a real header row with
+  // fewer but more varied matches — see the merge-cell skip below for why
+  // that duplication can occur in the first place.
+  let bestScore: { uniqueFields: number; hits: number } | null = null;
 
   for (const worksheet of workbook.worksheets) {
     const maxScanRow = Math.min(worksheet.rowCount, 25);
@@ -43,7 +48,13 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
       const row = worksheet.getRow(r);
       const headers: { colIndex: number; text: string }[] = [];
       row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-        const text = String(cell.value?.toString() ?? '').trim();
+        // Follower cell of a merged range (e.g. a banner title merged
+        // across many columns) — only the anchor cell carries real
+        // content. ExcelJS's MergeValue makes every follower report the
+        // anchor's value, and `includeEmpty:false` alone doesn't filter
+        // these out since their type is Merge, not Null.
+        if (cell.type === ExcelJS.ValueType.Merge) return;
+        const text = cellDisplayText(cell);
         if (text) headers.push({ colIndex: colNumber, text });
       });
       if (headers.length < 2) continue;
@@ -56,13 +67,22 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
         return {
           colIndex: h.colIndex,
           headerText: h.text,
-          sampleValue: String(sampleCell.value?.toString() ?? ''),
+          sampleValue: cellDisplayText(sampleCell),
           suggestedField,
         };
       });
+      if (hits < 2) continue;
 
-      if (hits >= 2 && hits > maxHits) {
-        maxHits = hits;
+      const uniqueFields = new Set(
+        columns.map((c) => c.suggestedField).filter((f): f is TripReportFieldKey => f !== null)
+      ).size;
+      const better =
+        !bestScore ||
+        uniqueFields > bestScore.uniqueFields ||
+        (uniqueFields === bestScore.uniqueFields && hits > bestScore.hits);
+
+      if (better) {
+        bestScore = { uniqueFields, hits };
         const dataStartRow = r + 1;
         bestSheet = {
           sheetName: worksheet.name,
@@ -79,10 +99,25 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
   return { allSheets, bestSheet };
 }
 
+/**
+ * ExcelJS represents a formula cell's `.value` as `{formula, result}`, not a
+ * primitive — `.toString()` on that object yields the literal string
+ * "[object Object]". Read `.result` instead so formula columns (e.g. a VAT
+ * column computed as `=K4*15/100`) show their computed value.
+ */
+function cellDisplayText(cell: ExcelJS.Cell): string {
+  const v = cell.value as any;
+  if (v && typeof v === 'object' && !(v instanceof Date) && 'result' in v) {
+    return String(v.result ?? '').trim();
+  }
+  return String(v?.toString() ?? '').trim();
+}
+
 function rowHasAnyValue(worksheet: ExcelJS.Worksheet, rowIdx: number): boolean {
   let found = false;
   worksheet.getRow(rowIdx).eachCell({ includeEmpty: false }, (cell) => {
-    if (String(cell.value ?? '').trim() !== '') found = true;
+    if (cell.type === ExcelJS.ValueType.Merge) return; // same merge-follower issue as the header scanner above
+    if (cellDisplayText(cell) !== '') found = true;
   });
   return found;
 }
