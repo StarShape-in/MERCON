@@ -156,7 +156,7 @@ export const getTrips = async (req: Request, res: Response) => {
         where: whereClause,
         skip,
         take: limit,
-        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [{ createdAt: 'desc' }],
         include: {
           driver: true,
           vehicle: true,

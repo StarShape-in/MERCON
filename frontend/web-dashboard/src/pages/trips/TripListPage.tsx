@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -307,7 +307,28 @@ export default function TripListPage() {
   });
 
   const rawTrips = tripsRes?.data || [];
-  const trips = rawTrips;
+  // Prioritize active/current operational statuses (InTransit, AtPickup, AtDelivery, Dispatched) at the top,
+  // followed by the rest (Draft, Completed, Invoiced, Cancelled), all ordered by creation date descending.
+  const trips = useMemo(() => {
+    const ACTIVE_STATUSES = new Set(['intransit', 'atpickup', 'atdelivery', 'dispatched', 'travelling', 'current']);
+
+    return [...rawTrips].sort((a, b) => {
+      const aActive = ACTIVE_STATUSES.has((a.status || '').toLowerCase()) ? 0 : 1;
+      const bActive = ACTIVE_STATUSES.has((b.status || '').toLowerCase()) ? 0 : 1;
+
+      if (aActive !== bActive) {
+        return aActive - bActive;
+      }
+
+      const timeA = new Date(a.createdAt || a.created_at || a.planned_start || 0).getTime();
+      const timeB = new Date(b.createdAt || b.created_at || b.planned_start || 0).getTime();
+      if (timeA !== timeB) {
+        return timeB - timeA;
+      }
+
+      return (b.ref_id || b.id || '').localeCompare(a.ref_id || a.id || '');
+    });
+  }, [rawTrips]);
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
   const kpiTrips = allTripsRes?.data || [];
