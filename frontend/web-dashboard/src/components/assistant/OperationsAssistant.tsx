@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle2, Clock, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -283,7 +283,7 @@ export default function OperationsAssistant() {
             }}
             className="pointer-events-auto flex items-end gap-1.5 bubble-in"
           >
-            {/* HALF-BODY CHARACTER IMAGE */}
+            {/* HALF-BODY CHARACTER IMAGE - TRIGGER REBUILD */}
             <div className="relative shrink-0 select-none pointer-events-none z-10 w-32 h-44 sm:w-40 sm:h-56 -mr-1">
               <img
                 src={ASSETS[currentAsset]}
