@@ -59,11 +59,16 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
       });
       if (headers.length < 2) continue;
 
+      // Computed up front (not headerRowIdx + 1) so the sample-value column
+      // below reads real data — a vertically-merged multi-row header would
+      // otherwise show the header's own text as its "sample".
+      const dataStartRow = headerBlockBottomRow(worksheet, r, headers.map((h) => h.colIndex)) + 1;
+
       let hits = 0;
       const columns: InspectedColumn[] = headers.map((h) => {
         const suggestedField = suggestField(h.text);
         if (suggestedField) hits++;
-        const sampleCell = worksheet.getRow(r + 1).getCell(h.colIndex);
+        const sampleCell = worksheet.getRow(dataStartRow).getCell(h.colIndex);
         return {
           colIndex: h.colIndex,
           headerText: h.text,
@@ -83,7 +88,6 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
 
       if (better) {
         bestScore = { uniqueFields, hits };
-        const dataStartRow = r + 1;
         bestSheet = {
           sheetName: worksheet.name,
           headerRowIdx: r,
@@ -100,17 +104,65 @@ export async function inspectTemplate(buf: Buffer): Promise<TemplateInspection> 
 }
 
 /**
- * ExcelJS represents a formula cell's `.value` as `{formula, result}`, not a
+ * ExcelJS represents a formula cell's `.value` as `{formula, result?}`, not a
  * primitive — `.toString()` on that object yields the literal string
  * "[object Object]". Read `.result` instead so formula columns (e.g. a VAT
- * column computed as `=K4*15/100`) show their computed value.
+ * column computed as `=K4*15/100`) show their computed value. Two cases
+ * `.result` doesn't cover: it can itself be a `{error: string}` object (the
+ * formula evaluated to an error) rather than a primitive, and it can be
+ * absent entirely — a workbook that was saved without recalculating (or
+ * whose referenced cell isn't numeric, e.g. an example/hint row) has no
+ * cached result at all, only the formula text.
  */
 function cellDisplayText(cell: ExcelJS.Cell): string {
   const v = cell.value as any;
-  if (v && typeof v === 'object' && !(v instanceof Date) && 'result' in v) {
-    return String(v.result ?? '').trim();
+  if (v && typeof v === 'object' && !(v instanceof Date)) {
+    if ('result' in v) {
+      const result = v.result;
+      if (result && typeof result === 'object' && 'error' in result) {
+        return String(result.error ?? '').trim();
+      }
+      return String(result ?? '').trim();
+    }
+    if ('formula' in v) {
+      return `=${v.formula}`;
+    }
+    return '';
   }
   return String(v?.toString() ?? '').trim();
+}
+
+function letterToCol(letters: string): number {
+  let n = 0;
+  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+
+function parseRange(range: string): { c1: number; r1: number; c2: number; r2: number } | null {
+  const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(range);
+  if (!m) return null;
+  return { c1: letterToCol(m[1]), r1: parseInt(m[2], 10), c2: letterToCol(m[3]), r2: parseInt(m[4], 10) };
+}
+
+/**
+ * If the detected header row is part of a vertically-merged header block
+ * (e.g. a 2-row-tall header where each column's label is merged across rows
+ * 2-3), returns the bottom row of that block; otherwise returns headerRow
+ * unchanged. Getting this right matters: the row immediately below becomes
+ * the "band row" whose style is cloned onto every generated row — cloning a
+ * row that's still part of the header (background color, missing date
+ * format, etc) makes the whole generated report look wrong.
+ */
+function headerBlockBottomRow(worksheet: ExcelJS.Worksheet, headerRow: number, headerCols: number[]): number {
+  const merges: string[] = (worksheet as any).model?.merges ?? [];
+  let bottom = headerRow;
+  for (const range of merges) {
+    const parsed = parseRange(range);
+    if (!parsed) continue;
+    if (parsed.r1 > headerRow || parsed.r2 <= headerRow) continue; // doesn't span through the header row
+    if (headerCols.some((c) => c >= parsed.c1 && c <= parsed.c2)) bottom = Math.max(bottom, parsed.r2);
+  }
+  return bottom;
 }
 
 function rowHasAnyValue(worksheet: ExcelJS.Worksheet, rowIdx: number): boolean {
