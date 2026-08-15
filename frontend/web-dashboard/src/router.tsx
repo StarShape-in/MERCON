@@ -186,6 +186,10 @@ export default function AppRouter() {
           <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
           <Route path="/documents/expiry"         element={<Navigate to="/documents" replace />} />
 
+          {/* Custom Report Builder */}
+          <Route path="/custom-report"            element={<CustomReportPage />} />
+          <Route path="/reports/custom"          element={<CustomReportPage />} />
+
           {/* Reports (Legacy -> Redirect to Company Reports) */}
           <Route path="/reports/*"                element={<Navigate to="/company-reports" replace />} />
           <Route path="/reports"                  element={<Navigate to="/company-reports" replace />} />
