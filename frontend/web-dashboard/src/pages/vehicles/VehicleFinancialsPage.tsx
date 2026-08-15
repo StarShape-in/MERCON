@@ -60,10 +60,10 @@ const rangeFor = (period: string): { from?: string; to?: string } => {
 };
 
 const PROFIT_TIERS = [
-  { key: 'high', label: 'High + profit', test: (m: number) => m >= 20 },
-  { key: 'profitable', label: 'Medium chans profit', test: (m: number) => m >= 10 && m < 20 },
-  { key: 'low', label: 'Low profit', test: (m: number) => m >= 0 && m < 10 },
-  { key: 'loss', label: 'Average profit', test: (m: number) => m < 0 },
+  { key: 'high', label: 'High Profit', test: (m: number) => m >= 20 },
+  { key: 'profitable', label: 'Medium Profit', test: (m: number) => m >= 10 && m < 20 },
+  { key: 'low', label: 'Average Profit', test: (m: number) => m >= 0 && m < 10 },
+  { key: 'loss', label: 'Low Profit', test: (m: number) => m < 0 },
 ] as const;
 
 type Tone = 'income' | 'expense' | 'profit' | 'neutral';
