@@ -231,9 +231,9 @@ export default function CompanyReportsGeneratorPage() {
         </div>
 
         {/* ─── Upload & mapping flow ─── */}
-        <div className="bg-white rounded-xl border border-black/[0.08] p-4 shadow-2xs">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <Plus className="w-4 h-4 text-brand" /> Add a Company Template
             </h3>
             {uploadFile && (
@@ -244,7 +244,7 @@ export default function CompanyReportsGeneratorPage() {
           </div>
 
           {!uploadFile ? (
-            <label className="cursor-pointer group flex items-center justify-center gap-2.5 px-4 py-6 rounded-xl border-2 border-dashed border-slate-200 hover:border-brand bg-slate-50 hover:bg-brand/5 transition-all text-sm font-semibold text-slate-500 hover:text-brand w-full">
+            <label className="cursor-pointer group flex items-center justify-center gap-2.5 px-4 py-6 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-brand bg-slate-50 dark:bg-slate-800/40 hover:bg-brand/5 transition-all text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-brand w-full">
               <Upload className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span>Upload the customer's Excel format (.xlsx)</span>
               <input
@@ -260,20 +260,20 @@ export default function CompanyReportsGeneratorPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Template name</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Template name</label>
                   <input
                     type="text"
                     value={draftName}
                     onChange={(e) => setDraftName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:border-brand"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Customer (optional)</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Customer (optional)</label>
                   <select
                     value={draftCustomerId}
                     onChange={(e) => setDraftCustomerId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:border-brand"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
                   >
                     <option value="all">Shared / any customer</option>
                     {customers.map((c: any) => (
@@ -283,7 +283,7 @@ export default function CompanyReportsGeneratorPage() {
                 </div>
               </div>
 
-              {isInspecting && <div className="text-sm text-slate-500">Inspecting workbook…</div>}
+              {isInspecting && <div className="text-sm text-slate-500 dark:text-slate-400">Inspecting workbook…</div>}
 
               {inspection && draftLayout && (
                 <>
