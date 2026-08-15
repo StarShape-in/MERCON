@@ -144,14 +144,20 @@ const MAP_COMPANY_OPTIONS: ComboboxOption[] = [
   {
     value: 'our_company',
     label: 'Our Company Name',
-    keywords: 'mercon logistics our company name',
+    keywords: 'our company name mercon logistics',
     icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+  },
+  {
+    value: 'separate_row',
+    label: 'Separate value for each row',
+    keywords: 'separate value for each row per row custom company',
+    icon: <FileText className="w-3.5 h-3.5 text-indigo-500" />,
   },
   {
     value: 'separate_text',
     label: 'Separate text for each',
     keywords: 'separate text for each vehicle truck carrier',
-    icon: <FileText className="w-3.5 h-3.5 text-indigo-500" />,
+    icon: <FileText className="w-3.5 h-3.5 text-purple-500" />,
   },
   {
     value: 'mercon',
@@ -186,9 +192,15 @@ export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
   const [mapCompany, setMapCompany] = useState<string>('our_company');
+  const [dashRowCompanies, setDashRowCompanies] = useState<Record<string, string>>({});
 
   const getDashCompanyText = (v: any) => {
+    const rowId = v.rawId || v.id || v.tripId;
+    if (dashRowCompanies[rowId]) {
+      return dashRowCompanies[rowId];
+    }
     if (mapCompany === 'our_company' || mapCompany === 'mercon') return 'MERCON Logistics';
+    if (mapCompany === 'separate_row') return `${v.id || 'TRP'} • MERCON Fleet`;
     if (mapCompany === 'separate_text') return `${v.id || 'TRP'} • ${v.customerName || 'MERCON Fleet'}`;
     if (mapCompany === 'aramco') return 'Saudi Aramco Logistics';
     if (mapCompany === 'sabic') return 'SABIC Supply Chain';
@@ -386,6 +398,29 @@ export default function DashboardPage() {
           </span>
         </div>
       ),
+    },
+    {
+      header: 'Company Name (Editable)',
+      className: 'min-w-[180px]',
+      accessor: (row: any) => {
+        const rowId = row.rawId || row.id || row.tripId;
+        const currentVal = dashRowCompanies[rowId] ?? getDashCompanyText(row);
+        return (
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
+            <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+            <input
+              type="text"
+              value={currentVal}
+              onChange={(e) => {
+                const newVal = e.target.value;
+                setDashRowCompanies((prev) => ({ ...prev, [rowId]: newVal }));
+              }}
+              placeholder="Add company name..."
+              className="w-full text-xs font-semibold bg-transparent outline-none text-slate-900 dark:text-slate-100"
+            />
+          </div>
+        );
+      },
     },
     {
       header: 'Route',

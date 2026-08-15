@@ -32,14 +32,20 @@ const COMPANY_OPTIONS: ComboboxOption[] = [
   {
     value: 'our_company',
     label: 'Our Company Name',
-    keywords: 'mercon logistics our company name',
+    keywords: 'our company name mercon logistics',
     icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+  },
+  {
+    value: 'separate_row',
+    label: 'Separate value for each row',
+    keywords: 'separate value for each row per row custom company',
+    icon: <FileText className="w-3.5 h-3.5 text-indigo-500" />,
   },
   {
     value: 'separate_text',
     label: 'Separate text for each',
     keywords: 'separate text for each vehicle truck carrier',
-    icon: <FileText className="w-3.5 h-3.5 text-indigo-500" />,
+    icon: <FileText className="w-3.5 h-3.5 text-purple-500" />,
   },
   {
     value: 'mercon',
@@ -125,13 +131,20 @@ export default function FleetLiveMap() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [companyFilter, setCompanyFilter] = useState<string>('our_company');
+  const [rowCompanies, setRowCompanies] = useState<Record<string, string>>({});
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
 
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
 
   const getTruckCompanyLabel = (truck: SimulatedTruckTelemetry, filterKey: string) => {
+    if (rowCompanies[truck.tripId]) {
+      return rowCompanies[truck.tripId];
+    }
     if (filterKey === 'our_company' || filterKey === 'mercon') {
       return 'MERCON Logistics';
+    }
+    if (filterKey === 'separate_row') {
+      return `${truck.refId} • MERCON Fleet`;
     }
     if (filterKey === 'separate_text') {
       const idx = (truck.refId || '1').charCodeAt((truck.refId || '1').length - 1) % 4;
@@ -445,6 +458,7 @@ export default function FleetLiveMap() {
                       <TableHead className="text-[10px] uppercase font-bold text-[#9898A4]">Manifest ID</TableHead>
                       <TableHead className="text-[10px] uppercase font-bold text-[#9898A4]">Plate & Asset</TableHead>
                       <TableHead className="text-[10px] uppercase font-bold text-[#9898A4]">Driver Name</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold text-[#9898A4]">Company Name (Editable)</TableHead>
                       <TableHead className="text-[10px] uppercase font-bold text-[#9898A4]">Status</TableHead>
                       <TableHead className="text-[10px] uppercase font-bold text-[#9898A4]">Speed</TableHead>
                       <TableHead className="text-[10px] uppercase font-bold text-[#9898A4]">Progress</TableHead>
@@ -460,6 +474,21 @@ export default function FleetLiveMap() {
                           <p className="text-[10px] text-gray-500">{truck.assetType}</p>
                         </TableCell>
                         <TableCell className="text-xs font-semibold text-[#111]">{truck.driverName}</TableCell>
+                        <TableCell className="min-w-[170px]">
+                          <div className="flex items-center gap-1.5 bg-[#F5F5F7] dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1">
+                            <Building2 className="w-3.5 h-3.5 text-brand shrink-0" />
+                            <input
+                              type="text"
+                              value={getTruckCompanyLabel(truck, companyFilter)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setRowCompanies((prev) => ({ ...prev, [truck.tripId]: val }));
+                              }}
+                              placeholder="Add company for row..."
+                              className="w-full text-xs font-semibold bg-transparent outline-none text-[#111] dark:text-white"
+                            />
+                          </div>
+                        </TableCell>
                         <TableCell><StatusBadge status={truck.status} /></TableCell>
                         <TableCell className="text-xs font-bold text-[#111]">{truck.speedKmH} km/h</TableCell>
                         <TableCell className="w-36">
