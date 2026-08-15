@@ -125,7 +125,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         aria-label="Main navigation"
         className={`
           flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
-          bg-[#F8FAFC] border-r border-slate-200/90 shadow-xs
+          bg-[#FAF6F0] border-r border-[#EAE3D9] shadow-xs
           fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
           transform transition-[transform,width] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -133,7 +133,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         `}
       >
         {/* Logo */}
-        <div className={`relative flex items-center shrink-0 justify-center bg-[#F8FAFC] border-b border-slate-200/90 h-[72px] lg:h-[88px] overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className={`relative flex items-center shrink-0 justify-center bg-[#FAF6F0] border-b border-[#EAE3D9] h-[72px] lg:h-[88px] overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
           {collapsed ? (
             <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
               M
@@ -143,7 +143,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           <button
             onClick={onClose}
             aria-label="Close navigation menu"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 transition-colors lg:hidden cursor-pointer"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-[#7A6E5F] hover:text-[#E8450F] hover:bg-[#F2ECE1] transition-colors lg:hidden cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -151,7 +151,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
 
         {/*
           Desktop rail toggle button. Sits in the vertical middle of the sidebar's right edge,
-          matching the exact same design and feel as ImportantReminders in sleek light theme.
+          matching the exact same design and feel as ImportantReminders in warm theme.
         */}
         <button
           type="button"
@@ -162,7 +162,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           className="
             group hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30
             w-7 h-7 items-center justify-center rounded-full
-            bg-white border border-slate-200/90 text-slate-600 shadow-sm
+            bg-white border border-[#E5DDD0] text-[#7A6E5F] shadow-sm
             before:absolute before:-inset-2 before:content-['']
             hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
@@ -180,7 +180,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         <div className={`flex-1 py-4 space-y-5 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
           {groups.map((g) => (
             <div key={g.label}>
-              <p className={`text-[9px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2 ${collapsed ? 'lg:hidden' : ''}`}>{g.label}</p>
+              <p className={`text-[9px] font-bold text-[#A39686] uppercase tracking-widest px-3 mb-2 ${collapsed ? 'lg:hidden' : ''}`}>{g.label}</p>
               <div className="space-y-0.5">
                 {g.items.map((item: any) => {
                   const isActive = isItemActive(item.path, item.end);
@@ -194,16 +194,18 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                         flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
-                          ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/15'
-                          : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
+                          ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/20 font-semibold'
+                          : 'text-[#5C5245] hover:bg-[#F2ECE1]/80 hover:text-[#E8450F] font-medium'
                         }
                       `}
                     >
                       <item.icon
                         size={16}
-                        className={`transition-transform duration-150 group-hover:scale-105 shrink-0 ${isActive ? 'stroke-[2.2]' : 'stroke-[1.7]'}`}
+                        className={`transition-transform duration-150 group-hover:scale-105 shrink-0 ${
+                          isActive ? 'stroke-[2.2] text-white' : 'stroke-[1.7] text-[#7A6E5F] group-hover:text-[#E8450F]'
+                        }`}
                       />
-                      <span className={`text-xs font-semibold flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
+                      <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
                       {item.badge !== undefined && item.badge > 0 && !isActive && (
                         <span className={`w-4 h-4 rounded-full bg-[#E8450F] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shrink-0 ${collapsed ? 'lg:hidden' : ''}`}>
                           {item.badge > 9 ? '9+' : item.badge}
@@ -221,7 +223,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </div>
 
         {/* User footer */}
-        <div className={`px-4 py-3.5 border-t border-slate-200/90 flex items-center gap-2.5 bg-slate-100/70 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        <div className={`px-4 py-3.5 border-t border-[#EAE3D9] flex items-center gap-2.5 bg-[#F2ECE1]/70 shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
             className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none"
@@ -229,12 +231,12 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
             {initials}
           </div>
           <div className={`flex-1 min-w-0 ${collapsed ? 'lg:hidden' : ''}`}>
-            <p className="text-xs font-semibold text-slate-900 truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
-            <p className="text-[9px] text-slate-500 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
+            <p className="text-xs font-semibold text-[#3B332B] truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
+            <p className="text-[9px] text-[#7A6E5F] truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition-colors shrink-0 cursor-pointer"
+            className="text-[#8C7D6B] hover:text-[#E8450F] p-1 rounded-lg hover:bg-[#E8DFD1] transition-colors shrink-0 cursor-pointer"
             title="Logout"
           >
             <LogOut size={14} />
