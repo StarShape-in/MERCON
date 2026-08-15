@@ -4,10 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import {
-  ArrowLeft, DollarSign, TrendingUp, TrendingDown, Truck, Trophy,
-  FileSpreadsheet, FileText, RefreshCw, AlertTriangle, ArrowUpDown, Wallet,
-  Layers, PieChart as PieChartIcon, ArrowRight, Gauge, Ban,
-  CalendarRange, Route, ReceiptText, AlertOctagon, Grid3x3,
+  ArrowLeft, TrendingUp, TrendingDown, Truck, Trophy,
+  FileSpreadsheet, FileText, RefreshCw, AlertTriangle, ArrowUpDown,
+  Layers, PieChart as PieChartIcon, ArrowRight, Ban,
+  CalendarRange, AlertOctagon, Grid3x3,
 } from 'lucide-react';
 import {
   Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, ReferenceLine,
@@ -15,6 +15,8 @@ import {
 } from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import KpiCard from '@/components/ui/KpiCard';
+import { RevenueChart, MoneyBills, CheckBadge, FleetTruck, MaintenanceWrench, RouteLine } from '@/components/ui/kpi-icons';
 import { vehicleService } from '@/services/vehicleService';
 import type { FleetVehicleFinancials, MonthlyPoint } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -106,67 +108,6 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 /* ── Small building blocks ────────────────────────────────────────────── */
-
-type Tone = 'income' | 'expense' | 'profit' | 'neutral';
-
-const TONES: Record<Tone, { card: string; label: string; value: string; bar: string }> = {
-  income: {
-    card: 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20',
-    label: 'text-emerald-700 dark:text-emerald-400',
-    value: 'text-emerald-700 dark:text-emerald-300',
-    bar: 'bg-emerald-500',
-  },
-  expense: {
-    card: 'border-rose-200 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20',
-    label: 'text-rose-700 dark:text-rose-400',
-    value: 'text-rose-700 dark:text-rose-300',
-    bar: 'bg-rose-500',
-  },
-  profit: {
-    card: 'border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/40 dark:bg-indigo-950/20',
-    label: 'text-indigo-700 dark:text-indigo-400',
-    value: 'text-indigo-700 dark:text-indigo-300',
-    bar: 'bg-indigo-500',
-  },
-  neutral: {
-    card: 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900',
-    label: 'text-slate-400',
-    value: 'text-slate-900 dark:text-slate-100',
-    bar: 'bg-slate-400',
-  },
-};
-
-function StatCard({
-  label, value, hint, tone = 'neutral', icon, ratio,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  tone?: Tone;
-  icon: React.ReactNode;
-  /** 0–1; renders a proportion bar under the value when provided. */
-  ratio?: number;
-}) {
-  const t = TONES[tone];
-  return (
-    <Card className={cn('rounded-2xl p-4 flex flex-col justify-between gap-1 border', t.card)}>
-      <div className="flex items-center justify-between">
-        <span className={cn('text-[10px] font-extrabold uppercase tracking-wider', t.label)}>{label}</span>
-        {icon}
-      </div>
-      <div className={cn('text-2xl font-mono font-extrabold mt-1 tabular-nums', t.value)}>{value}</div>
-      {ratio !== undefined && (
-        <div className="h-1 w-full rounded-full bg-slate-200/70 dark:bg-slate-800 overflow-hidden mt-1">
-          <div
-            className={cn('h-full rounded-full transition-all', t.bar)}
-            style={{ width: `${Math.min(100, Math.max(0, ratio * 100))}%` }}
-          />
-        </div>
-      )}
-      <div className="text-[11px] text-slate-500 font-medium">{hint}</div>
-    </Card>
-  );
-}
 
 /** Money, coloured by sign. */
 function Money({ value, className }: { value: number; className?: string }) {
@@ -663,15 +604,10 @@ export default function VehicleFinancialsPage() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-                  Vehicle Profit &amp; Loss
-                </h1>
-                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold text-[11px]">
-                  Financials
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">
+              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                Vehicle P&amp;L
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Compare every truck's earnings against its running costs, then drill into one asset.
               </p>
             </div>
@@ -801,43 +737,41 @@ export default function VehicleFinancialsPage() {
             ) : (
               <>
                 {/* KPIs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  <StatCard
-                    label="Fleet Revenue"
-                    value={sar(summary.total_income)}
-                    hint={`${summary.total_trips} earning trips across ${summary.vehicles_count} vehicles`}
-                    tone="income"
-                    icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                  <KpiCard
+                    title="FLEET REVENUE"
+                    value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{summary.total_income.toLocaleString()}</span>}
+                    variant="emerald"
+                    description={`${summary.total_trips} earning trips • ${summary.vehicles_count} vehicles`}
+                    icon={RevenueChart}
                   />
-                  <StatCard
-                    label="Fleet Expenses"
-                    value={sar(summary.total_expenses)}
-                    hint={`${summary.total_maintenance} workshop & renewal records`}
-                    tone="expense"
-                    icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
-                    ratio={summary.total_income > 0 ? summary.total_expenses / summary.total_income : 0}
+                  <KpiCard
+                    title="FLEET EXPENSES"
+                    value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{summary.total_expenses.toLocaleString()}</span>}
+                    variant="rose"
+                    description={`${summary.total_maintenance} workshop & renewal records`}
+                    icon={MoneyBills}
                   />
-                  <StatCard
-                    label="Fleet Net Profit"
-                    value={sar(summary.net_profit)}
-                    hint={`${summary.margin_percent}% overall margin`}
-                    tone={summary.net_profit >= 0 ? 'profit' : 'expense'}
-                    icon={<Wallet className="w-4 h-4 text-indigo-600" />}
+                  <KpiCard
+                    title="FLEET NET PROFIT"
+                    value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{summary.net_profit.toLocaleString()}</span>}
+                    variant={summary.net_profit >= 0 ? 'brand' : 'rose'}
+                    description={`${summary.margin_percent}% overall margin`}
+                    icon={CheckBadge}
                   />
-                  <StatCard
-                    label="Avg Cost / Trip"
-                    value={sar(fleetCostPerTrip)}
-                    hint="Fleet-wide expense per earning trip"
-                    tone="neutral"
-                    icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
+                  <KpiCard
+                    title="AVG COST / TRIP"
+                    value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{fleetCostPerTrip.toLocaleString()}</span>}
+                    variant="slate"
+                    description="Fleet-wide expense per earning trip"
+                    icon={RouteLine}
                   />
-                  <StatCard
-                    label="Profitable Vehicles"
+                  <KpiCard
+                    title="PROFITABLE VEHICLES"
                     value={`${summary.profitable_count} / ${summary.vehicles_count}`}
-                    hint={`${summary.loss_making_count} at a loss · ${summary.idle_count} idle`}
-                    tone="neutral"
-                    icon={<Gauge className="w-4 h-4 text-slate-400" />}
-                    ratio={summary.vehicles_count > 0 ? summary.profitable_count / summary.vehicles_count : 0}
+                    variant="purple"
+                    description={`${summary.loss_making_count} at a loss • ${summary.idle_count} idle`}
+                    icon={FleetTruck}
                   />
                 </div>
 
@@ -1191,51 +1125,55 @@ export default function VehicleFinancialsPage() {
                     )}
 
                     {/* KPIs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                      <StatCard
-                        label="Total Income Generated"
-                        value={sar(financials.summary.total_income)}
-                        hint={`${financials.summary.completed_trips_count} completed trip dispatches`}
-                        tone="income"
-                        icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                      <KpiCard
+                        title="TOTAL INCOME"
+                        value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{financials.summary.total_income.toLocaleString()}</span>}
+                        variant="emerald"
+                        description="Gross revenue from completed trips"
+                        icon={RevenueChart}
                       />
-                      <StatCard
-                        label="Total Expenses"
-                        value={sar(financials.summary.total_expenses)}
-                        hint={`${financials.summary.total_maintenance_count} service & renewal records`}
-                        tone="expense"
-                        icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
-                        ratio={
-                          financials.summary.total_income > 0
-                            ? financials.summary.total_expenses / financials.summary.total_income
-                            : 0
-                        }
+                      <KpiCard
+                        title="TOTAL EXPENSES"
+                        value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{financials.summary.total_expenses.toLocaleString()}</span>}
+                        variant="rose"
+                        description="Maintenance & renewal costs"
+                        icon={MoneyBills}
                       />
-                      <StatCard
-                        label="Net Vehicle Profit"
-                        value={sar(financials.summary.net_profit)}
-                        hint="Gross revenue less maintenance costs"
-                        tone={financials.summary.net_profit >= 0 ? 'profit' : 'expense'}
-                        icon={<DollarSign className="w-4 h-4 text-indigo-600" />}
+                      <KpiCard
+                        title="NET PROFIT"
+                        value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{financials.summary.net_profit.toLocaleString()}</span>}
+                        variant={financials.summary.net_profit >= 0 ? 'brand' : 'rose'}
+                        description={`${financials.summary.margin_percent}% profit margin`}
+                        icon={CheckBadge}
                       />
-                      <StatCard
-                        label="Cost / Trip"
-                        value={sar(vehicleCostPerTrip)}
-                        hint="Average expense per completed trip"
-                        tone="neutral"
-                        icon={<Route className="w-4 h-4 text-slate-400" />}
+                      <KpiCard
+                        title="COMPLETED TRIPS"
+                        value={financials.summary.completed_trips_count}
+                        variant="blue"
+                        description="Earning dispatches this period"
+                        icon={RouteLine}
                       />
-                      <StatCard
-                        label="Profit Margin"
+                      <KpiCard
+                        title="MAINTENANCE EVENTS"
+                        value={financials.summary.total_maintenance_count}
+                        variant="amber"
+                        description="Service & renewal records logged"
+                        icon={MaintenanceWrench}
+                      />
+                      <KpiCard
+                        title="COST / TRIP"
+                        value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{vehicleCostPerTrip.toLocaleString()}</span>}
+                        variant="slate"
+                        description="Average expense per completed trip"
+                        icon={RouteLine}
+                      />
+                      <KpiCard
+                        title="PROFIT MARGIN"
                         value={`${financials.summary.margin_percent}%`}
-                        hint="Operational asset margin"
-                        tone="neutral"
-                        icon={
-                          financials.summary.margin_percent >= 0
-                            ? <TrendingUp className="w-4 h-4 text-emerald-500" />
-                            : <TrendingDown className="w-4 h-4 text-rose-500" />
-                        }
-                        ratio={Math.min(1, Math.abs(financials.summary.margin_percent) / 100)}
+                        variant={financials.summary.margin_percent >= 0 ? 'emerald' : 'rose'}
+                        description="Operational asset margin"
+                        icon={FleetTruck}
                       />
                     </div>
 
