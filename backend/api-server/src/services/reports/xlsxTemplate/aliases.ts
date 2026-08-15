@@ -54,6 +54,19 @@ export const normaliseHeader = (header: string): string =>
  */
 const MIN_OVERLAP_RATIO = 0.5;
 
+/**
+ * Connector words that show up as one half of a two-word alias across
+ * MULTIPLE different fields (driver_name/carrier_name/customer_name all
+ * have a "___ name" alias; driver_phone/vehicle_plate both have a
+ * "___ number" alias; etc). A header that shares only one of these words
+ * with an alias — e.g. "Vendor Name" vs "Driver Name", overlapping only on
+ * "name" — isn't actually describing that field; the header's real,
+ * distinguishing word ("vendor") just isn't in any alias list. Requiring at
+ * least one non-generic overlapping word is what stops that from resolving
+ * to whichever field happens to be declared first.
+ */
+const GENERIC_TOKENS = new Set(['name', 'number', 'type', 'amount', 'charges']);
+
 /** Best-guess field for a template header, or null if nothing matches well enough. */
 export function suggestField(header: string): TripReportFieldKey | null {
   const norm = normaliseHeader(header);
@@ -77,9 +90,13 @@ export function suggestField(header: string): TripReportFieldKey | null {
     for (const alias of aliases) {
       const aliasTokens = alias.split(/\s+/).filter(Boolean);
       if (aliasTokens.length === 0) continue;
-      const overlap = aliasTokens.filter((t) => headerTokens.has(t)).length;
-      if (overlap === 0) continue;
-      const ratio = overlap / Math.max(headerTokens.size, aliasTokens.length);
+      const overlapTokens = aliasTokens.filter((t) => headerTokens.has(t));
+      if (overlapTokens.length === 0) continue;
+      // All shared words are generic connectors ("name", "number", ...) —
+      // not a real match, just two headers that both happen to end in the
+      // same structural word. Reject outright rather than guess.
+      if (!overlapTokens.some((t) => !GENERIC_TOKENS.has(t))) continue;
+      const ratio = overlapTokens.length / Math.max(headerTokens.size, aliasTokens.length);
       if (ratio < MIN_OVERLAP_RATIO) continue;
       const better = !best || ratio > best.ratio || (ratio === best.ratio && aliasTokens.length > best.aliasTokenCount);
       if (better) best = { field, ratio, aliasTokenCount: aliasTokens.length };
