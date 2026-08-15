@@ -228,42 +228,40 @@ export async function runReportQuery(spec: ReportQuerySpec): Promise<ReportResul
     neededModules.add('trips');
   }
 
+  const MASTER_ENTITY_MODULES = new Set(['drivers', 'vehicles', 'customers', 'thirdParty', 'locations']);
+
   const joinInfo = buildJoinInfo(root, neededModules);
 
-  const tripDateFilter: Record<string, any> = { deletedAt: null };
+  const dateRangeFilter: Record<string, Date> = {};
   if (spec.dateRange?.start || spec.dateRange?.end) {
-    const range: Record<string, Date> = {};
-    if (spec.dateRange.start) range.gte = new Date(spec.dateRange.start);
+    if (spec.dateRange.start) dateRangeFilter.gte = new Date(spec.dateRange.start);
     if (spec.dateRange.end) {
       const end = new Date(spec.dateRange.end);
       end.setHours(23, 59, 59, 999);
-      range.lte = end;
+      dateRangeFilter.lte = end;
     }
-    tripDateFilter.createdAt = range;
   }
 
   const include: Record<string, any> = {};
   for (const [, edge] of joinInfo) {
     if (edge.cardinality === 'toMany') {
-      include[edge.relationField] = {
-        where: edge.toModule === 'trips' ? tripDateFilter : { deletedAt: null },
-      };
+      const childWhere: Record<string, any> = { deletedAt: null };
+      if (Object.keys(dateRangeFilter).length > 0) {
+        if (edge.toModule === 'trips') childWhere.createdAt = dateRangeFilter;
+        else if (edge.toModule === 'maintenance') childWhere.service_date = dateRangeFilter;
+        else if (edge.toModule === 'expenses') childWhere.expense_date = dateRangeFilter;
+        else if (edge.toModule === 'invoices') childWhere.createdAt = dateRangeFilter;
+      }
+      include[edge.relationField] = { where: childWhere };
     } else {
       include[edge.relationField] = true;
     }
   }
 
   const where: Record<string, any> = { deletedAt: null };
-  if (root.key !== 'drivers' && (spec.dateRange?.start || spec.dateRange?.end)) {
-    const dateField = spec.dateRange.field || root.defaultDateField;
-    const range: Record<string, Date> = {};
-    if (spec.dateRange.start) range.gte = new Date(spec.dateRange.start);
-    if (spec.dateRange.end) {
-      const end = new Date(spec.dateRange.end);
-      end.setHours(23, 59, 59, 999);
-      range.lte = end;
-    }
-    where[dateField] = range;
+  if (!MASTER_ENTITY_MODULES.has(root.key) && Object.keys(dateRangeFilter).length > 0) {
+    const dateField = spec.dateRange?.field || root.defaultDateField;
+    where[dateField] = dateRangeFilter;
   }
 
   const delegate = (prisma as any)[root.prismaModel];

@@ -52,6 +52,73 @@ interface PresetOption {
   questions: PresetQuestion[];
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  'drivers.full_name': 'Driver Name',
+  'drivers.ref_id': 'Driver ID',
+  'drivers.phone_primary': 'Phone',
+  'drivers.status': 'Driver Status',
+  'drivers.createdAt': 'Joining Date',
+  'drivers.license_expiry': 'License Expiry',
+  'drivers.completed_trips': 'Completed Trips',
+  'drivers.dispatched_trips': 'Dispatched Trips',
+  'drivers.cancelled_trips': 'Cancelled Trips',
+  'drivers.total_trips': 'Total Trips',
+  'drivers.revenue': 'Driver Revenue',
+
+  'vehicles.plate_number': 'Vehicle Plate',
+  'vehicles.asset_type': 'Vehicle Type',
+  'vehicles.status': 'Vehicle Status',
+  'vehicles.capacity_kg': 'Capacity (kg)',
+  'vehicles.current_odometer': 'Odometer (km)',
+
+  'trips.ref_id': 'Trip ID',
+  'trips.createdAt': 'Trip Date',
+  'trips.status': 'Trip Status',
+  'trips.revenue': 'Revenue',
+  'trips.trip_charges': 'Trip Charges',
+  'trips.third_party_cost': 'Third-Party Cost',
+  'trips.count': 'Trip Count',
+
+  'customers.name': 'Customer Name',
+  'customers.contact_phone': 'Contact Phone',
+  'customers.credit_limit': 'Credit Limit',
+
+  'thirdParty.name': 'Vendor Name',
+  'thirdParty.contact_person': 'Contact Person',
+  'thirdParty.rating': 'Vendor Rating',
+
+  'maintenance.workshop_name': 'Workshop Name',
+  'maintenance.maintenance_type': 'Service Type',
+  'maintenance.status': 'Maintenance Status',
+  'maintenance.service_date': 'Service Date',
+  'maintenance.next_service_due': 'Next Service Due',
+  'maintenance.cost': 'Maintenance Cost',
+
+  'expenses.category': 'Expense Category',
+  'expenses.amount': 'Expense Amount',
+  'expenses.expense_date': 'Expense Date',
+  'expenses.status': 'Expense Status',
+
+  'invoices.ref_id': 'Invoice Number',
+  'invoices.createdAt': 'Invoice Date',
+  'invoices.total_amount': 'Invoice Amount',
+  'invoices.status': 'Invoice Status',
+  'invoices.due_date': 'Due Date',
+  'invoices.outstanding': 'Outstanding Balance',
+};
+
+const MONEY_FIELDS = new Set([
+  'drivers.revenue',
+  'trips.revenue',
+  'trips.trip_charges',
+  'trips.third_party_cost',
+  'customers.credit_limit',
+  'maintenance.cost',
+  'expenses.amount',
+  'invoices.total_amount',
+  'invoices.outstanding',
+]);
+
 const PRESETS: PresetOption[] = [
   {
     id: 'drivers',
@@ -330,12 +397,12 @@ export default function QuickReportPage() {
     navigate('/report-builder/advanced', { state: { initialSpec: spec } });
   };
 
-  // Process & Filter Data Rows for Driver Report
+  // Process & Filter Data Rows across all modules
   const processedRows = useMemo(() => {
     if (!resultData?.rows) return [];
     let rows = [...resultData.rows];
 
-    // Filter 0-trip drivers if toggle is OFF
+    // Filter 0-trip drivers if toggle is OFF for drivers module
     if (!includeZeroTripDrivers && selectedModule === 'drivers') {
       rows = rows.filter((r) => {
         const completed = r['drivers.completed_trips'] ?? r['completed_trips'] ?? 0;
@@ -343,45 +410,117 @@ export default function QuickReportPage() {
       });
     }
 
-    // Filter by search query
+    // Filter by search query across all row values
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      rows = rows.filter((r) => {
-        const name = String(r['drivers.full_name'] || r['Driver Name'] || '').toLowerCase();
-        const refId = String(r['drivers.ref_id'] || r['Driver ID'] || '').toLowerCase();
-        return name.includes(q) || refId.includes(q);
-      });
+      rows = rows.filter((r) =>
+        Object.values(r).some((v) => v != null && String(v).toLowerCase().includes(q))
+      );
     }
 
-    // Sort rows
+    // Sort rows flexibly
     rows.sort((a, b) => {
-      const getVal = (row: any, key: string) => row[key] ?? 0;
-      const getStr = (row: any, key: string) => String(row[key] || '').toLowerCase();
-
-      switch (sortBy) {
-        case 'completed_desc':
-          return (getVal(b, 'drivers.completed_trips') || 0) - (getVal(a, 'drivers.completed_trips') || 0);
-        case 'completed_asc':
-          return (getVal(a, 'drivers.completed_trips') || 0) - (getVal(b, 'drivers.completed_trips') || 0);
-        case 'name_asc':
-          return getStr(a, 'drivers.full_name').localeCompare(getStr(b, 'drivers.full_name'));
-        case 'name_desc':
-          return getStr(b, 'drivers.full_name').localeCompare(getStr(a, 'drivers.full_name'));
-        case 'id_asc':
-          return getStr(a, 'drivers.ref_id').localeCompare(getStr(b, 'drivers.ref_id'));
-        case 'id_desc':
-          return getStr(b, 'drivers.ref_id').localeCompare(getStr(a, 'drivers.ref_id'));
-        default:
-          return 0;
+      if (sortBy === 'completed_desc') {
+        return Number(b['drivers.completed_trips'] || 0) - Number(a['drivers.completed_trips'] || 0);
       }
+      if (sortBy === 'completed_asc') {
+        return Number(a['drivers.completed_trips'] || 0) - Number(b['drivers.completed_trips'] || 0);
+      }
+      if (sortBy === 'name_asc') {
+        const nameA = String(a['drivers.full_name'] || a['customers.name'] || a['vehicles.plate_number'] || a['trips.status'] || a['expenses.category'] || a['maintenance.maintenance_type'] || '').toLowerCase();
+        const nameB = String(b['drivers.full_name'] || b['customers.name'] || b['vehicles.plate_number'] || b['trips.status'] || b['expenses.category'] || b['maintenance.maintenance_type'] || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      }
+      if (sortBy === 'name_desc') {
+        const nameA = String(a['drivers.full_name'] || a['customers.name'] || a['vehicles.plate_number'] || a['trips.status'] || a['expenses.category'] || a['maintenance.maintenance_type'] || '').toLowerCase();
+        const nameB = String(b['drivers.full_name'] || b['customers.name'] || b['vehicles.plate_number'] || a['trips.status'] || a['expenses.category'] || a['maintenance.maintenance_type'] || '').toLowerCase();
+        return nameB.localeCompare(nameA);
+      }
+      if (sortBy === 'val_desc' && executedSpec?.values[0]) {
+        const valKey = executedSpec.values[0].field;
+        return Number(b[valKey] || 0) - Number(a[valKey] || 0);
+      }
+      if (sortBy === 'val_asc' && executedSpec?.values[0]) {
+        const valKey = executedSpec.values[0].field;
+        return Number(a[valKey] || 0) - Number(b[valKey] || 0);
+      }
+      return 0;
     });
 
     return rows;
-  }, [resultData, includeZeroTripDrivers, selectedModule, searchQuery, sortBy]);
+  }, [resultData, includeZeroTripDrivers, selectedModule, searchQuery, sortBy, executedSpec]);
+
+  // Dynamic Table Columns per Module & Spec
+  const tableColumns = useMemo(() => {
+    if (!executedSpec) return [];
+
+    if (selectedModule === 'drivers') {
+      return [
+        {
+          header: 'DRIVER NAME',
+          accessor: (row: any) => row['drivers.full_name'] || '—',
+        },
+        {
+          header: 'DRIVER ID',
+          accessor: (row: any) => row['drivers.ref_id'] || '—',
+        },
+        {
+          header: 'COMPLETED TRIPS',
+          accessor: (row: any) => row['drivers.completed_trips'] ?? 0,
+        },
+        {
+          header: 'DISPATCHED TRIPS',
+          accessor: (row: any) => row['drivers.dispatched_trips'] ?? 0,
+        },
+        {
+          header: 'CANCELLED TRIPS',
+          accessor: (row: any) => row['drivers.cancelled_trips'] ?? 0,
+        },
+        {
+          header: 'TOTAL TRIPS',
+          accessor: (row: any) => row['drivers.total_trips'] ?? 0,
+        },
+        {
+          header: 'REVENUE',
+          accessor: (row: any) => {
+            const rev = row['drivers.revenue'];
+            if (rev === null || rev === undefined || rev === 0) return '—';
+            return `SAR ${Number(rev).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          },
+        },
+      ];
+    }
+
+    const allFieldKeys = [
+      ...executedSpec.rows,
+      ...executedSpec.values.map((v) => v.field),
+    ];
+
+    return allFieldKeys.map((key) => {
+      const label = FIELD_LABELS[key] || key.split('.')[1] || key;
+      const isMoney = MONEY_FIELDS.has(key);
+
+      return {
+        header: label.toUpperCase(),
+        accessor: (row: any) => {
+          const val = row[key] ?? row[label];
+          if (val === null || val === undefined) return '—';
+          if (isMoney) {
+            const num = Number(val);
+            if (isNaN(num) || num === 0) return '—';
+            return `SAR ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          }
+          if (typeof val === 'number') return val.toLocaleString();
+          if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+          return String(val);
+        },
+      };
+    });
+  }, [executedSpec, selectedModule]);
 
   // Dynamic KPI Metrics
-  const kpis = useMemo(() => {
-    if (!resultData) {
+  const driverKpis = useMemo(() => {
+    if (!resultData || selectedModule !== 'drivers') {
       return {
         totalCompleted: 0,
         totalDrivers: 0,
@@ -404,7 +543,47 @@ export default function QuickReportPage() {
       inactiveDrivers,
       avgTripsPerActive,
     };
-  }, [resultData, processedRows]);
+  }, [resultData, processedRows, selectedModule]);
+
+  // Generic Dynamic KPIs for Other Modules
+  const genericKpis = useMemo(() => {
+    if (!executedSpec || selectedModule === 'drivers' || !processedRows.length) return [];
+
+    const cards = [
+      {
+        title: 'TOTAL GROUPS / RECORDS',
+        value: processedRows.length.toLocaleString(),
+        subtitle: 'Grouped records returned',
+      },
+    ];
+
+    for (const v of executedSpec.values) {
+      const label = FIELD_LABELS[v.field] || v.field;
+      const isMoney = MONEY_FIELDS.has(v.field);
+      const total = processedRows.reduce((sum, r) => sum + Number(r[v.field] || 0), 0);
+      const avg = processedRows.length > 0 ? total / processedRows.length : 0;
+
+      cards.push({
+        title: `TOTAL ${label.toUpperCase()}`,
+        value: isMoney
+          ? `SAR ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          : total.toLocaleString(),
+        subtitle: `Aggregated sum (${v.agg})`,
+      });
+
+      if (processedRows.length > 1) {
+        cards.push({
+          title: `AVG ${label.toUpperCase()}`,
+          value: isMoney
+            ? `SAR ${avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : avg.toFixed(1),
+          subtitle: `Average per group`,
+        });
+      }
+    }
+
+    return cards.slice(0, 5);
+  }, [executedSpec, processedRows, selectedModule]);
 
   // Pagination calculation
   const totalPages = Math.ceil(processedRows.length / pageSize) || 1;
@@ -415,37 +594,58 @@ export default function QuickReportPage() {
 
   // Clean export columns and values mapping
   const getExportData = () => {
-    const headers = ['Driver Name', 'Driver ID', 'Completed Trips', 'Dispatched Trips', 'Cancelled Trips', 'Total Trips', 'Revenue (SAR)'];
-    const exportRows = processedRows.map((r) => [
-      r['drivers.full_name'] || '—',
-      r['drivers.ref_id'] || '—',
-      r['drivers.completed_trips'] ?? 0,
-      r['drivers.dispatched_trips'] ?? 0,
-      r['drivers.cancelled_trips'] ?? 0,
-      r['drivers.total_trips'] ?? 0,
-      typeof r['drivers.revenue'] === 'number' ? r['drivers.revenue'] : 0,
-    ]);
+    if (!executedSpec || !processedRows.length) return { headers: [], exportRows: [] };
+
+    if (selectedModule === 'drivers') {
+      const headers = ['Driver Name', 'Driver ID', 'Completed Trips', 'Dispatched Trips', 'Cancelled Trips', 'Total Trips', 'Revenue (SAR)'];
+      const exportRows = processedRows.map((r) => [
+        r['drivers.full_name'] || '—',
+        r['drivers.ref_id'] || '—',
+        r['drivers.completed_trips'] ?? 0,
+        r['drivers.dispatched_trips'] ?? 0,
+        r['drivers.cancelled_trips'] ?? 0,
+        r['drivers.total_trips'] ?? 0,
+        typeof r['drivers.revenue'] === 'number' ? r['drivers.revenue'] : 0,
+      ]);
+      return { headers, exportRows };
+    }
+
+    const allFieldKeys = [
+      ...executedSpec.rows,
+      ...executedSpec.values.map((v) => v.field),
+    ];
+
+    const headers = allFieldKeys.map((key) => FIELD_LABELS[key] || key.split('.')[1] || key);
+
+    const exportRows = processedRows.map((row) =>
+      allFieldKeys.map((key) => {
+        const val = row[key] ?? row[FIELD_LABELS[key]];
+        if (val === null || val === undefined) return '—';
+        return val;
+      })
+    );
+
     return { headers, exportRows };
   };
 
   const handleExportCSV = () => {
     if (!processedRows.length) return;
     const { headers, exportRows } = getExportData();
-    downloadCSVTable(headers, exportRows, `${selectedModule}_trips_per_driver.csv`);
+    downloadCSVTable(headers, exportRows, `${selectedModule}_report.csv`);
   };
 
   const handleExportExcel = () => {
     if (!processedRows.length) return;
     const { headers, exportRows } = getExportData();
     const subtitle = `Report: ${executedContext?.questionTitle} · Time: ${executedContext?.timeRangeLabel} (${executedContext?.dateRangeText}) · Generated: ${executedContext?.timestamp}`;
-    exportExcelTable(executedContext?.questionTitle || 'Trips per Driver', headers, exportRows, `${selectedModule}_trips_per_driver.xlsx`, { subtitle });
+    exportExcelTable(executedContext?.questionTitle || 'Quick Report', headers, exportRows, `${selectedModule}_report.xlsx`, { subtitle });
   };
 
   const handleExportPDF = () => {
     if (!processedRows.length) return;
     const { headers, exportRows } = getExportData();
     const subtitle = `Report: ${executedContext?.questionTitle} · Time: ${executedContext?.timeRangeLabel} (${executedContext?.dateRangeText}) · Generated: ${executedContext?.timestamp}`;
-    exportPDFTable(executedContext?.questionTitle || 'Trips per Driver', headers, exportRows, `${selectedModule}_trips_per_driver.pdf`, { subtitle });
+    exportPDFTable(executedContext?.questionTitle || 'Quick Report', headers, exportRows, `${selectedModule}_report.pdf`, { subtitle });
   };
 
   return (
@@ -744,36 +944,50 @@ export default function QuickReportPage() {
               </div>
             ) : resultData ? (
               <div className="space-y-6">
-                {/* 5 Instrument-Panel KPI Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  <KpiCard
-                    title="TOTAL COMPLETED TRIPS"
-                    value={kpis.totalCompleted.toLocaleString()}
-                    subtitle="Completed in period"
-                    variant="amber"
-                  />
-                  <KpiCard
-                    title="TOTAL DRIVERS"
-                    value={kpis.totalDrivers.toLocaleString()}
-                    subtitle="Drivers in report"
-                  />
-                  <KpiCard
-                    title="ACTIVE DRIVERS"
-                    value={kpis.activeDrivers.toLocaleString()}
-                    subtitle="Drivers with ≥1 trip"
-                  />
-                  <KpiCard
-                    title="INACTIVE DRIVERS"
-                    value={kpis.inactiveDrivers.toLocaleString()}
-                    subtitle="Drivers with 0 trips"
-                  />
-                  <KpiCard
-                    title="AVG TRIPS / ACTIVE DRIVER"
-                    value={kpis.avgTripsPerActive}
-                    subtitle="Total Completed / Active"
-                    variant="amber"
-                  />
-                </div>
+                {/* Dynamic Instrument-Panel KPI Cards */}
+                {selectedModule === 'drivers' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <KpiCard
+                      title="TOTAL COMPLETED TRIPS"
+                      value={driverKpis.totalCompleted.toLocaleString()}
+                      subtitle="Completed in period"
+                      variant="amber"
+                    />
+                    <KpiCard
+                      title="TOTAL DRIVERS"
+                      value={driverKpis.totalDrivers.toLocaleString()}
+                      subtitle="Drivers in report"
+                    />
+                    <KpiCard
+                      title="ACTIVE DRIVERS"
+                      value={driverKpis.activeDrivers.toLocaleString()}
+                      subtitle="Drivers with ≥1 trip"
+                    />
+                    <KpiCard
+                      title="INACTIVE DRIVERS"
+                      value={driverKpis.inactiveDrivers.toLocaleString()}
+                      subtitle="Drivers with 0 trips"
+                    />
+                    <KpiCard
+                      title="AVG TRIPS / ACTIVE DRIVER"
+                      value={driverKpis.avgTripsPerActive}
+                      subtitle="Total Completed / Active"
+                      variant="amber"
+                    />
+                  </div>
+                ) : genericKpis.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {genericKpis.map((card, idx) => (
+                      <KpiCard
+                        key={idx}
+                        title={card.title}
+                        value={card.value}
+                        subtitle={card.subtitle}
+                        variant={idx === 1 ? 'amber' : undefined}
+                      />
+                    ))}
+                  </div>
+                ) : null}
 
                 {/* Horizontal Bar Chart (Trips per Driver) */}
                 {processedRows.length > 0 && selectedModule === 'drivers' && (
@@ -836,7 +1050,7 @@ export default function QuickReportPage() {
                             setSearchQuery(e.target.value);
                             setCurrentPage(1);
                           }}
-                          placeholder="Search driver name or ID..."
+                          placeholder="Search report records..."
                           className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#E8450F]"
                         />
                         {searchQuery && (
@@ -856,19 +1070,28 @@ export default function QuickReportPage() {
                           onChange={(e) => setSortBy(e.target.value)}
                           className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:ring-1 focus:ring-[#E8450F] cursor-pointer"
                         >
-                          <option value="completed_desc">Completed Trips — High to Low</option>
-                          <option value="completed_asc">Completed Trips — Low to High</option>
-                          <option value="name_asc">Driver Name — A to Z</option>
-                          <option value="name_desc">Driver Name — Z to A</option>
-                          <option value="id_asc">Driver ID — Ascending</option>
-                          <option value="id_desc">Driver ID — Descending</option>
+                          {selectedModule === 'drivers' ? (
+                            <>
+                              <option value="completed_desc">Completed Trips — High to Low</option>
+                              <option value="completed_asc">Completed Trips — Low to High</option>
+                              <option value="name_asc">Driver Name — A to Z</option>
+                              <option value="name_desc">Driver Name — Z to A</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="val_desc">Value — High to Low</option>
+                              <option value="val_asc">Value — Low to High</option>
+                              <option value="name_asc">Name / Key — A to Z</option>
+                              <option value="name_desc">Name / Key — Z to A</option>
+                            </>
+                          )}
                         </select>
                       </div>
                     </div>
 
                     {/* Active Filter Chips */}
                     <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                      {!includeZeroTripDrivers && (
+                      {selectedModule === 'drivers' && !includeZeroTripDrivers && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-semibold">
                           Trips &gt; 0
                           <button onClick={() => setIncludeZeroTripDrivers(true)} className="hover:text-amber-950">
@@ -892,9 +1115,9 @@ export default function QuickReportPage() {
                     {processedRows.length === 0 ? (
                       <div className="p-12 text-center space-y-3">
                         <FileText className="w-10 h-10 mx-auto text-slate-300" />
-                        <h4 className="text-sm font-bold text-slate-800">No completed trips found</h4>
+                        <h4 className="text-sm font-bold text-slate-800">No report records found</h4>
                         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                          Try changing the date range, adjusting search criteria, or enabling "Include 0 Trip Drivers".
+                          Try changing the date range or adjusting search filters.
                         </p>
                         <Button
                           variant="outline"
@@ -910,40 +1133,7 @@ export default function QuickReportPage() {
                       </div>
                     ) : (
                       <DataTable
-                        columns={[
-                          {
-                            header: 'DRIVER NAME',
-                            accessor: (row: any) => row['drivers.full_name'] || '—',
-                          },
-                          {
-                            header: 'DRIVER ID',
-                            accessor: (row: any) => row['drivers.ref_id'] || '—',
-                          },
-                          {
-                            header: 'COMPLETED TRIPS',
-                            accessor: (row: any) => row['drivers.completed_trips'] ?? 0,
-                          },
-                          {
-                            header: 'DISPATCHED TRIPS',
-                            accessor: (row: any) => row['drivers.dispatched_trips'] ?? 0,
-                          },
-                          {
-                            header: 'CANCELLED TRIPS',
-                            accessor: (row: any) => row['drivers.cancelled_trips'] ?? 0,
-                          },
-                          {
-                            header: 'TOTAL TRIPS',
-                            accessor: (row: any) => row['drivers.total_trips'] ?? 0,
-                          },
-                          {
-                            header: 'REVENUE',
-                            accessor: (row: any) => {
-                              const rev = row['drivers.revenue'];
-                              if (rev === null || rev === undefined || rev === 0) return '—';
-                              return `SAR ${Number(rev).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                            },
-                          },
-                        ]}
+                        columns={tableColumns}
                         data={paginatedRows}
                         emptyTitle="No data matched"
                         emptyMessage="Try adjusting the time period or question filters."
