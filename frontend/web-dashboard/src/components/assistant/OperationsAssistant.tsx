@@ -39,6 +39,8 @@ export default function OperationsAssistant() {
   const [selectedTimer,  setSelectedTimer]  = useState<number | null>(null);
   const [reaction,       setReaction]       = useState<'none'|'yes'|'no'|'wave'>('none');
 
+  const assistantRef = useRef<HTMLDivElement>(null);
+
   // Draggable avatar position
   const [pos, setPos] = useState<{x:number; y:number}>(() => {
     try {
@@ -94,9 +96,31 @@ export default function OperationsAssistant() {
     return () => window.removeEventListener('resize', fn);
   }, []);
 
+  // Close when touching/clicking outside
+  useEffect(() => {
+    if (!visible) return;
+    const handleOutsideClick = (e: PointerEvent) => {
+      if (assistantRef.current && !assistantRef.current.contains(e.target as Node)) {
+        dismiss();
+      }
+    };
+    const t = setTimeout(() => {
+      document.addEventListener('pointerdown', handleOutsideClick);
+    }, 50);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('pointerdown', handleOutsideClick);
+    };
+  }, [visible]);
+
   let currentAsset: AssetKey = 'question';
-  if (panelView === 'yes_input' || panelView === 'success' || panelView === 'no_confirmed') currentAsset = 'great';
-  if (panelView === 'remind_later') currentAsset = 'remind_later';
+  if (reminders.length === 0) {
+    currentAsset = 'great';
+  } else {
+    if (panelView === 'question') currentAsset = 'question';
+    if (panelView === 'yes_input' || panelView === 'success' || panelView === 'no_confirmed') currentAsset = 'great';
+    if (panelView === 'remind_later') currentAsset = 'remind_later';
+  }
 
   const syncReminders = useCallback(async () => {
     try {
@@ -109,13 +133,6 @@ export default function OperationsAssistant() {
         const res = await tripService.getAll({ status: 'Completed', per_page: 50 });
         trips = res.data || [];
       } catch { /* network unavailable */ }
-
-      if (!trips.some((t) => t.ref_id === 'TRP-0159')) {
-        trips.unshift({ id:'demo-trp-0159', ref_id:'TRP-0159', status:'Completed',
-          planned_start:new Date().toISOString(), actual_start:new Date().toISOString(),
-          planned_end:new Date().toISOString(), actual_end:new Date().toISOString(),
-          createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() } as Trip);
-      }
 
       const pending: ReminderItem[] = [];
       trips.forEach((t) => {
@@ -138,7 +155,6 @@ export default function OperationsAssistant() {
         if (!prev || !pending.some((r) => r.id === prev)) return pending[0].id;
         return prev;
       });
-      if (pending.length === 0) setVisible(false);
     } catch(e) { console.error('assistant sync', e); }
   }, []);
 
@@ -211,8 +227,6 @@ export default function OperationsAssistant() {
     setTimeout(syncReminders, 300);
   };
 
-  if (reminders.length === 0) return null;
-
   return (
     <>
       <style>{`
@@ -282,6 +296,7 @@ export default function OperationsAssistant() {
         {/* FULL ASSISTANT POPUP (HALF-BODY CHARACTER + SPEECH BUBBLE) */}
         {visible && (
           <div
+            ref={assistantRef}
             style={{
               position:'fixed',
               left:`${Math.max(12, Math.min(pos.x, window.innerWidth - 440))}px`,
@@ -331,119 +346,143 @@ export default function OperationsAssistant() {
                 </button>
 
                 <div className="px-5 pt-4 pb-5 space-y-3.5">
-                  {/* VIEW 1 — Question */}
-                  {panelView === 'question' && (
-                    <div className="msg-in space-y-3.5">
+                  {/* ZERO REMINDERS STATE */}
+                  {reminders.length === 0 ? (
+                    <div className="msg-in space-y-3">
                       <div className="space-y-1">
                         <p className="text-[15px] font-bold text-slate-900">Hey Ian! 👋</p>
                         <p className="text-sm text-slate-700 leading-snug">
-                          Trip{' '}
-                          <strong className="text-[#E8450F] font-bold">
-                            {activeReminder?.tripRef ?? 'TRP-0159'}
-                          </strong>{' '}
-                          has been completed.
+                          All caught up! No pending labor charges to add right now.
                         </p>
-                        <p className="text-sm text-slate-800 font-medium">
-                          {activeReminder?.question ?? 'Was there any labor charge for this trip?'}
+                        <p className="text-xs text-slate-500">
+                          All completed trips have been processed.
                         </p>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <button type="button" onClick={handleYes}
-                          className="btn-hover flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm cursor-pointer">
-                          Yes
-                        </button>
-                        <button type="button" onClick={handleNo}
-                          className="btn-hover flex-1 h-9 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold cursor-pointer">
-                          No
-                        </button>
-                        <button type="button" onClick={handleRemindLater}
-                          className="btn-hover flex-[1.6] h-9 rounded-xl border border-[#E8450F] bg-white hover:bg-orange-50 text-[#E8450F] text-sm font-semibold whitespace-nowrap cursor-pointer">
-                          Remind Me Later
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* VIEW 2 — Enter amount */}
-                  {panelView === 'yes_input' && (
-                    <div className="msg-in space-y-3">
-                      <button type="button" onClick={() => setPanelView('question')}
-                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
-                        <ArrowLeft className="w-3 h-3"/> Back
+                      <button
+                        type="button"
+                        onClick={dismiss}
+                        className="btn-hover w-full h-8.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs cursor-pointer"
+                      >
+                        Great, thanks!
                       </button>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">Great! 👍</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Enter the labour charge amount:</p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[50,100,150,200,500].map((v) => (
-                          <button key={v} type="button" onClick={() => setChargeAmount(String(v))}
-                            className={`btn-hover px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer
-                              ${chargeAmount===String(v)
-                                ? 'bg-[#E8450F] text-white border-[#E8450F]'
-                                : 'border-slate-200 text-slate-600 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
-                            {v} SAR
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
-                          <Input type="number" value={chargeAmount} onChange={(e) => setChargeAmount(e.target.value)}
-                            placeholder="150" className="h-9 pl-11 rounded-xl text-xs font-bold border-slate-200 focus-visible:ring-[#E8450F]"/>
+                    </div>
+                  ) : (
+                    <>
+                      {/* VIEW 1 — Question */}
+                      {panelView === 'question' && (
+                        <div className="msg-in space-y-3.5">
+                          <div className="space-y-1">
+                            <p className="text-[15px] font-bold text-slate-900">Hey Ian! 👋</p>
+                            <p className="text-sm text-slate-700 leading-snug">
+                              Trip{' '}
+                              <strong className="text-[#E8450F] font-bold">
+                                {activeReminder?.tripRef ?? 'TRP-0159'}
+                              </strong>{' '}
+                              has been completed.
+                            </p>
+                            <p className="text-sm text-slate-800 font-medium">
+                              {activeReminder?.question ?? 'Was there any labor charge for this trip?'}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={handleYes}
+                              className="btn-hover flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm cursor-pointer">
+                              Yes
+                            </button>
+                            <button type="button" onClick={handleNo}
+                              className="btn-hover flex-1 h-9 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold cursor-pointer">
+                              No
+                            </button>
+                            <button type="button" onClick={handleRemindLater}
+                              className="btn-hover flex-[1.6] h-9 rounded-xl border border-[#E8450F] bg-white hover:bg-orange-50 text-[#E8450F] text-sm font-semibold whitespace-nowrap cursor-pointer">
+                              Remind Me Later
+                            </button>
+                          </div>
                         </div>
-                        <button type="button" disabled={isSubmitting || !chargeAmount} onClick={handleAddCharge}
-                          className="btn-hover h-9 px-4 rounded-xl bg-[#E8450F] hover:bg-[#d03d0c] disabled:opacity-60 text-white text-xs font-bold shrink-0 cursor-pointer">
-                          {isSubmitting ? '...' : 'Add'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                      )}
 
-                  {/* VIEW 3 — Success */}
-                  {panelView === 'success' && (
-                    <div className="msg-in py-2 space-y-1">
-                      <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-                        <CheckCircle2 className="w-4 h-4 shrink-0"/>
-                        <span>Labour charge recorded!</span>
-                      </div>
-                      <p className="text-sm font-extrabold text-slate-900">{successMessage}</p>
-                    </div>
-                  )}
-
-                  {/* VIEW 4 — No confirmed */}
-                  {panelView === 'no_confirmed' && (
-                    <div className="msg-in py-2 space-y-1">
-                      <p className="text-sm font-bold text-slate-800">Okay, got it! 👍</p>
-                      <p className="text-xs text-slate-500">No labour charge recorded for trip {activeReminder?.tripRef}.</p>
-                    </div>
-                  )}
-
-                  {/* VIEW 5 — Remind me later */}
-                  {panelView === 'remind_later' && (
-                    <div className="msg-in space-y-2.5">
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">When should I remind you? 🕐</p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          I'll check back about <strong>{activeReminder?.tripRef}</strong>.
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {[{l:'1 min',v:1},{l:'5 min',v:5},{l:'15 min',v:15},{l:'1 hr',v:60}].map(({l,v}) => (
-                          <button key={v} type="button" onClick={() => handleConfirmTimer(v)}
-                            className={`btn-hover h-9 rounded-xl text-xs font-bold border transition-colors cursor-pointer
-                              ${selectedTimer===v
-                                ? 'bg-[#E8450F] text-[#ffffff] border-[#E8450F]'
-                                : 'border-slate-200 text-slate-700 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
-                            {l}
+                      {/* VIEW 2 — Enter amount */}
+                      {panelView === 'yes_input' && (
+                        <div className="msg-in space-y-3">
+                          <button type="button" onClick={() => setPanelView('question')}
+                            className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
+                            <ArrowLeft className="w-3 h-3"/> Back
                           </button>
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-[#E8450F] shrink-0"/> Snoozing reminder…
-                      </p>
-                    </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900">Great! 👍</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Enter the labour charge amount:</p>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[50,100,150,200,500].map((v) => (
+                              <button key={v} type="button" onClick={() => setChargeAmount(String(v))}
+                                className={`btn-hover px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer
+                                  ${chargeAmount===String(v)
+                                    ? 'bg-[#E8450F] text-white border-[#E8450F]'
+                                    : 'border-slate-200 text-slate-600 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
+                                {v} SAR
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
+                              <Input type="number" value={chargeAmount} onChange={(e) => setChargeAmount(e.target.value)}
+                                placeholder="150" className="h-9 pl-11 rounded-xl text-xs font-bold border-slate-200 focus-visible:ring-[#E8450F]"/>
+                            </div>
+                            <button type="button" disabled={isSubmitting || !chargeAmount} onClick={handleAddCharge}
+                              className="btn-hover h-9 px-4 rounded-xl bg-[#E8450F] hover:bg-[#d03d0c] disabled:opacity-60 text-white text-xs font-bold shrink-0 cursor-pointer">
+                              {isSubmitting ? '...' : 'Add'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* VIEW 3 — Success */}
+                      {panelView === 'success' && (
+                        <div className="msg-in py-2 space-y-1">
+                          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                            <CheckCircle2 className="w-4 h-4 shrink-0"/>
+                            <span>Labour charge recorded!</span>
+                          </div>
+                          <p className="text-sm font-extrabold text-slate-900">{successMessage}</p>
+                        </div>
+                      )}
+
+                      {/* VIEW 4 — No confirmed */}
+                      {panelView === 'no_confirmed' && (
+                        <div className="msg-in py-2 space-y-1">
+                          <p className="text-sm font-bold text-slate-800">Okay, got it! 👍</p>
+                          <p className="text-xs text-slate-500">No labour charge recorded for trip {activeReminder?.tripRef}.</p>
+                        </div>
+                      )}
+
+                      {/* VIEW 5 — Remind me later */}
+                      {panelView === 'remind_later' && (
+                        <div className="msg-in space-y-2.5">
+                          <div>
+                            <p className="text-sm font-bold text-slate-900">When should I remind you? 🕐</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              I'll check back about <strong>{activeReminder?.tripRef}</strong>.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {[{l:'1 min',v:1},{l:'5 min',v:5},{l:'15 min',v:15},{l:'1 hr',v:60}].map(({l,v}) => (
+                              <button key={v} type="button" onClick={() => handleConfirmTimer(v)}
+                                className={`btn-hover h-9 rounded-xl text-xs font-bold border transition-colors cursor-pointer
+                                  ${selectedTimer===v
+                                    ? 'bg-[#E8450F] text-[#ffffff] border-[#E8450F]'
+                                    : 'border-slate-200 text-slate-700 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
+                                {l}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-[#E8450F] shrink-0"/> Snoozing reminder…
+                          </p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
