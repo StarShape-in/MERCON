@@ -718,18 +718,11 @@ export default function VehicleFinancialsPage() {
                         <div className="w-fit flex flex-col items-center gap-3">
                           
                           {/* Top Header Label: Region */}
-                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mr-[60px]">
+                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none">
                             Region
                           </div>
 
                           <div className="flex items-center gap-3">
-                            {/* Left Vertical Label: Region */}
-                            <div className="flex items-center justify-center w-6 select-none relative h-32">
-                              <span className="text-[11px] font-black tracking-widest text-slate-400 uppercase -rotate-90 whitespace-nowrap block absolute origin-center">
-                                Region
-                              </span>
-                            </div>
-
                             {/* Main Grid container */}
                             <div className="flex flex-col gap-1.5 border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/10 p-3 rounded-2xl shadow-3xs">
                               {/* Rows */}
@@ -789,7 +782,7 @@ export default function VehicleFinancialsPage() {
                           </div>
 
                           {/* Bottom Header Label: Vehicle Type */}
-                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mt-1 mr-[60px]">
+                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mt-1">
                             Vehicle Type
                           </div>
 
