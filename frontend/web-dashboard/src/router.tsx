@@ -83,7 +83,7 @@ const DelayReportPage             = lazy(() => import('@/pages/reports/DelayRepo
 // Smart Report Builder
 const ReportBuilderLandingPage   = lazy(() => import('@/pages/report-builder/ReportBuilderLandingPage'));
 const QuickReportPage            = lazy(() => import('@/pages/report-builder/QuickReportPage'));
-const AdvancedBuilderPage         = lazy(() => import('@/pages/report-builder/AdvancedBuilderPage'));
+
 
 // Settings & Governance
 const OperatorProfilePage     = lazy(() => import('@/pages/settings/OperatorProfilePage'));
@@ -203,7 +203,7 @@ export default function AppRouter() {
           {/* Smart Report Builder */}
           <Route path="/report-builder"          element={<ReportBuilderLandingPage />} />
           <Route path="/report-builder/quick"    element={<QuickReportPage />} />
-          <Route path="/report-builder/advanced" element={<AdvancedBuilderPage />} />
+          <Route path="/report-builder/advanced" element={<CustomReportPage />} />
 
           {/* Settings & Governance */}
           <Route path="/settings"                 element={<SettingsPage />} />
