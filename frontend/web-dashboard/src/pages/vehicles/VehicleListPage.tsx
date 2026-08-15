@@ -521,7 +521,7 @@ export default function VehicleListPage() {
                       if (!Number.isFinite(value) || value < 0) return;
                       updateOdometerMutation.mutate({ id: row.id, value });
                     }}
-                    className="h-8 w-full text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white"
+                    className="h-8 w-full text-xs font-bold bg-brand hover:bg-[#d03c0b] text-white"
                   >
                     {updateOdometerMutation.isPending ? 'Saving...' : 'Save'}
                   </Button>

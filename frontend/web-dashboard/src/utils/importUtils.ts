@@ -21,7 +21,7 @@ const normalise = (header: string) =>
     .trim();
 
 /** Field name → the header spellings that map to it, most specific first. */
-type ColumnMap = Record<string, string[]>;
+export type ColumnMap = Record<string, string[]>;
 
 export const DRIVER_COLUMNS: ColumnMap = {
   ref_id: ['driver ref id', 'driver ref', 'ref id', 'driver id'],
@@ -77,6 +77,16 @@ export const RATE_CARD_COLUMNS: ColumnMap = {
   vehicle_type: ['vehicle type', 'vehicle', 'truck type', 'body type'],
   price: ['price', 'rate', 'base price', 'amount'],
   currency: ['currency', 'ccy'],
+};
+
+export const THIRD_PARTY_COLUMNS: ColumnMap = {
+  name: ['provider name', 'company name', 'company', 'provider', 'supplier name', 'supplier', 'name'],
+  contact_person: ['contact person', 'contact name', 'primary contact', 'representative'],
+  phone: ['phone', 'phone number', 'mobile', 'contact phone', 'contact number'],
+  email: ['email', 'email address', 'contact email'],
+  tax_id: ['tax id', 'tax number', 'cr number', 'vat number', 'commercial reg id'],
+  address: ['address', 'office address', 'yard address', 'location'],
+  notes: ['notes', 'remarks', 'terms', 'comments'],
 };
 
 export const TRIP_COLUMNS: ColumnMap = {

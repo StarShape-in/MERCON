@@ -106,6 +106,14 @@ export const createTripBody = z.object({
   // onto the trip regardless so it survives that rate card being edited later.
   vehicle_type: vehicleTypeField,
   rate_category: rateCategoryField,
+  // Third-Party Logistics & Rental fields
+  is_third_party: z.boolean().optional(),
+  third_party_provider_id: z.string().uuid('Invalid provider').nullable().optional(),
+  third_party_driver_name: z.string().trim().optional(),
+  third_party_driver_phone: z.string().trim().optional(),
+  third_party_vehicle_plate: z.string().trim().optional(),
+  third_party_vehicle_type: z.string().trim().optional(),
+  third_party_cost: z.coerce.number().optional(),
   stops: z.array(z.object({
     stop_type: z.enum(['Pickup', 'Dropoff', 'Rest', 'Refuel']),
     // Client + controller use lat/lng (controller reads stop.lat/stop.lng), not location_*.
@@ -289,6 +297,9 @@ export const updateUserBody = z.object({
   role: webUserRole.optional(),
   status: z.enum(['Active', 'Inactive']).optional(),
   password: nonEmpty('Password').optional(),
+  // Platform flag, not part of role — controller enforces that only an
+  // existing superadmin can change this field (see userController.updateUser).
+  isSuperAdmin: z.boolean().optional(),
 });
 
 /* ─── Invoices ───────────────────────────────────────────────────────────── */
@@ -299,3 +310,50 @@ export const createInvoiceBody = z.object({
   total_amount: z.coerce.number().nonnegative(),
   due_date: z.coerce.date(),
 });
+
+/* ─── Smart Report Builder ────────────────────────────────────────────────── */
+export const reportQuerySpecBody = z.object({
+  rootModule: z.string().trim().min(1, 'rootModule is required'),
+  rows: z.array(z.string().trim()).default([]),
+  columns: z.array(z.string().trim()).optional(),
+  values: z.array(
+    z.object({
+      field: z.string().trim().min(1, 'value field is required'),
+      agg: z.enum(['sum', 'avg', 'min', 'max', 'count']),
+    })
+  ).default([]),
+  filters: z.array(
+    z.object({
+      field: z.string().trim().min(1, 'filter field is required'),
+      op: z.enum(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'contains', 'between']),
+      value: z.unknown(),
+    })
+  ).optional(),
+  dateRange: z.object({
+    start: z.string().optional(),
+    end: z.string().optional(),
+    field: z.string().optional(),
+  }).optional(),
+  limit: z.number().positive().optional(),
+});
+
+export const createSavedReportBody = z.object({
+  name: z.string().trim().min(1, 'Report name is required'),
+  category: z.string().trim().default('Custom'),
+  spec: z.record(z.string(), z.unknown()),
+  visualization: z.string().trim().default('table'),
+  isTemplate: z.boolean().optional().default(false),
+});
+
+export const createScheduledReportBody = z.object({
+  savedReportId: z.string().uuid('Valid savedReportId required'),
+  frequency: z.enum(['daily', 'weekly', 'monthly']),
+  dayOfMonth: z.number().int().optional(),
+  time: z.string().trim().default('08:00'),
+  recipients: z.array(z.string().trim()).default([]),
+  delivery: z.array(z.string().trim()).default(['email']),
+  isActive: z.boolean().optional().default(true),
+});
+
+export const updateScheduledReportBody = createScheduledReportBody.partial();
+

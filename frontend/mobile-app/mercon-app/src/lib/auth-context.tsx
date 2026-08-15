@@ -11,9 +11,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { safeSecureStore as SecureStore } from './secure-store';
-import { api, TOKEN_KEY } from './api';
-
-const SESSION_KEY = 'mercon_session';
+import { api, TOKEN_KEY, SESSION_KEY } from './api';
 
 export type Role = 'Driver' | 'Operator' | 'Admin';
 

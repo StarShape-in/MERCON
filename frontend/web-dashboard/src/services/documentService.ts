@@ -21,6 +21,7 @@ export interface MerconDocument {
     document_number?: string | null;
     vehicle_plate?: string | null;
     issuing_authority?: string | null;
+    extra_details?: Record<string, any> | null;
     notes?: string | null;
     confidence?: number;
   } | null;
@@ -96,16 +97,37 @@ export const documentService = {
     return res.data;
   },
 
-  async bulkOcrExtract(onlyMissingExpiry = true, limit = 200): Promise<any> {
+  async uploadRawChunk(payload: { filename: string; chunk: string; isFirst: boolean; isLast: boolean; cleanId?: string }): Promise<any> {
+    const res = await api.post('/documents/upload-raw-chunk', payload);
+    return res.data;
+  },
+
+  async bulkOcrExtract(onlyMissingExpiry = true, limit = 200, ids?: string[]): Promise<any> {
     const res = await api.post('/documents/bulk-ocr-extract', {
-      only_missing_expiry: onlyMissingExpiry,
+      only_missing_expiry: ids && ids.length > 0 ? false : onlyMissingExpiry,
       limit,
+      ids,
     });
     return res.data;
   },
 
   async extractDocumentOcr(id: string): Promise<any> {
     const res = await api.post(`/documents/${id}/ocr-extract`);
+    return res.data;
+  },
+
+  async autoAssignUnlinked(): Promise<any> {
+    const res = await api.post('/documents/auto-assign-unlinked');
+    return res.data;
+  },
+
+  async previewAutoAssign(): Promise<any> {
+    const res = await api.get('/documents/preview-auto-assign');
+    return res.data;
+  },
+
+  async confirmAutoAssign(assignments: Array<{ docId: string; entityType: string; entityId: string }>): Promise<any> {
+    const res = await api.post('/documents/confirm-auto-assign', { assignments });
     return res.data;
   },
 };

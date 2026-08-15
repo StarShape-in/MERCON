@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth';
 import { prisma } from '../index';
+import { getEnabledModules } from '../controllers/settingsController';
 
 export const authorizeRoles = (...allowedRoles: string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -39,8 +40,8 @@ export const requireSuperAdmin = async (req: AuthenticatedRequest, res: Response
 export const requireModuleEnabled = (moduleKey: string) => {
   return async (_req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
-      if (!settings?.enabledModules.includes(moduleKey)) {
+      const enabled = await getEnabledModules();
+      if (!enabled.has(moduleKey)) {
         return res.status(403).json({ success: false, error: { code: 'MODULE_DISABLED', message: `The "${moduleKey}" module is not enabled on this deployment` } });
       }
       next();

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -57,6 +57,13 @@ export default function VehicleDetailsPage() {
     queryFn: () => vehicleService.getById(id!),
     enabled: !!id,
   });
+
+  // URL normalization: if navigated using ref_id or plate, replace with canonical UUID
+  useEffect(() => {
+    if (vehicle && vehicle.id && id !== vehicle.id) {
+      navigate(`/vehicles/${vehicle.id}`, { replace: true });
+    }
+  }, [vehicle?.id, id, navigate]);
 
   const { data: maintenanceRes, isLoading: isMaintLoading } = useQuery({
     queryKey: ['maintenance', id],
@@ -561,11 +568,11 @@ export default function VehicleDetailsPage() {
                   <p className="text-[11px] text-slate-500 mt-0.5">This vehicle has no active or upcoming trips assigned.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="flex flex-col gap-3">
                   {getUpcomingScheduledDates(vehicle.trips).map((item, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-3 rounded-xl border border-indigo-100 bg-indigo-50/40 dark:bg-indigo-950/20 dark:border-indigo-900/40 hover:border-indigo-300 transition-all cursor-pointer"
+                      className="w-full flex items-center justify-between p-3 rounded-xl border border-indigo-100 bg-indigo-50/40 dark:bg-indigo-950/20 dark:border-indigo-900/40 hover:border-indigo-300 transition-all cursor-pointer shadow-3xs"
                       onClick={() => (item.tripId || item.tripRef) && navigate(`/trips/${item.tripId || item.tripRef}`)}
                     >
                       <div className="flex items-center gap-2.5">

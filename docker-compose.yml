@@ -1,20 +1,25 @@
 version: '3.8'
 
+# Every name/port/volume below defaults to Mercon's existing values, so this
+# file behaves identically for Mercon with zero env changes. A second client
+# (e.g. MTL) runs this same compose file on its own VPS with CLIENT_NAME,
+# POSTGRES_DB, and the port vars set in that host's .env — see
+# PROGRESS.md's new-client provisioning notes.
 services:
   postgres-db:
     image: postgres:15-alpine
-    container_name: mercon-postgres
+    container_name: "${CLIENT_NAME:-mercon}-postgres"
     restart: unless-stopped
     environment:
       POSTGRES_USER: "${POSTGRES_USER:?POSTGRES_USER must be provided (set it as a GitHub Actions secret / env var)}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be provided (set it as a GitHub Actions secret / env var)}"
-      POSTGRES_DB: mercon_db
+      POSTGRES_DB: "${POSTGRES_DB:-mercon_db}"
     ports:
-      - '127.0.0.1:15432:5432' # Localhost-only: tunnel in via SSH for Beekeeper Studio, never exposed publicly
+      - "127.0.0.1:${DB_TUNNEL_PORT:-15432}:5432" # Localhost-only: tunnel in via SSH for Beekeeper Studio, never exposed publicly
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d mercon_db"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d ${POSTGRES_DB:-mercon_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,12 +28,12 @@ services:
     build:
       context: .
       dockerfile: backend/api-server/Dockerfile
-    container_name: mercon-api
+    container_name: "${CLIENT_NAME:-mercon}-api"
     restart: unless-stopped
     ports:
-      - '3050:3000' # Exposed for Nginx proxy on a safe port
+      - "${API_PORT:-3050}:3000" # Exposed for Nginx proxy on a safe port
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER:?POSTGRES_USER must be provided}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be provided}@postgres-db:5432/mercon_db?schema=public"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:?POSTGRES_USER must be provided}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be provided}@postgres-db:5432/${POSTGRES_DB:-mercon_db}?schema=public"
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be provided (set it as a GitHub Actions secret / env var)}"
       SEED_ADMIN_PASSWORD: "${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD must be provided (set it as a GitHub Actions secret / env var)}"
       # ICCES GPS tracking. Optional — unset simply disables polling, so these
@@ -41,7 +46,8 @@ services:
       ICCES_ACCT: "${ICCES_ACCT:-}"
       PORT: 3000
     volumes:
-      - ./backend/api-server/uploads:/app/backend/api-server/uploads # Local VPS storage for files
+      - "/tmp/mercon-uploads:/app/backend/api-server/uploads"
+      - "/tmp/uploads:/tmp/uploads"
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -65,10 +71,16 @@ services:
         # builds and runs for anyone without the secret. JWT_SECRET below uses
         # `:?` because a missing one is genuinely unserviceable; this is not.
         VITE_GOOGLE_MAPS_API_KEY: "${VITE_GOOGLE_MAPS_API_KEY:-}"
-    container_name: mercon-frontend
+    container_name: "${CLIENT_NAME:-mercon}-frontend"
     restart: unless-stopped
     ports:
-      - '3060:80' # Exposed for Nginx proxy on a safe port
+      - "${FRONTEND_PORT:-3060}:80" # Exposed for Nginx proxy on a safe port
 
 volumes:
+  # Deliberately not given an explicit name: each client runs this compose
+  # file on its own VPS (separate Docker daemon, separate volume namespace),
+  # so there is no cross-client collision to guard against — and explicitly
+  # naming it risks pointing at a different volume than the one Docker
+  # auto-generated for Mercon's existing deploy, which would look like a
+  # fresh empty database on next deploy. Not worth that risk for no benefit.
   pgdata:

@@ -7,12 +7,13 @@ import {
   deleteExpense,
 } from '../controllers/expenseController';
 import { authenticateJWT } from '../middlewares/auth';
-import { authorizeRoles } from '../middlewares/rbac';
+import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 
 const router = Router();
 
 router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
+router.use(requireModuleEnabled('expenses'));
 
 router.get('/', getExpenses);
 router.post('/', createExpense);

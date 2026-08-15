@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { prisma } from '../index';
 import { TripStatus, InvoiceStatus, DriverStatus, AssetStatus } from '@prisma/client';
+import { getEnabledModules } from './settingsController';
 
 /* ─── Dashboard summary KPIs ──────────────────────────────────────────────── */
 export const getSummary = async (req: Request, res: Response) => {
   try {
+    const enabledModules = await getEnabledModules();
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -70,6 +72,12 @@ export const getSummary = async (req: Request, res: Response) => {
       `
     ]);
 
+    // Invoice-derived and document-derived fields go to null rather than
+    // being computed when their module is off — that module's data still
+    // exists in the DB, it's just not this deployment's business to surface.
+    const invoicesOn = enabledModules.has('invoices');
+    const documentsOn = enabledModules.has('documents');
+
     const revenueNow = revenueThisMonth._sum.total_amount ?? 0;
     const revenuePrev = revenueLastMonth._sum.total_amount ?? 0;
     const tripsDelta = totalTripsLastMonth > 0
@@ -91,11 +99,11 @@ export const getSummary = async (req: Request, res: Response) => {
           active_drivers: { value: activeDrivers, delta: null },
           fleet_available: { value: availableVehicles, delta: null },
           fleet_on_trip: { value: onTripVehicles, delta: null },
-          revenue_this_month: { value: revenueNow, delta: revenueDelta },
-          docs_expiring_soon: { value: docsExpiringIn30Days, delta: null }
+          revenue_this_month: invoicesOn ? { value: revenueNow, delta: revenueDelta } : null,
+          docs_expiring_soon: documentsOn ? { value: docsExpiringIn30Days, delta: null } : null
         },
         trip_status_distribution: statusMap,
-        monthly_revenue_chart: recentMonthlyRevenue
+        monthly_revenue_chart: invoicesOn ? recentMonthlyRevenue : null
       }
     });
   } catch (error) {
@@ -107,6 +115,8 @@ export const getSummary = async (req: Request, res: Response) => {
 /* ─── Fleet performance ───────────────────────────────────────────────────── */
 export const getFleetPerformance = async (req: Request, res: Response) => {
   try {
+    const enabledModules = await getEnabledModules();
+    const maintenanceOn = enabledModules.has('maintenance');
     const { startDate, endDate, page = '1', per_page = '10' } = req.query;
     
     const pageNum = parseInt(page as string, 10);
@@ -151,7 +161,7 @@ export const getFleetPerformance = async (req: Request, res: Response) => {
       total_trips: v.trips.length,
       completed_trips: v.trips.filter((t) => t.status === TripStatus.Completed).length,
       odometer: v.current_odometer,
-      maintenance_cost: v.maintenanceRecords.reduce((sum, m) => sum + m.cost, 0)
+      maintenance_cost: maintenanceOn ? v.maintenanceRecords.reduce((sum, m) => sum + m.cost, 0) : null
     }));
 
     res.json({
@@ -304,77 +314,90 @@ export const getRevenueReport = async (req: Request, res: Response) => {
 /* ─── Custom report ───────────────────────────────────────────────────────── */
 export const getCustomReport = async (req: Request, res: Response) => {
   try {
+    const enabledModules = await getEnabledModules();
+    const invoicesOn = enabledModules.has('invoices');
     const { startDate, endDate, customerId } = req.query;
-    
-    const whereClause: any = { deletedAt: null };
-    
-    if (startDate) {
-      whereClause.createdAt = { ...whereClause.createdAt, gte: new Date(startDate as string) };
-    }
+
+    // Filter on the trip's own date, not createdAt (a trip created in July
+    // for a June job should show up in June's report), falling back to
+    // planned_start for trips that haven't actually started yet.
+    const dateRange: { gte?: Date; lte?: Date } = {};
+    if (startDate) dateRange.gte = new Date(startDate as string);
     if (endDate) {
-      // Add time to cover the whole end day
       const end = new Date(endDate as string);
       end.setHours(23, 59, 59, 999);
-      whereClause.createdAt = { ...whereClause.createdAt, lte: end };
+      dateRange.lte = end;
+    }
+
+    const whereClause: any = { deletedAt: null };
+    if (Object.keys(dateRange).length > 0) {
+      whereClause.OR = [
+        { actual_start: dateRange },
+        { AND: [{ actual_start: null }, { planned_start: dateRange }] },
+      ];
     }
     if (customerId && customerId !== 'all') {
       whereClause.customerId = customerId;
     }
 
-    const [
-      totalTrips,
-      tripsByStatus,
-      recentTrips
-    ] = await Promise.all([
-      prisma.trip.count({ where: whereClause }),
-      prisma.trip.groupBy({
-        by: ['status'],
+    const tripInclude = {
+      customer: { select: { name: true } },
+      driver: { select: { first_name: true, last_name: true, phone_primary: true } },
+      vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
+      stops: { orderBy: { stop_sequence: 'asc' as const } },
+      ...(invoicesOn ? { invoices: true } : {}),
+    };
+
+    // No row cap — page internally so a full month's ledger exports
+    // completely instead of silently truncating at a fixed limit.
+    const PAGE_SIZE = 1000;
+    const allTrips: any[] = [];
+    for (let skip = 0; ; skip += PAGE_SIZE) {
+      const page = await prisma.trip.findMany({
         where: whereClause,
-        _count: { status: true }
-      }),
-      prisma.trip.findMany({
-        where: whereClause,
-        orderBy: { createdAt: 'desc' },
-        take: 500, // Increase limit for ledger exports
-        include: {
-          customer: { select: { name: true } },
-          driver: { select: { first_name: true, last_name: true, phone_primary: true } },
-          vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
-          stops: { orderBy: { stop_sequence: 'asc' } },
-          invoices: true,
-        }
-      })
-    ]);
+        orderBy: [{ actual_start: 'desc' }, { planned_start: 'desc' }],
+        skip,
+        take: PAGE_SIZE,
+        include: tripInclude,
+      });
+      allTrips.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+
+    const totalTrips = allTrips.length;
+    const statusMap: Record<string, number> = {};
+    for (const t of allTrips) statusMap[t.status] = (statusMap[t.status] ?? 0) + 1;
 
     // For revenue, we filter invoices based on the same criteria
-    const invoiceWhere: any = { deletedAt: null, status: InvoiceStatus.Paid };
-    if (startDate) invoiceWhere.createdAt = { ...invoiceWhere.createdAt, gte: new Date(startDate as string) };
-    if (endDate) {
-      const end = new Date(endDate as string);
-      end.setHours(23, 59, 59, 999);
-      invoiceWhere.createdAt = { ...invoiceWhere.createdAt, lte: end };
+    let totalRevenue: number | null = null;
+    if (invoicesOn) {
+      const invoiceWhere: any = { deletedAt: null, status: InvoiceStatus.Paid };
+      if (startDate) invoiceWhere.createdAt = { ...invoiceWhere.createdAt, gte: new Date(startDate as string) };
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        invoiceWhere.createdAt = { ...invoiceWhere.createdAt, lte: end };
+      }
+      if (customerId && customerId !== 'all') invoiceWhere.customerId = customerId;
+
+      const revenueAgg = await prisma.invoice.aggregate({
+        where: invoiceWhere,
+        _sum: { total_amount: true }
+      });
+      totalRevenue = revenueAgg._sum.total_amount ?? 0;
     }
-    if (customerId && customerId !== 'all') invoiceWhere.customerId = customerId;
-
-    const totalRevenue = await prisma.invoice.aggregate({
-      where: invoiceWhere,
-      _sum: { total_amount: true }
-    });
-
-    const statusMap: Record<string, number> = {};
-    tripsByStatus.forEach((row) => { statusMap[row.status] = row._count.status; });
 
     res.json({
       success: true,
       data: {
         kpis: {
           total_trips: totalTrips,
-          total_revenue: totalRevenue._sum.total_amount ?? 0,
+          total_revenue: totalRevenue,
         },
         trip_status_distribution: statusMap,
-        trips: recentTrips.map(t => {
-          const dropoff = t.stops.find(s => s.stop_type === 'Dropoff');
-          const invoice = t.invoices[0];
+        trips: allTrips.map(t => {
+          const dropoff = t.stops.find((s: any) => s.stop_type === 'Dropoff');
+          const invoice = invoicesOn ? t.invoices?.[0] : undefined;
           const billing = t.billing_amount ?? (invoice?.subtotal || 0);
           const totalAmt = invoice?.total_amount ?? (billing + t.waiting_labor_charges + t.additional_stop_charges);
           const balance = totalAmt - t.trip_charges;
@@ -383,14 +406,14 @@ export const getCustomReport = async (req: Request, res: Response) => {
           return {
             id: t.id,
             ref_id: t.ref_id,
-            date: t.actual_start || t.createdAt,
+            date: t.actual_start || t.planned_start || t.createdAt,
             driver: t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'N/A',
             driver_phone: t.driver?.phone_primary || 'N/A',
             vehicle: t.vehicle?.plate_number || 'N/A',
             vehicle_type: vehicleTypeLabel,
             carrier_name: t.carrier_name || 'MERCON LOGISTICS',
             customer: t.customer?.name || 'N/A',
-            receiver: dropoff ? `Dropoff Stop ${dropoff.stop_sequence}` : 'N/A',
+            receiver: dropoff?.location_name || dropoff?.location_address || 'N/A',
             waiting_labor_charges: t.waiting_labor_charges,
             additional_stop_charges: t.additional_stop_charges,
             billing_amount: billing,

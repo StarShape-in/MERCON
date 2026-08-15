@@ -258,34 +258,6 @@ export default function ReportsDashboardPage() {
 
             </div>
 
-            {/* Sub-page Navigation Tabs */}
-            <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shrink-0 ml-auto gap-1">
-              <button
-                onClick={() => navigate('/reports/revenue')}
-                className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all"
-              >
-                Revenue Report
-              </button>
-              <button
-                onClick={() => navigate('/reports/fleet')}
-                className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all"
-              >
-                Fleet Performance
-              </button>
-              <button
-                onClick={() => navigate('/reports/drivers')}
-                className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all"
-              >
-                Driver Safety
-              </button>
-              <button
-                onClick={() => navigate('/reports/delays')}
-                className="px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all"
-              >
-                Delay Report
-              </button>
-            </div>
-
           </div>
         </div>
 

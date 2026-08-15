@@ -16,4 +16,14 @@ export const settingsService = {
     const res = await api.put<ApiResponse<Settings>>('/settings', payload);
     return res.data.data;
   },
+
+  /** Uploads a logo file via the generic upload endpoint, returning its URL to save via update(). */
+  async uploadLogo(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post<ApiResponse<{ file_url: string }>>('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.data.file_url;
+  },
 };

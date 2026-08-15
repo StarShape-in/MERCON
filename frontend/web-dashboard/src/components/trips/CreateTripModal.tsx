@@ -20,6 +20,7 @@ import { parseISO, isValid, differenceInMinutes, addHours, setHours, setMinutes 
 
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
+import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
 import TripStepCustomer from '@/components/trips/TripStepCustomer';
 import TripStepRouteStops from '@/components/trips/TripStepRouteStops';
 import TripStepSchedule from '@/components/trips/TripStepSchedule';
@@ -30,6 +31,7 @@ import { tripService, CreateTripPayload, Trip } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
+import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
 import { rateCardService } from '@/services/rateCardService';
 import { locationService } from '@/services/locationService';
 import { isScheduledOnDate } from '@/utils/scheduleUtils';
@@ -38,6 +40,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { authStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 
 function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -64,6 +67,8 @@ export interface CreateTripModalProps {
   onClose: () => void;
   initialCustomerId?: string;
   initialDriverId?: string;
+  defaultIsThirdParty?: boolean;
+  defaultThirdPartyProviderId?: string;
   onTripCreated?: (trip: Trip) => void;
 }
 
@@ -72,6 +77,8 @@ export default function CreateTripModal({
   onClose,
   initialCustomerId,
   initialDriverId,
+  defaultIsThirdParty = false,
+  defaultThirdPartyProviderId = '',
   onTripCreated,
 }: CreateTripModalProps) {
   const queryClient = useQueryClient();
@@ -86,6 +93,15 @@ export default function CreateTripModal({
 
   const [isAddDriverOpen, setIsAddDriverOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+
+  // Third-Party Rental Carrier State
+  const [isThirdParty, setIsThirdParty] = useState(defaultIsThirdParty);
+  const [thirdPartyProviderId, setThirdPartyProviderId] = useState(defaultThirdPartyProviderId);
+  const [thirdPartyDriverName, setThirdPartyDriverName] = useState('');
+  const [thirdPartyDriverPhone, setThirdPartyDriverPhone] = useState('');
+  const [thirdPartyVehiclePlate, setThirdPartyVehiclePlate] = useState('');
+  const [thirdPartyCost, setThirdPartyCost] = useState<number | ''>('');
+  const [isAddThirdPartyOpen, setIsAddThirdPartyOpen] = useState(false);
 
   // Shortcut triggers
   const [isSearchAccountsOpen, setIsSearchAccountsOpen] = useState(false);
@@ -177,10 +193,22 @@ export default function CreateTripModal({
     enabled: isOpen,
   });
 
+  const { data: thirdPartyProvidersRes } = useQuery({
+    queryKey: ['third-party-providers'],
+    queryFn: () => thirdPartyService.getAll({ is_active: true, per_page: 200 }),
+    enabled: isOpen,
+  });
+
   const customers = customersRes?.data || [];
   const drivers = driversRes?.data || [];
   const vehicles = vehiclesRes?.data || [];
   const locations = locationsRes?.data || [];
+  const thirdPartyProviders: ThirdPartyProvider[] = thirdPartyProvidersRes?.data?.data || [];
+
+  const thirdPartyProviderOptions = useMemo(
+    () => thirdPartyProviders.map((p) => ({ value: p.id, label: p.name })),
+    [thirdPartyProviders]
+  );
 
   const selectedCustomer = useMemo(() => customers.find((c) => c.id === customerId) || null, [customers, customerId]);
   const selectedDriver = useMemo(() => drivers.find((d) => d.id === driverId) || null, [drivers, driverId]);
@@ -522,21 +550,32 @@ export default function CreateTripModal({
       }
     }
     if (step === 4) {
-      if (!assignDriverLater && !driverId) {
-        setError('Please assign a driver, or check "Assign driver later".');
-        return;
-      }
-      if (!assignVehicleLater && !vehicleId) {
-        setError('Please assign a vehicle, or check "Assign vehicle later".');
-        return;
-      }
-      if (driverId && selectedDriver && pickupTime && isScheduledOnDate(selectedDriver.trips, pickupTime)) {
-        setError(`Driver ${selectedDriver.first_name} ${selectedDriver.last_name} is already assigned to a trip on this date.`);
-        return;
-      }
-      if (vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
-        setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
-        return;
+      if (isThirdParty) {
+        if (!thirdPartyProviderId) {
+          setError('Please select a third-party rental provider.');
+          return;
+        }
+        if (!thirdPartyVehiclePlate.trim()) {
+          setError('Please enter the third-party rented vehicle plate number.');
+          return;
+        }
+      } else {
+        if (!assignDriverLater && !driverId) {
+          setError('Please assign a driver, or check "Assign driver later".');
+          return;
+        }
+        if (!assignVehicleLater && !vehicleId) {
+          setError('Please assign a vehicle, or check "Assign vehicle later".');
+          return;
+        }
+        if (driverId && selectedDriver && pickupTime && isScheduledOnDate(selectedDriver.trips, pickupTime)) {
+          setError(`Driver ${selectedDriver.first_name} ${selectedDriver.last_name} is already assigned to a trip on this date.`);
+          return;
+        }
+        if (vehicleId && selectedVehicle && pickupTime && isScheduledOnDate(selectedVehicle.trips, pickupTime)) {
+          setError(`Vehicle ${selectedVehicle.plate_number} is already assigned to a trip on this date.`);
+          return;
+        }
       }
     }
 
@@ -544,6 +583,9 @@ export default function CreateTripModal({
   }, [
     step,
     customerId,
+    isThirdParty,
+    thirdPartyProviderId,
+    thirdPartyVehiclePlate,
     assignDriverLater,
     driverId,
     selectedDriver,
@@ -575,8 +617,7 @@ export default function CreateTripModal({
 
   const isFormValid =
     customerId !== '' &&
-    (assignDriverLater || driverId !== '') &&
-    (assignVehicleLater || vehicleId !== '') &&
+    (isThirdParty ? (!!thirdPartyProviderId && !!thirdPartyVehiclePlate.trim()) : ((assignDriverLater || driverId !== '') && (assignVehicleLater || vehicleId !== ''))) &&
     !missingLocation &&
     !missingName &&
     !missingSchedule &&
@@ -607,18 +648,25 @@ export default function CreateTripModal({
     }
 
     const numericPrice = billingAmount && !isNaN(parseFloat(billingAmount)) ? parseFloat(billingAmount) : undefined;
-    const canDispatchImmediately = !assignDriverLater && !!driverId && !assignVehicleLater && !!vehicleId;
+    const canDispatchImmediately = isThirdParty || (!assignDriverLater && !!driverId && !assignVehicleLater && !!vehicleId);
     const willDispatchNow = dispatchNow && canDispatchImmediately;
 
     const payload: CreateTripPayload = {
       customer_id: customerId,
-      driver_id: assignDriverLater ? undefined : driverId,
-      vehicle_id: assignVehicleLater ? undefined : vehicleId,
+      driver_id: isThirdParty || assignDriverLater ? undefined : driverId,
+      vehicle_id: isThirdParty || assignVehicleLater ? undefined : vehicleId,
       planned_start: pickupTime || undefined,
       billing_amount: numericPrice,
       trip_charges: numericPrice,
       status: willDispatchNow ? 'Dispatched' : 'Draft',
       dispatch_now: willDispatchNow,
+      is_third_party: isThirdParty,
+      third_party_provider_id: isThirdParty ? (thirdPartyProviderId || undefined) : undefined,
+      third_party_driver_name: isThirdParty ? (thirdPartyDriverName.trim() || undefined) : undefined,
+      third_party_driver_phone: isThirdParty ? (thirdPartyDriverPhone.trim() || undefined) : undefined,
+      third_party_vehicle_plate: isThirdParty ? (thirdPartyVehiclePlate.trim() || undefined) : undefined,
+      third_party_vehicle_type: isThirdParty ? (vehicleType || undefined) : undefined,
+      third_party_cost: isThirdParty && thirdPartyCost !== '' ? Number(thirdPartyCost) : undefined,
       stops: [
         {
           stop_type: 'Pickup',
@@ -914,7 +962,7 @@ export default function CreateTripModal({
                   Create New Trip
                 </DialogTitle>
                 <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800 font-semibold text-[11px] px-2 py-0.5">
-                  Operations Module
+                  {authStore.getUser()?.role === 'Admin' ? 'Admin Module' : 'Operator Module'}
                 </Badge>
               </div>
 
@@ -1140,6 +1188,20 @@ export default function CreateTripModal({
                 vehicleAutoAssigned={vehicleAutoAssigned}
                 vehicleType={vehicleType}
                 rateCategory={rateCategory}
+                isThirdParty={isThirdParty}
+                thirdPartyProviderId={thirdPartyProviderId}
+                thirdPartyProviderOptions={thirdPartyProviderOptions}
+                thirdPartyDriverName={thirdPartyDriverName}
+                thirdPartyDriverPhone={thirdPartyDriverPhone}
+                thirdPartyVehiclePlate={thirdPartyVehiclePlate}
+                thirdPartyCost={thirdPartyCost}
+                onToggleThirdParty={(val) => { setIsThirdParty(val); setError(null); }}
+                onSelectThirdPartyProvider={(id) => { setThirdPartyProviderId(id); setError(null); }}
+                onChangeThirdPartyDriverName={setThirdPartyDriverName}
+                onChangeThirdPartyDriverPhone={setThirdPartyDriverPhone}
+                onChangeThirdPartyVehiclePlate={(plate) => { setThirdPartyVehiclePlate(plate); setError(null); }}
+                onChangeThirdPartyCost={setThirdPartyCost}
+                onOpenAddThirdPartyProvider={() => setIsAddThirdPartyOpen(true)}
                 onSelectDriver={(id) => { setDriverId(id); setError(null); }}
                 onSelectVehicle={(id) => { setVehicleId(id); setError(null); }}
                 onToggleAssignDriverLater={(val) => {
@@ -1344,6 +1406,11 @@ export default function CreateTripModal({
         isOpen={isAddVehicleOpen}
         onClose={() => setIsAddVehicleOpen(false)}
         onCreated={(newVehicle) => { setVehicleId(newVehicle.id); setError(null); }}
+      />
+      <CreateThirdPartyModal
+        isOpen={isAddThirdPartyOpen}
+        onClose={() => setIsAddThirdPartyOpen(false)}
+        onSuccess={(provider) => { setThirdPartyProviderId(provider.id); setError(null); }}
       />
     </>
   );

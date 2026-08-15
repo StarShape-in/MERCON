@@ -157,9 +157,10 @@ model Customer {
   isActive   Boolean   @default(true)
   version    Int       @default(1)
 
-  trips     Trip[]
-  invoices  Invoice[]
-  rateCards RateCard[]
+  trips           Trip[]
+  invoices        Invoice[]
+  rateCards       RateCard[]
+  reportTemplates ReportTemplate[]
 }
 
 // -----------------------------------------
@@ -199,19 +200,19 @@ model Driver {
 }
 
 model Vehicle {
-  id               String      @id @default(uuid()) @db.Uuid
-  ref_id           String?     @unique
-  plate_number     String      @unique
-  asset_type       AssetType
-  status           AssetStatus @default(Available)
-  capacity_kg      Int
-  current_odometer Float       @default(0.0)
+  id                  String      @id @default(uuid()) @db.Uuid
+  ref_id              String?     @unique
+  plate_number        String      @unique
+  asset_type          AssetType
+  status              AssetStatus @default(Available)
+  capacity_kg         Int
+  current_odometer    Float       @default(0.0)
   // When current_odometer was last changed — drives the "reading is stale,
   // ask the operator to update it" prompt. Null means never recorded.
-  odometer_updated_at DateTime? @db.Timestamptz
-  gps_device_id    String?
-  last_lat         Float?
-  last_lng         Float?
+  odometer_updated_at DateTime?   @db.Timestamptz
+  gps_device_id       String?
+  last_lat            Float?
+  last_lng            Float?
 
   // Trailer Information Merged
   trailer_number      String?
@@ -312,6 +313,16 @@ model Trip {
   carrier_name            String?
   is_post_trip_settled    Boolean @default(false)
 
+  // Third-Party / Rental Carrier Details
+  is_third_party            Boolean             @default(false)
+  thirdPartyProviderId      String?             @db.Uuid
+  thirdPartyProvider        ThirdPartyProvider? @relation(fields: [thirdPartyProviderId], references: [id])
+  third_party_driver_name   String?
+  third_party_driver_phone  String?
+  third_party_vehicle_plate String?
+  third_party_vehicle_type  String?
+  third_party_cost          Float?              @default(0.0)
+
   created_by String?   @db.Uuid
   updated_by String?   @db.Uuid
   deleted_by String?   @db.Uuid
@@ -325,6 +336,33 @@ model Trip {
   invoices Invoice[]
 
   @@index([vehicleId, driverId])
+  @@index([thirdPartyProviderId])
+}
+
+// -----------------------------------------
+// 2B. THIRD-PARTY LOGISTICS (Subcontractors & Rental Fleet)
+// -----------------------------------------
+model ThirdPartyProvider {
+  id             String  @id @default(uuid()) @db.Uuid
+  name           String  @unique
+  contact_person String?
+  phone          String?
+  email          String?
+  address        String? @db.Text
+  tax_id         String?
+  rating         Float   @default(5.0)
+  notes          String? @db.Text
+
+  trips Trip[]
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  isActive   Boolean   @default(true)
+  version    Int       @default(1)
 }
 
 model TripStop {
@@ -381,21 +419,21 @@ model TripStop {
 // 4. ENTERPRISE DMS (Document Management)
 // -----------------------------------------
 model Folder {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String  @id @default(uuid()) @db.Uuid
   name        String
-  category    String?   // "Drivers", "Vehicles", "Operations", "Company", or custom
-  description String?   @db.Text
-  color       String?   @default("#E8450F")
+  category    String? // "Drivers", "Vehicles", "Operations", "Company", or custom
+  description String? @db.Text
+  color       String? @default("#E8450F")
 
-  documents   Document[]
+  documents Document[]
 
-  created_by  String?   @db.Uuid
-  updated_by  String?   @db.Uuid
-  deleted_by  String?   @db.Uuid
-  createdAt   DateTime  @default(now()) @db.Timestamptz
-  updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamptz
-  deletedAt   DateTime? @db.Timestamptz
-  isActive    Boolean   @default(true)
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  isActive   Boolean   @default(true)
 }
 
 model Document {
@@ -409,8 +447,8 @@ model Document {
   mime_type String?
   checksum  String?
 
-  folderId  String?   @db.Uuid
-  folder    Folder?   @relation(fields: [folderId], references: [id])
+  folderId String? @db.Uuid
+  folder   Folder? @relation(fields: [folderId], references: [id])
 
   issue_date  DateTime? @db.Timestamptz
   expiry_date DateTime? @db.Timestamptz
@@ -717,4 +755,84 @@ model Notification {
   entity_id   String? @db.Uuid
 
   createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+// -----------------------------------------
+// 9. COMPANY EXCEL REPORT TEMPLATES
+// -----------------------------------------
+// A customer-supplied .xlsx (their own branded trip-report layout) plus the
+// human-confirmed column mapping used to fill it. The file's bytes live in
+// Postgres, not on disk — the deploy's only durable volume is pgdata (see
+// docker-compose.yml), and templates are small, precious configuration that
+// should ride along with the database rather than a bind-mounted /tmp.
+model ReportTemplate {
+  id     String @id @default(uuid()) @db.Uuid
+  name   String
+  source String @default("trips") // room for invoices/expenses later
+
+  customerId String?   @db.Uuid // null = shared/global template
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  original_filename String
+  file_data         Bytes // the uploaded .xlsx, unmodified
+  file_size         Int
+  layout            Json  @db.JsonB // TemplateLayout (@mercon/shared-types) — confirmed mapping
+
+  created_by String?   @db.Uuid
+  updated_by String?   @db.Uuid
+  deleted_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  isActive   Boolean   @default(true)
+  version    Int       @default(1)
+
+  @@index([customerId])
+}
+
+// -----------------------------------------
+// 10. SMART REPORT BUILDER
+// -----------------------------------------
+// A saved report is a serialized ReportQuerySpec (module/fields/filters/
+// aggregations chosen in the builder), not a materialized result — it is
+// re-run against live data every time it's opened.
+model SavedReport {
+  id            String  @id @default(uuid()) @db.Uuid
+  name          String
+  category      String // 'Operations' | 'Drivers' | 'Vehicles' | 'Finance' | 'Customers' | 'Custom'
+  spec          Json    @db.JsonB
+  visualization String  @default("table")
+  isTemplate    Boolean @default(false)
+
+  scheduledReports ScheduledReport[]
+
+  created_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+  version    Int       @default(1)
+
+  @@index([deletedAt])
+  @@index([category])
+}
+
+model ScheduledReport {
+  id            String      @id @default(uuid()) @db.Uuid
+  savedReportId String      @db.Uuid
+  savedReport   SavedReport @relation(fields: [savedReportId], references: [id])
+
+  frequency  String // 'daily' | 'weekly' | 'monthly'
+  dayOfMonth Int?
+  time       String // 'HH:mm'
+  recipients String[]
+  delivery   String[] // ['email','dashboard','pdf','excel']
+  isActive   Boolean  @default(true)
+
+  created_by String?   @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz
+  deletedAt  DateTime? @db.Timestamptz
+
+  @@index([savedReportId])
+  @@index([deletedAt])
 }

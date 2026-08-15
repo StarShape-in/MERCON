@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -32,7 +32,7 @@ import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/k
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { exportExcelTable, exportPDFTable, parseCSVFile } from '@/utils/exportUtils';
-import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult } from '@/services/tripService';
+import { tripService, Trip, TripStatus, BulkImportTripRow, BulkImportResult, getTripPayloadCapacity, getTripRateCategory } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -43,6 +43,8 @@ import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Btn from '@/components/ui/Btn';
 import KpiCard from '@/components/ui/KpiCard';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import CreateTripModal from '@/components/trips/CreateTripModal';
 
@@ -98,7 +100,7 @@ const matchesExportStatusGroup = (status: TripStatus, group: ExportStatusGroup) 
 
 const TRIP_EXPORT_HEADERS = [
   'Job / Ref ID', 'Status', 'Customer', 'Pickup Location', 'Dropoff Location', 'Driver', 'Vehicle',
-  'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
+  'Payload Capacity', 'Rate Category', 'Rate Card', 'Planned Start', 'Actual Start', 'Planned End', 'Actual End',
   'Trip Charges (SAR)', 'Billing Amount (SAR)', 'Carrier / Provider',
 ];
 
@@ -135,6 +137,8 @@ const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
     dropoff.name !== '—' ? (dropoff.address ? `${dropoff.name} (${dropoff.address})` : dropoff.name) : '—',
     t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned',
     t.vehicle?.plate_number || 'Unassigned',
+    getTripPayloadCapacity(t),
+    getTripRateCategory(t),
     t.rateCard?.name || 'Manual Rate',
     formatExportDate(t.planned_start),
     formatExportDate(t.actual_start),
@@ -303,7 +307,28 @@ export default function TripListPage() {
   });
 
   const rawTrips = tripsRes?.data || [];
-  const trips = rawTrips;
+  // Prioritize active/current operational statuses (InTransit, AtPickup, AtDelivery, Dispatched) at the top,
+  // followed by the rest (Draft, Completed, Invoiced, Cancelled), all ordered by creation date descending.
+  const trips = useMemo(() => {
+    const ACTIVE_STATUSES = new Set(['intransit', 'atpickup', 'atdelivery', 'dispatched', 'travelling', 'current']);
+
+    return [...rawTrips].sort((a, b) => {
+      const aActive = ACTIVE_STATUSES.has((a.status || '').toLowerCase()) ? 0 : 1;
+      const bActive = ACTIVE_STATUSES.has((b.status || '').toLowerCase()) ? 0 : 1;
+
+      if (aActive !== bActive) {
+        return aActive - bActive;
+      }
+
+      const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
+      const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
+      if (timeA !== timeB) {
+        return timeB - timeA;
+      }
+
+      return (b.ref_id || b.id || '').localeCompare(a.ref_id || a.id || '');
+    });
+  }, [rawTrips]);
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
   const kpiTrips = allTripsRes?.data || [];
@@ -609,6 +634,41 @@ export default function TripListPage() {
           )}
         </div>
       ),
+    },
+    {
+      header: 'Payload Cap.',
+      className: 'w-[110px] shrink-0',
+      accessor: (row: Trip) => {
+        const cap = getTripPayloadCapacity(row);
+        return (
+          <Badge
+            variant="outline"
+            className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 px-1.5 py-0.5"
+          >
+            {cap}
+          </Badge>
+        );
+      },
+    },
+    {
+      header: 'Rate Category',
+      className: 'w-[130px] shrink-0',
+      accessor: (row: Trip) => {
+        const cat = getTripRateCategory(row);
+        return (
+          <span
+            className={cn(
+              'inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-md border truncate max-w-[125px]',
+              cat !== '—'
+                ? 'bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800/60'
+                : 'bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-800'
+            )}
+            title={cat}
+          >
+            {cat}
+          </span>
+        );
+      },
     },
     {
       header: 'Rate (SAR)',

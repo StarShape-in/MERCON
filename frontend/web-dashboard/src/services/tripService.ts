@@ -20,6 +20,19 @@ export interface Trip {
   billing_amount?: number;
   carrier_name?: string;
   is_post_trip_settled?: boolean;
+  is_third_party?: boolean;
+  thirdPartyProviderId?: string | null;
+  third_party_driver_name?: string | null;
+  third_party_driver_phone?: string | null;
+  third_party_vehicle_plate?: string | null;
+  third_party_vehicle_type?: string | null;
+  third_party_cost?: number | null;
+  thirdPartyProvider?: {
+    id: string;
+    name: string;
+    contact_person?: string | null;
+    phone?: string | null;
+  } | null;
   created_by?: string | null;
   updated_by?: string | null;
   createdAt: string;
@@ -29,6 +42,8 @@ export interface Trip {
   vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null } | null;
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
+  vehicle_type?: string | null;
+  rate_category?: string | null;
   rateCardId?: string | null;
   rateCard?: {
     id: string;
@@ -37,7 +52,24 @@ export interface Trip {
     route_destination: string;
     base_price: number;
     currency: string;
+    vehicle_type?: string | null;
+    rate_category?: string | null;
   } | null;
+}
+
+export function getTripPayloadCapacity(trip: Partial<Trip>): string {
+  if (trip.vehicle_type) return trip.vehicle_type;
+  if (trip.rateCard?.vehicle_type) return trip.rateCard.vehicle_type;
+  if (trip.third_party_vehicle_type) return trip.third_party_vehicle_type;
+  if (trip.vehicle?.capacity_kg) {
+    const tons = trip.vehicle.capacity_kg / 1000;
+    return `${tons % 1 === 0 ? tons.toFixed(0) : tons.toFixed(1)} Tons`;
+  }
+  return '—';
+}
+
+export function getTripRateCategory(trip: Partial<Trip>): string {
+  return trip.rate_category || trip.rateCard?.rate_category || '—';
 }
 
 export interface TripStop {
@@ -77,6 +109,14 @@ export interface CreateTripPayload {
    *  rate card being edited later. Omit to inherit whatever rate_card_id carries. */
   vehicle_type?: string | null;
   rate_category?: string | null;
+  /** Third-Party Logistics fields */
+  is_third_party?: boolean;
+  third_party_provider_id?: string;
+  third_party_driver_name?: string;
+  third_party_driver_phone?: string;
+  third_party_vehicle_plate?: string;
+  third_party_vehicle_type?: string;
+  third_party_cost?: number;
   stops: {
     stop_type: string;
     lat: number;

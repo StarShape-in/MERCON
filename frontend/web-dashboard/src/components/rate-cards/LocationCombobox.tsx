@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronDown, MapPin, Plus, Loader2 } from 'lucide-react';
+import { Check, ChevronDown, MapPin, Plus, Loader2, Building2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -15,6 +15,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { locationService, Location } from '@/services/locationService';
 import { matchesSearch } from '@/lib/search';
+import { createAddressSearchSession, AddressSearchSession, AddressSuggestion } from '@/services/addressSearch';
 
 interface LocationComboboxProps {
   id?: string;
@@ -30,12 +31,6 @@ interface LocationComboboxProps {
   triggerClassName?: string;
 }
 
-/**
- * Picks a lane endpoint, and creates one inline when the place isn't on the
- * list yet. The inline create matters: the dispatcher hits a new lane
- * mid-dispatch, and sending them to a separate admin screen to add "Madinah"
- * before they can price the trip is how free-text spellings crept in.
- */
 export default function LocationCombobox({
   id,
   value,
@@ -50,6 +45,11 @@ export default function LocationCombobox({
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+
+  const [googleSuggestions, setGoogleSuggestions] = useState<AddressSuggestion[]>([]);
+  const [isSearchingGoogle, setIsSearchingGoogle] = useState(false);
+  const [isResolvingPlace, setIsResolvingPlace] = useState(false);
+  const searchSessionRef = useRef<AddressSearchSession | null>(null);
 
   const { data: locationsRes, isLoading } = useQuery({
     queryKey: ['locations'],
@@ -71,12 +71,70 @@ export default function LocationCombobox({
   });
 
   const trimmedSearch = search.trim();
+  const matchingSavedLocations = locations.filter((loc) =>
+    trimmedSearch ? matchesSearch(trimmedSearch, [loc.name, loc.address]) : true
+  );
+
   const alreadyExists = locations.some(
     (l) => l.name.trim().toLowerCase() === trimmedSearch.toLowerCase()
   );
   const canCreate = trimmedSearch.length > 0 && !alreadyExists;
 
   const displayLabel = selected ? selected.name : value ? value : '';
+
+  useEffect(() => {
+    if (!open) return;
+
+    const timer = setTimeout(async () => {
+      setIsSearchingGoogle(true);
+      try {
+        if (!searchSessionRef.current) {
+          searchSessionRef.current = createAddressSearchSession();
+        }
+        if (trimmedSearch.length >= 2) {
+          const results = await searchSessionRef.current.search(trimmedSearch);
+          setGoogleSuggestions(results);
+        } else {
+          // Default Google places suggestions when search is brief
+          setGoogleSuggestions([
+            { id: 'g-riyadh', label: 'Riyadh, Saudi Arabia' },
+            { id: 'g-jeddah', label: 'Jeddah, Saudi Arabia' },
+            { id: 'g-dammam', label: 'Dammam, Saudi Arabia' },
+          ]);
+        }
+      } catch (e) {
+        console.error('Google Maps search error', e);
+      } finally {
+        setIsSearchingGoogle(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [trimmedSearch, open]);
+
+  const handleSelectGooglePlace = async (sugg: AddressSuggestion) => {
+    try {
+      setIsResolvingPlace(true);
+      if (!searchSessionRef.current) {
+        searchSessionRef.current = createAddressSearchSession();
+      }
+      const resolved = await searchSessionRef.current.resolve(sugg.id);
+      const placeName = resolved ? resolved.name : sugg.label;
+
+      const existing = locations.find((l) => l.name.trim().toLowerCase() === placeName.trim().toLowerCase());
+      if (existing) {
+        onChange(existing.name || existing.id, existing);
+        setOpen(false);
+      } else {
+        createMutation.mutate(placeName);
+      }
+    } catch {
+      onChange(sugg.label, null);
+      setOpen(false);
+    } finally {
+      setIsResolvingPlace(false);
+    }
+  };
 
   return (
     <Popover open={disabled ? false : open} onOpenChange={setOpen}>
@@ -102,46 +160,88 @@ export default function LocationCombobox({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command
-          filter={(itemValue, searchTerm) => {
-            const option = locations.find((l) => l.id === itemValue);
-            if (!option) return 0;
-            return matchesSearch(searchTerm, [option.name, option.address]) ? 1 : 0;
-          }}
-        >
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        className="w-[--radix-popover-trigger-width] min-w-[320px] max-w-[var(--radix-popover-trigger-width)] p-0 shadow-xl border-slate-200/90 overflow-hidden rounded-xl z-50"
+      >
+        <Command shouldFilter={false} className="w-full overflow-hidden">
           <CommandInput
             placeholder="Search or type a new place..."
             className="text-xs"
             value={search}
             onValueChange={setSearch}
           />
-          <CommandList className="max-h-64 overflow-y-auto overscroll-contain">
-            {isLoading ? (
+          <CommandList className="max-h-72 overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800">
+            {isLoading && (
               <div className="py-4 text-center text-xs text-muted-foreground">Loading locations...</div>
-            ) : (
-              <CommandEmpty className="py-3 text-xs text-center text-muted-foreground">
-                {trimmedSearch ? 'No match — add it below.' : 'No locations yet.'}
-              </CommandEmpty>
             )}
 
-            <CommandGroup>
-              {locations.map((location) => (
-                <CommandItem
-                  key={location.id}
-                  value={location.id}
-                  className="text-xs"
-                  onSelect={() => {
-                    onChange(location.name || location.id, location);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn('mr-2 h-3.5 w-3.5', value === location.id ? 'opacity-100' : 'opacity-0')}
-                  />
-                  <span className="truncate">{location.name}</span>
-                </CommandItem>
-              ))}
+            {/* Section 1: Saved Rate Card Hubs */}
+            <CommandGroup
+              heading={
+                <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <span>Saved Rate Card Hubs</span>
+                  <Badge className="bg-indigo-50 text-indigo-700 text-[9px] px-1.5 py-0 font-bold border border-indigo-200/60 shadow-2xs shrink-0">
+                    AUTO RATE MATCH
+                  </Badge>
+                </div>
+              }
+            >
+              {matchingSavedLocations.length === 0 ? (
+                <div className="px-2.5 py-2 text-xs text-slate-400">No matching saved hubs</div>
+              ) : (
+                matchingSavedLocations.map((location) => (
+                  <CommandItem
+                    key={location.id}
+                    value={location.id}
+                    className="text-xs flex items-center justify-between py-2 px-2.5 cursor-pointer hover:bg-slate-50 min-w-0"
+                    onSelect={() => {
+                      onChange(location.name || location.id, location);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <Building2 className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                      <span className="truncate min-w-0 flex-1 font-semibold text-slate-800">{location.name}</span>
+                    </div>
+                    {value === location.id && <Check className="h-3.5 w-3.5 text-brand shrink-0 ml-1.5" />}
+                  </CommandItem>
+                ))
+              )}
+            </CommandGroup>
+
+            {/* Section 2: Google Maps Places Search */}
+            <CommandGroup
+              heading={
+                <div className="flex items-center justify-between px-1 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <span>Google Maps Places Search</span>
+                  {isSearchingGoogle && <Loader2 className="h-3 w-3 animate-spin text-indigo-600 shrink-0" />}
+                </div>
+              }
+            >
+              {isSearchingGoogle && googleSuggestions.length === 0 ? (
+                <div className="px-2.5 py-2 text-xs text-slate-400 flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600 shrink-0" /> Searching Google Maps...
+                </div>
+              ) : googleSuggestions.length === 0 && trimmedSearch.length >= 2 ? (
+                <div className="px-2.5 py-2 text-xs text-slate-400">No Google Maps places found</div>
+              ) : (
+                googleSuggestions.map((sugg) => (
+                  <CommandItem
+                    key={sugg.id}
+                    value={sugg.id}
+                    disabled={isResolvingPlace}
+                    className="text-xs flex items-center gap-2 py-2 px-2.5 cursor-pointer hover:bg-slate-50 min-w-0"
+                    onSelect={() => handleSelectGooglePlace(sugg)}
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-brand shrink-0" />
+                    <span className="truncate min-w-0 flex-1 text-slate-700" title={sugg.label}>
+                      {sugg.label}
+                    </span>
+                  </CommandItem>
+                ))
+              )}
             </CommandGroup>
           </CommandList>
 

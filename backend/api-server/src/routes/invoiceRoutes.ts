@@ -5,7 +5,7 @@ import {
   markTripInvoiced, unmarkTripInvoiced, getBillingLedger, getCustomerBillingLedger
 } from '../controllers/invoiceController';
 import { authenticateJWT } from '../middlewares/auth';
-import { authorizeRoles } from '../middlewares/rbac';
+import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
 import { createInvoiceBody, listQuery } from '../schemas';
 
@@ -13,6 +13,7 @@ const router = Router();
 
 router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
+router.use(requireModuleEnabled('invoices'));
 
 // Bulk operations — literal paths before /:id
 router.post('/bulk-delete', (req, res) => bulkDeleteInvoices(req, res));

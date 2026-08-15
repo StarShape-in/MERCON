@@ -10,14 +10,17 @@ interface UserModalProps {
   onSave: (data: Partial<UserDTO> & { password?: string }) => void;
   initialData?: UserDTO | null;
   isLoading: boolean;
+  /** Only a superadmin can grant/revoke superadmin — hides the control entirely otherwise. */
+  canManageSuperAdmin?: boolean;
 }
 
-export default function UserModal({ isOpen, onClose, onSave, initialData, isLoading }: UserModalProps) {
+export default function UserModal({ isOpen, onClose, onSave, initialData, isLoading, canManageSuperAdmin }: UserModalProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('Operator');
   const [status, setStatus] = useState<'Active'|'Inactive'>('Active');
   const [password, setPassword] = useState('');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -27,12 +30,14 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
         setRole(initialData.role || 'Operator');
         setStatus(initialData.status || 'Active');
         setPassword('');
+        setIsSuperAdmin(initialData.isSuperAdmin || false);
       } else {
         setName('');
         setEmail('');
         setRole('Operator');
         setStatus('Active');
         setPassword('');
+        setIsSuperAdmin(false);
       }
     }
   }, [isOpen, initialData]);
@@ -40,6 +45,10 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
   const handleSubmit = () => {
     const data: any = { name, email, role, status };
     if (password) data.password = password;
+    // Only send isSuperAdmin when this viewer is actually allowed to change
+    // it (editing an existing user) — omitting it on create keeps new users
+    // never-superadmin-by-default, granted only as a deliberate later step.
+    if (canManageSuperAdmin && initialData) data.isSuperAdmin = isSuperAdmin;
     onSave(data);
   };
 
@@ -77,13 +86,27 @@ export default function UserModal({ isOpen, onClose, onSave, initialData, isLoad
             </select>
           </div>
 
-          <FormInput 
-            label={initialData ? "New Password (Leave blank to keep current)" : "Password"} 
-            name="password" 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
+          <FormInput
+            label={initialData ? "New Password (Leave blank to keep current)" : "Password"}
+            name="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
+
+          {canManageSuperAdmin && initialData && role === 'Admin' && (
+            <label className="flex items-center gap-2.5 select-none cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={isSuperAdmin}
+                onChange={(e) => setIsSuperAdmin(e.target.checked)}
+                className="w-[18px] h-[18px] rounded-[6px] accent-brand cursor-pointer"
+              />
+              <span className="text-xs font-bold text-[#111]">
+                Superadmin — can edit this deployment's branding & modules
+              </span>
+            </label>
+          )}
         </div>
         <DialogFooter>
           <Btn variant="outline" label="Cancel" onClick={onClose} disabled={isLoading} />

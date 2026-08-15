@@ -24,6 +24,8 @@ const CreateTripPage          = lazy(() => import('@/pages/trips/CreateTripPage'
 const EditTripPage            = lazy(() => import('@/pages/trips/EditTripPage'));
 const TripTrackingPage        = lazy(() => import('@/pages/trips/TripTrackingPage'));
 const TripCompletionPage      = lazy(() => import('@/pages/trips/TripCompletionPage'));
+const ThirdPartyListPage      = lazy(() => import('@/pages/third-party/ThirdPartyListPage'));
+const ThirdPartyDetailsPage   = lazy(() => import('@/pages/third-party/ThirdPartyDetailsPage'));
 
 // Drivers
 const DriverListPage          = lazy(() => import('@/pages/drivers/DriverListPage'));
@@ -64,17 +66,23 @@ const PaymentStatusPage       = lazy(() => import('@/pages/invoices/PaymentStatu
 
 // Expenses
 const ExpenseListPage         = lazy(() => import('@/pages/expenses/ExpenseListPage'));
+const ExpenseDetailsPage      = lazy(() => import('@/pages/expenses/ExpenseDetailsPage'));
 
 // Documents
 const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCenterPage'));
 
 // Reports
-const ReportsDashboardPage    = lazy(() => import('@/pages/reports/ReportsDashboardPage'));
-const FleetPerformancePage    = lazy(() => import('@/pages/reports/FleetPerformancePage'));
-const RevenueReportsPage      = lazy(() => import('@/pages/reports/RevenueReportsPage'));
-const DriverPerformancePage   = lazy(() => import('@/pages/reports/DriverPerformancePage'));
-const CustomReportPage        = lazy(() => import('@/pages/reports/CustomReportPage'));
-const DelayReportPage         = lazy(() => import('@/pages/reports/DelayReportPage'));
+const ReportsDashboardPage        = lazy(() => import('@/pages/reports/ReportsDashboardPage'));
+const FleetPerformancePage        = lazy(() => import('@/pages/reports/FleetPerformancePage'));
+const RevenueReportsPage          = lazy(() => import('@/pages/reports/RevenueReportsPage'));
+const CustomReportPage            = lazy(() => import('@/pages/reports/CustomReportPage'));
+const CompanyReportsGeneratorPage = lazy(() => import('@/pages/reports/CompanyReportsGeneratorPage'));
+const DelayReportPage             = lazy(() => import('@/pages/reports/DelayReportPage'));
+
+// Smart Report Builder
+const ReportBuilderLandingPage   = lazy(() => import('@/pages/report-builder/ReportBuilderLandingPage'));
+const QuickReportPage            = lazy(() => import('@/pages/report-builder/QuickReportPage'));
+const AdvancedBuilderPage         = lazy(() => import('@/pages/report-builder/AdvancedBuilderPage'));
 
 // Settings & Governance
 const OperatorProfilePage     = lazy(() => import('@/pages/settings/OperatorProfilePage'));
@@ -127,7 +135,9 @@ export default function AppRouter() {
           <Route path="/trips/:id/track"          element={<TripTrackingPage />} />
           <Route path="/trips/:id/completion"     element={<TripCompletionPage />} />
 
-          {/* Drivers */}
+          {/* Third Party */}
+          <Route path="/third-party"              element={<ThirdPartyListPage />} />
+          <Route path="/third-party/:id"          element={<ThirdPartyDetailsPage />} />
           <Route path="/drivers"                  element={<DriverListPage />} />
           <Route path="/drivers/new"              element={<AddDriverPage />} />
           <Route path="/drivers/:id"              element={<DriverDetailsPage />} />
@@ -153,10 +163,10 @@ export default function AppRouter() {
           <Route path="/customers/:id/contracts"  element={<CustomerContractsPage />} />
 
           {/* Locations */}
-          <Route path="/locations"                element={<RequireModule moduleKey="locations"><LocationListPage /></RequireModule>} />
+          <Route path="/locations"                element={<LocationListPage />} />
 
           {/* Rate Cards */}
-          <Route path="/rate-cards"               element={<RequireModule moduleKey="rate-cards"><RateCardListPage /></RequireModule>} />
+          <Route path="/rate-cards"               element={<RateCardListPage />} />
           <Route path="/rate-cards/:id"           element={<RateCardDetailsPage />} />
           <Route path="/rate-cards/:id/edit"      element={<EditRateCardPage />} />
           <Route path="/rate-cards/:id/documents" element={<RateCardDocsPage />} />
@@ -170,6 +180,7 @@ export default function AppRouter() {
 
           {/* Expenses */}
           <Route path="/expenses"                 element={<RequireModule moduleKey="expenses"><ExpenseListPage /></RequireModule>} />
+          <Route path="/expenses/:id"             element={<RequireModule moduleKey="expenses"><ExpenseDetailsPage /></RequireModule>} />
 
           {/* Documents */}
           <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
@@ -178,10 +189,19 @@ export default function AppRouter() {
           {/* Reports */}
           <Route path="/reports"                  element={<RequireModule moduleKey="reports"><ReportsDashboardPage /></RequireModule>} />
           <Route path="/reports/custom"           element={<CustomReportPage />} />
+          <Route path="/reports/client-templates" element={<Navigate to="/company-reports" replace />} />
           <Route path="/reports/fleet"            element={<FleetPerformancePage />} />
           <Route path="/reports/revenue"          element={<RevenueReportsPage />} />
-          <Route path="/reports/drivers"          element={<DriverPerformancePage />} />
+          <Route path="/reports/drivers"          element={<Navigate to="/reports" replace />} />
           <Route path="/reports/delays"           element={<DelayReportPage />} />
+
+          {/* Custom Company Reports Generator */}
+          <Route path="/company-reports"          element={<RequireModule moduleKey="company-reports"><CompanyReportsGeneratorPage /></RequireModule>} />
+
+          {/* Smart Report Builder */}
+          <Route path="/report-builder"          element={<ReportBuilderLandingPage />} />
+          <Route path="/report-builder/quick"    element={<QuickReportPage />} />
+          <Route path="/report-builder/advanced" element={<AdvancedBuilderPage />} />
 
           {/* Settings & Governance */}
           <Route path="/settings"                 element={<SettingsPage />} />

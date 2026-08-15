@@ -27,6 +27,22 @@ const TRIP_SEARCH_FIELDS = [
 const isUuid = (val: any): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
+export async function resolveTripId(idOrRef: string, tx: Prisma.TransactionClient | typeof prisma = prisma): Promise<string | null> {
+  if (!idOrRef || typeof idOrRef !== 'string') return null;
+  if (isUuid(idOrRef)) return idOrRef;
+  const trip = await tx.trip.findFirst({
+    where: {
+      OR: [
+        { ref_id: idOrRef },
+        { ref_id: { equals: idOrRef, mode: 'insensitive' } },
+      ],
+      deletedAt: null,
+    },
+    select: { id: true },
+  });
+  return trip?.id || null;
+}
+
 /**
  * Notify a driver they've been assigned a trip. Notifications target the driver
  * directly (Notification.driverId). Call after the assignment transaction commits.
@@ -140,12 +156,13 @@ export const getTrips = async (req: Request, res: Response) => {
         where: whereClause,
         skip,
         take: limit,
-        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [{ createdAt: 'desc' }],
         include: {
           driver: true,
           vehicle: true,
           customer: true,
           rateCard: true,
+          thirdPartyProvider: true,
           stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
         }
       }),
@@ -177,7 +194,6 @@ export const getTripById = async (req: Request, res: Response) => {
           OR: [
             { ref_id: idOrRef },
             { ref_id: { equals: idOrRef, mode: 'insensitive' } },
-            { id: idOrRef },
           ],
           deletedAt: null,
         };
@@ -190,6 +206,7 @@ export const getTripById = async (req: Request, res: Response) => {
         customer: true,
         invoices: true,
         rateCard: true,
+        thirdPartyProvider: true,
         stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } }
       }
     });
@@ -220,6 +237,13 @@ export const createTrip = async (req: Request, res: Response) => {
       rate_category,
       status: requestedStatus,
       dispatch_now,
+      is_third_party,
+      third_party_provider_id,
+      third_party_driver_name,
+      third_party_driver_phone,
+      third_party_vehicle_plate,
+      third_party_vehicle_type,
+      third_party_cost,
     } = req.body;
 
     const createdBy = isUuid((req as any).user?.id) ? (req as any).user.id : null;
@@ -402,6 +426,15 @@ export const createTrip = async (req: Request, res: Response) => {
               ...(finalRateCategory !== null ? { rate_category: finalRateCategory } : {}),
               ...(defaultBilling !== null ? { billing_amount: defaultBilling } : {}),
               trip_charges: finalTripCharges,
+              is_third_party: is_third_party === true,
+              ...(is_third_party ? {
+                thirdPartyProviderId: third_party_provider_id || null,
+                third_party_driver_name: third_party_driver_name || null,
+                third_party_driver_phone: third_party_driver_phone || null,
+                third_party_vehicle_plate: third_party_vehicle_plate || null,
+                third_party_vehicle_type: third_party_vehicle_type || null,
+                third_party_cost: third_party_cost ? Number(third_party_cost) : 0,
+              } : {}),
               stops: {
                 create: resolvedStops.map((stop: any, index: number) => ({
                   stop_sequence: index + 1,
@@ -613,7 +646,11 @@ export const bulkImportTrips = async (req: Request, res: Response) => {
 export const updateTripStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
-    const tripId = req.params.id as string;
+    const rawId = req.params.id as string;
+    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
+    if (!tripId) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
 
     if (!Object.values(TripStatus).includes(status)) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid status' } });
@@ -724,13 +761,18 @@ export const updateTripStatus = async (req: Request, res: Response) => {
 export const approveDriverPayment = async (req: Request, res: Response) => {
   try {
     const { amount, reason } = req.body;
+    const rawId = req.params.id as string;
+    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
+    if (!tripId) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
 
     if (!amount || !reason) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Amount and reason required' } });
     }
 
     const trip = await prisma.trip.update({
-      where: { id: req.params.id as string },
+      where: { id: tripId },
       data: {
         extra_driver_payment: parseOptionalFloat(amount) ?? 0,
         payment_reason: reason,
@@ -754,7 +796,11 @@ export const approveDriverPayment = async (req: Request, res: Response) => {
 export const dispatchTrip = async (req: Request, res: Response) => {
   try {
     const { driver_id, vehicle_id } = req.body;
-    const tripId = req.params.id as string;
+    const rawId = req.params.id as string;
+    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
+    if (!tripId) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
 
     if (!driver_id && !vehicle_id) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'driver_id or vehicle_id required' } });
@@ -827,7 +873,11 @@ export const dispatchTrip = async (req: Request, res: Response) => {
 export const replaceDriver = async (req: Request, res: Response) => {
   try {
     const { new_driver_id } = req.body;
-    const tripId = req.params.id as string;
+    const rawId = req.params.id as string;
+    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
+    if (!tripId) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
 
     if (!new_driver_id) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'new_driver_id required' } });
@@ -877,7 +927,9 @@ export const replaceDriver = async (req: Request, res: Response) => {
 
 export const pickupArrive = async (req: Request, res: Response) => {
   try {
-    const tripId = req.params.id as string;
+    const rawId = req.params.id as string;
+    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
+    if (!tripId) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
 
     const trip = await prisma.trip.findUnique({ where: { id: tripId } });
     if (!trip) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
@@ -908,7 +960,9 @@ export const pickupArrive = async (req: Request, res: Response) => {
 
 export const pickupVerify = async (req: Request, res: Response) => {
   try {
-    const tripId = req.params.id as string;
+    const rawId = req.params.id as string;
+    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
+    if (!tripId) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
 
     const trip = await prisma.trip.findUnique({ where: { id: tripId } });
     if (!trip) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
@@ -938,7 +992,9 @@ export const pickupVerify = async (req: Request, res: Response) => {
 
 export const deliveryVerify = async (req: Request, res: Response) => {
   try {
-    const tripId = req.params.id as string;
+    const rawId = req.params.id as string;
+    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
+    if (!tripId) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
 
     const result = await prisma.$transaction(async (tx) => {
       const current = await tx.trip.findUnique({ where: { id: tripId } });
@@ -971,7 +1027,11 @@ export const deliveryVerify = async (req: Request, res: Response) => {
  */
 export const logStopDelay = async (req: Request, res: Response) => {
   try {
-    const { id: tripId, stopId } = req.params as { id: string; stopId: string };
+    const { id: rawTripId, stopId } = req.params as { id: string; stopId: string };
+    const tripId = isUuid(rawTripId) ? rawTripId : (await resolveTripId(rawTripId));
+    if (!tripId) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
     const { delay_reason, delay_note } = req.body;
 
     const stop = await prisma.tripStop.findFirst({
@@ -1017,7 +1077,11 @@ export const logStopDelay = async (req: Request, res: Response) => {
  */
 export const updateTripStop = async (req: Request, res: Response) => {
   try {
-    const { id: tripId, stopId } = req.params as { id: string; stopId: string };
+    const { id: rawTripId, stopId } = req.params as { id: string; stopId: string };
+    const tripId = isUuid(rawTripId) ? rawTripId : (await resolveTripId(rawTripId));
+    if (!tripId) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
     const { location_name, location_address, location_id, lat, lng } = req.body;
 
     const trip = await prisma.trip.findFirst({
@@ -1230,7 +1294,11 @@ export const getUnsettledCompletedTrips = async (req: Request, res: Response) =>
  */
 export const updateTripFinancials = async (req: Request, res: Response) => {
   try {
-    const tripId = req.params.id as string;
+    const rawId = req.params.id as string;
+    const tripId = isUuid(rawId) ? rawId : (await resolveTripId(rawId));
+    if (!tripId) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+    }
     const {
       waiting_labor_charges,
       additional_stop_charges,

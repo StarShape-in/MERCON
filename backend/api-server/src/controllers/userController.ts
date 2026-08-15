@@ -15,6 +15,7 @@ export const getUsers = async (req: Request, res: Response) => {
         username: true,
         role: true,
         isActive: true,
+        isSuperAdmin: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' }
@@ -66,7 +67,7 @@ export const createUser = async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      data: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, status: 'Active' }
+      data: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, status: 'Active', isSuperAdmin: newUser.isSuperAdmin }
     });
   } catch (error) {
     logger.error({ err: error }, 'Error creating user:');
@@ -78,7 +79,7 @@ export const createUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, email, role, status, password } = req.body;
+    const { name, email, role, status, password, isSuperAdmin } = req.body;
 
     const dataToUpdate: any = {};
     if (name) dataToUpdate.name = name;
@@ -92,6 +93,31 @@ export const updateUser = async (req: Request, res: Response) => {
       dataToUpdate.password_hash = await bcrypt.hash(password, 10);
     }
 
+    // isSuperAdmin is a platform-level flag, not a Role — the route only
+    // requires Admin, so plain Admins could otherwise self-escalate by
+    // editing their own account. Field-level check instead of a route-level
+    // one so the rest of this endpoint (name/role/status/password) stays
+    // usable by any Admin.
+    if (isSuperAdmin !== undefined) {
+      const requesterId = (req as any).user?.id;
+      const requester = await prisma.user.findUnique({ where: { id: requesterId }, select: { isSuperAdmin: true } });
+      if (!requester?.isSuperAdmin) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only a superadmin can grant or revoke superadmin access' } });
+      }
+
+      if (isSuperAdmin === false) {
+        const target = await prisma.user.findUnique({ where: { id: id as string }, select: { isSuperAdmin: true } });
+        if (target?.isSuperAdmin) {
+          const remaining = await prisma.user.count({ where: { isSuperAdmin: true, id: { not: id as string } } });
+          if (remaining === 0) {
+            return res.status(409).json({ success: false, error: { code: 'LAST_SUPERADMIN', message: 'Cannot revoke the last superadmin — grant it to someone else first' } });
+          }
+        }
+      }
+
+      dataToUpdate.isSuperAdmin = isSuperAdmin;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: id as string },
       data: dataToUpdate
@@ -99,7 +125,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      data: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email, role: updatedUser.role, status: updatedUser.isActive ? 'Active' : 'Inactive' }
+      data: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email, role: updatedUser.role, status: updatedUser.isActive ? 'Active' : 'Inactive', isSuperAdmin: updatedUser.isSuperAdmin }
     });
   } catch (error) {
     logger.error({ err: error }, 'Error updating user:');

@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wallet, Download, Plus, RotateCw, Edit2, Trash2, AlertTriangle, Users, Truck } from 'lucide-react';
+import { Wallet, Download, Plus, RotateCw, Edit2, Trash2, AlertTriangle, Users, Truck, Eye } from 'lucide-react';
 import { EXPENSE_CATEGORIES } from '@mercon/shared-types';
 
 import ExpenseModal from '@/components/expenses/ExpenseModal';
+import ExpenseCategoryBadge from '@/components/expenses/ExpenseCategoryBadge';
+import { getCategoryTheme } from '@/utils/expenseCategoryColors';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MoneyBills, CheckBadge, ClockIcon, DriverBadge } from '@/components/ui/kpi-icons';
@@ -18,6 +21,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import DataTable from '@/components/ui/DataTable';
 
 export default function ExpenseListPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -265,15 +269,19 @@ export default function ExpenseListPage() {
               {
                 header: 'Ref #',
                 accessor: (r: Expense) => (
-                  <span className="font-mono font-extrabold text-slate-900 dark:text-slate-100">{r.ref_id || '—'}</span>
+                  <Link
+                    to={`/expenses/${r.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-mono font-extrabold text-slate-900 dark:text-slate-100 hover:text-brand transition-colors"
+                  >
+                    {r.ref_id || '—'}
+                  </Link>
                 ),
               },
               {
                 header: 'Category',
                 accessor: (r: Expense) => (
-                  <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] shadow-none w-fit">
-                    {r.category}
-                  </Badge>
+                  <ExpenseCategoryBadge category={r.category} />
                 ),
               },
               {
@@ -332,6 +340,13 @@ export default function ExpenseListPage() {
                 className: 'text-right',
                 accessor: (r: Expense) => (
                   <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Link
+                      to={`/expenses/${r.id}`}
+                      title="View Expense Details"
+                      className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Link>
                     <button
                       onClick={() => handleOpenEditModal(r)}
                       title="Edit Expense"
@@ -350,6 +365,7 @@ export default function ExpenseListPage() {
                 ),
               },
             ]}
+            onRowClick={(r: Expense) => navigate(`/expenses/${r.id}`)}
             data={records}
             enableSelection={true}
             bulkActions={bulkActions}
@@ -388,11 +404,17 @@ export default function ExpenseListPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {EXPENSE_CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
+                    {EXPENSE_CATEGORIES.map((c) => {
+                      const theme = getCategoryTheme(c);
+                      return (
+                        <SelectItem key={c} value={c} className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`} />
+                            <span>{c}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
 

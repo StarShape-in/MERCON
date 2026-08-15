@@ -511,7 +511,7 @@ export default function VehicleFinancialsPage() {
           m.start_date ? new Date(m.start_date).toLocaleDateString() : 'N/A',
           `-SAR ${(m.cost || 0).toLocaleString()}`,
         ]),
-        ['', '', 'NET VEHICLE PROFIT:', `SAR ${financials.summary.net_profit.toLocaleString()}`],
+        ['', '', 'NET VEHICLE PROFIT:', `SAR ${(financials.summary.net_profit ?? 0).toLocaleString()}`],
       ],
       `Vehicle_P&L_${vehicle.plate_number}.xlsx`
     );
@@ -525,14 +525,14 @@ export default function VehicleFinancialsPage() {
       [
         ...sortedRows.map((r) => [
           r.plate_number, r.asset_type, r.trips_count,
-          r.total_income.toLocaleString(), r.total_expenses.toLocaleString(),
-          r.net_profit.toLocaleString(), `${r.margin_percent}%`,
+          r.total_income.toLocaleString(), (r.total_expenses ?? 0).toLocaleString(),
+          (r.net_profit ?? 0).toLocaleString(), `${r.margin_percent ?? 0}%`,
         ]),
         ['TOTAL', '', fleet.fleet_summary.total_trips,
           fleet.fleet_summary.total_income.toLocaleString(),
-          fleet.fleet_summary.total_expenses.toLocaleString(),
-          fleet.fleet_summary.net_profit.toLocaleString(),
-          `${fleet.fleet_summary.margin_percent}%`],
+          (fleet.fleet_summary.total_expenses ?? 0).toLocaleString(),
+          (fleet.fleet_summary.net_profit ?? 0).toLocaleString(),
+          `${fleet.fleet_summary.margin_percent ?? 0}%`],
       ],
       'Fleet_Profitability.pdf'
     );
@@ -553,7 +553,7 @@ export default function VehicleFinancialsPage() {
           m.start_date ? new Date(m.start_date).toLocaleDateString() : 'N/A',
           `-${(m.cost || 0).toLocaleString()}`,
         ]),
-        ['TOTAL', '', '', financials.summary.net_profit.toLocaleString()],
+        ['TOTAL', '', '', (financials.summary.net_profit ?? 0).toLocaleString()],
       ],
       `Vehicle_P&L_${vehicle.plate_number}.pdf`
     );

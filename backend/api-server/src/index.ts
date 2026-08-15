@@ -39,6 +39,8 @@ import expenseRoutes from './routes/expenseRoutes';
 import documentRoutes from './routes/documentRoutes';
 import folderRoutes from './routes/folderRoutes';
 import reportsRoutes from './routes/reportsRoutes';
+import reportTemplateRoutes from './routes/reportTemplateRoutes';
+import reportBuilderRoutes from './routes/reportBuilderRoutes';
 import mobileAuthRoutes from './routes/mobileAuthRoutes';
 import mobileTripRoutes from './routes/mobileTripRoutes';
 import mobileNotificationRoutes from './routes/mobileNotificationRoutes';
@@ -52,6 +54,7 @@ import uploadRoutes from './routes/uploadRoutes';
 import userRoutes from './routes/userRoutes';
 import trashRoutes from './routes/trashRoutes';
 import settingsRoutes from './routes/settingsRoutes';
+import thirdPartyRoutes from './routes/thirdPartyRoutes';
 import { initFleetTracking } from './services/icces/fleetPoller';
 import { normalizeMobileLocationUpdate } from './services/tracking/locationUpdate';
 
@@ -100,6 +103,8 @@ apiRouter.use('/invoices', invoiceRoutes);
 apiRouter.use('/maintenance', maintenanceRoutes);
 apiRouter.use('/expenses', expenseRoutes);
 apiRouter.use('/reports', reportsRoutes);
+apiRouter.use('/report-templates', reportTemplateRoutes);
+apiRouter.use('/report-builder', reportBuilderRoutes);
 apiRouter.use('/documents', documentRoutes);
 apiRouter.use('/folders', folderRoutes);
 apiRouter.use('/rate-cards', rateCardRoutes);
@@ -109,6 +114,7 @@ apiRouter.use('/upload', uploadRoutes);
 apiRouter.use('/users', userRoutes);
 apiRouter.use('/trash', trashRoutes);
 apiRouter.use('/settings', settingsRoutes);
+apiRouter.use('/third-party-providers', thirdPartyRoutes);
 
 // Mount router on both /api and root for maximum proxy compatibility
 app.use('/api', apiRouter);

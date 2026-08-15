@@ -135,3 +135,46 @@ export function resolveFileUrl(fileUrl: string | null | undefined): string {
   return rawUrl;
 }
 
+/**
+ * Formats Issuing Authority to ensure both English and Arabic names are displayed.
+ * e.g., "شركة ملاذ للتأمين" -> "Malath Insurance (شركة ملاذ للتأمين)"
+ */
+export function formatBilingualAuthority(raw: string | null | undefined): string {
+  if (!raw) return 'Saudi Regulatory Authority';
+  const text = raw.trim();
+  const lower = text.toLowerCase();
+
+  // Standard Saudi Transport Authorities Mappings
+  if (text.includes('المرور') || lower.includes('traffic')) return 'Saudi Traffic Dept (المرور)';
+  if (text.includes('الهيئة العامة للنقل') || lower.includes('transport general authority') || text.includes('TGA')) return 'Transport General Authority (الهيئة العامة للنقل)';
+  if (text.includes('مركز سلامة المركبات') || lower.includes('vehicles safety center')) return 'Vehicles Safety Center (مركز سلامة المركبات)';
+  if (text.includes('ملاذ') || lower.includes('malath')) return 'Malath Insurance (شركة ملاذ للتأمين)';
+  if (text.includes('التعاونية') || lower.includes('tawuniya')) return 'Tawuniya Insurance (شركة التعاونية للتأمين)';
+  if (text.includes('تكافل الراجحي') || lower.includes('rajhi')) return 'Al Rajhi Takaful (شركة تكافل الراجحي)';
+  if (text.includes('ولاء') || lower.includes('walaa')) return 'Wala\'a Insurance (شركة ولاء للتأمين)';
+  if (text.includes('ميدغلف') || lower.includes('medgulf')) return 'Medgulf Insurance (شركة ميدغلف للتأمين)';
+  if (text.includes('رمز العاصمة') || lower.includes('capital symbol')) return 'Capital Symbol Motors (معرض رمز العاصمة للسيارات)';
+  if (text.includes('حواجز القوة') || lower.includes('power barriers')) return 'Power Barriers Factory (مصنع حواجز القوة للصناعة)';
+
+  const hasArabic = /[\u0600-\u06FF]/.test(text);
+  const hasEnglish = /[a-zA-Z]/.test(text);
+
+  // If text already has both Arabic and English script
+  if (hasArabic && hasEnglish) {
+    return text;
+  }
+
+  // If pure Arabic without English, provide smart category descriptor + Arabic
+  if (hasArabic && !hasEnglish) {
+    if (text.includes('تأمين')) return `Insurance Co. (${text})`;
+    if (text.includes('معرض') || text.includes('سيارات')) return `Motors / Showroom (${text})`;
+    if (text.includes('مصنع') || text.includes('صناعة')) return `Factory / Manufacturing (${text})`;
+    if (text.includes('مركز') || text.includes('سلامة')) return `Safety Center (${text})`;
+    if (text.includes('هيئة') || text.includes('وزارة')) return `Saudi Authority (${text})`;
+    return `Authority (${text})`;
+  }
+
+  return text;
+}
+
+

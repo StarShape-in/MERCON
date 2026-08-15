@@ -1,0 +1,712 @@
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import {
+  Plus,
+  Edit2,
+  Eye,
+  Trash2,
+  Search,
+  Building2,
+  Phone,
+  Mail,
+  MapPin,
+  Download,
+  RotateCw,
+  List,
+  LayoutGrid,
+  Filter,
+  FileSpreadsheet,
+  MoreHorizontal,
+  Send,
+  Truck,
+  DollarSign,
+  Star,
+  CheckCircle2,
+  XCircle,
+  X,
+} from 'lucide-react';
+import { CustomerBuilding } from '@/components/ui/kpi-icons';
+import KpiCard from '@/components/ui/KpiCard';
+import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
+import { THIRD_PARTY_COLUMNS } from '@/utils/importUtils';
+import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import DataTable, { Column, BulkAction } from '@/components/ui/DataTable';
+import StatusBadge from '@/components/ui/StatusBadge';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+import { thirdPartyService, ThirdPartyProvider } from '@/services/thirdPartyService';
+import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
+import EditThirdPartyModal from '@/components/third-party/EditThirdPartyModal';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { cn } from '@/lib/utils';
+
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+export default function ThirdPartyListPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [selectedStatus, setSelectedStatus] = useState<'All' | 'Active' | 'Inactive'>('All');
+  const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedProviderForEdit, setSelectedProviderForEdit] = useState<ThirdPartyProvider | null>(null);
+
+  // WhatsApp share dialog state
+  const [whatsappProvider, setWhatsappProvider] = useState<ThirdPartyProvider | null>(null);
+  const [whatsappMessageText, setWhatsappMessageText] = useState('');
+  const [whatsappCustomPhone, setWhatsappCustomPhone] = useState('');
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    isDestructive?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  // Fetch providers using React Query
+  const { data: providersRes, isLoading } = useQuery({
+    queryKey: ['third-party-providers', selectedStatus, debouncedSearch, currentPage, pageSize],
+    queryFn: () =>
+      thirdPartyService.getAll({
+        is_active: selectedStatus === 'All' ? undefined : selectedStatus === 'Active',
+        search: debouncedSearch || undefined,
+        page: currentPage,
+        per_page: pageSize,
+      }),
+  });
+
+  // Fetch all providers for KPI metrics calculation
+  const { data: allProvidersRes } = useQuery({
+    queryKey: ['third-party-providers', 'kpi-summary'],
+    queryFn: () => thirdPartyService.getAll({ per_page: 1000 }),
+  });
+
+  const providers: ThirdPartyProvider[] = providersRes?.data?.data || [];
+  const totalPages = providersRes?.data?.meta?.total_pages || 1;
+  const totalRecords = providersRes?.data?.meta?.total || providers.length;
+
+  const allProviders: ThirdPartyProvider[] = allProvidersRes?.data?.data || [];
+  const totalCount = allProviders.length;
+  const activeCount = allProviders.filter((p) => p.isActive).length;
+  const inactiveCount = allProviders.filter((p) => !p.isActive).length;
+  const activePct = totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 100;
+  const inactivePct = Math.max(0, 100 - activePct);
+
+  const totalSubcontractTrips = allProviders.reduce((acc, p) => acc + (p.total_trips || 0), 0);
+  const totalRentalOutlay = allProviders.reduce((acc, p) => acc + (p.total_cost || 0), 0);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['third-party-providers'] });
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const openWhatsappShare = (provider: ThirdPartyProvider) => {
+    setWhatsappProvider(provider);
+    const text =
+      `🏢 *MERCON LOGISTICS - Third-Party Carrier Profile*\n` +
+      `• *Provider:* ${provider.name}\n` +
+      `• *Contact:* ${provider.contact_person || 'N/A'}\n` +
+      `• *Phone:* ${provider.phone || 'N/A'}\n` +
+      `• *Email:* ${provider.email || 'N/A'}\n` +
+      `• *Tax ID:* ${provider.tax_id || 'N/A'}\n` +
+      `• *Total Trips:* ${provider.total_trips || 0}`;
+    setWhatsappMessageText(text);
+    setWhatsappCustomPhone(provider.phone || '');
+  };
+
+  const handleWhatsappSend = () => {
+    const cleanPhone = whatsappCustomPhone.trim().replace(/\+/g, '').replace(/\D/g, '');
+    const baseUrl = cleanPhone ? `https://api.whatsapp.com/send?phone=${cleanPhone}` : `https://api.whatsapp.com/send`;
+    const shareUrl = `${baseUrl}?text=${encodeURIComponent(whatsappMessageText)}`;
+    window.open(shareUrl, '_blank');
+    setWhatsappProvider(null);
+  };
+
+  const handleExportExcel = async (rowsToExport: ThirdPartyProvider[]) => {
+    const headers = [
+      'Provider ID',
+      'Provider Name',
+      'Contact Person',
+      'Phone Number',
+      'Email',
+      'Tax / CR ID',
+      'Total Trips',
+      'Active Trips',
+      'Total Outlay (SAR)',
+      'Status',
+    ];
+
+    const dataRows = rowsToExport.map((p) => [
+      `3PL-${p.id.slice(0, 5).toUpperCase()}`,
+      p.name,
+      p.contact_person || 'N/A',
+      p.phone || 'N/A',
+      p.email || 'N/A',
+      p.tax_id || 'N/A',
+      p.total_trips || 0,
+      p.active_trips || 0,
+      p.total_cost || 0,
+      p.isActive ? 'Active' : 'Inactive',
+    ]);
+
+    await exportExcelTable(
+      'MERCON Third-Party Providers',
+      headers,
+      dataRows,
+      `third_party_providers_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+  };
+
+  const handleDeleteSingle = (provider: ThirdPartyProvider) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Remove Third-Party Provider',
+      message: `Are you sure you want to delete "${provider.name}"? This action can be undone from Recycle Bin.`,
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          await thirdPartyService.delete(provider.id);
+          toast.success(`Deleted provider "${provider.name}"`);
+          queryClient.invalidateQueries({ queryKey: ['third-party-providers'] });
+        } catch (err: any) {
+          toast.error(err?.message || 'Failed to delete provider');
+        }
+      },
+    });
+  };
+
+  const columns: Column<ThirdPartyProvider>[] = [
+    {
+      header: 'Provider ID & Ref',
+      accessor: (row: ThirdPartyProvider) => (
+        <div className="flex flex-col">
+          <span className="font-mono text-xs font-bold text-brand">
+            3PL-{row.id.slice(0, 5).toUpperCase()}
+          </span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            Reg: {new Date(row.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Company & Representative',
+      accessor: (row: ThirdPartyProvider) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-purple-50 border border-purple-100 dark:bg-purple-950/40 dark:border-purple-900 flex items-center justify-center text-purple-600 font-bold text-xs shrink-0">
+            <Building2 className="w-4 h-4" />
+          </div>
+          <div className="flex flex-col">
+            <span
+              className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-brand transition-colors cursor-pointer"
+              onClick={() => navigate(`/third-party/${row.id}`)}
+            >
+              {row.name}
+            </span>
+            {row.contact_person ? (
+              <span className="text-[11px] text-slate-500 font-medium">{row.contact_person}</span>
+            ) : (
+              <span className="text-[10px] text-slate-400 italic">—</span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Contact Info',
+      accessor: (row: ThirdPartyProvider) => (
+        <div className="flex flex-col gap-0.5 text-xs">
+          {row.phone && (
+            <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
+              <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+              {row.phone}
+            </span>
+          )}
+          {row.email && (
+            <span className="flex items-center gap-1 text-[11px] text-slate-500 truncate">
+              <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+              {row.email}
+            </span>
+          )}
+          {!row.phone && !row.email && <span className="text-slate-400 italic">—</span>}
+        </div>
+      ),
+    },
+    {
+      header: 'Subcontract Fleet & Trips',
+      accessor: (row: ThirdPartyProvider) => (
+        <div className="flex items-center gap-2">
+          <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-none font-bold text-[11px]">
+            {row.total_trips || 0} Trips
+          </Badge>
+          {(row.active_trips || 0) > 0 && (
+            <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 text-[10px] font-bold">
+              {row.active_trips} Active
+            </Badge>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: 'Total Outlay',
+      accessor: (row: ThirdPartyProvider) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-xs text-slate-900 dark:text-slate-100 font-mono">
+            SAR {(row.total_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </span>
+          <span className="text-[10px] text-slate-400">Total paid capacity</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Status',
+      accessor: (row: ThirdPartyProvider) => (
+        <StatusBadge status={row.isActive ? 'Active' : 'Inactive'} />
+      ),
+    },
+    {
+      header: 'Actions',
+      accessor: (row: ThirdPartyProvider) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel className="text-[11px] text-slate-400 font-bold uppercase">
+              Manage Provider
+            </DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigate(`/third-party/${row.id}`)} className="text-xs font-medium cursor-pointer">
+              <Eye className="w-3.5 h-3.5 mr-2 text-purple-600" /> View Profile &amp; Trips
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedProviderForEdit(row)} className="text-xs font-medium cursor-pointer">
+              <Edit2 className="w-3.5 h-3.5 mr-2 text-brand" /> Edit Provider Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openWhatsappShare(row)} className="text-xs font-medium text-emerald-600 cursor-pointer">
+              <Send className="w-3.5 h-3.5 mr-2" /> Share Profile via WhatsApp
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => handleDeleteSingle(row)}
+              className="text-xs font-medium text-rose-600 dark:text-rose-400 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete Provider
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
+  const bulkActions: BulkAction<ThirdPartyProvider>[] = [
+    {
+      label: 'Export CSV',
+      icon: <Download size={13} />,
+      onClick: (selectedRows) => {
+        downloadCSV(selectedRows, 'third_party_providers_export.csv');
+      },
+    },
+    {
+      label: 'Delete Selected',
+      icon: <Trash2 size={13} />,
+      variant: 'danger',
+      onClick: (selectedRows) => {
+        setConfirmModal({
+          isOpen: true,
+          title: 'Delete Selected Providers',
+          message: `Are you sure you want to delete ${selectedRows.length} third-party providers? This action can be undone from Recycle Bin.`,
+          isDestructive: true,
+          onConfirm: async () => {
+            try {
+              await Promise.all(selectedRows.map((p) => thirdPartyService.delete(p.id)));
+              toast.success(`Deleted ${selectedRows.length} providers`);
+              queryClient.invalidateQueries({ queryKey: ['third-party-providers'] });
+            } catch (err: any) {
+              toast.error('Failed to delete selected providers');
+            }
+          },
+        });
+      },
+    },
+  ];
+
+  return (
+    <DashboardLayout active="/third-party" title="Third-Party Fleet">
+      <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
+        {/* Page Content Header Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 shrink-0 pb-1">
+          <div className="flex items-center gap-3">
+            <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400 shrink-0" />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Third-Party Fleet &amp; Rental Providers
+                </h1>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Manage external subcontractor logistics, rented trucks, and third-party driver capacity.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {/* View Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold cursor-pointer',
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="List View"
+              >
+                <List size={14} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  'p-1.5 rounded-md transition-all text-xs flex items-center gap-1 font-semibold cursor-pointer',
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Grid View"
+              >
+                <LayoutGrid size={14} />
+              </button>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => handleExportExcel(providers)}
+            >
+              <Download className="h-3.5 w-3.5 text-slate-600" />
+              Export CSV
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={() => setIsImportOpen(true)}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 text-purple-600" />
+              Import Excel
+            </Button>
+
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand/90 text-white shadow-xs rounded-md px-4"
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Add Provider
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-9 p-0 text-slate-600 border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+              onClick={handleRefresh}
+              title="Refresh Data"
+            >
+              <RotateCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
+            </Button>
+          </div>
+        </div>
+
+        {/* 2. Instrument-Panel KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 shrink-0">
+          <KpiCard
+            title="TOTAL 3PL PROVIDERS"
+            value={
+              <span>
+                {totalCount}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85 font-mono">Partners</span>
+              </span>
+            }
+            variant="purple"
+            trend="up"
+            trendValue={`${activeCount} Active`}
+            description="Subcontract & rental partners"
+            icon={CustomerBuilding}
+            progressSegments={[
+              { label: `Active (${activeCount})`, value: activePct, color: 'bg-purple-600' },
+              { label: `Inactive (${inactiveCount})`, value: inactivePct, color: 'bg-slate-300 dark:bg-slate-700' },
+            ]}
+          />
+
+          <KpiCard
+            title="SUBCONTRACT TRIPS"
+            value={
+              <span>
+                {totalSubcontractTrips}
+                <span className="text-[16px] font-semibold ml-1.5 opacity-85 font-mono font-normal">Executed</span>
+              </span>
+            }
+            variant="blue"
+            trend="neutral"
+            trendValue="3PL Fleet Operations"
+            description="Total trips on third-party capacity"
+            icon={Truck}
+          />
+
+          <KpiCard
+            title="TOTAL RENTAL OUTLAY"
+            value={
+              <span>
+                SAR {totalRentalOutlay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            }
+            variant="emerald"
+            trend="up"
+            trendValue="Financial Capacity Outlay"
+            description="Subcontract & rental fees paid"
+            icon={DollarSign}
+          />
+        </div>
+
+        {/* Filter Controls Bar */}
+        <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Search provider name, contact, phone, tax ID..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="pl-9 h-9 text-xs"
+              />
+            </div>
+
+            <Select
+              value={selectedStatus}
+              onValueChange={(val: any) => {
+                setSelectedStatus(val);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[140px] h-9 text-xs font-semibold">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Statuses</SelectItem>
+                <SelectItem value="Active">Active Only</SelectItem>
+                <SelectItem value="Inactive">Inactive Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* 4. Data Table Ledger & Cards View */}
+        {viewMode === 'list' ? (
+          <DataTable
+            columns={columns}
+            data={providers}
+            isLoading={isLoading}
+            enableSelection={true}
+            bulkActions={bulkActions}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+            totalRecords={totalRecords}
+            emptyTitle="No Third-Party Providers Found"
+            emptyMessage="No providers match your search or status filter. Get started by adding a provider or importing an Excel workbook."
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {providers.map((p) => (
+              <div key={p.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900 flex items-center justify-center font-bold text-xs shrink-0">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4
+                        className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-brand transition-colors cursor-pointer"
+                        onClick={() => navigate(`/third-party/${p.id}`)}
+                      >
+                        {p.name}
+                      </h4>
+                      {p.contact_person && <p className="text-xs text-slate-500 font-medium">{p.contact_person}</p>}
+                    </div>
+                  </div>
+
+                  <StatusBadge status={p.isActive ? 'Active' : 'Inactive'} />
+                </div>
+
+                <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  {p.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{p.phone}</span>
+                    </div>
+                  )}
+                  {p.email && (
+                    <div className="flex items-center gap-2 truncate">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="truncate">{p.email}</span>
+                    </div>
+                  )}
+                  {p.address && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="truncate">{p.address}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Trips</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{p.total_trips || 0}</span>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Outlay</span>
+                    <span className="font-bold text-brand font-mono">SAR {(p.total_cost || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modals & Dialogs */}
+      <CreateThirdPartyModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+
+      {selectedProviderForEdit && (
+        <EditThirdPartyModal
+          isOpen={!!selectedProviderForEdit}
+          provider={selectedProviderForEdit}
+          onClose={() => setSelectedProviderForEdit(null)}
+        />
+      )}
+
+      {/* Excel Import Dialog */}
+      <ExcelImportDialog
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        entityLabel="Third-Party Providers"
+        columns={THIRD_PARTY_COLUMNS}
+        requiredFields={['name']}
+        preferSheet="Providers"
+        templateUrl="/templates/MERCON_Third_Party_Import_Template.xlsx"
+        matchLabel="provider name"
+        onImport={(rows) => thirdPartyService.bulkImport(rows)}
+        invalidateKeys={[['third-party-providers']]}
+      />
+
+      {/* WhatsApp Share Dialog */}
+      {whatsappProvider && (
+        <Dialog open={!!whatsappProvider} onOpenChange={(open) => !open && setWhatsappProvider(null)}>
+          <DialogContent className="sm:max-w-[450px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                <Send className="w-4 h-4 text-emerald-600" /> Share Provider via WhatsApp
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 dark:text-slate-300">Recipient Phone Number</label>
+                <Input
+                  placeholder="e.g. 966501234567"
+                  value={whatsappCustomPhone}
+                  onChange={(e) => setWhatsappCustomPhone(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 dark:text-slate-300">Message Preview</label>
+                <textarea
+                  value={whatsappMessageText}
+                  onChange={(e) => setWhatsappMessageText(e.target.value)}
+                  className="w-full rounded-md border border-slate-200 dark:border-slate-800 bg-transparent px-3 py-2 text-xs h-28 font-mono"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setWhatsappProvider(null)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleWhatsappSend} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+                <Send className="w-3.5 h-3.5 mr-1.5" /> Send via WhatsApp
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Confirm Action Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: () => {} })}
+        isDestructive={confirmModal.isDestructive}
+      />
+    </DashboardLayout>
+  );
+}

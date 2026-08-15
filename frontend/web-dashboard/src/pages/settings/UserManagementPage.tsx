@@ -151,10 +151,18 @@ export default function UserManagementPage() {
         else if (row.role === 'Driver') { bg = 'bg-[#FFF7ED]'; text = 'text-[#C2410C]'; }
 
         return (
-          <span className={`px-2 py-0.5 rounded text-xs font-bold ${bg} ${text} inline-flex items-center gap-1`}>
-            {row.role === 'Admin' && <Shield size={10} />}
-            {row.role === 'Driver' && <Truck size={10} />}
-            {row.role}
+          <span className="inline-flex items-center gap-1.5">
+            <span className={`px-2 py-0.5 rounded text-xs font-bold ${bg} ${text} inline-flex items-center gap-1`}>
+              {row.role === 'Admin' && <Shield size={10} />}
+              {row.role === 'Driver' && <Truck size={10} />}
+              {row.role}
+            </span>
+            {row.raw?.isSuperAdmin && (
+              <span className="px-2 py-0.5 rounded text-xs font-bold bg-brand/10 text-brand inline-flex items-center gap-1" title="Can edit this deployment's branding & modules">
+                <Shield size={10} />
+                Superadmin
+              </span>
+            )}
           </span>
         );
       },
@@ -289,6 +297,7 @@ export default function UserManagementPage() {
           onSave={handleSaveUser}
           initialData={editingUser}
           isLoading={createMutation.isPending || updateMutation.isPending}
+          canManageSuperAdmin={currentUser?.isSuperAdmin}
         />
       )}
     </DashboardLayout>

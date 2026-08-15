@@ -3,7 +3,8 @@ import {
   UploadCloud, FileText, FolderOpen, Shield, Car, User as UserIcon, Eye, Download,
   RotateCw, AlertTriangle, CheckCircle2, FileCheck, Briefcase, Clock, ChevronLeft, ChevronRight,
   ChevronsLeft, ChevronsRight, FileBadge2, FileBarChart2, FileClock, FileKey2, LayoutGrid, List, Check, HardDrive,
-  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2
+  ExternalLink, Trash2, Filter, ShieldAlert, ArrowUpDown, X, FileSpreadsheet, FolderPlus, FolderInput, Folder, CheckSquare, Truck, Sparkles, Loader2,
+  Hash, Building2, Calendar
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -22,7 +23,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
-import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl } from '@/lib/documents';
+import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,12 +35,13 @@ import ExpiryRadarModal from '@/components/ui/ExpiryRadarModal';
 import CreateFolderModal from '@/components/ui/CreateFolderModal';
 import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
+import { AutoAssignModal } from '@/components/ui/AutoAssignModal';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
 // ─── Category & Icon Config ──────────────────────────────────────────────────
 
-const CATEGORY_TABS: Array<'All' | DocCategory> = ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'];
+const CATEGORY_TABS: Array<'All' | DocCategory | 'Unassigned'> = ['All', 'Drivers', 'Vehicles', 'Operations', 'Company', 'Unassigned'];
 
 const CATEGORY_CONFIG: Record<DocCategory, {
   icon: React.ElementType;
@@ -112,16 +114,19 @@ export default function DocumentsCenterPage() {
   // State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [activeCategory, setActiveCategory] = useState<'All' | DocCategory>(
-    ['All', 'Drivers', 'Vehicles', 'Operations', 'Company'].includes(initialCategory) ? initialCategory : 'All'
+  const [activeCategory, setActiveCategory] = useState<'All' | DocCategory | 'Unassigned'>(
+    ['All', 'Drivers', 'Vehicles', 'Operations', 'Company', 'Unassigned'].includes(initialCategory) ? initialCategory : 'All'
   );
   const [expiryFilter, setExpiryFilter] = useState<'all' | 'expired' | 'critical' | 'warning' | 'valid'>(
     ['all', 'expired', 'critical', 'warning', 'valid'].includes(initialFilter) ? initialFilter : 'all'
   );
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'folders' | 'list' | 'grid'>('folders');
+  const [isAutoAssigning, setIsAutoAssigning] = useState(false);
+  const [isAutoAssignModalOpen, setIsAutoAssignModalOpen] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
+  const [docRotation, setDocRotation] = useState<number>(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -184,12 +189,33 @@ export default function DocumentsCenterPage() {
   });
 
   const [isAiOcrRunning, setIsAiOcrRunning] = useState(false);
+  const [extractingRowId, setExtractingRowId] = useState<string | null>(null);
 
-  const handleRunAiOcrExtract = async () => {
+  const handleSingleDocAiOcr = async (docId: string, docLabel: string) => {
+    setExtractingRowId(docId);
+    toast.info(`Extracting metadata via Gemini AI Vision for ${docLabel}...`);
+    try {
+      await documentService.extractDocumentOcr(docId);
+      toast.success(`✨ Successfully extracted & saved AI metadata for ${docLabel}!`);
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    } catch (err: any) {
+      toast.error('AI extraction error: ' + (err.message || 'Failed to extract metadata'));
+    } finally {
+      setExtractingRowId(null);
+    }
+  };
+
+  const handleBulkExtractSelectedDocs = async (targetIds: string[]) => {
+    if (!targetIds || targetIds.length === 0) {
+      toast.error('Please select at least one document row');
+      return;
+    }
     setIsAiOcrRunning(true);
     try {
-      const res = await documentService.bulkOcrExtract(true, 200);
-      toast.success(res.message || 'Successfully extracted document dates with AI OCR!');
+      toast.info(`Extracting AI metadata via Gemini Vision for ${targetIds.length} selected document(s)...`);
+      const res = await documentService.bulkOcrExtract(false, targetIds.length, targetIds);
+      toast.success(res.message || `✨ Successfully extracted AI metadata for ${targetIds.length} document(s)!`);
       await queryClient.invalidateQueries({ queryKey: ['documents'] });
       await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     } catch (err: any) {
@@ -197,6 +223,10 @@ export default function DocumentsCenterPage() {
     } finally {
       setIsAiOcrRunning(false);
     }
+  };
+
+  const handleAutoAssignUnlinkedDocs = () => {
+    setIsAutoAssignModalOpen(true);
   };
 
   const handleBulkDownload = async () => {
@@ -216,6 +246,24 @@ export default function DocumentsCenterPage() {
       toast.error('Failed to download document archive');
     } finally {
       setIsDownloadingZip(false);
+    }
+  };
+
+  const handleSingleAssignEntity = async (docId: string, entityType: string, entityId: string) => {
+    if (!docId || !entityType || !entityId || entityId === 'unassigned') return;
+    try {
+      toast.loading('Linking document to ' + entityType + '...', { id: 'assign-doc' });
+      await documentService.confirmAutoAssign([{ docId, entityType, entityId }]);
+      toast.success('Document entity updated successfully!', { id: 'assign-doc' });
+      await queryClient.invalidateQueries({ queryKey: ['documents'] });
+      await queryClient.invalidateQueries({ queryKey: ['folders'] });
+      await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      await queryClient.invalidateQueries({ queryKey: ['drivers'] });
+      if (previewDoc && previewDoc.id === docId) {
+        setPreviewDoc((prev) => prev ? { ...prev, entity_type: entityType, entity_id: entityId } : null);
+      }
+    } catch (err: any) {
+      toast.error('Failed assigning document: ' + (err.message || 'Error'), { id: 'assign-doc' });
     }
   };
 
@@ -273,7 +321,19 @@ export default function DocumentsCenterPage() {
         issuer: REGULATORY_BODY[d.doc_type] || 'Saudi Authority',
       }))
       .filter((d) => {
-        const matchesCat = activeCategory === 'All' || d.category === activeCategory;
+        const vIds = new Set(vehicles.map((v) => v.id));
+        const dIds = new Set(drivers.map((d) => d.id));
+        const isUnlinked = (
+          (d.entity_type === 'Vehicle' && !vIds.has(d.entity_id)) ||
+          (d.entity_type === 'Driver' && !dIds.has(d.entity_id)) ||
+          (!['Vehicle', 'Driver', 'Trip', 'Customer', 'Company'].includes(d.entity_type))
+        );
+
+        const matchesCat = activeCategory === 'All'
+          ? true
+          : activeCategory === 'Unassigned'
+            ? isUnlinked
+            : d.category === activeCategory;
         const matchesExpiry = expiryFilter === 'all' 
           ? true 
           : expiryFilter === 'warning' 
@@ -382,6 +442,54 @@ export default function DocumentsCenterPage() {
     setSelectedDocIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
+  // Group documents by Vehicle, Driver, Operations, Company
+  const groupedEntityFolders = useMemo(() => {
+    const vehicleMap = new Map(vehicles.map((v) => [v.id, v]));
+    const driverMap = new Map(drivers.map((d) => [d.id, d]));
+
+    const vehicleGroups = new Map<string, { vehicle: any; docs: EnrichedDocument[]; expiredCount: number }>();
+    const driverGroups = new Map<string, { driver: any; docs: EnrichedDocument[]; expiredCount: number }>();
+    const operationsDocs: EnrichedDocument[] = [];
+    const companyDocs: EnrichedDocument[] = [];
+    const unlinkedDocs: EnrichedDocument[] = [];
+
+    for (const doc of filteredDocs) {
+      const isExp = doc.daysLeft !== null && doc.daysLeft <= 0;
+
+      if (doc.entity_type === 'Vehicle' && vehicleMap.has(doc.entity_id)) {
+        const v = vehicleMap.get(doc.entity_id)!;
+        if (!vehicleGroups.has(v.id)) {
+          vehicleGroups.set(v.id, { vehicle: v, docs: [], expiredCount: 0 });
+        }
+        const g = vehicleGroups.get(v.id)!;
+        g.docs.push(doc);
+        if (isExp) g.expiredCount += 1;
+      } else if (doc.entity_type === 'Driver' && driverMap.has(doc.entity_id)) {
+        const d = driverMap.get(doc.entity_id)!;
+        if (!driverGroups.has(d.id)) {
+          driverGroups.set(d.id, { driver: d, docs: [], expiredCount: 0 });
+        }
+        const g = driverGroups.get(d.id)!;
+        g.docs.push(doc);
+        if (isExp) g.expiredCount += 1;
+      } else if (doc.category === 'Operations') {
+        operationsDocs.push(doc);
+      } else if (doc.category === 'Company') {
+        companyDocs.push(doc);
+      } else {
+        unlinkedDocs.push(doc);
+      }
+    }
+
+    return {
+      vehicles: Array.from(vehicleGroups.values()),
+      drivers: Array.from(driverGroups.values()),
+      operations: operationsDocs,
+      company: companyDocs,
+      unlinked: unlinkedDocs,
+    };
+  }, [filteredDocs, vehicles, drivers]);
+
   return (
     <DashboardLayout active="Documents" title="Documents Center">
       <div className="px-4 sm:px-6 pb-6 w-full flex flex-col animate-fade-in gap-5">
@@ -450,26 +558,7 @@ export default function DocumentsCenterPage() {
               Batch Import Trucks Docs
             </Button>
 
-            {/* AI Auto-Extract Expiries Action */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-9 gap-1.5 text-xs font-bold border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300 shadow-2xs"
-              onClick={handleRunAiOcrExtract}
-              disabled={isAiOcrRunning}
-            >
-              {isAiOcrRunning ? (
-                <>
-                  <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
-                  <span>Extracting Expiries with AI...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-amber-500/20" />
-                  <span>AI Auto-Extract Expiries</span>
-                </>
-              )}
-            </Button>
+
 
             {/* Upload Button */}
             <Button
@@ -648,8 +737,14 @@ export default function DocumentsCenterPage() {
           {/* Category Filter Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
             {CATEGORY_TABS.map((cat) => {
-              const count = cat === 'All' ? docs.length : (foldersByCategory[cat]?.count || 0);
+              const count = cat === 'All'
+                ? docs.length
+                : cat === 'Unassigned'
+                  ? groupedEntityFolders.unlinked.length
+                  : (foldersByCategory[cat]?.count || 0);
               const isActive = activeCategory === cat;
+              const isUnassignedPill = cat === 'Unassigned';
+
               return (
                 <button
                   key={cat}
@@ -657,11 +752,16 @@ export default function DocumentsCenterPage() {
                   className={cn(
                     'px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap',
                     isActive
-                      ? 'bg-brand text-white shadow-2xs'
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/70 border border-slate-200/70 dark:border-slate-700'
+                      ? isUnassignedPill
+                        ? 'bg-amber-600 text-white shadow-2xs'
+                        : 'bg-brand text-white shadow-2xs'
+                      : isUnassignedPill && count > 0
+                        ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-100'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/70 border border-slate-200/70 dark:border-slate-700'
                   )}
                 >
-                  <span>{cat} Category</span>
+                  {isUnassignedPill && <Sparkles size={13} className={isActive ? 'text-white' : 'text-amber-500'} />}
+                  <span>{cat === 'All' ? 'All Documents' : isUnassignedPill ? 'Unassigned Docs' : `${cat} Category`}</span>
                   <span className={cn(
                     'text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold',
                     isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
@@ -738,9 +838,22 @@ export default function DocumentsCenterPage() {
             {/* View Mode Switcher */}
             <div className="flex items-center bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
               <button
+                onClick={() => setViewMode('folders')}
+                className={cn(
+                  'p-1.5 px-2.5 rounded-lg transition-all text-xs flex items-center gap-1.5 font-bold',
+                  viewMode === 'folders'
+                    ? 'bg-brand text-white shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+                )}
+                title="Grouped Folder Explorer View"
+              >
+                <FolderOpen size={14} />
+                <span>Folders View</span>
+              </button>
+              <button
                 onClick={() => setViewMode('list')}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
+                  'p-1.5 px-2 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
                   viewMode === 'list'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
@@ -748,11 +861,12 @@ export default function DocumentsCenterPage() {
                 title="List View"
               >
                 <List size={14} />
+                <span>List</span>
               </button>
               <button
                 onClick={() => setViewMode('grid')}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
+                  'p-1.5 px-2 rounded-lg transition-all text-xs flex items-center gap-1 font-semibold',
                   viewMode === 'grid'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
@@ -760,12 +874,13 @@ export default function DocumentsCenterPage() {
                 title="Grid View"
               >
                 <LayoutGrid size={14} />
+                <span>Grid</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* ── Document Vault Area (List vs Grid View) ──────────────────────── */}
+        {/* ── Document Vault Area (Grouped Folders vs List vs Grid) ────────────── */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
             <RotateCw className="w-8 h-8 animate-spin text-indigo-500 opacity-70" />
@@ -785,6 +900,244 @@ export default function DocumentsCenterPage() {
               <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No documents found</p>
               <p className="text-xs text-slate-400 mt-0.5">Try clearing your search query or status filter</p>
             </div>
+          </div>
+        ) : viewMode === 'folders' ? (
+          /* GROUPED FOLDERS DEFAULT VIEW MODE */
+          <div className="space-y-8">
+            {/* Unassigned Documents Alert Banner */}
+            {groupedEntityFolders.unlinked.length > 0 && (
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center text-amber-700 dark:text-amber-300 shrink-0">
+                    <Sparkles className="w-5 h-5 fill-amber-500/20" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-amber-950 dark:text-amber-200">
+                      Found {groupedEntityFolders.unlinked.length} Unassigned Document(s)
+                    </h4>
+                    <p className="text-[11px] text-amber-800 dark:text-amber-400 mt-0.5">
+                      Some documents are not linked to a specific vehicle or driver. Click Auto-Assign to match them instantly!
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-xs shrink-0"
+                  onClick={handleAutoAssignUnlinkedDocs}
+                  disabled={isAutoAssigning}
+                >
+                  {isAutoAssigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  <span>Auto-Assign {groupedEntityFolders.unlinked.length} Docs</span>
+                </Button>
+              </div>
+            )}
+
+            {/* 1. Vehicles Group Section */}
+            {(activeCategory === 'All' || activeCategory === 'Vehicles') && groupedEntityFolders.vehicles.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-emerald-600" />
+                    <span>Vehicle Compliance Folders ({groupedEntityFolders.vehicles.length} Vehicles)</span>
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {groupedEntityFolders.vehicles.map(({ vehicle, docs: vDocs, expiredCount: vExp }) => (
+                    <Card
+                      key={vehicle.id}
+                      className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col justify-between group"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 shrink-0">
+                              <Folder className="w-4 h-4 fill-emerald-500/20" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                                {vehicle.plate_number || vehicle.ref_id || 'Vehicle Folder'}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 font-medium">Ref: #{vehicle.ref_id || vehicle.id.slice(0, 6)}</span>
+                            </div>
+                          </div>
+                          <Badge className={cn(
+                            'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
+                            vExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
+                          )}>
+                            {vExp > 0 ? `${vExp} Overdue` : 'Valid'}
+                          </Badge>
+                        </div>
+
+                        {/* Document type tags present inside this vehicle folder */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {vDocs.map((d) => (
+                            <Badge
+                              key={d.id}
+                              variant="outline"
+                              onClick={() => setPreviewDoc(d)}
+                              className="text-[10px] font-semibold bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-brand text-slate-700 dark:text-slate-300 cursor-pointer truncate max-w-[130px]"
+                            >
+                              {docTypeLabel(d.doc_type)}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="text-[10px] text-slate-400 font-semibold">{vDocs.length} Document(s)</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs font-bold text-brand hover:text-brand-hover p-0 flex items-center gap-1"
+                          onClick={() => {
+                            setSearch(vehicle.plate_number || vehicle.ref_id || '');
+                            setViewMode('list');
+                          }}
+                        >
+                          <span>Inspect Vault</span>
+                          <ChevronRight size={12} />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Drivers Group Section */}
+            {(activeCategory === 'All' || activeCategory === 'Drivers') && groupedEntityFolders.drivers.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 tracking-wider uppercase flex items-center gap-2">
+                    <UserIcon className="w-4 h-4 text-blue-600" />
+                    <span>Driver Compliance Folders ({groupedEntityFolders.drivers.length} Drivers)</span>
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {groupedEntityFolders.drivers.map(({ driver, docs: dDocs, expiredCount: dExp }) => (
+                    <Card
+                      key={driver.id}
+                      className="border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition-all flex flex-col justify-between group"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 shrink-0">
+                              <Folder className="w-4 h-4 fill-blue-500/20" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                                {driver.first_name} {driver.last_name}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 font-mono">IQAMA: {driver.iqama_number || 'N/A'}</span>
+                            </div>
+                          </div>
+                          <Badge className={cn(
+                            'text-[10px] font-mono font-bold px-2 py-0.5 border-0',
+                            dExp > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                          )}>
+                            {dExp > 0 ? `${dExp} Overdue` : 'Active'}
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {dDocs.map((d) => (
+                            <Badge
+                              key={d.id}
+                              variant="outline"
+                              onClick={() => setPreviewDoc(d)}
+                              className="text-[10px] font-semibold bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-brand text-slate-700 dark:text-slate-300 cursor-pointer truncate max-w-[130px]"
+                            >
+                              {docTypeLabel(d.doc_type)}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="text-[10px] text-slate-400 font-semibold">{dDocs.length} Document(s)</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs font-bold text-brand hover:text-brand-hover p-0 flex items-center gap-1"
+                          onClick={() => {
+                            setSearch(driver.first_name);
+                            setViewMode('list');
+                          }}
+                        >
+                          <span>Inspect Vault</span>
+                          <ChevronRight size={12} />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Unassigned / Loose Documents Group Section */}
+            {(activeCategory === 'All' || activeCategory === 'Unassigned') && groupedEntityFolders.unlinked.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-amber-800 dark:text-amber-300 tracking-wider uppercase flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500/20" />
+                    <span>Unassigned Documents ({groupedEntityFolders.unlinked.length} Files Needing Assignment)</span>
+                  </h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs font-bold border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                    onClick={handleAutoAssignUnlinkedDocs}
+                    disabled={isAutoAssigning}
+                  >
+                    {isAutoAssigning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    <span>Run Auto-Assign</span>
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {groupedEntityFolders.unlinked.map((doc) => {
+                    const DocIcon = DOC_TYPE_ICON[doc.doc_type] ?? FileText;
+                    return (
+                      <Card
+                        key={doc.id}
+                        onClick={() => setPreviewDoc(doc)}
+                        className="border border-amber-200/80 dark:border-amber-900/60 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xs hover:shadow-xs hover:border-amber-400 dark:hover:border-amber-700 transition-all cursor-pointer flex flex-col justify-between"
+                      >
+                        <div className="space-y-2.5">
+                          <div className="flex items-start justify-between">
+                            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 shrink-0">
+                              <DocIcon className="w-4 h-4" />
+                            </div>
+                            <Badge variant="outline" className="bg-amber-100/60 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300/60 text-[10px] font-bold">
+                              Unassigned
+                            </Badge>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                              {docTypeLabel(doc.doc_type)}
+                            </h4>
+                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5 truncate">
+                              {doc.ai_extracted_json?.document_number || `DOC-${doc.id.slice(0, 8)}`}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2.5 mt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                          <span className="truncate">{doc.issuer}</span>
+                          <span className="font-bold text-amber-600 flex items-center gap-1">
+                            <span>Assign</span>
+                            <ChevronRight size={10} />
+                          </span>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ) : viewMode === 'list' ? (
           <DataTable<EnrichedDocument>
@@ -832,12 +1185,48 @@ export default function DocumentsCenterPage() {
               },
               {
                 header: 'Entity Owner',
-                accessor: (row) => (
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-900 dark:text-slate-100 font-semibold truncate max-w-[170px]">{row.entityName}</span>
-                    <span className="text-[10px] text-slate-400 font-medium">{row.entity_type}</span>
-                  </div>
-                )
+                accessor: (row) => {
+                  const isUnknown = row.entityName.includes('Unknown') || !row.entity_id;
+
+                  return (
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={`${row.entity_type}:${row.entity_id}`}
+                        onValueChange={(val) => {
+                          const [type, id] = val.split(':');
+                          handleSingleAssignEntity(row.id, type, id);
+                        }}
+                      >
+                        <SelectTrigger className={cn(
+                          'h-7 text-xs font-bold px-2 py-0 border rounded-lg max-w-[185px] shrink-0',
+                          isUnknown
+                            ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 font-mono'
+                            : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                        )}>
+                          <SelectValue placeholder={row.entityName} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60 text-xs">
+                          <SelectItem value="Vehicle:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                            ── Vehicles ({vehicles.length}) ──
+                          </SelectItem>
+                          {vehicles.map((v) => (
+                            <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
+                              {v.plate_number || v.ref_id}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                            ── Drivers ({drivers.length}) ──
+                          </SelectItem>
+                          {drivers.map((d) => (
+                            <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
+                              {d.first_name} {d.last_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                }
               },
               {
                 header: 'Doc # / AI Metadata',
@@ -865,7 +1254,7 @@ export default function DocumentsCenterPage() {
                 header: 'Issuer Authority',
                 accessor: (row) => (
                   <span className="text-xs text-slate-700 dark:text-slate-200 font-semibold">
-                    {row.ai_extracted_json?.issuing_authority || row.issuer}
+                    {formatBilingualAuthority(row.ai_extracted_json?.issuing_authority || row.issuer)}
                   </span>
                 )
               },
@@ -923,9 +1312,17 @@ export default function DocumentsCenterPage() {
                 accessor: (row) => (
                   <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
+                      onClick={() => handleSingleDocAiOcr(row.id, docTypeLabel(row.doc_type))}
+                      disabled={extractingRowId === row.id}
+                      className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors disabled:opacity-50"
+                      title="AI Vision Auto-Extract Metadata (Serial #, Plate #, Issue/Expiry Date, Authority)"
+                    >
+                      {extractingRowId === row.id ? <Loader2 size={14} className="animate-spin text-amber-600" /> : <Sparkles size={14} />}
+                    </button>
+                    <button
                       onClick={() => setPreviewDoc(row)}
                       className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
-                      title="Preview File"
+                      title="Preview File & AI Details"
                     >
                       <Eye size={14} />
                     </button>
@@ -964,6 +1361,14 @@ export default function DocumentsCenterPage() {
             onPageSizeChange={(sz) => setPageSize(sz)}
             pageSizeOptions={[10, 25, 50, 100]}
             bulkActions={[
+              {
+                label: 'AI Vision Auto-Extract',
+                icon: <Sparkles size={13} className="text-amber-500 fill-amber-500/20" />,
+                variant: 'secondary' as const,
+                onClick: (selectedRows: EnrichedDocument[]) => {
+                  handleBulkExtractSelectedDocs(selectedRows.map(r => r.id));
+                }
+              },
               {
                 label: 'Move to Folder',
                 icon: <FolderInput size={13} />,
@@ -1154,6 +1559,25 @@ export default function DocumentsCenterPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="h-8 text-xs font-extrabold gap-1.5 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                  onClick={() => handleBulkExtractSelectedDocs(selectedDocIds)}
+                  disabled={isAiOcrRunning}
+                >
+                  {isAiOcrRunning ? (
+                    <>
+                      <Loader2 size={13} className="text-amber-600 animate-spin" />
+                      <span>Extracting AI...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} className="text-amber-600 dark:text-amber-400 fill-amber-500/20" />
+                      <span>AI Vision Auto-Extract</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="h-8 text-xs font-semibold gap-1.5 bg-white dark:bg-slate-800"
                   onClick={handleBulkDownload}
                   disabled={isDownloadingZip}
@@ -1185,157 +1609,380 @@ export default function DocumentsCenterPage() {
 
       </div>
 
-      {/* ── Document Preview Modal Drawer ─────────────────────────────────── */}
-      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden border-slate-200 dark:border-slate-800">
-          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-brand" />
-                <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                  {previewDoc ? docTypeLabel(previewDoc.doc_type) : 'Document Preview'}
-                </DialogTitle>
+      {/* ── Document Details & Intelligence Center Modal ────────────────────── */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => {
+        if (!open) {
+          setPreviewDoc(null);
+          setDocRotation(0);
+        }
+      }}>
+        <DialogContent className="max-w-6xl sm:max-w-6xl w-[94vw] sm:w-[90vw] h-[88vh] max-h-[88vh] flex flex-col p-0 overflow-hidden border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl bg-white dark:bg-slate-900">
+          
+          {/* Pinned Header */}
+          <DialogHeader className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                    {previewDoc ? docTypeLabel(previewDoc.doc_type) : 'Document Details'}
+                  </DialogTitle>
+                  {previewDoc && (
+                    <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-bold text-[10px] px-2.5 py-0.5 rounded-full">
+                      {categoryForEntity(previewDoc.entity_type)}
+                    </Badge>
+                  )}
+                </div>
+                {previewDoc && (
+                  <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2 font-mono">
+                    <span>ID: #{previewDoc.id.slice(0, 12)}...</span>
+                    <span>•</span>
+                    <span>Owner: {nameFor(previewDoc)}</span>
+                  </DialogDescription>
+                )}
               </div>
             </div>
           </DialogHeader>
 
           {previewDoc && (() => {
             const resolvedUrl = resolveFileUrl(previewDoc.file_url);
+            const expBadge = EXPIRY_BADGE[previewDoc.expStatus];
+            const isExtractingThis = extractingRowId === previewDoc.id;
+
             return (
-            <div className="p-6 space-y-5">
-              {/* Real File Media Viewer (Images, PDFs & Fallbacks) */}
-              <div className="w-full rounded-2xl bg-slate-950/5 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col items-center justify-center min-h-[220px] max-h-[380px] relative group p-2">
-                {previewDoc.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(resolvedUrl) ? (
-                  <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl bg-slate-900/10 dark:bg-slate-950/60 p-2">
-                    <img
-                      src={resolvedUrl}
-                      alt={docTypeLabel(previewDoc.doc_type)}
-                      className="max-h-72 w-full object-contain rounded-lg transition-transform duration-200 group-hover:scale-[1.01]"
-                    />
-                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
+              <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 min-h-0 overflow-hidden bg-slate-100/40 dark:bg-slate-950/40">
+                
+                {/* Left Column (58%): Interactive File & Image Viewer with Rotation */}
+                <div className="lg:col-span-7 flex flex-col bg-slate-950/5 dark:bg-slate-950/50 p-4 border-r border-slate-200/80 dark:border-slate-800/80 justify-between min-h-0">
+                  
+                  {/* Media Viewer Toolbar */}
+                  <div className="flex items-center justify-between pb-2 text-xs text-slate-500 font-medium shrink-0">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <FileCheck size={14} className="text-indigo-600 dark:text-indigo-400" />
+                      <span className="truncate">{previewDoc.mime_type || 'Document File'}</span>
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setDocRotation((prev) => (prev + 90) % 360)}
+                        className="h-7 px-2.5 text-[11px] font-bold gap-1.5 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+                        title="Rotate document image 90 degrees"
+                      >
+                        <RotateCw size={12} /> Rotate 90°
+                      </Button>
+
                       <a
                         href={resolvedUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3.5 py-2 rounded-xl bg-white text-slate-900 font-extrabold text-xs shadow-lg hover:bg-slate-100 flex items-center gap-1.5"
+                        className="h-7 px-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-50 flex items-center gap-1 shrink-0 shadow-2xs"
                       >
-                        <ExternalLink size={13} /> Open Full Resolution
+                        <ExternalLink size={12} /> Open Fullscreen
                       </a>
                     </div>
                   </div>
-                ) : previewDoc.mime_type === 'application/pdf' || /\.pdf$/i.test(resolvedUrl) ? (
-                  <div className="w-full h-80 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white">
-                    <iframe
-                      src={`${resolvedUrl}#toolbar=0`}
-                      title="PDF Document Preview"
-                      className="w-full h-full rounded-xl border-none"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-                    <FileText className="w-10 h-10 text-brand" />
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
-                        {docTypeLabel(previewDoc.doc_type)} File
-                      </h4>
-                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">#{previewDoc.id}</p>
-                    </div>
-                    <a
-                      href={resolvedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline"
-                    >
-                      <ExternalLink size={13} /> Open File in New Tab
-                    </a>
-                  </div>
-                )}
-              </div>
 
-              {/* AI Vision OCR Extracted Metadata Card */}
-              {previewDoc.ai_extracted_json && (
-                <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Gemini Vision AI Extracted Metadata</span>
-                    </span>
-                    {previewDoc.ai_extracted_json.confidence && (
-                      <span className="text-[10px] bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-mono font-bold">
-                        {Math.round(previewDoc.ai_extracted_json.confidence * 100)}% Confidence
+                  {/* Main File Viewer Container */}
+                  <div className="w-full flex-1 rounded-xl bg-slate-900/10 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center relative p-3 shadow-inner min-h-0">
+                    {previewDoc.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(resolvedUrl) ? (
+                      <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                        <img
+                          src={resolvedUrl}
+                          alt={docTypeLabel(previewDoc.doc_type)}
+                          style={{ transform: `rotate(${docRotation}deg)` }}
+                          className="max-h-full max-w-full object-contain rounded-lg transition-transform duration-300 shadow-md"
+                        />
+                      </div>
+                    ) : previewDoc.mime_type === 'application/pdf' || /\.pdf$/i.test(resolvedUrl) ? (
+                      <iframe
+                        src={`${resolvedUrl}#toolbar=0`}
+                        title="PDF Document Preview"
+                        className="w-full h-full rounded-lg border-none min-h-[380px]"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                          <FileText className="w-8 h-8" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                            {docTypeLabel(previewDoc.doc_type)}
+                          </h4>
+                          <p className="text-xs text-slate-400 font-mono mt-1">
+                            {previewDoc.mime_type || 'Binary Document'}
+                          </p>
+                        </div>
+                        <a
+                          href={resolvedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white font-extrabold text-xs shadow-xs hover:bg-indigo-700 transition-all"
+                        >
+                          <ExternalLink size={13} /> Open File Link
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer Info */}
+                  <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400 font-mono shrink-0">
+                    <span>MIME: {previewDoc.mime_type || 'application/pdf'}</span>
+                    <span>Created: {previewDoc.createdAt ? new Date(previewDoc.createdAt).toLocaleString() : 'N/A'}</span>
+                  </div>
+                </div>
+
+                {/* Right Column (42%): Fully Scrollable Intelligence Ledger & Details */}
+                <div className="lg:col-span-5 flex flex-col h-full overflow-y-auto custom-scrollbar p-6 space-y-5 bg-white dark:bg-slate-900 min-h-0">
+                  
+                  {/* Status & Compliance Pill Header */}
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Compliance Status</span>
+                      <span className={cn('inline-flex items-center gap-1.5 text-xs font-extrabold px-3 py-1 rounded-full border shadow-2xs', expBadge.className)}>
+                        {expBadge.label}
                       </span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {previewDoc.ai_extracted_json.document_number && (
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Doc / Policy #</span>
-                        <span className="font-mono font-bold text-indigo-700 dark:text-indigo-400">{previewDoc.ai_extracted_json.document_number}</span>
-                      </div>
-                    )}
-                    {previewDoc.ai_extracted_json.issuing_authority && (
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Issuing Authority</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json.issuing_authority}</span>
-                      </div>
-                    )}
-                    {previewDoc.ai_extracted_json.vehicle_plate && (
-                      <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Extracted Vehicle Plate</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json.vehicle_plate}</span>
-                      </div>
-                    )}
-                  </div>
-                  {previewDoc.ai_extracted_json.notes && (
-                    <div className="pt-1.5 border-t border-amber-200/50 dark:border-amber-800/50 text-[11px] text-amber-900 dark:text-amber-200 italic">
-                      "{previewDoc.ai_extracted_json.notes}"
                     </div>
-                  )}
-                </div>
-              )}
 
-              {/* Metadata Key-Value Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="space-y-1">
-                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Entity Owner</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{nameFor(previewDoc)}</p>
-                </div>
+                    {previewDoc.daysLeft !== null && (
+                      <div className="text-right space-y-0.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Validity</span>
+                        <span className={cn(
+                          'text-xs font-mono font-extrabold block',
+                          previewDoc.daysLeft <= 0 ? 'text-rose-600' : previewDoc.daysLeft <= 30 ? 'text-amber-600' : 'text-emerald-600'
+                        )}>
+                          {previewDoc.daysLeft <= 0 ? `${Math.abs(previewDoc.daysLeft)} days overdue` : `${previewDoc.daysLeft} days remaining`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="space-y-1">
-                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Category</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{categoryForEntity(previewDoc.entity_type)}</p>
-                </div>
+                  {/* Interactive Entity Re-assignment Control Card */}
+                  <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 space-y-2.5 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                        <Truck size={14} className="text-indigo-600 dark:text-indigo-400" />
+                        <span>Assigned Fleet Entity Owner</span>
+                      </span>
+                      <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300 font-mono font-bold text-[10px] px-2 py-0.5 border-0">
+                        {previewDoc.entity_type}
+                      </Badge>
+                    </div>
 
-                <div className="space-y-1">
-                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Issuing Regulatory Body</span>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.ai_extracted_json?.issuing_authority || REGULATORY_BODY[previewDoc.doc_type] || 'Saudi Authority'}</p>
-                </div>
+                    <Select
+                      value={`${previewDoc.entity_type}:${previewDoc.entity_id}`}
+                      onValueChange={(val) => {
+                        const [type, id] = val.split(':');
+                        handleSingleAssignEntity(previewDoc.id, type, id);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-xs font-extrabold bg-white dark:bg-slate-800 border-indigo-300 dark:border-indigo-700 shadow-2xs text-slate-900 dark:text-slate-100">
+                        <SelectValue placeholder={nameFor(previewDoc)} />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="Vehicle:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                          ── Vehicles ({vehicles.length}) ──
+                        </SelectItem>
+                        {vehicles.map((v) => (
+                          <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
+                            {v.plate_number || v.ref_id}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                          ── Drivers ({drivers.length}) ──
+                        </SelectItem>
+                        {drivers.map((d) => (
+                          <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
+                            {d.first_name} {d.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-1">
-                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Expiry Date</span>
-                  <p className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                    {previewDoc.expiry_date ? new Date(previewDoc.expiry_date).toLocaleDateString() : 'N/A'}
-                  </p>
+                  {/* Gemini AI Vision OCR Extracted Intelligence Card */}
+                  <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 space-y-3.5 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-950 dark:text-amber-200">
+                        <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Gemini Vision AI Extracted Metadata</span>
+                      </div>
+                      {previewDoc.ai_extracted_json?.confidence && (
+                        <Badge className="bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-mono font-bold text-[10px] px-2.5 py-0.5 border-0">
+                          {Math.round((previewDoc.ai_extracted_json.confidence > 1 ? previewDoc.ai_extracted_json.confidence / 100 : previewDoc.ai_extracted_json.confidence) * 100)}% Confidence
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5 text-xs">
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-200/60 dark:border-slate-700 shadow-2xs">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                          <Hash size={10} /> Doc / Policy #
+                        </span>
+                        <span className="font-mono font-extrabold text-indigo-600 dark:text-indigo-400 block truncate mt-0.5 text-xs">
+                          {previewDoc.ai_extracted_json?.document_number || `DOC-${previewDoc.id.slice(0, 8)}`}
+                        </span>
+                      </div>
+
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-200/60 dark:border-slate-700 shadow-2xs">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                          <Truck size={10} /> Vehicle Plate
+                        </span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200 block truncate mt-0.5 text-xs">
+                          {previewDoc.ai_extracted_json?.vehicle_plate || nameFor(previewDoc)}
+                        </span>
+                      </div>
+
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-200/60 dark:border-slate-700 shadow-2xs col-span-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                          <Building2 size={10} /> Authority / Issuer (Bilingual)
+                        </span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block truncate mt-0.5 text-xs">
+                          {formatBilingualAuthority(previewDoc.ai_extracted_json?.issuing_authority || REGULATORY_BODY[previewDoc.doc_type])}
+                        </span>
+                      </div>
+
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-amber-200/60 dark:border-slate-700 shadow-2xs col-span-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                          <Calendar size={10} /> Expiry Date (Gregorian)
+                        </span>
+                        <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 block truncate mt-0.5 text-xs">
+                          {previewDoc.expiry_date ? new Date(previewDoc.expiry_date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Extra Extracted Document Attributes (Issue ID, Chassis #, Owner Name, etc.) */}
+                    {previewDoc.ai_extracted_json?.extra_details && Object.keys(previewDoc.ai_extracted_json.extra_details).length > 0 && (
+                      <div className="pt-2 border-t border-amber-200/60 dark:border-amber-900/40 space-y-1.5">
+                        <span className="text-[9px] font-extrabold text-amber-900 dark:text-amber-300 uppercase tracking-wider block">
+                          Extracted Document Attributes (Issue ID & Details)
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          {Object.entries(previewDoc.ai_extracted_json.extra_details).map(([k, v]) => (
+                            v ? (
+                              <div key={k} className="bg-white/80 dark:bg-slate-800/80 p-2 rounded-lg border border-amber-200/40 dark:border-slate-700/60">
+                                <span className="text-[9px] text-slate-400 font-bold uppercase block truncate">
+                                  {k.replace(/_/g, ' ')}
+                                </span>
+                                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 block truncate">
+                                  {String(v)}
+                                </span>
+                              </div>
+                            ) : null
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {previewDoc.ai_extracted_json?.notes && (
+                      <div className="p-3 rounded-xl bg-amber-100/60 dark:bg-amber-900/30 border border-amber-200/80 dark:border-amber-800/50 text-[11px] text-amber-950 dark:text-amber-200 italic leading-relaxed">
+                        "{previewDoc.ai_extracted_json.notes}"
+                      </div>
+                    )}
+
+                    {/* AI Re-Extract Button */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSingleDocAiOcr(previewDoc.id, docTypeLabel(previewDoc.doc_type))}
+                      disabled={isExtractingThis}
+                      className="w-full h-8.5 text-xs font-extrabold bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-800 gap-2 rounded-xl mt-1 shadow-2xs"
+                    >
+                      {isExtractingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-amber-600" />}
+                      <span>Run Gemini AI Vision Re-Scan</span>
+                    </Button>
+                  </div>
+
+                  {/* Metadata Key-Value System Ledger */}
+                  <div className="space-y-3 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 bg-slate-50/50 dark:bg-slate-900/50 text-xs">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block border-b border-slate-200/60 dark:border-slate-800 pb-2">
+                      System Metadata Ledger
+                    </span>
+
+                    <div className="grid grid-cols-2 gap-3.5 pt-1">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Entity Type</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{previewDoc.entity_type}</span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Entity Owner</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{nameFor(previewDoc)}</span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Folder Placement</span>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate block">
+                          {previewDoc.folder?.name || 'Unassigned Root'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Confidentiality</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {previewDoc.is_confidential ? '🔒 Restricted' : '🌐 Standard'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Action Tools */}
+                  <div className="pt-1 grid grid-cols-2 gap-2.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setMoveTargetDocIds([previewDoc.id]);
+                        setIsMoveModalOpen(true);
+                      }}
+                      className="text-xs font-bold gap-1.5 rounded-xl border-slate-200 dark:border-slate-700 h-9"
+                    >
+                      <FolderInput size={13} /> Move Folder
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDeleteDocId(previewDoc.id)}
+                      className="text-xs font-bold gap-1.5 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 h-9"
+                    >
+                      <Trash2 size={13} /> Delete File
+                    </Button>
+                  </div>
+
                 </div>
               </div>
-            </div>
-          );
+            );
           })()}
 
-          <DialogFooter className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(null)} className="text-xs">
+          {/* Pinned Footer */}
+          <DialogFooter className="px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 flex items-center justify-between shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setPreviewDoc(null);
+                setDocRotation(0);
+              }}
+              className="text-xs font-bold rounded-xl"
+            >
               Close
             </Button>
             {previewDoc && (
               <a
-                href={previewDoc.file_url}
+                href={resolveFileUrl(previewDoc.file_url)}
                 download
-                className="h-8 px-4 rounded-md bg-brand text-white text-xs font-bold hover:bg-brand-hover inline-flex items-center gap-1.5"
+                className="h-8.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md inline-flex items-center gap-2 transition-all"
               >
-                <Download size={14} /> Download Document
+                <Download size={14} /> Download Source File
               </a>
             )}
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
@@ -1435,6 +2082,16 @@ export default function DocumentsCenterPage() {
         confirmLabel="Delete Folder"
         isDestructive={true}
         isLoading={isDeleting}
+      />
+      <AutoAssignModal
+        isOpen={isAutoAssignModalOpen}
+        onClose={() => setIsAutoAssignModalOpen(false)}
+        onSuccess={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['documents'] });
+          await queryClient.invalidateQueries({ queryKey: ['folders'] });
+          await queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+          await queryClient.invalidateQueries({ queryKey: ['drivers'] });
+        }}
       />
     </DashboardLayout>
   );

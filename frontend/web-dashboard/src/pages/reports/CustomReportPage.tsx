@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, Truck, TrendingUp, BarChart3 } from 'lucide-react';
+import { Download, FileText, Truck, TrendingUp, BarChart3, FileSpreadsheet, ArrowRight, Sparkles } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
@@ -9,16 +10,17 @@ import { TruckMotion, RevenueChart } from '@/components/ui/kpi-icons';
 import Btn from '@/components/ui/Btn';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { reportsService } from '@/services/reportsService';
 import { customerService } from '@/services/customerService';
-
 import { exportExcelTable } from '@/utils/exportUtils';
+import ReportsHeader from '@/components/reports/ReportsHeader';
 
 type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
 
-import ReportsHeader from '@/components/reports/ReportsHeader';
-
 export default function CustomReportPage() {
+  const navigate = useNavigate();
   const [preset, setPreset] = useState<DatePreset>('this_month');
   const [customerId, setCustomerId] = useState<string>('all');
   
@@ -76,23 +78,10 @@ export default function CustomReportPage() {
     if (!reportData?.trips || reportData.trips.length === 0) return;
     
     const headers = [
-      'S/L',
-      'DATE',
-      'JOB #',
-      'DRIVER NAME',
-      'VEHICLE NO:',
-      'VEHICLE TYPE',
-      'MOBILE NUMBER',
-      'ASTOOL AL SHAHLA OR 3RD PARTY',
-      'SENDER/CUSTOMER',
-      'RECEIVER',
-      'WAITING/LABOR CHARGES',
-      'ADDITIONAL STOPS',
-      'BILLING AMOUNT',
-      'TOTAL AMOUNT',
-      'TRIP CHARGES',
-      'BALANCE AMOUNT',
-      'COMPANY NAME'
+      'S/L', 'DATE', 'JOB #', 'DRIVER NAME', 'VEHICLE NO:', 'VEHICLE TYPE',
+      'MOBILE NUMBER', 'ASTOOL AL SHAHLA OR 3RD PARTY', 'SENDER/CUSTOMER',
+      'RECEIVER', 'WAITING/LABOR CHARGES', 'ADDITIONAL STOPS', 'BILLING AMOUNT',
+      'TOTAL AMOUNT', 'TRIP CHARGES', 'BALANCE AMOUNT', 'COMPANY NAME'
     ];
 
     let sumWaitingLabor = 0;
@@ -118,44 +107,16 @@ export default function CustomReportPage() {
       sumBalance += balance;
 
       return [
-        index + 1,
-        format(new Date(t.date), 'dd-MM-yyyy'),
-        t.ref_id || 'N/A',
-        t.driver,
-        t.vehicle,
-        t.vehicle_type || '10 TON',
-        t.driver_phone || '',
-        t.carrier_name || 'MERCON LOGISTICS',
-        t.customer,
-        t.receiver || '',
-        waiting,
-        stops,
-        billing,
-        total,
-        tripCharges,
-        balance,
-        t.company_name || t.customer
+        index + 1, format(new Date(t.date), 'dd-MM-yyyy'), t.ref_id || 'N/A',
+        t.driver, t.vehicle, t.vehicle_type || '10 TON', t.driver_phone || '',
+        t.carrier_name || 'MERCON LOGISTICS', t.customer, t.receiver || '',
+        waiting, stops, billing, total, tripCharges, balance, t.company_name || t.customer
       ];
     });
 
     const summaryRow = [
-      'TOTALS',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      '',
-      sumWaitingLabor,
-      sumAdditionalStops,
-      sumBilling,
-      sumTotal,
-      sumTripCharges,
-      sumBalance,
-      ''
+      'TOTALS', '', '', '', '', '', '', '', '', '',
+      sumWaitingLabor, sumAdditionalStops, sumBilling, sumTotal, sumTripCharges, sumBalance, ''
     ];
 
     const selectedCust = customers.find((c: any) => c.id === customerId);
@@ -165,7 +126,6 @@ export default function CustomReportPage() {
 
     await exportExcelTable(titleText, headers, [...rows, summaryRow], `mercon_trip_ledger_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
   };
-
 
   const columns = [
     { header: 'S/L', accessor: (_row: any, idx: number) => <span className="text-gray-400 font-mono text-xs">{idx + 1}</span> },
@@ -183,17 +143,43 @@ export default function CustomReportPage() {
     { header: 'Status', accessor: (row: any) => <StatusBadge status={row.status} /> },
   ];
 
-
   return (
     <DashboardLayout active="Reports" title="Custom Generator">
-      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto">
+      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto flex flex-col gap-5">
         <ReportsHeader 
           activeTab="custom" 
           onRefresh={() => refetch()}
           onExport={handleExportCSV}
         />
+
+        {/* Dedicated Company Formats Banner */}
+        <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-xl p-4 border border-indigo-500/20 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/30">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Need Customer-Specific Company Excel Formats?</h3>
+                <Badge className="bg-indigo-500/30 text-indigo-200 border-indigo-400/30 text-[10px]">New</Badge>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Generate reports matching exact customer Excel spreadsheets (e.g. ARKAN, SHIPA, JDL) with custom colors and headers.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => navigate('/reports/client-templates')}
+            className="bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5 shrink-0 shadow-sm"
+          >
+            <span>Open Company Excel Generator</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+
         {/* Filters Section */}
-        <div className="bg-white rounded-lg border border-black/[0.08] p-6 mb-6 shadow-sm">
+        <div className="bg-white rounded-lg border border-black/[0.08] p-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-xs font-bold text-[#111] mb-2">Time Range</label>
@@ -256,14 +242,14 @@ export default function CustomReportPage() {
 
         {/* KPIs */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
             <div className="h-28 bg-black/5 rounded-lg"></div>
             <div className="h-28 bg-black/5 rounded-lg"></div>
             <div className="h-28 bg-black/5 rounded-lg"></div>
           </div>
         ) : reportData ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <KpiCard
                 label="Total Trips"
                 value={reportData.kpis.total_trips.toString()}

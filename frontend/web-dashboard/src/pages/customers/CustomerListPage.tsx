@@ -24,7 +24,8 @@ import {
   X,
   AlertTriangle,
   Calendar as CalendarIcon,
-  FileSpreadsheet
+  FileSpreadsheet,
+  MoreVertical
 } from 'lucide-react';
 import { CustomerBuilding, CheckBadge } from '@/components/ui/kpi-icons';
 
@@ -253,48 +254,44 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
       header: 'Actions',
       headerClassName: 'text-right',
       accessor: (row: Customer) => (
-        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => navigate(`/customers/${row.id}`)}
-            title="View Customer Details"
-            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </button>
-
-          <button
-            onClick={() => navigate(`/customers/${row.id}/contracts`)}
-            title="Rate Cards & Contracts"
-            className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-colors"
-          >
-            <FileText className="h-3.5 w-3.5" />
-          </button>
-
-          <button
-            onClick={() => navigate(`/customers/${row.id}/edit`)}
-            title="Edit Profile Details"
-            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-          >
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
-
-          <button
-            onClick={() => {
-              setConfirmModal({
-                isOpen: true,
-                title: 'Delete Customer Account',
-                message: `Are you sure you want to delete customer ${row.name}? This action cannot be undone.`,
-                onConfirm: async () => {
-                  await customerService.delete(row.id);
-                  queryClient.invalidateQueries({ queryKey: ['customers'] });
-                }
-              });
-            }}
-            title="Delete Customer Account"
-            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+        <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
+                <MoreVertical size={14} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Customer Options</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigate(`/customers/${row.id}`)} className="text-xs font-semibold">
+                <Eye size={13} className="mr-2 text-indigo-500" /> View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/customers/${row.id}/contracts`)} className="text-xs font-semibold">
+                <FileText size={13} className="mr-2 text-purple-500" /> Contracts & Rates
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/customers/${row.id}/edit`)} className="text-xs font-semibold">
+                <Edit2 size={13} className="mr-2 text-amber-500" /> Edit Profile
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Account Control</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: 'Delete Customer Account',
+                    message: `Are you sure you want to delete customer ${row.name}? This action cannot be undone.`,
+                    onConfirm: async () => {
+                      await customerService.delete(row.id);
+                      queryClient.invalidateQueries({ queryKey: ['customers'] });
+                    }
+                  });
+                }}
+                className="text-xs font-semibold text-rose-600 focus:text-rose-600 focus:bg-rose-50"
+              >
+                <Trash2 size={13} className="mr-2 text-rose-500" /> Delete Account
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ),
     },

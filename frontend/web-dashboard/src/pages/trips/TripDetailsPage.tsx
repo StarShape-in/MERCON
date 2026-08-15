@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ChevronRight, ChevronDown, Copy, Check, Printer, Phone, RefreshCcw,
   Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
-  Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
+  Calendar, ReceiptText, FileStack, PackageCheck, Gauge, Weight, Layers,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
   UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen, MessageCircle, UserCheck, History,
 } from 'lucide-react';
@@ -31,7 +31,7 @@ import {
 import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
 import UserChip, { useUserLookup } from '@/components/trips/UserChip';
 import {
-  tripService, TripStatus,
+  tripService, TripStatus, getTripPayloadCapacity, getTripRateCategory,
   type TripStop,
 } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
@@ -298,6 +298,8 @@ export default function TripDetailsPage() {
     { icon: RouteIcon, tone: 'bg-rose-50 text-rose-500', label: 'Distance', value: trip.planned_distance != null ? `${trip.planned_distance} km` : '—' },
     { icon: Timer, tone: 'bg-emerald-50 text-emerald-600', label: 'Elapsed', value: elapsedMinutes != null ? formatDelay(elapsedMinutes) : (estDurationMinutes != null ? formatDelay(estDurationMinutes) : '—') },
     { icon: Gauge, tone: 'bg-blue-50 text-blue-600', label: 'Avg. Speed', value: avgSpeedKmh != null ? `${avgSpeedKmh} km/h` : '—' },
+    { icon: Weight, tone: 'bg-purple-50 text-purple-600', label: 'Payload Capacity', value: getTripPayloadCapacity(trip) },
+    { icon: Layers, tone: 'bg-indigo-50 text-indigo-600', label: 'Rate Category', value: getTripRateCategory(trip) },
   ];
 
   // Activity checkpoints — 4 fixed lifecycle stages, derived from real stop/status data.
@@ -509,19 +511,26 @@ export default function TripDetailsPage() {
 
                 <div className="text-right shrink-0">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] mb-1.5">Status</p>
-                  <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-                    style={{ color: tone.color, backgroundColor: tone.bg }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
-                    {statusLabel(trip.status)}
-                  </span>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    {trip.is_third_party && (
+                      <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 text-xs font-semibold">
+                        3PL Rented
+                      </Badge>
+                    )}
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+                      style={{ color: tone.color, backgroundColor: tone.bg }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tone.color }} />
+                      {statusLabel(trip.status)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               <Separator className="my-5" />
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-5">
                 <div className="flex items-start gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                     <Building2 size={15} />
@@ -538,8 +547,10 @@ export default function TripDetailsPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Driver</p>
-                      {trip.driver && !isClosed && (
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+                        {trip.is_third_party ? '3PL Driver' : 'Driver'}
+                      </p>
+                      {trip.driver && !isClosed && !trip.is_third_party && (
                         <Popover open={isReplaceDriverOpen} onOpenChange={(open) => { setIsReplaceDriverOpen(open); if (!open) setReplaceDriverId(''); }}>
                           <PopoverTrigger asChild>
                             <button type="button" aria-label="Replace driver" className="text-[#9898A4] hover:text-brand transition-colors shrink-0">
@@ -571,9 +582,17 @@ export default function TripDetailsPage() {
                       )}
                     </div>
                     <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
-                      {trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned'}
+                      {trip.is_third_party
+                        ? trip.third_party_driver_name || trip.thirdPartyProvider?.name || 'Rented Driver'
+                        : trip.driver
+                        ? `${trip.driver.first_name} ${trip.driver.last_name}`
+                        : 'Unassigned'}
                     </p>
-                    {trip.driver?.phone_primary && <p className="text-xs text-[#6E6E80] truncate">{trip.driver.phone_primary}</p>}
+                    {trip.is_third_party ? (
+                      trip.third_party_driver_phone && <p className="text-xs text-[#6E6E80] truncate">{trip.third_party_driver_phone}</p>
+                    ) : (
+                      trip.driver?.phone_primary && <p className="text-xs text-[#6E6E80] truncate">{trip.driver.phone_primary}</p>
+                    )}
                   </div>
                 </div>
 
@@ -582,9 +601,45 @@ export default function TripDetailsPage() {
                     <Truck size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Vehicle</p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.vehicle?.plate_number || 'Unassigned'}</p>
-                    {trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>}
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+                      {trip.is_third_party ? 'Rented Vehicle' : 'Vehicle'}
+                    </p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
+                      {trip.is_third_party
+                        ? trip.third_party_vehicle_plate || 'Rented Truck'
+                        : trip.vehicle?.plate_number || 'Unassigned'}
+                    </p>
+                    {trip.is_third_party ? (
+                      <p className="text-xs text-[#6E6E80] truncate">
+                        {trip.thirdPartyProvider?.name || 'Third-Party'}
+                      </p>
+                    ) : (
+                      trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                    <Weight size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Payload Cap.</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5 font-mono">
+                      {getTripPayloadCapacity(trip)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Layers size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Rate Category</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
+                      {getTripRateCategory(trip)}
+                    </p>
                   </div>
                 </div>
 
@@ -868,6 +923,15 @@ export default function TripDetailsPage() {
                             Lane: <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_origin}</span> ➔ <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_destination}</span>
                           </p>
                         )}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-[#6E6E80]">
+                          <span>
+                            Payload Cap: <span className="font-semibold font-mono text-slate-800 dark:text-slate-200">{getTripPayloadCapacity(trip)}</span>
+                          </span>
+                          <span>•</span>
+                          <span>
+                            Rate Category: <span className="font-semibold text-slate-800 dark:text-slate-200">{getTripRateCategory(trip)}</span>
+                          </span>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-semibold text-[#9898A4]">Base Price</p>

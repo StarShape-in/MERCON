@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { getSummary, getFleetPerformance, getDriverPerformance, getRevenueReport, getCustomReport } from '../controllers/reportsController';
 import { getDelayLog, getDelayGrid, getDelayAnalysis } from '../controllers/delayReportsController';
 import { authenticateJWT } from '../middlewares/auth';
-import { authorizeRoles } from '../middlewares/rbac';
+import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 
 const router = Router();
 
 router.use(authenticateJWT);
 router.use(authorizeRoles('Admin', 'Operator'));
+router.use(requireModuleEnabled('reports'));
 
 // Dashboard summary KPIs + trip distribution + monthly revenue chart
 router.get('/summary', getSummary);
@@ -18,8 +19,9 @@ router.get('/fleet', getFleetPerformance);
 // Driver performance metrics
 router.get('/drivers', getDriverPerformance);
 
-// Revenue breakdown by month
-router.get('/revenue', getRevenueReport);
+// Revenue breakdown by month — this *is* the invoice report, so it needs
+// invoices on top of the router-level 'reports' gate.
+router.get('/revenue', requireModuleEnabled('invoices'), getRevenueReport);
 
 // Instant Custom Reports
 router.get('/custom', getCustomReport);

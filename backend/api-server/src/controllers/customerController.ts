@@ -48,8 +48,17 @@ export const getCustomers = async (req: Request, res: Response) => {
 
 export const getCustomerById = async (req: Request, res: Response) => {
   try {
-    const customer = await prisma.customer.findUnique({
-      where: { id: req.params.id as string, deletedAt: null },
+    const idOrRef = req.params.id as string;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrRef);
+    const whereClause: any = isUuid
+      ? { id: idOrRef, deletedAt: null }
+      : {
+          name: { equals: idOrRef, mode: 'insensitive' },
+          deletedAt: null,
+        };
+
+    const customer = await prisma.customer.findFirst({
+      where: whereClause,
       include: { trips: { take: 5, orderBy: { createdAt: 'desc' } } }
     });
 
