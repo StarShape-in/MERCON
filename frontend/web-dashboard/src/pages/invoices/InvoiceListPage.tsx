@@ -753,7 +753,7 @@ function TripSubTable({
   const [datePreset, setDatePreset] = useState<string>('ALL');
   const [customFrom, setCustomFrom] = useState<string>('');
   const [customTo, setCustomTo] = useState<string>('');
-
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
   // Handle Preset Selection inside company table
   const handlePresetChange = (preset: string) => {
     setDatePreset(preset);
@@ -765,7 +765,13 @@ function TripSubTable({
 
   // Filter trips by Date Preset / Custom Range
   const filteredTrips = useMemo(() => {
-    if (datePreset === 'ALL' && !customFrom && !customTo) return trips;
+    if (datePreset === 'ALL' && !customFrom && !customTo) {
+      return [...trips].sort((a, b) => {
+        const dateA = a.planned_start ? new Date(a.planned_start).getTime() : new Date(a.createdAt).getTime();
+        const dateB = b.planned_start ? new Date(b.planned_start).getTime() : new Date(b.createdAt).getTime();
+        return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+      });
+    }
 
     const now = new Date();
     let fromDate: Date | null = null;
@@ -795,14 +801,18 @@ function TripSubTable({
       }
     }
 
-    return trips.filter(t => {
+    return [...trips.filter(t => {
       const d = t.planned_start ? new Date(t.planned_start) : new Date(t.createdAt);
       if (isNaN(d.getTime())) return false;
       if (fromDate && d < fromDate) return false;
       if (toDate && d > toDate) return false;
       return true;
+    })].sort((a, b) => {
+      const dateA = a.planned_start ? new Date(a.planned_start).getTime() : new Date(a.createdAt).getTime();
+      const dateB = b.planned_start ? new Date(b.planned_start).getTime() : new Date(b.createdAt).getTime();
+      return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
     });
-  }, [trips, datePreset, customFrom, customTo]);
+  }, [trips, datePreset, customFrom, customTo, sortOrder]);
 
   return (
     <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-3 space-y-2.5">
@@ -846,6 +856,18 @@ function TripSubTable({
 
         <div className="flex items-center gap-2">
           <span className="text-slate-500 font-semibold text-xs font-mono">Showing {filteredTrips.length} of {trips.length} trips</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
+            className="h-7 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
+          >
+            {sortOrder === 'latest' ? (
+              <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
+            ) : (
+              <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
+            )}
+          </Button>
           <Button
             size="sm"
             onClick={async () => {
