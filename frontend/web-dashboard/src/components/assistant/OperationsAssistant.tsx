@@ -208,11 +208,6 @@ export default function OperationsAssistant() {
 
   if (reminders.length === 0) return null;
 
-  // Decide position of speech bubble relative to avatar button
-  const avatarRight = pos.x + 56;
-  const spaceRight  = window.innerWidth - avatarRight;
-  const openLeft    = spaceRight < 340;
-
   return (
     <>
       <style>{`
@@ -225,189 +220,225 @@ export default function OperationsAssistant() {
           0%  { opacity:0; transform:translateY(5px) }
           100%{ opacity:1; transform:translateY(0) }
         }
+        @keyframes idleFloat {
+          0%,100%{ transform:translateY(0px) }
+          50%    { transform:translateY(-5px) }
+        }
+        @keyframes reactBounce {
+          0%  { transform:translateY(0) rotate(0deg) }
+          30% { transform:translateY(-16px) rotate(-3deg) }
+          60% { transform:translateY(-6px) rotate(2deg) }
+          80% { transform:translateY(-10px) rotate(-1deg) }
+          100%{ transform:translateY(0) rotate(0deg) }
+        }
+        @keyframes reactWave {
+          0%,100%{ transform:rotate(0deg) }
+          25%    { transform:rotate(-14deg) }
+          75%    { transform:rotate(14deg) }
+        }
         .bubble-in  { animation:bubblePop 0.35s cubic-bezier(0.34,1.56,0.64,1) both }
         .msg-in     { animation:msgFade 0.25s ease both }
+        .char-idle  { animation:idleFloat 3.6s ease-in-out infinite }
+        .char-yes   { animation:reactBounce 0.52s ease both }
+        .char-no    { animation:reactBounce 0.42s ease both }
+        .char-wave  { animation:reactWave 0.65s ease both }
         .btn-hover  { transition:transform 0.16s ease, box-shadow 0.16s ease }
         .btn-hover:hover{ transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,0.13) }
         .btn-hover:active{ transform:translateY(0) }
       `}</style>
 
       <div className="fixed inset-0 z-[60] pointer-events-none" aria-live="polite">
-        {/* DRAGGABLE AVATAR BUTTON */}
-        <button
-          type="button"
-          aria-label="Open Operations Assistant"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          style={{ position:'fixed', left:`${pos.x}px`, top:`${pos.y}px`, touchAction:'none', zIndex:70 }}
-          className={`pointer-events-auto w-14 h-14 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl
-            flex items-center justify-center overflow-hidden
-            ring-4 ring-[#E8450F]/20
-            hover:scale-105 active:scale-95 transition-transform
-            ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'}`}
-        >
-          <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover pointer-events-none select-none"/>
-          {reminders.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[10px] font-black flex items-center justify-center shadow">
-              {reminders.length}
-            </span>
-          )}
-        </button>
+        {/* DRAGGABLE AVATAR BUTTON (shown when speech bubble is closed) */}
+        {!visible && (
+          <button
+            type="button"
+            aria-label="Open Operations Assistant"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            style={{ position:'fixed', left:`${pos.x}px`, top:`${pos.y}px`, touchAction:'none', zIndex:70 }}
+            className={`pointer-events-auto w-14 h-14 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl
+              flex items-center justify-center overflow-hidden
+              ring-4 ring-[#E8450F]/20
+              hover:scale-105 active:scale-95 transition-transform
+              ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'}`}
+          >
+            <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover pointer-events-none select-none"/>
+            {reminders.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[10px] font-black flex items-center justify-center shadow">
+                {reminders.length}
+              </span>
+            )}
+          </button>
+        )}
 
-        {/* SPEECH BUBBLE */}
+        {/* FULL ASSISTANT POPUP (HALF-BODY CHARACTER + SPEECH BUBBLE) */}
         {visible && (
           <div
             style={{
               position:'fixed',
-              top: Math.max(16, pos.y - 120),
-              ...(openLeft ? { right: window.innerWidth - pos.x + 12 } : { left: pos.x + 64 }),
+              left:`${Math.max(8, pos.x - 20)}px`,
+              bottom:`${Math.max(0, window.innerHeight - pos.y - 180)}px`,
               zIndex: 69,
-              width: 'min(340px, calc(100vw - 80px))',
             }}
-            className="pointer-events-auto bubble-in"
+            className="pointer-events-auto flex items-end gap-1.5 bubble-in"
           >
-            {/* Pointer Triangle */}
-            <span
-              aria-hidden="true"
-              style={{
-                position:'absolute',
-                top:'32px',
-                ...(openLeft ? { right:'-10px', borderLeft:'11px solid white' } : { left:'-10px', borderRight:'11px solid white' }),
-                width:0, height:0,
-                borderTop:'11px solid transparent',
-                borderBottom:'11px solid transparent',
-                filter:'drop-shadow(0 2px 2px rgba(0,0,0,0.08))',
-                zIndex:2,
-              }}
-            />
+            {/* HALF-BODY CHARACTER IMAGE */}
+            <div className="relative shrink-0 select-none pointer-events-none z-10 w-32 h-44 sm:w-40 sm:h-56 -mr-1">
+              <img
+                src={ASSETS[currentAsset]}
+                alt="Operations Assistant Character"
+                draggable={false}
+                className={`w-full h-full object-contain object-bottom ${
+                  reaction === 'none' ? 'char-idle' : `char-${reaction}`
+                }`}
+              />
+            </div>
 
-            {/* Bubble Card */}
-            <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl overflow-visible" style={{zIndex:1}}>
-              <button
-                type="button"
-                onClick={dismiss}
-                aria-label="Dismiss"
-                className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-              >
-                <X className="w-3.5 h-3.5"/>
-              </button>
+            {/* SPEECH BUBBLE CARD */}
+            <div className="relative mb-4 w-[340px] max-w-[calc(100vw-120px)]">
+              {/* Pointer Triangle pointing left toward the character */}
+              <span
+                aria-hidden="true"
+                style={{
+                  position:'absolute',
+                  left:'-10px',
+                  bottom:'36px',
+                  width:0, height:0,
+                  borderTop:'10px solid transparent',
+                  borderBottom:'10px solid transparent',
+                  borderRight:'10px solid white',
+                  filter:'drop-shadow(-2px 0px 1px rgba(0,0,0,0.06))',
+                  zIndex:2,
+                }}
+              />
 
-              <div className="px-5 pt-4 pb-5 space-y-3">
-                {/* VIEW 1 — Question */}
-                {panelView === 'question' && (
-                  <div className="msg-in space-y-3.5">
-                    <div className="space-y-1">
-                      <p className="text-[15px] font-bold text-slate-900">Hey Ian! 👋</p>
-                      <p className="text-sm text-slate-700 leading-snug">
-                        Trip{' '}
-                        <strong className="text-[#E8450F] font-bold">
-                          {activeReminder?.tripRef ?? 'TRP-0159'}
-                        </strong>{' '}
-                        has been completed.
-                      </p>
-                      <p className="text-sm text-slate-800 font-medium">
-                        {activeReminder?.question ?? 'Was there any labor charge for this trip?'}
-                      </p>
-                    </div>
+              <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl overflow-visible" style={{zIndex:1}}>
+                <button
+                  type="button"
+                  onClick={dismiss}
+                  aria-label="Dismiss"
+                  className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5"/>
+                </button>
 
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={handleYes}
-                        className="btn-hover flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm">
-                        Yes
-                      </button>
-                      <button type="button" onClick={handleNo}
-                        className="btn-hover flex-1 h-9 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold">
-                        No
-                      </button>
-                      <button type="button" onClick={handleRemindLater}
-                        className="btn-hover flex-[1.6] h-9 rounded-xl border border-[#E8450F] bg-white hover:bg-orange-50 text-[#E8450F] text-sm font-semibold whitespace-nowrap">
-                        Remind Me Later
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* VIEW 2 — Enter amount */}
-                {panelView === 'yes_input' && (
-                  <div className="msg-in space-y-3">
-                    <button type="button" onClick={() => setPanelView('question')}
-                      className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-700 transition-colors">
-                      <ArrowLeft className="w-3 h-3"/> Back
-                    </button>
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">Great! 👍</p>
-                      <p className="text-xs text-slate-500 mt-0.5">Enter the labour charge amount:</p>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[50,100,150,200,500].map((v) => (
-                        <button key={v} type="button" onClick={() => setChargeAmount(String(v))}
-                          className={`btn-hover px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors
-                            ${chargeAmount===String(v)
-                              ? 'bg-[#E8450F] text-white border-[#E8450F]'
-                              : 'border-slate-200 text-slate-600 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
-                          {v} SAR
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
-                        <Input type="number" value={chargeAmount} onChange={(e) => setChargeAmount(e.target.value)}
-                          placeholder="150" className="h-9 pl-11 rounded-xl text-xs font-bold border-slate-200 focus-visible:ring-[#E8450F]"/>
+                <div className="px-5 pt-4 pb-5 space-y-3">
+                  {/* VIEW 1 — Question */}
+                  {panelView === 'question' && (
+                    <div className="msg-in space-y-3.5">
+                      <div className="space-y-1">
+                        <p className="text-[15px] font-bold text-slate-900">Hey Ian! 👋</p>
+                        <p className="text-sm text-slate-700 leading-snug">
+                          Trip{' '}
+                          <strong className="text-[#E8450F] font-bold">
+                            {activeReminder?.tripRef ?? 'TRP-0159'}
+                          </strong>{' '}
+                          has been completed.
+                        </p>
+                        <p className="text-sm text-slate-800 font-medium">
+                          {activeReminder?.question ?? 'Was there any labor charge for this trip?'}
+                        </p>
                       </div>
-                      <button type="button" disabled={isSubmitting || !chargeAmount} onClick={handleAddCharge}
-                        className="btn-hover h-9 px-4 rounded-xl bg-[#E8450F] hover:bg-[#d03d0c] disabled:opacity-60 text-white text-xs font-bold shrink-0">
-                        {isSubmitting ? '...' : 'Add'}
+
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={handleYes}
+                          className="btn-hover flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm">
+                          Yes
+                        </button>
+                        <button type="button" onClick={handleNo}
+                          className="btn-hover flex-1 h-9 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold">
+                          No
+                        </button>
+                        <button type="button" onClick={handleRemindLater}
+                          className="btn-hover flex-[1.6] h-9 rounded-xl border border-[#E8450F] bg-white hover:bg-orange-50 text-[#E8450F] text-sm font-semibold whitespace-nowrap">
+                          Remind Me Later
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* VIEW 2 — Enter amount */}
+                  {panelView === 'yes_input' && (
+                    <div className="msg-in space-y-3">
+                      <button type="button" onClick={() => setPanelView('question')}
+                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-700 transition-colors">
+                        <ArrowLeft className="w-3 h-3"/> Back
                       </button>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">Great! 👍</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Enter the labour charge amount:</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[50,100,150,200,500].map((v) => (
+                          <button key={v} type="button" onClick={() => setChargeAmount(String(v))}
+                            className={`btn-hover px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors
+                              ${chargeAmount===String(v)
+                                ? 'bg-[#E8450F] text-white border-[#E8450F]'
+                                : 'border-slate-200 text-slate-600 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
+                            {v} SAR
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
+                          <Input type="number" value={chargeAmount} onChange={(e) => setChargeAmount(e.target.value)}
+                            placeholder="150" className="h-9 pl-11 rounded-xl text-xs font-bold border-slate-200 focus-visible:ring-[#E8450F]"/>
+                        </div>
+                        <button type="button" disabled={isSubmitting || !chargeAmount} onClick={handleAddCharge}
+                          className="btn-hover h-9 px-4 rounded-xl bg-[#E8450F] hover:bg-[#d03d0c] disabled:opacity-60 text-white text-xs font-bold shrink-0">
+                          {isSubmitting ? '...' : 'Add'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* VIEW 3 — Success */}
-                {panelView === 'success' && (
-                  <div className="msg-in py-2 space-y-1">
-                    <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-                      <CheckCircle2 className="w-4 h-4 shrink-0"/>
-                      <span>Labour charge recorded!</span>
+                  {/* VIEW 3 — Success */}
+                  {panelView === 'success' && (
+                    <div className="msg-in py-2 space-y-1">
+                      <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                        <CheckCircle2 className="w-4 h-4 shrink-0"/>
+                        <span>Labour charge recorded!</span>
+                      </div>
+                      <p className="text-sm font-extrabold text-slate-900">{successMessage}</p>
                     </div>
-                    <p className="text-sm font-extrabold text-slate-900">{successMessage}</p>
-                  </div>
-                )}
+                  )}
 
-                {/* VIEW 4 — No confirmed */}
-                {panelView === 'no_confirmed' && (
-                  <div className="msg-in py-2 space-y-1">
-                    <p className="text-sm font-bold text-slate-800">Okay, got it! 👍</p>
-                    <p className="text-xs text-slate-500">No labour charge recorded for trip {activeReminder?.tripRef}.</p>
-                  </div>
-                )}
+                  {/* VIEW 4 — No confirmed */}
+                  {panelView === 'no_confirmed' && (
+                    <div className="msg-in py-2 space-y-1">
+                      <p className="text-sm font-bold text-slate-800">Okay, got it! 👍</p>
+                      <p className="text-xs text-slate-500">No labour charge recorded for trip {activeReminder?.tripRef}.</p>
+                    </div>
+                  )}
 
-                {/* VIEW 5 — Remind me later */}
-                {panelView === 'remind_later' && (
-                  <div className="msg-in space-y-2.5">
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">When should I remind you? 🕐</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        I'll check back about <strong>{activeReminder?.tripRef}</strong>.
+                  {/* VIEW 5 — Remind me later */}
+                  {panelView === 'remind_later' && (
+                    <div className="msg-in space-y-2.5">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">When should I remind you? 🕐</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          I'll check back about <strong>{activeReminder?.tripRef}</strong>.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[{l:'1 min',v:1},{l:'5 min',v:5},{l:'15 min',v:15},{l:'1 hr',v:60}].map(({l,v}) => (
+                          <button key={v} type="button" onClick={() => handleConfirmTimer(v)}
+                            className={`btn-hover h-9 rounded-xl text-xs font-bold border transition-colors
+                              ${selectedTimer===v
+                                ? 'bg-[#E8450F] text-[#ffffff] border-[#E8450F]'
+                                : 'border-slate-200 text-slate-700 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-[#E8450F] shrink-0"/> Snoozing reminder…
                       </p>
                     </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {[{l:'1 min',v:1},{l:'5 min',v:5},{l:'15 min',v:15},{l:'1 hr',v:60}].map(({l,v}) => (
-                        <button key={v} type="button" onClick={() => handleConfirmTimer(v)}
-                          className={`btn-hover h-9 rounded-xl text-xs font-bold border transition-colors
-                            ${selectedTimer===v
-                              ? 'bg-[#E8450F] text-white border-[#E8450F]'
-                              : 'border-slate-200 text-slate-700 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
-                          {l}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-[#E8450F] shrink-0"/> Snoozing reminder…
-                    </p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
