@@ -70,6 +70,7 @@ const ExpenseDetailsPage      = lazy(() => import('@/pages/expenses/ExpenseDetai
 
 // Documents
 const DocumentsCenterPage     = lazy(() => import('@/pages/documents/DocumentsCenterPage'));
+const AprodacDocumentsPage    = lazy(() => import('@/pages/documents/AprodacDocumentsPage'));
 
 // Reports
 const ReportsDashboardPage        = lazy(() => import('@/pages/reports/ReportsDashboardPage'));
@@ -185,6 +186,8 @@ export default function AppRouter() {
           {/* Documents */}
           <Route path="/documents"                element={<RequireModule moduleKey="documents"><DocumentsCenterPage /></RequireModule>} />
           <Route path="/documents/expiry"         element={<Navigate to="/documents" replace />} />
+          <Route path="/aprodac-documents"        element={<AprodacDocumentsPage />} />
+          <Route path="/aprodac"                  element={<Navigate to="/aprodac-documents" replace />} />
 
           {/* Custom Report Builder */}
           <Route path="/custom-report"            element={<CustomReportPage />} />
