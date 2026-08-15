@@ -655,7 +655,7 @@ export default function VehicleFinancialsPage() {
                 </div>
 
                 {/* ── Asset Profitability Grid (mockup matching) ──────────────── */}
-                <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+                <Card className="max-w-[760px] mx-auto w-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
                   <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
                     <CardTitle className="text-sm font-bold flex items-center gap-2">
                       <Layers className="w-4 h-4 text-indigo-600" /> ASSET PROFITABILITY GRID
