@@ -2,14 +2,12 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Download, FileSpreadsheet, Upload, RefreshCw, Trash2, Building2,
-  Sparkles, Plus, Calendar, Filter, Layers,
+  Sparkles, Plus, Calendar, Filter, Layers, DollarSign, PackageCheck,
 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import KpiCard from '@/components/ui/KpiCard';
-import { TruckMotion, FleetTruck } from '@/components/ui/kpi-icons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import DataTable from '@/components/ui/DataTable';
@@ -113,6 +111,20 @@ export default function CompanyReportsGeneratorPage() {
   });
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
+
+  // Compute inline summary totals
+  const { totalBilling, totalAmount } = useMemo(() => {
+    if (!previewData?.rows || !Array.isArray(previewData.rows)) {
+      return { totalBilling: 0, totalAmount: 0 };
+    }
+    return previewData.rows.reduce(
+      (acc: { totalBilling: number; totalAmount: number }, r: any) => ({
+        totalBilling: acc.totalBilling + (Number(r.billing_amount) || 0),
+        totalAmount: acc.totalAmount + (Number(r.total_amount) || 0),
+      }),
+      { totalBilling: 0, totalAmount: 0 }
+    );
+  }, [previewData]);
 
   /* ─── Upload → inspect → mapping flow ───────────────────────────────────── */
   const handleFileSelect = async (file: File) => {
@@ -225,27 +237,27 @@ export default function CompanyReportsGeneratorPage() {
 
   const previewColumns = [
     { header: 'S/L', accessor: (_row: any, idx: number) => <span className="text-slate-400 font-mono text-xs">{idx + 1}</span> },
-    { header: 'Ref', accessor: (row: any) => <span className="font-mono text-xs font-bold text-brand">{row.ref_id}</span> },
+    { header: 'Ref ID', accessor: (row: any) => <span className="font-mono text-xs font-bold text-brand">{row.ref_id}</span> },
     { header: 'Date', accessor: (row: any) => (row.date ? format(new Date(row.date), 'dd-MM-yyyy') : '') },
     { header: 'Driver', accessor: (row: any) => row.driver_name },
     { header: 'Vehicle', accessor: (row: any) => row.vehicle_plate },
     { header: 'Customer', accessor: (row: any) => row.customer_name },
-    { header: 'Billing', accessor: (row: any) => `SAR ${Number(row.billing_amount || 0).toLocaleString()}` },
-    { header: 'Total', accessor: (row: any) => `SAR ${Number(row.total_amount || 0).toLocaleString()}` },
+    { header: 'Billing', accessor: (row: any) => <span className="font-medium text-slate-700 dark:text-slate-200">SAR {Number(row.billing_amount || 0).toLocaleString()}</span> },
+    { header: 'Total', accessor: (row: any) => <span className="font-bold text-slate-900 dark:text-slate-100">SAR {Number(row.total_amount || 0).toLocaleString()}</span> },
   ];
 
   return (
-    <DashboardLayout active="Company Reports" title="Company Reports Generator">
+    <DashboardLayout active="Company Reports" title="Company Reports Studio">
       <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto gap-4 flex flex-col">
 
-        {/* ─── Top Header Action Bar ─── */}
+        {/* ─── Studio Top Header Bar ─── */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-black/[0.08] dark:border-slate-800 shadow-2xs">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              Company Reports
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-brand" /> Company Reports
             </h2>
             <Badge className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-semibold px-2.5 py-0.5 text-xs">
-              <Sparkles className="w-3 h-3 mr-1 text-indigo-500" /> Reports Module
+              <Sparkles className="w-3 h-3 mr-1 text-indigo-500" /> Report Studio
             </Badge>
           </div>
 
@@ -263,68 +275,19 @@ export default function CompanyReportsGeneratorPage() {
               size="sm"
               className="h-9 px-3.5 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-1.5 shadow-xs rounded-lg"
             >
-              <Plus className="w-4 h-4" /> Add Template
+              <Plus className="w-4 h-4" /> Add Company Template
             </Button>
           </div>
         </div>
 
-        {/* ─── Instrument Panel KPI Cards ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard
-            title="SAVED TEMPLATES"
-            value={templates.length}
-            variant="slate"
-            trend="neutral"
-            trendValue={`${templates.length} Ready`}
-            description="Company Excel Formats"
-            icon={FileSpreadsheet}
-            chartData={[2, 4, 3, 5, 4, Math.max(1, templates.length)]}
-          />
-          <KpiCard
-            title="MATCHING TRIPS"
-            value={previewData?.total ?? 0}
-            variant="emerald"
-            trend={previewData?.total ? 'up' : 'neutral'}
-            trendValue={selectedTemplateId ? 'In range' : 'Pick a template'}
-            description="For selected filters"
-            icon={TruckMotion}
-            chartData={[12, 18, 25, 30, 42, previewData?.total ?? 0]}
-          />
-          <KpiCard
-            title="TARGET CUSTOMERS"
-            value={customers.length}
-            variant="blue"
-            trend="neutral"
-            trendValue={`${customers.length} Companies`}
-            description="Available formats"
-            icon={Building2}
-            chartData={[3, 5, 8, 10, Math.max(1, customers.length)]}
-          />
-          <KpiCard
-            title="ACTIVE TEMPLATE"
-            value={
-              selectedTemplate
-                ? selectedTemplate.name.length > 18
-                  ? selectedTemplate.name.slice(0, 16) + '...'
-                  : selectedTemplate.name
-                : 'None'
-            }
-            variant="amber"
-            trend={selectedTemplate ? 'up' : 'neutral'}
-            trendValue={selectedTemplate?.customer?.name || 'Shared / General'}
-            description="Selected output format"
-            icon={FleetTruck}
-          />
-        </div>
-
-        {/* ─── Control Bar & Dropdown Toolbar ─── */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs space-y-3">
+        {/* ─── Unified Control Toolbar & Filters ─── */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             
-            {/* Template Selector */}
+            {/* Report Template Selector */}
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <FileSpreadsheet className="w-3 h-3 text-brand" /> Report Template
+                <FileSpreadsheet className="w-3.5 h-3.5 text-brand" /> Active Format
               </label>
               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                 <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
@@ -332,11 +295,11 @@ export default function CompanyReportsGeneratorPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectLabel>Available Templates</SelectLabel>
+                    <SelectLabel>Available Company Formats</SelectLabel>
                     {templatesLoading ? (
                       <SelectItem value="loading" disabled>Loading templates...</SelectItem>
                     ) : templates.length === 0 ? (
-                      <SelectItem value="empty" disabled>No templates saved yet</SelectItem>
+                      <SelectItem value="empty" disabled>No formats uploaded</SelectItem>
                     ) : (
                       templates.map((t: ReportTemplateSummary) => (
                         <SelectItem key={t.id} value={t.id}>
@@ -352,10 +315,10 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            {/* Customer Filter */}
+            {/* Customer Company Filter */}
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Building2 className="w-3 h-3 text-blue-500" /> Customer Company
+                <Building2 className="w-3.5 h-3.5 text-blue-500" /> Customer Company
               </label>
               <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
                 <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
@@ -372,10 +335,10 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            {/* Time Horizon */}
+            {/* Time Horizon Filter */}
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-emerald-500" /> Time Horizon
+                <Calendar className="w-3.5 h-3.5 text-emerald-500" /> Time Horizon
               </label>
               <Select value={preset} onValueChange={(val) => setPreset(val as DatePreset)}>
                 <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
@@ -390,10 +353,10 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            {/* Trip Status */}
+            {/* Trip Status Filter */}
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Filter className="w-3 h-3 text-amber-500" /> Trip Status
+                <Filter className="w-3.5 h-3.5 text-amber-500" /> Trip Status
               </label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
@@ -409,10 +372,10 @@ export default function CompanyReportsGeneratorPage() {
               </Select>
             </div>
 
-            {/* Rate Category */}
+            {/* Rate Category Filter */}
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Layers className="w-3 h-3 text-purple-500" /> Rate Category
+                <Layers className="w-3.5 h-3.5 text-purple-500" /> Rate Category
               </label>
               <Select value={rateCategoryFilter} onValueChange={setRateCategoryFilter}>
                 <SelectTrigger className="h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700">
@@ -454,22 +417,27 @@ export default function CompanyReportsGeneratorPage() {
           )}
 
           {/* Action Row */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              {selectedTemplate && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedTemplate.name}</span>
-                  <Badge variant="outline" className="text-[10px] font-mono">
-                    {selectedTemplate.customer?.name || 'Shared'}
+              {selectedTemplate ? (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-400 font-medium">Selected Format:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedTemplate.name}</span>
+                  <Badge variant="outline" className="text-[10px] font-mono bg-slate-50 dark:bg-slate-800">
+                    {selectedTemplate.customer?.name || 'Shared / General'}
                   </Badge>
                   <button
                     onClick={(e) => handleDeleteTemplate(selectedTemplate.id, e)}
-                    className="p-1 text-slate-400 hover:text-red-500 transition-colors ml-1"
-                    title="Delete this template"
+                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                    title="Delete template"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
+              ) : (
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                  Please select a company format template to generate report
+                </span>
               )}
             </div>
 
@@ -479,33 +447,45 @@ export default function CompanyReportsGeneratorPage() {
               className="h-9 px-4 text-xs bg-brand hover:bg-brand-hover text-white font-bold gap-2 shadow-xs rounded-lg"
             >
               {isGenerating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              Generate Company Excel
+              Generate Excel Report
               {previewData?.total !== undefined && (
                 <span className="bg-white/20 text-white font-mono px-1.5 py-0.5 rounded text-[10px]">
-                  {previewData.total}
+                  {previewData.total} trips
                 </span>
               )}
             </Button>
           </div>
         </div>
 
-        {/* ─── Live Trip Ledger Preview ─── */}
+        {/* ─── Full-Focus Live Trip Ledger with Compact Inline Summary ─── */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-black/[0.08] dark:border-slate-800 p-4 shadow-2xs">
           <DataTable
             title={
-              <div className="flex items-center justify-between w-full pr-4">
-                <span className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full pr-4 gap-2">
+                <div className="flex items-center gap-2">
                   <FileSpreadsheet className="w-4 h-4 text-brand" />
-                  <span className="font-bold text-slate-800 dark:text-slate-100">Live Trip Ledger Preview</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">Live Trip Ledger</span>
                   {selectedTemplate && (
                     <span className="text-xs text-slate-400 font-normal hidden sm:inline">
                       — {selectedTemplate.name}
                     </span>
                   )}
-                </span>
-                <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold text-xs px-2 py-0.5 border border-slate-200 dark:border-slate-700">
-                  {previewData?.total ?? 0} trips matching
-                </Badge>
+                </div>
+
+                {/* Compact Inline Metrics Strip */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold text-xs px-2.5 py-1 border border-slate-200 dark:border-slate-700">
+                    <PackageCheck className="w-3 h-3 mr-1 text-brand" />
+                    {previewData?.total ?? 0} Trips
+                  </Badge>
+                  <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-mono font-bold text-xs px-2.5 py-1 border border-emerald-200 dark:border-emerald-800">
+                    <DollarSign className="w-3 h-3 mr-0.5 text-emerald-500" />
+                    Billing: SAR {totalBilling.toLocaleString()}
+                  </Badge>
+                  <Badge className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-mono font-bold text-xs px-2.5 py-1 border border-blue-200 dark:border-blue-800">
+                    Total: SAR {totalAmount.toLocaleString()}
+                  </Badge>
+                </div>
               </div>
             }
             columns={previewColumns}
@@ -520,7 +500,7 @@ export default function CompanyReportsGeneratorPage() {
           <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
-                <Plus className="w-4 h-4 text-brand" /> Add a Company Excel Template
+                <Plus className="w-4 h-4 text-brand" /> Add Company Excel Template
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
                 Upload a customer's branded Excel file (.xlsx) to inspect layout and configure column mapping.
