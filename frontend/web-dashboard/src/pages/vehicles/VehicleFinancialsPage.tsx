@@ -921,43 +921,6 @@ export default function VehicleFinancialsPage() {
                   />
                 ) : (
                   <>
-                    {/* KPIs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <StatCard
-                        label="Total Income Generated"
-                        value={sar(financials.summary.total_income)}
-                        hint={`${financials.summary.completed_trips_count} completed trip dispatches`}
-                        tone="income"
-                        icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
-                      />
-                      <StatCard
-                        label="Total Expenses"
-                        value={sar(financials.summary.total_expenses)}
-                        hint={`${financials.summary.total_maintenance_count} service & renewal records`}
-                        tone="expense"
-                        icon={<TrendingDown className="w-4 h-4 text-rose-600" />}
-                        ratio={
-                          financials.summary.total_income > 0
-                            ? financials.summary.total_expenses / financials.summary.total_income
-                            : 0
-                        }
-                      />
-                      <StatCard
-                        label="Net Vehicle Profit"
-                        value={sar(financials.summary.net_profit)}
-                        hint="Gross revenue less maintenance costs"
-                        tone={financials.summary.net_profit >= 0 ? 'profit' : 'expense'}
-                        icon={<DollarSign className="w-4 h-4 text-indigo-600" />}
-                      />
-                      <StatCard
-                        label="Cost / Trip"
-                        value={sar(vehicleCostPerTrip)}
-                        hint="Average expense per completed trip"
-                        tone="neutral"
-                        icon={<Route className="w-4 h-4 text-slate-400" />}
-                      />
-                    </div>
-
                     {/* Ledgers */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                       <LedgerCard
