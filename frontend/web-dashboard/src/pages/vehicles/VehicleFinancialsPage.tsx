@@ -41,50 +41,6 @@ const compact = (n: number) => {
   if (abs >= 1_000) return `${Math.round(n / 1_000)}k`;
   return String(Math.round(n));
 };
-
-const MOCKUP_COLORS: Record<string, string[]> = {
-  high: [
-    'bg-[#00B074] text-white',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#00B074] text-white',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#374151] text-slate-200',
-    'bg-[#00B074] text-white',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#00B074] text-white',
-  ],
-  profitable: [
-    'bg-[#374151] text-slate-200',
-    'bg-[#00B074] text-white',
-    'bg-[#374151] text-slate-200',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#374151] text-slate-200',
-    'bg-[#374151] text-slate-200',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#00B074] text-white',
-  ],
-  low: [
-    'bg-[#374151] text-slate-200',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#374151] text-slate-200',
-    'bg-[#374151] text-slate-200',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#374151] text-slate-200',
-    'bg-[#FF5B5B] text-white',
-  ],
-  loss: [
-    'bg-[#00B074] text-white',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#00B074] text-white',
-    'bg-[#374151] text-slate-200',
-    'bg-[#FF5B5B] text-white',
-    'bg-[#00B074] text-white',
-    'bg-[#374151] text-slate-200',
-    'bg-[#FF5B5B] text-white',
-  ],
-};
-
 const sar = (n: number) => `SAR ${Math.round(n).toLocaleString()}`;
 
 const PROFIT_TIERS = [
@@ -791,20 +747,16 @@ export default function VehicleFinancialsPage() {
 
                                   {/* Row Cells - exactly 8 boxes */}
                                   <div className="flex items-center gap-1.5">
-                                    {items.map((item, idx) => {
+                                    {items.map((item) => {
                                       let boxStyle = '';
-                                      if (item.isPlaceholder) {
-                                        boxStyle = MOCKUP_COLORS[tier.key][idx];
+                                      if (tier.key === 'high') {
+                                        boxStyle = 'bg-[#00B074] text-white hover:bg-[#009b66]';
+                                      } else if (tier.key === 'profitable') {
+                                        boxStyle = 'bg-[#2E7D32] text-white hover:bg-[#256428]';
+                                      } else if (tier.key === 'low') {
+                                        boxStyle = 'bg-[#374151] text-slate-200 hover:bg-[#1f2937]';
                                       } else {
-                                        if (item.margin >= 20) {
-                                          boxStyle = 'bg-[#00B074] text-white';
-                                        } else if (item.margin >= 10) {
-                                          boxStyle = 'bg-[#2E7D32] text-white';
-                                        } else if (item.margin >= 0) {
-                                          boxStyle = 'bg-[#374151] text-slate-200';
-                                        } else {
-                                          boxStyle = 'bg-[#FF5B5B] text-white';
-                                        }
+                                        boxStyle = 'bg-[#FF5B5B] text-white hover:bg-[#e04f4f]';
                                       }
 
                                       return item.isPlaceholder ? (
