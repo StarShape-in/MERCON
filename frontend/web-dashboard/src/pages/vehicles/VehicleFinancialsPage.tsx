@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import DataTable from '@/components/ui/DataTable';
 import type { Column } from '@/components/ui/DataTable';
 import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
@@ -430,7 +431,7 @@ export default function VehicleFinancialsPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <ToggleGroup
               value={[period]}
-              onValueChange={(v) => v[0] && setPeriod(v[0])}
+              onValueChange={(v: string[]) => v[0] && setPeriod(v[0])}
               aria-label="Reporting period"
             >
               {PERIODS.map((p) => (
