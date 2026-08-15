@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Download, RotateCw, Search, CheckCircle2, X, CalendarDays,
   ChevronDown, ChevronRight, Building2, FileText, Hash, StickyNote,
-  ExternalLink, Clock, Truck, User, Package, Printer, Eye, FileSpreadsheet
+  ExternalLink, Clock, Truck, User, Package, Printer, Eye, FileSpreadsheet,
+  ArrowDownUp, ArrowDown, ArrowUp
 } from 'lucide-react';
 
 import { downloadCSV } from '@/utils/exportUtils';
@@ -271,6 +272,7 @@ function CompanyInvoiceStatementModal({
   const [customTo, setCustomTo] = useState<string>(initialCustomTo);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'Invoiced' | 'NotInvoiced'>('ALL');
   const [statementSearch, setStatementSearch] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest' | 'none'>('latest');
 
   useEffect(() => {
     if (open) {
@@ -279,6 +281,7 @@ function CompanyInvoiceStatementModal({
       setCustomTo(initialCustomTo || '');
       setStatusFilter('ALL');
       setStatementSearch('');
+      setSortOrder('latest');
     }
   }, [open, row?.customer?.id, initialPreset, initialCustomFrom, initialCustomTo]);
 
@@ -363,8 +366,17 @@ function CompanyInvoiceStatementModal({
       });
     }
 
+    // 4. Sort by date
+    if (sortOrder !== 'none') {
+      list = [...list].sort((a, b) => {
+        const dateA = a.planned_start ? new Date(a.planned_start).getTime() : new Date(a.createdAt).getTime();
+        const dateB = b.planned_start ? new Date(b.planned_start).getTime() : new Date(b.createdAt).getTime();
+        return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+      });
+    }
+
     return list;
-  }, [row?.trips, datePreset, customFrom, customTo, statusFilter, statementSearch]);
+  }, [row?.trips, datePreset, customFrom, customTo, statusFilter, statementSearch, sortOrder]);
 
   const totalFiltered = filteredTrips.length;
   const invoicedFiltered = filteredTrips.filter(t => t.status === 'Invoiced').length;
@@ -538,6 +550,25 @@ function CompanyInvoiceStatementModal({
                 <SelectItem value="NotInvoiced">Pending Only</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
+              className="h-8 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs"
+            >
+              {sortOrder === 'latest' ? (
+                <>
+                  <ArrowDown className="w-3.5 h-3.5 text-blue-600" />
+                  Latest First
+                </>
+              ) : (
+                <>
+                  <ArrowUp className="w-3.5 h-3.5 text-amber-600" />
+                  Oldest First
+                </>
+              )}
+            </Button>
 
             {hasActiveFilters && (
               <Button
