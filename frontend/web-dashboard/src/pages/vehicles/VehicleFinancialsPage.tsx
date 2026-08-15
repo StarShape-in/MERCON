@@ -593,20 +593,20 @@ export default function VehicleFinancialsPage() {
                                 {items.map((item) => {
                                   let boxStyle = '';
                                   if (tier.key === 'high') {
-                                    boxStyle = 'bg-[#00B074] text-white hover:bg-[#009b66]';
+                                    boxStyle = 'bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-700/20';
                                   } else if (tier.key === 'profitable') {
-                                    boxStyle = 'bg-[#2E7D32] text-white hover:bg-[#256428]';
+                                    boxStyle = 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50';
                                   } else if (tier.key === 'low') {
-                                    boxStyle = 'bg-[#374151] text-slate-200 hover:bg-[#1f2937]';
+                                    boxStyle = 'bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80';
                                   } else {
-                                    boxStyle = 'bg-[#FF5B5B] text-white hover:bg-[#e04f4f]';
+                                    boxStyle = 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-950/50';
                                   }
 
                                   return item.isPlaceholder ? (
                                     <div
                                       key={item.vehicleId}
                                       className={cn(
-                                        'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center select-none shadow-3xs border border-transparent opacity-85',
+                                        'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center select-none shadow-3xs opacity-85',
                                         boxStyle
                                       )}
                                     >
