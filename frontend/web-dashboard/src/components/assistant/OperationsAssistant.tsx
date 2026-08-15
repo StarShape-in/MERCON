@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle2, Clock, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { tripService, Trip } from '@/services/tripService';
 
 const HANDLED_REMINDERS_KEY = 'mercon_assistant_handled_reminders_v2';
 const SNOOZED_REMINDERS_KEY  = 'mercon_assistant_snoozed_reminders_v2';
+const POSITION_KEY           = 'mercon_assistant_position_v3';
 
 const ASSETS = {
   profile:      '/assistant/profile.png',
@@ -30,6 +31,7 @@ type PanelView = 'question' | 'yes_input' | 'success' | 'no_confirmed' | 'remind
 export default function OperationsAssistant() {
   const [reminders,      setReminders]      = useState<ReminderItem[]>([]);
   const [activeId,       setActiveId]       = useState<string | null>(null);
+  // visible = speech bubble open; avatar always shows when reminders exist
   const [visible,        setVisible]        = useState(false);
   const [panelView,      setPanelView]      = useState<PanelView>('question');
   const [chargeAmount,   setChargeAmount]   = useState('150');
@@ -37,6 +39,64 @@ export default function OperationsAssistant() {
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedTimer,  setSelectedTimer]  = useState<number | null>(null);
   const [reaction,       setReaction]       = useState<'none'|'yes'|'no'|'wave'>('none');
+
+  // ── Draggable avatar position ──────────────────────────────────────────
+  const [pos, setPos] = useState<{x:number; y:number}>(() => {
+    try {
+      const s = localStorage.getItem(POSITION_KEY);
+      if (s) return JSON.parse(s);
+    } catch { /**/ }
+    return { x: 24, y: window.innerHeight - 80 };
+  });
+  const [isDragging, setIsDragging]   = useState(false);
+  const dragRef = useRef({ sx:0, sy:0, ix:0, iy:0 });
+  const movedRef = useRef(false);
+
+  const savePos = (x: number, y: number) => {
+    const cx = Math.min(Math.max(12, x), window.innerWidth  - 60);
+    const cy = Math.min(Math.max(12, y), window.innerHeight - 60);
+    setPos({ x:cx, y:cy });
+    try { localStorage.setItem(POSITION_KEY, JSON.stringify({x:cx,y:cy})); } catch { /**/ }
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    setIsDragging(true);
+    movedRef.current = false;
+    dragRef.current = { sx:e.clientX, sy:e.clientY, ix:pos.x, iy:pos.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragRef.current.sx;
+    const dy = e.clientY - dragRef.current.sy;
+    if (Math.hypot(dx,dy) > 4) movedRef.current = true;
+    setPos({ x: dragRef.current.ix + dx, y: dragRef.current.iy + dy });
+  };
+  const onPointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    if (!movedRef.current) {
+      // pure click — toggle bubble
+      setVisible((prev) => {
+        if (!prev) setPanelView('question');
+        return !prev;
+      });
+    } else {
+      savePos(pos.x, pos.y);
+    }
+  };
+
+  // keep avatar inside viewport on resize
+  useEffect(() => {
+    const fn = () => setPos((p) => ({
+      x: Math.min(Math.max(12, p.x), window.innerWidth  - 60),
+      y: Math.min(Math.max(12, p.y), window.innerHeight - 60),
+    }));
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  // ──────────────────────────────────────────────────────────────────────
 
   let currentAsset: AssetKey = 'question';
   if (panelView === 'yes_input' || panelView === 'success' || panelView === 'no_confirmed') currentAsset = 'great';
@@ -72,15 +132,16 @@ export default function OperationsAssistant() {
       });
 
       setReminders(pending);
-      if (pending.length > 0) {
-        setActiveId((prev) => (!prev || !pending.some((r)=>r.id===prev)) ? pending[0].id : prev);
-        setVisible(true);
-      } else {
-        setVisible(false);
-        setActiveId(null);
-      }
+      // ✅ NEVER auto-open the bubble — user clicks the avatar to open it
+      setActiveId((prev) => {
+        if (pending.length === 0) return null;
+        if (!prev || !pending.some((r) => r.id === prev)) return pending[0].id;
+        return prev;
+      });
+      // If no more reminders, close the bubble
+      if (pending.length === 0) setVisible(false);
     } catch(e) { console.error('assistant sync', e); }
-  }, []);
+  }, []);;
 
   useEffect(() => {
     syncReminders();
@@ -151,7 +212,7 @@ export default function OperationsAssistant() {
     setTimeout(syncReminders, 300);
   };
 
-  if (reminders.length === 0 && !visible) return null;
+  if (reminders.length === 0) return null;
 
   return (
     <>
@@ -206,12 +267,45 @@ export default function OperationsAssistant() {
       `}</style>
 
       <div className="fixed inset-0 z-[60] pointer-events-none" aria-live="polite">
-        <div className="absolute bottom-0 left-3 sm:left-7 flex items-end gap-0 pointer-events-auto"
-          style={{ maxWidth:'min(580px,calc(100vw - 20px))' }}>
+        {/* ── DRAGGABLE AVATAR BUTTON (always visible when reminders exist) ─ */}
+        <button
+          type="button"
+          aria-label="Open Operations Assistant"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          style={{ position:'fixed', left:`${pos.x}px`, top:`${pos.y}px`, touchAction:'none', zIndex:70 }}
+          className={`pointer-events-auto w-14 h-14 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl
+            flex items-center justify-center overflow-hidden
+            ring-4 ring-[#E8450F]/20
+            hover:scale-105 active:scale-95 transition-transform
+            ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'}`}
+        >
+          <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover pointer-events-none select-none"/>
+          {reminders.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[10px] font-black flex items-center justify-center shadow">
+              {reminders.length}
+            </span>
+          )}
+        </button>
 
-          {/* ── HALF-BODY CHARACTER ── */}
-          <div className={`relative shrink-0 select-none pointer-events-none z-10
-              w-36 h-52 sm:w-44 sm:h-64 ${visible ? 'char-in' : 'char-out'}`}>
+        {/* ── SPEECH BUBBLE (shown when visible=true) ──────────────────── */}
+        {visible && reminders.length > 0 && (() => {
+          // Decide which side of the avatar the bubble should open on
+          const avatarRight = pos.x + 56;
+          const spaceRight  = window.innerWidth - avatarRight;
+          const openLeft    = spaceRight < 320; // not enough room on the right
+          return (
+            <div
+              style={{
+                position:'fixed',
+                bottom: window.innerHeight - pos.y - 56,
+                ...(openLeft ? { right: window.innerWidth - pos.x + 8 } : { left: pos.x + 64 }),
+                zIndex: 69,
+                width: 'min(340px, calc(100vw - 80px))',
+              }}
+              className="pointer-events-auto bubble-in"
+            >
             <img
               src={ASSETS[currentAsset]}
               alt="Operations Assistant character"
