@@ -664,38 +664,38 @@ export default function VehicleFinancialsPage() {
                       Analyze active vehicles categorized by performance zones and vehicle types.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-6 pb-8">
                     {assetTypesForGrid.length === 0 ? (
                       <NoData message="No vehicle has recorded income or expenses in this period." />
                     ) : (
-                      <div className="flex flex-col items-center justify-center w-full overflow-x-auto">
-                        <div className="min-w-[760px] w-full max-w-[1000px] flex flex-col gap-4">
+                      <div className="w-full flex justify-center overflow-x-auto py-2">
+                        <div className="w-fit flex flex-col items-center gap-3">
                           
-                          {/* Top Column Header */}
-                          <div className="text-center text-xs font-black tracking-widest text-slate-400 uppercase">
-                            Vehicle Type
+                          {/* Top Header Label: Region */}
+                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mr-[20px]">
+                            Region
                           </div>
 
-                          <div className="flex gap-4">
-                            {/* Left Vertical Label */}
-                            <div className="flex items-center justify-center w-8 shrink-0">
-                              <span className="text-xs font-black tracking-widest text-slate-400 uppercase select-none -rotate-90 origin-center whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            {/* Left Vertical Label: Region */}
+                            <div className="flex items-center justify-center w-6 select-none relative">
+                              <span className="text-[11px] font-black tracking-widest text-slate-400 uppercase -rotate-90 whitespace-nowrap block absolute origin-center">
                                 Region
                               </span>
                             </div>
 
-                            {/* Grid Body */}
-                            <div className="flex-1 flex flex-col gap-2">
-                              {/* Vehicle Types Column Titles */}
+                            {/* Main Grid container */}
+                            <div className="flex flex-col gap-1.5 border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/10 p-4 rounded-2xl shadow-3xs">
+                              {/* Columns Header (Vehicle Types) */}
                               <div
                                 className="grid gap-2"
-                                style={{ gridTemplateColumns: `140px repeat(${assetTypesForGrid.length}, 1fr)` }}
+                                style={{ gridTemplateColumns: `140px repeat(${assetTypesForGrid.length}, minmax(160px, 200px))` }}
                               >
                                 <div />
                                 {assetTypesForGrid.map((type) => (
                                   <div
                                     key={type}
-                                    className="text-center text-[10px] font-extrabold uppercase tracking-wider text-slate-500 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-md border border-slate-100 dark:border-slate-800/40"
+                                    className="text-center text-[10px] font-extrabold uppercase tracking-wider text-slate-400 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg select-none"
                                   >
                                     {type}
                                   </div>
@@ -707,32 +707,32 @@ export default function VehicleFinancialsPage() {
                                 <div
                                   key={tier.key}
                                   className="grid gap-2 items-center"
-                                  style={{ gridTemplateColumns: `140px repeat(${assetTypesForGrid.length}, 1fr)` }}
+                                  style={{ gridTemplateColumns: `140px repeat(${assetTypesForGrid.length}, minmax(160px, 200px))` }}
                                 >
-                                  {/* Row Header Label */}
-                                  <div className="text-xs font-bold text-slate-700 dark:text-slate-300 pr-2">
+                                  {/* Row label */}
+                                  <div className="text-xs font-bold text-slate-600 dark:text-slate-400 text-right pr-4 select-none">
                                     {tier.label}
                                   </div>
 
-                                  {/* Row Cells */}
+                                  {/* Cells */}
                                   {cells.map((cell) => (
                                     <div
                                       key={cell.type}
-                                      className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-2 min-h-[60px] flex flex-wrap content-center justify-center gap-1.5"
+                                      className="rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 min-h-[52px] flex flex-wrap content-center justify-center gap-1.5"
                                     >
                                       {cell.vehicles.length === 0 ? (
-                                        <span className="text-[10px] text-slate-400 italic select-none">—</span>
+                                        <span className="text-[10px] text-slate-300 dark:text-slate-700 italic select-none">—</span>
                                       ) : (
                                         cell.vehicles.map((v) => {
                                           let cellColor = '';
                                           if (tier.key === 'high') {
-                                            cellColor = 'bg-[#00B074] text-white shadow-2xs hover:bg-[#009b66]';
+                                            cellColor = 'bg-[#00B074] hover:bg-[#009b66] text-white';
                                           } else if (tier.key === 'profitable') {
-                                            cellColor = 'bg-[#2E7D32] text-white shadow-2xs hover:bg-[#256428]';
+                                            cellColor = 'bg-[#2E7D32] hover:bg-[#256428] text-white';
                                           } else if (tier.key === 'low') {
-                                            cellColor = 'bg-[#374151] text-slate-200 shadow-2xs hover:bg-[#1f2937]';
+                                            cellColor = 'bg-[#374151] hover:bg-[#1f2937] text-slate-200';
                                           } else {
-                                            cellColor = 'bg-[#FF5B5B] text-white shadow-2xs hover:bg-[#e04f4f]';
+                                            cellColor = 'bg-[#FF5B5B] hover:bg-[#e04f4f] text-white';
                                           }
 
                                           return (
@@ -742,7 +742,7 @@ export default function VehicleFinancialsPage() {
                                               onClick={() => openVehicle(v.vehicle_id)}
                                               title={`${v.plate_number} · ${sar(v.net_profit)} · ${v.margin_percent}% margin`}
                                               className={cn(
-                                                'px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wide shrink-0 transition-all active:scale-95',
+                                                'px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-wide transition-all active:scale-95 shadow-3xs',
                                                 cellColor
                                               )}
                                             >
@@ -756,6 +756,12 @@ export default function VehicleFinancialsPage() {
                                 </div>
                               ))}
                             </div>
+
+                          </div>
+
+                          {/* Bottom Header Label: Vehicle Type */}
+                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mt-1 mr-[20px]">
+                            Vehicle Type
                           </div>
 
                         </div>
