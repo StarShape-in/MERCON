@@ -28,7 +28,7 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, Tooltip } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
 
@@ -304,15 +304,13 @@ export default function VehicleFinancialsPage() {
     });
   }, [activeRows]);
 
-  const topVehicles = useMemo(() => {
-    return [...activeRows]
-      .sort((a, b) => b.net_profit - a.net_profit)
-      .slice(0, 5)
-      .map(v => ({
-        name: v.plate_number,
-        profit: v.net_profit,
-      }));
-  }, [activeRows]);
+  const fleetMonthlyPoints = useMemo(() => {
+    if (!fleet?.monthly) return [];
+    return fleet.monthly.map((p) => ({
+      ...p,
+      label: monthLabel(p.month),
+    }));
+  }, [fleet]);
 
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
@@ -800,47 +798,52 @@ export default function VehicleFinancialsPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Right Side: Performance Chart */}
+                  {/* Right Side: Monthly P&L Trend Chart */}
                   <Card className="xl:col-span-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
                     <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
                       <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-indigo-600" /> TOP PERFORMING VEHICLES
+                        <TrendingUp className="w-4 h-4 text-indigo-600" /> MONTHLY P&L TREND
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Top 5 assets ranked by net profit contributions.
+                        Gross revenue, expenses, and net profit trends over time.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 pb-6 flex-1 flex items-center justify-center">
-                      {topVehicles.length === 0 ? (
-                        <NoData message="No active vehicle financial records found." />
+                      {fleetMonthlyPoints.length === 0 ? (
+                        <NoData message="No active monthly financial data found." />
                       ) : (
                         <div className="w-full h-[220px]">
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                              data={topVehicles}
-                              layout="vertical"
+                            <ComposedChart
+                              data={fleetMonthlyPoints}
                               margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
                             >
-                              <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.4} />
-                              <XAxis type="number" tickFormatter={compact} stroke="#94a3b8" fontSize={10} />
-                              <YAxis dataKey="name" type="category" width={80} stroke="#94a3b8" fontSize={10} />
+                              <defs>
+                                <linearGradient id="gridIncome" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor={INCOME_COLOR} stopOpacity={0.2} />
+                                  <stop offset="95%" stopColor={INCOME_COLOR} stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="gridExpenses" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor={EXPENSE_COLOR} stopOpacity={0.15} />
+                                  <stop offset="95%" stopColor={EXPENSE_COLOR} stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.4} />
+                              <XAxis dataKey="label" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                              <YAxis tickFormatter={compact} stroke="#94a3b8" fontSize={9} width={36} tickLine={false} axisLine={false} />
                               <Tooltip
-                                formatter={(v) => [sar(Number(v)), 'Net Profit']}
+                                formatter={(v) => sar(Number(v))}
                                 contentStyle={{
                                   borderRadius: '12px',
                                   fontSize: '11px',
                                   fontWeight: 'bold',
                                 }}
                               />
-                              <Bar dataKey="profit" fill="#00B074" radius={[0, 6, 6, 0]} maxBarSize={20}>
-                                {topVehicles.map((entry, index) => (
-                                  <Cell
-                                    key={`cell-${index}`}
-                                    fill={entry.profit >= 0 ? INCOME_COLOR : EXPENSE_COLOR}
-                                  />
-                                ))}
-                              </Bar>
-                            </BarChart>
+                              <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', marginTop: '10px' }} />
+                              <Area name="Revenue" type="monotone" dataKey="income" fill="url(#gridIncome)" stroke={INCOME_COLOR} strokeWidth={1.5} />
+                              <Area name="Expenses" type="monotone" dataKey="expenses" fill="url(#gridExpenses)" stroke={EXPENSE_COLOR} strokeWidth={1.5} />
+                              <Line name="Net Profit" type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 3 }} />
+                            </ComposedChart>
                           </ResponsiveContainer>
                         </div>
                       )}
