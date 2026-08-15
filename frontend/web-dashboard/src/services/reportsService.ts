@@ -6,11 +6,13 @@ export interface ReportsSummary {
     active_drivers:     { value: number; delta: null };
     fleet_available:    { value: number; delta: null };
     fleet_on_trip:      { value: number; delta: null };
-    revenue_this_month: { value: number; delta: number | null };
-    docs_expiring_soon: { value: number; delta: null };
+    // null when this deployment has the invoices/documents module disabled —
+    // not "zero revenue" / "zero expiring docs".
+    revenue_this_month: { value: number; delta: number | null } | null;
+    docs_expiring_soon: { value: number; delta: null } | null;
   };
   trip_status_distribution: Record<string, number>;
-  monthly_revenue_chart: { month: string; revenue: number }[];
+  monthly_revenue_chart: { month: string; revenue: number }[] | null;
 }
 
 export interface RevenueReport {

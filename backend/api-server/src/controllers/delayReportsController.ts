@@ -22,6 +22,7 @@ import { DelayReason, StopType } from '@prisma/client';
 import { prisma } from '../index';
 import { logger } from '../utils/logger';
 import { DELAY_THRESHOLD_MINUTES } from '../services/tripLifecycle';
+import { getEnabledModules } from './settingsController';
 
 /** Upper bound on stops pulled into memory for one report. */
 const MAX_RECORDS = 20000;
@@ -477,14 +478,20 @@ export const getDelayAnalysis = async (req: Request, res: Response) => {
       });
 
     // Repair spend comes from maintenance records, not from delays — the two
-    // together are what "which truck is costing us" actually means.
-    const maintenance = await prisma.maintenanceRecord.groupBy({
-      by: ['vehicleId'],
-      where: { deletedAt: null, service_date: { gte: start, lte: end } },
-      _sum: { cost: true },
-      _count: { _all: true },
-    });
-    const costByVehicle = new Map(maintenance.map((m) => [m.vehicleId, m._sum.cost ?? 0]));
+    // together are what "which truck is costing us" actually means. Skipped
+    // (null, not 0 — 0 would read as "no cost" rather than "not tracked
+    // here") when this deployment doesn't use the maintenance module.
+    const maintenanceOn = (await getEnabledModules()).has('maintenance');
+    const costByVehicle = new Map<string, number>();
+    if (maintenanceOn) {
+      const maintenance = await prisma.maintenanceRecord.groupBy({
+        by: ['vehicleId'],
+        where: { deletedAt: null, service_date: { gte: start, lte: end } },
+        _sum: { cost: true },
+        _count: { _all: true },
+      });
+      for (const m of maintenance) costByVehicle.set(m.vehicleId, m._sum.cost ?? 0);
+    }
 
     const vehicles = [...now.byVehicle.entries()]
       .sort((a, b) => b[1].breakdowns - a[1].breakdowns)
@@ -492,7 +499,7 @@ export const getDelayAnalysis = async (req: Request, res: Response) => {
       .map(([key, v]) => ({
         label: v.label,
         breakdowns: v.breakdowns,
-        maintenance_cost: costByVehicle.get(key) ?? 0,
+        maintenance_cost: maintenanceOn ? (costByVehicle.get(key) ?? 0) : null,
         change: v.breakdowns - (before.byVehicle.get(key)?.breakdowns ?? 0),
       }));
 

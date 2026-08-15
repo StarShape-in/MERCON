@@ -3,18 +3,29 @@ import { prisma } from '../index';
 import { logger } from '../utils/logger';
 import { nextMaintenanceRefId } from './maintenanceController';
 import { nextExpenseRefId } from './expenseController';
+import { getEnabledModules } from './settingsController';
+
+// Which toggleable module a trash entity type belongs to. Customer/Driver/
+// Vehicle/Trip/RateCard aren't here — they're core, always available in trash
+// regardless of Settings.enabledModules.
+const ENTITY_MODULE: Record<string, string> = {
+  MaintenanceRecord: 'maintenance',
+  Invoice: 'invoices',
+  Expense: 'expenses',
+};
 
 export async function getTrashItems(req: Request, res: Response) {
   try {
+    const enabledModules = await getEnabledModules();
     const [customers, drivers, vehicles, trips, maintenance, invoices, rateCards, expenses] = await Promise.all([
       prisma.customer.findMany({ where: { deletedAt: { not: null } } }),
       prisma.driver.findMany({ where: { deletedAt: { not: null } } }),
       prisma.vehicle.findMany({ where: { deletedAt: { not: null } } }),
       prisma.trip.findMany({ where: { deletedAt: { not: null } } }),
-      prisma.maintenanceRecord.findMany({ where: { deletedAt: { not: null } } }),
-      prisma.invoice.findMany({ where: { deletedAt: { not: null } } }),
+      enabledModules.has('maintenance') ? prisma.maintenanceRecord.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
+      enabledModules.has('invoices') ? prisma.invoice.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
       prisma.rateCard.findMany({ where: { deletedAt: { not: null } } }),
-      prisma.expense.findMany({ where: { deletedAt: { not: null } } }),
+      enabledModules.has('expenses') ? prisma.expense.findMany({ where: { deletedAt: { not: null } } }) : Promise.resolve([]),
     ]);
 
     const trashItems: any[] = [
@@ -42,6 +53,10 @@ export async function restoreTrashItem(req: Request, res: Response) {
   const type = req.params.type as string;
   const id = req.params.id as string;
   try {
+    const requiredModule = ENTITY_MODULE[type];
+    if (requiredModule && !(await getEnabledModules()).has(requiredModule)) {
+      return res.status(403).json({ success: false, error: { code: 'MODULE_DISABLED', message: `The "${requiredModule}" module is not enabled on this deployment` } });
+    }
     switch (type) {
       case 'Customer':
         await prisma.customer.update({ where: { id }, data: { deletedAt: null } });
@@ -102,6 +117,10 @@ export async function hardDeleteTrashItem(req: Request, res: Response) {
   const type = req.params.type as string;
   const id = req.params.id as string;
   try {
+    const requiredModule = ENTITY_MODULE[type];
+    if (requiredModule && !(await getEnabledModules()).has(requiredModule)) {
+      return res.status(403).json({ success: false, error: { code: 'MODULE_DISABLED', message: `The "${requiredModule}" module is not enabled on this deployment` } });
+    }
     switch (type) {
       case 'Customer':
         await prisma.customer.delete({ where: { id } });

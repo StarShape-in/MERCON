@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { prisma } from '../index';
 import { TripStatus, InvoiceStatus, DriverStatus, AssetStatus } from '@prisma/client';
+import { getEnabledModules } from './settingsController';
 
 /* ─── Dashboard summary KPIs ──────────────────────────────────────────────── */
 export const getSummary = async (req: Request, res: Response) => {
   try {
+    const enabledModules = await getEnabledModules();
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -70,6 +72,12 @@ export const getSummary = async (req: Request, res: Response) => {
       `
     ]);
 
+    // Invoice-derived and document-derived fields go to null rather than
+    // being computed when their module is off — that module's data still
+    // exists in the DB, it's just not this deployment's business to surface.
+    const invoicesOn = enabledModules.has('invoices');
+    const documentsOn = enabledModules.has('documents');
+
     const revenueNow = revenueThisMonth._sum.total_amount ?? 0;
     const revenuePrev = revenueLastMonth._sum.total_amount ?? 0;
     const tripsDelta = totalTripsLastMonth > 0
@@ -91,11 +99,11 @@ export const getSummary = async (req: Request, res: Response) => {
           active_drivers: { value: activeDrivers, delta: null },
           fleet_available: { value: availableVehicles, delta: null },
           fleet_on_trip: { value: onTripVehicles, delta: null },
-          revenue_this_month: { value: revenueNow, delta: revenueDelta },
-          docs_expiring_soon: { value: docsExpiringIn30Days, delta: null }
+          revenue_this_month: invoicesOn ? { value: revenueNow, delta: revenueDelta } : null,
+          docs_expiring_soon: documentsOn ? { value: docsExpiringIn30Days, delta: null } : null
         },
         trip_status_distribution: statusMap,
-        monthly_revenue_chart: recentMonthlyRevenue
+        monthly_revenue_chart: invoicesOn ? recentMonthlyRevenue : null
       }
     });
   } catch (error) {
@@ -107,6 +115,8 @@ export const getSummary = async (req: Request, res: Response) => {
 /* ─── Fleet performance ───────────────────────────────────────────────────── */
 export const getFleetPerformance = async (req: Request, res: Response) => {
   try {
+    const enabledModules = await getEnabledModules();
+    const maintenanceOn = enabledModules.has('maintenance');
     const { startDate, endDate, page = '1', per_page = '10' } = req.query;
     
     const pageNum = parseInt(page as string, 10);
@@ -151,7 +161,7 @@ export const getFleetPerformance = async (req: Request, res: Response) => {
       total_trips: v.trips.length,
       completed_trips: v.trips.filter((t) => t.status === TripStatus.Completed).length,
       odometer: v.current_odometer,
-      maintenance_cost: v.maintenanceRecords.reduce((sum, m) => sum + m.cost, 0)
+      maintenance_cost: maintenanceOn ? v.maintenanceRecords.reduce((sum, m) => sum + m.cost, 0) : null
     }));
 
     res.json({
@@ -304,6 +314,8 @@ export const getRevenueReport = async (req: Request, res: Response) => {
 /* ─── Custom report ───────────────────────────────────────────────────────── */
 export const getCustomReport = async (req: Request, res: Response) => {
   try {
+    const enabledModules = await getEnabledModules();
+    const invoicesOn = enabledModules.has('invoices');
     const { startDate, endDate, customerId } = req.query;
 
     // Filter on the trip's own date, not createdAt (a trip created in July
@@ -333,7 +345,7 @@ export const getCustomReport = async (req: Request, res: Response) => {
       driver: { select: { first_name: true, last_name: true, phone_primary: true } },
       vehicle: { select: { plate_number: true, capacity_kg: true, asset_type: true } },
       stops: { orderBy: { stop_sequence: 'asc' as const } },
-      invoices: true,
+      ...(invoicesOn ? { invoices: true } : {}),
     };
 
     // No row cap — page internally so a full month's ledger exports
@@ -357,31 +369,35 @@ export const getCustomReport = async (req: Request, res: Response) => {
     for (const t of allTrips) statusMap[t.status] = (statusMap[t.status] ?? 0) + 1;
 
     // For revenue, we filter invoices based on the same criteria
-    const invoiceWhere: any = { deletedAt: null, status: InvoiceStatus.Paid };
-    if (startDate) invoiceWhere.createdAt = { ...invoiceWhere.createdAt, gte: new Date(startDate as string) };
-    if (endDate) {
-      const end = new Date(endDate as string);
-      end.setHours(23, 59, 59, 999);
-      invoiceWhere.createdAt = { ...invoiceWhere.createdAt, lte: end };
-    }
-    if (customerId && customerId !== 'all') invoiceWhere.customerId = customerId;
+    let totalRevenue: number | null = null;
+    if (invoicesOn) {
+      const invoiceWhere: any = { deletedAt: null, status: InvoiceStatus.Paid };
+      if (startDate) invoiceWhere.createdAt = { ...invoiceWhere.createdAt, gte: new Date(startDate as string) };
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        invoiceWhere.createdAt = { ...invoiceWhere.createdAt, lte: end };
+      }
+      if (customerId && customerId !== 'all') invoiceWhere.customerId = customerId;
 
-    const totalRevenue = await prisma.invoice.aggregate({
-      where: invoiceWhere,
-      _sum: { total_amount: true }
-    });
+      const revenueAgg = await prisma.invoice.aggregate({
+        where: invoiceWhere,
+        _sum: { total_amount: true }
+      });
+      totalRevenue = revenueAgg._sum.total_amount ?? 0;
+    }
 
     res.json({
       success: true,
       data: {
         kpis: {
           total_trips: totalTrips,
-          total_revenue: totalRevenue._sum.total_amount ?? 0,
+          total_revenue: totalRevenue,
         },
         trip_status_distribution: statusMap,
         trips: allTrips.map(t => {
           const dropoff = t.stops.find((s: any) => s.stop_type === 'Dropoff');
-          const invoice = t.invoices[0];
+          const invoice = invoicesOn ? t.invoices?.[0] : undefined;
           const billing = t.billing_amount ?? (invoice?.subtotal || 0);
           const totalAmt = invoice?.total_amount ?? (billing + t.waiting_labor_charges + t.additional_stop_charges);
           const balance = totalAmt - t.trip_charges;

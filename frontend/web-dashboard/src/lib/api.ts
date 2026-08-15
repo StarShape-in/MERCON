@@ -22,13 +22,21 @@ api.interceptors.request.use((config) => {
 // 401 = token expired / revoked: clear the session and redirect to login.
 // 403 = authenticated but not authorised: do NOT clear the session — let the
 //       calling page surface an inline "you don't have permission" message.
+// MODULE_DISABLED is a narrower case of 403: normal navigation is already
+// blocked client-side by RequireModule, so this only fires for a tab left
+// open on a gated page when a superadmin disables that module mid-session —
+// send it home rather than leaving a broken page up.
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  (error: AxiosError<ApiError>) => {
     if (error.response?.status === 401) {
       authStore.clearSession();
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
+      }
+    } else if (error.response?.data?.error?.code === 'MODULE_DISABLED') {
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
       }
     }
     return Promise.reject(error);

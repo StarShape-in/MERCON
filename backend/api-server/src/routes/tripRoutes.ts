@@ -7,7 +7,7 @@ import {
 } from '../controllers/tripController';
 import { markTripInvoiced, unmarkTripInvoiced } from '../controllers/invoiceController';
 import { authenticateJWT } from '../middlewares/auth';
-import { authorizeRoles } from '../middlewares/rbac';
+import { authorizeRoles, requireModuleEnabled } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
 import { createTripBody, listQuery, logStopDelayBody, bulkImportTripsBody, updateTripStopBody } from '../schemas';
 
@@ -49,8 +49,8 @@ router.post('/:id/pickup/verify', pickupVerify);
 router.post('/:id/delivery/verify', deliveryVerify);
 
 // Invoicing Ledger Actions — mark/unmark a completed trip as invoiced
-router.post('/:id/mark-invoiced', (req, res) => markTripInvoiced(req, res));
-router.post('/:id/unmark-invoiced', (req, res) => unmarkTripInvoiced(req, res));
+router.post('/:id/mark-invoiced', requireModuleEnabled('invoices'), (req, res) => markTripInvoiced(req, res));
+router.post('/:id/unmark-invoiced', requireModuleEnabled('invoices'), (req, res) => unmarkTripInvoiced(req, res));
 
 export default router;
 

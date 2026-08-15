@@ -4,6 +4,7 @@ import { generateRefId } from '../utils/refId';
 import { buildSearchAnd } from '../utils/search';
 import { AssetStatus, AssetType } from '@prisma/client';
 import { tripIncome, isEarned } from '../reportEngine/derived';
+import { getEnabledModules } from './settingsController';
 
 /** Fields the fleet ledger search bar looks at. */
 const VEHICLE_SEARCH_FIELDS = [
@@ -616,6 +617,10 @@ const buildMonthlySeries = (
 
 export const getVehicleFinancials = async (req: Request, res: Response) => {
   try {
+    const enabledModules = await getEnabledModules();
+    const invoicesOn = enabledModules.has('invoices');
+    const maintenanceOn = enabledModules.has('maintenance');
+
     const vehicleId = req.params.id as string;
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: vehicleId, deletedAt: null },
@@ -628,19 +633,25 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
     const { from, to } = parseDateRange(req);
     const rangeFilter = from || to ? { gte: from ?? undefined, lte: to ?? undefined } : undefined;
 
+    // tripIncome() already prefers billing_amount (core) over invoice.total_amount,
+    // falling back to it only when billing_amount is unset — so simply omitting
+    // the invoices include when the module is off degrades gracefully rather
+    // than needing separate income logic.
     const trips = await prisma.trip.findMany({
       where: { vehicleId, deletedAt: null, ...(rangeFilter ? { createdAt: rangeFilter } : {}) },
       orderBy: { createdAt: 'desc' },
       include: {
         customer: { select: { name: true } },
-        invoices: { where: { deletedAt: null } },
+        ...(invoicesOn ? { invoices: { where: { deletedAt: null } } } : {}),
       },
     });
 
-    const maintenanceRecords = await prisma.maintenanceRecord.findMany({
-      where: { vehicleId, deletedAt: null, ...(rangeFilter ? { start_date: rangeFilter } : {}) },
-      orderBy: [{ start_date: 'desc' }, { service_date: 'desc' }],
-    });
+    const maintenanceRecords = maintenanceOn
+      ? await prisma.maintenanceRecord.findMany({
+          where: { vehicleId, deletedAt: null, ...(rangeFilter ? { start_date: rangeFilter } : {}) },
+          orderBy: [{ start_date: 'desc' }, { service_date: 'desc' }],
+        })
+      : [];
 
     let totalIncome = 0;
     const tripBreakdown = trips.map((t) => {
@@ -663,9 +674,12 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
       .filter((m) => m.maintenance_type === 'Renewal')
       .reduce((sum, m) => sum + (m.cost || 0), 0);
 
-    const totalExpenses = totalMaintenanceExpense;
-    const netProfit = totalIncome - totalExpenses;
-    const marginPercent = totalIncome > 0 ? Math.round((netProfit / totalIncome) * 1000) / 10 : 0;
+    // Expenses are entirely maintenance-derived today — null (not 0) when
+    // that module is off, since net_profit/margin would otherwise silently
+    // read as "100% margin" rather than "expenses not tracked here".
+    const totalExpenses = maintenanceOn ? totalMaintenanceExpense : null;
+    const netProfit = maintenanceOn ? totalIncome - totalMaintenanceExpense : null;
+    const marginPercent = maintenanceOn && totalIncome > 0 ? Math.round((netProfit! / totalIncome) * 1000) / 10 : null;
 
     const monthly = buildMonthlySeries(
       trips
@@ -684,12 +698,12 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
         summary: {
           total_income: totalIncome,
           total_expenses: totalExpenses,
-          maintenance_expenses: totalMaintenanceExpense,
-          renewal_expenses: renewalExpenses,
+          maintenance_expenses: maintenanceOn ? totalMaintenanceExpense : null,
+          renewal_expenses: maintenanceOn ? renewalExpenses : null,
           net_profit: netProfit,
           margin_percent: marginPercent,
           completed_trips_count: trips.filter((t) => isEarned(t.status)).length,
-          total_maintenance_count: maintenanceRecords.length,
+          total_maintenance_count: maintenanceOn ? maintenanceRecords.length : null,
         },
         monthly,
         income_sources: tripBreakdown,
@@ -708,6 +722,10 @@ export const getVehicleFinancials = async (req: Request, res: Response) => {
  */
 export const getFleetFinancials = async (req: Request, res: Response) => {
   try {
+    const enabledModules = await getEnabledModules();
+    const invoicesOn = enabledModules.has('invoices');
+    const maintenanceOn = enabledModules.has('maintenance');
+
     const { from, to } = parseDateRange(req);
     const rangeFilter = from || to ? { gte: from ?? undefined, lte: to ?? undefined } : undefined;
 
@@ -718,11 +736,13 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
       }),
       prisma.trip.findMany({
         where: { deletedAt: null, vehicleId: { not: null }, ...(rangeFilter ? { createdAt: rangeFilter } : {}) },
-        include: { invoices: { where: { deletedAt: null }, select: { total_amount: true } } },
+        include: invoicesOn ? { invoices: { where: { deletedAt: null }, select: { total_amount: true } } } : {},
       }),
-      prisma.maintenanceRecord.findMany({
-        where: { deletedAt: null, ...(rangeFilter ? { start_date: rangeFilter } : {}) },
-      }),
+      maintenanceOn
+        ? prisma.maintenanceRecord.findMany({
+            where: { deletedAt: null, ...(rangeFilter ? { start_date: rangeFilter } : {}) },
+          })
+        : Promise.resolve([]),
     ]);
 
     type Bucket = {
@@ -765,7 +785,7 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
         income: 0, expenses: 0, maintenance_expenses: 0,
         renewal_expenses: 0, trips_count: 0, maintenance_count: 0,
       };
-      const net = b.income - b.expenses;
+      const net = maintenanceOn ? b.income - b.expenses : null;
       return {
         vehicle_id: v.id,
         plate_number: v.plate_number,
@@ -773,20 +793,20 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
         asset_type: v.asset_type,
         status: v.status,
         total_income: b.income,
-        total_expenses: b.expenses,
-        maintenance_expenses: b.maintenance_expenses,
-        renewal_expenses: b.renewal_expenses,
+        total_expenses: maintenanceOn ? b.expenses : null,
+        maintenance_expenses: maintenanceOn ? b.maintenance_expenses : null,
+        renewal_expenses: maintenanceOn ? b.renewal_expenses : null,
         net_profit: net,
-        margin_percent: b.income > 0 ? Math.round((net / b.income) * 1000) / 10 : 0,
+        margin_percent: maintenanceOn && b.income > 0 ? Math.round((net! / b.income) * 1000) / 10 : null,
         trips_count: b.trips_count,
-        maintenance_count: b.maintenance_count,
+        maintenance_count: maintenanceOn ? b.maintenance_count : null,
         income_per_trip: b.trips_count > 0 ? Math.round(b.income / b.trips_count) : 0,
       };
     });
 
     const totalIncome = rows.reduce((s, r) => s + r.total_income, 0);
-    const totalExpenses = rows.reduce((s, r) => s + r.total_expenses, 0);
-    const netProfit = totalIncome - totalExpenses;
+    const totalExpenses = maintenanceOn ? rows.reduce((s, r) => s + (r.total_expenses ?? 0), 0) : null;
+    const netProfit = maintenanceOn ? totalIncome - (totalExpenses ?? 0) : null;
 
     const monthly = buildMonthlySeries(
       trips
@@ -802,16 +822,16 @@ export const getFleetFinancials = async (req: Request, res: Response) => {
         fleet_summary: {
           total_income: totalIncome,
           total_expenses: totalExpenses,
-          maintenance_expenses: rows.reduce((s, r) => s + r.maintenance_expenses, 0),
-          renewal_expenses: rows.reduce((s, r) => s + r.renewal_expenses, 0),
+          maintenance_expenses: maintenanceOn ? rows.reduce((s, r) => s + (r.maintenance_expenses ?? 0), 0) : null,
+          renewal_expenses: maintenanceOn ? rows.reduce((s, r) => s + (r.renewal_expenses ?? 0), 0) : null,
           net_profit: netProfit,
-          margin_percent: totalIncome > 0 ? Math.round((netProfit / totalIncome) * 1000) / 10 : 0,
+          margin_percent: maintenanceOn && totalIncome > 0 ? Math.round((netProfit! / totalIncome) * 1000) / 10 : null,
           vehicles_count: rows.length,
-          profitable_count: rows.filter((r) => r.net_profit > 0).length,
-          loss_making_count: rows.filter((r) => r.net_profit < 0).length,
-          idle_count: rows.filter((r) => r.total_income === 0 && r.total_expenses === 0).length,
+          profitable_count: maintenanceOn ? rows.filter((r) => (r.net_profit ?? 0) > 0).length : null,
+          loss_making_count: maintenanceOn ? rows.filter((r) => (r.net_profit ?? 0) < 0).length : null,
+          idle_count: maintenanceOn ? rows.filter((r) => r.total_income === 0 && r.total_expenses === 0).length : null,
           total_trips: rows.reduce((s, r) => s + r.trips_count, 0),
-          total_maintenance: rows.reduce((s, r) => s + r.maintenance_count, 0),
+          total_maintenance: maintenanceOn ? rows.reduce((s, r) => s + (r.maintenance_count ?? 0), 0) : null,
         },
         vehicles: rows,
         monthly,
