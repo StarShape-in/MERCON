@@ -483,6 +483,11 @@ export const createVehicle = async (req: Request, res: Response) => {
         trailer_capacity_kg,
         gps_device_id,
         icces_device_id,
+        // A newly added truck's odometer is inherently "just confirmed" —
+        // without this, no odometer_updated_at means "never verified",
+        // which the fleet list reads as maximally stale and flags with the
+        // warning icon the moment the truck is created.
+        odometer_updated_at: new Date(),
         created_by: (req as any).user?.id
       }
     });
