@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { 
   Play, Pause, FastForward, Search, Navigation, 
   ExternalLink, ShieldCheck, Gauge, Activity,
-  Map, Table2, Radio
+  Map, Table2, Radio, Building2, FileText, Globe
 } from 'lucide-react';
 
 import { SimulatedTruckTelemetry } from '@/services/telemetrySimulator';
@@ -26,6 +26,46 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { matchesSearch } from '@/lib/search';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+
+const COMPANY_OPTIONS: ComboboxOption[] = [
+  {
+    value: 'our_company',
+    label: 'Our Company Name',
+    keywords: 'mercon logistics our company name',
+    icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+  },
+  {
+    value: 'separate_text',
+    label: 'Separate text for each',
+    keywords: 'separate text for each vehicle truck carrier',
+    icon: <FileText className="w-3.5 h-3.5 text-indigo-500" />,
+  },
+  {
+    value: 'mercon',
+    label: 'MERCON Logistics',
+    keywords: 'mercon logistics fleet',
+    icon: <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />,
+  },
+  {
+    value: 'all',
+    label: 'All Companies',
+    keywords: 'all companies',
+    icon: <Globe className="w-3.5 h-3.5 text-slate-400" />,
+  },
+  {
+    value: 'aramco',
+    label: 'Saudi Aramco Logistics',
+    keywords: 'saudi aramco logistics',
+    icon: <Building2 className="w-3.5 h-3.5 text-blue-500" />,
+  },
+  {
+    value: 'sabic',
+    label: 'SABIC Supply Chain',
+    keywords: 'sabic supply chain',
+    icon: <Building2 className="w-3.5 h-3.5 text-purple-500" />,
+  },
+];
 
 // High-Tech Vehicle Marker Generator
 function createNeonTruckDivIcon(truck: SimulatedTruckTelemetry, isDarkTheme: boolean) {
@@ -84,9 +124,26 @@ export default function FleetLiveMap() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [companyFilter, setCompanyFilter] = useState<string>('our_company');
   const [mapThemeId, setMapThemeId] = useState<string>('voyager');
 
   const currentTheme = MAP_THEMES[mapThemeId] || MAP_THEMES.voyager;
+
+  const getTruckCompanyLabel = (truck: SimulatedTruckTelemetry, filterKey: string) => {
+    if (filterKey === 'our_company' || filterKey === 'mercon') {
+      return 'MERCON Logistics';
+    }
+    if (filterKey === 'separate_text') {
+      const idx = (truck.refId || '1').charCodeAt((truck.refId || '1').length - 1) % 4;
+      if (idx === 0) return `${truck.refId} • MERCON Logistics Fleet`;
+      if (idx === 1) return `${truck.refId} • Saudi Aramco Logistics`;
+      if (idx === 2) return `${truck.refId} • SABIC Heavy Haul`;
+      return `${truck.refId} • Express Cold Chain Logistics`;
+    }
+    if (filterKey === 'aramco') return 'Saudi Aramco Logistics';
+    if (filterKey === 'sabic') return 'SABIC Supply Chain';
+    return 'MERCON Logistics';
+  };
 
   // Filter fleet based on user input
   const filteredFleet = fleet.filter((truck) => {
@@ -124,6 +181,18 @@ export default function FleetLiveMap() {
                 currentThemeId={mapThemeId}
                 onThemeChange={(newTheme) => setMapThemeId(newTheme)}
               />
+
+              {/* Company Selector Dropdown (Shadcn Combobox with Search) */}
+              <div className="w-52">
+                <Combobox
+                  options={COMPANY_OPTIONS}
+                  value={companyFilter}
+                  onChange={setCompanyFilter}
+                  placeholder="Select Company..."
+                  searchPlaceholder="Search company..."
+                  triggerClassName="h-8 text-xs bg-[#F5F5F7] border-transparent font-semibold shadow-none focus:bg-white"
+                />
+              </div>
 
               {/* Search input */}
               <div className="relative">
@@ -277,6 +346,21 @@ export default function FleetLiveMap() {
                             </div>
                           </div>
 
+                          <div className="bg-[#FF5500]/5 dark:bg-white/5 p-2 rounded-lg border border-[#FF5500]/20 flex items-center justify-between">
+                            <div>
+                              <p className="text-[9px] text-gray-400 font-bold uppercase">Company Name</p>
+                              <p className="font-bold text-brand text-xs flex items-center gap-1.5 mt-0.5">
+                                <Building2 className="w-3.5 h-3.5 shrink-0" />
+                                {getTruckCompanyLabel(truck, companyFilter)}
+                              </p>
+                            </div>
+                            {companyFilter === 'our_company' && (
+                              <Badge className="bg-brand/10 text-brand border-brand/20 text-[9px] font-bold">
+                                MERCON
+                              </Badge>
+                            )}
+                          </div>
+
                           <div className="text-xs bg-[#FF5500]/10 border border-[#FF5500]/20 p-2.5 rounded-lg">
                             <p className="text-[9px] text-[#FF5500] font-bold uppercase tracking-wider">Logistics Route</p>
                             <p className="font-semibold mt-0.5 truncate">{truck.originName}</p>
@@ -311,13 +395,26 @@ export default function FleetLiveMap() {
                 </MapContainer>
 
                 {/* Floating Top Left HUD Info */}
-                <div className={`absolute top-3 left-3 z-[400] px-3.5 py-2 rounded-xl shadow-lg border text-xs flex items-center gap-2 font-mono font-bold ${
+                <div className={`absolute top-3 left-3 z-[400] px-3.5 py-2 rounded-xl shadow-lg border text-xs flex items-center gap-2.5 font-mono font-bold ${
                   currentTheme.isDark 
                     ? 'bg-[#090A0F]/85 backdrop-blur-xl border-white/10 text-white' 
                     : 'bg-white/90 backdrop-blur-xl border-black/[0.08] text-[#111]'
                 }`}>
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping" />
-                  <span>{filteredFleet.length} VEHICLES IN TELEMETRY RANGE</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF5500] animate-ping shrink-0" />
+                  <span>{filteredFleet.length} VEHICLES</span>
+                  <span className="opacity-40">|</span>
+                  <span className="text-brand flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 inline" />
+                    {companyFilter === 'our_company'
+                      ? 'MERCON Logistics (Our Company)'
+                      : companyFilter === 'separate_text'
+                      ? 'Separate Text per Vehicle'
+                      : companyFilter === 'mercon'
+                      ? 'MERCON Logistics'
+                      : companyFilter === 'all'
+                      ? 'All Companies'
+                      : getTruckCompanyLabel(filteredFleet[0] || {} as any, companyFilter)}
+                  </span>
                 </div>
 
                 {/* Floating Bottom HUD Bar */}

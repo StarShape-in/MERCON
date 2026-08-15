@@ -9,6 +9,9 @@ import {
   Maximize2,
   ArrowUpRight,
   Truck,
+  Building2,
+  ShieldCheck,
+  Globe,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -19,6 +22,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { authStore } from '@/store/authStore';
 import { reportsService } from '@/services/reportsService';
 import { tripService } from '@/services/tripService';
@@ -136,12 +140,60 @@ const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }
   'Issue':       { dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700 border-red-200',            label: 'Issue' },
 };
 
+const MAP_COMPANY_OPTIONS: ComboboxOption[] = [
+  {
+    value: 'our_company',
+    label: 'Our Company Name',
+    keywords: 'mercon logistics our company name',
+    icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+  },
+  {
+    value: 'separate_text',
+    label: 'Separate text for each',
+    keywords: 'separate text for each vehicle truck carrier',
+    icon: <FileText className="w-3.5 h-3.5 text-indigo-500" />,
+  },
+  {
+    value: 'mercon',
+    label: 'MERCON Logistics',
+    keywords: 'mercon logistics fleet',
+    icon: <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />,
+  },
+  {
+    value: 'all',
+    label: 'All Companies',
+    keywords: 'all companies',
+    icon: <Globe className="w-3.5 h-3.5 text-slate-400" />,
+  },
+  {
+    value: 'aramco',
+    label: 'Saudi Aramco Logistics',
+    keywords: 'saudi aramco logistics',
+    icon: <Building2 className="w-3.5 h-3.5 text-blue-500" />,
+  },
+  {
+    value: 'sabic',
+    label: 'SABIC Supply Chain',
+    keywords: 'sabic supply chain',
+    icon: <Building2 className="w-3.5 h-3.5 text-purple-500" />,
+  },
+];
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'recent'>('current');
   const [tripSearch, setTripSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
+  const [mapCompany, setMapCompany] = useState<string>('our_company');
+
+  const getDashCompanyText = (v: any) => {
+    if (mapCompany === 'our_company' || mapCompany === 'mercon') return 'MERCON Logistics';
+    if (mapCompany === 'separate_text') return `${v.id || 'TRP'} • ${v.customerName || 'MERCON Fleet'}`;
+    if (mapCompany === 'aramco') return 'Saudi Aramco Logistics';
+    if (mapCompany === 'sabic') return 'SABIC Supply Chain';
+    return 'MERCON Logistics';
+  };
 
   const user = authStore.getUser();
   const isAdmin = user?.role === 'Admin';
@@ -571,15 +623,28 @@ export default function DashboardPage() {
 
               {/* Map Canvas with Overlays */}
               <div className="relative flex-1 min-h-[310px] w-full z-0" style={{ background: '#EAECEF' }}>
-                {/* Overlay HUD: Active Trips Badge (Bold, Ultra-Visible & Floating over Leaflet) */}
-                <div className="absolute top-3 left-3 z-[1000] px-4 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-900 flex items-center gap-2.5 pointer-events-auto">
-                  <span className="relative flex h-3 w-3 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
-                  </span>
-                  <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-slate-900">
-                    {activeFleet.length} {tripTab.toUpperCase()} TRIPS
-                  </span>
+                {/* Overlay HUD: Active Trips Badge & Company Selector */}
+                <div className="absolute top-3 left-3 z-[1000] flex items-center gap-2 pointer-events-auto">
+                  <div className="px-3.5 py-1.5 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-900 flex items-center gap-2 shrink-0">
+                    <span className="relative flex h-2.5 w-2.5 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                    </span>
+                    <span className="text-xs font-black tracking-wide uppercase text-slate-900">
+                      {activeFleet.length} {tripTab.toUpperCase()} TRIPS
+                    </span>
+                  </div>
+
+                  <div className="w-52 shadow-lg">
+                    <Combobox
+                      options={MAP_COMPANY_OPTIONS}
+                      value={mapCompany}
+                      onChange={setMapCompany}
+                      placeholder="Select Company..."
+                      searchPlaceholder="Search company..."
+                      triggerClassName="h-8 text-xs bg-white border-slate-900/15 font-bold text-slate-800 rounded-xl shadow-md"
+                    />
+                  </div>
                 </div>
 
                 {/* Overlay: Full Map Button */}
@@ -622,6 +687,7 @@ export default function DashboardPage() {
                           <p className="font-bold text-slate-800 text-[10px] mb-1">{v.route}</p>
                           <div className="text-[9px] text-slate-600 space-y-0.5 mb-2">
                             <p><span className="font-bold">Driver:</span> {v.driver}</p>
+                            <p><span className="font-bold text-brand">Company:</span> <span className="font-bold">{getDashCompanyText(v)}</span></p>
                             <p><span className="font-bold">ETA:</span> {v.eta} • {v.distance}</p>
                           </div>
                           <Button

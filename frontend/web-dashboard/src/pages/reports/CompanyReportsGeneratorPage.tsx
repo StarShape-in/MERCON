@@ -21,6 +21,7 @@ import {
   SelectGroup,
   SelectLabel,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -497,7 +498,7 @@ export default function CompanyReportsGeneratorPage() {
 
         {/* ─── Add Template Dialog Modal ─── */}
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className={cn("transition-all duration-300 max-h-[90vh] overflow-y-auto", uploadFile ? "sm:max-w-5xl md:max-w-6xl w-full" : "sm:max-w-2xl")}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
                 <Plus className="w-4 h-4 text-brand" /> Add Company Excel Template
