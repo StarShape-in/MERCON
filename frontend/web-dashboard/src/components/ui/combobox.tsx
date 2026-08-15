@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Plus } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
@@ -32,6 +32,8 @@ interface ComboboxProps {
   className?: string;
   triggerClassName?: string;
   disabled?: boolean;
+  onAddNew?: () => void;
+  addNewLabel?: string;
 }
 
 export function Combobox({
@@ -45,6 +47,8 @@ export function Combobox({
   className,
   triggerClassName,
   disabled,
+  onAddNew,
+  addNewLabel,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -87,7 +91,24 @@ export function Combobox({
             className="h-10 text-xs border-b border-slate-100 dark:border-slate-800"
           />
           <CommandList className="max-h-64 p-1 overflow-y-auto overscroll-contain">
-            <CommandEmpty className="py-6 text-center text-xs text-slate-500">{emptyText}</CommandEmpty>
+            <CommandEmpty className="py-6 px-4 text-center text-xs text-slate-500 space-y-3">
+              <p className="text-slate-500 dark:text-slate-400 font-medium">{emptyText}</p>
+              {onAddNew && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs font-semibold border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/50 shadow-2xs"
+                  onClick={() => {
+                    setOpen(false);
+                    onAddNew();
+                  }}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1 text-indigo-600 dark:text-indigo-400" />
+                  {addNewLabel || 'Add New'}
+                </Button>
+              )}
+            </CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = value === option.value;
@@ -121,9 +142,25 @@ export function Combobox({
               })}
             </CommandGroup>
           </CommandList>
+          {onAddNew && (
+            <div className="p-1.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-b-xl">
+              <button
+                type="button"
+                className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-600 hover:bg-indigo-100/60 dark:text-indigo-400 dark:hover:bg-indigo-950/60 transition-colors"
+                onClick={() => {
+                  setOpen(false);
+                  onAddNew();
+                }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {addNewLabel || 'Add New'}
+              </button>
+            </div>
+          )}
         </Command>
       </PopoverContent>
     </Popover>
   );
 }
+
 

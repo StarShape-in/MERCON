@@ -129,14 +129,24 @@ const getDropoffInfo = (trip: Trip) => {
 const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
   const pickup = getPickupInfo(t);
   const dropoff = getDropoffInfo(t);
+  const driverLabel = t.is_third_party
+    ? (t.third_party_driver_name ? `${t.third_party_driver_name} (${t.thirdPartyProvider?.name || '3PL Carrier'})` : (t.thirdPartyProvider?.name || '3PL Driver'))
+    : (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned');
+  const vehicleLabel = t.is_third_party
+    ? (t.third_party_vehicle_plate || '3PL Vehicle')
+    : (t.vehicle?.plate_number || 'Unassigned');
+  const carrierLabel = t.is_third_party
+    ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider')
+    : (t.carrier_name || 'MERCON LOGISTICS');
+
   return [
     t.ref_id,
     t.status,
     t.customer?.name || 'Unassigned',
     pickup.name !== '—' ? (pickup.address ? `${pickup.name} (${pickup.address})` : pickup.name) : '—',
     dropoff.name !== '—' ? (dropoff.address ? `${dropoff.name} (${dropoff.address})` : dropoff.name) : '—',
-    t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned',
-    t.vehicle?.plate_number || 'Unassigned',
+    driverLabel,
+    vehicleLabel,
     getTripPayloadCapacity(t),
     getTripRateCategory(t),
     t.rateCard?.name || 'Manual Rate',
@@ -146,7 +156,7 @@ const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
     formatExportDate(t.actual_end),
     Number(t.trip_charges || 0),
     Number(t.billing_amount || t.rateCard?.base_price || 0),
-    t.carrier_name || 'MERCON LOGISTICS',
+    carrierLabel,
   ];
 });
 
@@ -485,12 +495,21 @@ export default function TripListPage() {
     if (selectedRows.length === 1) {
       const trip = selectedRows[0];
       const customerName = trip.customer?.name || 'Unassigned';
-      const driverName = trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned';
-      const plate = trip.vehicle?.plate_number || 'Unassigned';
+      const driverName = trip.is_third_party
+        ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
+        : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Unassigned');
+      const plate = trip.is_third_party
+        ? (trip.third_party_vehicle_plate || '3PL Vehicle')
+        : (trip.vehicle?.plate_number || 'Unassigned');
+      const providerInfo = trip.is_third_party
+        ? (trip.thirdPartyProvider?.name || trip.carrier_name || '3PL Provider')
+        : null;
+
       const text = `🚚 *MERCON LOGISTICS - Trip Manifest*\n` +
                    `• *Trip Ref:* ${trip.ref_id || 'Draft'}\n` +
                    `• *Status:* ${trip.status}\n` +
                    `• *Customer:* ${customerName}\n` +
+                   (providerInfo ? `• *3PL Provider:* ${providerInfo}\n` : '') +
                    `• *Driver:* ${driverName}\n` +
                    `• *Vehicle:* ${plate}\n` +
                    (trip.planned_start ? `• *Planned Start:* ${new Date(trip.planned_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}\n` : '') +
@@ -498,8 +517,11 @@ export default function TripListPage() {
 
       setWhatsappMessageText(text);
 
-      if (trip.driver?.phone_primary) {
+      if (!trip.is_third_party && trip.driver?.phone_primary) {
         setWhatsappRecipientType('driver');
+      } else if (trip.is_third_party && (trip.third_party_driver_phone || trip.thirdPartyProvider?.phone)) {
+        setWhatsappRecipientType('custom');
+        setWhatsappCustomPhone(trip.third_party_driver_phone || trip.thirdPartyProvider?.phone || '');
       } else if (trip.customer?.contact_phone) {
         setWhatsappRecipientType('customer');
       } else {
@@ -510,9 +532,14 @@ export default function TripListPage() {
       let text = `🚚 *MERCON LOGISTICS - Manifest Summary*\n`;
       selectedRows.forEach((t) => {
         const cust = t.customer?.name || 'Unassigned';
-        const drv = t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned';
-        const plate = t.vehicle?.plate_number || 'Unassigned';
+        const drv = t.is_third_party
+          ? (t.third_party_driver_name || t.thirdPartyProvider?.name || '3PL Driver')
+          : (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned');
+        const plate = t.is_third_party
+          ? (t.third_party_vehicle_plate || '3PL Vehicle')
+          : (t.vehicle?.plate_number || 'Unassigned');
         text += `\n*${t.ref_id || 'Draft'}* - ${cust}\n` +
+                (t.is_third_party ? `  • 3PL Provider: ${t.thirdPartyProvider?.name || '3PL'}\n` : '') +
                 `  • Driver: ${drv}\n` +
                 `  • Vehicle: ${plate}\n` +
                 `  • Status: ${t.status}\n`;
@@ -608,32 +635,73 @@ export default function TripListPage() {
     {
       header: 'Driver',
       className: 'max-w-[165px]',
-      accessor: (row: Trip) => (
-        <div className="flex items-center gap-1.5 max-w-[165px]">
-          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
-            {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
+      accessor: (row: Trip) => {
+        if (row.is_third_party) {
+          const name = row.third_party_driver_name || row.thirdPartyProvider?.name || '3PL Driver';
+          const providerName = row.thirdPartyProvider?.name || row.carrier_name || '3PL Carrier';
+          const initial = name[0]?.toUpperCase() || '3P';
+
+          return (
+            <div className="flex items-center gap-1.5 max-w-[165px]" title={`3PL Driver: ${name}\nProvider: ${providerName}`}>
+              <div className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[9px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
+                {initial}
+              </div>
+              <div className="flex flex-col min-w-0 truncate leading-tight">
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {name}
+                </span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium truncate">
+                  3PL: {providerName}
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-1.5 max-w-[165px]">
+            <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
+              {row.driver ? `${row.driver.first_name[0]}${row.driver.last_name ? row.driver.last_name[0] : ''}` : 'U'}
+            </div>
+            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}>
+              {row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}
+            </span>
           </div>
-          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}>
-            {row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}
-          </span>
-        </div>
-      ),
+        );
+      },
     },
     {
       header: 'Vehicle',
       className: 'w-[95px] shrink-0',
-      accessor: (row: Trip) => (
-        <div className="flex items-center gap-1">
-          <Truck size={12} className="text-slate-400 shrink-0" />
-          {row.vehicle?.plate_number ? (
-            <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate">
-              {row.vehicle.plate_number}
-            </span>
-          ) : (
-            <span className="text-xs text-slate-400 italic">Unassigned</span>
-          )}
-        </div>
-      ),
+      accessor: (row: Trip) => {
+        if (row.is_third_party) {
+          const plate = row.third_party_vehicle_plate || '3PL Truck';
+          return (
+            <div className="flex items-center gap-1">
+              <Truck size={12} className="text-purple-500 shrink-0" />
+              <span
+                className="font-mono text-[11px] text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/60 px-1.5 py-0.5 rounded truncate"
+                title={`3PL Vehicle Plate: ${plate}`}
+              >
+                {plate}
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-1">
+            <Truck size={12} className="text-slate-400 shrink-0" />
+            {row.vehicle?.plate_number ? (
+              <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate">
+                {row.vehicle.plate_number}
+              </span>
+            ) : (
+              <span className="text-xs text-slate-400 italic">Unassigned</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Payload Cap.',

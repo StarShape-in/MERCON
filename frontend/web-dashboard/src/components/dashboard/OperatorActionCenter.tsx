@@ -66,9 +66,11 @@ export default function OperatorActionCenter({ trips }: OperatorActionCenterProp
 
     trips.forEach((t) => {
       const tripId = t.ref_id || `TRP-${t.id.slice(0, 6).toUpperCase()}`;
-      const driverName = t.driver ? `${t.driver.first_name} ${t.driver.last_name}`.trim() : 'Unassigned Driver';
-      const driverPhone = t.driver?.phone_primary || '+966 50 123 4567';
-      const vehiclePlate = t.vehicle?.plate_number || t.vehicle?.ref_id || 'VEH-PENDING';
+      const driverName = t.driver
+        ? `${t.driver.first_name} ${t.driver.last_name}`.trim()
+        : (t.is_third_party ? (t.third_party_driver_name || t.thirdPartyProvider?.name || '3PL Driver') : 'Unassigned Driver');
+      const driverPhone = t.driver?.phone_primary || t.third_party_driver_phone || t.thirdPartyProvider?.phone || '+966 50 123 4567';
+      const vehiclePlate = t.vehicle?.plate_number || t.vehicle?.ref_id || (t.is_third_party ? (t.third_party_vehicle_plate || '3PL Truck') : 'VEH-PENDING');
       const origin = t.stops?.[0]?.location_name || t.rateCard?.route_origin || 'Origin Hub';
       const destination = t.stops?.[t.stops.length - 1]?.location_name || t.rateCard?.route_destination || 'Destination Hub';
       const route = `${origin} → ${destination}`;

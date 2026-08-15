@@ -174,11 +174,13 @@ export default function DashboardPage() {
     const recent: any[] = [];
 
     rawTrips.forEach((t, idx) => {
-      const driverName = t.driver ? `${t.driver.first_name} ${t.driver.last_name}`.trim() : 'Unassigned Driver';
+      const driverName = t.driver
+        ? `${t.driver.first_name} ${t.driver.last_name}`.trim()
+        : (t.is_third_party ? (t.third_party_driver_name || t.thirdPartyProvider?.name || '3PL Driver') : 'Unassigned Driver');
       const initials = t.driver
         ? `${t.driver.first_name?.[0] || ''}${t.driver.last_name?.[0] || ''}`.toUpperCase() || 'DR'
-        : 'UN';
-      const vehiclePlate = t.vehicle?.plate_number || t.vehicle?.ref_id || 'VEH-PENDING';
+        : (t.is_third_party ? (t.third_party_driver_name?.[0] || t.thirdPartyProvider?.name?.[0] || '3P').toUpperCase() : 'UN');
+      const vehiclePlate = t.vehicle?.plate_number || t.vehicle?.ref_id || (t.is_third_party ? (t.third_party_vehicle_plate || '3PL Truck') : 'VEH-PENDING');
 
       const origin = t.stops?.[0]?.location_name || t.rateCard?.route_origin || 'Riyadh Hub';
       const destination = t.stops?.[t.stops.length - 1]?.location_name || t.rateCard?.route_destination || 'Jeddah Gateway';
