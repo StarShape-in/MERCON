@@ -1,27 +1,23 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, CheckCircle2, ArrowLeft, Clock } from 'lucide-react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
+import { CheckCircle2, Clock, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { expenseService } from '@/services/expenseService';
 import { tripService, Trip } from '@/services/tripService';
 
-// Storage keys
-const POSITION_KEY = 'mercon_assistant_position_v2';
 const HANDLED_REMINDERS_KEY = 'mercon_assistant_handled_reminders_v2';
-const SNOOZED_REMINDERS_KEY = 'mercon_assistant_snoozed_reminders_v2';
+const SNOOZED_REMINDERS_KEY  = 'mercon_assistant_snoozed_reminders_v2';
 
-// State-based character assets matching exact filenames provided
-const ASSISTANT_ASSETS = {
-  profile: '/assistant/profile.png',
-  question: '/assistant/was there any labor charge for this trip.png',
-  great: '/assistant/great.png',
+const ASSETS = {
+  profile:      '/assistant/profile.png',
+  question:     '/assistant/was there any labor charge for this trip.png',
+  great:        '/assistant/great.png',
   remind_later: '/assistant/when should i remind you.png',
 } as const;
-
-export type AssistantAssetKey = keyof typeof ASSISTANT_ASSETS;
+type AssetKey = keyof typeof ASSETS;
 
 interface ReminderItem {
-  id: string; // e.g. "labor-charge-TRP-0159"
+  id: string;
   tripId: string;
   tripRef: string;
   type: 'labor_charge';
@@ -29,594 +25,362 @@ interface ReminderItem {
   question: string;
 }
 
-/** Render state-based character image with transparency and consistent proportions */
-function CharacterImage({
-  assetKey,
-  className = '',
-}: {
-  assetKey: AssistantAssetKey;
-  className?: string;
-}) {
-  const src = ASSISTANT_ASSETS[assetKey];
-
-  return (
-    <div className={`relative flex items-center justify-center w-full h-full ${className}`}>
-      <img
-        src={src}
-        alt={`Operations Assistant - ${assetKey}`}
-        className="w-full h-full max-h-44 object-contain select-none pointer-events-none transition-all duration-200"
-      />
-    </div>
-  );
-}
+type PanelView = 'question' | 'yes_input' | 'success' | 'no_confirmed' | 'remind_later';
 
 export default function OperationsAssistant() {
-  const [isOpen, setIsOpen] = useState(false);
-
-  // Position state (persisted in localStorage)
-  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
-    try {
-      const saved = localStorage.getItem(POSITION_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to parse assistant position', e);
-    }
-    return {
-      x: Math.max(20, window.innerWidth - 100),
-      y: Math.max(20, window.innerHeight - 110),
-    };
-  });
-
-  // Drag tracking
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number }>({
-    startX: 0,
-    startY: 0,
-    initX: 0,
-    initY: 0,
-  });
-  const hasMovedRef = useRef(false);
-
-  // Reminders state
-  const [reminders, setReminders] = useState<ReminderItem[]>([]);
-  const [activeReminderId, setActiveReminderId] = useState<string | null>(null);
-
-  // Panel flow state: 'question' | 'yes_input' | 'success' | 'no_confirmed' | 'remind_later' | 'list'
-  const [panelView, setPanelView] = useState<
-    'question' | 'yes_input' | 'success' | 'no_confirmed' | 'remind_later' | 'list'
-  >('question');
-
-  // Selected timer preset for snooze
-  const [selectedTimer, setSelectedTimer] = useState<number | null>(5);
-
-  // Input state for labor charge
-  const [chargeAmount, setChargeAmount] = useState<string>('150');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reminders,      setReminders]      = useState<ReminderItem[]>([]);
+  const [activeId,       setActiveId]       = useState<string | null>(null);
+  const [visible,        setVisible]        = useState(false);
+  const [panelView,      setPanelView]      = useState<PanelView>('question');
+  const [chargeAmount,   setChargeAmount]   = useState('150');
+  const [isSubmitting,   setIsSubmitting]   = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [selectedTimer,  setSelectedTimer]  = useState<number | null>(null);
+  const [reaction,       setReaction]       = useState<'none'|'yes'|'no'|'wave'>('none');
 
-  // 1. Fetch completed trips & sync pending reminders
-  const syncReminders = useCallback(async () => {
-    try {
-      const handledRaw = localStorage.getItem(HANDLED_REMINDERS_KEY);
-      const handledSet = new Set<string>(handledRaw ? JSON.parse(handledRaw) : []);
-
-      const snoozedRaw = localStorage.getItem(SNOOZED_REMINDERS_KEY);
-      const snoozedMap: Record<string, number> = snoozedRaw ? JSON.parse(snoozedRaw) : {};
-
-      const now = Date.now();
-
-      let completedTrips: Trip[] = [];
-      try {
-        const res = await tripService.getAll({ status: 'Completed', per_page: 20 });
-        completedTrips = res.data || [];
-      } catch (e) {
-        console.warn('Could not fetch completed trips from API, fallback to demo trip');
-      }
-
-      // Guarantee demo TRP-0159 is present if not handled
-      const hasDemo = completedTrips.some((t) => t.ref_id === 'TRP-0159');
-      if (!hasDemo) {
-        completedTrips.unshift({
-          id: 'demo-trp-0159',
-          ref_id: 'TRP-0159',
-          status: 'Completed',
-          planned_start: new Date().toISOString(),
-          actual_start: new Date().toISOString(),
-          planned_end: new Date().toISOString(),
-          actual_end: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        } as any);
-      }
-
-      const pending: ReminderItem[] = [];
-
-      completedTrips.forEach((trip) => {
-        const reminderId = `labor-charge-${trip.ref_id || trip.id}`;
-
-        if (handledSet.has(reminderId)) return;
-        if (snoozedMap[reminderId] && snoozedMap[reminderId] > now) return;
-
-        pending.push({
-          id: reminderId,
-          tripId: trip.id,
-          tripRef: trip.ref_id || 'TRP-0159',
-          type: 'labor_charge',
-          title: `Trip ${trip.ref_id || 'TRP-0159'} completed`,
-          question: `Was there any labor charge for this trip?`,
-        });
-      });
-
-      setReminders(pending);
-
-      if (pending.length > 0) {
-        if (!activeReminderId || !pending.some((r) => r.id === activeReminderId)) {
-          setActiveReminderId(pending[0].id);
-          setPanelView(pending.length > 1 && !activeReminderId ? 'list' : 'question');
-        }
-      } else {
-        setActiveReminderId(null);
-      }
-    } catch (err) {
-      console.error('Error syncing assistant reminders:', err);
-    }
-  }, [activeReminderId]);
-
-  useEffect(() => {
-    syncReminders();
-    const interval = setInterval(syncReminders, 10000);
-    return () => clearInterval(interval);
-  }, [syncReminders]);
-
-  // Keep assistant inside viewport bounds when window resizes
-  useEffect(() => {
-    const handleResize = () => {
-      setPos((p) => ({
-        x: Math.min(Math.max(12, p.x), window.innerWidth - 80),
-        y: Math.min(Math.max(12, p.y), window.innerHeight - 80),
-      }));
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const savePosition = (newX: number, newY: number) => {
-    const clampedX = Math.min(Math.max(12, newX), window.innerWidth - 80);
-    const clampedY = Math.min(Math.max(12, newY), window.innerHeight - 80);
-    setPos({ x: clampedX, y: clampedY });
-    try {
-      localStorage.setItem(POSITION_KEY, JSON.stringify({ x: clampedX, y: clampedY }));
-    } catch (e) {
-      console.error('Failed to save position', e);
-    }
-  };
-
-  // Pointer drag events
-  const onPointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    hasMovedRef.current = false;
-    dragStartRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      initX: pos.x,
-      initY: pos.y,
-    };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStartRef.current.startX;
-    const dy = e.clientY - dragStartRef.current.startY;
-
-    if (Math.hypot(dx, dy) > 5) {
-      hasMovedRef.current = true;
-    }
-
-    const newX = dragStartRef.current.initX + dx;
-    const newY = dragStartRef.current.initY + dy;
-    setPos({ x: newX, y: newY });
-  };
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-
-    if (!hasMovedRef.current) {
-      setIsOpen((prev) => !prev);
-      if (!isOpen && reminders.length > 0) {
-        setPanelView('question');
-      }
-    } else {
-      savePosition(pos.x, pos.y);
-    }
-  };
-
-  // Keyboard accessibility: Escape key closes panel
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
-  const markReminderHandled = (reminderId: string) => {
-    try {
-      const handledRaw = localStorage.getItem(HANDLED_REMINDERS_KEY);
-      const handledArr: string[] = handledRaw ? JSON.parse(handledRaw) : [];
-      if (!handledArr.includes(reminderId)) {
-        handledArr.push(reminderId);
-        localStorage.setItem(HANDLED_REMINDERS_KEY, JSON.stringify(handledArr));
-      }
-    } catch (e) {
-      console.error('Failed to save handled reminder', e);
-    }
-    setTimeout(() => {
-      syncReminders();
-    }, 300);
-  };
-
-  const handleYes = () => {
-    setPanelView('yes_input');
-  };
-
-  const handleAddCharge = async () => {
-    const activeRem = reminders.find((r) => r.id === activeReminderId);
-    if (!activeRem) return;
-
-    const numAmount = parseFloat(chargeAmount) || 150;
-    setIsSubmitting(true);
-
-    try {
-      await expenseService.create({
-        category: 'Labor Charge',
-        amount: numAmount,
-        status: 'Paid',
-        description: `Labor charge for completed trip ${activeRem.tripRef}`,
-        currency: 'SAR',
-      });
-
-      setSuccessMessage(`SAR ${numAmount.toFixed(2)} for ${activeRem.tripRef}`);
-      setPanelView('success');
-      markReminderHandled(activeRem.id);
-
-      setTimeout(() => {
-        setIsOpen(false);
-      }, 1800);
-    } catch (err) {
-      console.error('Error saving expense:', err);
-      setSuccessMessage(`SAR ${numAmount.toFixed(2)} for ${activeRem.tripRef}`);
-      setPanelView('success');
-      markReminderHandled(activeRem.id);
-      setTimeout(() => {
-        setIsOpen(false);
-      }, 1800);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleNo = () => {
-    const activeRem = reminders.find((r) => r.id === activeReminderId);
-    if (activeRem) {
-      markReminderHandled(activeRem.id);
-    }
-    setPanelView('no_confirmed');
-    setTimeout(() => {
-      setIsOpen(false);
-    }, 1800);
-  };
-
-  const handleRemindLater = () => {
-    setPanelView('remind_later');
-  };
-
-  const handleConfirmTimer = (minutes: number) => {
-    const activeRem = reminders.find((r) => r.id === activeReminderId);
-    if (activeRem) {
-      try {
-        const snoozedRaw = localStorage.getItem(SNOOZED_REMINDERS_KEY);
-        const snoozedMap: Record<string, number> = snoozedRaw ? JSON.parse(snoozedRaw) : {};
-        snoozedMap[activeRem.id] = Date.now() + minutes * 60 * 1000;
-        localStorage.setItem(SNOOZED_REMINDERS_KEY, JSON.stringify(snoozedMap));
-      } catch (e) {
-        console.error('Failed to save snooze timer', e);
-      }
-    }
-    setIsOpen(false);
-    setTimeout(() => {
-      syncReminders();
-    }, 300);
-  };
-
-  // State-based asset mapping matching exact requirements:
-  // Floating assistant -> profile
-  // Completed trip / labor-charge question -> was there any labor charge for this trip
-  // YES clicked / entering labor amount -> great
-  // Successful labor charge -> great
-  // Remind Me Later clicked -> when should i remind you
-  // Reminder returns -> was there any labor charge for this trip
-  // NO selected -> great (closest neutral/happy state from supplied assets)
-  let currentAsset: AssistantAssetKey = 'question';
-  if (panelView === 'question') currentAsset = 'question';
+  let currentAsset: AssetKey = 'question';
   if (panelView === 'yes_input' || panelView === 'success' || panelView === 'no_confirmed') currentAsset = 'great';
   if (panelView === 'remind_later') currentAsset = 'remind_later';
 
-  // Intelligent quadrant placement
-  const isRightHalf = pos.x > window.innerWidth / 2;
-  const isBottomHalf = pos.y > window.innerHeight / 2;
+  const syncReminders = useCallback(async () => {
+    try {
+      const handledSet = new Set<string>(JSON.parse(localStorage.getItem(HANDLED_REMINDERS_KEY) || '[]'));
+      const snoozedMap: Record<string,number> = JSON.parse(localStorage.getItem(SNOOZED_REMINDERS_KEY) || '{}');
+      const now = Date.now();
 
-  const activeReminder = reminders.find((r) => r.id === activeReminderId) || reminders[0];
+      let trips: Trip[] = [];
+      try {
+        const res = await tripService.getAll({ status: 'Completed', per_page: 20 });
+        trips = res.data || [];
+      } catch { /* network unavailable */ }
+
+      if (!trips.some((t) => t.ref_id === 'TRP-0159')) {
+        trips.unshift({ id:'demo-trp-0159', ref_id:'TRP-0159', status:'Completed',
+          planned_start:new Date().toISOString(), actual_start:new Date().toISOString(),
+          planned_end:new Date().toISOString(), actual_end:new Date().toISOString(),
+          createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() } as Trip);
+      }
+
+      const pending: ReminderItem[] = [];
+      trips.forEach((t) => {
+        const rid = `labor-charge-${t.ref_id || t.id}`;
+        if (handledSet.has(rid)) return;
+        if (snoozedMap[rid] && snoozedMap[rid] > now) return;
+        pending.push({ id:rid, tripId:t.id, tripRef:t.ref_id||'TRP-0159',
+          type:'labor_charge', title:`Trip ${t.ref_id||'TRP-0159'} completed`,
+          question:'Was there any labor charge for this trip?' });
+      });
+
+      setReminders(pending);
+      if (pending.length > 0) {
+        setActiveId((prev) => (!prev || !pending.some((r)=>r.id===prev)) ? pending[0].id : prev);
+        setVisible(true);
+      } else {
+        setVisible(false);
+        setActiveId(null);
+      }
+    } catch(e) { console.error('assistant sync', e); }
+  }, []);
+
+  useEffect(() => {
+    syncReminders();
+    const t = setInterval(syncReminders, 10000);
+    return () => clearInterval(t);
+  }, [syncReminders]);
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') dismiss(); };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, []);
+
+  const activeReminder = reminders.find((r) => r.id === activeId) ?? reminders[0];
+
+  const markHandled = (rid: string) => {
+    try {
+      const arr: string[] = JSON.parse(localStorage.getItem(HANDLED_REMINDERS_KEY) || '[]');
+      if (!arr.includes(rid)) { arr.push(rid); localStorage.setItem(HANDLED_REMINDERS_KEY, JSON.stringify(arr)); }
+    } catch { /**/ }
+    setTimeout(syncReminders, 300);
+  };
+
+  const dismiss = () => {
+    setVisible(false);
+    setTimeout(() => { setPanelView('question'); setChargeAmount('150'); setReaction('none'); }, 500);
+  };
+
+  const handleYes = () => {
+    setReaction('yes');
+    setTimeout(() => { setReaction('none'); setPanelView('yes_input'); }, 420);
+  };
+
+  const handleAddCharge = async () => {
+    if (!activeReminder) return;
+    const amount = parseFloat(chargeAmount) || 150;
+    setIsSubmitting(true);
+    try {
+      await expenseService.create({ category:'Labor Charge', amount, status:'Paid',
+        description:`Labor charge for completed trip ${activeReminder.tripRef}`, currency:'SAR' });
+    } catch { /**/ }
+    setSuccessMessage(`SAR ${amount.toFixed(2)} recorded for ${activeReminder.tripRef}`);
+    setPanelView('success');
+    markHandled(activeReminder.id);
+    setIsSubmitting(false);
+    setTimeout(dismiss, 2000);
+  };
+
+  const handleNo = () => {
+    setReaction('no');
+    if (activeReminder) markHandled(activeReminder.id);
+    setPanelView('no_confirmed');
+    setTimeout(dismiss, 1800);
+  };
+
+  const handleRemindLater = () => { setReaction('wave'); setPanelView('remind_later'); };
+
+  const handleConfirmTimer = (minutes: number) => {
+    setSelectedTimer(minutes);
+    if (activeReminder) {
+      try {
+        const map: Record<string,number> = JSON.parse(localStorage.getItem(SNOOZED_REMINDERS_KEY)||'{}');
+        map[activeReminder.id] = Date.now() + minutes * 60000;
+        localStorage.setItem(SNOOZED_REMINDERS_KEY, JSON.stringify(map));
+      } catch { /**/ }
+    }
+    dismiss();
+    setTimeout(syncReminders, 300);
+  };
+
+  if (reminders.length === 0 && !visible) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50">
-      {/* 1. FLOATING DRAGGABLE CHARACTER BUTTON */}
-      <div
-        style={{
-          left: `${pos.x}px`,
-          top: `${pos.y}px`,
-          touchAction: 'none',
-        }}
-        className="absolute pointer-events-auto select-none transition-transform duration-75"
-      >
-        <button
-          type="button"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          aria-label="Open Operations Assistant"
-          className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-white shadow-2xl border-2 border-[#E8450F] flex items-center justify-center relative cursor-grab active:cursor-grabbing hover:scale-105 active:scale-95 transition-all p-1 ${
-            reminders.length > 0 ? 'ring-4 ring-[#E8450F]/25 animate-pulse' : ''
-          }`}
-        >
-          <img
-            src={ASSISTANT_ASSETS.profile}
-            alt="Operations Assistant Avatar"
-            className="w-full h-full rounded-full object-cover select-none pointer-events-none"
-          />
+    <>
+      <style>{`
+        @keyframes assistSlideUp {
+          0%  { transform:translateY(110%) scale(0.96); opacity:0 }
+          60% { transform:translateY(-10px) scale(1.02); opacity:1 }
+          80% { transform:translateY(4px) scale(0.99) }
+          100%{ transform:translateY(0) scale(1); opacity:1 }
+        }
+        @keyframes assistSlideDown {
+          0%  { transform:translateY(0); opacity:1 }
+          100%{ transform:translateY(130%); opacity:0 }
+        }
+        @keyframes bubblePop {
+          0%  { transform:scale(0.82) translateY(8px); opacity:0 }
+          65% { transform:scale(1.04) translateY(-3px); opacity:1 }
+          100%{ transform:scale(1) translateY(0); opacity:1 }
+        }
+        @keyframes idleFloat {
+          0%,100%{ transform:translateY(0px) }
+          50%    { transform:translateY(-5px) }
+        }
+        @keyframes reactBounce {
+          0%  { transform:translateY(0) rotate(0deg) }
+          30% { transform:translateY(-16px) rotate(-3deg) }
+          60% { transform:translateY(-6px) rotate(2deg) }
+          80% { transform:translateY(-10px) rotate(-1deg) }
+          100%{ transform:translateY(0) rotate(0deg) }
+        }
+        @keyframes reactWave {
+          0%,100%{ transform:rotate(0deg) }
+          25%    { transform:rotate(-14deg) }
+          75%    { transform:rotate(14deg) }
+        }
+        @keyframes msgFade {
+          0%  { opacity:0; transform:translateY(5px) }
+          100%{ opacity:1; transform:translateY(0) }
+        }
+        .char-in    { animation:assistSlideUp 0.58s cubic-bezier(0.34,1.56,0.64,1) forwards }
+        .char-out   { animation:assistSlideDown 0.38s ease-in forwards }
+        .char-idle  { animation:idleFloat 3.6s ease-in-out infinite }
+        .char-yes   { animation:reactBounce 0.52s ease both }
+        .char-no    { animation:reactBounce 0.42s ease both }
+        .char-wave  { animation:reactWave 0.65s ease both }
+        .bubble-in  { animation:bubblePop 0.42s cubic-bezier(0.34,1.56,0.64,1) 0.22s both }
+        .bubble-out { opacity:0; pointer-events:none }
+        .msg-in     { animation:msgFade 0.32s ease 0.44s both }
+        .btn-hover  { transition:transform 0.16s ease, box-shadow 0.16s ease }
+        .btn-hover:hover{ transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,0.13) }
+        .btn-hover:active{ transform:translateY(0) }
+      `}</style>
 
-          {/* Pending Notification Badge - dynamically displays number of pending reminders */}
-          {reminders.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-[#E8450F] text-white text-[11px] font-extrabold w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-md animate-bounce">
-              {reminders.length}
-            </span>
-          )}
-        </button>
+      <div className="fixed inset-0 z-[60] pointer-events-none" aria-live="polite">
+        <div className="absolute bottom-0 left-3 sm:left-7 flex items-end gap-0 pointer-events-auto"
+          style={{ maxWidth:'min(580px,calc(100vw - 20px))' }}>
 
-        {/* 2. SINGLE EXPANDABLE ASSISTANT PANEL */}
-        {isOpen && (
-          <div
-            style={{
-              position: 'absolute',
-              width: '420px',
-              maxWidth: 'calc(100vw - 32px)',
-              ...(isRightHalf ? { right: '80px' } : { left: '80px' }),
-              ...(isBottomHalf ? { bottom: '0px' } : { top: '0px' }),
-            }}
-            className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 p-4 space-y-3 z-50 pointer-events-auto animate-in fade-in-50 zoom-in-95 duration-150"
-          >
-            {/* Header Bar */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                {panelView !== 'question' && panelView !== 'list' && (
-                  <button
-                    type="button"
-                    onClick={() => setPanelView('question')}
-                    className="text-slate-400 hover:text-slate-700 p-0.5 rounded-md transition-colors"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
+          {/* ── HALF-BODY CHARACTER ── */}
+          <div className={`relative shrink-0 select-none pointer-events-none z-10
+              w-28 h-40 sm:w-36 sm:h-52 ${visible ? 'char-in' : 'char-out'}`}>
+            <img
+              src={ASSETS[currentAsset]}
+              alt="Operations Assistant character"
+              draggable={false}
+              className={`w-full h-full object-contain object-bottom
+                ${reaction === 'none' ? 'char-idle' : `char-${reaction}`}`}
+            />
+          </div>
+
+          {/* ── SPEECH BUBBLE ── */}
+          <div className={`relative mb-5 ml-0.5 flex-1 min-w-0
+              ${visible ? 'bubble-in' : 'bubble-out'}`}>
+
+            {/* ONE triangle pointer pointing LEFT toward character */}
+            <span aria-hidden="true" style={{
+              position:'absolute', left:'-10px', bottom:'32px',
+              width:0, height:0,
+              borderTop:'11px solid transparent',
+              borderBottom:'11px solid transparent',
+              borderRight:'11px solid white',
+              filter:'drop-shadow(-2px 0px 1px rgba(0,0,0,0.07))',
+              zIndex:2,
+            }}/>
+
+            {/* Bubble card */}
+            <div className="relative bg-white rounded-2xl border border-slate-200/80 shadow-2xl overflow-hidden" style={{zIndex:1}}>
+              {/* Accent top bar */}
+              <div className="h-[3px] w-full bg-gradient-to-r from-[#E8450F] via-orange-400 to-[#E8450F]/30"/>
+
+              <div className="px-4 pt-3 pb-4 space-y-3">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#E8450F] ring-2 ring-[#E8450F]/20 animate-pulse"/>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Operations Assistant</span>
+                  </div>
+                  <button type="button" onClick={dismiss} aria-label="Dismiss"
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                    <X className="w-3.5 h-3.5"/>
                   </button>
-                )}
-                <span className="w-2.5 h-2.5 rounded-full bg-[#E8450F] ring-2 ring-[#E8450F]/20 shrink-0" />
-                <h4 className="text-xs font-extrabold text-[#111111] uppercase tracking-wider">
-                  Operations Assistant
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                aria-label="Close Operations Assistant"
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+                </div>
 
-            {/* TWO-COLUMN LAYOUT: Character Image on Left + Interaction Content on Right */}
-            <div className="grid grid-cols-12 gap-3 items-center">
-              {/* Left Column: Transparent Character State Asset */}
-              <div className="col-span-5 flex items-center justify-center p-0 h-44 relative overflow-hidden">
-                <CharacterImage assetKey={currentAsset} className="w-full h-44" />
-              </div>
-
-              {/* Right Column: Interaction Speech Bubble & Controls */}
-              <div className="col-span-7 space-y-3">
-                {/* VIEW 1: Question State */}
+                {/* VIEW 1 — Question */}
                 {panelView === 'question' && (
-                  <div className="space-y-3">
-                    <div>
-                      <h5 className="text-xs font-bold text-[#111111]">Hey Ilan! 👋</h5>
-                      <p className="text-xs text-slate-600 leading-relaxed mt-1">
-                        Trip <strong className="text-[#111111]">{activeReminder?.tripRef || 'TRP-0159'}</strong> has been completed.
+                  <div className="msg-in space-y-3">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-slate-900">Hey! 👋</p>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Trip <strong className="text-slate-900">{activeReminder?.tripRef ?? 'TRP-0159'}</strong> has been completed.
+                      </p>
+                      <p className="text-xs font-extrabold text-slate-900 pt-0.5">
+                        {activeReminder?.question ?? 'Was there any labor charge for this trip?'}
                       </p>
                     </div>
-
-                    <p className="text-xs font-extrabold text-[#111111]">
-                      Was there any labor charge for this trip?
-                    </p>
-
-                    <div className="space-y-1.5 pt-1">
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <Button
-                          type="button"
-                          onClick={handleYes}
-                          className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-2xs"
-                        >
-                          Yes
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleNo}
-                          className="h-8 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl"
-                        >
-                          No
-                        </Button>
+                    <div className="space-y-2 pt-0.5">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" onClick={handleYes}
+                          className="btn-hover h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm">
+                          ✓ Yes
+                        </button>
+                        <button type="button" onClick={handleNo}
+                          className="btn-hover h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold">
+                          ✕ No
+                        </button>
                       </div>
-
-                      <Button
-                        type="button"
-                        onClick={handleRemindLater}
-                        className="w-full h-8 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white rounded-xl shadow-2xs"
-                      >
-                        Remind Me Later
-                      </Button>
+                      <button type="button" onClick={handleRemindLater}
+                        className="btn-hover w-full h-9 rounded-xl border border-[#E8450F]/25 bg-orange-50 hover:bg-orange-100 text-[#E8450F] text-xs font-bold">
+                        🔔 Remind Me Later
+                      </button>
                     </div>
                   </div>
                 )}
 
-                {/* VIEW 2: YES Input State */}
+                {/* VIEW 2 — Enter amount */}
                 {panelView === 'yes_input' && (
-                  <div className="space-y-2.5">
+                  <div className="msg-in space-y-3">
+                    <button type="button" onClick={() => setPanelView('question')}
+                      className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-700 transition-colors">
+                      <ArrowLeft className="w-3 h-3"/> Back
+                    </button>
                     <div>
-                      <h5 className="text-xs font-bold text-[#111111]">Great! 👍</h5>
-                      <p className="text-[11px] text-slate-600 leading-snug mt-1">
-                        Please enter the labor charge amount:
+                      <p className="text-sm font-bold text-slate-900">Great! 👍</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Enter the labour charge amount:</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[50,100,150,200,500].map((v) => (
+                        <button key={v} type="button" onClick={() => setChargeAmount(String(v))}
+                          className={`btn-hover px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors
+                            ${chargeAmount===String(v)
+                              ? 'bg-[#E8450F] text-white border-[#E8450F]'
+                              : 'border-slate-200 text-slate-600 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
+                          {v} SAR
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">SAR</span>
+                        <Input type="number" value={chargeAmount} onChange={(e) => setChargeAmount(e.target.value)}
+                          placeholder="150" className="h-9 pl-11 rounded-xl text-xs font-bold border-slate-200 focus-visible:ring-[#E8450F]"/>
+                      </div>
+                      <button type="button" disabled={isSubmitting || !chargeAmount} onClick={handleAddCharge}
+                        className="btn-hover h-9 px-4 rounded-xl bg-[#E8450F] hover:bg-[#d03d0c] disabled:opacity-60 text-white text-xs font-bold shrink-0">
+                        {isSubmitting ? '...' : 'Add'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* VIEW 3 — Success */}
+                {panelView === 'success' && (
+                  <div className="msg-in py-2 space-y-1">
+                    <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                      <CheckCircle2 className="w-4 h-4 shrink-0"/>
+                      <span>Labour charge recorded!</span>
+                    </div>
+                    <p className="text-sm font-extrabold text-slate-900">{successMessage}</p>
+                  </div>
+                )}
+
+                {/* VIEW 4 — No confirmed */}
+                {panelView === 'no_confirmed' && (
+                  <div className="msg-in py-2 space-y-1">
+                    <p className="text-sm font-bold text-slate-800">Okay, got it! 👍</p>
+                    <p className="text-xs text-slate-500">No labour charge recorded for trip {activeReminder?.tripRef}.</p>
+                  </div>
+                )}
+
+                {/* VIEW 5 — Remind me later */}
+                {panelView === 'remind_later' && (
+                  <div className="msg-in space-y-2.5">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">When should I remind you? 🕐</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        I'll check back about <strong>{activeReminder?.tripRef}</strong>.
                       </p>
                     </div>
-
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
-                        SAR
-                      </span>
-                      <Input
-                        type="number"
-                        value={chargeAmount}
-                        onChange={(e) => setChargeAmount(e.target.value)}
-                        placeholder="150"
-                        className="h-9 pl-11 rounded-xl text-xs font-bold border-slate-200 focus-visible:ring-[#E8450F]"
-                      />
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[{l:'1 min',v:1},{l:'5 min',v:5},{l:'15 min',v:15},{l:'1 hr',v:60}].map(({l,v}) => (
+                        <button key={v} type="button" onClick={() => handleConfirmTimer(v)}
+                          className={`btn-hover h-9 rounded-xl text-xs font-bold border transition-colors
+                            ${selectedTimer===v
+                              ? 'bg-[#E8450F] text-white border-[#E8450F]'
+                              : 'border-slate-200 text-slate-700 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
+                          {l}
+                        </button>
+                      ))}
                     </div>
-
-                    <Button
-                      type="button"
-                      disabled={isSubmitting || !chargeAmount}
-                      onClick={handleAddCharge}
-                      className="w-full h-8 text-xs font-bold bg-[#E8450F] hover:bg-[#d03d0c] text-white rounded-xl shadow-2xs"
-                    >
-                      {isSubmitting ? 'Adding Charge...' : 'Add Charge'}
-                    </Button>
-                  </div>
-                )}
-
-                {/* VIEW 3: Success State */}
-                {panelView === 'success' && (
-                  <div className="py-2 space-y-1 text-left">
-                    <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>Labor charge added</span>
-                    </div>
-                    <p className="text-sm font-extrabold text-[#111111]">{successMessage}</p>
-                  </div>
-                )}
-
-                {/* VIEW 4: NO Confirmed State */}
-                {panelView === 'no_confirmed' && (
-                  <div className="py-2 space-y-1 text-left">
-                    <h5 className="text-xs font-bold text-slate-800">Okay 👍</h5>
-                    <p className="text-[11px] text-slate-600 font-medium leading-snug">
-                      No labor charge will be added for trip {activeReminder?.tripRef}.
-                    </p>
-                  </div>
-                )}
-
-                {/* VIEW 5: Remind Me Later State */}
-                {panelView === 'remind_later' && (
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-bold text-[#111111]">When should I remind you?</h5>
-
-                    <div className="grid grid-cols-2 gap-1.5 pt-1">
-                      <Button
-                        type="button"
-                        variant={selectedTimer === 1 ? 'default' : 'outline'}
-                        onClick={() => {
-                          setSelectedTimer(1);
-                          handleConfirmTimer(1);
-                        }}
-                        className={`h-8 text-xs font-bold rounded-xl ${
-                          selectedTimer === 1
-                            ? 'bg-[#E8450F] text-white hover:bg-[#d03d0c]'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        1 min
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant={selectedTimer === 5 ? 'default' : 'outline'}
-                        onClick={() => {
-                          setSelectedTimer(5);
-                          handleConfirmTimer(5);
-                        }}
-                        className={`h-8 text-xs font-bold rounded-xl ${
-                          selectedTimer === 5
-                            ? 'bg-[#E8450F] text-white hover:bg-[#d03d0c]'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        5 min
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant={selectedTimer === 15 ? 'default' : 'outline'}
-                        onClick={() => {
-                          setSelectedTimer(15);
-                          handleConfirmTimer(15);
-                        }}
-                        className={`h-8 text-xs font-bold rounded-xl ${
-                          selectedTimer === 15
-                            ? 'bg-[#E8450F] text-white hover:bg-[#d03d0c]'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        15 min
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant={selectedTimer === 60 ? 'default' : 'outline'}
-                        onClick={() => {
-                          setSelectedTimer(60);
-                          handleConfirmTimer(60);
-                        }}
-                        className={`h-8 text-xs font-bold rounded-xl ${
-                          selectedTimer === 60
-                            ? 'bg-[#E8450F] text-white hover:bg-[#d03d0c]'
-                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        Later
-                      </Button>
-                    </div>
-
-                    <p className="text-[10px] text-slate-500 font-medium pt-1 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-[#E8450F] shrink-0" />
-                      <span>I'll remind you about the labor charge for {activeReminder?.tripRef}</span>
+                    <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-[#E8450F] shrink-0"/> Snoozing reminder…
                     </p>
                   </div>
                 )}
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Collapsed badge when bubble is dismissed but reminders exist */}
+        {!visible && reminders.length > 0 && (
+          <button type="button" onClick={() => setVisible(true)} aria-label="Open Operations Assistant"
+            className="pointer-events-auto absolute bottom-4 left-3 sm:left-7 w-14 h-14 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl flex items-center justify-center ring-4 ring-[#E8450F]/20 hover:scale-105 active:scale-95 transition-all overflow-hidden">
+            <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover"/>
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[10px] font-black flex items-center justify-center shadow">
+              {reminders.length}
+            </span>
+          </button>
         )}
       </div>
-    </div>
+    </>
   );
 }
