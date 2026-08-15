@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
-  ArrowLeft, Edit2, FileText, Truck, MapPin, AlertTriangle, Trash2, 
+  ArrowLeft, Edit2, FileText, AlertTriangle, Trash2,
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
   CheckCircle2, ChevronDown, Calendar, XCircle
@@ -886,37 +886,6 @@ export default function VehicleDetailsPage() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Live Location & Telematics Radar */}
-            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-brand" /> Telematics & Dispatch Radar
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-3">
-                {vehicle.status === 'OnTrip' ? (
-                  <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
-                    <div className="flex items-center gap-2 text-indigo-600">
-                      <MapPin className="w-4 h-4 animate-bounce" />
-                      <span className="text-xs font-extrabold">In Transit — Active Trip</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Vehicle is dispatched on a live trip run.
-                    </p>
-                    <Button size="sm" onClick={() => navigate('/trips')} className="w-full h-8 text-xs font-bold bg-indigo-600 text-white">
-                      Track Live Dispatch
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="p-6 text-center text-slate-400 flex flex-col items-center gap-2">
-                    <Truck size={28} className="opacity-30 text-slate-400" />
-                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Asset is currently parked and ready for dispatch.</p>
                   </div>
                 )}
               </CardContent>
