@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle2, Clock, X, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, Clock, X, ArrowLeft, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { expenseService } from '@/services/expenseService';
@@ -8,6 +8,7 @@ import { tripService, Trip } from '@/services/tripService';
 const HANDLED_REMINDERS_KEY = 'mercon_assistant_handled_reminders_v2';
 const SNOOZED_REMINDERS_KEY  = 'mercon_assistant_snoozed_reminders_v2';
 const POSITION_KEY           = 'mercon_assistant_position_v3';
+const DOCKED_KEY             = 'mercon_assistant_docked_v1';
 
 const ASSETS = {
   profile:      '/assistant/profile.png',
@@ -38,7 +39,42 @@ export default function OperationsAssistant() {
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedTimer,  setSelectedTimer]  = useState<number | null>(null);
 
+  const [isDocked, setIsDocked] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(DOCKED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   const assistantRef = useRef<HTMLDivElement>(null);
+
+  // Listen for dock changes
+  useEffect(() => {
+    const handleDockChange = () => {
+      try {
+        const val = localStorage.getItem(DOCKED_KEY) === 'true';
+        setIsDocked(val);
+        if (!val) {
+          setVisible(true);
+          setPanelView('question');
+        } else {
+          setVisible(false);
+        }
+      } catch { /**/ }
+    };
+    window.addEventListener('mercon_assistant_dock_change', handleDockChange);
+    return () => window.removeEventListener('mercon_assistant_dock_change', handleDockChange);
+  }, []);
+
+  const setDockState = (docked: boolean) => {
+    setIsDocked(docked);
+    try {
+      localStorage.setItem(DOCKED_KEY, String(docked));
+    } catch { /**/ }
+    if (docked) setVisible(false);
+    window.dispatchEvent(new CustomEvent('mercon_assistant_dock_change'));
+  };
 
   // Draggable avatar position
   const [pos, setPos] = useState<{x:number; y:number}>(() => {
@@ -224,6 +260,8 @@ export default function OperationsAssistant() {
     setTimeout(syncReminders, 300);
   };
 
+  if (isDocked) return null;
+
   return (
     <>
       <style>{`
@@ -251,28 +289,42 @@ export default function OperationsAssistant() {
       <div className="fixed inset-0 z-[60] pointer-events-none" aria-live="polite">
         {/* DRAGGABLE AVATAR BUTTON (shown when speech bubble is closed) */}
         {!visible && (
-          <button
-            type="button"
-            aria-label="Open Operations Assistant"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
+          <div
             style={{ position:'fixed', left:`${pos.x}px`, top:`${pos.y}px`, touchAction:'none', zIndex:70 }}
-            className={`pointer-events-auto relative w-16 h-16 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl
-              flex items-center justify-center p-0.5
-              ring-4 ring-[#E8450F]/20
-              hover:scale-105 active:scale-95 transition-transform
-              ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'}`}
+            className="pointer-events-auto relative group"
           >
-            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
-              <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover pointer-events-none select-none"/>
-            </div>
-            {reminders.length > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[11px] font-black flex items-center justify-center shadow-md z-30 animate-pulse">
-                {reminders.length}
-              </span>
-            )}
-          </button>
+            <button
+              type="button"
+              aria-label="Open Operations Assistant"
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              className={`w-16 h-16 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl
+                flex items-center justify-center p-0.5
+                ring-4 ring-[#E8450F]/20
+                hover:scale-105 active:scale-95 transition-transform
+                ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'}`}
+            >
+              <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover pointer-events-none select-none"/>
+              </div>
+              {reminders.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[11px] font-black flex items-center justify-center shadow-md z-30 animate-pulse">
+                  {reminders.length}
+                </span>
+              )}
+            </button>
+
+            {/* Quick Hide / Dock button attached to avatar */}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setDockState(true); }}
+              title="Hide floating assistant (Dock to Important Reminders)"
+              className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black flex items-center justify-center shadow-md z-40 transition-all opacity-80 group-hover:opacity-100 cursor-pointer"
+            >
+              ↙
+            </button>
+          </div>
         )}
 
         {/* FULL ASSISTANT POPUP (HALF-BODY CHARACTER + SPEECH BUBBLE - DRAGGABLE via character) */}
@@ -324,14 +376,26 @@ export default function OperationsAssistant() {
               />
 
               <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl overflow-visible" style={{zIndex:1}}>
-                <button
-                  type="button"
-                  onClick={dismiss}
-                  aria-label="Dismiss"
-                  className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5"/>
-                </button>
+                {/* Header Action Buttons (Dock & Close) */}
+                <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setDockState(true)}
+                    aria-label="Hide and dock to Important Reminders"
+                    title="Hide assistant & dock to Important Reminders"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <Minimize2 className="w-3 h-3"/>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={dismiss}
+                    aria-label="Dismiss"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5"/>
+                  </button>
+                </div>
 
                 <div className="px-5 pt-4 pb-5 space-y-3.5">
                   {/* ZERO REMINDERS STATE */}

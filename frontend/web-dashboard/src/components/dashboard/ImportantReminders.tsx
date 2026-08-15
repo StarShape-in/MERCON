@@ -74,6 +74,30 @@ export default function ImportantReminders({
 }: ImportantRemindersProps) {
   const navigate = useNavigate();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [isAssistantDocked, setIsAssistantDocked] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('mercon_assistant_docked_v1') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleDockChange = () => {
+      try {
+        setIsAssistantDocked(localStorage.getItem('mercon_assistant_docked_v1') === 'true');
+      } catch { /**/ }
+    };
+    window.addEventListener('mercon_assistant_dock_change', handleDockChange);
+    return () => window.removeEventListener('mercon_assistant_dock_change', handleDockChange);
+  }, []);
+
+  const handleUndockAssistant = () => {
+    try {
+      localStorage.setItem('mercon_assistant_docked_v1', 'false');
+    } catch { /**/ }
+    window.dispatchEvent(new CustomEvent('mercon_assistant_dock_change'));
+  };
 
   const toggleGroup = (typeKey: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -541,7 +565,39 @@ export default function ImportantReminders({
 
             {/* Reminders grouped items list (Scrollable) */}
             <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto min-h-0 overscroll-contain">
-              {groups.length === 0 ? (
+              {/* Docked Operations Assistant Banner */}
+              {isAssistantDocked && (
+                <div
+                  onClick={handleUndockAssistant}
+                  className="px-4 py-3 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-transparent border-b border-orange-200/80 dark:border-orange-950/60 flex items-center justify-between gap-3 hover:bg-orange-50/80 dark:hover:bg-orange-950/30 transition-all cursor-pointer group shadow-2xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="relative shrink-0">
+                      <div className="w-8.5 h-8.5 rounded-full border-2 border-[#E8450F] overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
+                        <img src="/assistant/profile.png" alt="Operations Assistant" className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[12px] font-extrabold text-slate-900 dark:text-slate-100 leading-tight truncate">
+                          Operations Assistant
+                        </p>
+                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-[#E8450F] text-white">
+                          Pending Alert
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-bold text-[#E8450F] mt-0.5 truncate">
+                        Was there any labor charge for completed trip?
+                      </p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-extrabold text-[#E8450F] bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-orange-300 dark:border-orange-800 group-hover:bg-[#E8450F] group-hover:text-white transition-colors">
+                    Open ↗
+                  </span>
+                </div>
+              )}
+
+              {groups.length === 0 && !isAssistantDocked ? (
                 <div className="h-full flex flex-col items-center justify-center p-6 text-center gap-2">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
                     <CheckCircle2 className="w-5 h-5" />
