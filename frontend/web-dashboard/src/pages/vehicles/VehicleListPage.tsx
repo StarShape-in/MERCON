@@ -38,6 +38,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -147,6 +148,9 @@ export default function VehicleListPage() {
   // Odometer quick-update popover — which row is open, and the value being typed.
   const [odometerEditId, setOdometerEditId] = useState<string | null>(null);
   const [odometerDraft, setOdometerDraft] = useState('');
+  // Same update, reachable any time (not gated by the 15-day-stale icon) from
+  // the row's ⋮ menu — the fix path for a mistyped reading.
+  const [odometerDialogTarget, setOdometerDialogTarget] = useState<Vehicle | null>(null);
 
   const updateOdometerMutation = useMutation({
     mutationFn: ({ id, value }: { id: string; value: number }) =>
@@ -154,6 +158,7 @@ export default function VehicleListPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setOdometerEditId(null);
+      setOdometerDialogTarget(null);
       toast.success('Odometer reading updated.');
     },
     onError: () => {
@@ -652,6 +657,15 @@ export default function VehicleListPage() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/vehicles/${row.id}/documents`)} className="text-xs font-semibold">
                 <FileText size={13} className="mr-2 text-slate-500" /> Documents Vault
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setOdometerDialogTarget(row);
+                  setOdometerDraft((row.current_odometer ?? 0).toString());
+                }}
+                className="text-xs font-semibold"
+              >
+                <Gauge size={13} className="mr-2 text-indigo-500" /> Update Odometer
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Status Control</DropdownMenuLabel>
@@ -1675,6 +1689,65 @@ export default function VehicleListPage() {
             refreshFleet();
           }}
         />
+
+        {/* Update Odometer — reachable from a row's ⋮ menu any time, not just
+            when the 15-day-stale icon is showing. */}
+        <Dialog open={!!odometerDialogTarget} onOpenChange={(open) => !open && setOdometerDialogTarget(null)}>
+          <DialogContent className="sm:max-w-[360px]">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-[#E8450F]" />
+                Update Odometer
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                New reading for <span className="font-bold text-[#E8450F]">{odometerDialogTarget?.plate_number}</span>.
+              </DialogDescription>
+            </DialogHeader>
+
+            <Input
+              type="number"
+              min={0}
+              value={odometerDraft}
+              onChange={(e) => setOdometerDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                const value = Number(odometerDraft);
+                if (!odometerDraft || !Number.isFinite(value) || value < 0 || !odometerDialogTarget) return;
+                updateOdometerMutation.mutate({ id: odometerDialogTarget.id, value });
+              }}
+              placeholder="Odometer (km)"
+              className="h-9 text-xs"
+              autoFocus
+            />
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => setOdometerDialogTarget(null)}
+                disabled={updateOdometerMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!odometerDraft || updateOdometerMutation.isPending}
+                onClick={() => {
+                  const value = Number(odometerDraft);
+                  if (!Number.isFinite(value) || value < 0 || !odometerDialogTarget) return;
+                  updateOdometerMutation.mutate({ id: odometerDialogTarget.id, value });
+                }}
+                className="text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white"
+              >
+                {updateOdometerMutation.isPending ? 'Saving...' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </DashboardLayout>
