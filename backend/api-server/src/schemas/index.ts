@@ -297,6 +297,9 @@ export const updateUserBody = z.object({
   role: webUserRole.optional(),
   status: z.enum(['Active', 'Inactive']).optional(),
   password: nonEmpty('Password').optional(),
+  // Platform flag, not part of role — controller enforces that only an
+  // existing superadmin can change this field (see userController.updateUser).
+  isSuperAdmin: z.boolean().optional(),
 });
 
 /* ─── Invoices ───────────────────────────────────────────────────────────── */
