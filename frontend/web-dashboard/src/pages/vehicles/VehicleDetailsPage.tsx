@@ -6,7 +6,7 @@ import {
   ArrowLeft, Edit2, FileText, AlertTriangle, Trash2,
   Wrench, Radio, AlertCircle, DollarSign, Plus, Gauge,
   TrendingUp, TrendingDown, UploadCloud, FileCheck, ExternalLink,
-  CheckCircle2, ChevronDown, Calendar, XCircle
+  CheckCircle2, ChevronDown, Calendar, XCircle, Eye, Download, LayoutGrid, List
 } from 'lucide-react';
 
 import WorkshopField from '@/components/fleet/WorkshopField';
@@ -14,9 +14,11 @@ import MaintenanceRecordModal from '@/components/maintenance/MaintenanceRecordMo
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 import UploadDocumentModal from '@/components/ui/UploadDocumentModal';
+import DocumentViewerModal, { isImageFile, isPdfFile } from '@/components/ui/DocumentViewerModal';
 import { vehicleService, AssetStatus } from '@/services/vehicleService';
 import { maintenanceService, CreateMaintenancePayload, MaintenanceRecord } from '@/services/maintenanceService';
 import { documentService, DocType, MerconDocument } from '@/services/documentService';
+import { resolveFileUrl, docTypeLabel } from '@/lib/documents';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -51,6 +53,10 @@ export default function VehicleDetailsPage() {
 
   // Upload Document Modal State
   const [isUploadDocModalOpen, setIsUploadDocModalOpen] = useState(false);
+
+  // Document Viewer Modal State & Vault View Mode
+  const [viewingDoc, setViewingDoc] = useState<MerconDocument | null>(null);
+  const [docVaultViewMode, setDocVaultViewMode] = useState<'grid' | 'list'>('grid');
 
   // Odometer quick-edit — always available here, unlike the list page's
   // icon which only appears once a reading is 15+ days stale. This is the
@@ -872,10 +878,40 @@ export default function VehicleDetailsPage() {
             {/* REAL Vehicle Documents Vault */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-indigo-600" /> Vehicle Documents Vault
-                </CardTitle>
                 <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-indigo-600" /> Vehicle Documents Vault
+                  </CardTitle>
+                  <Badge variant="outline" className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                    {documents.length} {documents.length === 1 ? 'file' : 'files'}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* View Switcher: Grid vs List */}
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <button
+                      onClick={() => setDocVaultViewMode('grid')}
+                      className={cn(
+                        "p-1 rounded-md text-xs transition-colors",
+                        docVaultViewMode === 'grid' ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-2xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      )}
+                      title="Grid View with Image Previews"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDocVaultViewMode('list')}
+                      className={cn(
+                        "p-1 rounded-md text-xs transition-colors",
+                        docVaultViewMode === 'list' ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-2xs" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      )}
+                      title="List View"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
                   <Button
                     size="sm"
                     variant="outline"
@@ -887,9 +923,9 @@ export default function VehicleDetailsPage() {
                 </div>
               </CardHeader>
 
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-4">
                 {isDocsLoading ? (
-                  <div className="py-6 text-center text-slate-400 animate-pulse text-xs font-semibold">
+                  <div className="py-8 text-center text-slate-400 animate-pulse text-xs font-semibold">
                     Loading vehicle documents...
                   </div>
                 ) : documents.length === 0 ? (
@@ -911,68 +947,235 @@ export default function VehicleDetailsPage() {
                       <UploadCloud className="w-3.5 h-3.5" /> Upload First Document
                     </Button>
                   </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    {documents.map((doc: MerconDocument) => (
-                      <div
-                        key={doc.id}
-                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 group"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center shrink-0">
-                            <FileCheck className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                              {getDocTypeLabel(doc.doc_type)}
-                            </div>
-                            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                              {doc.expiry_date ? (
-                                <span>Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>
-                              ) : (
-                                <span>Uploaded: {new Date(doc.createdAt).toLocaleDateString()}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                ) : docVaultViewMode === 'grid' ? (
+                  /* Grid Mode with rich Image Previews */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {documents.map((doc: MerconDocument) => {
+                      const isImg = isImageFile(doc.file_url, doc.mime_type);
+                      const isPdf = isPdfFile(doc.file_url, doc.mime_type);
+                      const resolvedUrl = resolveFileUrl(doc.file_url);
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Badge className={cn(
-                            "text-[9px] font-bold",
-                            doc.status === 'Verified' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                            doc.status === 'Expired' ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-amber-50 text-amber-700 border-amber-200"
-                          )}>
-                            {(doc.status || 'PENDING').toUpperCase()}
-                          </Badge>
-
-                          {doc.file_url && (
-                            <a
-                              href={doc.file_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 bg-white dark:bg-slate-900 transition-colors"
-                              title="View Document"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteDocMutation.mutate(doc.id)}
-                            className="w-7 h-7 p-0 text-slate-400 hover:text-rose-600"
-                            title="Delete Document"
+                      return (
+                        <div
+                          key={doc.id}
+                          className="group border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/80 overflow-hidden flex flex-col hover:shadow-md transition-all duration-200 hover:border-indigo-200 dark:hover:border-indigo-800"
+                        >
+                          {/* Thumbnail / Image Preview Container */}
+                          <div
+                            onClick={() => setViewingDoc(doc)}
+                            className="h-32 bg-slate-100 dark:bg-slate-950 relative overflow-hidden flex items-center justify-center cursor-pointer group/thumb"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                            {isImg ? (
+                              <img
+                                src={resolvedUrl}
+                                alt={getDocTypeLabel(doc.doc_type)}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
+                                onError={(e) => {
+                                  // Fallback if image load fails
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : isPdf ? (
+                              <div className="flex flex-col items-center gap-1.5 p-3 text-center text-rose-600 dark:text-rose-400">
+                                <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex items-center justify-center shadow-xs">
+                                  <FileText className="w-5 h-5 text-rose-600" />
+                                </div>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">PDF Document</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1.5 p-3 text-center text-indigo-600 dark:text-indigo-400">
+                                <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900 flex items-center justify-center shadow-xs">
+                                  <FileCheck className="w-5 h-5 text-indigo-600" />
+                                </div>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Document File</span>
+                              </div>
+                            )}
+
+                            {/* Status Badge Overlay */}
+                            <div className="absolute top-2 left-2 pointer-events-none">
+                              <Badge className={cn(
+                                "text-[9px] font-bold shadow-2xs",
+                                doc.status === 'Verified' ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300" :
+                                doc.status === 'Expired' ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300" : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300"
+                              )}>
+                                {(doc.status || 'PENDING').toUpperCase()}
+                              </Badge>
+                            </div>
+
+                            {/* Hover Eye Overlay button */}
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover/thumb:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1">
+                              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg">
+                                <Eye className="w-4 h-4 text-white" />
+                              </div>
+                              <span>Click to View Modal</span>
+                            </div>
+                          </div>
+
+                          {/* Card Details */}
+                          <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                            <div>
+                              <div
+                                onClick={() => setViewingDoc(doc)}
+                                className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate"
+                                title={getDocTypeLabel(doc.doc_type)}
+                              >
+                                {getDocTypeLabel(doc.doc_type)}
+                              </div>
+                              <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                {doc.expiry_date ? (
+                                  <span>Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>
+                                ) : (
+                                  <span>Uploaded: {new Date(doc.createdAt).toLocaleDateString()}</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Action Row */}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setViewingDoc(doc)}
+                                className="h-7 text-[11px] font-bold text-indigo-600 border-indigo-200 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/50 gap-1 px-2.5"
+                              >
+                                <Eye className="w-3 h-3" /> View
+                              </Button>
+
+                              <div className="flex items-center gap-1">
+                                {resolvedUrl && (
+                                  <a
+                                    href={resolvedUrl}
+                                    download
+                                    className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 bg-white dark:bg-slate-900 transition-colors"
+                                    title="Download File"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteDocMutation.mutate(doc.id)}
+                                  className="w-7 h-7 p-0 text-slate-400 hover:text-rose-600"
+                                  title="Delete Document"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* List Mode with Image Previews */
+                  <div className="space-y-2.5">
+                    {documents.map((doc: MerconDocument) => {
+                      const isImg = isImageFile(doc.file_url, doc.mime_type);
+                      const resolvedUrl = resolveFileUrl(doc.file_url);
+
+                      return (
+                        <div
+                          key={doc.id}
+                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 group hover:border-indigo-200 dark:hover:border-indigo-800 transition-all"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* Image Thumbnail / Icon Preview */}
+                            <div
+                              onClick={() => setViewingDoc(doc)}
+                              className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer relative group/thumb"
+                            >
+                              {isImg ? (
+                                <img
+                                  src={resolvedUrl}
+                                  alt={getDocTypeLabel(doc.doc_type)}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <FileCheck className="w-5 h-5 text-indigo-600" />
+                              )}
+                              <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                <Eye className="w-3.5 h-3.5" />
+                              </div>
+                            </div>
+
+                            <div className="min-w-0">
+                              <div
+                                onClick={() => setViewingDoc(doc)}
+                                className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer truncate"
+                              >
+                                {getDocTypeLabel(doc.doc_type)}
+                              </div>
+                              <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                {doc.expiry_date ? (
+                                  <span>Expires: {new Date(doc.expiry_date).toLocaleDateString()}</span>
+                                ) : (
+                                  <span>Uploaded: {new Date(doc.createdAt).toLocaleDateString()}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge className={cn(
+                              "text-[9px] font-bold",
+                              doc.status === 'Verified' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                              doc.status === 'Expired' ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                            )}>
+                              {(doc.status || 'PENDING').toUpperCase()}
+                            </Badge>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setViewingDoc(doc)}
+                              className="h-7 text-xs font-bold border-slate-200 text-slate-700 hover:text-indigo-600 hover:border-indigo-200 dark:border-slate-700 dark:text-slate-300 dark:hover:text-indigo-400 gap-1 px-2.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> View
+                            </Button>
+
+                            {resolvedUrl && (
+                              <a
+                                href={resolvedUrl}
+                                download
+                                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 bg-white dark:bg-slate-900 transition-colors"
+                                title="Download File"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteDocMutation.mutate(doc.id)}
+                              className="w-7 h-7 p-0 text-slate-400 hover:text-rose-600"
+                              title="Delete Document"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Document Viewer Modal */}
+            <DocumentViewerModal
+              document={viewingDoc}
+              isOpen={!!viewingDoc}
+              onClose={() => setViewingDoc(null)}
+              onDelete={(docId) => deleteDocMutation.mutate(docId)}
+              vehiclePlate={vehicle?.plate_number}
+            />
 
           </div>
 
