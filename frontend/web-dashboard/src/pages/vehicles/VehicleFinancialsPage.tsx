@@ -593,7 +593,7 @@ export default function VehicleFinancialsPage() {
                                 {items.map((item) => {
                                   let boxStyle = '';
                                   if (tier.key === 'high') {
-                                    boxStyle = 'bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-700/20';
+                                    boxStyle = 'bg-emerald-100/90 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-950/60';
                                   } else if (tier.key === 'profitable') {
                                     boxStyle = 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-950/50';
                                   } else if (tier.key === 'low') {
