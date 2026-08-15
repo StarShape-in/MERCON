@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { 
-  User, Shield, Building2, Bell, Key, Save, CheckCircle2, 
-  AlertTriangle, RefreshCw
+import {
+  User, Shield, Building2, Bell, Key, Save, CheckCircle2,
+  AlertTriangle, RefreshCw, Upload, Loader2
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -99,10 +99,29 @@ export default function SettingsPage() {
     mutationFn: () => settingsService.update({ ...brandingForm, enabledModules }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'public'] });
       setBrandingSuccess('Branding & modules updated!');
       setTimeout(() => setBrandingSuccess(null), 4000);
     },
   });
+
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const uploadLogoMutation = useMutation({
+    mutationFn: (file: File) => settingsService.uploadLogo(file),
+    onSuccess: (fileUrl) => {
+      setBrandingForm((f) => ({ ...f, logoUrl: fileUrl }));
+      setLogoError(null);
+    },
+    onError: (err: any) => {
+      setLogoError(err.response?.data?.error?.message || err.message || 'Upload failed.');
+    },
+  });
+
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (file) uploadLogoMutation.mutate(file);
+  };
 
   const toggleModule = (key: ModuleKey) => {
     setEnabledModules((prev) => (prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key]));
@@ -410,15 +429,51 @@ export default function SettingsPage() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Logo URL</Label>
-                  <Input
-                    value={brandingForm.logoUrl}
-                    readOnly={!user?.isSuperAdmin}
-                    onChange={(e) => setBrandingForm((f) => ({ ...f, logoUrl: e.target.value }))}
-                    placeholder="Uploaded via Documents, then pasted here"
-                    className="h-9 text-xs font-mono border-slate-200"
-                  />
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Logo</Label>
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 shrink-0 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+                      {brandingForm.logoUrl ? (
+                        <img src={brandingForm.logoUrl} alt="Logo preview" className="h-full w-full object-contain" />
+                      ) : (
+                        <Building2 className="h-5 w-5 text-slate-300" />
+                      )}
+                    </div>
+                    <Input
+                      value={brandingForm.logoUrl}
+                      readOnly={!user?.isSuperAdmin}
+                      onChange={(e) => setBrandingForm((f) => ({ ...f, logoUrl: e.target.value }))}
+                      placeholder="Upload a file, or paste an image URL"
+                      className="h-9 text-xs font-mono border-slate-200 flex-1"
+                    />
+                    {user?.isSuperAdmin && (
+                      <>
+                        <input
+                          id="logo-upload-input"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={handleLogoFileChange}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 text-xs font-semibold shrink-0"
+                          disabled={uploadLogoMutation.isPending}
+                          onClick={() => document.getElementById('logo-upload-input')?.click()}
+                        >
+                          {uploadLogoMutation.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          ) : (
+                            <Upload className="h-3.5 w-3.5 mr-1.5" />
+                          )}
+                          Upload
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  {logoError && <p className="text-xs text-red-600">{logoError}</p>}
                 </div>
 
                 <div className="space-y-1.5">
