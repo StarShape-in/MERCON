@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle2, Clock, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,7 +106,7 @@ export default function OperationsAssistant() {
 
       let trips: Trip[] = [];
       try {
-        const res = await tripService.getAll({ status: 'Completed', per_page: 20 });
+        const res = await tripService.getAll({ status: 'Completed', per_page: 50 });
         trips = res.data || [];
       } catch { /* network unavailable */ }
 
@@ -122,6 +122,11 @@ export default function OperationsAssistant() {
         const rid = `labor-charge-${t.ref_id || t.id}`;
         if (handledSet.has(rid)) return;
         if (snoozedMap[rid] && snoozedMap[rid] > now) return;
+
+        // Skip completed trips that already have labor charges added
+        const hasLabor = ((t as any).waiting_labor_charges ?? 0) > 0 || ((t as any).additional_stop_charges ?? 0) > 0;
+        if (hasLabor) return;
+
         pending.push({ id:rid, tripId:t.id, tripRef:t.ref_id||'TRP-0159',
           type:'labor_charge', title:`Trip ${t.ref_id||'TRP-0159'} completed`,
           question:'Was there any labor charge for this trip?' });
@@ -257,15 +262,17 @@ export default function OperationsAssistant() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             style={{ position:'fixed', left:`${pos.x}px`, top:`${pos.y}px`, touchAction:'none', zIndex:70 }}
-            className={`pointer-events-auto w-14 h-14 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl
-              flex items-center justify-center overflow-hidden
+            className={`pointer-events-auto relative w-16 h-16 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl
+              flex items-center justify-center p-0.5
               ring-4 ring-[#E8450F]/20
               hover:scale-105 active:scale-95 transition-transform
               ${isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'}`}
           >
-            <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover pointer-events-none select-none"/>
+            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+              <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover pointer-events-none select-none"/>
+            </div>
             {reminders.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[10px] font-black flex items-center justify-center shadow">
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[11px] font-black flex items-center justify-center shadow-md z-30 animate-pulse">
                 {reminders.length}
               </span>
             )}
@@ -277,26 +284,26 @@ export default function OperationsAssistant() {
           <div
             style={{
               position:'fixed',
-              left:`${Math.max(8, pos.x - 20)}px`,
-              bottom:`${Math.max(0, window.innerHeight - pos.y - 180)}px`,
-              zIndex: 69,
+              left:`${Math.max(12, Math.min(pos.x, window.innerWidth - 440))}px`,
+              top:`${Math.max(12, Math.min(pos.y, window.innerHeight - 260))}px`,
+              zIndex: 80,
             }}
-            className="pointer-events-auto flex items-end gap-1.5 bubble-in"
+            className="pointer-events-auto flex items-end gap-1 bubble-in"
           >
-            {/* HALF-BODY CHARACTER IMAGE - TRIGGER REBUILD */}
-            <div className="relative shrink-0 select-none pointer-events-none z-10 w-32 h-44 sm:w-40 sm:h-56 -mr-1">
+            {/* HALF-BODY CHARACTER IMAGE */}
+            <div className="relative shrink-0 select-none pointer-events-none z-10 w-36 sm:w-44 h-52 sm:h-60 -mr-2">
               <img
                 src={ASSETS[currentAsset]}
                 alt="Operations Assistant Character"
                 draggable={false}
-                className={`w-full h-full object-contain object-bottom ${
+                className={`w-full h-full object-contain object-bottom filter drop-shadow-md ${
                   reaction === 'none' ? 'char-idle' : `char-${reaction}`
                 }`}
               />
             </div>
 
             {/* SPEECH BUBBLE CARD */}
-            <div className="relative mb-4 w-[340px] max-w-[calc(100vw-120px)]">
+            <div className="relative mb-4 w-[340px] max-w-[calc(100vw-140px)]">
               {/* Pointer Triangle pointing left toward the character */}
               <span
                 aria-hidden="true"
@@ -318,12 +325,12 @@ export default function OperationsAssistant() {
                   type="button"
                   onClick={dismiss}
                   aria-label="Dismiss"
-                  className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5"/>
                 </button>
 
-                <div className="px-5 pt-4 pb-5 space-y-3">
+                <div className="px-5 pt-4 pb-5 space-y-3.5">
                   {/* VIEW 1 — Question */}
                   {panelView === 'question' && (
                     <div className="msg-in space-y-3.5">
@@ -343,15 +350,15 @@ export default function OperationsAssistant() {
 
                       <div className="flex items-center gap-2">
                         <button type="button" onClick={handleYes}
-                          className="btn-hover flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm">
+                          className="btn-hover flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm cursor-pointer">
                           Yes
                         </button>
                         <button type="button" onClick={handleNo}
-                          className="btn-hover flex-1 h-9 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold">
+                          className="btn-hover flex-1 h-9 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold cursor-pointer">
                           No
                         </button>
                         <button type="button" onClick={handleRemindLater}
-                          className="btn-hover flex-[1.6] h-9 rounded-xl border border-[#E8450F] bg-white hover:bg-orange-50 text-[#E8450F] text-sm font-semibold whitespace-nowrap">
+                          className="btn-hover flex-[1.6] h-9 rounded-xl border border-[#E8450F] bg-white hover:bg-orange-50 text-[#E8450F] text-sm font-semibold whitespace-nowrap cursor-pointer">
                           Remind Me Later
                         </button>
                       </div>
@@ -362,7 +369,7 @@ export default function OperationsAssistant() {
                   {panelView === 'yes_input' && (
                     <div className="msg-in space-y-3">
                       <button type="button" onClick={() => setPanelView('question')}
-                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-700 transition-colors">
+                        className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
                         <ArrowLeft className="w-3 h-3"/> Back
                       </button>
                       <div>
@@ -372,7 +379,7 @@ export default function OperationsAssistant() {
                       <div className="flex flex-wrap gap-1.5">
                         {[50,100,150,200,500].map((v) => (
                           <button key={v} type="button" onClick={() => setChargeAmount(String(v))}
-                            className={`btn-hover px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors
+                            className={`btn-hover px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer
                               ${chargeAmount===String(v)
                                 ? 'bg-[#E8450F] text-white border-[#E8450F]'
                                 : 'border-slate-200 text-slate-600 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
@@ -387,7 +394,7 @@ export default function OperationsAssistant() {
                             placeholder="150" className="h-9 pl-11 rounded-xl text-xs font-bold border-slate-200 focus-visible:ring-[#E8450F]"/>
                         </div>
                         <button type="button" disabled={isSubmitting || !chargeAmount} onClick={handleAddCharge}
-                          className="btn-hover h-9 px-4 rounded-xl bg-[#E8450F] hover:bg-[#d03d0c] disabled:opacity-60 text-white text-xs font-bold shrink-0">
+                          className="btn-hover h-9 px-4 rounded-xl bg-[#E8450F] hover:bg-[#d03d0c] disabled:opacity-60 text-white text-xs font-bold shrink-0 cursor-pointer">
                           {isSubmitting ? '...' : 'Add'}
                         </button>
                       </div>
@@ -425,7 +432,7 @@ export default function OperationsAssistant() {
                       <div className="grid grid-cols-4 gap-1.5">
                         {[{l:'1 min',v:1},{l:'5 min',v:5},{l:'15 min',v:15},{l:'1 hr',v:60}].map(({l,v}) => (
                           <button key={v} type="button" onClick={() => handleConfirmTimer(v)}
-                            className={`btn-hover h-9 rounded-xl text-xs font-bold border transition-colors
+                            className={`btn-hover h-9 rounded-xl text-xs font-bold border transition-colors cursor-pointer
                               ${selectedTimer===v
                                 ? 'bg-[#E8450F] text-[#ffffff] border-[#E8450F]'
                                 : 'border-slate-200 text-slate-700 hover:border-[#E8450F]/40 hover:text-[#E8450F]'}`}>
