@@ -487,7 +487,7 @@ export default function TripDetailsPage() {
                     <Tooltip>
                       <TooltipTrigger>
                         <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
-                          {new Date(trip.createdAt).toLocaleDateString()}
+                          {fullDateTime(trip.createdAt)}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
@@ -501,12 +501,28 @@ export default function TripDetailsPage() {
                     <Tooltip>
                       <TooltipTrigger>
                         <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
-                          {new Date(trip.updatedAt).toLocaleDateString()}
+                          {fullDateTime(trip.updatedAt)}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
                     </Tooltip>
                   </div>
+
+                  {trip.deletedAt && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dotted border-red-300 dark:border-red-800 text-xs bg-red-50/50 dark:bg-red-950/20">
+                      <span className="text-[11px] font-medium text-red-600 dark:text-red-400">Deleted:</span>
+                      <UserChip userId={trip.deleted_by} users={users} size="sm" className="font-semibold text-red-700 dark:text-red-300 decoration-slate-400" />
+                      <span className="text-[10px] text-red-400">•</span>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span className="text-[11px] font-medium text-red-700 dark:text-red-300 cursor-default">
+                            {fullDateTime(trip.deletedAt)}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{new Date(trip.deletedAt).toLocaleString()}</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-right shrink-0">
