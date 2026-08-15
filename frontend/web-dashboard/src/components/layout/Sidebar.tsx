@@ -95,7 +95,6 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         { icon: FileText, label: 'Documents', path: '/documents' },
         { icon: FolderGit2, label: 'Aprodac Vault', path: '/aprodac-documents' },
         { icon: FileSpreadsheet, label: 'Company Reports', path: '/company-reports' },
-        { icon: SlidersHorizontal, label: 'Custom Report', path: '/custom-report' },
         { icon: Wand2, label: 'Report Builder', path: '/report-builder' },
       ],
     },

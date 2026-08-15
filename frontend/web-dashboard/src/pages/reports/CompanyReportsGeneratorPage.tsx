@@ -3,11 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Download, FileSpreadsheet, Upload, RefreshCw, Trash2, Building2,
   Sparkles, Plus, Calendar, Filter, Layers, DollarSign, PackageCheck,
+  FileText, ExternalLink, Navigation,
 } from 'lucide-react';
 import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
 import { toast } from 'sonner';
-
-import { ExternalLink, Navigation } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -254,6 +253,21 @@ export default function CompanyReportsGeneratorPage() {
             onChange={(e) => { row._companyName = e.target.value; }}
             placeholder="Add company name..."
             className="w-full text-xs font-semibold bg-transparent outline-none text-slate-900 dark:text-slate-100"
+          />
+        </div>
+      ),
+    },
+    {
+      header: 'Separate Text (per row)',
+      accessor: (row: any) => (
+        <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-lg px-2 py-1 min-w-[170px]">
+          <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+          <input
+            type="text"
+            defaultValue={row._separateText || ''}
+            onChange={(e) => { row._separateText = e.target.value; }}
+            placeholder="Enter separate text..."
+            className="w-full text-xs font-semibold bg-transparent outline-none text-slate-900 dark:text-slate-100 placeholder:text-indigo-300"
           />
         </div>
       ),
