@@ -236,23 +236,15 @@ export default function OperationsAssistant() {
               zIndex:2,
             }}/>
 
-            {/* Bubble card */}
-            <div className="relative bg-white rounded-2xl border border-slate-200/80 shadow-2xl overflow-hidden" style={{zIndex:1}}>
-              {/* Accent top bar */}
-              <div className="h-[3px] w-full bg-gradient-to-r from-[#E8450F] via-orange-400 to-[#E8450F]/30"/>
+            {/* Bubble card — clean, no header label */}
+            <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl overflow-visible" style={{zIndex:1}}>
+              {/* Small close button — top right, no label */}
+              <button type="button" onClick={dismiss} aria-label="Dismiss"
+                className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                <X className="w-3.5 h-3.5"/>
+              </button>
 
-              <div className="px-4 pt-3 pb-4 space-y-3">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#E8450F] ring-2 ring-[#E8450F]/20 animate-pulse"/>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Operations Assistant</span>
-                  </div>
-                  <button type="button" onClick={dismiss} aria-label="Dismiss"
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
-                    <X className="w-3.5 h-3.5"/>
-                  </button>
-                </div>
+              <div className="px-5 pt-4 pb-5 space-y-3">
 
                 {/* VIEW 1 — Question */}
                 {panelView === 'question' && (
