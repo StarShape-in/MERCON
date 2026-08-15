@@ -23,6 +23,7 @@ import { authStore } from '@/store/authStore';
 import { reportsService } from '@/services/reportsService';
 import { tripService } from '@/services/tripService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { exportToCSV } from '@/utils/exportUtils';
 
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -138,6 +139,7 @@ const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'recent'>('current');
+  const [tripSearch, setTripSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
 
@@ -288,11 +290,34 @@ export default function DashboardPage() {
   const activeTrips = tripTab === 'current' ? currentTrips : tripTab === 'upcoming' ? upcomingTrips : recentTrips;
   const activeFleet = activeTrips;
 
-  // Exact Comprehensive Trip Ledger Columns matching TripListPage + full telemetry
+  const filteredActiveTrips = useMemo(() => {
+    if (!tripSearch.trim()) return activeTrips;
+    const q = tripSearch.toLowerCase().trim();
+    return activeTrips.filter((t: any) => {
+      const idStr = String(t.id || t.tripId || t.ref_id || '').toLowerCase();
+      const custStr = String(t.customerName || t.customer?.name || '').toLowerCase();
+      const driverStr = String(t.driver || '').toLowerCase();
+      const vehicleStr = String(t.vehicle || t.plate || '').toLowerCase();
+      const pickupStr = String(t.pickup || '').toLowerCase();
+      const dropoffStr = String(t.dropoff || '').toLowerCase();
+      const statusStr = String(t.status || t.rawStatus || '').toLowerCase();
+      return (
+        idStr.includes(q) ||
+        custStr.includes(q) ||
+        driverStr.includes(q) ||
+        vehicleStr.includes(q) ||
+        pickupStr.includes(q) ||
+        dropoffStr.includes(q) ||
+        statusStr.includes(q)
+      );
+    });
+  }, [activeTrips, tripSearch]);
+
+  // Comprehensive Trip Ledger Columns matching TripListPage + full telemetry
   const tripLedgerColumns = useMemo<Column<any>[]>(() => [
     {
       header: 'Trip ID',
-      className: 'w-[90px] shrink-0',
+      className: 'w-[100px] shrink-0',
       accessor: (row: any) => (
         <span className="font-mono text-xs font-bold text-brand truncate block">
           {row.id || row.tripId || row.ref_id || 'Draft'}
@@ -301,9 +326,9 @@ export default function DashboardPage() {
     },
     {
       header: 'Customer',
-      className: 'max-w-[130px] truncate',
+      className: 'min-w-[140px] max-w-[180px] truncate',
       accessor: (row: any) => (
-        <div className="flex flex-col max-w-[130px] truncate">
+        <div className="flex flex-col truncate">
           <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 leading-tight truncate" title={row.customerName || 'Standard Freight'}>
             {row.customerName || 'Standard Freight'}
           </span>
@@ -312,12 +337,12 @@ export default function DashboardPage() {
     },
     {
       header: 'Route',
-      className: 'max-w-[155px] truncate',
+      className: 'min-w-[160px] max-w-[200px] truncate',
       accessor: (row: any) => {
         const pickup = row.pickup || (row.route || '').split('→')[0]?.trim() || 'Riyadh';
         const dropoff = row.dropoff || (row.route || '').split('→')[1]?.trim() || 'Jeddah';
         return (
-          <div className="flex flex-col gap-0 py-0.5 max-w-[155px] truncate" title={`From: ${pickup}\nTo: ${dropoff}`}>
+          <div className="flex flex-col gap-0 py-0.5 max-w-[180px] truncate" title={`From: ${pickup}\nTo: ${dropoff}`}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
@@ -337,26 +362,51 @@ export default function DashboardPage() {
     },
     {
       header: 'Driver',
-      className: 'max-w-[140px] truncate',
-      accessor: (row: any) => (
-        <div className="flex items-center gap-1.5 max-w-[140px]">
-          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
-            {row.initials || (row.driver ? `${row.driver[0]}` : 'U')}
+      className: 'min-w-[140px] max-w-[180px]',
+      accessor: (row: any) => {
+        if (row.is_third_party) {
+          const name = row.third_party_driver_name || row.driver || '3PL Driver';
+          const providerName = row.carrier_name || '3PL Carrier';
+          return (
+            <div className="flex items-center gap-1.5 truncate" title={`3PL Driver: ${name}\nProvider: ${providerName}`}>
+              <div className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[9px] flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
+                3P
+              </div>
+              <div className="flex flex-col min-w-0 truncate leading-tight">
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {name}
+                </span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium truncate">
+                  3PL: {providerName}
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-1.5 truncate">
+            <div className="w-5.5 h-5.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[9px] flex items-center justify-center shrink-0">
+              {row.initials || (row.driver ? `${row.driver[0]}` : 'U')}
+            </div>
+            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={row.driver}>
+              {row.driver || 'Unassigned'}
+            </span>
           </div>
-          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={row.driver}>
-            {row.driver || 'Unassigned'}
-          </span>
-        </div>
-      ),
+        );
+      },
     },
     {
       header: 'Vehicle',
-      className: 'w-[95px] shrink-0',
+      className: 'w-[105px] shrink-0',
       accessor: (row: any) => (
         <div className="flex items-center gap-1">
-          <Truck size={12} className="text-slate-400 shrink-0" />
+          <Truck size={12} className={row.is_third_party ? "text-purple-500 shrink-0" : "text-slate-400 shrink-0"} />
           {row.vehicle ? (
-            <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate">
+            <span className={row.is_third_party
+              ? "font-mono text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/60 px-1.5 py-0.5 rounded truncate"
+              : "font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate"
+            }>
               {row.vehicle}
             </span>
           ) : (
@@ -367,14 +417,14 @@ export default function DashboardPage() {
     },
     {
       header: 'Status',
-      className: 'w-[105px] shrink-0',
+      className: 'w-[110px] shrink-0',
       accessor: (row: any) => (
         <StatusBadge status={row.rawStatus || row.status} />
       ),
     },
     {
       header: 'Departure',
-      className: 'w-[90px] shrink-0',
+      className: 'w-[95px] shrink-0',
       accessor: (row: any) => (
         <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
           {row.startTime}
@@ -383,7 +433,7 @@ export default function DashboardPage() {
     },
     {
       header: 'ETA',
-      className: 'w-[75px] shrink-0',
+      className: 'w-[80px] shrink-0',
       accessor: (row: any) => (
         <span className="text-xs font-extrabold text-slate-900 dark:text-slate-100 font-mono">
           {row.eta || '—'}
@@ -409,7 +459,7 @@ export default function DashboardPage() {
     },
     {
       header: 'Distance',
-      className: 'w-[85px] shrink-0',
+      className: 'w-[90px] shrink-0',
       accessor: (row: any) => (
         <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 font-mono">
           {row.distance || '—'}
@@ -418,7 +468,7 @@ export default function DashboardPage() {
     },
     {
       header: 'Rate (SAR)',
-      className: 'w-[95px] text-right shrink-0',
+      className: 'w-[110px] text-right shrink-0',
       headerClassName: 'text-right',
       accessor: (row: any) => {
         const price = row.price;
@@ -435,7 +485,7 @@ export default function DashboardPage() {
     },
     {
       header: '',
-      className: 'w-[32px] text-right shrink-0',
+      className: 'w-[36px] text-right shrink-0',
       accessor: () => (
         <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand transition-colors ml-auto" />
       ),
@@ -631,58 +681,84 @@ export default function DashboardPage() {
           </div>
 
           {/* ── BOTTOM ROW: Active Transit Fleet (Matches Trips Page) ──── */}
-          <DataTable
-            title={
-              <span className="flex items-center gap-2 font-extrabold text-slate-900 dark:text-slate-100">
-                <Truck className="w-4 h-4 text-brand" />
-                <span>Active Transit Fleet</span>
-              </span>
-            }
-            filterElement={
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-                {(['current', 'upcoming', 'recent'] as const).map((tab) => {
-                  const count = tab === 'current' ? currentTrips.length : tab === 'upcoming' ? upcomingTrips.length : recentTrips.length;
-                  const isActive = tripTab === tab;
-                  return (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setTripTab(tab)}
-                      className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
-                        isActive
-                          ? 'bg-brand text-white shadow-xs'
-                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Recent'}</span>
-                      <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            }
-            actionsElement={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/trips')}
-                className="h-8 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-              >
-                <span>View All Trips</span>
-                <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
-              </Button>
-            }
-            columns={tripLedgerColumns}
-            data={activeTrips}
-            enableSelection={false}
-            pageSize={25}
-            pageSizeOptions={[10, 25, 50, 100]}
-            onRowClick={(row) => navigate(`/trips/${row.rawId || row.id}`)}
-            emptyTitle={`No ${tripTab} trips found`}
-            emptyMessage="There are currently no dispatch records in this category."
-          />
+          <div className="w-full flex flex-col min-h-[480px]">
+            <DataTable
+              title={
+                <span className="flex items-center gap-2 font-extrabold text-slate-900 dark:text-slate-100">
+                  <Truck className="w-4 h-4 text-brand" />
+                  <span>Active Transit Fleet</span>
+                </span>
+              }
+              searchPlaceholder="Search trip ID, customer, driver, vehicle..."
+              searchValue={tripSearch}
+              onSearchChange={setTripSearch}
+              onExport={() => {
+                const exportRows = filteredActiveTrips.map((t: any) => ({
+                  'Trip ID': t.id || t.tripId || t.ref_id,
+                  'Customer': t.customerName || 'Standard Freight',
+                  'Route': `${t.pickup || ''} → ${t.dropoff || ''}`,
+                  'Driver': t.driver || 'Unassigned',
+                  'Vehicle': t.vehicle || 'Unassigned',
+                  'Status': t.status || t.rawStatus,
+                  'Departure': t.startTime,
+                  'ETA': t.eta,
+                  'Progress': `${t.progress || 0}%`,
+                  'Distance': t.distance,
+                  'Rate (SAR)': t.price ? `SAR ${Number(t.price).toLocaleString('en-US')}` : '—',
+                }));
+                exportToCSV(exportRows, `active_transit_fleet_${tripTab}_${new Date().toISOString().slice(0, 10)}.csv`);
+              }}
+              filterElement={
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                  {(['current', 'upcoming', 'recent'] as const).map((tab) => {
+                    const count = tab === 'current' ? currentTrips.length : tab === 'upcoming' ? upcomingTrips.length : recentTrips.length;
+                    const isActive = tripTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => {
+                          setTripTab(tab);
+                          setTripSearch('');
+                        }}
+                        className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isActive
+                            ? 'bg-brand text-white shadow-xs'
+                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Recent'}</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              }
+              actionsElement={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/trips')}
+                  className="h-8 gap-1.5 text-xs font-semibold border-slate-200/90 dark:border-slate-700/90 bg-white dark:bg-slate-900 shadow-2xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <span>View All Trips</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 text-slate-500" />
+                </Button>
+              }
+              columns={tripLedgerColumns}
+              data={filteredActiveTrips}
+              enableSelection={false}
+              compact={false}
+              pageSize={10}
+              pageSizeOptions={[10, 25, 50, 100]}
+              onRowClick={(row) => navigate(`/trips/${row.rawId || row.id}`)}
+              emptyTitle={`No ${tripTab} trips found`}
+              emptyMessage="There are currently no dispatch records in this category."
+              className="min-h-[460px] flex flex-col justify-between shadow-sm"
+            />
+          </div>
 
         </div>
       </DashboardLayout>
