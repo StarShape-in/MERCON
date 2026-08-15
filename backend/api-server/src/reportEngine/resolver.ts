@@ -202,15 +202,37 @@ export async function runReportQuery(spec: ReportQuerySpec): Promise<ReportResul
   allFieldKeys.forEach(validateFieldKey);
 
   const neededModules = new Set(allFieldKeys.map((k) => k.split('.')[0]));
+  if (root.key === 'drivers') {
+    neededModules.add('trips');
+  }
+
   const joinInfo = buildJoinInfo(root, neededModules);
+
+  const tripDateFilter: Record<string, any> = { deletedAt: null };
+  if (spec.dateRange?.start || spec.dateRange?.end) {
+    const range: Record<string, Date> = {};
+    if (spec.dateRange.start) range.gte = new Date(spec.dateRange.start);
+    if (spec.dateRange.end) {
+      const end = new Date(spec.dateRange.end);
+      end.setHours(23, 59, 59, 999);
+      range.lte = end;
+    }
+    tripDateFilter.createdAt = range;
+  }
 
   const include: Record<string, any> = {};
   for (const [, edge] of joinInfo) {
-    include[edge.relationField] = edge.cardinality === 'toMany' ? { where: { deletedAt: null } } : true;
+    if (edge.cardinality === 'toMany') {
+      include[edge.relationField] = {
+        where: edge.toModule === 'trips' ? tripDateFilter : { deletedAt: null },
+      };
+    } else {
+      include[edge.relationField] = true;
+    }
   }
 
   const where: Record<string, any> = { deletedAt: null };
-  if (spec.dateRange?.start || spec.dateRange?.end) {
+  if (root.key !== 'drivers' && (spec.dateRange?.start || spec.dateRange?.end)) {
     const dateField = spec.dateRange.field || root.defaultDateField;
     const range: Record<string, Date> = {};
     if (spec.dateRange.start) range.gte = new Date(spec.dateRange.start);
@@ -278,6 +300,27 @@ export async function runReportQuery(spec: ReportQuerySpec): Promise<ReportResul
     );
   }
   kpis['recordCount'] = filtered.length;
+
+  if (root.key === 'drivers') {
+    const totalCompletedTrips = filtered.reduce((sum: number, r: any) => sum + (computeScalarFieldValue('drivers', 'completed_trips', r) || 0), 0);
+    const totalDispatchedTrips = filtered.reduce((sum: number, r: any) => sum + (computeScalarFieldValue('drivers', 'dispatched_trips', r) || 0), 0);
+    const totalCancelledTrips = filtered.reduce((sum: number, r: any) => sum + (computeScalarFieldValue('drivers', 'cancelled_trips', r) || 0), 0);
+    const totalTrips = filtered.reduce((sum: number, r: any) => sum + (computeScalarFieldValue('drivers', 'total_trips', r) || 0), 0);
+    const activeDrivers = filtered.filter((r: any) => (computeScalarFieldValue('drivers', 'completed_trips', r) || 0) > 0).length;
+    const inactiveDrivers = filtered.length - activeDrivers;
+    const avgTripsPerActiveDriver = activeDrivers > 0 ? Number((totalCompletedTrips / activeDrivers).toFixed(2)) : null;
+
+    kpis['totalCompletedTrips'] = totalCompletedTrips;
+    kpis['totalDispatchedTrips'] = totalDispatchedTrips;
+    kpis['totalCancelledTrips'] = totalCancelledTrips;
+    kpis['totalTrips'] = totalTrips;
+    kpis['totalDrivers'] = filtered.length;
+    kpis['activeDrivers'] = activeDrivers;
+    kpis['inactiveDrivers'] = inactiveDrivers;
+    if (avgTripsPerActiveDriver !== null) {
+      kpis['avgTripsPerActiveDriver'] = avgTripsPerActiveDriver;
+    }
+  }
 
   return {
     rows: resultRows,
