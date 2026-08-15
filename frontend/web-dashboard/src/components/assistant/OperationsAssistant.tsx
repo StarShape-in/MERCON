@@ -60,29 +60,27 @@ export default function OperationsAssistant() {
     try { localStorage.setItem(POSITION_KEY, JSON.stringify({x:cx,y:cy})); } catch { /**/ }
   };
 
-  const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const onPointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
     movedRef.current = false;
     dragRef.current = { sx:e.clientX, sy:e.clientY, ix:pos.x, iy:pos.y };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
-  const onPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const onPointerMove = (e: React.PointerEvent) => {
     if (!isDragging) return;
     const dx = e.clientX - dragRef.current.sx;
     const dy = e.clientY - dragRef.current.sy;
     if (Math.hypot(dx,dy) > 4) movedRef.current = true;
     setPos({ x: dragRef.current.ix + dx, y: dragRef.current.iy + dy });
   };
-  const onPointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const onPointerUp = (e: React.PointerEvent) => {
     if (!isDragging) return;
     setIsDragging(false);
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    if (!movedRef.current) {
-      setVisible((prev) => {
-        if (!prev) setPanelView('question');
-        return !prev;
-      });
-    } else {
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    if (!movedRef.current && !visible) {
+      setVisible(true);
+      setPanelView('question');
+    } else if (movedRef.current) {
       savePos(pos.x, pos.y);
     }
   };
@@ -293,7 +291,7 @@ export default function OperationsAssistant() {
           </button>
         )}
 
-        {/* FULL ASSISTANT POPUP (HALF-BODY CHARACTER + SPEECH BUBBLE) */}
+        {/* FULL ASSISTANT POPUP (HALF-BODY CHARACTER + SPEECH BUBBLE - DRAGGABLE via character or header) */}
         {visible && (
           <div
             ref={assistantRef}
@@ -305,13 +303,21 @@ export default function OperationsAssistant() {
             }}
             className="pointer-events-auto flex items-end gap-1 bubble-in"
           >
-            {/* HALF-BODY CHARACTER IMAGE */}
-            <div className="relative shrink-0 select-none pointer-events-none z-10 w-36 sm:w-44 h-52 sm:h-60 -mr-2">
+            {/* HALF-BODY CHARACTER IMAGE (DRAGGABLE HANDLE) */}
+            <div
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              style={{ touchAction: 'none' }}
+              className={`relative shrink-0 select-none z-10 w-36 sm:w-44 h-52 sm:h-60 -mr-2 transition-transform ${
+                isDragging ? 'cursor-grabbing scale-105' : 'cursor-grab'
+              }`}
+            >
               <img
                 src={ASSETS[currentAsset]}
-                alt="Operations Assistant Character"
+                alt="Operations Assistant Character - Drag to move"
                 draggable={false}
-                className={`w-full h-full object-contain object-bottom filter drop-shadow-md ${
+                className={`w-full h-full object-contain object-bottom filter drop-shadow-md pointer-events-none select-none ${
                   reaction === 'none' ? 'char-idle' : `char-${reaction}`
                 }`}
               />
