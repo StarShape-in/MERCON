@@ -25,7 +25,9 @@ import {
   FileSpreadsheet,
   ChevronDown,
   X,
-  MoreHorizontal
+  MoreHorizontal,
+  ArrowDown,
+  ArrowUp
 } from 'lucide-react';
 import { TruckMotion, CheckBadge, RouteLine, ClockIcon } from '@/components/ui/kpi-icons';
 
@@ -212,20 +214,37 @@ function downloadImportTemplate() {
   document.body.removeChild(link);
 }
 
-type TripStatusFilter = TripStatus | 'All' | 'Completed,Invoiced';
+type TripStatusFilter = TripStatus | 'All' | 'Active' | 'Issues' | 'Completed,Invoiced';
 
 const STATUS_TABS: { label: string; value: TripStatusFilter }[] = [
-  { label: 'All Operations', value: 'All' },
-  { label: 'Scheduled / Drafts', value: 'Draft' },
-  { label: 'Dispatched', value: 'Dispatched' },
-  { label: 'At Pickup', value: 'AtPickup' },
-  { label: 'In Transit', value: 'InTransit' },
-  { label: 'At Delivery', value: 'AtDelivery' },
-  { label: 'Delivered & Completed (All)', value: 'Completed,Invoiced' },
-  { label: 'Delivered (Uninvoiced)', value: 'Completed' },
-  { label: 'Completed (Invoiced)', value: 'Invoiced' },
-  { label: 'Cancelled', value: 'Cancelled' },
+  { label: 'All', value: 'All' },
+  { label: 'Active', value: 'Active' },
+  { label: 'Completed', value: 'Completed,Invoiced' },
+  { label: 'Issues', value: 'Issues' },
 ];
+
+const EXACT_SERVER_STATUSES = new Set<TripStatusFilter>([
+  'Draft',
+  'Dispatched',
+  'AtPickup',
+  'InTransit',
+  'AtDelivery',
+  'Completed',
+  'Invoiced',
+  'Cancelled',
+]);
+
+const getServerStatusFilter = (status: TripStatusFilter) => (
+  EXACT_SERVER_STATUSES.has(status) ? status : undefined
+);
+
+const matchesTripStatusFilter = (trip: Trip, filter: TripStatusFilter) => {
+  if (filter === 'All') return true;
+  if (filter === 'Active') return ['Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'].includes(trip.status);
+  if (filter === 'Completed,Invoiced') return trip.status === 'Completed' || trip.status === 'Invoiced';
+  if (filter === 'Issues') return trip.status === 'Cancelled';
+  return trip.status === filter;
+};
 
 export default function TripListPage() {
   const navigate = useNavigate();
@@ -256,6 +275,7 @@ export default function TripListPage() {
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
   const debouncedSearch = useDebouncedValue(search, 300);
 
   const [statusDialogTrip, setStatusDialogTrip] = useState<Trip | null>(null);
@@ -320,7 +340,7 @@ export default function TripListPage() {
   const { data: tripsRes, isLoading, isError, error } = useQuery({
     queryKey: ['trips', selectedStatus, dateFilter, startDateStr, endDateStr, debouncedSearch],
     queryFn: () => tripService.getAll({
-      status: selectedStatus === 'All' ? undefined : (selectedStatus as any),
+      status: getServerStatusFilter(selectedStatus) as any,
       date_filter: dateFilter === 'All' || dateFilter === 'Custom' ? undefined : dateFilter,
       start_date: startDateStr,
       end_date: endDateStr,
@@ -337,11 +357,11 @@ export default function TripListPage() {
 
   const rawTrips = tripsRes?.data || [];
   // Prioritize active/current operational statuses (InTransit, AtPickup, AtDelivery, Dispatched) at the top,
-  // followed by the rest (Draft, Completed, Invoiced, Cancelled), all ordered by creation date descending.
+  // followed by the rest (Draft, Completed, Invoiced, Cancelled), all ordered by sortOrder preference.
   const trips = useMemo(() => {
     const ACTIVE_STATUSES = new Set(['intransit', 'atpickup', 'atdelivery', 'dispatched', 'travelling', 'current']);
 
-    return [...rawTrips].sort((a, b) => {
+    return rawTrips.filter(t => matchesTripStatusFilter(t, selectedStatus)).sort((a, b) => {
       const aActive = ACTIVE_STATUSES.has((a.status || '').toLowerCase()) ? 0 : 1;
       const bActive = ACTIVE_STATUSES.has((b.status || '').toLowerCase()) ? 0 : 1;
 
@@ -352,12 +372,12 @@ export default function TripListPage() {
       const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
       const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
       if (timeA !== timeB) {
-        return timeB - timeA;
+        return sortOrder === 'latest' ? timeB - timeA : timeA - timeB;
       }
 
       return (b.ref_id || b.id || '').localeCompare(a.ref_id || a.id || '');
     });
-  }, [rawTrips]);
+  }, [rawTrips, selectedStatus, sortOrder]);
 
   // Fixed fleet-wide totals for KPI cards (do NOT change when table is filtered or searched)
   const kpiTrips = allTripsRes?.data || [];
@@ -615,6 +635,7 @@ export default function TripListPage() {
     {
       header: 'Trip ID',
       className: 'w-[90px] shrink-0',
+      mobilePriority: 'primary' as const,
       accessor: (row: Trip) => (
         <div className="flex items-center gap-1">
           <span className="font-mono text-xs font-bold text-brand truncate">
@@ -626,6 +647,7 @@ export default function TripListPage() {
     {
       header: 'Customer',
       className: 'max-w-[130px] truncate',
+      mobilePriority: 'secondary' as const,
       accessor: (row: Trip) => (
         <div className="flex flex-col max-w-[130px] truncate">
           <span className="font-semibold text-xs text-slate-900 dark:text-slate-100 leading-tight truncate" title={row.customer?.name}>
@@ -637,21 +659,22 @@ export default function TripListPage() {
     {
       header: 'Route',
       className: 'max-w-[155px] truncate',
+      mobilePriority: 'secondary' as const,
       accessor: (row: Trip) => {
         const pickup = getPickupInfo(row);
         const dropoff = getDropoffInfo(row);
         return (
-          <div className="flex flex-col gap-0 py-0.5 max-w-[155px] truncate" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
-            <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-1.5 py-0.5 max-w-[210px] min-w-0" title={`From: ${pickup.name}\nTo: ${dropoff.name}`}>
+            <div className="flex items-center gap-1.5 min-w-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 dark:border-emerald-800 dark:bg-emerald-950/40">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-200 truncate">
                 {pickup.name}
               </span>
             </div>
-            <div className="ml-[2.5px] w-0 h-2 border-l border-dotted border-slate-400 dark:border-slate-500 my-0.5" />
-            <div className="flex items-center gap-1.5 min-w-0">
+            <span className="h-px w-5 shrink-0 bg-slate-300 dark:bg-slate-600" />
+            <div className="flex items-center gap-1.5 min-w-0 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 dark:border-orange-900 dark:bg-orange-950/30">
               <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
-              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <span className="text-[11px] font-bold text-orange-800 dark:text-orange-200 truncate">
                 {dropoff.name}
               </span>
             </div>
@@ -662,6 +685,7 @@ export default function TripListPage() {
     {
       header: 'Driver',
       className: 'max-w-[165px]',
+      mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
         if (row.is_third_party) {
           const name = row.third_party_driver_name || row.thirdPartyProvider?.name || '3PL Driver';
@@ -700,6 +724,7 @@ export default function TripListPage() {
     {
       header: 'Vehicle',
       className: 'w-[95px] shrink-0',
+      mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
         if (row.is_third_party) {
           const plate = row.third_party_vehicle_plate || '3PL Truck';
@@ -733,6 +758,7 @@ export default function TripListPage() {
     {
       header: 'Payload Cap.',
       className: 'w-[110px] shrink-0',
+      mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
         const cap = getTripPayloadCapacity(row);
         return (
@@ -748,6 +774,7 @@ export default function TripListPage() {
     {
       header: 'Rate Category',
       className: 'w-[130px] shrink-0',
+      mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => {
         const cat = getTripRateCategory(row);
         return (
@@ -768,6 +795,7 @@ export default function TripListPage() {
     {
       header: 'Rate (SAR)',
       className: 'w-[100px] shrink-0',
+      mobilePriority: 'meta' as const,
       accessor: (row: Trip) => {
         const price = row.billing_amount ?? row.trip_charges ?? row.rateCard?.base_price;
         return (
@@ -784,6 +812,7 @@ export default function TripListPage() {
     {
       header: 'Status',
       className: 'w-[105px] shrink-0',
+      mobilePriority: 'primary' as const,
       accessor: (row: Trip) => (
         <StatusBadge status={row.status} />
       ),
@@ -791,6 +820,7 @@ export default function TripListPage() {
     {
       header: 'Planned Start',
       className: 'w-[95px] shrink-0',
+      mobilePriority: 'meta' as const,
       accessor: (row: Trip) => (
         <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
           {row.planned_start ? new Date(row.planned_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
@@ -801,6 +831,7 @@ export default function TripListPage() {
       header: 'Actions',
       className: 'w-[95px] text-right shrink-0',
       headerClassName: 'text-right',
+      mobilePriority: 'hidden' as const,
       accessor: (row: Trip) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <button
@@ -1166,9 +1197,9 @@ export default function TripListPage() {
             icon={TruckMotion}
             semiCircleGauge={{
               segments: [
-                { label: "Completed", count: completedCount, color: "#16A34A" },
-                { label: "In Transit", count: inTransitCount, color: "#2563EB" },
-                { label: "Queue", count: dispatchQueueCount, color: "#D97706" },
+                { label: "Completed", count: completedCount, color: "#10B981" },
+                { label: "In Transit", count: inTransitCount, color: "#3B82F6" },
+                { label: "Queue", count: dispatchQueueCount, color: "#F59E0B" },
               ]
             }}
             onClick={() => {
@@ -1210,7 +1241,7 @@ export default function TripListPage() {
             icon={CheckBadge}
             semiCircleGauge={{
               segments: [
-                { label: "Delivered (Uninvoiced)", count: deliveredPendingInvoiceCount, color: "#34D399" },
+                { label: "Delivered (Uninvoiced)", count: deliveredPendingInvoiceCount, color: "#10B981" },
                 { label: "Completed (Invoiced)", count: invoicedCount, color: "#059669" },
               ]
             }}
@@ -1232,7 +1263,7 @@ export default function TripListPage() {
             description="Upcoming & planned trips"
             icon={ClockIcon}
             pipelineStages={[
-              { name: "Draft", count: draftTrips.length, color: "bg-amber-500" },
+              { name: "Draft", count: draftTrips.length, color: "bg-indigo-500" },
               { name: "Dispatched", count: kpiTrips.filter(t => t.status === 'Dispatched').length, color: "bg-blue-500" },
             ]}
             isActive={selectedStatus === 'Draft'}
@@ -1284,7 +1315,7 @@ export default function TripListPage() {
             searchValue={search}
             onSearchChange={setSearch}
             filterElement={
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center flex-wrap gap-2">
                 <Select
                   value={selectedStatus}
                   onValueChange={(val) => {
@@ -1294,80 +1325,54 @@ export default function TripListPage() {
                     }
                   }}
                 >
-                  <SelectTrigger className="h-9 px-3 w-auto min-w-[200px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold">
+                  <SelectTrigger className="h-9 px-3 w-auto min-w-[150px] whitespace-nowrap shrink-0 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold rounded-md">
                     <div className="flex items-center gap-2 whitespace-nowrap">
-                      <Filter className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                      <SelectValue placeholder="All Operations" className="whitespace-nowrap" />
+                      <Filter className="h-3.5 w-3.5 text-brand shrink-0" />
+                      <SelectValue placeholder="All" className="whitespace-nowrap" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent align="start" className="w-64 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                  <SelectContent align="start" className="w-60 p-1.5 shadow-lg border border-slate-200 bg-white rounded-lg">
                     <SelectGroup>
                       <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
-                        Filter Status
+                        Status Group
                       </SelectLabel>
-                      <SelectItem value="All" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-slate-700">
-                          <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                          All Operations
-                        </span>
-                      </SelectItem>
+                      {STATUS_TABS.map((tab) => (
+                        <SelectItem key={tab.value} value={tab.value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                            <span className={cn(
+                              "w-2 h-2 rounded-full",
+                              tab.value === 'Active' && "bg-blue-500",
+                              tab.value === 'Completed,Invoiced' && "bg-emerald-500",
+                              tab.value === 'Issues' && "bg-rose-500",
+                              tab.value === 'All' && "bg-slate-400"
+                            )}></span>
+                            {tab.label}
+                          </span>
+                        </SelectItem>
+                      ))}
                     </SelectGroup>
                     <SelectSeparator className="my-1 border-slate-100" />
                     <SelectGroup>
-                      <SelectItem value="Draft" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-amber-700">
-                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                          Drafts
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="Dispatched" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-blue-700">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                          Dispatched
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="AtPickup" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-purple-700">
-                          <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                          At Pickup
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="InTransit" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-brand">
-                          <span className="w-2 h-2 rounded-full bg-brand"></span>
-                          In Transit
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="AtDelivery" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-indigo-700">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                          At Delivery
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="Completed,Invoiced" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-semibold text-emerald-700">
-                          <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                          Delivered & Completed (All)
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="Completed" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-emerald-600 pl-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                          Delivered (Uninvoiced)
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="Invoiced" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-teal-700 pl-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
-                          Completed (Invoiced)
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="Cancelled" className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
-                        <span className="flex items-center gap-2 font-medium text-rose-700">
-                          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                          Cancelled
-                        </span>
-                      </SelectItem>
+                      <SelectLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                        Exact State
+                      </SelectLabel>
+                      {[
+                        ['Draft', 'Drafts', 'bg-indigo-500'],
+                        ['Dispatched', 'Dispatched', 'bg-blue-500'],
+                        ['AtPickup', 'At Pickup', 'bg-blue-500'],
+                        ['InTransit', 'In Transit', 'bg-blue-500'],
+                        ['AtDelivery', 'At Delivery', 'bg-blue-500'],
+                        ['Completed', 'Delivered', 'bg-emerald-500'],
+                        ['Invoiced', 'Invoiced', 'bg-emerald-600'],
+                        ['Cancelled', 'Cancelled', 'bg-rose-500'],
+                      ].map(([value, label, dotClass]) => (
+                        <SelectItem key={value} value={value} className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md">
+                          <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                            <span className={cn("w-1.5 h-1.5 rounded-full", dotClass)}></span>
+                            {label}
+                          </span>
+                        </SelectItem>
+                      ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -1379,6 +1384,19 @@ export default function TripListPage() {
                   setCustomDateRange={setCustomDateRange}
                   onFilterChange={() => setCurrentPage(1)}
                 />
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
+                  className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
+                >
+                  {sortOrder === 'latest' ? (
+                    <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
+                  ) : (
+                    <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
+                  )}
+                </Button>
               </div>
             }
             bulkActions={bulkActions}
@@ -1856,4 +1874,3 @@ export default function TripListPage() {
     </DashboardLayout>
   );
 }
-

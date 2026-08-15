@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Wallet, Download, Plus, RotateCw, Edit2, Trash2, AlertTriangle, Users, Truck, Eye } from 'lucide-react';
+import { Wallet, Download, Plus, RotateCw, Edit2, Trash2, AlertTriangle, Users, Truck, Eye, ArrowDown, ArrowUp } from 'lucide-react';
 import { EXPENSE_CATEGORIES } from '@mercon/shared-types';
 
 import ExpenseModal from '@/components/expenses/ExpenseModal';
@@ -28,6 +28,7 @@ export default function ExpenseListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -52,7 +53,11 @@ export default function ExpenseListPage() {
     placeholderData: (prev) => prev,
   });
 
-  const records = expensesRes?.data || [];
+  const records = [...(expensesRes?.data || [])].sort((a, b) => {
+    const dateA = new Date(a.expense_date || a.createdAt || 0).getTime();
+    const dateB = new Date(b.expense_date || b.createdAt || 0).getTime();
+    return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+  });
   const kpis = expensesRes?.kpis || {
     total_amount: 0,
     paid_amount: 0,
@@ -428,6 +433,19 @@ export default function ExpenseListPage() {
                     <SelectItem value="Pending">Pending</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
+                  className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
+                >
+                  {sortOrder === 'latest' ? (
+                    <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
+                  ) : (
+                    <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
+                  )}
+                </Button>
               </div>
             }
             pageSize={pageSize}

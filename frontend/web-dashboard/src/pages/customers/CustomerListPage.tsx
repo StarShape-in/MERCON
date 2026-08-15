@@ -521,6 +521,7 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
               }
               columns={columns}
               data={filteredCustomers}
+              sortAccessor={(row: Customer) => row.createdAt}
               bulkActions={bulkActions}
               enableSelection={true}
               compact={true}
@@ -715,4 +716,3 @@ function getSecondaryContactPhone(phoneOrId?: string): string {
     </DashboardLayout>
   );
 }
-

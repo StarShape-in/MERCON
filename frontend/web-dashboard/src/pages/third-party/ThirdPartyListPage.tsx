@@ -648,6 +648,7 @@ export default function ThirdPartyListPage() {
             }
             columns={columns}
             data={providers}
+            sortAccessor={(row: ThirdPartyProvider) => row.createdAt}
             isLoading={isLoading}
             enableSelection={true}
             bulkActions={bulkActions}

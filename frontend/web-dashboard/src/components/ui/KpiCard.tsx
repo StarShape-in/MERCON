@@ -88,27 +88,27 @@ const variantStyles: Record<KpiCardVariant, {
     activeRing: 'shadow-[0_0_15px_rgba(232,69,15,0.18)] border-brand scale-[1.01] transition-all',
   },
   blue: {
-    hex: '#2563EB',
+    hex: '#3B82F6',
     iconContainer: 'bg-blue-600/10 text-blue-600 dark:text-blue-400',
     activeRing: 'shadow-[0_0_15px_rgba(37,99,235,0.18)] border-blue-500 scale-[1.01] transition-all',
   },
   emerald: {
-    hex: '#16A34A',
+    hex: '#10B981',
     iconContainer: 'bg-emerald-600/10 text-emerald-600 dark:text-emerald-400',
     activeRing: 'shadow-[0_0_15px_rgba(22,163,74,0.18)] border-emerald-500 scale-[1.01] transition-all',
   },
   amber: {
-    hex: '#D97706',
+    hex: '#F59E0B',
     iconContainer: 'bg-amber-600/10 text-amber-600 dark:text-amber-400',
     activeRing: 'shadow-[0_0_15px_rgba(217,119,6,0.18)] border-amber-500 scale-[1.01] transition-all',
   },
   purple: {
-    hex: '#7C3AED',
+    hex: '#6366F1',
     iconContainer: 'bg-purple-600/10 text-purple-600 dark:text-purple-400',
     activeRing: 'shadow-[0_0_15px_rgba(124,58,237,0.18)] border-purple-500 scale-[1.01] transition-all',
   },
   rose: {
-    hex: '#DC2626',
+    hex: '#EF4444',
     iconContainer: 'bg-rose-600/10 text-rose-600 dark:text-rose-400',
     activeRing: 'shadow-[0_0_15px_rgba(220,38,38,0.18)] border-rose-500 scale-[1.01] transition-all',
   },
@@ -285,9 +285,9 @@ export function KpiCard({
     }))
   } else if (routeHealthBreakdown) {
     barSegments = [
-      { label: 'On-Time', value: routeHealthBreakdown.onSchedule, count: routeHealthBreakdown.onSchedule, color: '#16A34A', onClick: onHealthClick && (() => onHealthClick('onSchedule')) },
-      { label: 'Delayed', value: routeHealthBreakdown.delayed, count: routeHealthBreakdown.delayed, color: '#D97706', onClick: onHealthClick && (() => onHealthClick('delayed')) },
-      { label: 'Stopped', value: routeHealthBreakdown.stopped, count: routeHealthBreakdown.stopped, color: '#DC2626', onClick: onHealthClick && (() => onHealthClick('stopped')) },
+      { label: 'On-Time', value: routeHealthBreakdown.onSchedule, count: routeHealthBreakdown.onSchedule, color: '#10B981', onClick: onHealthClick && (() => onHealthClick('onSchedule')) },
+      { label: 'Delayed', value: routeHealthBreakdown.delayed, count: routeHealthBreakdown.delayed, color: '#F59E0B', onClick: onHealthClick && (() => onHealthClick('delayed')) },
+      { label: 'Stopped', value: routeHealthBreakdown.stopped, count: routeHealthBreakdown.stopped, color: '#EF4444', onClick: onHealthClick && (() => onHealthClick('stopped')) },
     ].filter(s => s.value > 0 || s.label === 'On-Time')
   } else if (progressSegments && progressSegments.length > 0) {
     barSegments = progressSegments.map(s => ({ label: s.label, value: s.value, color: s.color }))
@@ -299,7 +299,7 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        'group relative flex flex-col gap-0 h-full rounded-2xl border border-black/[0.06] bg-white pt-5 px-5 pb-5 shadow-sm transition-all duration-150 dark:border-white/[0.08] dark:bg-card overflow-hidden',
+        'group relative flex min-h-[130px] flex-col gap-0 rounded-lg border border-black/[0.06] bg-white pt-4 px-4 pb-4 shadow-xs transition-all duration-150 dark:border-white/[0.08] dark:bg-card overflow-hidden',
         hasFullBleedFooter && 'pb-0',
         props.onClick && 'cursor-pointer hover:border-black/[0.14] dark:hover:border-white/[0.16]',
         isActive && selectedStyle.activeRing,
@@ -315,7 +315,7 @@ export function KpiCard({
             {displayTitle}
           </span>
           {renderedIcon && (
-            <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-md', selectedStyle.iconContainer)}>
+            <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-sm', selectedStyle.iconContainer)}>
               {renderedIcon}
             </span>
           )}
@@ -324,7 +324,7 @@ export function KpiCard({
         {/* Value */}
         <div 
           className={cn(
-            "mt-1 text-[32px] font-bold leading-none tracking-tight transition-colors duration-150",
+            "mt-1 text-[30px] font-bold leading-none tracking-tight transition-colors duration-150",
             activeVariant === 'slate' && "text-slate-900 dark:text-slate-100"
           )}
           style={activeVariant === 'slate' ? undefined : { color: selectedStyle.hex }}
@@ -348,7 +348,7 @@ export function KpiCard({
         customFooter ? (
           customFooter
         ) : normalizedChartData ? (
-          <div className="h-10 mt-4 -mx-5 overflow-hidden rounded-b-2xl">
+          <div className="h-10 mt-4 -mx-4 overflow-hidden rounded-b-lg">
             <ChartContainer
               config={{ value: { label: 'Value', color: selectedStyle.hex } }}
               className="aspect-auto h-full w-full"

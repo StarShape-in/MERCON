@@ -1336,6 +1336,7 @@ export default function VehicleListPage() {
               }
               columns={columns}
               data={vehicles}
+              sortAccessor={(row: Vehicle) => row.createdAt}
               bulkActions={bulkActions}
               enableSelection={true}
               compact={true}
