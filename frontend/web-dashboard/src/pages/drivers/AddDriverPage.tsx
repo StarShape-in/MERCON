@@ -19,8 +19,9 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import { driverService, CreateDriverPayload } from '@/services/driverService';
-import { vehicleService } from '@/services/vehicleService';
+import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -47,8 +48,9 @@ export default function AddDriverPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
 
-  const { data: vehiclesRes } = useQuery({
+  const { data: vehiclesRes, refetch: refetchVehicles } = useQuery({
     queryKey: ['vehicles-select'],
     queryFn: () => vehicleService.getAll({ per_page: 100 }),
   });
@@ -57,6 +59,11 @@ export default function AddDriverPage() {
     label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
     keywords: `${v.plate_number} ${v.asset_type}`,
   }));
+
+  const handleVehicleCreated = (newVehicle: Vehicle) => {
+    refetchVehicles();
+    setFormData((prev) => ({ ...prev, assigned_vehicle_id: newVehicle.id }));
+  };
 
   const handleChange = (field: keyof typeof EMPTY_FORM, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -293,6 +300,8 @@ export default function AddDriverPage() {
                     placeholder="No default vehicle (optional)..."
                     searchPlaceholder="Search vehicles..."
                     emptyText="No vehicles found."
+                    onAddNew={() => setIsAddVehicleOpen(true)}
+                    addNewLabel="Add New Vehicle"
                   />
                   <p className="text-xs text-muted-foreground">
                     Pre-fills automatically when this driver is picked on a new trip. Can still be changed per trip.
@@ -373,6 +382,13 @@ export default function AddDriverPage() {
           </Card>
         </div>
       </form>
+
+      {/* Modal for creating a new vehicle on-the-fly */}
+      <CreateVehicleModal
+        isOpen={isAddVehicleOpen}
+        onClose={() => setIsAddVehicleOpen(false)}
+        onCreated={handleVehicleCreated}
+      />
     </DashboardLayout>
   );
 }

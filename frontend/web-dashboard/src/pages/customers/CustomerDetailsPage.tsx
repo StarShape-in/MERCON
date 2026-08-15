@@ -147,11 +147,11 @@ export default function CustomerDetailsPage() {
         index + 1,
         new Date(t.createdAt).toLocaleDateString('en-GB'),
         t.ref_id || 'N/A',
-        t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned',
-        t.vehicle?.plate_number || 'Unassigned',
-        t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON` : '10 TON',
-        t.driver?.phone_primary || '',
-        t.carrier_name || 'MERCON LOGISTICS',
+        t.is_third_party ? (t.third_party_driver_name || t.thirdPartyProvider?.name || '3PL Driver') : (t.driver ? `${t.driver.first_name} ${t.driver.last_name}` : 'Unassigned'),
+        t.is_third_party ? (t.third_party_vehicle_plate || '3PL Vehicle') : (t.vehicle?.plate_number || 'Unassigned'),
+        t.vehicle ? `${(t.vehicle.capacity_kg / 1000).toFixed(0)} TON` : (t.third_party_vehicle_type || '10 TON'),
+        t.is_third_party ? (t.third_party_driver_phone || t.thirdPartyProvider?.phone || '') : (t.driver?.phone_primary || ''),
+        t.is_third_party ? (t.thirdPartyProvider?.name || t.carrier_name || '3PL Provider') : (t.carrier_name || 'MERCON LOGISTICS'),
         customer.name,
         'Dropoff',
         waiting,
@@ -365,10 +365,12 @@ export default function CustomerDetailsPage() {
                   accessor: (trip: any) => (
                     <div className="flex flex-col text-xs">
                       <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {trip.vehicle?.plate_number || 'TRK-9982'}
+                        {trip.is_third_party ? (trip.third_party_vehicle_plate || '3PL Truck') : (trip.vehicle?.plate_number || 'TRK-9982')}
                       </span>
                       <span className="text-[11px] text-slate-400">
-                        {trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Assigned Driver'}
+                        {trip.is_third_party
+                          ? (trip.third_party_driver_name || trip.thirdPartyProvider?.name || '3PL Driver')
+                          : (trip.driver ? `${trip.driver.first_name} ${trip.driver.last_name}` : 'Assigned Driver')}
                       </span>
                     </div>
                   ),

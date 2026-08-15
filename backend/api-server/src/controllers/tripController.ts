@@ -452,7 +452,14 @@ export const createTrip = async (req: Request, res: Response) => {
                 }))
               }
             },
-            include: { stops: true }
+            include: {
+              stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } },
+              thirdPartyProvider: true,
+              customer: true,
+              driver: true,
+              vehicle: true,
+              rateCard: true,
+            }
           });
         });
 

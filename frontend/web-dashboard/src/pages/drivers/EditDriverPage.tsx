@@ -19,8 +19,9 @@ import {
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import { driverService, DriverStatus } from '@/services/driverService';
-import { vehicleService } from '@/services/vehicleService';
+import { vehicleService, Vehicle } from '@/services/vehicleService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +39,7 @@ export default function EditDriverPage() {
   const queryClient = useQueryClient();
 
   const [error, setError] = useState<string | null>(null);
+  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
 
   // Fetch driver data
   const { data: driver, isLoading, refetch } = useQuery({
@@ -58,6 +60,11 @@ export default function EditDriverPage() {
     label: `${v.plate_number} (${v.asset_type} • ${v.capacity_kg.toLocaleString()} kg)`,
     keywords: `${v.plate_number} ${v.asset_type}`,
   }));
+
+  const handleVehicleCreated = (newVehicle: Vehicle) => {
+    refetchVehicles();
+    setFormData((prev) => ({ ...prev, assigned_vehicle_id: newVehicle.id }));
+  };
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -380,6 +387,8 @@ export default function EditDriverPage() {
                       placeholder="No default vehicle..."
                       searchPlaceholder="Search vehicle..."
                       emptyText="No vehicles found."
+                      onAddNew={() => setIsAddVehicleOpen(true)}
+                      addNewLabel="Add New Vehicle"
                     />
                   </div>
 
@@ -446,6 +455,12 @@ export default function EditDriverPage() {
         </form>
 
       </div>
+
+      <CreateVehicleModal
+        isOpen={isAddVehicleOpen}
+        onClose={() => setIsAddVehicleOpen(false)}
+        onCreated={handleVehicleCreated}
+      />
     </DashboardLayout>
   );
 }

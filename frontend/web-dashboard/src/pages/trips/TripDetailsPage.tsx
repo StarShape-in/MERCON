@@ -268,14 +268,14 @@ export default function TripDetailsPage() {
   // vehicle are assigned — otherwise assign them first via the banner below.
   const rawNextStatus = getNextStatus(trip.status);
   const nextStatusOption =
-    rawNextStatus === 'Dispatched' && (!trip.driver || !trip.vehicle) ? null : rawNextStatus;
+    rawNextStatus === 'Dispatched' && !trip.is_third_party && (!trip.driver || !trip.vehicle) ? null : rawNextStatus;
 
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
   const isClosed = ['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup');
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff');
   const invoice = trip.invoices?.[0];
-  const needsAssignment = trip.status === 'Draft' && (!trip.driver || !trip.vehicle);
+  const needsAssignment = trip.status === 'Draft' && !trip.is_third_party && (!trip.driver || !trip.vehicle);
 
   // Overall trip progress — Cancelled is its own dead-end state, not a stage.
   const stageIndex = STAGE_ORDER.indexOf(trip.status);
@@ -546,7 +546,7 @@ export default function TripDetailsPage() {
 
               <Separator className="my-5" />
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-4">
                 <div className="flex items-start gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                     <Building2 size={15} />
@@ -556,6 +556,23 @@ export default function TripDetailsPage() {
                     <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.customer?.name || '—'}</p>
                   </div>
                 </div>
+
+                {trip.is_third_party && (
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                      <Building2 size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">3PL Provider</p>
+                      <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate mt-0.5" title={trip.thirdPartyProvider?.name || trip.carrier_name || '3PL Logistics'}>
+                        {trip.thirdPartyProvider?.name || trip.carrier_name || '3PL Logistics'}
+                      </p>
+                      {trip.thirdPartyProvider?.contact_person && (
+                        <p className="text-xs text-[#6E6E80] truncate">{trip.thirdPartyProvider.contact_person}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-start gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
@@ -605,7 +622,9 @@ export default function TripDetailsPage() {
                         : 'Unassigned'}
                     </p>
                     {trip.is_third_party ? (
-                      trip.third_party_driver_phone && <p className="text-xs text-[#6E6E80] truncate">{trip.third_party_driver_phone}</p>
+                      (trip.third_party_driver_phone || trip.thirdPartyProvider?.phone) && (
+                        <p className="text-xs text-[#6E6E80] truncate">{trip.third_party_driver_phone || trip.thirdPartyProvider?.phone}</p>
+                      )
                     ) : (
                       trip.driver?.phone_primary && <p className="text-xs text-[#6E6E80] truncate">{trip.driver.phone_primary}</p>
                     )}
@@ -627,7 +646,7 @@ export default function TripDetailsPage() {
                     </p>
                     {trip.is_third_party ? (
                       <p className="text-xs text-[#6E6E80] truncate">
-                        {trip.thirdPartyProvider?.name || 'Third-Party'}
+                        {trip.third_party_vehicle_type || trip.thirdPartyProvider?.name || 'Third-Party'}
                       </p>
                     ) : (
                       trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>
@@ -675,6 +694,21 @@ export default function TripDetailsPage() {
                     </p>
                   </div>
                 </div>
+
+                {trip.is_third_party && (
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                      <ReceiptText size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">3PL Cost</p>
+                      <p className="text-sm font-bold text-rose-600 font-mono truncate mt-0.5">
+                        {trip.third_party_cost ? `SAR ${Number(trip.third_party_cost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                      </p>
+                      <p className="text-xs text-[#6E6E80] truncate">Provider Cost</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-start gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-black/[0.05] text-[#6E6E80] flex items-center justify-center shrink-0">
@@ -1097,8 +1131,8 @@ export default function TripDetailsPage() {
 
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-2 mt-5">
-                {trip.driver?.phone_primary ? (
-                  <a href={`tel:${trip.driver.phone_primary}`} className="w-full">
+                {(trip.driver?.phone_primary || (trip.is_third_party && (trip.third_party_driver_phone || trip.thirdPartyProvider?.phone))) ? (
+                  <a href={`tel:${trip.driver?.phone_primary || trip.third_party_driver_phone || trip.thirdPartyProvider?.phone}`} className="w-full">
                     <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 text-[#111] dark:text-slate-200 hover:bg-black/[0.03] text-xs font-semibold gap-1.5 cursor-pointer">
                       <Phone size={13} />
                       Call Driver
