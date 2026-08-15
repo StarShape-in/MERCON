@@ -35,7 +35,10 @@ export default function AprodacDocumentsPage() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          // Filter out legacy mock items (ids starting with 'apr-doc-')
+          return parsed.filter((d: any) => d && d.id && !d.id.startsWith('apr-doc-'));
+        }
       }
     } catch {
       // Fallback to empty array
@@ -43,10 +46,11 @@ export default function AprodacDocumentsPage() {
     return [];
   });
 
-  // Save to localStorage whenever documents change
+  // Save to localStorage whenever documents change & clear old mock data keys
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
+      const cleanDocs = documents.filter(d => !d.id.startsWith('apr-doc-'));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanDocs));
     } catch {
       // Ignore quota errors gracefully
     }
@@ -83,10 +87,13 @@ export default function AprodacDocumentsPage() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        setDocuments(JSON.parse(saved));
-      } else {
-        setDocuments([]);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setDocuments(parsed.filter((d: any) => d && d.id && !d.id.startsWith('apr-doc-')));
+          return;
+        }
       }
+      setDocuments([]);
     } catch {
       setDocuments([]);
     }
