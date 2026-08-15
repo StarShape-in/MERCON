@@ -4,9 +4,6 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  HelpCircle,
-  FolderOpen,
-  User,
   Plus,
   X,
   Search,
@@ -132,9 +129,6 @@ const INITIAL_EXAMPLE_ROWS = [
 ];
 
 export default function CustomReportPage() {
-  // Active progress step (1, 2, 3, or 4)
-  const [activeStep, setActiveStep] = useState<number>(1);
-
   // 1. SELECT DATA STATE
   const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>(['trips', 'drivers', 'vehicles']);
   const [isAddModuleOpen, setIsAddModuleOpen] = useState(false);
@@ -169,10 +163,6 @@ export default function CustomReportPage() {
   const [viewMode, setViewMode] = useState<ViewModeOption>('Grid');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 5;
-
-  // MODALS & DIALOGS
-  const [showHelpModal, setShowHelpModal] = useState(false);
-  const [showMyReportsModal, setShowMyReportsModal] = useState(false);
 
   // ── Query real backend data when needed ──
   const { data: realTripsData, isLoading: isQueryLoading, refetch: refetchTrips } = useQuery({
@@ -381,7 +371,6 @@ export default function CustomReportPage() {
   // Generate Report Action
   const handleGenerateReport = () => {
     refetchTrips();
-    setActiveStep(4);
   };
 
   return (
@@ -389,194 +378,7 @@ export default function CustomReportPage() {
       <div className="min-h-screen bg-slate-50/60 dark:bg-slate-900/50 pb-12 font-sans">
         
         {/* ==================================================== */}
-        {/* 1. PAGE HEADER                                       */}
-        {/* ==================================================== */}
-        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3.5 sticky top-0 z-20 shadow-xs">
-          <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-            
-            {/* Top-Left Logo & Title */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2.5 shrink-0">
-                <div className="w-9 h-9 rounded-xl bg-orange-500 text-white font-black text-lg flex items-center justify-center shadow-sm tracking-tighter">
-                  M
-                </div>
-                <span className="font-black tracking-tight text-slate-900 dark:text-slate-100 text-sm sm:text-base hidden sm:inline">
-                  MERCON LOGISTICS
-                </span>
-              </div>
-
-              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
-
-              <div>
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                  Custom Report
-                </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Build your own report in 4 simple steps
-                </p>
-              </div>
-            </div>
-
-            {/* Top-Right Header Actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowHelpModal(true)}
-                className="h-9 px-3 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-              >
-                <HelpCircle className="w-4 h-4 text-slate-500" />
-                <span className="hidden sm:inline">Help</span>
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMyReportsModal(true)}
-                className="h-9 px-3.5 gap-1.5 text-xs font-semibold border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-              >
-                <FolderOpen className="w-4 h-4 text-slate-500" />
-                <span>My Reports</span>
-              </Button>
-
-              <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 flex items-center justify-center font-bold text-xs shrink-0 cursor-pointer shadow-2xs">
-                <User className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* ==================================================== */}
-        {/* 2. TOP PROGRESS STEPPER                              */}
-        {/* ==================================================== */}
-        <section className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3.5">
-          <div className="max-w-[1600px] mx-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              
-              {/* Step 1 */}
-              <button
-                onClick={() => setActiveStep(1)}
-                className={`flex items-start gap-3 p-2.5 rounded-xl transition-all text-left border ${
-                  activeStep === 1
-                    ? 'bg-orange-50/80 dark:bg-orange-950/20 border-orange-500 shadow-2xs'
-                    : 'bg-slate-50 dark:bg-slate-800/40 border-transparent hover:border-slate-200'
-                }`}
-              >
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                    activeStep === 1
-                      ? 'bg-orange-500 text-white shadow-xs'
-                      : activeStep > 1
-                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
-                      : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                  }`}
-                >
-                  {activeStep > 1 ? <Check className="w-4 h-4" /> : '1'}
-                </div>
-                <div>
-                  <h4 className={`text-xs font-bold ${activeStep === 1 ? 'text-orange-600 dark:text-orange-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                    1. Select Data
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Choose modules
-                  </p>
-                </div>
-              </button>
-
-              {/* Step 2 */}
-              <button
-                onClick={() => setActiveStep(2)}
-                className={`flex items-start gap-3 p-2.5 rounded-xl transition-all text-left border ${
-                  activeStep === 2
-                    ? 'bg-orange-50/80 dark:bg-orange-950/20 border-orange-500 shadow-2xs'
-                    : 'bg-slate-50 dark:bg-slate-800/40 border-transparent hover:border-slate-200'
-                }`}
-              >
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                    activeStep === 2
-                      ? 'bg-orange-500 text-white shadow-xs'
-                      : activeStep > 2
-                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
-                      : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                  }`}
-                >
-                  {activeStep > 2 ? <Check className="w-4 h-4" /> : '2'}
-                </div>
-                <div>
-                  <h4 className={`text-xs font-bold ${activeStep === 2 ? 'text-orange-600 dark:text-orange-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                    2. Choose Fields
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Choose columns
-                  </p>
-                </div>
-              </button>
-
-              {/* Step 3 */}
-              <button
-                onClick={() => setActiveStep(3)}
-                className={`flex items-start gap-3 p-2.5 rounded-xl transition-all text-left border ${
-                  activeStep === 3
-                    ? 'bg-orange-50/80 dark:bg-orange-950/20 border-orange-500 shadow-2xs'
-                    : 'bg-slate-50 dark:bg-slate-800/40 border-transparent hover:border-slate-200'
-                }`}
-              >
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                    activeStep === 3
-                      ? 'bg-orange-500 text-white shadow-xs'
-                      : activeStep > 3
-                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
-                      : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                  }`}
-                >
-                  {activeStep > 3 ? <Check className="w-4 h-4" /> : '3'}
-                </div>
-                <div>
-                  <h4 className={`text-xs font-bold ${activeStep === 3 ? 'text-orange-600 dark:text-orange-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                    3. Choose Values
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Choose calculations
-                  </p>
-                </div>
-              </button>
-
-              {/* Step 4 */}
-              <button
-                onClick={() => setActiveStep(4)}
-                className={`flex items-start gap-3 p-2.5 rounded-xl transition-all text-left border ${
-                  activeStep === 4
-                    ? 'bg-orange-50/80 dark:bg-orange-950/20 border-orange-500 shadow-2xs'
-                    : 'bg-slate-50 dark:bg-slate-800/40 border-transparent hover:border-slate-200'
-                }`}
-              >
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                    activeStep === 4
-                      ? 'bg-orange-500 text-white shadow-xs'
-                      : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                  }`}
-                >
-                  4
-                </div>
-                <div>
-                  <h4 className={`text-xs font-bold ${activeStep === 4 ? 'text-orange-600 dark:text-orange-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                    4. Filters (Optional)
-                  </h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Apply filters
-                  </p>
-                </div>
-              </button>
-
-            </div>
-          </div>
-        </section>
-
-        {/* ==================================================== */}
-        {/* 3. MAIN LAYOUT (TWO-COLUMN)                         */}
+        {/* MAIN LAYOUT (TWO-COLUMN)                            */}
         {/* ==================================================== */}
         <main className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -1231,66 +1033,7 @@ export default function CustomReportPage() {
           </div>
         </main>
 
-        {/* ==================================================== */}
-        {/* HELP MODAL                                          */}
-        {/* ==================================================== */}
-        {showHelpModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-xl animate-in fade-in zoom-in-95">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
-                  How to Build Custom Reports
-                </h3>
-                <button onClick={() => setShowHelpModal(false)} className="text-slate-400 hover:text-slate-600">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="py-4 space-y-3 text-xs text-slate-600 dark:text-slate-300">
-                <p><strong>1. Select Data:</strong> Choose the primary module (e.g. Trips) and related entities to query.</p>
-                <p><strong>2. Choose Fields:</strong> Select which table columns to display in your result ledger.</p>
-                <p><strong>3. Choose Values:</strong> Pick key metric values and their calculation methods (Total, Count, Avg, Min, Max).</p>
-                <p><strong>4. Filters:</strong> Optionally filter by date range, trip status, driver, or vehicle.</p>
-              </div>
-              <Button onClick={() => setShowHelpModal(false)} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs py-2">
-                Got it
-              </Button>
-            </div>
-          </div>
-        )}
 
-        {/* ==================================================== */}
-        {/* MY REPORTS MODAL                                     */}
-        {/* ==================================================== */}
-        {showMyReportsModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-xl animate-in fade-in zoom-in-95">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
-                  Saved Report Templates
-                </h3>
-                <button onClick={() => setShowMyReportsModal(false)} className="text-slate-400 hover:text-slate-600">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="py-4 space-y-2">
-                {[
-                  { name: 'Driver Performance & Earnings', date: 'Created 2 days ago' },
-                  { name: 'Monthly Fleet Operational Ledger', date: 'Created 1 week ago' },
-                  { name: 'Third-Party Cost & Settlement Summary', date: 'Created 2 weeks ago' },
-                ].map((rep, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setShowMyReportsModal(false)}
-                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-orange-500 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 cursor-pointer transition-all"
-                  >
-                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100">{rep.name}</div>
-                    <div className="text-[11px] text-slate-400">{rep.date}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
     </DashboardLayout>
