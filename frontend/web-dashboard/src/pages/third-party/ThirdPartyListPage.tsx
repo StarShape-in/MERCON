@@ -18,6 +18,8 @@ import {
   LayoutGrid,
   Filter,
   FileSpreadsheet,
+  FileText,
+  ChevronDown,
   MoreHorizontal,
   Send,
   Truck,
@@ -29,7 +31,7 @@ import {
 } from 'lucide-react';
 import { CustomerBuilding } from '@/components/ui/kpi-icons';
 import KpiCard from '@/components/ui/KpiCard';
-import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
+import { downloadCSV, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { THIRD_PARTY_COLUMNS } from '@/utils/importUtils';
 import ExcelImportDialog from '@/components/fleet/ExcelImportDialog';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -165,7 +167,7 @@ export default function ThirdPartyListPage() {
     setWhatsappProvider(null);
   };
 
-  const handleExportExcel = async (rowsToExport: ThirdPartyProvider[]) => {
+  const getProviderExportData = (rowsToExport: ThirdPartyProvider[]) => {
     const headers = [
       'Provider ID',
       'Provider Name',
@@ -192,11 +194,52 @@ export default function ThirdPartyListPage() {
       p.isActive ? 'Active' : 'Inactive',
     ]);
 
+    const totalTripsSum = rowsToExport.reduce((acc, p) => acc + (p.total_trips || 0), 0);
+    const activeTripsSum = rowsToExport.reduce((acc, p) => acc + (p.active_trips || 0), 0);
+    const totalOutlaySum = rowsToExport.reduce((acc, p) => acc + (p.total_cost || 0), 0);
+
+    const totalsRow = [
+      'TOTALS',
+      '',
+      '',
+      '',
+      '',
+      '',
+      totalTripsSum,
+      activeTripsSum,
+      totalOutlaySum,
+      '',
+    ];
+
+    return { headers, rows: [...dataRows, totalsRow] };
+  };
+
+  const handleExportExcel = async (rowsToExport: ThirdPartyProvider[]) => {
+    const { headers, rows } = getProviderExportData(rowsToExport);
+    const dateStr = new Date().toISOString().slice(0, 10);
     await exportExcelTable(
       'MERCON Third-Party Providers',
       headers,
-      dataRows,
-      `third_party_providers_${new Date().toISOString().slice(0, 10)}.xlsx`
+      rows,
+      `third_party_providers_${dateStr}.xlsx`,
+      {
+        subtitle: `Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} · MERCON Logistics Platform · ${rowsToExport.length} record${rowsToExport.length === 1 ? '' : 's'}`,
+        sheetName: '3PL Providers',
+      }
+    );
+  };
+
+  const handleExportPDF = (rowsToExport: ThirdPartyProvider[]) => {
+    const { headers, rows } = getProviderExportData(rowsToExport);
+    const dateStr = new Date().toISOString().slice(0, 10);
+    exportPDFTable(
+      'MERCON Third-Party Providers',
+      headers,
+      rows,
+      `third_party_providers_${dateStr}.pdf`,
+      {
+        subtitle: `Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} · MERCON Logistics Platform · ${rowsToExport.length} record${rowsToExport.length === 1 ? '' : 's'}`,
+      }
     );
   };
 
@@ -344,8 +387,25 @@ export default function ThirdPartyListPage() {
 
   const bulkActions: BulkAction<ThirdPartyProvider>[] = [
     {
-      label: 'Export CSV',
+      label: 'Export Selected Excel',
+      icon: <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" />,
+      variant: 'success',
+      onClick: (selectedRows) => {
+        handleExportExcel(selectedRows);
+      },
+    },
+    {
+      label: 'Export Selected PDF',
+      icon: <FileText size={13} className="text-rose-600 dark:text-rose-400" />,
+      variant: 'warning',
+      onClick: (selectedRows) => {
+        handleExportPDF(selectedRows);
+      },
+    },
+    {
+      label: 'Export Selected CSV',
       icon: <Download size={13} />,
+      variant: 'secondary',
       onClick: (selectedRows) => {
         downloadCSV(selectedRows, 'third_party_providers_export.csv');
       },
@@ -422,15 +482,43 @@ export default function ThirdPartyListPage() {
               </button>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
-              onClick={() => handleExportExcel(providers)}
-            >
-              <Download className="h-3.5 w-3.5 text-slate-600" />
-              Export CSV
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 text-xs font-semibold border-slate-200 bg-white hover:bg-slate-50 shadow-2xs"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-600" />
+                  Export
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 p-1.5 shadow-lg border border-slate-200 bg-white rounded-xl">
+                <DropdownMenuItem
+                  onClick={() => handleExportExcel(providers)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                  Export Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleExportPDF(providers)}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md"
+                >
+                  <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />
+                  Export PDF (.pdf)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 border-slate-100" />
+                <DropdownMenuItem
+                  onClick={() => downloadCSV(providers, `third_party_providers_${new Date().toISOString().slice(0, 10)}.csv`)}
+                  className="cursor-pointer text-xs font-medium py-1.5 px-2 rounded-md text-slate-600"
+                >
+                  <Download className="mr-2 h-3.5 w-3.5 text-slate-400" />
+                  Export CSV (.csv)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               variant="outline"
