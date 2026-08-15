@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle2, Clock, X, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,6 @@ type PanelView = 'question' | 'yes_input' | 'success' | 'no_confirmed' | 'remind
 export default function OperationsAssistant() {
   const [reminders,      setReminders]      = useState<ReminderItem[]>([]);
   const [activeId,       setActiveId]       = useState<string | null>(null);
-  // visible = speech bubble open; avatar always shows when reminders exist
   const [visible,        setVisible]        = useState(false);
   const [panelView,      setPanelView]      = useState<PanelView>('question');
   const [chargeAmount,   setChargeAmount]   = useState('150');
@@ -40,7 +39,7 @@ export default function OperationsAssistant() {
   const [selectedTimer,  setSelectedTimer]  = useState<number | null>(null);
   const [reaction,       setReaction]       = useState<'none'|'yes'|'no'|'wave'>('none');
 
-  // ── Draggable avatar position ──────────────────────────────────────────
+  // Draggable avatar position
   const [pos, setPos] = useState<{x:number; y:number}>(() => {
     try {
       const s = localStorage.getItem(POSITION_KEY);
@@ -48,7 +47,7 @@ export default function OperationsAssistant() {
     } catch { /**/ }
     return { x: 24, y: window.innerHeight - 80 };
   });
-  const [isDragging, setIsDragging]   = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef({ sx:0, sy:0, ix:0, iy:0 });
   const movedRef = useRef(false);
 
@@ -77,7 +76,6 @@ export default function OperationsAssistant() {
     setIsDragging(false);
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     if (!movedRef.current) {
-      // pure click — toggle bubble
       setVisible((prev) => {
         if (!prev) setPanelView('question');
         return !prev;
@@ -87,7 +85,6 @@ export default function OperationsAssistant() {
     }
   };
 
-  // keep avatar inside viewport on resize
   useEffect(() => {
     const fn = () => setPos((p) => ({
       x: Math.min(Math.max(12, p.x), window.innerWidth  - 60),
@@ -96,7 +93,6 @@ export default function OperationsAssistant() {
     window.addEventListener('resize', fn);
     return () => window.removeEventListener('resize', fn);
   }, []);
-  // ──────────────────────────────────────────────────────────────────────
 
   let currentAsset: AssetKey = 'question';
   if (panelView === 'yes_input' || panelView === 'success' || panelView === 'no_confirmed') currentAsset = 'great';
@@ -132,16 +128,14 @@ export default function OperationsAssistant() {
       });
 
       setReminders(pending);
-      // ✅ NEVER auto-open the bubble — user clicks the avatar to open it
       setActiveId((prev) => {
         if (pending.length === 0) return null;
         if (!prev || !pending.some((r) => r.id === prev)) return pending[0].id;
         return prev;
       });
-      // If no more reminders, close the bubble
       if (pending.length === 0) setVisible(false);
     } catch(e) { console.error('assistant sync', e); }
-  }, []);;
+  }, []);
 
   useEffect(() => {
     syncReminders();
@@ -214,60 +208,32 @@ export default function OperationsAssistant() {
 
   if (reminders.length === 0) return null;
 
+  // Decide position of speech bubble relative to avatar button
+  const avatarRight = pos.x + 56;
+  const spaceRight  = window.innerWidth - avatarRight;
+  const openLeft    = spaceRight < 340;
+
   return (
     <>
       <style>{`
-        @keyframes assistSlideUp {
-          0%  { transform:translateY(110%) scale(0.96); opacity:0 }
-          60% { transform:translateY(-10px) scale(1.02); opacity:1 }
-          80% { transform:translateY(4px) scale(0.99) }
-          100%{ transform:translateY(0) scale(1); opacity:1 }
-        }
-        @keyframes assistSlideDown {
-          0%  { transform:translateY(0); opacity:1 }
-          100%{ transform:translateY(130%); opacity:0 }
-        }
         @keyframes bubblePop {
           0%  { transform:scale(0.82) translateY(8px); opacity:0 }
           65% { transform:scale(1.04) translateY(-3px); opacity:1 }
           100%{ transform:scale(1) translateY(0); opacity:1 }
         }
-        @keyframes idleFloat {
-          0%,100%{ transform:translateY(0px) }
-          50%    { transform:translateY(-5px) }
-        }
-        @keyframes reactBounce {
-          0%  { transform:translateY(0) rotate(0deg) }
-          30% { transform:translateY(-16px) rotate(-3deg) }
-          60% { transform:translateY(-6px) rotate(2deg) }
-          80% { transform:translateY(-10px) rotate(-1deg) }
-          100%{ transform:translateY(0) rotate(0deg) }
-        }
-        @keyframes reactWave {
-          0%,100%{ transform:rotate(0deg) }
-          25%    { transform:rotate(-14deg) }
-          75%    { transform:rotate(14deg) }
-        }
         @keyframes msgFade {
           0%  { opacity:0; transform:translateY(5px) }
           100%{ opacity:1; transform:translateY(0) }
         }
-        .char-in    { animation:assistSlideUp 0.58s cubic-bezier(0.34,1.56,0.64,1) forwards }
-        .char-out   { animation:assistSlideDown 0.38s ease-in forwards }
-        .char-idle  { animation:idleFloat 3.6s ease-in-out infinite }
-        .char-yes   { animation:reactBounce 0.52s ease both }
-        .char-no    { animation:reactBounce 0.42s ease both }
-        .char-wave  { animation:reactWave 0.65s ease both }
-        .bubble-in  { animation:bubblePop 0.42s cubic-bezier(0.34,1.56,0.64,1) 0.22s both }
-        .bubble-out { opacity:0; pointer-events:none }
-        .msg-in     { animation:msgFade 0.32s ease 0.44s both }
+        .bubble-in  { animation:bubblePop 0.35s cubic-bezier(0.34,1.56,0.64,1) both }
+        .msg-in     { animation:msgFade 0.25s ease both }
         .btn-hover  { transition:transform 0.16s ease, box-shadow 0.16s ease }
         .btn-hover:hover{ transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,0.13) }
         .btn-hover:active{ transform:translateY(0) }
       `}</style>
 
       <div className="fixed inset-0 z-[60] pointer-events-none" aria-live="polite">
-        {/* ── DRAGGABLE AVATAR BUTTON (always visible when reminders exist) ─ */}
+        {/* DRAGGABLE AVATAR BUTTON */}
         <button
           type="button"
           aria-label="Open Operations Assistant"
@@ -289,57 +255,45 @@ export default function OperationsAssistant() {
           )}
         </button>
 
-        {/* ── SPEECH BUBBLE (shown when visible=true) ──────────────────── */}
-        {visible && reminders.length > 0 && (() => {
-          // Decide which side of the avatar the bubble should open on
-          const avatarRight = pos.x + 56;
-          const spaceRight  = window.innerWidth - avatarRight;
-          const openLeft    = spaceRight < 320; // not enough room on the right
-          return (
-            <div
+        {/* SPEECH BUBBLE */}
+        {visible && (
+          <div
+            style={{
+              position:'fixed',
+              top: Math.max(16, pos.y - 120),
+              ...(openLeft ? { right: window.innerWidth - pos.x + 12 } : { left: pos.x + 64 }),
+              zIndex: 69,
+              width: 'min(340px, calc(100vw - 80px))',
+            }}
+            className="pointer-events-auto bubble-in"
+          >
+            {/* Pointer Triangle */}
+            <span
+              aria-hidden="true"
               style={{
-                position:'fixed',
-                bottom: window.innerHeight - pos.y - 56,
-                ...(openLeft ? { right: window.innerWidth - pos.x + 8 } : { left: pos.x + 64 }),
-                zIndex: 69,
-                width: 'min(340px, calc(100vw - 80px))',
+                position:'absolute',
+                top:'32px',
+                ...(openLeft ? { right:'-10px', borderLeft:'11px solid white' } : { left:'-10px', borderRight:'11px solid white' }),
+                width:0, height:0,
+                borderTop:'11px solid transparent',
+                borderBottom:'11px solid transparent',
+                filter:'drop-shadow(0 2px 2px rgba(0,0,0,0.08))',
+                zIndex:2,
               }}
-              className="pointer-events-auto bubble-in"
-            >
-            <img
-              src={ASSETS[currentAsset]}
-              alt="Operations Assistant character"
-              draggable={false}
-              className={`w-full h-full object-contain object-bottom
-                ${reaction === 'none' ? 'char-idle' : `char-${reaction}`}`}
             />
-          </div>
 
-          {/* ── SPEECH BUBBLE ── */}
-          <div className={`relative mb-5 ml-0.5 flex-1 min-w-0
-              ${visible ? 'bubble-in' : 'bubble-out'}`}>
-
-            {/* ONE triangle pointer pointing LEFT toward character */}
-            <span aria-hidden="true" style={{
-              position:'absolute', left:'-10px', bottom:'32px',
-              width:0, height:0,
-              borderTop:'11px solid transparent',
-              borderBottom:'11px solid transparent',
-              borderRight:'11px solid white',
-              filter:'drop-shadow(-2px 0px 1px rgba(0,0,0,0.07))',
-              zIndex:2,
-            }}/>
-
-            {/* Bubble card — clean, no header label */}
+            {/* Bubble Card */}
             <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl overflow-visible" style={{zIndex:1}}>
-              {/* Small close button — top right, no label */}
-              <button type="button" onClick={dismiss} aria-label="Dismiss"
-                className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+              <button
+                type="button"
+                onClick={dismiss}
+                aria-label="Dismiss"
+                className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
                 <X className="w-3.5 h-3.5"/>
               </button>
 
               <div className="px-5 pt-4 pb-5 space-y-3">
-
                 {/* VIEW 1 — Question */}
                 {panelView === 'question' && (
                   <div className="msg-in space-y-3.5">
@@ -356,7 +310,7 @@ export default function OperationsAssistant() {
                         {activeReminder?.question ?? 'Was there any labor charge for this trip?'}
                       </p>
                     </div>
-                    {/* All 3 buttons in one row — matching the reference design */}
+
                     <div className="flex items-center gap-2">
                       <button type="button" onClick={handleYes}
                         className="btn-hover flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm">
@@ -457,17 +411,6 @@ export default function OperationsAssistant() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Collapsed badge when bubble is dismissed but reminders exist */}
-        {!visible && reminders.length > 0 && (
-          <button type="button" onClick={() => setVisible(true)} aria-label="Open Operations Assistant"
-            className="pointer-events-auto absolute bottom-4 left-3 sm:left-7 w-14 h-14 rounded-full bg-white border-2 border-[#E8450F] shadow-2xl flex items-center justify-center ring-4 ring-[#E8450F]/20 hover:scale-105 active:scale-95 transition-all overflow-hidden">
-            <img src={ASSETS.profile} alt="Operations Assistant" draggable={false} className="w-full h-full object-cover"/>
-            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#E8450F] border-2 border-white text-white text-[10px] font-black flex items-center justify-center shadow">
-              {reminders.length}
-            </span>
-          </button>
         )}
       </div>
     </>
