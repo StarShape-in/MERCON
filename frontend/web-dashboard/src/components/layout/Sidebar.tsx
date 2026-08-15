@@ -62,6 +62,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
   const groups = [
     {
       label: 'OVERVIEW',
+      color: 'text-[#E8450F]',
       items: [
         { icon: Home, label: 'Dashboard', path: '/' },
         { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount },
@@ -69,6 +70,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
     {
       label: 'OPERATIONS',
+      color: 'text-[#D9531E]',
       items: [
         { icon: Truck, label: 'Trips', path: '/trips' },
         { icon: CalendarRange, label: 'Monthly Trips', path: '/trips/monthly' },
@@ -81,6 +83,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
     {
       label: 'FINANCE',
+      color: 'text-[#C44916]',
       items: [
         { icon: CreditCard, label: 'Rate Cards', path: '/rate-cards' },
         { icon: MapPin, label: 'Locations', path: '/locations' },
@@ -91,6 +94,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
     {
       label: 'COMPLIANCE',
+      color: 'text-[#E0602B]',
       items: [
         { icon: FileText, label: 'Documents', path: '/documents' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
@@ -100,6 +104,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
     },
     {
       label: 'ACCOUNT',
+      color: 'text-[#B05C28]',
       items: [
         { icon: Settings, label: 'Settings', path: '/settings', end: true },
         { icon: User, label: 'Profile', path: '/settings/profile' },
@@ -180,7 +185,9 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         <div className={`flex-1 py-4 space-y-5 overflow-y-auto overflow-x-hidden px-3 transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:px-2' : ''}`}>
           {groups.map((g) => (
             <div key={g.label}>
-              <p className={`text-[9px] font-bold text-[#A39686] uppercase tracking-widest px-3 mb-2 ${collapsed ? 'lg:hidden' : ''}`}>{g.label}</p>
+              <p className={`text-[9.5px] font-extrabold ${g.color} uppercase tracking-wider px-3 mb-1.5 ${collapsed ? 'lg:hidden' : ''}`}>
+                {g.label}
+              </p>
               <div className="space-y-0.5">
                 {g.items.map((item: any) => {
                   const isActive = isItemActive(item.path, item.end);
@@ -191,18 +198,18 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                       onClick={onClose}
                       title={collapsed ? item.label : undefined}
                       className={`
-                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative
+                        flex items-center gap-2.5 px-3 py-2.5 lg:py-2 rounded-lg cursor-pointer transition-all duration-150 group relative border-l-2
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
-                          ? 'bg-[#E8450F] text-white shadow-sm shadow-[#E8450F]/20 font-semibold'
-                          : 'text-[#5C5245] hover:bg-[#F2ECE1]/80 hover:text-[#E8450F] font-medium'
+                          ? 'bg-gradient-to-r from-[#E8450F] to-[#FA5B25] text-white shadow-md shadow-[#E8450F]/20 font-bold border-[#C7380A]'
+                          : 'text-[#4A3E31] hover:bg-[#FFF4EC] hover:text-[#C7380A] font-semibold border-transparent hover:border-[#E8450F]'
                         }
                       `}
                     >
                       <item.icon
                         size={16}
-                        className={`transition-transform duration-150 group-hover:scale-105 shrink-0 ${
-                          isActive ? 'stroke-[2.2] text-white' : 'stroke-[1.7] text-[#7A6E5F] group-hover:text-[#E8450F]'
+                        className={`transition-transform duration-150 group-hover:scale-110 shrink-0 ${
+                          isActive ? 'stroke-[2.2] text-white' : `${g.color} group-hover:text-[#E8450F] stroke-[1.8]`
                         }`}
                       />
                       <span className={`text-xs flex-1 truncate ${collapsed ? 'lg:hidden' : ''}`}>{item.label}</span>
