@@ -174,11 +174,11 @@ export default function DocumentsCenterPage() {
   });
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers', 'lookup'],
-    queryFn: async () => (await driverService.getAll()).data,
+    queryFn: async () => (await driverService.getAll({ per_page: 1000 })).data,
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', 'lookup'],
-    queryFn: async () => (await vehicleService.getAll()).data,
+    queryFn: async () => (await vehicleService.getAll({ per_page: 1000 })).data,
   });
   const { data: trips = [] } = useQuery({
     queryKey: ['trips', 'lookup'],
@@ -324,10 +324,21 @@ export default function DocumentsCenterPage() {
       .filter((d) => {
         const vIds = new Set(vehicles.map((v) => v.id));
         const dIds = new Set(drivers.map((d) => d.id));
+        const plateDigits = new Set(vehicles.map((v) => (v.plate_number || '').replace(/\D/g, '')).filter((s) => s.length >= 3));
+
+        const fileUrlNorm = (d.file_url || '').toLowerCase();
+        let hasPlateMatch = false;
+        for (const digits of plateDigits) {
+          if (fileUrlNorm.includes(digits)) {
+            hasPlateMatch = true;
+            break;
+          }
+        }
+
         const isUnlinked = (
-          (d.entity_type === 'Vehicle' && !vIds.has(d.entity_id)) ||
+          (d.entity_type === 'Vehicle' && !vIds.has(d.entity_id) && !hasPlateMatch) ||
           (d.entity_type === 'Driver' && !dIds.has(d.entity_id)) ||
-          (!['Vehicle', 'Driver', 'Trip', 'Customer', 'Company'].includes(d.entity_type))
+          (!['Vehicle', 'Driver', 'Trip', 'Customer', 'Company', 'Operations'].includes(d.entity_type) && !hasPlateMatch)
         );
 
         const matchesCat = activeCategory === 'All'
