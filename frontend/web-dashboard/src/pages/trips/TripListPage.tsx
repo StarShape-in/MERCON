@@ -122,10 +122,6 @@ const getDropoffInfo = (trip: Trip) => {
   return { name, address };
 };
 
-/** A raw `Trip` carries ~25 fields (nested driver/vehicle/customer objects,
- *  stops/invoices arrays, internal audit fields) — dumping it straight into
- *  a CSV/PDF export produces an unreadably wide, cluttered table. This picks
- *  just the columns an operator actually wants to see in an export. */
 const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
   const pickup = getPickupInfo(t);
   const dropoff = getDropoffInfo(t);
@@ -160,6 +156,32 @@ const tripsToExportRows = (trips: Trip[]) => trips.map(t => {
   ];
 });
 
+const tripsToExportRowsWithTotals = (trips: Trip[]) => {
+  const rows = tripsToExportRows(trips);
+  if (!trips.length) return rows;
+  const totalCharges = trips.reduce((sum, t) => sum + Number(t.trip_charges || 0), 0);
+  const totalBilling = trips.reduce((sum, t) => sum + Number(t.billing_amount || t.rateCard?.base_price || 0), 0);
+  const totalsRow = [
+    'TOTALS',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    totalCharges,
+    totalBilling,
+    '',
+  ];
+  return [...rows, totalsRow];
+};
 
 const IMPORT_FIELD_ALIASES: Partial<Record<keyof BulkImportTripRow, string[]>> = {
   customer_name: ['customer_name', 'customer', 'client', 'client_name'],
@@ -236,13 +258,10 @@ export default function TripListPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 300);
 
-  // Status Change Dialog state
   const [statusDialogTrip, setStatusDialogTrip] = useState<Trip | null>(null);
   const [newStatus, setNewStatus] = useState<TripStatus>('Dispatched');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  // Export menu state — the dropdown is the primary UI; the small dialog below
-  // only handles date-range picking, which doesn't fit a dropdown item.
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -388,7 +407,7 @@ export default function TripListPage() {
 
   const runExport = async (
     format: 'excel' | 'pdf',
-    opts: { statusGroup: ExportStatusGroup; driverId?: string; vehicleId?: string; startDate?: string; endDate?: string }
+    opts: { statusGroup: ExportStatusGroup; driverId?: string; vehicleId?: string; startDate?: string; endDate?: string; thirdPartyOnly?: boolean }
   ) => {
     try {
       setIsExporting(true);
@@ -399,24 +418,32 @@ export default function TripListPage() {
         end_date: opts.endDate || undefined,
         per_page: 2000,
       });
-      const matched = (res.data || []).filter(t => matchesExportStatusGroup(t.status, opts.statusGroup));
+      let matched = (res.data || []).filter(t => matchesExportStatusGroup(t.status, opts.statusGroup));
+      if (opts.thirdPartyOnly) {
+        matched = matched.filter(t => t.is_third_party || t.thirdPartyProviderId || (t.carrier_name && t.carrier_name !== 'MERCON LOGISTICS'));
+      }
 
       if (!matched.length) {
-        toast.warning('No trips match the selected export filters.');
+        toast.warning(opts.thirdPartyOnly ? 'No third-party trips match the selected export filters.' : 'No trips match the selected export filters.');
         return;
       }
 
-      const groupLabel = EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label || 'All Trips';
-      const groupSlug = groupLabel.replace(/[\s/]+/g, '_');
+      let groupLabel = EXPORT_STATUS_GROUPS.find(g => g.value === opts.statusGroup)?.label || 'All Trips';
+      if (opts.thirdPartyOnly) {
+        groupLabel = `Third-Party (3PL) Trips — ${groupLabel}`;
+      }
+      const groupSlug = (opts.thirdPartyOnly ? '3PL_' : '') + groupLabel.replace(/[\s/]+/g, '_');
       const datePart = new Date().toISOString().slice(0, 10);
       const baseName = `trips_export_${groupSlug}_${datePart}`;
 
-      const exportRows = tripsToExportRows(matched);
-      const title = `Trips Export — ${groupLabel}`;
+      const exportRows = tripsToExportRowsWithTotals(matched);
+      const title = opts.thirdPartyOnly ? `Third-Party (3PL) Trips Export — ${groupLabel}` : `Trips Export — ${groupLabel}`;
+      const subtitle = `Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()} · MERCON Logistics Platform · ${matched.length} record${matched.length === 1 ? '' : 's'}`;
+
       if (format === 'excel') {
-        await exportExcelTable(title, TRIP_EXPORT_HEADERS, exportRows, `${baseName}.xlsx`);
+        await exportExcelTable(title, TRIP_EXPORT_HEADERS, exportRows, `${baseName}.xlsx`, { subtitle, sheetName: opts.thirdPartyOnly ? '3PL Trips' : 'Trips' });
       } else {
-        exportPDFTable(title, TRIP_EXPORT_HEADERS, exportRows, `${baseName}.pdf`);
+        exportPDFTable(title, TRIP_EXPORT_HEADERS, exportRows, `${baseName}.pdf`, { subtitle });
       }
       setExportDialogOpen(false);
     } catch (e) {
@@ -899,7 +926,7 @@ export default function TripListPage() {
       icon: <FileSpreadsheet size={13} className="text-emerald-600 dark:text-emerald-400" />,
       variant: 'success' as const,
       onClick: (selectedRows: Trip[]) => {
-        exportExcelTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRows(selectedRows), 'trips_export.xlsx');
+        exportExcelTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRowsWithTotals(selectedRows), 'trips_export.xlsx');
       }
     },
     {
@@ -907,7 +934,7 @@ export default function TripListPage() {
       icon: <FileText size={13} className="text-rose-600 dark:text-rose-400" />,
       variant: 'warning' as const,
       onClick: (selectedRows: Trip[]) => {
-        exportPDFTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRows(selectedRows), 'trips_export.pdf');
+        exportPDFTable('Trips Export', TRIP_EXPORT_HEADERS, tripsToExportRowsWithTotals(selectedRows), 'trips_export.pdf');
       }
     },
     {
@@ -1009,6 +1036,18 @@ export default function TripListPage() {
                     ? <FileSpreadsheet className="mr-2 h-3.5 w-3.5 text-emerald-600" />
                     : <FileText className="mr-2 h-3.5 w-3.5 text-rose-600" />}
                   All Trips
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="my-1 border-slate-100" />
+                <DropdownMenuLabel className="text-[10px] font-bold tracking-wider uppercase text-slate-400 px-2 py-1">
+                  By Fleet Type
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => runExport(exportFormat, { statusGroup: 'All', thirdPartyOnly: true })}
+                  className="cursor-pointer text-xs font-semibold py-1.5 px-2 rounded-md text-purple-700 dark:text-purple-400 bg-purple-50/60 dark:bg-purple-950/40 hover:bg-purple-100/80"
+                >
+                  <Building2 className="mr-2 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                  Third-Party (3PL) Trips Only
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="my-1 border-slate-100" />
