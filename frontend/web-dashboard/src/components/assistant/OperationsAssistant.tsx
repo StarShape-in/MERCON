@@ -37,7 +37,6 @@ export default function OperationsAssistant() {
   const [isSubmitting,   setIsSubmitting]   = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedTimer,  setSelectedTimer]  = useState<number | null>(null);
-  const [reaction,       setReaction]       = useState<'none'|'yes'|'no'|'wave'>('none');
 
   const assistantRef = useRef<HTMLDivElement>(null);
 
@@ -180,12 +179,11 @@ export default function OperationsAssistant() {
 
   const dismiss = () => {
     setVisible(false);
-    setTimeout(() => { setPanelView('question'); setChargeAmount('150'); setReaction('none'); }, 500);
+    setTimeout(() => { setPanelView('question'); setChargeAmount('150'); }, 500);
   };
 
   const handleYes = () => {
-    setReaction('yes');
-    setTimeout(() => { setReaction('none'); setPanelView('yes_input'); }, 420);
+    setPanelView('yes_input');
   };
 
   const handleAddCharge = async () => {
@@ -204,13 +202,14 @@ export default function OperationsAssistant() {
   };
 
   const handleNo = () => {
-    setReaction('no');
     if (activeReminder) markHandled(activeReminder.id);
     setPanelView('no_confirmed');
     setTimeout(dismiss, 1800);
   };
 
-  const handleRemindLater = () => { setReaction('wave'); setPanelView('remind_later'); };
+  const handleRemindLater = () => {
+    setPanelView('remind_later');
+  };
 
   const handleConfirmTimer = (minutes: number) => {
     setSelectedTimer(minutes);
@@ -241,24 +240,9 @@ export default function OperationsAssistant() {
           0%,100%{ transform:translateY(0px) }
           50%    { transform:translateY(-5px) }
         }
-        @keyframes reactBounce {
-          0%  { transform:translateY(0) rotate(0deg) }
-          30% { transform:translateY(-16px) rotate(-3deg) }
-          60% { transform:translateY(-6px) rotate(2deg) }
-          80% { transform:translateY(-10px) rotate(-1deg) }
-          100%{ transform:translateY(0) rotate(0deg) }
-        }
-        @keyframes reactWave {
-          0%,100%{ transform:rotate(0deg) }
-          25%    { transform:rotate(-14deg) }
-          75%    { transform:rotate(14deg) }
-        }
         .bubble-in  { animation:bubblePop 0.35s cubic-bezier(0.34,1.56,0.64,1) both }
         .msg-in     { animation:msgFade 0.25s ease both }
         .char-idle  { animation:idleFloat 3.6s ease-in-out infinite }
-        .char-yes   { animation:reactBounce 0.52s ease both }
-        .char-no    { animation:reactBounce 0.42s ease both }
-        .char-wave  { animation:reactWave 0.65s ease both }
         .btn-hover  { transition:transform 0.16s ease, box-shadow 0.16s ease }
         .btn-hover:hover{ transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,0.13) }
         .btn-hover:active{ transform:translateY(0) }
@@ -291,7 +275,7 @@ export default function OperationsAssistant() {
           </button>
         )}
 
-        {/* FULL ASSISTANT POPUP (HALF-BODY CHARACTER + SPEECH BUBBLE - DRAGGABLE via character or header) */}
+        {/* FULL ASSISTANT POPUP (HALF-BODY CHARACTER + SPEECH BUBBLE - DRAGGABLE via character) */}
         {visible && (
           <div
             ref={assistantRef}
@@ -317,9 +301,7 @@ export default function OperationsAssistant() {
                 src={ASSETS[currentAsset]}
                 alt="Operations Assistant Character - Drag to move"
                 draggable={false}
-                className={`w-full h-full object-contain object-bottom filter drop-shadow-md pointer-events-none select-none ${
-                  reaction === 'none' ? 'char-idle' : `char-${reaction}`
-                }`}
+                className="w-full h-full object-contain object-bottom filter drop-shadow-md pointer-events-none select-none transition-all duration-200 char-idle"
               />
             </div>
 
