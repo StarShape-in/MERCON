@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { 
   DropdownMenu, 
@@ -50,6 +51,13 @@ export default function VehicleDetailsPage() {
 
   // Upload Document Modal State
   const [isUploadDocModalOpen, setIsUploadDocModalOpen] = useState(false);
+
+  // Odometer quick-edit — always available here, unlike the list page's
+  // icon which only appears once a reading is 15+ days stale. This is the
+  // fix path when someone mistypes a reading and can't wait 15 days to
+  // correct it.
+  const [isOdometerPopoverOpen, setIsOdometerPopoverOpen] = useState(false);
+  const [odometerDraft, setOdometerDraft] = useState('');
 
   // Queries
   const { data: vehicle, isLoading, error } = useQuery({
@@ -113,6 +121,21 @@ export default function VehicleDetailsPage() {
     },
     onError: (err: any) => {
       setDeleteError(err.response?.data?.error?.message || 'Failed to delete vehicle asset.');
+    },
+  });
+
+  const updateOdometerMutation = useMutation({
+    mutationFn: (value: number) => vehicleService.update(id!, { current_odometer: value }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicle', id] });
+      // Same field the Vehicles list reads — keeps its reading and its
+      // 15-day-stale icon in sync with whatever gets corrected here.
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      setIsOdometerPopoverOpen(false);
+      toast.success('Odometer reading updated.');
+    },
+    onError: () => {
+      toast.error('Failed to update odometer reading.');
     },
   });
 
@@ -487,8 +510,61 @@ export default function VehicleDetailsPage() {
                   <p>
                     <span className="text-slate-400">Payload Rating:</span> <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{capacityTons} Tons ({vehicle.capacity_kg ? vehicle.capacity_kg.toLocaleString() : '24,000'} kg)</span>
                   </p>
-                  <p>
-                    <span className="text-slate-400">Odometer Mileage:</span> <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{(vehicle.current_odometer ?? 0).toLocaleString()} km</span>
+                  <p className="flex items-center gap-1.5">
+                    <span className="text-slate-400">Odometer Mileage:</span>
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{(vehicle.current_odometer ?? 0).toLocaleString()} km</span>
+                    <Popover
+                      open={isOdometerPopoverOpen}
+                      onOpenChange={(open) => {
+                        setIsOdometerPopoverOpen(open);
+                        if (open) setOdometerDraft((vehicle.current_odometer ?? 0).toString());
+                      }}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          title="Edit odometer reading"
+                          className="p-0.5 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-56 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl z-[9999]">
+                        <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-2">
+                          Update odometer reading
+                        </p>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={odometerDraft}
+                          onChange={(e) => setOdometerDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter') return;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const value = Number(odometerDraft);
+                            if (!odometerDraft || !Number.isFinite(value) || value < 0) return;
+                            updateOdometerMutation.mutate(value);
+                          }}
+                          placeholder="Odometer (km)"
+                          className="h-8 text-xs mb-2"
+                          autoFocus
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!odometerDraft || updateOdometerMutation.isPending}
+                          onClick={() => {
+                            const value = Number(odometerDraft);
+                            if (!Number.isFinite(value) || value < 0) return;
+                            updateOdometerMutation.mutate(value);
+                          }}
+                          className="h-8 w-full text-xs font-bold bg-[#E8450F] hover:bg-[#d03c0b] text-white"
+                        >
+                          {updateOdometerMutation.isPending ? 'Saving...' : 'Save'}
+                        </Button>
+                      </PopoverContent>
+                    </Popover>
                   </p>
                 </div>
 
