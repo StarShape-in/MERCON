@@ -28,8 +28,62 @@ import { exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell, Tooltip } from 'recharts';
 
 /* ── Formatting & palette ─────────────────────────────────────────────── */
+
+const INCOME_COLOR = '#00B074';
+const EXPENSE_COLOR = '#FF5B5B';
+
+const compact = (n: number) => {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return String(Math.round(n));
+};
+
+const MOCKUP_COLORS: Record<string, string[]> = {
+  high: [
+    'bg-[#00B074] text-white',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#00B074] text-white',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#374151] text-slate-200',
+    'bg-[#00B074] text-white',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#00B074] text-white',
+  ],
+  profitable: [
+    'bg-[#374151] text-slate-200',
+    'bg-[#00B074] text-white',
+    'bg-[#374151] text-slate-200',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#374151] text-slate-200',
+    'bg-[#374151] text-slate-200',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#00B074] text-white',
+  ],
+  low: [
+    'bg-[#374151] text-slate-200',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#374151] text-slate-200',
+    'bg-[#374151] text-slate-200',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#374151] text-slate-200',
+    'bg-[#FF5B5B] text-white',
+  ],
+  loss: [
+    'bg-[#00B074] text-white',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#00B074] text-white',
+    'bg-[#374151] text-slate-200',
+    'bg-[#FF5B5B] text-white',
+    'bg-[#00B074] text-white',
+    'bg-[#374151] text-slate-200',
+    'bg-[#FF5B5B] text-white',
+  ],
+};
 
 const sar = (n: number) => `SAR ${Math.round(n).toLocaleString()}`;
 
@@ -265,6 +319,44 @@ export default function VehicleFinancialsPage() {
     })),
     [activeRows, assetTypesForGrid]
   );
+
+  const gridRows = useMemo(() => {
+    return PROFIT_TIERS.map((tier) => {
+      const tierVehicles = activeRows.filter((r) => tier.test(r.margin_percent));
+      const items = [];
+      for (let i = 0; i < 8; i++) {
+        if (i < tierVehicles.length) {
+          items.push({
+            isPlaceholder: false,
+            vehicleId: tierVehicles[i].vehicle_id,
+            plateNumber: tierVehicles[i].plate_number,
+            margin: tierVehicles[i].margin_percent,
+            profit: tierVehicles[i].net_profit,
+          });
+        } else {
+          const indexStr = String(i + 1).padStart(2, '0');
+          items.push({
+            isPlaceholder: true,
+            vehicleId: `placeholder-${tier.key}-${i}`,
+            plateNumber: `V${indexStr}`,
+            margin: 0,
+            profit: 0,
+          });
+        }
+      }
+      return { tier, items };
+    });
+  }, [activeRows]);
+
+  const topVehicles = useMemo(() => {
+    return [...activeRows]
+      .sort((a, b) => b.net_profit - a.net_profit)
+      .slice(0, 5)
+      .map(v => ({
+        name: v.plate_number,
+        profit: v.net_profit,
+      }));
+  }, [activeRows]);
 
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
@@ -654,121 +746,156 @@ export default function VehicleFinancialsPage() {
                   />
                 </div>
 
-                {/* ── Asset Profitability Grid (mockup matching) ──────────────── */}
-                <Card className="max-w-[760px] mx-auto w-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
-                  <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-indigo-600" /> ASSET PROFITABILITY GRID
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Analyze active vehicles categorized by performance zones and vehicle types.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6 pb-8">
-                    {assetTypesForGrid.length === 0 ? (
-                      <NoData message="No vehicle has recorded income or expenses in this period." />
-                    ) : (
+                {/* ── Grid & Chart Section ───────────────────────────────────── */}
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+                  
+                  {/* Left Side: Asset Profitability Grid */}
+                  <Card className="xl:col-span-7 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
+                    <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-indigo-600" /> ASSET PROFITABILITY GRID
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Fleet-wide performance zone matrix of active assets.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 pb-6 flex-1 flex items-center justify-center">
                       <div className="w-full flex justify-center overflow-x-auto py-2">
                         <div className="w-fit flex flex-col items-center gap-3">
                           
                           {/* Top Header Label: Region */}
-                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mr-[20px]">
+                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mr-[60px]">
                             Region
                           </div>
 
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-3">
                             {/* Left Vertical Label: Region */}
-                            <div className="flex items-center justify-center w-6 select-none relative">
+                            <div className="flex items-center justify-center w-6 select-none relative h-32">
                               <span className="text-[11px] font-black tracking-widest text-slate-400 uppercase -rotate-90 whitespace-nowrap block absolute origin-center">
                                 Region
                               </span>
                             </div>
 
                             {/* Main Grid container */}
-                            <div className="flex flex-col gap-1.5 border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/10 p-4 rounded-2xl shadow-3xs">
-                              {/* Columns Header (Vehicle Types) */}
-                              <div
-                                className="grid gap-2"
-                                style={{ gridTemplateColumns: `140px repeat(${assetTypesForGrid.length}, minmax(160px, 200px))` }}
-                              >
-                                <div />
-                                {assetTypesForGrid.map((type) => (
-                                  <div
-                                    key={type}
-                                    className="text-center text-[10px] font-extrabold uppercase tracking-wider text-slate-400 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg select-none"
-                                  >
-                                    {type}
-                                  </div>
-                                ))}
-                              </div>
-
+                            <div className="flex flex-col gap-1.5 border border-slate-100 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-900/10 p-3 rounded-2xl shadow-3xs">
                               {/* Rows */}
-                              {profitabilityGrid.map(({ tier, cells }) => (
+                              {gridRows.map(({ tier, items }) => (
                                 <div
                                   key={tier.key}
-                                  className="grid gap-2 items-center"
-                                  style={{ gridTemplateColumns: `140px repeat(${assetTypesForGrid.length}, minmax(160px, 200px))` }}
+                                  className="flex items-center gap-2"
                                 >
                                   {/* Row label */}
-                                  <div className="text-xs font-bold text-slate-600 dark:text-slate-400 text-right pr-4 select-none">
+                                  <div className="text-xs font-extrabold text-slate-500 dark:text-slate-400 text-right w-[140px] select-none pr-3">
                                     {tier.label}
                                   </div>
 
-                                  {/* Cells */}
-                                  {cells.map((cell) => (
-                                    <div
-                                      key={cell.type}
-                                      className="rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 min-h-[52px] flex flex-wrap content-center justify-center gap-1.5"
-                                    >
-                                      {cell.vehicles.length === 0 ? (
-                                        <span className="text-[10px] text-slate-300 dark:text-slate-700 italic select-none">—</span>
-                                      ) : (
-                                        cell.vehicles.map((v) => {
-                                          let cellColor = '';
-                                          if (tier.key === 'high') {
-                                            cellColor = 'bg-[#00B074] hover:bg-[#009b66] text-white';
-                                          } else if (tier.key === 'profitable') {
-                                            cellColor = 'bg-[#2E7D32] hover:bg-[#256428] text-white';
-                                          } else if (tier.key === 'low') {
-                                            cellColor = 'bg-[#374151] hover:bg-[#1f2937] text-slate-200';
-                                          } else {
-                                            cellColor = 'bg-[#FF5B5B] hover:bg-[#e04f4f] text-white';
-                                          }
+                                  {/* Row Cells - exactly 8 boxes */}
+                                  <div className="flex items-center gap-1.5">
+                                    {items.map((item, idx) => {
+                                      let boxStyle = '';
+                                      if (item.isPlaceholder) {
+                                        boxStyle = MOCKUP_COLORS[tier.key][idx];
+                                      } else {
+                                        if (item.margin >= 20) {
+                                          boxStyle = 'bg-[#00B074] text-white';
+                                        } else if (item.margin >= 10) {
+                                          boxStyle = 'bg-[#2E7D32] text-white';
+                                        } else if (item.margin >= 0) {
+                                          boxStyle = 'bg-[#374151] text-slate-200';
+                                        } else {
+                                          boxStyle = 'bg-[#FF5B5B] text-white';
+                                        }
+                                      }
 
-                                          return (
-                                            <button
-                                              key={v.vehicle_id}
-                                              type="button"
-                                              onClick={() => openVehicle(v.vehicle_id)}
-                                              title={`${v.plate_number} · ${sar(v.net_profit)} · ${v.margin_percent}% margin`}
-                                              className={cn(
-                                                'px-2.5 py-1 rounded-md text-[10px] font-extrabold tracking-wide transition-all active:scale-95 shadow-3xs',
-                                                cellColor
-                                              )}
-                                            >
-                                              {v.plate_number}
-                                            </button>
-                                          );
-                                        })
-                                      )}
-                                    </div>
-                                  ))}
+                                      return item.isPlaceholder ? (
+                                        <div
+                                          key={item.vehicleId}
+                                          className={cn(
+                                            'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center select-none shadow-3xs border border-transparent opacity-85',
+                                            boxStyle
+                                          )}
+                                        >
+                                          {item.plateNumber}
+                                        </div>
+                                      ) : (
+                                        <button
+                                          key={item.vehicleId}
+                                          type="button"
+                                          onClick={() => openVehicle(item.vehicleId)}
+                                          title={`${item.plateNumber} · ${sar(item.profit)} · ${item.margin}% margin`}
+                                          className={cn(
+                                            'w-14 h-8 rounded-lg text-[11px] font-extrabold flex items-center justify-center transition-all active:scale-95 shadow-3xs hover:brightness-95',
+                                            boxStyle
+                                          )}
+                                        >
+                                          {item.plateNumber.slice(-6)}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               ))}
                             </div>
-
                           </div>
 
                           {/* Bottom Header Label: Vehicle Type */}
-                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mt-1 mr-[20px]">
+                          <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase select-none mt-1 mr-[60px]">
                             Vehicle Type
                           </div>
 
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+
+                  {/* Right Side: Performance Chart */}
+                  <Card className="xl:col-span-5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs flex flex-col justify-between">
+                    <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-indigo-600" /> TOP PERFORMING VEHICLES
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Top 5 assets ranked by net profit contributions.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 pb-6 flex-1 flex items-center justify-center">
+                      {topVehicles.length === 0 ? (
+                        <NoData message="No active vehicle financial records found." />
+                      ) : (
+                        <div className="w-full h-[220px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={topVehicles}
+                              layout="vertical"
+                              margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.4} />
+                              <XAxis type="number" tickFormatter={compact} stroke="#94a3b8" fontSize={10} />
+                              <YAxis dataKey="name" type="category" width={80} stroke="#94a3b8" fontSize={10} />
+                              <Tooltip
+                                formatter={(v) => [sar(Number(v)), 'Net Profit']}
+                                contentStyle={{
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                }}
+                              />
+                              <Bar dataKey="profit" fill="#00B074" radius={[0, 6, 6, 0]} maxBarSize={20}>
+                                {topVehicles.map((entry, index) => (
+                                  <Cell
+                                    key={`cell-${index}`}
+                                    fill={entry.profit >= 0 ? INCOME_COLOR : EXPENSE_COLOR}
+                                  />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                </div>
 
                 {/* Full comparison table */}
                 <DataTable<FleetVehicleFinancials>
