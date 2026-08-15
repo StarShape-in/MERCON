@@ -206,19 +206,23 @@ export default function FleetLiveMap() {
                 />
               </div>
 
-              {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
-                <SelectTrigger className="h-8 text-xs w-36 bg-[#F5F5F7] border-transparent font-semibold">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Statuses ({fleet.length})</SelectItem>
-                  <SelectItem value="INTRANSIT">In Transit ({fleet.filter(f => f.status === 'InTransit').length})</SelectItem>
-                  <SelectItem value="ATPICKUP">At Pickup ({fleet.filter(f => f.status === 'AtPickup').length})</SelectItem>
-                  <SelectItem value="IDLE">Idle / Rest ({fleet.filter(f => f.status === 'Idle').length})</SelectItem>
-                  <SelectItem value="COMPLETED">Completed ({fleet.filter(f => f.status === 'Completed').length})</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Status Filter Dropdown (Shadcn Combobox with Search) */}
+              <div className="w-44">
+                <Combobox
+                  options={[
+                    { value: 'ALL', label: `All Statuses (${fleet.length})`, keywords: 'all statuses' },
+                    { value: 'INTRANSIT', label: `In Transit (${fleet.filter(f => f.status === 'InTransit').length})`, keywords: 'in transit moving' },
+                    { value: 'ATPICKUP', label: `At Pickup (${fleet.filter(f => f.status === 'AtPickup').length})`, keywords: 'at pickup loading' },
+                    { value: 'IDLE', label: `Idle / Rest (${fleet.filter(f => f.status === 'Idle').length})`, keywords: 'idle rest stopped' },
+                    { value: 'COMPLETED', label: `Completed (${fleet.filter(f => f.status === 'Completed').length})`, keywords: 'completed delivered' },
+                  ]}
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  placeholder="All Statuses..."
+                  searchPlaceholder="Search status..."
+                  triggerClassName="h-8 text-xs bg-[#F5F5F7] border-transparent font-semibold shadow-none focus:bg-white"
+                />
+              </div>
 
               {/* Play/Pause Button */}
               <Tooltip>

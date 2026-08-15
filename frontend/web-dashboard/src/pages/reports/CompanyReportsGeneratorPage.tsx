@@ -22,6 +22,7 @@ import {
   SelectLabel,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -542,18 +543,22 @@ export default function CompanyReportsGeneratorPage() {
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                         Target Customer (Optional)
                       </label>
-                      <select
+                      <Combobox
+                        options={[
+                          { value: 'all', label: 'Shared / Any Customer', icon: <Building2 className="w-3.5 h-3.5 text-slate-400" /> },
+                          ...customers.map((c: any) => ({
+                            value: c.id,
+                            label: c.name || c.company_name || 'Customer Account',
+                            keywords: `${c.name || ''} ${c.company_name || ''}`,
+                            icon: <Building2 className="w-3.5 h-3.5 text-brand" />,
+                          })),
+                        ]}
                         value={draftCustomerId}
-                        onChange={(e) => setDraftCustomerId(e.target.value)}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
-                      >
-                        <option value="all">Shared / Any Customer</option>
-                        {customers.map((c: any) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name || c.company_name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setDraftCustomerId}
+                        placeholder="Select target customer..."
+                        searchPlaceholder="Search customer or company..."
+                        triggerClassName="w-full h-9 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg"
+                      />
                     </div>
                   </div>
 
