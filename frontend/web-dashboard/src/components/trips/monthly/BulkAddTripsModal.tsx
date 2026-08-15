@@ -670,17 +670,17 @@ export default function BulkAddTripsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleDialogClose()}>
-      <DialogContent className="w-[94vw] max-w-5xl sm:max-w-5xl p-0 overflow-hidden bg-white border border-black/10 shadow-2xl rounded-2xl max-h-[88vh] h-[88vh] flex flex-col">
+      <DialogContent className="w-[96vw] max-w-[1400px] sm:max-w-[1400px] p-0 overflow-hidden bg-white border border-black/10 shadow-2xl rounded-2xl max-h-[94vh] h-[94vh] flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-black/[0.06] bg-slate-50/50 shrink-0">
-          <div className="flex items-start justify-between gap-4">
+        <div className="px-5 py-3 border-b border-black/[0.06] bg-slate-50/50 shrink-0">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-brand/10 grid place-items-center shrink-0">
-                <Layers className="h-5 w-5 text-brand" />
+              <div className="h-9 w-9 rounded-xl bg-brand/10 grid place-items-center shrink-0">
+                <Layers className="h-4.5 w-4.5 text-brand" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <DialogTitle className="text-lg font-bold text-[#111111]">Bulk Add Trips</DialogTitle>
+                  <DialogTitle className="text-base font-bold text-[#111111]">Bulk Add Trips</DialogTitle>
                   <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-semibold">
                     Monthly Planning
                   </Badge>
@@ -693,16 +693,17 @@ export default function BulkAddTripsModal({
           </div>
         </div>
 
-        {/* Navigation Tabs & 5-Step Progress Pills */}
+        {/* Combined Sleek Navigation & Stepper Bar */}
         {!submissionResult && (
-          <div className="border-b border-black/[0.06] bg-slate-50/50 shrink-0">
-            <div className="flex items-center gap-1.5 px-6 pt-3 pb-2">
+          <div className="border-b border-black/[0.06] bg-slate-50/50 shrink-0 flex items-center justify-between px-5 py-1.5 flex-wrap gap-2">
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('contract')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'contract'
-                    ? 'bg-white text-[#111111] shadow-sm border border-black/5'
+                    ? 'bg-white text-[#111111] shadow-xs border border-black/5'
                     : 'text-[#6E6E80] hover:text-[#111111]'
                 }`}
               >
@@ -712,9 +713,9 @@ export default function BulkAddTripsModal({
               <button
                 type="button"
                 onClick={() => setActiveTab('grid')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'grid'
-                    ? 'bg-white text-[#111111] shadow-sm border border-black/5'
+                    ? 'bg-white text-[#111111] shadow-xs border border-black/5'
                     : 'text-[#6E6E80] hover:text-[#111111]'
                 }`}
               >
@@ -724,9 +725,9 @@ export default function BulkAddTripsModal({
               <button
                 type="button"
                 onClick={() => setActiveTab('file')}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'file'
-                    ? 'bg-white text-[#111111] shadow-sm border border-black/5'
+                    ? 'bg-white text-[#111111] shadow-xs border border-black/5'
                     : 'text-[#6E6E80] hover:text-[#111111]'
                 }`}
               >
@@ -737,7 +738,7 @@ export default function BulkAddTripsModal({
 
             {/* Stepper Pills for Contract Batch */}
             {activeTab === 'contract' && (
-              <div className="flex items-center gap-1.5 overflow-x-auto py-2 px-6 border-t border-black/[0.04] bg-white">
+              <div className="flex items-center gap-1 overflow-x-auto">
                 {[
                   { step: 1, label: '1. Customer', icon: User },
                   { step: 2, label: '2. Route Slots', icon: MapPin },
@@ -754,15 +755,15 @@ export default function BulkAddTripsModal({
                       key={s.step}
                       type="button"
                       onClick={() => setContractStep(s.step as any)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
                         isActive
-                          ? 'bg-brand text-white shadow-sm ring-2 ring-brand/20'
+                          ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
                           : isPassed
                           ? 'bg-orange-50 text-brand border border-orange-200 hover:bg-orange-100'
-                          : 'bg-slate-50 text-slate-400 border border-slate-200/80 hover:bg-slate-100 hover:text-slate-600'
+                          : 'bg-white text-slate-400 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-600'
                       }`}
                     >
-                      <IconComp className={`w-3.5 h-3.5 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
+                      <IconComp className={`w-3 h-3 ${isActive ? 'text-white' : isPassed ? 'text-brand' : 'text-slate-400'}`} />
                       <span>{s.label}</span>
                       {isPassed && <CheckCircle2 className="w-3 h-3 text-brand ml-0.5" />}
                     </button>
@@ -774,7 +775,7 @@ export default function BulkAddTripsModal({
         )}
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0">
           {/* Submission Result Screen */}
           {submissionResult ? (
             <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
@@ -846,8 +847,8 @@ export default function BulkAddTripsModal({
                 <div>
                   {/* STEP 1: CUSTOMER & CATEGORY */}
                   {contractStep === 1 && (
-                    <div className="space-y-6 animate-fade-in">
-                      <div className="space-y-1">
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="space-y-0.5">
                         <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-brand" />
                           Select Customer Account
@@ -858,11 +859,11 @@ export default function BulkAddTripsModal({
                       </div>
 
                       {/* Frequent Shippers Cards */}
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <span className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider block">
                           ⚡ Frequent Shippers
                         </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                           {customers.slice(0, 4).map((c, idx) => {
                             const isSelected = contractCustomer === c.id;
                             const initials = c.name.substring(0, 2).toUpperCase();
@@ -871,25 +872,25 @@ export default function BulkAddTripsModal({
                                 key={c.id}
                                 type="button"
                                 onClick={() => setContractCustomer(c.id)}
-                                className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between h-24 ${
+                                className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between h-18 ${
                                   isSelected
-                                    ? 'bg-orange-50/70 border-brand ring-2 ring-brand/20 shadow-sm'
+                                    ? 'bg-orange-50/70 border-brand ring-1 ring-brand/20 shadow-xs'
                                     : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
                                 }`}
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className={`w-8 h-8 rounded-xl font-bold text-xs grid place-items-center ${
+                                  <span className={`w-7 h-7 rounded-lg font-bold text-[11px] grid place-items-center ${
                                     isSelected ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700'
                                   }`}>
                                     {initials}
                                   </span>
-                                  <span className="text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                                  <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md">
                                     Key {idx + 1}
                                   </span>
                                 </div>
-                                <div>
+                                <div className="truncate">
                                   <p className="text-xs font-bold text-[#111111] truncate">{c.name}</p>
-                                  <p className="text-[10px] text-slate-400 font-medium">Commercial Account</p>
+                                  <p className="text-[9px] text-slate-400 font-medium">Commercial Account</p>
                                 </div>
                               </button>
                             );
@@ -903,7 +904,7 @@ export default function BulkAddTripsModal({
                           <Search className="w-3 h-3 text-slate-400" /> Search All Accounts *
                         </label>
                         <Select value={contractCustomer} onValueChange={setContractCustomer}>
-                          <SelectTrigger className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white">
+                          <SelectTrigger className="h-9 rounded-xl border-black/10 text-xs font-semibold bg-white">
                             <SelectValue placeholder="-- Select customer --" />
                           </SelectTrigger>
                           <SelectContent>
@@ -921,43 +922,43 @@ export default function BulkAddTripsModal({
                           if (!selectedCust) return null;
                           const initials = selectedCust.name.substring(0, 2).toUpperCase();
                           return (
-                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5 animate-fade-in mt-3">
+                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 animate-fade-in mt-2">
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <span className="w-10 h-10 rounded-xl bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="w-8 h-8 rounded-lg bg-orange-100/80 text-[#E8450F] font-extrabold text-xs grid place-items-center shrink-0 border border-orange-200/80">
                                     {initials}
                                   </span>
                                   <div>
                                     <h5 className="text-xs font-bold text-[#111111]">{selectedCust.name}</h5>
-                                    <p className="text-[11px] text-slate-500 font-medium">Commercial Shipper</p>
+                                    <p className="text-[10px] text-slate-500 font-medium">Commercial Shipper</p>
                                   </div>
                                 </div>
-                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2.5 py-1 rounded-lg">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                   Active Account
                                 </Badge>
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-200/60">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200/60">
                                 <div>
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <Phone className="w-3 h-3 text-slate-400" /> CONTACT PHONE
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <Phone className="w-2.5 h-2.5 text-slate-400" /> CONTACT PHONE
                                   </span>
                                   <span className="text-xs font-bold text-[#111111]">
                                     {selectedCust.phone || '966500000007'}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <CreditCard className="w-3 h-3 text-slate-400" /> PAYMENT TERMS
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <CreditCard className="w-2.5 h-2.5 text-slate-400" /> PAYMENT TERMS
                                   </span>
                                   <span className="text-xs font-bold text-[#111111]">
                                     {selectedCust.payment_terms || 'Net 30'}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
-                                    <ShieldCheck className="w-3 h-3 text-slate-400" /> ACCOUNT CREDIT
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1">
+                                    <ShieldCheck className="w-2.5 h-2.5 text-slate-400" /> ACCOUNT CREDIT
                                   </span>
                                   <span className="text-xs font-bold text-emerald-600">
                                     Good Standing
@@ -973,9 +974,9 @@ export default function BulkAddTripsModal({
 
                   {/* STEP 2: ROUTE & TRIPS SLOTS */}
                   {contractStep === 2 && (
-                    <div className="space-y-6 animate-fade-in">
-                      <div className="flex items-center justify-between flex-wrap gap-4 border-b border-black/[0.06] pb-3">
-                        <div className="space-y-1">
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="flex items-center justify-between flex-wrap gap-3 border-b border-black/[0.06] pb-2">
+                        <div className="space-y-0.5">
                           <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-brand" />
                             Configure Route Locations & Trip Slots
@@ -986,12 +987,12 @@ export default function BulkAddTripsModal({
                         </div>
 
                         {/* Trip Category Selector */}
-                        <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-3 py-1.5 rounded-xl">
+                        <div className="flex items-center gap-2 bg-orange-50/70 border border-orange-200/80 px-2.5 py-1 rounded-xl">
                           <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
                             Trip Category:
                           </span>
                           <Select value={contractRateCategory} onValueChange={setContractRateCategory}>
-                            <SelectTrigger className="h-8 w-44 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
+                            <SelectTrigger className="h-7.5 w-40 rounded-lg bg-white border-orange-200 text-xs font-bold text-[#111111]">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1006,7 +1007,7 @@ export default function BulkAddTripsModal({
                       </div>
 
                       {/* Trip Slots Section */}
-                      <div className="space-y-5">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider">
@@ -1022,7 +1023,7 @@ export default function BulkAddTripsModal({
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 text-[11px] font-bold text-brand border-orange-200 bg-orange-50/60 hover:bg-orange-100 shadow-2xs gap-1"
+                            className="h-6.5 text-[11px] font-bold text-brand border-orange-200 bg-orange-50/60 hover:bg-orange-100 shadow-2xs gap-1 px-2.5"
                             onClick={handleAddTripSlot}
                           >
                             <Plus className="w-3.5 h-3.5 text-brand" />
@@ -1033,15 +1034,15 @@ export default function BulkAddTripsModal({
                         {contractSlots.map((slot, slotIdx) => (
                           <div
                             key={slot.id}
-                            className="p-5 rounded-2xl border border-slate-200/90 bg-white shadow-2xs space-y-4"
+                            className="p-3.5 rounded-xl border border-slate-200/90 bg-white shadow-2xs space-y-3"
                           >
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-lg">
+                                <span className="text-xs font-bold text-[#111111] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
                                   Trip Slot #{slotIdx + 1}
                                 </span>
                                 {slot.isOvernight && Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
                                     <Moon className="w-3 h-3 fill-indigo-600" /> Overnight (+1 Day)
                                   </span>
                                 )}
@@ -1050,7 +1051,7 @@ export default function BulkAddTripsModal({
                                 <Button
                                   type="button"
                                   size="sm"
-                                  className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
+                                  className="h-6.5 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
                                   onClick={() => handleAddSlotIntermediate(slot.id)}
                                 >
                                   <Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />
@@ -1063,7 +1064,7 @@ export default function BulkAddTripsModal({
                                     className="text-slate-400 hover:text-rose-600 transition-colors p-1"
                                     title="Remove trip slot"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                               </div>
@@ -1071,10 +1072,10 @@ export default function BulkAddTripsModal({
 
                             {/* Conditional Rendering for Round Trip (4 Sections) vs Standard 1-Way Trip */}
                             {isRoundTripCategory(contractRateCategory) ? (
-                              <div className="space-y-5 pt-1">
+                              <div className="space-y-3 pt-0.5">
                                 {/* LEG 1: OUTBOUND JOURNEY */}
-                                <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-3">
-                                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-2.5">
+                                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
                                     <div className="flex items-center gap-2">
                                       <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
                                         Leg 1: Outbound Journey
@@ -1084,30 +1085,30 @@ export default function BulkAddTripsModal({
                                     <Button
                                       type="button"
                                       size="sm"
-                                      className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
+                                      className="h-6 text-[10px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
                                       onClick={() => handleAddSlotIntermediate(slot.id)}
                                     >
-                                      <Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                                      <Plus className="w-3 h-3 text-white stroke-[2.5]" />
                                       Add Outbound Stop
                                     </Button>
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {/* SECTION 1: 🟢 Outbound Pickup (Start) */}
-                                    <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-3">
-                                      <div className="p-2.5 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
+                                    <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-2">
+                                      <div className="p-2 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
                                           <span className="text-xs font-bold text-emerald-950">1. Outbound Pickup (Start)</span>
                                         </div>
-                                        <span className="text-[10px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-2 py-0.5 rounded-md">
+                                        <span className="text-[9px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-1.5 py-0.5 rounded">
                                           Starting Point
                                         </span>
                                       </div>
 
-                                      <div className="p-3 space-y-3">
+                                      <div className="p-2.5 space-y-2">
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider block">
+                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
                                             Outbound Pickup Location *
                                           </label>
                                           <LocationCombobox
@@ -1119,39 +1120,39 @@ export default function BulkAddTripsModal({
                                               });
                                             }}
                                             placeholder="Search starting origin (e.g. Riyadh)..."
-                                            triggerClassName="h-10 border-emerald-200 bg-white shadow-2xs"
+                                            triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
                                           />
                                         </div>
 
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3.5 h-3.5 text-emerald-600" /> Outbound Pickup Time *
+                                          <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-emerald-600" /> Outbound Pickup Time *
                                           </label>
                                           <input
                                             type="time"
                                             value={slot.pickupTime}
                                             onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
-                                            className="w-full h-10 px-3 rounded-xl border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
                                           />
                                         </div>
                                       </div>
                                     </div>
 
                                     {/* SECTION 2: 🟠 Outbound Dropoff (Destination) */}
-                                    <div className="rounded-2xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-3">
-                                      <div className="p-2.5 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
+                                    <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
+                                      <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
                                           <span className="text-xs font-bold text-orange-950">2. Outbound Dropoff (Destination)</span>
                                         </div>
-                                        <span className="text-[10px] font-semibold text-orange-700 bg-white border border-orange-200/80 px-2 py-0.5 rounded-md">
+                                        <span className="text-[9px] font-semibold text-orange-700 bg-white border border-orange-200/80 px-1.5 py-0.5 rounded">
                                           Delivery Point
                                         </span>
                                       </div>
 
-                                      <div className="p-3 space-y-3">
+                                      <div className="p-2.5 space-y-2">
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider block">
+                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider block">
                                             Outbound Dropoff Location *
                                           </label>
                                           <LocationCombobox
@@ -1163,19 +1164,19 @@ export default function BulkAddTripsModal({
                                               });
                                             }}
                                             placeholder="Search delivery destination (e.g. Dammam)..."
-                                            triggerClassName="h-10 border-orange-200 bg-white shadow-2xs"
+                                            triggerClassName="h-8.5 border-orange-200 bg-white shadow-2xs"
                                           />
                                         </div>
 
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3.5 h-3.5 text-brand" /> Outbound Drop-off Time *
+                                          <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-brand" /> Outbound Drop-off Time *
                                           </label>
                                           <input
                                             type="time"
                                             value={slot.dropoffTime}
                                             onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                            className="w-full h-10 px-3 rounded-xl border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-orange-200 text-xs font-semibold focus:outline-none focus:border-brand bg-white cursor-pointer"
                                           />
                                         </div>
                                       </div>
@@ -1184,43 +1185,43 @@ export default function BulkAddTripsModal({
 
                                   {/* Outbound Intermediate Stops & Fees */}
                                   {slot.intermediateLocations.length > 0 && (
-                                    <div className="space-y-3 pt-2 border-t border-slate-200/60">
-                                      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                                    <div className="space-y-2 pt-1.5 border-t border-slate-200/60">
+                                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
                                         Outbound Intermediate Stops & Fees ({slot.intermediateLocations.length})
                                       </span>
-                                      <div className="space-y-2.5">
+                                      <div className="space-y-2">
                                         {slot.intermediateLocations.map((loc, idx) => (
-                                          <div key={idx} className="p-3 rounded-xl bg-white border border-slate-200 space-y-2">
+                                          <div key={idx} className="p-2.5 rounded-lg bg-white border border-slate-200 space-y-1.5">
                                             <div className="flex items-center justify-between">
                                               <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                                                <MapPin className="w-3 h-3 text-emerald-600" />
                                                 Outbound Stop #{idx + 1}
                                               </span>
                                               <button
                                                 type="button"
                                                 onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[11px] font-semibold"
+                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-semibold"
                                               >
                                                 Remove Stop
                                               </button>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                               <div className="sm:col-span-2">
                                                 <LocationCombobox
                                                   value={loc}
                                                   onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
                                                   placeholder={`Search Outbound Stop #${idx + 1}...`}
-                                                  triggerClassName="h-9 border-slate-200 bg-white"
+                                                  triggerClassName="h-8 border-slate-200 bg-white"
                                                 />
                                               </div>
                                               <div className="relative">
-                                                <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">SAR</span>
+                                                <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
                                                 <input
                                                   type="number"
                                                   value={slot.intermediateStopFees?.[idx] || ''}
                                                   onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
                                                   placeholder="Stop fee e.g. 150"
-                                                  className="w-full h-9 pl-11 pr-3 rounded-xl border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand"
+                                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand"
                                                 />
                                               </div>
                                             </div>
@@ -1232,8 +1233,8 @@ export default function BulkAddTripsModal({
                                 </div>
 
                                 {/* LEG 2: RETURN JOURNEY (CLOSED LOOP) */}
-                                <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200/80 space-y-3">
-                                  <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
+                                <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-200/80 space-y-2.5">
+                                  <div className="flex items-center justify-between border-b border-indigo-100 pb-1.5">
                                     <div className="flex items-center gap-2">
                                       <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
                                         <RefreshCw className="w-2.5 h-2.5" />
@@ -1244,84 +1245,84 @@ export default function BulkAddTripsModal({
                                     <Button
                                       type="button"
                                       size="sm"
-                                      className="h-7 text-[11px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-xl gap-1 px-3 border-0"
+                                      className="h-6 text-[10px] font-bold text-white bg-brand hover:bg-brand-hover active:scale-[0.98] transition-all shadow-xs rounded-lg gap-1 px-2.5 border-0"
                                       onClick={() => handleAddSlotReturnIntermediate(slot.id)}
                                     >
-                                      <Plus className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                                      <Plus className="w-3 h-3 text-white stroke-[2.5]" />
                                       Add Return Stop
                                     </Button>
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {/* SECTION 3: 🔵 Return Pickup (Reload Point) */}
-                                    <div className="rounded-2xl border border-blue-200/80 bg-blue-50/30 overflow-hidden space-y-3">
-                                      <div className="p-2.5 bg-blue-50/80 border-b border-blue-100 flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0" />
+                                    <div className="rounded-xl border border-blue-200/80 bg-blue-50/30 overflow-hidden space-y-2">
+                                      <div className="p-2 bg-blue-50/80 border-b border-blue-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0" />
                                           <span className="text-xs font-bold text-blue-950">3. Return Pickup (Reload Point)</span>
                                         </div>
-                                        <span className="text-[10px] font-semibold text-blue-700 bg-white border border-blue-200/80 px-2 py-0.5 rounded-md">
+                                        <span className="text-[9px] font-semibold text-blue-700 bg-white border border-blue-200/80 px-1.5 py-0.5 rounded">
                                           Reload Hub
                                         </span>
                                       </div>
 
-                                      <div className="p-3 space-y-3">
+                                      <div className="p-2.5 space-y-2">
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-blue-900 uppercase tracking-wider block">
+                                          <label className="text-[10px] font-bold text-blue-900 uppercase tracking-wider block">
                                             Return Pickup Location *
                                           </label>
                                           <LocationCombobox
                                             value={slot.returnOrigin || slot.destination}
                                             onChange={(locName) => handleUpdateTripSlot(slot.id, { returnOrigin: locName })}
                                             placeholder="Search return reload origin..."
-                                            triggerClassName="h-10 border-blue-200 bg-white shadow-2xs"
+                                            triggerClassName="h-8.5 border-blue-200 bg-white shadow-2xs"
                                           />
                                         </div>
 
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3.5 h-3.5 text-blue-600" /> Return Pickup Time *
+                                          <label className="text-[10px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-blue-600" /> Return Pickup Time *
                                           </label>
                                           <input
                                             type="time"
                                             value={slot.returnPickupTime || '16:00'}
                                             onChange={(e) => handleUpdateTripSlot(slot.id, { returnPickupTime: e.target.value })}
-                                            className="w-full h-10 px-3 rounded-xl border border-blue-200 text-xs font-semibold focus:outline-none focus:border-blue-500 bg-white cursor-pointer"
+                                            className="w-full h-8.5 px-2.5 rounded-lg border border-blue-200 text-xs font-semibold focus:outline-none focus:border-blue-500 bg-white cursor-pointer"
                                           />
                                         </div>
                                       </div>
                                     </div>
 
                                     {/* SECTION 4: 🟣 Return Dropoff (Final Home Destination) */}
-                                    <div className="rounded-2xl border border-purple-200/80 bg-purple-50/30 overflow-hidden space-y-3">
-                                      <div className="p-2.5 bg-purple-50/80 border-b border-purple-100 flex items-center justify-between flex-wrap gap-2">
-                                        <div className="flex items-center gap-2">
-                                          <span className="w-2.5 h-2.5 rounded-full bg-purple-600 ring-2 ring-purple-200 shrink-0" />
+                                    <div className="rounded-xl border border-purple-200/80 bg-purple-50/30 overflow-hidden space-y-2">
+                                      <div className="p-2 bg-purple-50/80 border-b border-purple-100 flex items-center justify-between flex-wrap gap-1.5">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-purple-600 ring-2 ring-purple-200 shrink-0" />
                                           <span className="text-xs font-bold text-purple-950">4. Return Dropoff (Final Home)</span>
                                         </div>
                                         {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
                                           <button
                                             type="button"
                                             onClick={() => handleUpdateTripSlot(slot.id, { returnIsOvernight: !slot.returnIsOvernight })}
-                                            className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
+                                            className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
                                               slot.returnIsOvernight
                                                 ? 'bg-indigo-600 text-white shadow-2xs'
                                                 : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
                                             }`}
                                             title="Toggle Return Overnight (+1 Day)"
                                           >
-                                            <Moon className={`w-3 h-3 ${slot.returnIsOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
+                                            <Moon className={`w-2.5 h-2.5 ${slot.returnIsOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
                                             {slot.returnIsOvernight ? '🌙 +1 Day' : '+1 Day'}
                                           </button>
                                         )}
                                       </div>
 
-                                      <div className="p-3 space-y-3">
+                                      <div className="p-2.5 space-y-2">
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center justify-between">
+                                          <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center justify-between">
                                             <span>Return Dropoff (Home) *</span>
-                                            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200/90 font-bold text-[10px] gap-1 px-2 py-0.5 rounded-lg shadow-2xs">
-                                              <RotateCcw className="w-3 h-3 text-emerald-600" />
+                                            <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200/90 font-bold text-[9px] gap-1 px-1.5 py-0.5 rounded shadow-2xs">
+                                              <RotateCcw className="w-2.5 h-2.5 text-emerald-600" />
                                               Auto-Linked Home Origin
                                             </Badge>
                                           </label>
@@ -1329,19 +1330,19 @@ export default function BulkAddTripsModal({
                                             value={slot.returnDestination || slot.origin}
                                             onChange={(locName) => handleUpdateTripSlot(slot.id, { returnDestination: locName })}
                                             placeholder="Search final home destination..."
-                                            triggerClassName="h-10 border-purple-200 bg-white shadow-2xs"
+                                            triggerClassName="h-8.5 border-purple-200 bg-white shadow-2xs"
                                           />
                                         </div>
 
                                         <div className="space-y-1">
-                                          <label className="text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
-                                            <Clock className="w-3.5 h-3.5 text-purple-600" /> Return Drop-off Time *
+                                          <label className="text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-purple-600" /> Return Drop-off Time *
                                           </label>
                                           <input
                                             type="time"
                                             value={slot.returnDropoffTime || '22:00'}
                                             onChange={(e) => handleUpdateTripSlot(slot.id, { returnDropoffTime: e.target.value })}
-                                            className={`w-full h-10 px-3 rounded-xl border text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer ${
+                                            className={`w-full h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-purple-500 cursor-pointer ${
                                               slot.returnIsOvernight
                                                 ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
                                                 : 'border-purple-200 bg-white'
@@ -1354,43 +1355,43 @@ export default function BulkAddTripsModal({
 
                                   {/* Return Intermediate Stops & Fees */}
                                   {(slot.returnIntermediateLocations || []).length > 0 && (
-                                    <div className="space-y-3 pt-2 border-t border-indigo-100">
-                                      <span className="text-[11px] font-bold text-indigo-950 uppercase tracking-wider block">
+                                    <div className="space-y-2 pt-1.5 border-t border-indigo-100">
+                                      <span className="text-[10px] font-bold text-indigo-950 uppercase tracking-wider block">
                                         Return Intermediate Stops & Fees ({(slot.returnIntermediateLocations || []).length})
                                       </span>
-                                      <div className="space-y-2.5">
+                                      <div className="space-y-2">
                                         {(slot.returnIntermediateLocations || []).map((loc, idx) => (
-                                          <div key={idx} className="p-3 rounded-xl bg-white border border-indigo-200 space-y-2">
+                                          <div key={idx} className="p-2.5 rounded-lg bg-white border border-indigo-200 space-y-1.5">
                                             <div className="flex items-center justify-between">
                                               <span className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                                                <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                                                <MapPin className="w-3 h-3 text-purple-600" />
                                                 Return Stop #{idx + 1}
                                               </span>
                                               <button
                                                 type="button"
                                                 onClick={() => handleRemoveSlotReturnIntermediate(slot.id, idx)}
-                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[11px] font-semibold"
+                                                className="text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-semibold"
                                               >
                                                 Remove Stop
                                               </button>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                               <div className="sm:col-span-2">
                                                 <LocationCombobox
                                                   value={loc}
                                                   onChange={(locName) => handleUpdateSlotReturnIntermediate(slot.id, idx, locName)}
                                                   placeholder={`Search Return Stop #${idx + 1}...`}
-                                                  triggerClassName="h-9 border-indigo-200 bg-white"
+                                                  triggerClassName="h-8 border-indigo-200 bg-white"
                                                 />
                                               </div>
                                               <div className="relative">
-                                                <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">SAR</span>
+                                                <span className="absolute left-2.5 top-2 text-[11px] font-bold text-slate-400">SAR</span>
                                                 <input
                                                   type="number"
                                                   value={slot.returnIntermediateStopFees?.[idx] || ''}
                                                   onChange={(e) => handleUpdateSlotReturnIntermediateFee(slot.id, idx, e.target.value)}
                                                   placeholder="Stop fee e.g. 150"
-                                                  className="w-full h-9 pl-11 pr-3 rounded-xl border border-indigo-200 text-xs font-bold text-right focus:outline-none focus:border-indigo-600"
+                                                  className="w-full h-8 pl-10 pr-2.5 rounded-lg border border-indigo-200 text-xs font-bold text-right focus:outline-none focus:border-indigo-600"
                                                 />
                                               </div>
                                             </div>
@@ -1404,52 +1405,52 @@ export default function BulkAddTripsModal({
                             ) : (
                               /* Standard 1-Way Category Layout */
                               <>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   {/* 🟢 PICKUP STOP CARD (ORIGIN) */}
-                                  <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-3">
-                                    <div className="p-3 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
-                                      <div className="flex items-center gap-2">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
+                                  <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/30 overflow-hidden space-y-2">
+                                    <div className="p-2 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
                                         <span className="text-xs font-bold text-emerald-950">Pickup Stop (Origin)</span>
                                       </div>
-                                      <span className="text-[10px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-2 py-0.5 rounded-md">
+                                      <span className="text-[9px] font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-1.5 py-0.5 rounded">
                                         Rate Hub & Maps
                                       </span>
                                     </div>
 
-                                    <div className="p-3.5 space-y-3">
-                                      <div className="space-y-1.5">
-                                        <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
+                                    <div className="p-2.5 space-y-2">
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-between">
                                           <span>Pickup Location *</span>
-                                          <span className="text-[10px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+                                          <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
                                         </label>
                                         <LocationCombobox
                                           value={slot.origin}
                                           onChange={(locName) => handleUpdateTripSlot(slot.id, { origin: locName })}
                                           placeholder="Search or select pickup location..."
-                                          triggerClassName="h-10 border-emerald-200 bg-white shadow-2xs"
+                                          triggerClassName="h-8.5 border-emerald-200 bg-white shadow-2xs"
                                         />
                                       </div>
 
-                                      <div className="space-y-1.5 pt-1">
-                                        <label className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
-                                          <Clock className="w-3.5 h-3.5 text-emerald-600" /> Pickup Time *
+                                      <div className="space-y-1 pt-0.5">
+                                        <label className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1">
+                                          <Clock className="w-3 h-3 text-emerald-600" /> Pickup Time *
                                         </label>
                                         <input
                                           type="time"
                                           value={slot.pickupTime}
                                           onChange={(e) => handleUpdateTripSlot(slot.id, { pickupTime: e.target.value })}
-                                          className="w-full h-10 px-3 rounded-xl border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                                          className="w-full h-8.5 px-2.5 rounded-lg border border-emerald-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
                                         />
                                       </div>
                                     </div>
                                   </div>
 
                                   {/* 🟠 DROPOFF STOP CARD (DESTINATION) */}
-                                  <div className="rounded-2xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-3">
-                                    <div className="p-3 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between flex-wrap gap-2">
-                                      <div className="flex items-center gap-2">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
+                                  <div className="rounded-xl border border-orange-200/80 bg-orange-50/30 overflow-hidden space-y-2">
+                                    <div className="p-2 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between flex-wrap gap-1.5">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-brand ring-2 ring-orange-200 shrink-0" />
                                         <span className="text-xs font-bold text-orange-950">Dropoff Stop (Destination)</span>
                                       </div>
 
@@ -1458,43 +1459,43 @@ export default function BulkAddTripsModal({
                                           <button
                                             type="button"
                                             onClick={() => handleUpdateTripSlot(slot.id, { isOvernight: !slot.isOvernight })}
-                                            className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md transition-all whitespace-nowrap ${
+                                            className={`text-[9px] font-bold flex items-center gap-1 px-1.5 py-0.5 rounded transition-all whitespace-nowrap ${
                                               slot.isOvernight
                                                 ? 'bg-indigo-600 text-white shadow-2xs'
                                                 : 'bg-white text-indigo-900 border border-indigo-200 hover:bg-indigo-50'
                                             }`}
                                             title="Toggle Overnight / Next-Day Return trip (+1 Day)"
                                           >
-                                            <Moon className={`w-3 h-3 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
+                                            <Moon className={`w-2.5 h-2.5 ${slot.isOvernight ? 'text-white fill-white' : 'text-indigo-600'}`} />
                                             +1 Day
                                           </button>
                                         </div>
                                       )}
                                     </div>
 
-                                    <div className="p-3.5 space-y-3">
-                                      <div className="space-y-1.5">
-                                        <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider flex items-center justify-between">
+                                    <div className="p-2.5 space-y-2">
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center justify-between">
                                           <span>Dropoff Location *</span>
-                                          <span className="text-[10px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
+                                          <span className="text-[9px] text-slate-400 font-normal">Google Maps & Rate Cards</span>
                                         </label>
                                         <LocationCombobox
                                           value={slot.destination}
                                           onChange={(locName) => handleUpdateTripSlot(slot.id, { destination: locName })}
                                           placeholder="Search or select dropoff location..."
-                                          triggerClassName="h-10 bg-white shadow-2xs border-orange-200"
+                                          triggerClassName="h-8.5 bg-white shadow-2xs border-orange-200"
                                         />
                                       </div>
 
-                                      <div className="space-y-1.5 pt-1">
-                                        <label className="text-[11px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
-                                          <Clock className="w-3.5 h-3.5 text-brand" /> Drop-off Time *
+                                      <div className="space-y-1 pt-0.5">
+                                        <label className="text-[10px] font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1">
+                                          <Clock className="w-3 h-3 text-brand" /> Drop-off Time *
                                         </label>
                                         <input
                                           type="time"
                                           value={slot.dropoffTime}
                                           onChange={(e) => handleUpdateTripSlot(slot.id, { dropoffTime: e.target.value })}
-                                          className={`w-full h-10 px-3 rounded-xl border text-xs font-semibold focus:outline-none focus:border-brand cursor-pointer ${
+                                          className={`w-full h-8.5 px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:border-brand cursor-pointer ${
                                             slot.isOvernight
                                               ? 'border-indigo-300 bg-indigo-50/30 text-indigo-950'
                                               : 'border-orange-200 bg-white'
@@ -1507,54 +1508,54 @@ export default function BulkAddTripsModal({
 
                                 {/* Intermediate Stop Cards */}
                                 {slot.intermediateLocations.length > 0 && (
-                                  <div className="space-y-3 pt-3 border-t border-slate-100">
-                                    <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider block">
+                                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                                    <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block">
                                       Intermediate Stop Locations & Fees
                                     </span>
-                                    <div className="space-y-3">
+                                    <div className="space-y-2">
                                       {slot.intermediateLocations.map((loc, idx) => (
-                                        <div key={idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                                          <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                        <div key={idx} className="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-2">
+                                          <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
                                             <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                                              <MapPin className="w-3 h-3 text-blue-600" />
                                               Intermediate Stop #{idx + 1}
                                             </span>
                                             <button
                                               type="button"
                                               onClick={() => handleRemoveSlotIntermediate(slot.id, idx)}
-                                              className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 flex items-center gap-1 text-[11px] font-semibold"
+                                              className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 flex items-center gap-1 text-[10px] font-semibold"
                                               title="Remove stop"
                                             >
-                                              <Trash2 className="w-3.5 h-3.5" />
+                                              <Trash2 className="w-3 h-3" />
                                               Remove Stop
                                             </button>
                                           </div>
 
-                                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                             <div className="sm:col-span-2 space-y-1">
-                                              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                                              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
                                                 Stop Location *
                                               </label>
                                               <LocationCombobox
                                                 value={loc}
                                                 onChange={(locName) => handleUpdateSlotIntermediate(slot.id, idx, locName)}
                                                 placeholder={`Search or select Intermediate Stop #${idx + 1}...`}
-                                                triggerClassName="h-10 border-slate-200 bg-white shadow-2xs"
+                                                triggerClassName="h-8.5 border-slate-200 bg-white shadow-2xs"
                                               />
                                             </div>
 
                                             <div className="space-y-1">
-                                              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                                              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
                                                 <DollarSign className="w-3 h-3 text-emerald-600" /> Additional Stop Fee (SAR)
                                               </label>
                                               <div className="relative">
-                                                <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">SAR</span>
+                                                <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400">SAR</span>
                                                 <input
                                                   type="number"
                                                   value={slot.intermediateStopFees?.[idx] || ''}
                                                   onChange={(e) => handleUpdateSlotIntermediateFee(slot.id, idx, e.target.value)}
                                                   placeholder="e.g. 150"
-                                                  className="w-full h-10 pl-11 pr-3 rounded-xl border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white shadow-2xs"
+                                                  className="w-full h-8.5 pl-10 pr-2.5 rounded-lg border border-slate-200 text-xs font-bold text-right focus:outline-none focus:border-brand bg-white shadow-2xs"
                                                 />
                                               </div>
                                             </div>
@@ -1568,12 +1569,12 @@ export default function BulkAddTripsModal({
                             )}
 
                             {/* Billing Amount */}
-                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
-                              <div className="space-y-1">
-                                <span className="text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider block">
+                            <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                              <div className="space-y-0.5">
+                                <span className="text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider block">
                                   Contract Billing Rate
                                 </span>
-                                <p className="text-[11px] text-slate-400">Rate per single trip run in SAR</p>
+                                <p className="text-[10px] text-slate-400">Rate per single trip run in SAR</p>
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-slate-700">SAR</span>
@@ -1582,7 +1583,7 @@ export default function BulkAddTripsModal({
                                   value={slot.billingAmount}
                                   onChange={(e) => handleUpdateTripSlot(slot.id, { billingAmount: e.target.value })}
                                   placeholder="e.g. 3500"
-                                  className="w-36 h-9 px-3 rounded-xl border border-black/10 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right"
+                                  className="w-32 h-8 px-2.5 rounded-lg border border-black/10 text-xs font-bold focus:outline-none focus:border-brand bg-white text-right"
                                 />
                               </div>
                             </div>
@@ -1594,8 +1595,8 @@ export default function BulkAddTripsModal({
 
                   {/* STEP 3: SCHEDULE & DAYS */}
                   {contractStep === 3 && (
-                    <div className="space-y-6 animate-fade-in">
-                      <div className="space-y-1">
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="space-y-0.5">
                         <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-brand" />
                           Select Operating Month & Days
@@ -1606,15 +1607,15 @@ export default function BulkAddTripsModal({
                       </div>
 
                       {/* Month Switcher & Day Selector */}
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-black/[0.06] space-y-4">
-                        <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-black/[0.06] space-y-3">
+                        <div className="flex items-center justify-between flex-wrap gap-2.5">
                           <div className="flex items-center gap-2">
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}
-                              className="h-8 rounded-lg border-black/10 px-2 text-xs"
+                              className="h-7.5 rounded-lg border-black/10 px-2 text-xs"
                             >
                               ‹
                             </Button>
@@ -1626,7 +1627,7 @@ export default function BulkAddTripsModal({
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}
-                              className="h-8 rounded-lg border-black/10 px-2 text-xs"
+                              className="h-7.5 rounded-lg border-black/10 px-2 text-xs"
                             >
                               ›
                             </Button>
@@ -1660,15 +1661,15 @@ export default function BulkAddTripsModal({
                         </div>
 
                         {/* Calendar Day Grid */}
-                        <div className="grid grid-cols-7 gap-1.5 pt-2">
+                        <div className="grid grid-cols-7 gap-1.5 pt-1">
                           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-                            <div key={d} className="text-center text-[10px] font-bold text-[#9898A4] py-1">
+                            <div key={d} className="text-center text-[10px] font-bold text-[#9898A4] py-0.5">
                               {d}
                             </div>
                           ))}
 
                           {Array.from({ length: monthDates[0]?.dayOfWeek || 0 }).map((_, i) => (
-                            <div key={`pad-${i}`} className="h-10 rounded-xl opacity-0 pointer-events-none" />
+                            <div key={`pad-${i}`} className="h-9 rounded-lg opacity-0 pointer-events-none" />
                           ))}
 
                           {monthDates.map((item) => {
@@ -1678,9 +1679,9 @@ export default function BulkAddTripsModal({
                                 key={item.dateStr}
                                 type="button"
                                 onClick={() => toggleDate(item.dateStr)}
-                                className={`h-11 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all relative ${
+                                className={`h-9.5 rounded-lg flex flex-col items-center justify-center text-xs font-bold transition-all relative ${
                                   isSelected
-                                    ? 'bg-brand text-white shadow-sm ring-2 ring-brand/20'
+                                    ? 'bg-brand text-white shadow-xs ring-1 ring-brand/20'
                                     : 'bg-white text-[#111111] border border-black/[0.07] hover:border-brand/40'
                                 }`}
                               >
@@ -1693,7 +1694,7 @@ export default function BulkAddTripsModal({
                           })}
                         </div>
 
-                        <div className="text-xs text-[#6E6E80] pt-1 text-center font-medium">
+                        <div className="text-xs text-[#6E6E80] pt-0.5 text-center font-medium">
                           Selected: <span className="font-bold text-[#111111]">{selectedDates.length} days</span> × {contractSlots.length} slot(s) = <span className="font-bold text-brand">{selectedDates.length * contractSlots.length} total trips</span>
                         </div>
                       </div>
@@ -1702,8 +1703,8 @@ export default function BulkAddTripsModal({
 
                   {/* STEP 4: DRIVER & TRUCK ASSIGNMENTS */}
                   {contractStep === 4 && (
-                    <div className="space-y-5 animate-fade-in">
-                      <div className="space-y-1">
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="space-y-0.5">
                         <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
                           <Truck className="w-4 h-4 text-brand" />
                           Assign Drivers & Trucks
@@ -1715,21 +1716,21 @@ export default function BulkAddTripsModal({
 
                       {/* 2-Vehicle Shuttle Helper Banner */}
                       {Boolean(contractRateCategory && contractRateCategory.toLowerCase().includes('2 vehicles')) && (
-                        <div className="p-3.5 rounded-2xl bg-indigo-50/90 border border-indigo-200 flex items-center justify-between flex-wrap gap-3 text-xs text-indigo-950 font-bold shadow-2xs">
+                        <div className="p-3 rounded-xl bg-indigo-50/90 border border-indigo-200 flex items-center justify-between flex-wrap gap-2.5 text-xs text-indigo-950 font-bold shadow-2xs">
                           <div className="flex items-center gap-2">
                             <Badge className="bg-indigo-600 text-white border-indigo-600 text-[10px] font-bold flex items-center gap-1">
                               <RefreshCw className="w-3 h-3" /> 2-Vehicle Shuttle Mode
                             </Badge>
                             <span>Driver A & Truck A (Outbound) ↔ Driver B & Truck B (Return Shuttle Loop)</span>
                           </div>
-                          <span className="text-[11px] text-indigo-700 font-semibold bg-white border border-indigo-200 px-2.5 py-1 rounded-lg">
+                          <span className="text-[10px] text-indigo-700 font-semibold bg-white border border-indigo-200 px-2 py-0.5 rounded-md">
                             Long-Distance 12+ Hr Rest Rotation Enabled
                           </span>
                         </div>
                       )}
 
                       {/* Quick Apply Master Toolbar */}
-                      <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100/90 space-y-3">
+                      <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100/90 space-y-2.5">
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center gap-2">
                             <Sparkles className="h-4 w-4 text-indigo-600 shrink-0" />
@@ -1742,9 +1743,9 @@ export default function BulkAddTripsModal({
                             <button
                               type="button"
                               onClick={() => setAssignMode('single')}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                                 assignMode === 'single'
-                                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
+                                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
                                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                               }`}
                             >
@@ -1754,9 +1755,9 @@ export default function BulkAddTripsModal({
                             <button
                               type="button"
                               onClick={() => setAssignMode('alternating')}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                                 assignMode === 'alternating'
-                                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                                  ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
                                   : 'text-indigo-900 hover:bg-white/50'
                               }`}
                             >
@@ -1767,7 +1768,7 @@ export default function BulkAddTripsModal({
                         </div>
 
                         {assignMode === 'single' ? (
-                          <div className="flex items-center gap-2 flex-wrap pt-1">
+                          <div className="flex items-center gap-2 flex-wrap pt-0.5">
                             <Select value={masterDriver} onValueChange={setMasterDriver}>
                               <SelectTrigger className="h-8 w-48 rounded-lg bg-white border-indigo-200 text-xs font-medium">
                                 <SelectValue placeholder="Select driver" />
@@ -1819,9 +1820,9 @@ export default function BulkAddTripsModal({
                           </div>
                         ) : (
                           <div className="space-y-2 pt-1 border-t border-indigo-100">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                               {/* Driver/Truck A */}
-                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-2">
+                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-1.5">
                                 <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
                                   <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
                                   Team A (Odd Trips: 1, 3, 5...)
@@ -1858,7 +1859,7 @@ export default function BulkAddTripsModal({
                               </div>
 
                               {/* Driver/Truck B */}
-                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-2">
+                              <div className="p-2.5 rounded-xl bg-white border border-indigo-200 space-y-1.5">
                                 <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
                                   <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
                                   Team B (Even Trips: 2, 4, 6...)
@@ -1895,7 +1896,7 @@ export default function BulkAddTripsModal({
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-end pt-1">
+                            <div className="flex items-center justify-end pt-0.5">
                               <Button
                                 size="sm"
                                 onClick={applyAlternatingLoop}
@@ -1910,14 +1911,14 @@ export default function BulkAddTripsModal({
                       </div>
 
                       {/* Date Breakdown Table */}
-                      <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[320px] overflow-y-auto">
+                      <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[480px] overflow-y-auto">
                         <table className="w-full text-left text-xs">
                           <thead className="bg-slate-50 text-[11px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0 z-10">
                             <tr>
-                              <th className="px-4 py-2.5">Date & Slot</th>
-                              <th className="px-4 py-2.5">Assigned Driver</th>
-                              <th className="px-4 py-2.5">Assigned Truck</th>
-                              <th className="px-4 py-2.5 text-right">Action</th>
+                              <th className="px-4 py-2">Date & Slot</th>
+                              <th className="px-4 py-2">Assigned Driver</th>
+                              <th className="px-4 py-2">Assigned Truck</th>
+                              <th className="px-4 py-2 text-right">Action</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-black/[0.04]">
@@ -1926,7 +1927,7 @@ export default function BulkAddTripsModal({
 
                               return (
                                 <tr key={rowItem.key} className="hover:bg-slate-50/50">
-                                  <td className="px-4 py-2 font-bold text-[#111111] whitespace-nowrap">
+                                  <td className="px-4 py-1.5 font-bold text-[#111111] whitespace-nowrap">
                                     <div className="flex items-center gap-2">
                                       <Calendar className="h-3.5 w-3.5 text-brand" />
                                       <span>{rowItem.formattedDate}</span>
@@ -1943,7 +1944,7 @@ export default function BulkAddTripsModal({
                                       )}
                                     </div>
                                   </td>
-                                  <td className="px-4 py-2">
+                                  <td className="px-4 py-1.5">
                                     <Select
                                       value={currentAssignment.driverId || 'unassigned'}
                                       onValueChange={(val) =>
@@ -1956,7 +1957,7 @@ export default function BulkAddTripsModal({
                                         }))
                                       }
                                     >
-                                      <SelectTrigger className="h-8 w-52 rounded-lg border-black/10 text-xs font-medium">
+                                      <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
                                         <SelectValue placeholder="Assign driver..." />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -1969,7 +1970,7 @@ export default function BulkAddTripsModal({
                                       </SelectContent>
                                     </Select>
                                   </td>
-                                  <td className="px-4 py-2">
+                                  <td className="px-4 py-1.5">
                                     <Select
                                       value={currentAssignment.vehicleId || 'unassigned'}
                                       onValueChange={(val) =>
@@ -1982,7 +1983,7 @@ export default function BulkAddTripsModal({
                                         }))
                                       }
                                     >
-                                      <SelectTrigger className="h-8 w-52 rounded-lg border-black/10 text-xs font-medium">
+                                      <SelectTrigger className="h-7.5 w-52 rounded-lg border-black/10 text-xs font-medium">
                                         <SelectValue placeholder="Assign truck..." />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -1995,7 +1996,7 @@ export default function BulkAddTripsModal({
                                       </SelectContent>
                                     </Select>
                                   </td>
-                                  <td className="px-4 py-2 text-right">
+                                  <td className="px-4 py-1.5 text-right">
                                     <button
                                       type="button"
                                       onClick={() => toggleDate(rowItem.dateStr)}
@@ -2016,8 +2017,8 @@ export default function BulkAddTripsModal({
 
                   {/* STEP 5: REVIEW & SUMMARY */}
                   {contractStep === 5 && (
-                    <div className="space-y-6 animate-fade-in">
-                      <div className="space-y-1">
+                    <div className="space-y-3.5 animate-fade-in">
+                      <div className="space-y-0.5">
                         <h4 className="text-sm font-bold text-[#111111] flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-brand" />
                           Review & Generate Monthly Batch
@@ -2028,8 +2029,8 @@ export default function BulkAddTripsModal({
                       </div>
 
                       {/* Batch Summary KPI Card */}
-                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-4 border-b border-slate-200/60">
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pb-3 border-b border-slate-200/60">
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer</span>
                             <span className="text-sm font-bold text-[#111111]">
@@ -2052,7 +2053,7 @@ export default function BulkAddTripsModal({
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Trip Category</span>
                             <span className="text-xs font-semibold text-slate-700">{contractRateCategory}</span>
@@ -2119,29 +2120,29 @@ export default function BulkAddTripsModal({
                   </div>
 
                   {/* Grid Table */}
-                  <div className="rounded-xl border border-black/[0.08] overflow-x-auto max-h-[380px] overflow-y-auto">
+                  <div className="rounded-xl border border-black/[0.08] overflow-x-auto max-h-[500px] overflow-y-auto">
                     <table className="w-full text-left text-xs min-w-[760px]">
                       <thead className="bg-slate-50 text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0 z-10">
                         <tr>
-                          <th className="px-3 py-2.5 w-8">#</th>
-                          <th className="px-3 py-2.5">Customer *</th>
-                          <th className="px-3 py-2.5">Date *</th>
-                          <th className="px-3 py-2.5">Driver</th>
-                          <th className="px-3 py-2.5">Vehicle</th>
-                          <th className="px-3 py-2.5">Category</th>
-                          <th className="px-3 py-2.5">Amount</th>
-                          <th className="px-3 py-2.5 text-right">Actions</th>
+                          <th className="px-3 py-2 w-8">#</th>
+                          <th className="px-3 py-2">Customer *</th>
+                          <th className="px-3 py-2">Date *</th>
+                          <th className="px-3 py-2">Driver</th>
+                          <th className="px-3 py-2">Vehicle</th>
+                          <th className="px-3 py-2">Category</th>
+                          <th className="px-3 py-2">Amount</th>
+                          <th className="px-3 py-2 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/[0.04]">
                         {gridRows.map((row, idx) => (
                           <tr key={row.id} className="hover:bg-slate-50/50">
-                            <td className="px-3 py-2 text-[#9898A4] font-medium">{idx + 1}</td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-1.5 text-[#9898A4] font-medium">{idx + 1}</td>
+                            <td className="px-3 py-1.5">
                               <select
                                 value={row.customerId}
                                 onChange={(e) => updateGridRow(row.id, { customerId: e.target.value })}
-                                className="w-36 h-8 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
                               >
                                 {customers.map((c) => (
                                   <option key={c.id} value={c.id}>
@@ -2150,19 +2151,19 @@ export default function BulkAddTripsModal({
                                 ))}
                               </select>
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-1.5">
                               <input
                                 type="date"
                                 value={row.date}
                                 onChange={(e) => updateGridRow(row.id, { date: e.target.value })}
-                                className="h-8 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                                className="h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
                               />
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-1.5">
                               <select
                                 value={row.driverId}
                                 onChange={(e) => updateGridRow(row.id, { driverId: e.target.value })}
-                                className="w-36 h-8 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
                               >
                                 <option value="">-- Unassigned --</option>
                                 {drivers.map((d) => (
@@ -2172,11 +2173,11 @@ export default function BulkAddTripsModal({
                                 ))}
                               </select>
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-1.5">
                               <select
                                 value={row.vehicleId}
                                 onChange={(e) => updateGridRow(row.id, { vehicleId: e.target.value })}
-                                className="w-36 h-8 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                                className="w-36 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
                               >
                                 <option value="">-- Unassigned --</option>
                                 {vehicles.map((v) => (
@@ -2186,11 +2187,11 @@ export default function BulkAddTripsModal({
                                 ))}
                               </select>
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-1.5">
                               <select
                                 value={row.rateCategory}
                                 onChange={(e) => updateGridRow(row.id, { rateCategory: e.target.value })}
-                                className="w-28 h-8 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                                className="w-28 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
                               >
                                 {MODAL_RATE_CATEGORIES.map((cat) => (
                                   <option key={cat} value={cat}>
@@ -2199,16 +2200,16 @@ export default function BulkAddTripsModal({
                                 ))}
                               </select>
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-1.5">
                               <input
                                 type="number"
                                 value={row.amount}
                                 onChange={(e) => updateGridRow(row.id, { amount: e.target.value })}
                                 placeholder="SAR"
-                                className="w-20 h-8 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
+                                className="w-20 h-7.5 px-2 rounded-lg border border-black/10 text-xs font-medium bg-white focus:outline-none focus:border-brand"
                               />
                             </td>
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-3 py-1.5 text-right">
                               <div className="inline-flex items-center gap-1">
                                 <button
                                   type="button"
@@ -2235,14 +2236,14 @@ export default function BulkAddTripsModal({
                   </div>
 
                   {/* Grid Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-black/[0.06]">
+                  <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.06]">
                     <p className="text-xs text-[#6E6E80]">
                       Total rows: <span className="font-bold text-[#111111]">{gridRows.length}</span>
                     </p>
                     <Button
                       disabled={bulkMutation.isPending || gridRows.length === 0}
                       onClick={handleGridSubmit}
-                      className="h-10 rounded-xl px-6 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                      className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
                     >
                       {bulkMutation.isPending ? (
                         <>
@@ -2259,7 +2260,7 @@ export default function BulkAddTripsModal({
 
               {/* TAB 3: CSV / EXCEL FILE IMPORT */}
               {activeTab === 'file' && (
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
                       <h4 className="text-sm font-bold text-[#111111]">Upload Spreadsheet</h4>
@@ -2281,7 +2282,7 @@ export default function BulkAddTripsModal({
                   {!importedFile ? (
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-black/10 hover:border-brand/50 rounded-2xl p-8 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-slate-50"
+                      className="border-2 border-dashed border-black/10 hover:border-brand/50 rounded-2xl p-5 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-slate-50"
                     >
                       <input
                         ref={fileInputRef}
@@ -2293,21 +2294,21 @@ export default function BulkAddTripsModal({
                           if (file) handleFileUpload(file);
                         }}
                       />
-                      <FileSpreadsheet className="h-10 w-10 text-[#9898A4] mx-auto mb-3" />
+                      <FileSpreadsheet className="h-8 w-8 text-[#9898A4] mx-auto mb-2" />
                       <p className="text-xs font-bold text-[#111111]">
                         Click to upload or drag and drop
                       </p>
-                      <p className="text-[11px] text-[#9898A4] mt-1">
+                      <p className="text-[10px] text-[#9898A4] mt-0.5">
                         CSV (.csv) or Microsoft Excel (.xlsx) files
                       </p>
                     </div>
                   ) : (
-                    <div className="p-4 rounded-xl border border-black/[0.08] bg-slate-50 flex items-center justify-between">
+                    <div className="p-3 rounded-xl border border-black/[0.08] bg-slate-50 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <FileSpreadsheet className="h-6 w-6 text-brand" />
+                        <FileSpreadsheet className="h-5 w-5 text-brand" />
                         <div>
                           <p className="text-xs font-bold text-[#111111]">{importedFile.name}</p>
-                          <p className="text-[11px] text-[#6E6E80]">
+                          <p className="text-[10px] text-[#6E6E80]">
                             {parsedRows.length} valid rows parsed
                           </p>
                         </div>
@@ -2319,7 +2320,7 @@ export default function BulkAddTripsModal({
                           setImportedFile(null);
                           setParsedRows([]);
                         }}
-                        className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         Remove
                       </Button>
@@ -2327,7 +2328,7 @@ export default function BulkAddTripsModal({
                   )}
 
                   {parseError && (
-                    <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       {parseError}
                     </div>
@@ -2335,11 +2336,11 @@ export default function BulkAddTripsModal({
 
                   {/* Parsed Preview Table */}
                   {parsedRows.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-[11px] font-bold text-[#9898A4] uppercase tracking-wider">
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold text-[#9898A4] uppercase tracking-wider">
                         Parsed File Preview ({parsedRows.length} Rows)
                       </p>
-                      <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[220px] overflow-y-auto">
+                      <div className="rounded-xl border border-black/[0.08] overflow-hidden max-h-[340px] overflow-y-auto">
                         <table className="w-full text-left text-xs">
                           <thead className="bg-slate-50 text-[10px] font-bold text-[#6E6E80] uppercase tracking-wider border-b border-black/[0.06] sticky top-0">
                             <tr>
@@ -2367,14 +2368,14 @@ export default function BulkAddTripsModal({
                   )}
 
                   {/* File Import Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-black/[0.06]">
+                  <div className="flex items-center justify-between pt-2.5 border-t border-black/[0.06]">
                     <p className="text-xs text-[#6E6E80]">
                       {parsedRows.length > 0 ? `${parsedRows.length} trips ready for import` : 'Upload a valid file to proceed'}
                     </p>
                     <Button
                       disabled={bulkMutation.isPending || parsedRows.length === 0}
                       onClick={handleFileSubmit}
-                      className="h-10 rounded-xl px-6 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                      className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
                     >
                       {bulkMutation.isPending ? (
                         <>
@@ -2394,14 +2395,14 @@ export default function BulkAddTripsModal({
 
         {/* Sticky Guided Footer Action Bar for Contract Batch */}
         {activeTab === 'contract' && !submissionResult && (
-          <div className="p-4 border-t border-black/[0.06] bg-slate-50/80 flex items-center justify-between shrink-0">
+          <div className="px-5 py-2.5 border-t border-black/[0.06] bg-slate-50/80 flex items-center justify-between shrink-0">
             <div>
               {contractStep > 1 ? (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setContractStep((prev) => (prev - 1) as any)}
-                  className="h-10 rounded-xl border-black/10 text-xs font-semibold bg-white hover:bg-slate-50"
+                  className="h-9 rounded-xl border-black/10 text-xs font-semibold bg-white hover:bg-slate-50"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Back
@@ -2411,7 +2412,7 @@ export default function BulkAddTripsModal({
                   type="button"
                   variant="ghost"
                   onClick={handleDialogClose}
-                  className="h-10 text-xs font-semibold text-slate-500 hover:text-slate-900"
+                  className="h-9 text-xs font-semibold text-slate-500 hover:text-slate-900"
                 >
                   Cancel
                 </Button>
@@ -2427,7 +2428,7 @@ export default function BulkAddTripsModal({
                     (contractStep === 3 && selectedDates.length === 0)
                   }
                   onClick={() => setContractStep((prev) => (prev + 1) as any)}
-                  className="h-10 rounded-xl px-6 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
+                  className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50 gap-1"
                 >
                   Next Step: {contractStep === 1 ? 'Route Slots' : contractStep === 2 ? 'Schedule' : contractStep === 3 ? 'Assignments' : 'Review'}
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -2437,7 +2438,7 @@ export default function BulkAddTripsModal({
                   type="button"
                   disabled={bulkMutation.isPending || batchTripRows.length === 0}
                   onClick={handleContractSubmit}
-                  className="h-10 rounded-xl px-6 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
+                  className="h-9 rounded-xl px-5 text-xs font-bold bg-brand hover:bg-[#d13d0d] text-white shadow-none disabled:opacity-50"
                 >
                   {bulkMutation.isPending ? (
                     <>

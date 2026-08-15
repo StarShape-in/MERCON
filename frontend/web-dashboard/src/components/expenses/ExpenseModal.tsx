@@ -12,6 +12,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_METHODS } from '@mercon/shared-types';
+import { getCategoryTheme } from '@/utils/expenseCategoryColors';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -227,11 +228,17 @@ export default function ExpenseModal({
                       <SelectValue placeholder="Select an expense category…" />
                     </SelectTrigger>
                     <SelectContent>
-                      {EXPENSE_CATEGORIES.map((c) => (
-                        <SelectItem key={c} value={c} className="text-xs">
-                          {c}
-                        </SelectItem>
-                      ))}
+                      {EXPENSE_CATEGORIES.map((c) => {
+                        const theme = getCategoryTheme(c);
+                        return (
+                          <SelectItem key={c} value={c} className="text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`} />
+                              <span className="font-medium">{c}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>

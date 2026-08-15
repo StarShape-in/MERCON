@@ -42,6 +42,8 @@ export interface Trip {
   vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null } | null;
   stops?: TripStop[];
   invoices?: { id: string; ref_id: string; total_amount: number; status: string }[];
+  vehicle_type?: string | null;
+  rate_category?: string | null;
   rateCardId?: string | null;
   rateCard?: {
     id: string;
@@ -50,7 +52,24 @@ export interface Trip {
     route_destination: string;
     base_price: number;
     currency: string;
+    vehicle_type?: string | null;
+    rate_category?: string | null;
   } | null;
+}
+
+export function getTripPayloadCapacity(trip: Partial<Trip>): string {
+  if (trip.vehicle_type) return trip.vehicle_type;
+  if (trip.rateCard?.vehicle_type) return trip.rateCard.vehicle_type;
+  if (trip.third_party_vehicle_type) return trip.third_party_vehicle_type;
+  if (trip.vehicle?.capacity_kg) {
+    const tons = trip.vehicle.capacity_kg / 1000;
+    return `${tons % 1 === 0 ? tons.toFixed(0) : tons.toFixed(1)} Tons`;
+  }
+  return '—';
+}
+
+export function getTripRateCategory(trip: Partial<Trip>): string {
+  return trip.rate_category || trip.rateCard?.rate_category || '—';
 }
 
 export interface TripStop {

@@ -49,6 +49,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import ExpenseModal from '@/components/expenses/ExpenseModal';
+import ExpenseCategoryBadge from '@/components/expenses/ExpenseCategoryBadge';
 import { expenseService, Expense, ExpenseStatus } from '@/services/expenseService';
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
@@ -235,9 +236,7 @@ export default function ExpenseDetailsPage() {
                   {expRef}
                 </h1>
                 <div className="flex items-center gap-2 flex-wrap mt-2">
-                  <Badge className="bg-orange-50 text-brand dark:bg-orange-950/30 dark:text-orange-400 border border-orange-200/60 font-bold text-[11px] rounded-full px-3 py-0.5 shadow-none">
-                    {record.category}
-                  </Badge>
+                  <ExpenseCategoryBadge category={record.category} size="md" />
                   {isPaid ? (
                     <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/60 rounded-full px-3 py-0.5 font-bold text-[11px] flex items-center gap-1.5 shadow-none">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -401,7 +400,7 @@ export default function ExpenseDetailsPage() {
                     label="Voucher Reference"
                     value={<span className="font-mono font-bold text-brand">{expRef}</span>}
                   />
-                  <Field label="Category" value={record.category} />
+                  <Field label="Category" value={<ExpenseCategoryBadge category={record.category} size="sm" />} />
                   <Field
                     label="Expense Amount"
                     value={

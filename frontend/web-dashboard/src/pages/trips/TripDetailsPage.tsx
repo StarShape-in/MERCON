@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ChevronRight, ChevronDown, Copy, Check, Printer, Phone, RefreshCcw,
   Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
-  Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
+  Calendar, ReceiptText, FileStack, PackageCheck, Gauge, Weight, Layers,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
   UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen, MessageCircle, UserCheck, History,
 } from 'lucide-react';
@@ -31,7 +31,7 @@ import {
 import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
 import UserChip, { useUserLookup } from '@/components/trips/UserChip';
 import {
-  tripService, TripStatus,
+  tripService, TripStatus, getTripPayloadCapacity, getTripRateCategory,
   type TripStop,
 } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
@@ -298,6 +298,8 @@ export default function TripDetailsPage() {
     { icon: RouteIcon, tone: 'bg-rose-50 text-rose-500', label: 'Distance', value: trip.planned_distance != null ? `${trip.planned_distance} km` : '—' },
     { icon: Timer, tone: 'bg-emerald-50 text-emerald-600', label: 'Elapsed', value: elapsedMinutes != null ? formatDelay(elapsedMinutes) : (estDurationMinutes != null ? formatDelay(estDurationMinutes) : '—') },
     { icon: Gauge, tone: 'bg-blue-50 text-blue-600', label: 'Avg. Speed', value: avgSpeedKmh != null ? `${avgSpeedKmh} km/h` : '—' },
+    { icon: Weight, tone: 'bg-purple-50 text-purple-600', label: 'Payload Capacity', value: getTripPayloadCapacity(trip) },
+    { icon: Layers, tone: 'bg-indigo-50 text-indigo-600', label: 'Rate Category', value: getTripRateCategory(trip) },
   ];
 
   // Activity checkpoints — 4 fixed lifecycle stages, derived from real stop/status data.
@@ -528,7 +530,7 @@ export default function TripDetailsPage() {
 
               <Separator className="my-5" />
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-5">
                 <div className="flex items-start gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                     <Building2 size={15} />
@@ -614,6 +616,30 @@ export default function TripDetailsPage() {
                     ) : (
                       trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>
                     )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                    <Weight size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Payload Cap.</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5 font-mono">
+                      {getTripPayloadCapacity(trip)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Layers size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Rate Category</p>
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
+                      {getTripRateCategory(trip)}
+                    </p>
                   </div>
                 </div>
 
@@ -897,6 +923,15 @@ export default function TripDetailsPage() {
                             Lane: <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_origin}</span> ➔ <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_destination}</span>
                           </p>
                         )}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-[#6E6E80]">
+                          <span>
+                            Payload Cap: <span className="font-semibold font-mono text-slate-800 dark:text-slate-200">{getTripPayloadCapacity(trip)}</span>
+                          </span>
+                          <span>•</span>
+                          <span>
+                            Rate Category: <span className="font-semibold text-slate-800 dark:text-slate-200">{getTripRateCategory(trip)}</span>
+                          </span>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-semibold text-[#9898A4]">Base Price</p>

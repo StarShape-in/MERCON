@@ -5,6 +5,8 @@ import { Wallet, Download, Plus, RotateCw, Edit2, Trash2, AlertTriangle, Users, 
 import { EXPENSE_CATEGORIES } from '@mercon/shared-types';
 
 import ExpenseModal from '@/components/expenses/ExpenseModal';
+import ExpenseCategoryBadge from '@/components/expenses/ExpenseCategoryBadge';
+import { getCategoryTheme } from '@/utils/expenseCategoryColors';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KpiCard from '@/components/ui/KpiCard';
 import { MoneyBills, CheckBadge, ClockIcon, DriverBadge } from '@/components/ui/kpi-icons';
@@ -279,9 +281,7 @@ export default function ExpenseListPage() {
               {
                 header: 'Category',
                 accessor: (r: Expense) => (
-                  <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-400 border-none rounded-full px-2.5 py-0.5 font-medium text-[11px] shadow-none w-fit">
-                    {r.category}
-                  </Badge>
+                  <ExpenseCategoryBadge category={r.category} />
                 ),
               },
               {
@@ -404,11 +404,17 @@ export default function ExpenseListPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {EXPENSE_CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
+                    {EXPENSE_CATEGORIES.map((c) => {
+                      const theme = getCategoryTheme(c);
+                      return (
+                        <SelectItem key={c} value={c} className="text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`} />
+                            <span>{c}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
 
