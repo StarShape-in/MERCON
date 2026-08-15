@@ -34,6 +34,8 @@ export interface DataTableProps<T> {
   searchPlaceholder?: string;
   searchValue?: string;
   onSearchChange?: (val: string) => void;
+  // Sorting
+  sortAccessor?: (row: T) => any;
   // Filters & Action Slots
   filterElement?: React.ReactNode;
   actionsElement?: React.ReactNode;
@@ -81,6 +83,7 @@ export default function DataTable<T>({
   searchPlaceholder = 'Search records...',
   searchValue,
   onSearchChange,
+  sortAccessor,
   filterElement,
   actionsElement,
   onExport,
