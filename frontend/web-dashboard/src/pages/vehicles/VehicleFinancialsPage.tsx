@@ -323,21 +323,18 @@ export default function VehicleFinancialsPage() {
     [activeRows, assetTypesForGrid]
   );
 
-  const expenseSplit = useMemo(() => {
-    const s = fleet?.fleet_summary;
-    if (!s) return [];
-    return [
-      { name: 'Maintenance', value: s.maintenance_expenses, fill: EXPENSE },
-      { name: 'Renewals', value: s.renewal_expenses, fill: RENEWAL },
-    ].filter((d) => d.value > 0);
-  }, [fleet]);
-
-  /** Fleet-wide average cost incurred per earning trip — a load-independent efficiency read. */
-  const fleetCostPerTrip = useMemo(() => {
-    const s = fleet?.fleet_summary;
-    if (!s || s.total_trips === 0) return 0;
-    return Math.round(s.total_expenses / s.total_trips);
-  }, [fleet]);
+  /** How many active vehicles land in each margin tier — richer than a two-slice
+   *  expense split, and reuses the same tiers as the profitability grid below. */
+  const marginDistribution = useMemo(() => {
+    const tierColor: Record<string, string> = {
+      high: '#059669', profitable: '#6ee7b7', low: '#fda4af', loss: '#e11d48',
+    };
+    return PROFIT_TIERS.map((tier) => ({
+      name: tier.label,
+      value: activeRows.filter((r) => tier.test(r.margin_percent)).length,
+      fill: tierColor[tier.key],
+    })).filter((d) => d.value > 0);
+  }, [activeRows]);
 
   /** Net profit, income and expenses rolled up by asset type — is one class of truck carrying the fleet? */
   const assetTypeBreakdown = useMemo(() => {
@@ -737,7 +734,7 @@ export default function VehicleFinancialsPage() {
             ) : (
               <>
                 {/* KPIs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                   <KpiCard
                     title="FLEET REVENUE"
                     value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{summary.total_income.toLocaleString()}</span>}
@@ -758,13 +755,6 @@ export default function VehicleFinancialsPage() {
                     variant={summary.net_profit >= 0 ? 'brand' : 'rose'}
                     description={`${summary.margin_percent}% overall margin`}
                     icon={CheckBadge}
-                  />
-                  <KpiCard
-                    title="AVG COST / TRIP"
-                    value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{fleetCostPerTrip.toLocaleString()}</span>}
-                    variant="slate"
-                    description="Fleet-wide expense per earning trip"
-                    icon={RouteLine}
                   />
                   <KpiCard
                     title="PROFITABLE VEHICLES"
@@ -848,24 +838,24 @@ export default function VehicleFinancialsPage() {
                   <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <PieChartIcon className="w-4 h-4 text-rose-600" /> Where the Money Goes
+                        <PieChartIcon className="w-4 h-4 text-indigo-600" /> Margin Distribution
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Fleet cost split between workshop maintenance and document renewals.
+                        How many active vehicles land in each profit tier this period.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {expenseSplit.length === 0 ? (
-                        <NoData message="No expenses recorded in this period." />
+                      {marginDistribution.length === 0 ? (
+                        <NoData message="No vehicle has recorded income or expenses in this period." />
                       ) : (
                         <>
                           <ChartContainer config={chartConfig} className="w-full aspect-square max-h-[240px]">
                             <PieChart>
                               <ChartTooltip
-                                content={<ChartTooltipContent nameKey="name" formatter={(v) => sar(Number(v))} />}
+                                content={<ChartTooltipContent nameKey="name" formatter={(v) => `${v} vehicle${Number(v) === 1 ? '' : 's'}`} />}
                               />
                               <Pie
-                                data={expenseSplit}
+                                data={marginDistribution}
                                 dataKey="value"
                                 nameKey="name"
                                 innerRadius={58}
@@ -877,13 +867,13 @@ export default function VehicleFinancialsPage() {
                           </ChartContainer>
                           <Separator className="my-3" />
                           <div className="space-y-2">
-                            {expenseSplit.map((s) => (
+                            {marginDistribution.map((s) => (
                               <div key={s.name} className="flex items-center justify-between text-xs">
                                 <span className="flex items-center gap-2 font-semibold text-slate-600 dark:text-slate-300">
                                   <span className="w-2.5 h-2.5 rounded-sm" style={{ background: s.fill }} />
                                   {s.name}
                                 </span>
-                                <span className="font-mono font-bold tabular-nums">{sar(s.value)}</span>
+                                <span className="font-mono font-bold tabular-nums">{s.value} vehicle{s.value === 1 ? '' : 's'}</span>
                               </div>
                             ))}
                           </div>
@@ -1151,7 +1141,7 @@ export default function VehicleFinancialsPage() {
                         title="COMPLETED TRIPS"
                         value={financials.summary.completed_trips_count}
                         variant="blue"
-                        description="Earning dispatches this period"
+                        description={`SAR ${vehicleCostPerTrip.toLocaleString()} avg cost / trip`}
                         icon={RouteLine}
                       />
                       <KpiCard
@@ -1160,20 +1150,6 @@ export default function VehicleFinancialsPage() {
                         variant="amber"
                         description="Service & renewal records logged"
                         icon={MaintenanceWrench}
-                      />
-                      <KpiCard
-                        title="COST / TRIP"
-                        value={<span><span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>{vehicleCostPerTrip.toLocaleString()}</span>}
-                        variant="slate"
-                        description="Average expense per completed trip"
-                        icon={RouteLine}
-                      />
-                      <KpiCard
-                        title="PROFIT MARGIN"
-                        value={`${financials.summary.margin_percent}%`}
-                        variant={financials.summary.margin_percent >= 0 ? 'emerald' : 'rose'}
-                        description="Operational asset margin"
-                        icon={FleetTruck}
                       />
                     </div>
 
