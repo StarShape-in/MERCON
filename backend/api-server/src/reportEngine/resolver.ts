@@ -58,6 +58,18 @@ const computeScalarFieldValue = (moduleKey: string, fieldName: string, obj: any)
   switch (fullKey) {
     case 'drivers.full_name':
       return `${obj.first_name || ''} ${obj.last_name || ''}`.trim();
+    case 'drivers.completed_trips':
+      return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Completed').length : 0;
+    case 'drivers.dispatched_trips':
+      return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Dispatched').length : 0;
+    case 'drivers.cancelled_trips':
+      return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Cancelled').length : 0;
+    case 'drivers.total_trips':
+      return Array.isArray(obj.trips) ? obj.trips.length : 0;
+    case 'drivers.revenue':
+      return Array.isArray(obj.trips)
+        ? obj.trips.filter((t: any) => t.status === 'Completed' || t.status === 'Invoiced').reduce((s: number, t: any) => s + tripIncome(t), 0)
+        : 0;
     case 'trips.revenue':
       return tripIncome(obj);
     case 'trips.count':
@@ -70,7 +82,17 @@ const computeScalarFieldValue = (moduleKey: string, fieldName: string, obj: any)
 };
 
 /** True for keys like `drivers.full_name` that don't map to a raw column. */
-const COMPUTED_FIELD_KEYS = new Set(['drivers.full_name', 'trips.revenue', 'trips.count', 'invoices.outstanding']);
+const COMPUTED_FIELD_KEYS = new Set([
+  'drivers.full_name',
+  'drivers.completed_trips',
+  'drivers.dispatched_trips',
+  'drivers.cancelled_trips',
+  'drivers.total_trips',
+  'drivers.revenue',
+  'trips.revenue',
+  'trips.count',
+  'invoices.outstanding',
+]);
 
 const validateFieldKey = (key: string): void => {
   if (COMPUTED_FIELD_KEYS.has(key)) return;
