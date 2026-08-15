@@ -582,8 +582,8 @@ export default function ImportantReminders({
                         <p className="text-[12px] font-extrabold text-slate-900 dark:text-slate-100 leading-tight truncate">
                           Operations Assistant
                         </p>
-                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-[#E8450F] text-white">
-                          Pending Alert
+                        <span className="text-[8.5px] font-black px-1.5 py-0.5 rounded-full bg-[#E8450F] text-white whitespace-nowrap shrink-0 leading-none">
+                          Pending
                         </span>
                       </div>
                       <p className="text-[11px] font-bold text-[#E8450F] mt-0.5 truncate">

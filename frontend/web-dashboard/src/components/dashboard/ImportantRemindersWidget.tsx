@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -204,8 +204,8 @@ export default function ImportantRemindersWidget({
                   <p className="text-[11px] font-extrabold text-slate-900 leading-tight truncate">
                     Operations Assistant
                   </p>
-                  <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-[#E8450F] text-white">
-                    Pending Alert
+                  <span className="text-[8.5px] font-black px-1.5 py-0.5 rounded-full bg-[#E8450F] text-white whitespace-nowrap shrink-0 leading-none">
+                    Pending
                   </span>
                 </div>
                 <p className="text-[10px] font-semibold text-[#E8450F] mt-0.5 truncate">
