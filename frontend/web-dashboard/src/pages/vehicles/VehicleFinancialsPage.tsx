@@ -33,6 +33,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const sar = (n: number) => `SAR ${Math.round(n).toLocaleString()}`;
 
+const PROFIT_TIERS = [
+  { key: 'high', label: 'High + profit', test: (m: number) => m >= 20 },
+  { key: 'profitable', label: 'Medium chans profit', test: (m: number) => m >= 10 && m < 20 },
+  { key: 'low', label: 'Low profit', test: (m: number) => m >= 0 && m < 10 },
+  { key: 'loss', label: 'Average profit', test: (m: number) => m < 0 },
+] as const;
+
 const monthLabel = (key: string) => {
   const [y, m] = key.split('-');
   const d = new Date(Number(y), Number(m) - 1, 1);
@@ -237,6 +244,27 @@ export default function VehicleFinancialsPage() {
   /* Derived fleet data --------------------------------------------------- */
 
   const fleetRows = useMemo(() => fleet?.vehicles ?? [], [fleet]);
+
+  const activeRows = useMemo(
+    () => fleetRows.filter((r) => r.total_income !== 0 || r.total_expenses !== 0),
+    [fleetRows]
+  );
+
+  const assetTypesForGrid = useMemo(
+    () => Array.from(new Set(activeRows.map((r) => r.asset_type))).sort(),
+    [activeRows]
+  );
+
+  const profitabilityGrid = useMemo(
+    () => PROFIT_TIERS.map((tier) => ({
+      tier,
+      cells: assetTypesForGrid.map((type) => ({
+        type,
+        vehicles: activeRows.filter((r) => r.asset_type === type && tier.test(r.margin_percent)),
+      })),
+    })),
+    [activeRows, assetTypesForGrid]
+  );
 
   const sortedRows = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
@@ -625,6 +653,116 @@ export default function VehicleFinancialsPage() {
                     icon={<ReceiptText className="w-4 h-4 text-slate-400" />}
                   />
                 </div>
+
+                {/* ── Asset Profitability Grid (mockup matching) ──────────────── */}
+                <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl shadow-2xs">
+                  <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-indigo-600" /> ASSET PROFITABILITY GRID
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Analyze active vehicles categorized by performance zones and vehicle types.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    {assetTypesForGrid.length === 0 ? (
+                      <NoData message="No vehicle has recorded income or expenses in this period." />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center w-full overflow-x-auto">
+                        <div className="min-w-[760px] w-full max-w-[1000px] flex flex-col gap-4">
+                          
+                          {/* Top Column Header */}
+                          <div className="text-center text-xs font-black tracking-widest text-slate-400 uppercase">
+                            Vehicle Type
+                          </div>
+
+                          <div className="flex gap-4">
+                            {/* Left Vertical Label */}
+                            <div className="flex items-center justify-center w-8 shrink-0">
+                              <span className="text-xs font-black tracking-widest text-slate-400 uppercase select-none -rotate-90 origin-center whitespace-nowrap">
+                                Region
+                              </span>
+                            </div>
+
+                            {/* Grid Body */}
+                            <div className="flex-1 flex flex-col gap-2">
+                              {/* Vehicle Types Column Titles */}
+                              <div
+                                className="grid gap-2"
+                                style={{ gridTemplateColumns: `140px repeat(${assetTypesForGrid.length}, 1fr)` }}
+                              >
+                                <div />
+                                {assetTypesForGrid.map((type) => (
+                                  <div
+                                    key={type}
+                                    className="text-center text-[10px] font-extrabold uppercase tracking-wider text-slate-500 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-md border border-slate-100 dark:border-slate-800/40"
+                                  >
+                                    {type}
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Rows */}
+                              {profitabilityGrid.map(({ tier, cells }) => (
+                                <div
+                                  key={tier.key}
+                                  className="grid gap-2 items-center"
+                                  style={{ gridTemplateColumns: `140px repeat(${assetTypesForGrid.length}, 1fr)` }}
+                                >
+                                  {/* Row Header Label */}
+                                  <div className="text-xs font-bold text-slate-700 dark:text-slate-300 pr-2">
+                                    {tier.label}
+                                  </div>
+
+                                  {/* Row Cells */}
+                                  {cells.map((cell) => (
+                                    <div
+                                      key={cell.type}
+                                      className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 p-2 min-h-[60px] flex flex-wrap content-center justify-center gap-1.5"
+                                    >
+                                      {cell.vehicles.length === 0 ? (
+                                        <span className="text-[10px] text-slate-400 italic select-none">—</span>
+                                      ) : (
+                                        cell.vehicles.map((v) => {
+                                          let cellColor = '';
+                                          if (tier.key === 'high') {
+                                            cellColor = 'bg-[#00B074] text-white shadow-2xs hover:bg-[#009b66]';
+                                          } else if (tier.key === 'profitable') {
+                                            cellColor = 'bg-[#2E7D32] text-white shadow-2xs hover:bg-[#256428]';
+                                          } else if (tier.key === 'low') {
+                                            cellColor = 'bg-[#374151] text-slate-200 shadow-2xs hover:bg-[#1f2937]';
+                                          } else {
+                                            cellColor = 'bg-[#FF5B5B] text-white shadow-2xs hover:bg-[#e04f4f]';
+                                          }
+
+                                          return (
+                                            <button
+                                              key={v.vehicle_id}
+                                              type="button"
+                                              onClick={() => openVehicle(v.vehicle_id)}
+                                              title={`${v.plate_number} · ${sar(v.net_profit)} · ${v.margin_percent}% margin`}
+                                              className={cn(
+                                                'px-3 py-1.5 rounded-lg text-[10px] font-extrabold tracking-wide shrink-0 transition-all active:scale-95',
+                                                cellColor
+                                              )}
+                                            >
+                                              {v.plate_number}
+                                            </button>
+                                          );
+                                        })
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Full comparison table */}
                 <DataTable<FleetVehicleFinancials>
