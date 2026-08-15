@@ -35,8 +35,10 @@ export interface Trip {
   } | null;
   created_by?: string | null;
   updated_by?: string | null;
+  deleted_by?: string | null;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
   customer?: { id: string; name: string; contact_phone: string };
   driver?: { id: string; ref_id: string; first_name: string; last_name: string; phone_primary: string; ai_risk_score?: number } | null;
   vehicle?: { id: string; ref_id: string; plate_number: string; asset_type: string; capacity_kg: number; icces_device_id: string | null } | null;

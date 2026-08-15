@@ -552,6 +552,12 @@ export default function ThirdPartyListPage() {
         {/* 4. Data Table Ledger & Cards View */}
         {viewMode === 'list' ? (
           <DataTable
+            title={
+              <span className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-purple-600" />
+                <span>Third-Party Fleet Ledger</span>
+              </span>
+            }
             columns={columns}
             data={providers}
             isLoading={isLoading}
