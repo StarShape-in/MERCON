@@ -166,7 +166,7 @@ export default function DocumentsCenterPage() {
   // Queries
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', 'all'],
-    queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
+    queryFn: async () => (await documentService.getAll({ per_page: 2000 })).data,
   });
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
@@ -454,15 +454,33 @@ export default function DocumentsCenterPage() {
     const companyDocs: EnrichedDocument[] = [];
     const unlinkedDocs: EnrichedDocument[] = [];
 
+    const plateDigitsMap = new Map<string, any>();
+    for (const v of vehicles) {
+      const digits = (v.plate_number || '').replace(/\D/g, '');
+      if (digits && digits.length >= 3) {
+        plateDigitsMap.set(digits, v);
+      }
+    }
+
     for (const doc of filteredDocs) {
       const isExp = doc.daysLeft !== null && doc.daysLeft <= 0;
 
-      if (doc.entity_type === 'Vehicle' && vehicleMap.has(doc.entity_id)) {
-        const v = vehicleMap.get(doc.entity_id)!;
-        if (!vehicleGroups.has(v.id)) {
-          vehicleGroups.set(v.id, { vehicle: v, docs: [], expiredCount: 0 });
+      let matchedVehicle = (doc.entity_type === 'Vehicle' && vehicleMap.has(doc.entity_id)) ? vehicleMap.get(doc.entity_id) : null;
+      if (!matchedVehicle) {
+        const fileUrlNorm = (doc.file_url || '').toLowerCase();
+        for (const [digits, v] of plateDigitsMap.entries()) {
+          if (fileUrlNorm.includes(digits)) {
+            matchedVehicle = v;
+            break;
+          }
         }
-        const g = vehicleGroups.get(v.id)!;
+      }
+
+      if (matchedVehicle) {
+        if (!vehicleGroups.has(matchedVehicle.id)) {
+          vehicleGroups.set(matchedVehicle.id, { vehicle: matchedVehicle, docs: [], expiredCount: 0 });
+        }
+        const g = vehicleGroups.get(matchedVehicle.id)!;
         g.docs.push(doc);
         if (isExp) g.expiredCount += 1;
       } else if (doc.entity_type === 'Driver' && driverMap.has(doc.entity_id)) {
@@ -473,7 +491,7 @@ export default function DocumentsCenterPage() {
         const g = driverGroups.get(d.id)!;
         g.docs.push(doc);
         if (isExp) g.expiredCount += 1;
-      } else if (doc.category === 'Operations') {
+      } else if (doc.category === 'Operations' || doc.entity_type === 'Trip') {
         operationsDocs.push(doc);
       } else if (doc.category === 'Company') {
         companyDocs.push(doc);
