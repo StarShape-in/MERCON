@@ -320,8 +320,8 @@ export default function TripListPage() {
         return aActive - bActive;
       }
 
-      const timeA = new Date(a.createdAt || a.created_at || a.planned_start || 0).getTime();
-      const timeB = new Date(b.createdAt || b.created_at || b.planned_start || 0).getTime();
+      const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
+      const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
       if (timeA !== timeB) {
         return timeB - timeA;
       }
