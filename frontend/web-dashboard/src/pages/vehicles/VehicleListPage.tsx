@@ -4,9 +4,9 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit2, FileText, Trash2, CheckCircle, XCircle, Send, Download, UploadCloud, Wrench,
-  RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck, 
+  RotateCw, Truck, Eye, Search, Filter, LayoutGrid, List, AlertTriangle, ShieldCheck,
   Gauge,Calendar, CheckCircle2, Clock, MoreVertical, Map, Navigation, X, ChevronDown,
-  ArrowDown, ArrowUp
+  ArrowDown, ArrowUp, Building2, MapPin
 } from 'lucide-react';
 import { FleetTruck, CheckBadge, MaintenanceWrench } from '@/components/ui/kpi-icons';
 
@@ -49,6 +49,17 @@ import {
   DropdownMenuLabel 
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+
+/** Origin → destination for an active trip, from its stops — same pickup/dropoff pattern used on the monthly board. */
+function tripRoute(trip: any): { origin: string | null; destination: string | null } {
+  const stops: any[] = trip?.stops || [];
+  const pickup = stops.find((s) => s.stop_type === 'Pickup') ?? stops[0] ?? null;
+  const dropoff = [...stops].reverse().find((s) => s.stop_type === 'Dropoff') ?? null;
+  return {
+    origin: pickup?.location_name || pickup?.location_address || null,
+    destination: dropoff?.location_name || dropoff?.location_address || null,
+  };
+}
 
 // Custom icon builder for the vehicles on the map (renders high-definition 3D Google Maps style navigation trucks)
 function createVehicleMapIcon(plateNumber: string, status: string, isDarkTheme: boolean) {
@@ -432,6 +443,49 @@ export default function VehicleListPage() {
                 </span>
               )}
             </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Assigned Company',
+      className: 'w-[150px] max-w-[160px]',
+      headerClassName: 'w-[150px] max-w-[160px]',
+      accessor: (row: Vehicle) => {
+        const activeTrip = row.trips?.[0];
+        const companyName = activeTrip?.customer?.name;
+        if (!companyName) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">—</span>;
+        }
+        return (
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[145px]">
+            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate" title={companyName}>
+              {companyName}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Trip Location',
+      className: 'w-[170px] max-w-[180px]',
+      headerClassName: 'w-[170px] max-w-[180px]',
+      accessor: (row: Vehicle) => {
+        const activeTrip = row.trips?.[0];
+        if (!activeTrip) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">—</span>;
+        }
+        const { origin, destination } = tripRoute(activeTrip);
+        if (!origin && !destination) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">Not set</span>;
+        }
+        return (
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[165px]" title={`${origin || '—'} → ${destination || '—'}`}>
+            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
+              {origin || '—'} <span className="text-slate-400">→</span> {destination || '—'}
+            </span>
           </div>
         );
       },
