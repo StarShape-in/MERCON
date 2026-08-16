@@ -216,14 +216,16 @@ export default function VehicleListPage() {
     }
   };
 
-  // Fetch vehicles using React Query (fetch per_page: 1000 when viewMode is map so all fleet markers render)
+  // Fetch vehicles using React Query. Map and Grid have no pagination
+  // controls of their own, so both fetch the whole fleet (per_page: 1000) —
+  // otherwise they'd silently cap at whatever page size List last used.
   const { data: vehiclesRes, isLoading, isError, error } = useQuery({
     queryKey: ['vehicles', selectedStatus, debouncedSearch, currentPage, pageSize, viewMode],
     queryFn: () => vehicleService.getAll({
       status: selectedStatus === 'All' ? undefined : selectedStatus,
       search: debouncedSearch || undefined,
-      page: viewMode === 'map' ? 1 : currentPage,
-      per_page: viewMode === 'map' ? 1000 : pageSize,
+      page: viewMode === 'list' ? currentPage : 1,
+      per_page: viewMode === 'list' ? pageSize : 1000,
     }),
   });
 
