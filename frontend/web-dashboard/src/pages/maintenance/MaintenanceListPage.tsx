@@ -7,7 +7,7 @@ import {
   Calendar, CheckCircle2, Clock, AlertTriangle, FileText, 
   DollarSign, Truck, Edit2, Trash2, ExternalLink, ShieldAlert,
   Building2, Gauge, Layers, ChevronDown, Tag, MoreVertical,
-  ChevronsUpDown, ArrowUp, LayoutGrid, List, Phone, Database,
+  ChevronsUpDown, ArrowDown, ArrowUp, LayoutGrid, List, Phone, Database,
   Banknote
 } from 'lucide-react';
 
@@ -56,6 +56,7 @@ export default function MaintenanceListPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -104,7 +105,11 @@ export default function MaintenanceListPage() {
     queryFn: () => vehicleService.getAll({ per_page: 100 }),
   });
 
-  const records = maintenanceRes?.data || [];
+  const records = [...(maintenanceRes?.data || [])].sort((a, b) => {
+    const dateA = new Date(a.createdAt || 0).getTime();
+    const dateB = new Date(b.createdAt || 0).getTime();
+    return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+  });
   const kpis = maintenanceRes?.kpis || {
     total_cost: 0,
     active_count: 0,
@@ -690,6 +695,19 @@ export default function MaintenanceListPage() {
                           <SelectItem value="Emergency">Emergency</SelectItem>
                         </SelectContent>
                       </Select>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest')}
+                        className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs"
+                      >
+                        {sortOrder === 'latest' ? (
+                          <><ArrowDown className="w-3.5 h-3.5 text-blue-600" /> Latest First</>
+                        ) : (
+                          <><ArrowUp className="w-3.5 h-3.5 text-amber-600" /> Oldest First</>
+                        )}
+                      </Button>
                     </div>
                   }
                   pageSize={pageSize}

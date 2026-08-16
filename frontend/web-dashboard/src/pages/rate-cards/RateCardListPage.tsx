@@ -694,6 +694,7 @@ export default function RateCardListPage() {
               }
               columns={columns}
               data={filteredData}
+              sortAccessor={(row: RateCard) => row.createdAt}
               bulkActions={bulkActions}
               enableSelection={true}
               compact={true}

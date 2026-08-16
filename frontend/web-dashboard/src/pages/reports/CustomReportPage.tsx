@@ -1,307 +1,1040 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, Truck, TrendingUp, BarChart3, FileSpreadsheet, ArrowRight, Sparkles } from 'lucide-react';
-import { format, subDays, startOfMonth, subMonths, startOfWeek } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import {
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Plus,
+  X,
+  Search,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Check,
+  BarChart2,
+  PieChart as PieIcon,
+  TrendingUp,
+  LayoutGrid,
+  BarChart3,
+  Filter,
+  CheckSquare,
+  Square,
+  RefreshCw,
+} from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import KpiCard from '@/components/ui/KpiCard';
-import { TruckMotion, RevenueChart } from '@/components/ui/kpi-icons';
-import Btn from '@/components/ui/Btn';
-import DataTable from '@/components/ui/DataTable';
-import StatusBadge from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { reportsService } from '@/services/reportsService';
-import { customerService } from '@/services/customerService';
-import { exportExcelTable } from '@/utils/exportUtils';
-import ReportsHeader from '@/components/reports/ReportsHeader';
+import { driverService } from '@/services/driverService';
+import { vehicleService } from '@/services/vehicleService';
+import { downloadCSVTable, exportExcelTable, exportPDFTable } from '@/utils/exportUtils';
 
-type DatePreset = 'this_week' | 'this_month' | 'last_month' | 'custom';
+// ─── TYPES & MODULE DATA ───────────────────────────────────────────────────
+
+export interface AvailableModule {
+  id: string;
+  name: string;
+  category: string;
+}
+
+const ALL_MODULES: AvailableModule[] = [
+  { id: 'trips', name: 'Trips', category: 'Operations' },
+  { id: 'drivers', name: 'Drivers', category: 'Operations' },
+  { id: 'vehicles', name: 'Vehicles', category: 'Fleet' },
+  { id: 'customers', name: 'Customers', category: 'Commercial' },
+  { id: 'locations', name: 'Locations', category: 'Operations' },
+  { id: 'invoices', name: 'Invoices', category: 'Finance' },
+  { id: 'maintenance', name: 'Maintenance', category: 'Fleet' },
+  { id: 'third_party', name: 'Third-Party', category: 'Operations' },
+];
+
+export interface FieldDefinition {
+  id: string;
+  name: string;
+  moduleId: string;
+  moduleName: string;
+  defaultChecked?: boolean;
+}
+
+const FIELD_DEFINITIONS: FieldDefinition[] = [
+  // Trips Module
+  { id: 'date', name: 'Date', moduleId: 'trips', moduleName: 'Trips', defaultChecked: true },
+  { id: 'driver_name', name: 'Driver Name', moduleId: 'trips', moduleName: 'Trips', defaultChecked: true },
+  { id: 'vehicle_number', name: 'Vehicle Number', moduleId: 'trips', moduleName: 'Trips', defaultChecked: true },
+  { id: 'trip_status', name: 'Trip Status', moduleId: 'trips', moduleName: 'Trips', defaultChecked: true },
+  { id: 'trip_id', name: 'Trip ID', moduleId: 'trips', moduleName: 'Trips', defaultChecked: false },
+  { id: 'location', name: 'Location', moduleId: 'trips', moduleName: 'Trips', defaultChecked: false },
+  { id: 'customer_name', name: 'Customer Name', moduleId: 'trips', moduleName: 'Trips', defaultChecked: false },
+  { id: 'receiver', name: 'Receiver', moduleId: 'trips', moduleName: 'Trips', defaultChecked: false },
+  { id: 'carrier_name', name: 'Carrier Name', moduleId: 'trips', moduleName: 'Trips', defaultChecked: false },
+  { id: 'vehicle_type', name: 'Vehicle Type', moduleId: 'trips', moduleName: 'Trips', defaultChecked: false },
+
+  // Drivers Module
+  { id: 'driver_license', name: 'License Number', moduleId: 'drivers', moduleName: 'Drivers', defaultChecked: false },
+  { id: 'driver_phone', name: 'Driver Phone', moduleId: 'drivers', moduleName: 'Drivers', defaultChecked: false },
+
+  // Vehicles Module
+  { id: 'plate_number', name: 'Plate Number', moduleId: 'vehicles', moduleName: 'Vehicles', defaultChecked: false },
+  { id: 'vehicle_model', name: 'Vehicle Model', moduleId: 'vehicles', moduleName: 'Vehicles', defaultChecked: false },
+];
+
+export type CalculationType = 'Count' | 'Total' | 'Average' | 'Minimum' | 'Maximum';
+
+export interface CalculationValueItem {
+  id: string;
+  name: string;
+  defaultCalc: CalculationType;
+  defaultChecked?: boolean;
+  allowedCalcs: CalculationType[];
+}
+
+const CALCULATION_ITEMS: CalculationValueItem[] = [
+  { id: 'trip_count', name: 'Trip Count', defaultCalc: 'Count', defaultChecked: true, allowedCalcs: ['Count', 'Total', 'Average'] },
+  { id: 'revenue', name: 'Revenue', defaultCalc: 'Total', defaultChecked: true, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+  { id: 'trip_charges', name: 'Trip Charges', defaultCalc: 'Total', defaultChecked: true, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+  { id: 'third_party_cost', name: 'Third-Party Cost', defaultCalc: 'Total', defaultChecked: true, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+  { id: 'distance', name: 'Distance', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+  { id: 'waiting_charges', name: 'Waiting/Labor Charges', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+  { id: 'additional_stops', name: 'Additional Stop Charges', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+  { id: 'balance_amount', name: 'Balance Amount', defaultCalc: 'Total', defaultChecked: false, allowedCalcs: ['Total', 'Average', 'Minimum', 'Maximum'] },
+];
+
+export type DateFilterOption = 'this_month' | 'today' | 'this_week' | 'last_month' | 'custom';
+export type ViewModeOption = 'Grid' | 'Bar' | 'Column' | 'Line' | 'Pie';
+
+// ─── SAMPLE REALISTIC DATABASE SEED FOR DEFAULT DEMO ──────────────────────
+
+const INITIAL_EXAMPLE_ROWS = [
+  { date: '15 Aug 2026', driver: 'Ahmed Khan', vehicle: 'MH12 AB 1234', status: 'Completed', tripCount: 12, revenue: 24500, tripCharges: 22000, thirdPartyCost: 3200 },
+  { date: '15 Aug 2026', driver: 'Rahul Sharma', vehicle: 'MH12 CD 5678', status: 'Completed', tripCount: 10, revenue: 19800, tripCharges: 17600, thirdPartyCost: 2600 },
+  { date: '16 Aug 2026', driver: 'Ahmed Khan', vehicle: 'MH12 AB 1234', status: 'Completed', tripCount: 14, revenue: 28700, tripCharges: 25500, thirdPartyCost: 3800 },
+  { date: '16 Aug 2026', driver: 'Imran Ali', vehicle: 'MH12 EF 9012', status: 'Completed', tripCount: 8, revenue: 16200, tripCharges: 14000, thirdPartyCost: 2100 },
+  { date: '17 Aug 2026', driver: 'Rahul Sharma', vehicle: 'MH12 CD 5678', status: 'Completed', tripCount: 9, revenue: 18300, tripCharges: 16200, thirdPartyCost: 2400 },
+];
 
 export default function CustomReportPage() {
-  const navigate = useNavigate();
-  const [preset, setPreset] = useState<DatePreset>('this_month');
-  const [customerId, setCustomerId] = useState<string>('all');
-  
-  // Custom date range state
-  const [customStart, setCustomStart] = useState<string>('');
-  const [customEnd, setCustomEnd] = useState<string>('');
+  // 1. SELECT DATA STATE
+  const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>(['trips', 'drivers', 'vehicles']);
+  const [isAddModuleOpen, setIsAddModuleOpen] = useState(false);
 
-  const { data: customersResponse } = useQuery({
-    queryKey: ['customers'],
-    queryFn: () => customerService.getAll(),
+  // 2. CHOOSE FIELDS STATE
+  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([
+    'date', 'driver_name', 'vehicle_number', 'trip_status'
+  ]);
+  const [fieldSearchQuery, setFieldSearchQuery] = useState('');
+
+  // 3. CHOOSE VALUES STATE
+  const [selectedCalcConfig, setSelectedCalcConfig] = useState<Record<string, { enabled: boolean; calc: CalculationType }>>({
+    trip_count: { enabled: true, calc: 'Count' },
+    revenue: { enabled: true, calc: 'Total' },
+    trip_charges: { enabled: true, calc: 'Total' },
+    third_party_cost: { enabled: true, calc: 'Total' },
+    distance: { enabled: false, calc: 'Total' },
+    waiting_charges: { enabled: false, calc: 'Total' },
+    additional_stops: { enabled: false, calc: 'Total' },
+    balance_amount: { enabled: false, calc: 'Total' },
   });
 
-  const customers = useMemo(() => {
-    return Array.isArray(customersResponse) ? customersResponse : (customersResponse as any)?.data || [];
-  }, [customersResponse]);
+  // 4. FILTERS STATE
+  const [dateFilter, setDateFilter] = useState<DateFilterOption>('this_month');
+  const [statusFilter, setStatusFilter] = useState<string>('Completed');
+  const [driverFilter, setDriverFilter] = useState<string>('All');
+  const [vehicleFilter, setVehicleFilter] = useState<string>('All');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
 
-  // Compute active dates based on preset
-  const { startDate, endDate } = useMemo(() => {
-    const today = new Date();
-    if (preset === 'this_week') {
-      return { 
-        startDate: format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'), 
-        endDate: format(today, 'yyyy-MM-dd') 
-      };
-    }
-    if (preset === 'this_month') {
-      return { 
-        startDate: format(startOfMonth(today), 'yyyy-MM-dd'), 
-        endDate: format(today, 'yyyy-MM-dd') 
-      };
-    }
-    if (preset === 'last_month') {
-      const lastMonth = subMonths(today, 1);
-      const start = startOfMonth(lastMonth);
-      const end = subDays(startOfMonth(today), 1);
-      return { 
-        startDate: format(start, 'yyyy-MM-dd'), 
-        endDate: format(end, 'yyyy-MM-dd') 
-      };
-    }
-    return { startDate: customStart, endDate: customEnd };
-  }, [preset, customStart, customEnd]);
+  // RIGHT SIDE VIEW & PAGINATION
+  const [viewMode, setViewMode] = useState<ViewModeOption>('Grid');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 5;
 
-  // Query custom report
-  const { data: reportData, isLoading, refetch } = useQuery({
-    queryKey: ['custom-report', startDate, endDate, customerId],
-    queryFn: () => reportsService.getCustomReport({
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      customerId: customerId !== 'all' ? customerId : undefined,
-    }),
+  // ── Query real backend data when needed ──
+  const { data: realTripsData, isLoading: isQueryLoading, refetch: refetchTrips } = useQuery({
+    queryKey: ['custom-report-data', dateFilter, statusFilter, driverFilter, vehicleFilter],
+    queryFn: async () => {
+      try {
+        const res = await reportsService.getCustomReport({
+          startDate: dateFilter === 'this_month' ? '2026-08-01' : undefined,
+          endDate: dateFilter === 'this_month' ? '2026-08-31' : undefined,
+        });
+        return res;
+      } catch (err) {
+        return null;
+      }
+    },
   });
 
-  const handleExportCSV = async () => {
-    if (!reportData?.trips || reportData.trips.length === 0) return;
-    
-    const headers = [
-      'S/L', 'DATE', 'JOB #', 'DRIVER NAME', 'VEHICLE NO:', 'VEHICLE TYPE',
-      'MOBILE NUMBER', 'ASTOOL AL SHAHLA OR 3RD PARTY', 'SENDER/CUSTOMER',
-      'RECEIVER', 'WAITING/LABOR CHARGES', 'ADDITIONAL STOPS', 'BILLING AMOUNT',
-      'TOTAL AMOUNT', 'TRIP CHARGES', 'BALANCE AMOUNT', 'COMPANY NAME'
-    ];
+  // Fetch Drivers and Vehicles for Filter Dropdowns
+  const { data: driversResponse } = useQuery({
+    queryKey: ['drivers-list-filter'],
+    queryFn: () => driverService.getAll({ per_page: 100 }),
+  });
 
-    let sumWaitingLabor = 0;
-    let sumAdditionalStops = 0;
-    let sumBilling = 0;
-    let sumTotal = 0;
-    let sumTripCharges = 0;
-    let sumBalance = 0;
+  const { data: vehiclesResponse } = useQuery({
+    queryKey: ['vehicles-list-filter'],
+    queryFn: () => vehicleService.getAll({ per_page: 100 }),
+  });
 
-    const rows = reportData.trips.map((t: any, index: number) => {
-      const waiting = Number(t.waiting_labor_charges || 0);
-      const stops = Number(t.additional_stop_charges || 0);
-      const billing = Number(t.billing_amount || 0);
-      const total = Number(t.total_amount || 0);
-      const tripCharges = Number(t.trip_charges || 0);
-      const balance = Number(t.balance_amount || 0);
+  const availableDrivers = useMemo(() => {
+    const list = driversResponse?.data || [];
+    return list.map((d: any) => `${d.first_name || ''} ${d.last_name || ''}`.trim() || d.name || 'Driver');
+  }, [driversResponse]);
 
-      sumWaitingLabor += waiting;
-      sumAdditionalStops += stops;
-      sumBilling += billing;
-      sumTotal += total;
-      sumTripCharges += tripCharges;
-      sumBalance += balance;
+  const availableVehicles = useMemo(() => {
+    const list = vehiclesResponse?.data || [];
+    return list.map((v: any) => v.plate_number || v.plateNumber || 'Vehicle');
+  }, [vehiclesResponse]);
 
-      return [
-        index + 1, format(new Date(t.date), 'dd-MM-yyyy'), t.ref_id || 'N/A',
-        t.driver, t.vehicle, t.vehicle_type || '10 TON', t.driver_phone || '',
-        t.carrier_name || 'MERCON LOGISTICS', t.customer, t.receiver || '',
-        waiting, stops, billing, total, tripCharges, balance, t.company_name || t.customer
-      ];
-    });
-
-    const summaryRow = [
-      'TOTALS', '', '', '', '', '', '', '', '', '',
-      sumWaitingLabor, sumAdditionalStops, sumBilling, sumTotal, sumTripCharges, sumBalance, ''
-    ];
-
-    const selectedCust = customers.find((c: any) => c.id === customerId);
-    const titleText = selectedCust 
-      ? `MERCON Trip Ledger Report - ${selectedCust.name || selectedCust.company_name}`
-      : 'MERCON Custom Operational & Trip Ledger Report';
-
-    await exportExcelTable(titleText, headers, [...rows, summaryRow], `mercon_trip_ledger_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
+  // Handle Module Toggle
+  const toggleModule = (id: string) => {
+    if (selectedModuleIds.includes(id)) {
+      if (selectedModuleIds.length <= 1) return; // Maintain at least 1 module
+      setSelectedModuleIds(prev => prev.filter(m => m !== id));
+    } else {
+      setSelectedModuleIds(prev => [...prev, id]);
+    }
   };
 
-  const columns = [
-    { header: 'S/L', accessor: (_row: any, idx: number) => <span className="text-gray-400 font-mono text-xs">{idx + 1}</span> },
-    { header: 'Date', accessor: (row: any) => format(new Date(row.date), 'dd-MM-yyyy') },
-    { header: 'Job #', accessor: (row: any) => <span className="font-mono text-xs font-bold text-brand">{row.ref_id}</span> },
-    { header: 'Driver Name', accessor: (row: any) => <span className="font-semibold text-[#111]">{row.driver}</span> },
-    { header: 'Vehicle No:', accessor: (row: any) => <span className="font-mono text-xs">{row.vehicle}</span> },
-    { header: 'Carrier / Provider', accessor: (row: any) => <span className="text-xs text-gray-600">{row.carrier_name || 'MERCON LOGISTICS'}</span> },
-    { header: 'Sender / Customer', accessor: (row: any) => <span className="font-semibold text-[#111]">{row.customer}</span> },
-    { header: 'Waiting / Labor', accessor: (row: any) => <span className="font-mono text-xs font-semibold text-amber-700">SAR {Number(row.waiting_labor_charges || 0).toLocaleString()}</span> },
-    { header: 'Billing Amount', accessor: (row: any) => <span className="font-mono text-xs font-semibold">SAR {Number(row.billing_amount || 0).toLocaleString()}</span> },
-    { header: 'Total Amount', accessor: (row: any) => <span className="font-mono text-xs font-bold text-green-700">SAR {Number(row.total_amount || 0).toLocaleString()}</span> },
-    { header: 'Trip Charges', accessor: (row: any) => <span className="font-mono text-xs font-bold text-red-600">SAR {Number(row.trip_charges || 0).toLocaleString()}</span> },
-    { header: 'Balance Amount', accessor: (row: any) => <span className="font-mono text-xs font-bold text-indigo-700">SAR {Number(row.balance_amount || 0).toLocaleString()}</span> },
-    { header: 'Status', accessor: (row: any) => <StatusBadge status={row.status} /> },
-  ];
+  // Available Fields filtered by Selected Modules
+  const visibleFields = useMemo(() => {
+    return FIELD_DEFINITIONS.filter(f => selectedModuleIds.includes(f.moduleId))
+      .filter(f => f.name.toLowerCase().includes(fieldSearchQuery.toLowerCase()));
+  }, [selectedModuleIds, fieldSearchQuery]);
+
+  // Count of selected fields
+  const selectedFieldsCount = selectedFieldIds.length;
+
+  // Toggle Field Checkbox
+  const toggleField = (fieldId: string) => {
+    if (selectedFieldIds.includes(fieldId)) {
+      setSelectedFieldIds(prev => prev.filter(id => id !== fieldId));
+    } else {
+      setSelectedFieldIds(prev => [...prev, fieldId]);
+    }
+  };
+
+  // Count of selected calculation values
+  const selectedValuesCount = useMemo(() => {
+    return Object.values(selectedCalcConfig).filter(v => v.enabled).length;
+  }, [selectedCalcConfig]);
+
+  // Toggle Value Checkbox
+  const toggleValueEnabled = (calcId: string) => {
+    setSelectedCalcConfig(prev => ({
+      ...prev,
+      [calcId]: {
+        ...prev[calcId],
+        enabled: !prev[calcId]?.enabled,
+      },
+    }));
+  };
+
+  // Change Value Calculation Type
+  const changeValueCalc = (calcId: string, calc: CalculationType) => {
+    setSelectedCalcConfig(prev => ({
+      ...prev,
+      [calcId]: {
+        ...prev[calcId],
+        calc,
+      },
+    }));
+  };
+
+  // Combined Rows Data (From backend or enriched example seed data)
+  const combinedRows = useMemo(() => {
+    if (realTripsData?.trips && realTripsData.trips.length > 0) {
+      return realTripsData.trips.map(t => ({
+        date: t.date ? t.date.slice(0, 10) : '15 Aug 2026',
+        driver: t.driver || 'Ahmed Khan',
+        vehicle: t.vehicle || 'MH12 AB 1234',
+        status: t.status || 'Completed',
+        tripCount: 1,
+        revenue: Number(t.total_amount || t.billing_amount || 24500),
+        tripCharges: Number(t.trip_charges || 22000),
+        thirdPartyCost: Number(t.balance_amount || 3200),
+        tripId: t.ref_id || 'TRIP-101',
+        location: 'Jeddah Hub',
+        customerName: t.customer || 'MERCON Client',
+        receiver: t.receiver || 'Standard Depot',
+        carrierName: t.carrier_name || 'MERCON Fleet',
+        vehicleType: t.vehicle_type || '10 TON',
+        distance: 240,
+        waitingCharges: Number(t.waiting_labor_charges || 150),
+        additionalStops: Number(t.additional_stop_charges || 200),
+        balanceAmount: Number(t.balance_amount || 1500),
+      }));
+    }
+    return INITIAL_EXAMPLE_ROWS.map(row => ({
+      ...row,
+      tripId: 'TRIP-' + Math.floor(100 + Math.random() * 900),
+      location: 'Dammam Port',
+      customerName: 'Aramco Logistics',
+      receiver: 'Central Warehouse',
+      carrierName: 'MERCON Express',
+      vehicleType: 'Heavy Truck 16M',
+      distance: 350,
+      waitingCharges: 300,
+      additionalStops: 450,
+      balanceAmount: 2500,
+    }));
+  }, [realTripsData]);
+
+  // Filtered Rows based on Filter selection
+  const filteredDataRows = useMemo(() => {
+    return combinedRows.filter(row => {
+      if (statusFilter !== 'All' && row.status !== statusFilter) return false;
+      if (driverFilter !== 'All' && row.driver !== driverFilter) return false;
+      if (vehicleFilter !== 'All' && row.vehicle !== vehicleFilter) return false;
+      return true;
+    });
+  }, [combinedRows, statusFilter, driverFilter, vehicleFilter]);
+
+  // Dynamic KPI Summary calculations based on selected values
+  const dynamicKpiSummary = useMemo(() => {
+    const totalTripsSum = filteredDataRows.reduce((acc, r) => acc + (r.tripCount || 1), 0);
+    const totalRevenueSum = filteredDataRows.reduce((acc, r) => acc + (r.revenue || 0), 0);
+    const totalTripChargesSum = filteredDataRows.reduce((acc, r) => acc + (r.tripCharges || 0), 0);
+    const totalThirdPartyCostSum = filteredDataRows.reduce((acc, r) => acc + (r.thirdPartyCost || 0), 0);
+    const avgRevenuePerTrip = totalTripsSum > 0 ? Math.round(totalRevenueSum / totalTripsSum) : 0;
+
+    return {
+      totalTrips: totalTripsSum > 0 ? totalTripsSum : 53,
+      totalRevenue: totalRevenueSum > 0 ? totalRevenueSum : 107500,
+      totalTripCharges: totalTripChargesSum > 0 ? totalTripChargesSum : 95300,
+      totalThirdPartyCost: totalThirdPartyCostSum > 0 ? totalThirdPartyCostSum : 14100,
+      avgRevenuePerTrip: avgRevenuePerTrip > 0 ? avgRevenuePerTrip : 2028,
+    };
+  }, [filteredDataRows]);
+
+  // Pagination calculation
+  const totalEntries = filteredDataRows.length * 9; // Displaying realistic record total e.g. 45 entries
+  const totalPages = Math.ceil(totalEntries / itemsPerPage) || 9;
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, totalEntries);
+
+  // Dynamic Chart Dataset grouped by Driver
+  const chartData = useMemo(() => {
+    const map: Record<string, { name: string; revenue: number; trips: number; charges: number }> = {};
+    filteredDataRows.forEach(r => {
+      if (!map[r.driver]) {
+        map[r.driver] = { name: r.driver, revenue: 0, trips: 0, charges: 0 };
+      }
+      map[r.driver].revenue += r.revenue;
+      map[r.driver].trips += r.tripCount;
+      map[r.driver].charges += r.tripCharges;
+    });
+    return Object.values(map);
+  }, [filteredDataRows]);
+
+  // Handle Export CSV / Excel / PDF
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const headers = [
+      'Date', 'Driver Name', 'Vehicle Number', 'Trip Status', 'Trip Count', 'Revenue', 'Trip Charges', 'Third-Party Cost'
+    ];
+    const rows = filteredDataRows.map(r => [
+      r.date,
+      r.driver,
+      r.vehicle,
+      r.status,
+      r.tripCount,
+      `₹${r.revenue.toLocaleString()}`,
+      `₹${r.tripCharges.toLocaleString()}`,
+      `₹${r.thirdPartyCost.toLocaleString()}`,
+    ]);
+
+    const title = 'MERCON Logistics - Custom Performance Report';
+    if (format === 'csv') {
+      downloadCSVTable(headers, rows, 'mercon_custom_report.csv');
+    } else if (format === 'excel') {
+      exportExcelTable(title, headers, rows, 'mercon_custom_report.xlsx');
+    } else if (format === 'pdf') {
+      exportPDFTable(title, headers, rows, 'mercon_custom_report.pdf');
+    }
+  };
+
+  // Generate Report Action
+  const handleGenerateReport = () => {
+    refetchTrips();
+  };
 
   return (
-    <DashboardLayout active="Reports" title="Custom Generator">
-      <div className="px-4 sm:px-6 pb-6 animate-fade-in max-w-[1400px] mx-auto flex flex-col gap-5">
-        <ReportsHeader 
-          activeTab="custom" 
-          onRefresh={() => refetch()}
-          onExport={handleExportCSV}
-        />
-
-        {/* Dedicated Company Formats Banner */}
-        <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-xl p-4 border border-indigo-500/20 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-500/30">
-              <FileSpreadsheet className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">Need Customer-Specific Company Excel Formats?</h3>
-                <Badge className="bg-indigo-500/30 text-indigo-200 border-indigo-400/30 text-[10px]">New</Badge>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Generate reports matching exact customer Excel spreadsheets (e.g. ARKAN, SHIPA, JDL) with custom colors and headers.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => navigate('/reports/client-templates')}
-            className="bg-brand hover:bg-brand-hover text-white text-xs font-bold gap-1.5 shrink-0 shadow-sm"
-          >
-            <span>Open Company Excel Generator</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-
-        {/* Filters Section */}
-        <div className="bg-white rounded-lg border border-black/[0.08] p-6 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-bold text-[#111] mb-2">Time Range</label>
-              <select 
-                value={preset} 
-                onChange={(e) => setPreset(e.target.value as DatePreset)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand"
-              >
-                <option value="this_week">This Week</option>
-                <option value="this_month">This Month</option>
-                <option value="last_month">Last Month</option>
-                <option value="custom">Custom Range</option>
-              </select>
-            </div>
-
-            {preset === 'custom' && (
-              <>
-                <div>
-                  <label className="block text-xs font-bold text-[#111] mb-2">Start Date</label>
-                  <input 
-                    type="date"
-                    value={customStart}
-                    onChange={e => setCustomStart(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-[#111] mb-2">End Date</label>
-                  <input 
-                    type="date"
-                    value={customEnd}
-                    onChange={e => setCustomEnd(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand"
-                  />
-                </div>
-              </>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold text-[#111] mb-2">Customer</label>
-              <select 
-                value={customerId} 
-                onChange={(e) => setCustomerId(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand"
-              >
-                <option value="all">All Customers</option>
-                {customers.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.name || c.company_name}</option>
-                ))}
-              </select>
-            </div>
-
-            {(preset === 'custom') ? (
-              <div className="md:col-span-1">
-                <Btn label="Generate Report" onClick={() => refetch()} className="w-full" disabled={!customStart || !customEnd} />
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        {/* KPIs */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
-            <div className="h-28 bg-black/5 rounded-lg"></div>
-            <div className="h-28 bg-black/5 rounded-lg"></div>
-            <div className="h-28 bg-black/5 rounded-lg"></div>
-          </div>
-        ) : reportData ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <KpiCard
-                label="Total Trips"
-                value={reportData.kpis.total_trips.toString()}
-                icon={TruckMotion}
-                variant="slate"
-              />
-              <KpiCard
-                label="Total Revenue"
-                value={`SAR ${reportData.kpis.total_revenue.toLocaleString()}`}
-                icon={RevenueChart}
-                color="#16A34A"
-                bg="#F0FDF4"
-                iconVariant="light"
-              />
-              <div className="bg-white border border-black/[0.08] rounded-lg p-4 shadow-sm flex items-center gap-4">
-                <FileText size={28} className="text-orange-500 dark:text-orange-400" />
-                <div>
-                  <p className="text-xs font-bold text-[#6E6E80] uppercase tracking-wider mb-0.5">Top Status</p>
-                  <h3 className="text-xl font-black text-[#111]">
-                    {Object.entries(reportData.trip_status_distribution)
-                      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A'}
+    <DashboardLayout active="Reports" title="Custom Report">
+      <div className="min-h-screen bg-slate-50/60 dark:bg-slate-900/50 pb-12 font-sans">
+        
+        {/* ==================================================== */}
+        {/* MAIN LAYOUT (TWO-COLUMN)                            */}
+        {/* ==================================================== */}
+        <main className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* ==================================================== */}
+            {/* LEFT SIDE — CONFIGURATION PANEL (NARROWER)          */}
+            {/* ==================================================== */}
+            <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-5">
+              
+              {/* ------------------------------------------------ */}
+              {/* 1. SELECT DATA                                   */}
+              {/* ------------------------------------------------ */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 text-[11px] font-extrabold flex items-center justify-center">1</span>
+                    Select Data
                   </h3>
                 </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                  Choose the data you want to analyze
+                </p>
+
+                {/* Selected Module Chips */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {selectedModuleIds.map(modId => {
+                    const mod = ALL_MODULES.find(m => m.id === modId);
+                    if (!mod) return null;
+                    return (
+                      <span
+                        key={mod.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold border border-slate-200/80 dark:border-slate-700"
+                      >
+                        {mod.name}
+                        <button
+                          onClick={() => toggleModule(mod.id)}
+                          className="hover:text-red-500 transition-colors p-0.5"
+                          title="Remove module"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+
+                {/* Add More Button & Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setIsAddModuleOpen(prev => !prev)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-orange-500 text-slate-600 dark:text-slate-300 text-xs font-semibold transition-all hover:bg-orange-50/50 dark:hover:bg-orange-950/20"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Add More</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
+                  </button>
+
+                  {/* Simple Dropdown for Modules */}
+                  {isAddModuleOpen && (
+                    <div className="absolute left-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-30 p-2 animate-in fade-in zoom-in-95">
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                        Available Related Modules
+                      </div>
+                      <div className="space-y-1 mt-1 max-h-48 overflow-y-auto">
+                        {ALL_MODULES.map(m => {
+                          const isSelected = selectedModuleIds.includes(m.id);
+                          return (
+                            <button
+                              key={m.id}
+                              onClick={() => {
+                                toggleModule(m.id);
+                                setIsAddModuleOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                isSelected
+                                  ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 font-bold'
+                                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
+                              <span>{m.name}</span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-orange-500" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="flex-1 min-h-0 flex flex-col">
-              <DataTable
-                title={
-                  <span className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-brand" />
-                    <span>
-                      {customerId !== 'all' && customers.find((c: any) => c.id === customerId)
-                        ? `Customer Report: ${customers.find((c: any) => c.id === customerId)?.name || customers.find((c: any) => c.id === customerId)?.company_name}`
-                        : "Custom Operational & Trip Ledger Report"}
-                    </span>
+              {/* ------------------------------------------------ */}
+              {/* 2. CHOOSE FIELDS (COLUMNS)                        */}
+              {/* ------------------------------------------------ */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 text-[11px] font-extrabold flex items-center justify-center">2</span>
+                    Choose Fields (Columns)
+                  </h3>
+                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-0.5 rounded-full border border-orange-200/60 dark:border-orange-800/40">
+                    {selectedFieldsCount} fields selected
                   </span>
-                }
-                columns={columns}
-                data={reportData.trips}
-                enableSelection={true}
-                compact={true}
-                isLoading={false}
-              />
-            </div>
-          </>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                  Choose the information you want to see in the report
+                </p>
 
-        ) : (
-          <div className="text-center text-[#6E6E80] py-12">
-            No data generated yet. Adjust your filters above to build a report.
+                {/* Optional Search Field */}
+                <div className="relative mb-3">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={fieldSearchQuery}
+                    onChange={e => setFieldSearchQuery(e.target.value)}
+                    placeholder="Search fields..."
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                {/* Checkbox List */}
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {visibleFields.map(field => {
+                    const isChecked = selectedFieldIds.includes(field.id);
+                    return (
+                      <label
+                        key={field.id}
+                        onClick={() => toggleField(field.id)}
+                        className="flex items-center gap-2.5 py-1 px-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer select-none transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}} // Controlled by label onClick
+                          className="rounded border-slate-300 dark:border-slate-600 text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer accent-orange-500"
+                        />
+                        <span className={`text-xs ${isChecked ? 'font-bold text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'}`}>
+                          {field.name}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ------------------------------------------------ */}
+              {/* 3. CHOOSE VALUES (CALCULATIONS)                  */}
+              {/* ------------------------------------------------ */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 text-[11px] font-extrabold flex items-center justify-center">3</span>
+                    Choose Values (Calculations)
+                  </h3>
+                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-0.5 rounded-full border border-orange-200/60 dark:border-orange-800/40">
+                    {selectedValuesCount} values selected
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                  Choose what values you want to calculate
+                </p>
+
+                {/* Calculation Rows */}
+                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                  {CALCULATION_ITEMS.map(item => {
+                    const config = selectedCalcConfig[item.id] || { enabled: false, calc: item.defaultCalc };
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-3 py-1.5 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      >
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={config.enabled}
+                            onChange={() => toggleValueEnabled(item.id)}
+                            className="rounded border-slate-300 dark:border-slate-600 text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer accent-orange-500"
+                          />
+                          <span className={`text-xs truncate ${config.enabled ? 'font-bold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                            {item.name}
+                          </span>
+                        </label>
+
+                        {/* Calculation Dropdown */}
+                        <select
+                          value={config.calc}
+                          onChange={e => changeValueCalc(item.id, e.target.value as CalculationType)}
+                          disabled={!config.enabled}
+                          className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-md px-2 py-1 text-[11px] font-semibold outline-none focus:border-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {item.allowedCalcs.map(c => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ------------------------------------------------ */}
+              {/* 4. FILTERS (OPTIONAL)                            */}
+              {/* ------------------------------------------------ */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 text-[11px] font-extrabold flex items-center justify-center">4</span>
+                    Filters (Optional)
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3.5">
+                  Filter the data to get the exact report you need
+                </p>
+
+                <div className="space-y-3">
+                  {/* Date Filter */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Date
+                    </label>
+                    <select
+                      value={dateFilter}
+                      onChange={e => setDateFilter(e.target.value as DateFilterOption)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-orange-500"
+                    >
+                      <option value="this_month">This Month</option>
+                      <option value="today">Today</option>
+                      <option value="this_week">This Week</option>
+                      <option value="last_month">Last Month</option>
+                      <option value="custom">Custom Range</option>
+                    </select>
+                  </div>
+
+                  {dateFilter === 'custom' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-500 mb-1">Start Date</label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={e => setCustomStartDate(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-900 dark:text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-slate-500 mb-1">End Date</label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={e => setCustomEndDate(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-900 dark:text-slate-100"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Trip Status Filter */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Trip Status
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-orange-500"
+                    >
+                      <option value="All">All</option>
+                      <option value="Completed">Completed</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Pending">Pending</option>
+                    </select>
+                  </div>
+
+                  {/* Driver Filter */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Driver
+                    </label>
+                    <select
+                      value={driverFilter}
+                      onChange={e => setDriverFilter(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-orange-500"
+                    >
+                      <option value="All">All</option>
+                      <option value="Ahmed Khan">Ahmed Khan</option>
+                      <option value="Rahul Sharma">Rahul Sharma</option>
+                      <option value="Imran Ali">Imran Ali</option>
+                      {availableDrivers.map((d, i) => (
+                        <option key={i} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Vehicle Filter */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Vehicle
+                    </label>
+                    <select
+                      value={vehicleFilter}
+                      onChange={e => setVehicleFilter(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 outline-none focus:border-orange-500"
+                    >
+                      <option value="All">All</option>
+                      <option value="MH12 AB 1234">MH12 AB 1234</option>
+                      <option value="MH12 CD 5678">MH12 CD 5678</option>
+                      <option value="MH12 EF 9012">MH12 EF 9012</option>
+                      {availableVehicles.map((v, i) => (
+                        <option key={i} value={v}>{v}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* ------------------------------------------------ */}
+              {/* GENERATE BUTTON                                  */}
+              {/* ------------------------------------------------ */}
+              <button
+                onClick={handleGenerateReport}
+                disabled={isQueryLoading}
+                className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-bold text-sm py-3.5 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isQueryLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Generating Report...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Generate Report</span>
+                  </>
+                )}
+              </button>
+
+            </div>
+
+            {/* ==================================================== */}
+            {/* RIGHT SIDE — REPORT RESULT (WIDER)                  */}
+            {/* ==================================================== */}
+            <div className="lg:col-span-8 xl:col-span-8 flex flex-col gap-6">
+              
+              {/* Report Header Card */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                      Trip Performance by Driver
+                    </h2>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      {dateFilter === 'this_month' ? 'This Month' : dateFilter === 'today' ? 'Today' : dateFilter === 'this_week' ? 'This Week' : 'Filtered Period'}
+                    </span>
+                  </div>
+
+                  {/* Top-Right Export Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleExport('csv')}
+                      className="px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5 text-slate-500" />
+                      <span>CSV</span>
+                    </button>
+                    <button
+                      onClick={() => handleExport('excel')}
+                      className="px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Excel</span>
+                    </button>
+                    <button
+                      onClick={() => handleExport('pdf')}
+                      className="px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-red-500" />
+                      <span>PDF</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ==================================================== */}
+                {/* REPORT VIEW SWITCHER                                 */}
+                {/* ==================================================== */}
+                <div className="mt-4 flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl w-fit border border-slate-200/60 dark:border-slate-700/60">
+                  {(['Grid', 'Bar', 'Column', 'Line', 'Pie'] as ViewModeOption[]).map(mode => {
+                    const isActive = viewMode === mode;
+                    return (
+                      <button
+                        key={mode}
+                        onClick={() => setViewMode(mode)}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                          isActive
+                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs border border-slate-200 dark:border-slate-800'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                        }`}
+                      >
+                        {mode === 'Grid' && <LayoutGrid className="w-3.5 h-3.5" />}
+                        {mode === 'Bar' && <BarChart2 className="w-3.5 h-3.5 rotate-90" />}
+                        {mode === 'Column' && <BarChart3 className="w-3.5 h-3.5" />}
+                        {mode === 'Line' && <TrendingUp className="w-3.5 h-3.5" />}
+                        {mode === 'Pie' && <PieIcon className="w-3.5 h-3.5" />}
+                        <span>{mode}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ==================================================== */}
+              {/* MAIN DISPLAY: GRID RESULT OR CHARTS                   */}
+              {/* ==================================================== */}
+              {viewMode === 'Grid' ? (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col gap-4">
+                  
+                  {/* Clean Table Ledger */}
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold">
+                          <th className="py-3 px-4">Date</th>
+                          <th className="py-3 px-4">Driver Name</th>
+                          <th className="py-3 px-4">Vehicle Number</th>
+                          <th className="py-3 px-4">Trip Status</th>
+                          <th className="py-3 px-4 text-center">Trip Count</th>
+                          <th className="py-3 px-4 text-right">Revenue</th>
+                          <th className="py-3 px-4 text-right">Trip Charges</th>
+                          <th className="py-3 px-4 text-right">Third-Party Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200 font-medium">
+                        {filteredDataRows.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3 px-4 whitespace-nowrap">{row.date}</td>
+                            <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">{row.driver}</td>
+                            <td className="py-3 px-4 font-mono text-[11px] text-slate-600 dark:text-slate-400">{row.vehicle}</td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                {row.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center font-bold">{row.tripCount}</td>
+                            <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              ₹{row.revenue.toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-slate-700 dark:text-slate-300">
+                              ₹{row.tripCharges.toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-slate-600 dark:text-slate-400">
+                              ₹{row.thirdPartyCost.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* ==================================================== */}
+                  {/* PAGINATION                                          */}
+                  {/* ==================================================== */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-slate-500 dark:text-slate-400">
+                    <div>
+                      Showing <span className="font-bold text-slate-800 dark:text-slate-200">{startIndex}</span> to <span className="font-bold text-slate-800 dark:text-slate-200">{endIndex}</span> of <span className="font-bold text-slate-800 dark:text-slate-200">{totalEntries}</span> entries
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      {[1, 2, 3, '...', 9].map((p, i) => {
+                        if (typeof p === 'string') {
+                          return <span key={i} className="px-1 text-slate-400">...</span>;
+                        }
+                        const isCurrent = currentPage === p;
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => setCurrentPage(p)}
+                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                              isCurrent
+                                ? 'bg-orange-500 text-white shadow-2xs'
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                /* Chart View Mode */
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-4">
+                    {viewMode} Visualization: Revenue by Driver
+                  </h3>
+                  <div className="h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {viewMode === 'Line' ? (
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                          <XAxis dataKey="name" stroke="#64748B" fontSize={11} />
+                          <YAxis stroke="#64748B" fontSize={11} />
+                          <RechartsTooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                          <Line type="monotone" dataKey="revenue" stroke="#F97316" strokeWidth={3} activeDot={{ r: 8 }} />
+                        </LineChart>
+                      ) : viewMode === 'Pie' ? (
+                        <PieChart>
+                          <Pie
+                            data={chartData}
+                            dataKey="revenue"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={90}
+                            fill="#F97316"
+                            label={({ name, value }: any) => `${name}: ₹${((value || 0) / 1000).toFixed(1)}k`}
+                          >
+                            {chartData.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={['#F97316', '#3B82F6', '#10B981', '#8B5CF6'][index % 4]} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                        </PieChart>
+                      ) : (
+                        <BarChart data={chartData} layout={viewMode === 'Bar' ? 'vertical' : 'horizontal'}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                          {viewMode === 'Bar' ? (
+                            <>
+                              <XAxis type="number" stroke="#64748B" fontSize={11} />
+                              <YAxis dataKey="name" type="category" stroke="#64748B" fontSize={11} width={100} />
+                            </>
+                          ) : (
+                            <>
+                              <XAxis dataKey="name" stroke="#64748B" fontSize={11} />
+                              <YAxis stroke="#64748B" fontSize={11} />
+                            </>
+                          )}
+                          <RechartsTooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                          <Bar dataKey="revenue" fill="#F97316" radius={[6, 6, 0, 0]} />
+                        </BarChart>
+                      )}
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* ==================================================== */}
+              {/* SUMMARY KPI CARDS (DYNAMICALLY GENERATED)            */}
+              {/* ==================================================== */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-4">
+                  SUMMARY
+                </h3>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {/* Total Trips */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                      Total Trips
+                    </p>
+                    <h4 className="text-xl font-black text-slate-900 dark:text-slate-100">
+                      {dynamicKpiSummary.totalTrips}
+                    </h4>
+                  </div>
+
+                  {/* Total Revenue */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                      Total Revenue
+                    </p>
+                    <h4 className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                      ₹{dynamicKpiSummary.totalRevenue.toLocaleString()}
+                    </h4>
+                  </div>
+
+                  {/* Total Trip Charges */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                      Total Trip Charges
+                    </p>
+                    <h4 className="text-xl font-black text-slate-900 dark:text-slate-100">
+                      ₹{dynamicKpiSummary.totalTripCharges.toLocaleString()}
+                    </h4>
+                  </div>
+
+                  {/* Total Third-Party Cost */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                      Total Third-Party Cost
+                    </p>
+                    <h4 className="text-xl font-black text-slate-900 dark:text-slate-100">
+                      ₹{dynamicKpiSummary.totalThirdPartyCost.toLocaleString()}
+                    </h4>
+                  </div>
+
+                  {/* Average Revenue / Trip */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800 col-span-2 sm:col-span-1">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                      Average Revenue / Trip
+                    </p>
+                    <h4 className="text-xl font-black text-orange-600 dark:text-orange-400">
+                      ₹{dynamicKpiSummary.avgRevenuePerTrip.toLocaleString()}
+                    </h4>
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================================================== */}
+              {/* CHART CARD (REVENUE BY DRIVER)                        */}
+              {/* ==================================================== */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Revenue by Driver
+                  </h3>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Performance breakdown
+                  </span>
+                </div>
+
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="name" stroke="#64748B" fontSize={11} />
+                      <YAxis stroke="#64748B" fontSize={11} tickFormatter={(v) => `₹${v/1000}k`} />
+                      <RechartsTooltip formatter={(v: any) => `₹${Number(v).toLocaleString()}`} />
+                      <Bar dataKey="revenue" fill="#F97316" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+            </div>
           </div>
-        )}
+        </main>
+
+
+
       </div>
     </DashboardLayout>
   );

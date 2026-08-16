@@ -58,6 +58,18 @@ const computeScalarFieldValue = (moduleKey: string, fieldName: string, obj: any)
   switch (fullKey) {
     case 'drivers.full_name':
       return `${obj.first_name || ''} ${obj.last_name || ''}`.trim();
+    case 'drivers.completed_trips':
+      return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Completed').length : 0;
+    case 'drivers.dispatched_trips':
+      return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Dispatched').length : 0;
+    case 'drivers.cancelled_trips':
+      return Array.isArray(obj.trips) ? obj.trips.filter((t: any) => t.status === 'Cancelled').length : 0;
+    case 'drivers.total_trips':
+      return Array.isArray(obj.trips) ? obj.trips.length : 0;
+    case 'drivers.revenue':
+      return Array.isArray(obj.trips)
+        ? obj.trips.filter((t: any) => t.status === 'Completed' || t.status === 'Invoiced').reduce((s: number, t: any) => s + tripIncome(t), 0)
+        : 0;
     case 'trips.revenue':
       return tripIncome(obj);
     case 'trips.count':
@@ -70,7 +82,17 @@ const computeScalarFieldValue = (moduleKey: string, fieldName: string, obj: any)
 };
 
 /** True for keys like `drivers.full_name` that don't map to a raw column. */
-const COMPUTED_FIELD_KEYS = new Set(['drivers.full_name', 'trips.revenue', 'trips.count', 'invoices.outstanding']);
+const COMPUTED_FIELD_KEYS = new Set([
+  'drivers.full_name',
+  'drivers.completed_trips',
+  'drivers.dispatched_trips',
+  'drivers.cancelled_trips',
+  'drivers.total_trips',
+  'drivers.revenue',
+  'trips.revenue',
+  'trips.count',
+  'invoices.outstanding',
+]);
 
 const validateFieldKey = (key: string): void => {
   if (COMPUTED_FIELD_KEYS.has(key)) return;
@@ -202,24 +224,44 @@ export async function runReportQuery(spec: ReportQuerySpec): Promise<ReportResul
   allFieldKeys.forEach(validateFieldKey);
 
   const neededModules = new Set(allFieldKeys.map((k) => k.split('.')[0]));
-  const joinInfo = buildJoinInfo(root, neededModules);
-
-  const include: Record<string, any> = {};
-  for (const [, edge] of joinInfo) {
-    include[edge.relationField] = edge.cardinality === 'toMany' ? { where: { deletedAt: null } } : true;
+  if (root.key === 'drivers') {
+    neededModules.add('trips');
   }
 
-  const where: Record<string, any> = { deletedAt: null };
+  const MASTER_ENTITY_MODULES = new Set(['drivers', 'vehicles', 'customers', 'thirdParty', 'locations']);
+
+  const joinInfo = buildJoinInfo(root, neededModules);
+
+  const dateRangeFilter: Record<string, Date> = {};
   if (spec.dateRange?.start || spec.dateRange?.end) {
-    const dateField = spec.dateRange.field || root.defaultDateField;
-    const range: Record<string, Date> = {};
-    if (spec.dateRange.start) range.gte = new Date(spec.dateRange.start);
+    if (spec.dateRange.start) dateRangeFilter.gte = new Date(spec.dateRange.start);
     if (spec.dateRange.end) {
       const end = new Date(spec.dateRange.end);
       end.setHours(23, 59, 59, 999);
-      range.lte = end;
+      dateRangeFilter.lte = end;
     }
-    where[dateField] = range;
+  }
+
+  const include: Record<string, any> = {};
+  for (const [, edge] of joinInfo) {
+    if (edge.cardinality === 'toMany') {
+      const childWhere: Record<string, any> = { deletedAt: null };
+      if (Object.keys(dateRangeFilter).length > 0) {
+        if (edge.toModule === 'trips') childWhere.createdAt = dateRangeFilter;
+        else if (edge.toModule === 'maintenance') childWhere.service_date = dateRangeFilter;
+        else if (edge.toModule === 'expenses') childWhere.expense_date = dateRangeFilter;
+        else if (edge.toModule === 'invoices') childWhere.createdAt = dateRangeFilter;
+      }
+      include[edge.relationField] = { where: childWhere };
+    } else {
+      include[edge.relationField] = true;
+    }
+  }
+
+  const where: Record<string, any> = { deletedAt: null };
+  if (!MASTER_ENTITY_MODULES.has(root.key) && Object.keys(dateRangeFilter).length > 0) {
+    const dateField = spec.dateRange?.field || root.defaultDateField;
+    where[dateField] = dateRangeFilter;
   }
 
   const delegate = (prisma as any)[root.prismaModel];
@@ -278,6 +320,27 @@ export async function runReportQuery(spec: ReportQuerySpec): Promise<ReportResul
     );
   }
   kpis['recordCount'] = filtered.length;
+
+  if (root.key === 'drivers') {
+    const totalCompletedTrips = filtered.reduce((sum: number, r: any) => sum + (computeScalarFieldValue('drivers', 'completed_trips', r) || 0), 0);
+    const totalDispatchedTrips = filtered.reduce((sum: number, r: any) => sum + (computeScalarFieldValue('drivers', 'dispatched_trips', r) || 0), 0);
+    const totalCancelledTrips = filtered.reduce((sum: number, r: any) => sum + (computeScalarFieldValue('drivers', 'cancelled_trips', r) || 0), 0);
+    const totalTrips = filtered.reduce((sum: number, r: any) => sum + (computeScalarFieldValue('drivers', 'total_trips', r) || 0), 0);
+    const activeDrivers = filtered.filter((r: any) => (computeScalarFieldValue('drivers', 'completed_trips', r) || 0) > 0).length;
+    const inactiveDrivers = filtered.length - activeDrivers;
+    const avgTripsPerActiveDriver = activeDrivers > 0 ? Number((totalCompletedTrips / activeDrivers).toFixed(2)) : null;
+
+    kpis['totalCompletedTrips'] = totalCompletedTrips;
+    kpis['totalDispatchedTrips'] = totalDispatchedTrips;
+    kpis['totalCancelledTrips'] = totalCancelledTrips;
+    kpis['totalTrips'] = totalTrips;
+    kpis['totalDrivers'] = filtered.length;
+    kpis['activeDrivers'] = activeDrivers;
+    kpis['inactiveDrivers'] = inactiveDrivers;
+    if (avgTripsPerActiveDriver !== null) {
+      kpis['avgTripsPerActiveDriver'] = avgTripsPerActiveDriver;
+    }
+  }
 
   return {
     rows: resultRows,

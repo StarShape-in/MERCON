@@ -4,9 +4,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ChevronRight, ChevronDown, Copy, Check, Printer, Phone, RefreshCcw,
   Navigation, CheckCircle2, XCircle, AlertTriangle, ListChecks,
-  Calendar, ReceiptText, FileStack, PackageCheck, Gauge, Weight, Layers,
+  Calendar, ReceiptText, FileStack, PackageCheck, Gauge,
   Building2, User as UserIcon, Truck, FileText, Route as RouteIcon,
   UploadCloud, ExternalLink, Timer, MapPin, ArrowRight, SquarePen, MessageCircle, UserCheck, History,
+  Coins, Pencil, Plus, DollarSign, HardHat,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -31,7 +32,7 @@ import {
 import TripLiveMapCard from '@/components/maps/TripLiveMapCard';
 import UserChip, { useUserLookup } from '@/components/trips/UserChip';
 import {
-  tripService, TripStatus, getTripPayloadCapacity, getTripRateCategory,
+  tripService, TripStatus,
   type TripStop,
 } from '@/services/tripService';
 import { driverService } from '@/services/driverService';
@@ -184,6 +185,21 @@ export default function TripDetailsPage() {
     },
   });
 
+  // State & Mutation for Labour Charges
+  const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
+  const [laborChargeInput, setLaborChargeInput] = useState(trip?.waiting_labor_charges?.toString() || '0');
+  const [additionalLaborInput, setAdditionalLaborInput] = useState(trip?.additional_stop_charges?.toString() || '0');
+
+  const updateLaborMutation = useMutation({
+    mutationFn: (payload: { waiting_labor_charges: number; additional_stop_charges: number }) =>
+      tripService.updateFinancials(tripEntityId!, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trip', tripEntityId] });
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+      setIsLaborModalOpen(false);
+    },
+  });
+
   const handleCopyId = async () => {
     if (!trip) return;
     try {
@@ -268,14 +284,14 @@ export default function TripDetailsPage() {
   // vehicle are assigned — otherwise assign them first via the banner below.
   const rawNextStatus = getNextStatus(trip.status);
   const nextStatusOption =
-    rawNextStatus === 'Dispatched' && !trip.is_third_party && (!trip.driver || !trip.vehicle) ? null : rawNextStatus;
+    rawNextStatus === 'Dispatched' && (!trip.driver || !trip.vehicle) ? null : rawNextStatus;
 
   const canCancel = !['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
   const isClosed = ['Completed', 'Invoiced', 'Cancelled'].includes(trip.status);
   const pickup = trip.stops?.find((s) => s.stop_type === 'Pickup');
   const dropoff = trip.stops?.find((s) => s.stop_type === 'Dropoff');
   const invoice = trip.invoices?.[0];
-  const needsAssignment = trip.status === 'Draft' && !trip.is_third_party && (!trip.driver || !trip.vehicle);
+  const needsAssignment = trip.status === 'Draft' && (!trip.driver || !trip.vehicle);
 
   // Overall trip progress — Cancelled is its own dead-end state, not a stage.
   const stageIndex = STAGE_ORDER.indexOf(trip.status);
@@ -298,8 +314,6 @@ export default function TripDetailsPage() {
     { icon: RouteIcon, tone: 'bg-rose-50 text-rose-500', label: 'Distance', value: trip.planned_distance != null ? `${trip.planned_distance} km` : '—' },
     { icon: Timer, tone: 'bg-emerald-50 text-emerald-600', label: 'Elapsed', value: elapsedMinutes != null ? formatDelay(elapsedMinutes) : (estDurationMinutes != null ? formatDelay(estDurationMinutes) : '—') },
     { icon: Gauge, tone: 'bg-blue-50 text-blue-600', label: 'Avg. Speed', value: avgSpeedKmh != null ? `${avgSpeedKmh} km/h` : '—' },
-    { icon: Weight, tone: 'bg-purple-50 text-purple-600', label: 'Payload Capacity', value: getTripPayloadCapacity(trip) },
-    { icon: Layers, tone: 'bg-indigo-50 text-indigo-600', label: 'Rate Category', value: getTripRateCategory(trip) },
   ];
 
   // Activity checkpoints — 4 fixed lifecycle stages, derived from real stop/status data.
@@ -487,7 +501,7 @@ export default function TripDetailsPage() {
                     <Tooltip>
                       <TooltipTrigger>
                         <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
-                          {fullDateTime(trip.createdAt)}
+                          {new Date(trip.createdAt).toLocaleDateString()}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>{new Date(trip.createdAt).toLocaleString()}</TooltipContent>
@@ -501,28 +515,12 @@ export default function TripDetailsPage() {
                     <Tooltip>
                       <TooltipTrigger>
                         <span className="text-[11px] font-medium text-[#111] dark:text-slate-300 cursor-default">
-                          {fullDateTime(trip.updatedAt)}
+                          {new Date(trip.updatedAt).toLocaleDateString()}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>{new Date(trip.updatedAt).toLocaleString()}</TooltipContent>
                     </Tooltip>
                   </div>
-
-                  {trip.deletedAt && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dotted border-red-300 dark:border-red-800 text-xs bg-red-50/50 dark:bg-red-950/20">
-                      <span className="text-[11px] font-medium text-red-600 dark:text-red-400">Deleted:</span>
-                      <UserChip userId={trip.deleted_by} users={users} size="sm" className="font-semibold text-red-700 dark:text-red-300 decoration-slate-400" />
-                      <span className="text-[10px] text-red-400">•</span>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span className="text-[11px] font-medium text-red-700 dark:text-red-300 cursor-default">
-                            {fullDateTime(trip.deletedAt)}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{new Date(trip.deletedAt).toLocaleString()}</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  )}
                 </div>
 
                 <div className="text-right shrink-0">
@@ -546,7 +544,7 @@ export default function TripDetailsPage() {
 
               <Separator className="my-5" />
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
                 <div className="flex items-start gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                     <Building2 size={15} />
@@ -556,23 +554,6 @@ export default function TripDetailsPage() {
                     <p className="text-sm font-semibold text-[#111] truncate mt-0.5">{trip.customer?.name || '—'}</p>
                   </div>
                 </div>
-
-                {trip.is_third_party && (
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                      <Building2 size={15} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">3PL Provider</p>
-                      <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate mt-0.5" title={trip.thirdPartyProvider?.name || trip.carrier_name || '3PL Logistics'}>
-                        {trip.thirdPartyProvider?.name || trip.carrier_name || '3PL Logistics'}
-                      </p>
-                      {trip.thirdPartyProvider?.contact_person && (
-                        <p className="text-xs text-[#6E6E80] truncate">{trip.thirdPartyProvider.contact_person}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 <div className="flex items-start gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
@@ -622,9 +603,7 @@ export default function TripDetailsPage() {
                         : 'Unassigned'}
                     </p>
                     {trip.is_third_party ? (
-                      (trip.third_party_driver_phone || trip.thirdPartyProvider?.phone) && (
-                        <p className="text-xs text-[#6E6E80] truncate">{trip.third_party_driver_phone || trip.thirdPartyProvider?.phone}</p>
-                      )
+                      trip.third_party_driver_phone && <p className="text-xs text-[#6E6E80] truncate">{trip.third_party_driver_phone}</p>
                     ) : (
                       trip.driver?.phone_primary && <p className="text-xs text-[#6E6E80] truncate">{trip.driver.phone_primary}</p>
                     )}
@@ -646,35 +625,11 @@ export default function TripDetailsPage() {
                     </p>
                     {trip.is_third_party ? (
                       <p className="text-xs text-[#6E6E80] truncate">
-                        {trip.third_party_vehicle_type || trip.thirdPartyProvider?.name || 'Third-Party'}
+                        {trip.thirdPartyProvider?.name || 'Third-Party'}
                       </p>
                     ) : (
                       trip.vehicle?.asset_type && <p className="text-xs text-[#6E6E80] truncate">{trip.vehicle.asset_type}</p>
                     )}
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                    <Weight size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Payload Cap.</p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5 font-mono">
-                      {getTripPayloadCapacity(trip)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Layers size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Rate Category</p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
-                      {getTripRateCategory(trip)}
-                    </p>
                   </div>
                 </div>
 
@@ -695,35 +650,67 @@ export default function TripDetailsPage() {
                   </div>
                 </div>
 
-                {trip.is_third_party && (
+                {isClosed ? (
+                  /* ── Labour Charge Quick-Action (Completed / Invoiced trips) ── */
                   <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                      <ReceiptText size={15} />
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/70">
+                      <Coins size={15} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">3PL Cost</p>
-                      <p className="text-sm font-bold text-rose-600 font-mono truncate mt-0.5">
-                        {trip.third_party_cost ? `SAR ${Number(trip.third_party_cost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">Labour Charge</p>
+                      {(trip.waiting_labor_charges || 0) > 0 ? (
+                        <>
+                          <p className="text-sm font-bold text-amber-700 font-mono truncate mt-0.5">
+                            SAR {Number(trip.waiting_labor_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLaborChargeInput(String(trip.waiting_labor_charges || 0));
+                              setAdditionalLaborInput(String(trip.additional_stop_charges || 0));
+                              setIsLaborModalOpen(true);
+                            }}
+                            className="text-[10px] font-semibold text-brand hover:text-brand-hover underline underline-offset-2 mt-0.5 cursor-pointer transition-colors"
+                          >
+                            Edit charge ↗
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-[#9898A4] truncate mt-0.5">No charge</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLaborChargeInput('0');
+                              setAdditionalLaborInput('0');
+                              setIsLaborModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md px-1.5 py-0.5 mt-1 cursor-pointer transition-colors"
+                          >
+                            <Plus size={10} />
+                            Add Labour Charge
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* ── ETA (active / draft trips) ── */
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-black/[0.05] text-[#6E6E80] flex items-center justify-center shrink-0">
+                      <Calendar size={15} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">ETA</p>
+                      <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
+                        {trip.planned_end ? new Date(trip.planned_end).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                       </p>
-                      <p className="text-xs text-[#6E6E80] truncate">Provider Cost</p>
+                      {trip.planned_end && (
+                        <p className="text-xs text-[#6E6E80] truncate">{new Date(trip.planned_end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                      )}
                     </div>
                   </div>
                 )}
-
-                <div className="flex items-start gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-black/[0.05] text-[#6E6E80] flex items-center justify-center shrink-0">
-                    <Calendar size={15} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">ETA</p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
-                      {trip.planned_end ? new Date(trip.planned_end).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                    </p>
-                    {trip.planned_end && (
-                      <p className="text-xs text-[#6E6E80] truncate">{new Date(trip.planned_end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
-                    )}
-                  </div>
-                </div>
               </div>
             </Card>
 
@@ -973,15 +960,6 @@ export default function TripDetailsPage() {
                             Lane: <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_origin}</span> ➔ <span className="font-semibold text-slate-800 dark:text-slate-200">{trip.rateCard.route_destination}</span>
                           </p>
                         )}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-[#6E6E80]">
-                          <span>
-                            Payload Cap: <span className="font-semibold font-mono text-slate-800 dark:text-slate-200">{getTripPayloadCapacity(trip)}</span>
-                          </span>
-                          <span>•</span>
-                          <span>
-                            Rate Category: <span className="font-semibold text-slate-800 dark:text-slate-200">{getTripRateCategory(trip)}</span>
-                          </span>
-                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-semibold text-[#9898A4]">Base Price</p>
@@ -1131,8 +1109,8 @@ export default function TripDetailsPage() {
 
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-2 mt-5">
-                {(trip.driver?.phone_primary || (trip.is_third_party && (trip.third_party_driver_phone || trip.thirdPartyProvider?.phone))) ? (
-                  <a href={`tel:${trip.driver?.phone_primary || trip.third_party_driver_phone || trip.thirdPartyProvider?.phone}`} className="w-full">
+                {trip.driver?.phone_primary ? (
+                  <a href={`tel:${trip.driver.phone_primary}`} className="w-full">
                     <Button variant="outline" size="sm" className="w-full h-8.5 rounded-xl border-black/[0.08] dark:border-slate-800 bg-white dark:bg-slate-900 text-[#111] dark:text-slate-200 hover:bg-black/[0.03] text-xs font-semibold gap-1.5 cursor-pointer">
                       <Phone size={13} />
                       Call Driver
@@ -1184,6 +1162,100 @@ export default function TripDetailsPage() {
                 ))}
               </CardContent>
             </Card>
+
+            {/* ── Labour & Waiting Charges Card ─────────────────────── */}
+            <Card className="rounded-xl border border-black/[0.12] dark:border-slate-800 bg-white dark:bg-slate-900 p-5 gap-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8.5 h-8.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/70 dark:border-amber-900/60">
+                    <Coins size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#111] dark:text-slate-100">Labour & Extra Charges</h3>
+                    <p className="text-[11px] text-[#6E6E80] dark:text-slate-400">Waiting, detention & helper fees</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setLaborChargeInput(String(trip.waiting_labor_charges || 0));
+                    setAdditionalLaborInput(String(trip.additional_stop_charges || 0));
+                    setIsLaborModalOpen(true);
+                  }}
+                  className="h-7.5 px-2.5 rounded-lg text-xs font-semibold text-[#111] dark:text-slate-200 border-black/[0.12] dark:border-slate-700 hover:bg-black/[0.04] dark:hover:bg-slate-800 gap-1 cursor-pointer"
+                >
+                  <Pencil size={12} className="text-[#6E6E80]" />
+                  Edit
+                </Button>
+              </div>
+
+              {/* Amount Box */}
+              <div className="mt-4 p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                    Waiting / Labour Fee
+                  </span>
+                  <span
+                    className={cn(
+                      'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                      (trip.waiting_labor_charges || 0) > 0
+                        ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-800'
+                        : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                    )}
+                  >
+                    {(trip.waiting_labor_charges || 0) > 0 ? 'Applied' : 'No Charge'}
+                  </span>
+                </div>
+                <p className="text-2xl font-extrabold text-amber-950 dark:text-amber-100 font-mono tracking-tight mt-1">
+                  SAR {Number(trip.waiting_labor_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+
+              {/* Breakdown Rows */}
+              <div className="mt-3.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between py-1.5 border-b border-black/[0.06] dark:border-slate-800">
+                  <span className="text-[#6E6E80] dark:text-slate-400 font-medium flex items-center gap-1.5">
+                    <Timer size={13} className="text-amber-500" />
+                    Waiting & Detention
+                  </span>
+                  <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
+                    SAR {Number(trip.waiting_labor_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-1.5 border-b border-black/[0.06] dark:border-slate-800">
+                  <span className="text-[#6E6E80] dark:text-slate-400 font-medium flex items-center gap-1.5">
+                    <MapPin size={13} className="text-blue-500" />
+                    Additional Stop Fee
+                  </span>
+                  <span className="font-semibold font-mono text-[#111] dark:text-slate-200">
+                    SAR {Number(trip.additional_stop_charges || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-1.5">
+                  <span className="text-[#111] dark:text-slate-100 font-bold">Total Ancillary Charges</span>
+                  <span className="font-bold font-mono text-brand text-sm">
+                    SAR {Number((trip.waiting_labor_charges || 0) + (trip.additional_stop_charges || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setLaborChargeInput(String(trip.waiting_labor_charges || 0));
+                  setAdditionalLaborInput(String(trip.additional_stop_charges || 0));
+                  setIsLaborModalOpen(true);
+                }}
+                className="w-full mt-4 h-8.5 rounded-xl border-amber-200 dark:border-amber-900 bg-amber-50/50 hover:bg-amber-100/70 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs font-semibold gap-1.5 cursor-pointer transition-all active:scale-[0.98]"
+              >
+                <Plus size={14} className="text-amber-600 dark:text-amber-400" />
+                Update Labour Charge
+              </Button>
+            </Card>
           </div>
         </div>
       </div>
@@ -1226,6 +1298,114 @@ export default function TripDetailsPage() {
             queryClient.invalidateQueries({ queryKey: ['documents', 'Trip', id] });
           }}
         />
+      )}
+
+      {/* Labour Charge Modal */}
+      {isLaborModalOpen && trip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-black/10 dark:border-slate-800 shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-black/[0.06] dark:border-slate-800 flex items-center justify-between bg-amber-50/60 dark:bg-amber-950/20">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-900/50">
+                  <Coins size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#111] dark:text-slate-100">Labour & Waiting Charges</h3>
+                  <p className="text-xs text-[#6E6E80] dark:text-slate-400 font-mono">Trip #{trip.ref_id || trip.id.substring(0, 8)}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLaborModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-black/[0.05] transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateLaborMutation.mutate({
+                  waiting_labor_charges: parseFloat(laborChargeInput || '0'),
+                  additional_stop_charges: parseFloat(additionalLaborInput || '0'),
+                });
+              }}
+              className="p-6 space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-[#111] dark:text-slate-200 mb-1">
+                  Waiting / Labour Fee (SAR)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={laborChargeInput}
+                  onChange={(e) => setLaborChargeInput(e.target.value)}
+                  className="w-full bg-black/[0.02] dark:bg-slate-800 border border-black/[0.12] dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono outline-none focus:border-brand"
+                  placeholder="0.00"
+                  required
+                />
+                <p className="text-[11px] text-[#6E6E80] dark:text-slate-400 mt-1">
+                  Includes driver waiting time, detention fees, and extra loading/unloading helpers.
+                </p>
+              </div>
+
+              {/* Quick presets */}
+              <div>
+                <span className="block text-[11px] font-semibold text-[#6E6E80] dark:text-slate-400 mb-1.5">Quick Presets</span>
+                <div className="flex flex-wrap gap-2">
+                  {[0, 50, 100, 200, 500].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setLaborChargeInput(String(amt))}
+                      className="px-2.5 py-1 rounded-lg border border-black/[0.1] dark:border-slate-700 text-xs font-semibold bg-black/[0.02] dark:bg-slate-800 hover:bg-amber-50 hover:border-amber-300 dark:hover:bg-amber-950/40 transition-colors"
+                    >
+                      {amt === 0 ? 'Reset 0 SAR' : `+${amt} SAR`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#111] dark:text-slate-200 mb-1">
+                  Additional Stop Fee (SAR)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={additionalLaborInput}
+                  onChange={(e) => setAdditionalLaborInput(e.target.value)}
+                  className="w-full bg-black/[0.02] dark:bg-slate-800 border border-black/[0.12] dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono outline-none focus:border-brand"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-black/[0.06] dark:border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsLaborModalOpen(false)}
+                  className="rounded-xl border-black/[0.12] dark:border-slate-700 text-xs font-semibold cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={updateLaborMutation.isPending}
+                  className="rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold px-4 cursor-pointer shadow-2xs"
+                >
+                  {updateLaborMutation.isPending ? 'Saving...' : 'Save Labour Charges'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   );

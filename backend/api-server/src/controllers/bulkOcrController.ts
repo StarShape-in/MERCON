@@ -320,8 +320,17 @@ function normalizeArabicDigits(str: string): string {
 function extractDigits(text: string): string | null {
   if (!text) return null;
   const norm = normalizeArabicDigits(text);
-  const match = norm.match(/\b(\d{3,5})\b/) || norm.match(/(\d{3,5})/);
-  return match ? match[1] : null;
+  // Strip timestamp patterns such as files-178669... or truck-178669... or long Unix timestamps
+  const cleaned = norm
+    .replace(/(files|truck)[-_]?\d{8,16}[-_]?\d*/gi, '')
+    .replace(/\b1[6789]\d{8,14}\b/g, '');
+  const match = cleaned.match(/\b(\d{3,4})\b/);
+  if (match) {
+    const num = match[1];
+    if (num.startsWith('178') || num.length > 4) return null;
+    return num;
+  }
+  return null;
 }
 
 /**
@@ -359,6 +368,9 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
       const aiJson: any = doc.ai_extracted_json || {};
       const aiPlate = normalizeArabicDigits((aiJson.vehicle_plate || '').toString()).toLowerCase();
       const aiDocNum = normalizeArabicDigits((aiJson.document_number || '').toString()).toLowerCase();
+      const extraDetails = aiJson.extra_details || {};
+      const cardSerial = normalizeArabicDigits((extraDetails.card_serial_number || '').toString()).toLowerCase().trim();
+      const chassisVin = (extraDetails.chassis_number || extraDetails.vehicle_chassis_number_vin || '').toString().toLowerCase().trim();
 
       let matchedVehicle: any = null;
 
@@ -367,6 +379,18 @@ export const autoAssignUnlinkedDocs = async (req: Request, res: Response) => {
         const plateStr = normalizeArabicDigits(v.plate_number || '').toLowerCase().trim();
         const plateDigits = plateStr.replace(/\D/g, '');
         const refStr = (v.ref_id || '').toLowerCase().trim();
+
+        // Match card serial number (e.g. 6098 -> KSA-6098)
+        if (cardSerial && cardSerial.length >= 3 && (plateDigits === cardSerial || plateStr.includes(cardSerial) || refStr.includes(cardSerial))) {
+          matchedVehicle = v;
+          break;
+        }
+
+        // Match chassis VIN
+        if (chassisVin && chassisVin.length >= 5 && (refStr.includes(chassisVin) || plateStr.includes(chassisVin))) {
+          matchedVehicle = v;
+          break;
+        }
 
         if (plateDigits && plateDigits.length >= 3) {
           if (fileName.includes(plateDigits) || aiPlate.includes(plateDigits) || rawText.includes(plateDigits) || aiDocNum.includes(plateDigits)) {

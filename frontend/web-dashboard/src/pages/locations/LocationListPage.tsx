@@ -785,6 +785,7 @@ export default function LocationListPage() {
               }
               data={filteredData}
               columns={columns}
+              sortAccessor={(row: Location) => row.createdAt}
               tableClassName="table-fixed w-full"
               enableSelection={true}
               selectionResetKey={selectionResetKey}

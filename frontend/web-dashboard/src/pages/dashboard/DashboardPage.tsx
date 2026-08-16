@@ -9,6 +9,7 @@ import {
   Maximize2,
   ArrowUpRight,
   Truck,
+  Building2,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -19,6 +20,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+
 import { authStore } from '@/store/authStore';
 import { reportsService } from '@/services/reportsService';
 import { tripService } from '@/services/tripService';
@@ -571,7 +573,7 @@ export default function DashboardPage() {
 
               {/* Map Canvas with Overlays */}
               <div className="relative flex-1 min-h-[310px] w-full z-0" style={{ background: '#EAECEF' }}>
-                {/* Overlay HUD: Active Trips Badge (Bold, Ultra-Visible & Floating over Leaflet) */}
+                {/* Overlay HUD: Active Trips Badge */}
                 <div className="absolute top-3 left-3 z-[1000] px-4 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-900 flex items-center gap-2.5 pointer-events-auto">
                   <span className="relative flex h-3 w-3 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -622,6 +624,7 @@ export default function DashboardPage() {
                           <p className="font-bold text-slate-800 text-[10px] mb-1">{v.route}</p>
                           <div className="text-[9px] text-slate-600 space-y-0.5 mb-2">
                             <p><span className="font-bold">Driver:</span> {v.driver}</p>
+                            <p><span className="font-bold text-brand">Company:</span> <span className="font-bold">MERCON Logistics</span></p>
                             <p><span className="font-bold">ETA:</span> {v.eta} • {v.distance}</p>
                           </div>
                           <Button

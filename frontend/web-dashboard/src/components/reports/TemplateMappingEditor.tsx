@@ -3,6 +3,18 @@ import type { TemplateInspection } from '@/services/reportTemplateService';
 import { CheckCircle2, CircleDashed, FileSearch } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+
+const MAPPING_OPTIONS: ComboboxOption[] = [
+  { value: 'blank', label: '— leave blank —' },
+  { value: 'formula', label: 'Keep template formula' },
+  { value: 'const', label: 'Fixed text…' },
+  ...TRIP_REPORT_FIELDS.map((f) => ({
+    value: `field:${f.key}`,
+    label: f.label,
+    keywords: `${f.label} ${f.key}`,
+  })),
+];
 
 interface TemplateMappingEditorProps {
   inspection: TemplateInspection;
@@ -145,26 +157,21 @@ export default function TemplateMappingEditor({ inspection, layout, onChange }: 
                         ) : (
                           <CircleDashed className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 shrink-0" />
                         )}
-                        <select
-                          value={selectValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === 'blank') updateColumn(col.colIndex, { kind: 'blank' });
-                            else if (val === 'formula') updateColumn(col.colIndex, { kind: 'formula' });
-                            else if (val === 'const') updateColumn(col.colIndex, { kind: 'const', value: '' });
-                            else updateColumn(col.colIndex, { kind: 'field', key: val.replace('field:', '') as any });
-                          }}
-                          className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-xs font-medium text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
-                        >
-                          <option value="blank">— leave blank —</option>
-                          <option value="formula">Keep template formula</option>
-                          <option value="const">Fixed text…</option>
-                          {TRIP_REPORT_FIELDS.map((f) => (
-                            <option key={f.key} value={`field:${f.key}`}>
-                              {f.label}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex-1 min-w-[210px]">
+                          <Combobox
+                            options={MAPPING_OPTIONS}
+                            value={selectValue}
+                            onChange={(val) => {
+                              if (val === 'blank') updateColumn(col.colIndex, { kind: 'blank' });
+                              else if (val === 'formula') updateColumn(col.colIndex, { kind: 'formula' });
+                              else if (val === 'const') updateColumn(col.colIndex, { kind: 'const', value: '' });
+                              else updateColumn(col.colIndex, { kind: 'field', key: val.replace('field:', '') as any });
+                            }}
+                            placeholder="Map template column..."
+                            searchPlaceholder="Search field or formula..."
+                            triggerClassName="w-full h-8 text-xs font-medium bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                          />
+                        </div>
                         {source.kind === 'const' && (
                           <input
                             type="text"

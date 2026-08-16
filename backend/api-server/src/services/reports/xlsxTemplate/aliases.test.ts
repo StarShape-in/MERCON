@@ -29,6 +29,29 @@ test('suggestField prefers the more specific alias across fields, not the first 
   assert.equal(suggestField('Type of vehicle'), 'vehicle_type');
 });
 
+test('suggestField rejects a match built entirely from a generic connector word', () => {
+  // A real bug found after deploying the fixes above: "Vendor Name" shares
+  // only the word "name" with driver_name's alias "driver name" (and with
+  // carrier_name's/customer_name's own "___ name" aliases) — the header's
+  // real content word "vendor" isn't in any alias list, so the "match" was
+  // entirely the generic connector. Old behavior returned driver_name
+  // (first field in declaration order with any hit), which put actual
+  // driver names in a column meant for the vendor/carrier.
+  assert.equal(suggestField('VENDOR NAME'), null);
+
+  // Same mechanism via "number": both of these got wrongly mapped to
+  // driver_phone (via 'mobile number'/'contact number'), producing the
+  // same phone number duplicated across two unrelated columns in a real
+  // generated report.
+  assert.equal(suggestField('Vehcile Number'), null); // template's own typo, "Vehicle" misspelled
+  assert.equal(suggestField('UUID NUMBER'), null);
+
+  // Regression guard: the generic-token gate must not swallow the
+  // "Type of vehicle" fix above — "vehicle" is a non-generic overlapping
+  // word, so the gate passes and vehicle_type still wins on ratio.
+  assert.equal(suggestField('Type of vehicle'), 'vehicle_type');
+});
+
 test('suggestField still resolves clean, unambiguous headers correctly', () => {
   assert.equal(suggestField('Plate'), 'vehicle_plate');
   assert.equal(suggestField('DATE'), 'date');

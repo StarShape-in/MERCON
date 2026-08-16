@@ -36,6 +36,7 @@ import CreateFolderModal from '@/components/ui/CreateFolderModal';
 import MoveToFolderModal from '@/components/ui/MoveToFolderModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
 import { AutoAssignModal } from '@/components/ui/AutoAssignModal';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
 import { matchesSearch } from '@/lib/search';
 
@@ -165,7 +166,7 @@ export default function DocumentsCenterPage() {
   // Queries
   const { data: docs = [], isLoading, isError } = useQuery({
     queryKey: ['documents', 'all'],
-    queryFn: async () => (await documentService.getAll({ per_page: 200 })).data,
+    queryFn: async () => (await documentService.getAll({ per_page: 2000 })).data,
   });
   const { data: folders = [] } = useQuery({
     queryKey: ['folders'],
@@ -173,11 +174,11 @@ export default function DocumentsCenterPage() {
   });
   const { data: drivers = [] } = useQuery({
     queryKey: ['drivers', 'lookup'],
-    queryFn: async () => (await driverService.getAll()).data,
+    queryFn: async () => (await driverService.getAll({ per_page: 1000 })).data,
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles', 'lookup'],
-    queryFn: async () => (await vehicleService.getAll()).data,
+    queryFn: async () => (await vehicleService.getAll({ per_page: 1000 })).data,
   });
   const { data: trips = [] } = useQuery({
     queryKey: ['trips', 'lookup'],
@@ -323,10 +324,21 @@ export default function DocumentsCenterPage() {
       .filter((d) => {
         const vIds = new Set(vehicles.map((v) => v.id));
         const dIds = new Set(drivers.map((d) => d.id));
+        const plateDigits = new Set(vehicles.map((v) => (v.plate_number || '').replace(/\D/g, '')).filter((s) => s.length >= 3));
+
+        const fileUrlNorm = (d.file_url || '').toLowerCase();
+        let hasPlateMatch = false;
+        for (const digits of plateDigits) {
+          if (fileUrlNorm.includes(digits)) {
+            hasPlateMatch = true;
+            break;
+          }
+        }
+
         const isUnlinked = (
-          (d.entity_type === 'Vehicle' && !vIds.has(d.entity_id)) ||
+          (d.entity_type === 'Vehicle' && !vIds.has(d.entity_id) && !hasPlateMatch) ||
           (d.entity_type === 'Driver' && !dIds.has(d.entity_id)) ||
-          (!['Vehicle', 'Driver', 'Trip', 'Customer', 'Company'].includes(d.entity_type))
+          (!['Vehicle', 'Driver', 'Trip', 'Customer', 'Company', 'Operations'].includes(d.entity_type) && !hasPlateMatch)
         );
 
         const matchesCat = activeCategory === 'All'
@@ -453,15 +465,33 @@ export default function DocumentsCenterPage() {
     const companyDocs: EnrichedDocument[] = [];
     const unlinkedDocs: EnrichedDocument[] = [];
 
+    const plateDigitsMap = new Map<string, any>();
+    for (const v of vehicles) {
+      const digits = (v.plate_number || '').replace(/\D/g, '');
+      if (digits && digits.length >= 3) {
+        plateDigitsMap.set(digits, v);
+      }
+    }
+
     for (const doc of filteredDocs) {
       const isExp = doc.daysLeft !== null && doc.daysLeft <= 0;
 
-      if (doc.entity_type === 'Vehicle' && vehicleMap.has(doc.entity_id)) {
-        const v = vehicleMap.get(doc.entity_id)!;
-        if (!vehicleGroups.has(v.id)) {
-          vehicleGroups.set(v.id, { vehicle: v, docs: [], expiredCount: 0 });
+      let matchedVehicle = (doc.entity_type === 'Vehicle' && vehicleMap.has(doc.entity_id)) ? vehicleMap.get(doc.entity_id) : null;
+      if (!matchedVehicle) {
+        const fileUrlNorm = (doc.file_url || '').toLowerCase();
+        for (const [digits, v] of plateDigitsMap.entries()) {
+          if (fileUrlNorm.includes(digits)) {
+            matchedVehicle = v;
+            break;
+          }
         }
-        const g = vehicleGroups.get(v.id)!;
+      }
+
+      if (matchedVehicle) {
+        if (!vehicleGroups.has(matchedVehicle.id)) {
+          vehicleGroups.set(matchedVehicle.id, { vehicle: matchedVehicle, docs: [], expiredCount: 0 });
+        }
+        const g = vehicleGroups.get(matchedVehicle.id)!;
         g.docs.push(doc);
         if (isExp) g.expiredCount += 1;
       } else if (doc.entity_type === 'Driver' && driverMap.has(doc.entity_id)) {
@@ -472,7 +502,7 @@ export default function DocumentsCenterPage() {
         const g = driverGroups.get(d.id)!;
         g.docs.push(doc);
         if (isExp) g.expiredCount += 1;
-      } else if (doc.category === 'Operations') {
+      } else if (doc.category === 'Operations' || doc.entity_type === 'Trip') {
         operationsDocs.push(doc);
       } else if (doc.category === 'Company') {
         companyDocs.push(doc);
@@ -489,6 +519,30 @@ export default function DocumentsCenterPage() {
       unlinked: unlinkedDocs,
     };
   }, [filteredDocs, vehicles, drivers]);
+
+  const entityComboboxOptions = useMemo(() => {
+    const opts: ComboboxOption[] = [
+      {
+        value: 'Vehicle:unassigned',
+        label: 'Unassigned / Root',
+        keywords: 'unassigned unlinked root none loose',
+        group: 'Status',
+      },
+      ...vehicles.map((v) => ({
+        value: `Vehicle:${v.id}`,
+        label: `Vehicle ${v.plate_number || v.ref_id} (${v.ref_id || 'Truck'})`,
+        keywords: `${v.plate_number} ${v.ref_id} vehicle truck ${v.trailer_number || ''}`,
+        group: `Vehicles (${vehicles.length})`,
+      })),
+      ...drivers.map((d) => ({
+        value: `Driver:${d.id}`,
+        label: `${d.first_name} ${d.last_name} (${d.license_number || d.phone_primary || 'Driver'})`,
+        keywords: `${d.first_name} ${d.last_name} ${d.license_number} driver ${d.phone_primary || ''}`,
+        group: `Drivers (${drivers.length})`,
+      })),
+    ];
+    return opts;
+  }, [vehicles, drivers]);
 
   return (
     <DashboardLayout active="Documents" title="Documents Center">
@@ -1190,40 +1244,25 @@ export default function DocumentsCenterPage() {
 
                   return (
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Select
+                      <Combobox
+                        options={entityComboboxOptions}
                         value={`${row.entity_type}:${row.entity_id}`}
-                        onValueChange={(val) => {
+                        onChange={(val) => {
                           const [type, id] = val.split(':');
-                          handleSingleAssignEntity(row.id, type, id);
+                          if (type && id) {
+                            handleSingleAssignEntity(row.id, type, id);
+                          }
                         }}
-                      >
-                        <SelectTrigger className={cn(
+                        placeholder={row.entityName || 'Assign owner...'}
+                        searchPlaceholder="Search vehicle plate or driver..."
+                        emptyText="No match."
+                        triggerClassName={cn(
                           'h-7 text-xs font-bold px-2 py-0 border rounded-lg max-w-[185px] shrink-0',
                           isUnknown
                             ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 font-mono'
                             : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
-                        )}>
-                          <SelectValue placeholder={row.entityName} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 text-xs">
-                          <SelectItem value="Vehicle:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                            ── Vehicles ({vehicles.length}) ──
-                          </SelectItem>
-                          {vehicles.map((v) => (
-                            <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
-                              {v.plate_number || v.ref_id}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                            ── Drivers ({drivers.length}) ──
-                          </SelectItem>
-                          {drivers.map((d) => (
-                            <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
-                              {d.first_name} {d.last_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        )}
+                      />
                     </div>
                   );
                 }
@@ -1772,35 +1811,20 @@ export default function DocumentsCenterPage() {
                       </Badge>
                     </div>
 
-                    <Select
+                    <Combobox
+                      options={entityComboboxOptions}
                       value={`${previewDoc.entity_type}:${previewDoc.entity_id}`}
-                      onValueChange={(val) => {
+                      onChange={(val) => {
                         const [type, id] = val.split(':');
-                        handleSingleAssignEntity(previewDoc.id, type, id);
+                        if (type && id) {
+                          handleSingleAssignEntity(previewDoc.id, type, id);
+                        }
                       }}
-                    >
-                      <SelectTrigger className="h-9 text-xs font-extrabold bg-white dark:bg-slate-800 border-indigo-300 dark:border-indigo-700 shadow-2xs text-slate-900 dark:text-slate-100">
-                        <SelectValue placeholder={nameFor(previewDoc)} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        <SelectItem value="Vehicle:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                          ── Vehicles ({vehicles.length}) ──
-                        </SelectItem>
-                        {vehicles.map((v) => (
-                          <SelectItem key={v.id} value={`Vehicle:${v.id}`} className="text-xs font-mono font-bold">
-                            {v.plate_number || v.ref_id}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Driver:unassigned" disabled className="text-[10px] uppercase font-mono font-bold text-slate-400">
-                          ── Drivers ({drivers.length}) ──
-                        </SelectItem>
-                        {drivers.map((d) => (
-                          <SelectItem key={d.id} value={`Driver:${d.id}`} className="text-xs font-bold">
-                            {d.first_name} {d.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Search vehicle plate or driver name..."
+                      searchPlaceholder="Type plate number, ref ID, or driver..."
+                      emptyText="No matching vehicles or drivers found."
+                      triggerClassName="h-9 text-xs font-extrabold bg-white dark:bg-slate-800 border-indigo-300 dark:border-indigo-700 shadow-2xs text-slate-900 dark:text-slate-100"
+                    />
                   </div>
 
                   {/* Gemini AI Vision OCR Extracted Intelligence Card */}

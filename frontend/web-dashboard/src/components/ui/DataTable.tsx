@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, X, FileSearch } from 'lucide-react';
+import { Search, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckSquare, X, FileSearch } from 'lucide-react';
 import Btn, { BtnVariant } from './Btn';
 import { Button } from './button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
@@ -14,6 +14,7 @@ export interface Column<T> {
   accessor: (row: T, index: number) => React.ReactNode;
   className?: string;
   headerClassName?: string;
+  mobilePriority?: 'primary' | 'secondary' | 'meta' | 'hidden';
 }
 
 export interface BulkAction<T> {
@@ -33,6 +34,8 @@ export interface DataTableProps<T> {
   searchPlaceholder?: string;
   searchValue?: string;
   onSearchChange?: (val: string) => void;
+  // Sorting
+  sortAccessor?: (row: T) => any;
   // Filters & Action Slots
   filterElement?: React.ReactNode;
   actionsElement?: React.ReactNode;
@@ -80,6 +83,7 @@ export default function DataTable<T>({
   searchPlaceholder = 'Search records...',
   searchValue,
   onSearchChange,
+  sortAccessor,
   filterElement,
   actionsElement,
   onExport,
@@ -176,8 +180,8 @@ export default function DataTable<T>({
     ? totalPages 
     : Math.max(1, Math.ceil(totalCount / activePageSize));
 
-  const displayData = isServerPaginated 
-    ? data 
+  const displayData = isServerPaginated
+    ? data
     : data.slice((activePage - 1) * activePageSize, activePage * activePageSize);
 
   const handlePageChange = (newPage: number) => {
@@ -243,14 +247,18 @@ export default function DataTable<T>({
   );
 
   const showToolbar = title || onSearchChange !== undefined || filterElement !== undefined || onExport !== undefined || actionsElement !== undefined || enableSelection;
+  const getPlainHeader = (header: React.ReactNode, index: number) => {
+    if (typeof header === 'string' || typeof header === 'number') return String(header);
+    return `Field ${index + 1}`;
+  };
 
   return (
-    <div className={cn("bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in", className)}>
+    <div className={cn("bg-white dark:bg-slate-900 rounded-lg border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col w-full animate-fade-in", className)}>
       
       {/* Table Toolbar Header */}
       {showToolbar && (
-        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 flex flex-col gap-2.5 sm:gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 w-full">
+        <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col gap-3">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 w-full">
             {/* Left Side: Title & Search Bar */}
             <div className="flex items-center gap-2.5 sm:gap-3 flex-1 flex-wrap min-w-0">
               {title && (
@@ -258,21 +266,21 @@ export default function DataTable<T>({
                   <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
                     {title}
                   </h3>
-                  <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
+                  <Badge variant="outline" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[11px] font-mono font-bold px-2 py-0.5">
                     {totalCount} {totalCount === 1 ? 'record' : 'records'}
                   </Badge>
                 </div>
               )}
 
               {onSearchChange !== undefined && (
-                <div className="relative w-full sm:w-64 md:w-72 shrink-0">
+                <div className="relative w-full sm:w-72 lg:w-88 shrink-0">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     type="text"
                     placeholder={searchPlaceholder}
                     value={activeSearchValue}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-lg font-medium"
+                    className="w-full pl-8.5 pr-8 h-9 text-xs bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus-visible:ring-brand/20 focus-visible:border-brand rounded-md font-medium"
                     aria-label="Search Table"
                   />
                   {activeSearchValue && (
@@ -289,7 +297,7 @@ export default function DataTable<T>({
             </div>
 
             {/* Right Side: Filters, Select Toggle, Actions & Export */}
-            <div className="flex items-center flex-wrap gap-2.5 sm:shrink-0 ml-auto">
+            <div className="flex w-full xl:w-auto items-center flex-wrap gap-2 sm:shrink-0 xl:ml-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-950/30 p-1.5">
               {filterElement}
               {enableSelection && (
                 <Button
@@ -297,9 +305,9 @@ export default function DataTable<T>({
                   size="sm"
                   onClick={handleToggleSelectionMode}
                   className={cn(
-                    "h-9 text-xs font-semibold px-3 shadow-2xs gap-1.5 transition-colors",
+                    "h-9 text-xs font-semibold px-3 shadow-xs gap-1.5 transition-colors",
                     isSelectionMode
-                      ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600"
+                      ? "bg-brand hover:bg-brand-hover text-white border-brand"
                       : "border-slate-200/90 dark:border-slate-700/90 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200"
                   )}
                 >
@@ -323,7 +331,7 @@ export default function DataTable<T>({
       )}
 
       {/* Main Table Container */}
-      <div className="flex-1 overflow-x-auto min-h-0 w-full">
+      <div className="hidden md:block flex-1 overflow-x-auto min-h-0 w-full">
         <Table className={cn("w-full text-xs", tableClassName)} role="table">
           <TableHeader>
             <TableRow className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 hover:bg-slate-50/80">
@@ -466,6 +474,124 @@ export default function DataTable<T>({
         </Table>
       </div>
 
+      <div className="md:hidden flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
+        {isLoading ? (
+          Array.from({ length: Math.min(activePageSize, 6) }).map((_, rowIndex) => (
+            <div key={rowIndex} className="p-3">
+              <div className="h-4 skeleton w-36 rounded-md" />
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="h-3 skeleton rounded-md" />
+                <div className="h-3 skeleton rounded-md" />
+                <div className="h-3 skeleton rounded-md" />
+                <div className="h-3 skeleton rounded-md" />
+              </div>
+            </div>
+          ))
+        ) : isError ? (
+          <div className="px-4 py-12 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-rose-50 text-rose-500 dark:bg-rose-950/30">
+              <X size={24} className="stroke-[2]" />
+            </div>
+            <p className="mt-3 text-sm font-bold text-slate-900 dark:text-slate-100">{errorTitle}</p>
+            <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">{errorMessage}</p>
+          </div>
+        ) : displayData.length === 0 ? (
+          <div className="px-4 py-12 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-400 dark:bg-slate-800">
+              <FileSearch size={24} className="stroke-[1.5]" />
+            </div>
+            <p className="mt-3 text-sm font-bold text-slate-900 dark:text-slate-100">{emptyTitle}</p>
+            <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500 dark:text-slate-400">{emptyMessage}</p>
+          </div>
+        ) : (
+          displayData.map((row, rowIndex) => {
+            const actualIndex = isServerPaginated ? rowIndex : (activePage - 1) * activePageSize + rowIndex;
+            const rowKey = getRowKey(row, actualIndex);
+            const isSelected = selectedKeys.has(rowKey);
+            const visibleColumns = columns.filter(col => col.mobilePriority !== 'hidden');
+            const primaryColumns = visibleColumns.filter(col => col.mobilePriority === 'primary');
+            const secondaryColumns = visibleColumns.filter(col => col.mobilePriority === 'secondary');
+            const metaColumns = visibleColumns.filter(col => col.mobilePriority === 'meta' || !col.mobilePriority);
+            const titleColumns = primaryColumns.length > 0 ? primaryColumns : visibleColumns.slice(0, 2);
+            const detailColumns = [
+              ...secondaryColumns,
+              ...metaColumns.filter(col => !titleColumns.includes(col)),
+            ];
+
+            return (
+              <div
+                key={String(rowKey)}
+                role={(isSelectionMode || onRowClick) ? "button" : undefined}
+                tabIndex={(isSelectionMode || onRowClick) ? 0 : undefined}
+                className={cn(
+                  "w-full p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
+                  (isSelectionMode || onRowClick) && "cursor-pointer",
+                  isSelected ? "bg-brand/5" : "bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60"
+                )}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
+                  if (isSelectionMode) {
+                    handleSelectRow(rowKey);
+                  } else {
+                    onRowClick?.(row);
+                  }
+                }}
+                onClick={() => {
+                  if (isSelectionMode) {
+                    handleSelectRow(rowKey);
+                  } else {
+                    onRowClick?.(row);
+                  }
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    {titleColumns.map((col, colIndex) => (
+                      <div
+                        key={colIndex}
+                        className={cn(
+                          colIndex === 0
+                            ? "text-sm font-extrabold leading-5 text-slate-900 dark:text-slate-100"
+                            : "text-xs font-semibold leading-4 text-slate-600 dark:text-slate-300"
+                        )}
+                      >
+                        {col.accessor(row, rowIndex)}
+                      </div>
+                    ))}
+                  </div>
+                  {enableSelection && isSelectionMode && (
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-brand focus:ring-brand"
+                      checked={isSelected}
+                      onChange={() => handleSelectRow(rowKey)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`Select row ${rowIndex + 1}`}
+                    />
+                  )}
+                </div>
+
+                {detailColumns.length > 0 && (
+                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                    {detailColumns.slice(0, 6).map((col, colIndex) => (
+                      <div key={colIndex} className="min-w-0">
+                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          {getPlainHeader(col.header, colIndex)}
+                        </dt>
+                        <dd className="mt-0.5 truncate text-xs font-semibold text-slate-700 dark:text-slate-200">
+                          {col.accessor(row, rowIndex)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
       {/* Spacious Pagination Footer */}
       <div className="shrink-0 p-3 sm:p-4 sm:px-5 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-900/60 text-xs font-semibold text-slate-600 dark:text-slate-400">
         {/* Left Side: Rows Per Page & Summary Count */}
@@ -478,7 +604,7 @@ export default function DataTable<T>({
             <select
               value={activePageSize}
               onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-2xs"
+              className="h-8 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer shadow-xs"
               aria-label="Rows per page"
             >
               {pageSizeOptions.map((opt) => (

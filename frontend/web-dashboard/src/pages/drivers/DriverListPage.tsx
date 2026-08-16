@@ -702,6 +702,7 @@ export default function DriverListPage() {
               }
               data={filteredDrivers}
               columns={columns}
+              sortAccessor={(row: Driver) => row.createdAt}
               enableSelection={true}
               compact={true}
               isLoading={isLoading}

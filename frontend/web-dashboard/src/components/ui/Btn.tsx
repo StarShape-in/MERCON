@@ -75,16 +75,16 @@ export default function Btn({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [shortcut, props.disabled, isLoading, isMac]);
 
-  // Variant styling map — replaces dull gray defaults with rich, vibrant, modern colors
+  // Keep one dominant brand CTA per page; secondary actions stay quiet and neutral.
   const variantStyles: Record<BtnVariant, string> = {
-    primary: 'bg-brand hover:bg-[#d03e0d] text-white font-bold shadow-xs border border-orange-600/30 rounded-xl transition-all',
-    secondary: 'bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white font-semibold rounded-xl shadow-2xs transition-all',
-    success: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white font-semibold rounded-xl shadow-2xs transition-all',
-    warning: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-600 dark:hover:text-white font-semibold rounded-xl shadow-2xs transition-all',
-    info: 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/80 hover:bg-sky-600 hover:text-white dark:hover:bg-sky-600 dark:hover:text-white font-semibold rounded-xl shadow-2xs transition-all',
-    danger: 'bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-xs border border-rose-600/30 transition-all',
-    outline: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-xl shadow-2xs transition-all',
-    ghost: 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-xl transition-all',
+    primary: 'bg-brand hover:bg-[#d03e0d] text-white font-bold shadow-xs border border-orange-600/30 rounded-md transition-all',
+    secondary: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-md shadow-xs transition-all',
+    success: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 font-semibold rounded-md shadow-xs transition-all',
+    warning: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 hover:bg-amber-100 dark:hover:bg-amber-950/70 font-semibold rounded-md shadow-xs transition-all',
+    info: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80 hover:bg-blue-100 dark:hover:bg-blue-950/70 font-semibold rounded-md shadow-xs transition-all',
+    danger: 'bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-md shadow-xs border border-rose-600/30 transition-all',
+    outline: 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-md shadow-xs transition-all',
+    ghost: 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-md transition-all',
   };
 
   const shadcnSize = size === 'sm' ? 'sm' : 'default';
