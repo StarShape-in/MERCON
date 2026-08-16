@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { expenseService, Expense, CreateExpensePayload, ExpenseStatus } from '@/services/expenseService';
 import { vehicleService } from '@/services/vehicleService';
+import { cn } from '@/lib/utils';
 
 const TODAY_ISO = new Date().toISOString().split('T')[0];
 
@@ -113,6 +114,10 @@ export default function ExpenseModal({
   const isSalaryCategory =
     formData.category === 'Salary' || formData.category === 'Salary Advance';
 
+  // A Pending expense is a placeholder — only Classification is known yet.
+  // Everything else gets filled in once it's actually paid.
+  const isPending = formData.status === 'Pending';
+
   const set = <K extends keyof CreateExpensePayload>(key: K, value: CreateExpensePayload[K]) =>
     setFormData((prev) => ({ ...prev, [key]: value }));
 
@@ -139,7 +144,7 @@ export default function ExpenseModal({
       setFormError('Please select a category.');
       return;
     }
-    if (!formData.amount || formData.amount <= 0) {
+    if (!isPending && (!formData.amount || formData.amount <= 0)) {
       setFormError('Amount must be greater than zero.');
       return;
     }
@@ -288,13 +293,16 @@ export default function ExpenseModal({
               </div>
 
               {/* Right Column: Financial & Payment Info */}
-              <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4">
+              <div className={cn(
+                'bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4 transition-opacity',
+                isPending && 'opacity-45'
+              )}>
                 <SectionLabel icon={<CreditCard className="w-4 h-4 text-orange-500" />} label="Financial Details" />
 
                 {/* Amount */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Amount <Required />
+                    Amount {!isPending && <Required />}
                   </Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500 dark:text-slate-400 pointer-events-none bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
@@ -307,6 +315,7 @@ export default function ExpenseModal({
                       value={formData.amount || ''}
                       onChange={(e) => set('amount', parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
+                      disabled={isPending}
                       className="h-10 text-sm font-bold text-slate-900 dark:text-slate-100 pl-16 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     />
                   </div>
@@ -320,6 +329,7 @@ export default function ExpenseModal({
                   <Select
                     value={formData.payment_method || ''}
                     onValueChange={(val) => set('payment_method', val)}
+                    disabled={isPending}
                   >
                     <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
                       <SelectValue placeholder="Select method…" />
@@ -336,8 +346,18 @@ export default function ExpenseModal({
               </div>
             </div>
 
+            {isPending && (
+              <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5 -mt-3">
+                <Clock className="w-3 h-3 shrink-0" />
+                Pending expenses only need Classification for now — fill in the rest once it's marked Paid.
+              </p>
+            )}
+
             {/* Payee / Recipient Section */}
-            <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4">
+            <div className={cn(
+              'bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4 transition-opacity',
+              isPending && 'opacity-45'
+            )}>
               <SectionLabel icon={<User className="w-4 h-4 text-orange-500" />} label="Payee & Beneficiary" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -354,6 +374,7 @@ export default function ExpenseModal({
                         ? 'e.g. Employee Full Name'
                         : 'e.g. Al-Jazeera Gas Station, Landlord, Supplier…'
                     }
+                    disabled={isPending}
                     className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                   />
                   <p className="text-[11px] text-slate-400 leading-snug">
@@ -373,6 +394,7 @@ export default function ExpenseModal({
                       value={employeeName}
                       onChange={(e) => setEmployeeName(e.target.value)}
                       placeholder="Full name of staff member…"
+                      disabled={isPending}
                       className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     />
                     <p className="text-[11px] text-slate-400 leading-snug">
@@ -384,12 +406,13 @@ export default function ExpenseModal({
             </div>
 
             {/* Optional Asset Linkage (Vehicle Link) */}
-            <div className="space-y-3">
+            <div className={cn('space-y-3 transition-opacity', isPending && 'opacity-45')}>
               {!showVehicleLink ? (
                 <button
                   type="button"
+                  disabled={isPending}
                   onClick={() => handleToggleVehicleLink(true)}
-                  className="w-full flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 hover:bg-orange-50/30 dark:bg-slate-900/30 dark:hover:bg-orange-950/10 text-slate-600 dark:text-slate-400 hover:text-brand dark:hover:text-brand hover:border-orange-300 dark:hover:border-orange-900 transition-all group"
+                  className="w-full flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 hover:bg-orange-50/30 dark:bg-slate-900/30 dark:hover:bg-orange-950/10 text-slate-600 dark:text-slate-400 hover:text-brand dark:hover:text-brand hover:border-orange-300 dark:hover:border-orange-900 transition-all group disabled:cursor-not-allowed disabled:hover:bg-slate-50/50 disabled:hover:text-slate-600 disabled:hover:border-slate-300"
                 >
                   <div className="flex items-center gap-2.5 text-xs font-semibold">
                     <div className="p-1.5 rounded-lg bg-slate-200/60 dark:bg-slate-800 group-hover:bg-orange-100 dark:group-hover:bg-orange-950/40 text-slate-500 group-hover:text-brand transition-colors">
@@ -412,6 +435,7 @@ export default function ExpenseModal({
                       type="button"
                       variant="ghost"
                       size="sm"
+                      disabled={isPending}
                       onClick={() => handleToggleVehicleLink(false)}
                       className="h-7 text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 px-2 rounded-lg"
                     >
@@ -426,6 +450,7 @@ export default function ExpenseModal({
                     <Select
                       value={formData.vehicle_id || 'none'}
                       onValueChange={(val) => set('vehicle_id', val === 'none' ? null : val)}
+                      disabled={isPending}
                     >
                       <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium">
                         <SelectValue placeholder="Select vehicle…" />
@@ -447,14 +472,15 @@ export default function ExpenseModal({
             </div>
 
             {/* Notes Section */}
-            <div className="space-y-2">
+            <div className={cn('space-y-2 transition-opacity', isPending && 'opacity-45')}>
               <SectionLabel icon={<FileText className="w-4 h-4 text-orange-500" />} label="Notes & References" />
               <textarea
                 value={formData.description || ''}
                 onChange={(e) => set('description', e.target.value)}
                 placeholder="Additional details, invoice numbers, receipt reference, or context…"
                 rows={3}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand resize-none transition-colors"
+                disabled={isPending}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-brand resize-none transition-colors disabled:cursor-not-allowed"
               />
             </div>
           </div>
