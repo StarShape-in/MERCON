@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +28,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { vehicleService, Vehicle, AssetStatus } from '@/services/vehicleService';
+import { reverseGeocode } from '@/services/addressSearch';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import BatchVehicleDocModal from '@/components/ui/BatchVehicleDocModal';
@@ -273,6 +274,45 @@ export default function VehicleListPage() {
       return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
     });
   }, [rawVehicles, selectedType, sortOrder, locationSortDir]);
+
+  // Place names for the "Current Location" column — resolved lazily, one at
+  // a time, because Nominatim's free reverse endpoint caps out at ~1 req/s.
+  // Only runs for the Available filter, since that's the only time this
+  // column is on screen at all. Keyed the same way as reverseGeocode's own
+  // cache so repeat coordinates (several trucks idle at one depot) resolve
+  // once.
+  const [placeNames, setPlaceNames] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    if (selectedStatus !== 'Available') return;
+
+    const targets = vehicles.filter(
+      (v) => typeof v.last_lat === 'number' && typeof v.last_lng === 'number'
+        && Number.isFinite(v.last_lat) && Number.isFinite(v.last_lng)
+    );
+    const uniqueKeys = new globalThis.Map<string, { lat: number; lng: number }>();
+    for (const v of targets) {
+      const key = `${v.last_lat!.toFixed(4)},${v.last_lng!.toFixed(4)}`;
+      if (!(key in placeNames) && !uniqueKeys.has(key)) {
+        uniqueKeys.set(key, { lat: v.last_lat!, lng: v.last_lng! });
+      }
+    }
+    if (uniqueKeys.size === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const [key, { lat, lng }] of uniqueKeys) {
+        if (cancelled) return;
+        const name = await reverseGeocode(lat, lng);
+        if (cancelled) return;
+        setPlaceNames((prev) => ({ ...prev, [key]: name }));
+        await new Promise((r) => setTimeout(r, 1100)); // stay under Nominatim's ~1 req/s cap
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStatus, vehicles]);
 
   // Saudi Arabia Hubs for vehicles awaiting initial GPS telematics fix
   const DEFAULT_SAUDI_HUBS = useMemo(() => [
@@ -535,12 +575,17 @@ export default function VehicleListPage() {
           return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">No GPS signal</span>;
         }
         const coords = `${row.last_lat!.toFixed(4)}, ${row.last_lng!.toFixed(4)}`;
+        const key = `${row.last_lat!.toFixed(4)},${row.last_lng!.toFixed(4)}`;
+        const resolved = placeNames[key];
+        // Undefined = not looked up yet, null = lookup failed — coordinates
+        // are the honest fallback for both rather than a blank cell.
+        const placeLabel = resolved ?? coords;
         const lastSeen = row.last_seen_at ? new Date(row.last_seen_at).toLocaleString() : null;
         return (
-          <div className="flex items-center gap-1.5 min-w-0 max-w-[165px]" title={lastSeen ? `Last reported ${lastSeen}` : coords}>
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[165px]" title={lastSeen ? `${placeLabel} · Last reported ${lastSeen}` : placeLabel}>
             <Navigation className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-mono text-slate-700 dark:text-slate-300 truncate">{coords}</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{placeLabel}</span>
               {lastSeen && (
                 <span className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
                   <Clock className="w-2.5 h-2.5 shrink-0" /> {lastSeen}

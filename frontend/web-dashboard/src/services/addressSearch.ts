@@ -100,6 +100,36 @@ function createNominatimSession(): AddressSearchSession {
   };
 }
 
+/**
+ * Reverse geocode — a GPS fix (from vehicle telemetry, not a user's search)
+ * back into a place name. Nominatim only: its reverse endpoint is free and
+ * keyless, and the module-level comment above already rules out Google's
+ * Geocoding API as a second billed call this app doesn't need. Callers are
+ * responsible for their own rate limiting — Nominatim's usage policy caps
+ * the public instance at one request per second.
+ */
+const reverseGeocodeCache = new Map<string, string | null>();
+
+export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  if (reverseGeocodeCache.has(key)) return reverseGeocodeCache.get(key) ?? null;
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14`
+    );
+    if (!res.ok) throw new Error(`Nominatim reverse geocode failed: ${res.status}`);
+    const data: { display_name?: string } = await res.json();
+    const name = data.display_name ? placeNameFrom(data.display_name) : null;
+    reverseGeocodeCache.set(key, name);
+    return name;
+  } catch (err) {
+    console.warn('[addressSearch] reverse geocode failed', err);
+    reverseGeocodeCache.set(key, null);
+    return null;
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Google Places (New), loaded through the Maps JavaScript API.
  * ------------------------------------------------------------------ */
