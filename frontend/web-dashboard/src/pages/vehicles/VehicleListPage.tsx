@@ -875,6 +875,29 @@ export default function VehicleListPage() {
                   <XCircle size={13} className="mr-2 text-rose-500" /> Mark Inactive
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: 'Delete Vehicle Record',
+                    message: `Are you sure you want to delete vehicle ${row.plate_number}? This action cannot be undone.`,
+                    isDestructive: true,
+                    onConfirm: async () => {
+                      try {
+                        await vehicleService.bulkDelete([row.id]);
+                        toast.success(`Vehicle ${row.plate_number} deleted successfully`);
+                        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                      } catch {
+                        toast.error('Failed to delete vehicle');
+                      }
+                    }
+                  });
+                }}
+                className="text-xs font-semibold text-rose-600 dark:text-rose-400 cursor-pointer"
+              >
+                <Trash2 size={13} className="mr-2 text-rose-500" /> Delete Vehicle
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
