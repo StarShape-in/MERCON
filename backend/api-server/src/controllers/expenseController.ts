@@ -192,9 +192,7 @@ export const createExpense = async (req: Request, res: Response) => {
       payment_method, description, bill_issued_date, bill_paid_date,
     } = parseResult.data;
 
-    // A Pending expense is a placeholder — amount isn't known yet, so it's
-    // only required once the record actually reflects a paid expense.
-    if (status !== 'Pending' && (!Number.isFinite(amount) || amount <= 0)) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'Amount must be a positive number.' },
@@ -294,11 +292,7 @@ export const updateExpense = async (req: Request, res: Response) => {
 
     const data: any = { ...parseResult.data };
 
-    // A Pending expense doesn't require an amount yet — same exemption as
-    // create. Falls back to the existing record's status when this update
-    // doesn't touch status itself.
-    const effectiveStatus = 'status' in data ? data.status : existing.status;
-    if ('amount' in data && effectiveStatus !== 'Pending' && (!Number.isFinite(data.amount) || data.amount <= 0)) {
+    if ('amount' in data && (!Number.isFinite(data.amount) || data.amount <= 0)) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'Amount must be a positive number.' },

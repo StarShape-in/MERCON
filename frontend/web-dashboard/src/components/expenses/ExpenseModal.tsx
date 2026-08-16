@@ -152,7 +152,7 @@ export default function ExpenseModal({
       setFormError('Please select a category.');
       return;
     }
-    if (!isPending && (!formData.amount || formData.amount <= 0)) {
+    if (!formData.amount || formData.amount <= 0) {
       setFormError('Amount must be greater than zero.');
       return;
     }
@@ -328,16 +328,14 @@ export default function ExpenseModal({
               </div>
 
               {/* Right Column: Financial & Payment Info */}
-              <div className={cn(
-                'bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4 transition-opacity',
-                isPending && 'opacity-45'
-              )}>
+              <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4.5 space-y-4">
                 <SectionLabel icon={<CreditCard className="w-4 h-4 text-orange-500" />} label="Financial Details" />
 
-                {/* Amount */}
+                {/* Amount — always fillable, Pending or not: the bill's amount is
+                    normally known even before it's paid. */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Amount {!isPending && <Required />}
+                    Amount <Required />
                   </Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500 dark:text-slate-400 pointer-events-none bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
@@ -350,14 +348,14 @@ export default function ExpenseModal({
                       value={formData.amount || ''}
                       onChange={(e) => set('amount', parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
-                      disabled={isPending}
                       className="h-10 text-sm font-bold text-slate-900 dark:text-slate-100 pl-16 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                     />
                   </div>
                 </div>
 
-                {/* Payment Method */}
-                <div className="space-y-1.5">
+                {/* Payment Method — the one field that genuinely doesn't apply
+                    until the bill is actually paid. */}
+                <div className={cn('space-y-1.5 transition-opacity', isPending && 'opacity-45')}>
                   <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Payment Method
                   </Label>
@@ -384,7 +382,7 @@ export default function ExpenseModal({
             {isPending && (
               <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5 -mt-3">
                 <Clock className="w-3 h-3 shrink-0" />
-                Pending expenses only need Classification for now — fill in the rest once it's marked Paid.
+                Payment Method, Payee, and vehicle linkage can wait until this is marked Paid — everything else can be filled in now.
               </p>
             )}
 
