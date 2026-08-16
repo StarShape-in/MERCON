@@ -5,7 +5,6 @@ import {
   Plus,
   FileText,
   RotateCw,
-  Download,
   Maximize2,
   ArrowUpRight,
   Truck,
@@ -519,14 +518,6 @@ export default function DashboardPage() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs font-semibold border-slate-200 bg-white shadow-2xs text-slate-700 hover:bg-slate-50"
-              >
-                <Download className="w-3.5 h-3.5 text-slate-500" /> Export CSV
-              </Button>
-
               <Button
                 onClick={() => navigate('/trips/new')}
                 className="h-8 gap-1.5 px-3.5 bg-brand hover:bg-brand-hover text-white text-xs font-extrabold rounded-lg shadow-sm transition-all active:scale-[0.97]"
