@@ -137,6 +137,7 @@ export default function VehicleListPage() {
   const [selectedType, setSelectedType] = useState<string>('All');
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
+  const [locationSortDir, setLocationSortDir] = useState<'asc' | 'desc' | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'map'>('list');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -252,13 +253,26 @@ export default function VehicleListPage() {
   // Filter vehicles client-side by asset type if selected
   const vehicles = useMemo(() => {
     let filtered = selectedType === 'All' ? rawVehicles : rawVehicles.filter(v => v.asset_type.toLowerCase().includes(selectedType.toLowerCase()));
-    
+
+    if (locationSortDir) {
+      return [...filtered].sort((a, b) => {
+        const aHas = typeof a.last_lat === 'number' && typeof a.last_lng === 'number';
+        const bHas = typeof b.last_lat === 'number' && typeof b.last_lng === 'number';
+        // Vehicles reporting a GPS fix always sort ahead of ones with none,
+        // regardless of direction — "no signal" has no meaningful position.
+        if (aHas !== bHas) return aHas ? -1 : 1;
+        if (!aHas || !bHas) return 0;
+        const cmp = a.last_lat! - b.last_lat! || a.last_lng! - b.last_lng!;
+        return locationSortDir === 'asc' ? cmp : -cmp;
+      });
+    }
+
     return [...filtered].sort((a, b) => {
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();
       return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
     });
-  }, [rawVehicles, selectedType, sortOrder]);
+  }, [rawVehicles, selectedType, sortOrder, locationSortDir]);
 
   // Saudi Arabia Hubs for vehicles awaiting initial GPS telematics fix
   const DEFAULT_SAUDI_HUBS = useMemo(() => [
@@ -486,6 +500,51 @@ export default function VehicleListPage() {
             <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
               {origin || '—'} <span className="text-slate-400">→</span> {destination || '—'}
             </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: (
+        <button
+          type="button"
+          onClick={() =>
+            setLocationSortDir((prev) => (prev === null ? 'desc' : prev === 'desc' ? 'asc' : null))
+          }
+          className="inline-flex items-center gap-1 hover:text-brand transition-colors cursor-pointer"
+          title="Sort by vehicle current location"
+        >
+          Vehicle Current Location
+          {locationSortDir === 'desc' ? (
+            <ArrowDown className="w-3 h-3 text-brand" />
+          ) : locationSortDir === 'asc' ? (
+            <ArrowUp className="w-3 h-3 text-brand" />
+          ) : (
+            <ArrowDown className="w-3 h-3 text-slate-300" />
+          )}
+        </button>
+      ),
+      className: 'w-[170px] max-w-[180px]',
+      headerClassName: 'w-[170px] max-w-[180px]',
+      accessor: (row: Vehicle) => {
+        const hasFix = typeof row.last_lat === 'number' && typeof row.last_lng === 'number'
+          && Number.isFinite(row.last_lat) && Number.isFinite(row.last_lng);
+        if (!hasFix) {
+          return <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic">No GPS signal</span>;
+        }
+        const coords = `${row.last_lat!.toFixed(4)}, ${row.last_lng!.toFixed(4)}`;
+        const lastSeen = row.last_seen_at ? new Date(row.last_seen_at).toLocaleString() : null;
+        return (
+          <div className="flex items-center gap-1.5 min-w-0 max-w-[165px]" title={lastSeen ? `Last reported ${lastSeen}` : coords}>
+            <Navigation className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-mono text-slate-700 dark:text-slate-300 truncate">{coords}</span>
+              {lastSeen && (
+                <span className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
+                  <Clock className="w-2.5 h-2.5 shrink-0" /> {lastSeen}
+                </span>
+              )}
+            </div>
           </div>
         );
       },
