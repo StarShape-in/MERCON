@@ -504,7 +504,9 @@ export default function VehicleListPage() {
         );
       },
     },
-    {
+    // Current Location only makes sense for vehicles actually free to look
+    // up right now — spliced in below only when filtered to "Available".
+    ...(selectedStatus === 'Available' ? [{
       header: (
         <button
           type="button"
@@ -512,9 +514,9 @@ export default function VehicleListPage() {
             setLocationSortDir((prev) => (prev === null ? 'desc' : prev === 'desc' ? 'asc' : null))
           }
           className="inline-flex items-center gap-1 hover:text-brand transition-colors cursor-pointer"
-          title="Sort by vehicle current location"
+          title="Sort by current location"
         >
-          Vehicle Current Location
+          Current Location
           {locationSortDir === 'desc' ? (
             <ArrowDown className="w-3 h-3 text-brand" />
           ) : locationSortDir === 'asc' ? (
@@ -548,7 +550,7 @@ export default function VehicleListPage() {
           </div>
         );
       },
-    },
+    }] : []),
     {
       header: 'Payload Capacity',
       accessor: (row: Vehicle) => {
