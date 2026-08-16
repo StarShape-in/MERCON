@@ -73,6 +73,7 @@ enum DocType {
   Contract
   Invoice
   Emergency
+  Passport
 }
 
 enum DocStatus {

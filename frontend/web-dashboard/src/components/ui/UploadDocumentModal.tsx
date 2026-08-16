@@ -249,6 +249,7 @@ export default function UploadDocumentModal({
                     <option value="POD">Proof of Delivery (POD)</option>
                     <option value="Contract">Contract</option>
                     <option value="DriverLicense">Driver License</option>
+                    <option value="Passport">Passport</option>
                     <option value="VehicleRegistration">Vehicle Registration</option>
                     <option value="Insurance">Insurance</option>
                     <option value="Waybill">Waybill</option>
