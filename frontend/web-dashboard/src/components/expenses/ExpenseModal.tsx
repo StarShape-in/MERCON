@@ -44,6 +44,8 @@ const EMPTY_FORM: CreateExpensePayload = {
   expense_date: TODAY_ISO,
   payment_method: 'Bank Transfer',
   description: '',
+  bill_issued_date: '',
+  bill_paid_date: '',
 };
 
 export interface ExpenseModalProps {
@@ -94,6 +96,12 @@ export default function ExpenseModal({
           : TODAY_ISO,
         payment_method: editingExpense.payment_method || '',
         description: editingExpense.description || '',
+        bill_issued_date: editingExpense.bill_issued_date
+          ? editingExpense.bill_issued_date.split('T')[0]
+          : '',
+        bill_paid_date: editingExpense.bill_paid_date
+          ? editingExpense.bill_paid_date.split('T')[0]
+          : '',
       });
       setShowVehicleLink(hasVehicle);
 
@@ -288,6 +296,33 @@ export default function ExpenseModal({
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                {/* Bill Issued & Paid Dates */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Bill Issued Date
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.bill_issued_date || ''}
+                      onChange={(e) => set('bill_issued_date', e.target.value)}
+                      className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Bill Paid Date
+                    </Label>
+                    <Input
+                      type="date"
+                      value={formData.bill_paid_date || ''}
+                      onChange={(e) => set('bill_paid_date', e.target.value)}
+                      className="h-10 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    />
                   </div>
                 </div>
               </div>
