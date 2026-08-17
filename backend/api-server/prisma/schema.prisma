@@ -593,10 +593,15 @@ model DocumentImport {
 enum ImportItemStatus {
   Analyzing // queued for / undergoing AI extraction
   Ready // has a proposal the user can accept as-is
-  NeedsInput // AI could not determine owner and/or type
+  NeedsInput // a fleet document, but owner and/or type still unclear
+  // Read successfully and is simply not a document this system tracks — a
+  // bank statement, a screenshot, someone's holiday photo. Kept apart from
+  // NeedsInput because the answer is "this doesn't belong here", not "tell me
+  // which driver owns it"; the review table can bulk-dismiss these.
+  Unrecognised
   Confirmed // written out to a real Document
   Skipped // user explicitly dropped this file
-  Failed // extraction errored; user can still assign manually
+  Failed // file could not be read at all (corrupt/empty/unsupported)
 }
 
 model DocumentImportItem {
@@ -619,6 +624,12 @@ model DocumentImportItem {
   proposedDocumentType      DocumentType? @relation(fields: [proposed_document_type_id], references: [id])
   match_confidence          String? // HIGH | MEDIUM | LOW | NONE
   match_reason              String? // human-readable: "plate 1234 ABC found in document"
+
+  // Plain-language description of what the AI saw, always populated even when
+  // the document matches no configured type — so an out-of-scope file can be
+  // reported as "appears to be a bank statement" rather than the useless
+  // "could not determine the document type".
+  detected_kind String?
 
   document_number   String?
   issue_date        DateTime? @db.Timestamptz

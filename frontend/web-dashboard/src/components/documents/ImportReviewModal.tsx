@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   UploadCloud, Loader2, CheckCircle2, AlertTriangle, HelpCircle, XCircle,
-  Copy, FileText, ChevronDown, ChevronRight, X,
+  Copy, FileText, ChevronDown, ChevronRight, X, Ban,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -32,6 +32,7 @@ const CONFIDENCE_RANK: Record<MatchConfidence, number> = { NONE: 0, LOW: 1, MEDI
 const STATUS_CHIP: Record<string, { label: string; className: string; icon: any }> = {
   Ready:      { label: 'Matched',     className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400', icon: CheckCircle2 },
   NeedsInput: { label: 'Needs input', className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400', icon: HelpCircle },
+  Unrecognised: { label: 'Not a fleet doc', className: 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-400', icon: Ban },
   Failed:     { label: 'Failed',      className: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400', icon: XCircle },
   Analyzing:  { label: 'Reading…',    className: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400', icon: Loader2 },
   Confirmed:  { label: 'Imported',    className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400', icon: CheckCircle2 },
@@ -178,7 +179,8 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
       if (i.status === 'Failed') return 0;
       if (i.status === 'NeedsInput') return 1;
       if (i.duplicateOfDocumentId) return 2;
-      return 3 + CONFIDENCE_RANK[(i.confidence || 'NONE') as MatchConfidence];
+      if (i.status === 'Unrecognised') return 3;
+      return 4 + CONFIDENCE_RANK[(i.confidence || 'NONE') as MatchConfidence];
     };
     return [...imp.items].sort((a, b) => rank(a) - rank(b));
   }, [imp]);
@@ -195,7 +197,7 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
           {imp && (
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {imp.isComplete
-                ? <>AI read {imp.counts.total} file(s) — <b>{imp.counts.ready} matched</b>{imp.counts.needsInput > 0 && <>, <b className="text-amber-600">{imp.counts.needsInput} need input</b></>}{imp.counts.duplicates > 0 && <>, <b className="text-amber-600">{imp.counts.duplicates} duplicate(s)</b></>}{imp.counts.failed > 0 && <>, <b className="text-rose-600">{imp.counts.failed} failed</b></>}</>
+                ? <>AI read {imp.counts.total} file(s) — <b>{imp.counts.ready} matched</b>{imp.counts.needsInput > 0 && <>, <b className="text-amber-600">{imp.counts.needsInput} need input</b></>}{imp.counts.unrecognised > 0 && <>, <b className="text-slate-500">{imp.counts.unrecognised} not fleet documents</b></>}{imp.counts.duplicates > 0 && <>, <b className="text-amber-600">{imp.counts.duplicates} duplicate(s)</b></>}{imp.counts.failed > 0 && <>, <b className="text-rose-600">{imp.counts.failed} failed</b></>}</>
                 : <>Reading {imp.analyzing} of {imp.counts.total} file(s) with AI…</>}
             </p>
           )}
@@ -360,6 +362,7 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                             : <FileText className="w-8 h-8 text-slate-600" />}
                         </div>
                         <div className="space-y-1.5 text-[11px]">
+                          <Field label="AI sees" value={item.detectedKind} />
                           <Field label="Document #" value={item.document_number} />
                           <Field label="Issuer" value={item.issuing_authority} />
                           <div className="flex items-center gap-2">
@@ -398,6 +401,29 @@ export default function ImportReviewModal({ isOpen, onClose, onImported }: Impor
                   Clear
                 </button>
                 <span className="text-xs text-slate-400 ml-1">{selected.size} selected</span>
+                {/* Dragging in a whole folder usually brings along a few files
+                    that aren't fleet documents at all. Dismissing them should
+                    be one action, not one per file. */}
+                {(imp?.counts.unrecognised ?? 0) > 0 && (
+                  <>
+                    <span className="text-slate-300">·</span>
+                    <button
+                      onClick={async () => {
+                        const junk = sortedItems.filter((i) => i.status === 'Unrecognised');
+                        await Promise.all(junk.map((i) => patchItem(i, { status: 'Skipped' })));
+                        setSelected((prev) => {
+                          const next = new Set(prev);
+                          junk.forEach((i) => next.delete(i.id));
+                          return next;
+                        });
+                        toast.success(`Dismissed ${junk.length} non-fleet file(s)`);
+                      }}
+                      className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline"
+                    >
+                      Dismiss {imp!.counts.unrecognised} non-fleet
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-2">

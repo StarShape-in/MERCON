@@ -73,7 +73,7 @@ export interface OwnerFoldersSummaryRow {
 
 /* ─── Staged import ────────────────────────────────────────────────────────── */
 
-export type ImportItemStatus = 'Analyzing' | 'Ready' | 'NeedsInput' | 'Confirmed' | 'Skipped' | 'Failed';
+export type ImportItemStatus = 'Analyzing' | 'Ready' | 'NeedsInput' | 'Unrecognised' | 'Confirmed' | 'Skipped' | 'Failed';
 export type MatchConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 
 export interface DocumentImportItem {
@@ -88,6 +88,8 @@ export interface DocumentImportItem {
   documentType: { id: string; name: string; code: string; ownerType: string; allowsMultipleFiles: boolean } | null;
   confidence: MatchConfidence | null;
   reason: string | null;
+  /** What the AI thinks the file is, even when it matches no configured type. */
+  detectedKind: string | null;
   document_number: string | null;
   issue_date: string | null;
   expiry_date: string | null;
@@ -107,6 +109,7 @@ export interface DocumentImport {
     total: number;
     ready: number;
     needsInput: number;
+    unrecognised: number;
     failed: number;
     confirmed: number;
     duplicates: number;

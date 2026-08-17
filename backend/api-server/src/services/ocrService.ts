@@ -13,6 +13,14 @@ export interface OcrResult {
    * old VehicleRegistration default silently did to most of the vault.
    */
   document_type_code: string | null;
+  /**
+   * Short plain-language description of what the document actually is, filled
+   * in whether or not it matched a configured type ("Vehicle insurance
+   * policy", "Bank statement", "Photo of a truck"). This is what lets the
+   * import tell a user that a file is simply out of scope instead of leaving
+   * them to guess why it wouldn't classify.
+   */
+  detected_kind: string | null;
   document_number: string | null;
   issue_date: string | null; // ISO YYYY-MM-DD
   expiry_date: string | null; // ISO YYYY-MM-DD (Gregorian)
@@ -80,6 +88,7 @@ function fallbackRegexExtract(filename: string): Partial<OcrResult> {
   return {
     doc_type,
     document_type_code: null,
+    detected_kind: null,
     document_number: null,
     issue_date: null,
     expiry_date: null,
@@ -131,6 +140,7 @@ export async function analyzeDocumentWithAI(
     return {
       doc_type: fallback.doc_type || DocType.VehicleRegistration,
       document_type_code: null,
+      detected_kind: null,
       document_number: null,
       issue_date: null,
       expiry_date: null,
@@ -182,6 +192,7 @@ ${catalogueBlock}
 Extract the metadata into a JSON object matching this schema:
 {
   "document_type_code": string or null (one of the configured codes listed above),
+  "detected_kind": string (ALWAYS fill this in, even when document_type_code is null - a short plain-English description of what this document actually is, e.g. "Vehicle registration (Istimara)", "Bank statement", "Photo of a truck", "Handwritten note". This is how an out-of-scope file gets reported back to the user),
   "doc_type": "VehicleRegistration" | "Insurance" | "Waybill" | "Contract",
   "document_number": string or null (Serial #, Policy #, Card #, or License #),
   "issue_date": "YYYY-MM-DD" or null (Gregorian ISO date format),
@@ -252,6 +263,7 @@ Respond ONLY with valid JSON inside a json code block.
     return {
       doc_type: docTypeEnum,
       document_type_code: documentTypeCode,
+      detected_kind: parsed.detected_kind || null,
       document_number: parsed.document_number || null,
       issue_date: parsed.issue_date || null,
       expiry_date: parsed.expiry_date || null,

@@ -77,19 +77,37 @@ async function analyzeItem(itemId: string, candidates: Awaited<ReturnType<typeof
     const typeMatch = matchDocumentType(signals, catalogue as any, owner.ownerType);
     const duplicate = await findDuplicate(owner.ownerType, owner.ownerId, typeMatch.documentTypeId);
 
-    // "Ready" means a human can accept this row as-is. Anything missing an
-    // owner or a type needs a decision, and says so plainly.
+    // Three different outcomes, and conflating them wastes the user's time:
+    //   Ready        — owner and type both known, accept as-is
+    //   Unrecognised — read fine, but it simply isn't a document we track
+    //                  (a bank statement, a screenshot); the answer is to
+    //                  dismiss it, not to hunt for its owner
+    //   NeedsInput   — a plausible fleet document we couldn't fully place
     const isComplete = !!owner.ownerId && !!typeMatch.documentTypeId;
+    const isOutOfScope = !typeMatch.documentTypeId && !owner.ownerId && !!ocr.detected_kind;
+
+    const status = isComplete
+      ? ImportItemStatus.Ready
+      : isOutOfScope
+        ? ImportItemStatus.Unrecognised
+        : ImportItemStatus.NeedsInput;
+
+    const reason = owner.ownerId
+      ? owner.reason
+      : isOutOfScope
+        ? `Not one of your document types — appears to be: ${ocr.detected_kind}`
+        : typeMatch.reason;
 
     await prisma.documentImportItem.update({
       where: { id: itemId },
       data: {
-        status: isComplete ? ImportItemStatus.Ready : ImportItemStatus.NeedsInput,
+        status,
+        detected_kind: ocr.detected_kind,
         proposed_owner_type: owner.ownerType,
         proposed_owner_id: owner.ownerId,
         proposed_document_type_id: typeMatch.documentTypeId,
         match_confidence: owner.confidence,
-        match_reason: owner.ownerId ? owner.reason : typeMatch.reason,
+        match_reason: reason,
         document_number: ocr.document_number,
         issue_date: ocr.issue_date ? new Date(ocr.issue_date) : null,
         expiry_date: ocr.expiry_date ? new Date(ocr.expiry_date) : null,
@@ -207,6 +225,7 @@ export const getImport = async (req: AuthenticatedRequest, res: Response) => {
       documentType: i.proposedDocumentType,
       confidence: i.match_confidence,
       reason: i.match_reason,
+      detectedKind: i.detected_kind,
       document_number: i.document_number,
       issue_date: i.issue_date,
       expiry_date: i.expiry_date,
@@ -229,6 +248,7 @@ export const getImport = async (req: AuthenticatedRequest, res: Response) => {
           total: items.length,
           ready: items.filter((i) => i.status === 'Ready').length,
           needsInput: items.filter((i) => i.status === 'NeedsInput').length,
+          unrecognised: items.filter((i) => i.status === 'Unrecognised').length,
           failed: items.filter((i) => i.status === 'Failed').length,
           confirmed: items.filter((i) => i.status === 'Confirmed').length,
           duplicates: items.filter((i) => i.duplicateOfDocumentId).length,
@@ -303,7 +323,7 @@ export const confirmImport = async (req: AuthenticatedRequest, res: Response) =>
       where: {
         importId: req.params.id as string,
         ...(itemIds && itemIds.length > 0 ? { id: { in: itemIds } } : {}),
-        status: { in: [ImportItemStatus.Ready, ImportItemStatus.NeedsInput] },
+        status: { in: [ImportItemStatus.Ready, ImportItemStatus.NeedsInput, ImportItemStatus.Unrecognised] },
       },
       include: { proposedDocumentType: true },
     });
@@ -390,7 +410,7 @@ export const confirmImport = async (req: AuthenticatedRequest, res: Response) =>
 
     // Close the batch once nothing is left awaiting a decision.
     const remaining = await prisma.documentImportItem.count({
-      where: { importId: req.params.id as string, status: { in: [ImportItemStatus.Analyzing, ImportItemStatus.Ready, ImportItemStatus.NeedsInput] } },
+      where: { importId: req.params.id as string, status: { in: [ImportItemStatus.Analyzing, ImportItemStatus.Ready, ImportItemStatus.NeedsInput, ImportItemStatus.Unrecognised] } },
     });
     if (remaining === 0) {
       await prisma.documentImport.update({ where: { id: req.params.id as string }, data: { isActive: false } });
@@ -419,7 +439,7 @@ export const listImports = async (req: AuthenticatedRequest, res: Response) => {
         id: i.id,
         createdAt: i.createdAt,
         total: i.items.length,
-        pending: i.items.filter((it) => ['Analyzing', 'Ready', 'NeedsInput'].includes(it.status)).length,
+        pending: i.items.filter((it) => ['Analyzing', 'Ready', 'NeedsInput', 'Unrecognised'].includes(it.status)).length,
       })),
     });
   } catch (error: any) {

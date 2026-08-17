@@ -160,6 +160,7 @@ export function matchDocumentType(
 ): { documentTypeId: string | null; reason: string } {
   const ai: any = signals.aiExtracted || {};
   const aiCode = (ai.document_type_code || '').toString().trim().toLowerCase();
+  const detectedKind = (ai.detected_kind || '').toString().trim().toLowerCase();
   const filename = (signals.filename || '').toLowerCase();
 
   // Once the owner is known, a Vehicle document can't be a Driver type.
@@ -170,6 +171,25 @@ export function matchDocumentType(
     if (hit) return { documentTypeId: hit.id, reason: `AI identified this as ${hit.name}` };
   }
 
+  // The model may describe the document correctly while failing to return a
+  // catalogue code, so read its description before falling back to guesswork.
+  if (detectedKind) {
+    for (const t of pool) {
+      const nameKey = t.name.toLowerCase();
+      const codeKey = t.code.toLowerCase();
+      if ((nameKey.length >= 4 && detectedKind.includes(nameKey)) || (codeKey.length >= 4 && detectedKind.includes(codeKey))) {
+        return { documentTypeId: t.id, reason: `AI read this as ${t.name}` };
+      }
+    }
+
+    // The model looked at the content and it matched nothing we track. Trust
+    // that over the filename: "invoice-logo.png" is a company logo, not an
+    // invoice, and letting a filename substring win here would hide genuinely
+    // out-of-scope files inside the "needs input" queue.
+    return { documentTypeId: null, reason: `Not one of your document types — appears to be: ${ai.detected_kind}` };
+  }
+
+  // Nothing was read from the document itself, so the filename is all we have.
   for (const t of pool) {
     const codeKey = t.code.toLowerCase();
     const nameKey = t.name.toLowerCase();
