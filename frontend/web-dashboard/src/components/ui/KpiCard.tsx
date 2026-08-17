@@ -53,6 +53,7 @@ export interface KpiCardProps extends Omit<React.ComponentProps<'div'>, 'title' 
   value: React.ReactNode
   description?: React.ReactNode
   subtitle?: React.ReactNode
+  headerAction?: React.ReactNode
   icon?: React.ReactNode | React.ElementType
   trend?: 'up' | 'down' | 'neutral'
   trendValue?: string
@@ -204,6 +205,7 @@ export function KpiCard({
   value,
   description,
   subtitle,
+  headerAction,
   icon,
   trend,
   trendValue,
@@ -309,16 +311,19 @@ export function KpiCard({
     >
       {/* Upper content wrapper to push footer to the absolute bottom */}
       <div className="flex-1 flex flex-col">
-        {/* Header: label + tinted icon */}
-        <div className="flex items-start justify-between gap-3">
-          <span className="pt-1 text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
+        {/* Header: label + extra action + tinted icon */}
+        <div className="flex items-center justify-between gap-2 min-h-[36px]">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4] truncate">
             {displayTitle}
           </span>
-          {renderedIcon && (
-            <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-sm', selectedStyle.iconContainer)}>
-              {renderedIcon}
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {headerAction}
+            {renderedIcon && (
+              <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-sm', selectedStyle.iconContainer)}>
+                {renderedIcon}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Value */}

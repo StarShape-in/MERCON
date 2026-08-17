@@ -261,6 +261,7 @@ export default function TripListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [selectedStatus, setSelectedStatus] = useState<TripStatusFilter>('All');
   const [dateFilter, setDateFilter] = useState<DateFilterType>('All');
+  const [kpiPeriod, setKpiPeriod] = useState<DateFilterType>('Today');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -344,10 +345,23 @@ export default function TripListPage() {
     queryFn: () => tripService.getAll({ per_page: 1000 }),
   });
 
-  // Trips scheduled/created today — for the top KPI card, which shows daily volume, not the all-time total.
-  const { data: dailyTripsRes } = useQuery({
-    queryKey: ['trips-kpi-daily'],
-    queryFn: () => tripService.getAll({ date_filter: 'Today', per_page: 1000 }),
+  // Dynamic title and description for the period KPI card
+  const kpiTitle = useMemo(() => {
+    if (kpiPeriod === 'ThisWeek') return "THIS WEEK'S TRIPS";
+    if (kpiPeriod === 'ThisMonth') return "THIS MONTH'S TRIPS";
+    return "TODAY'S TRIPS";
+  }, [kpiPeriod]);
+
+  const kpiDescription = useMemo(() => {
+    if (kpiPeriod === 'ThisWeek') return "Scheduled or created this week";
+    if (kpiPeriod === 'ThisMonth') return "Scheduled or created this month";
+    return "Scheduled or created today";
+  }, [kpiPeriod]);
+
+  // Trips scheduled/created for the selected period (Today, Week, Month) — for the first KPI card
+  const { data: periodTripsRes } = useQuery({
+    queryKey: ['trips-kpi-period', kpiPeriod],
+    queryFn: () => tripService.getAll({ date_filter: kpiPeriod, per_page: 1000 }),
   });
 
   const rawTrips = tripsRes?.data || [];
@@ -385,17 +399,18 @@ export default function TripListPage() {
   const draftTrips = kpiTrips.filter(t => t.status === 'Draft');
   const dispatchQueueCount = draftTrips.length;
 
-  const dailyTrips = dailyTripsRes?.data || [];
-  const dailyCount = dailyTripsRes?.meta?.total || dailyTrips.length;
-  const dailyCompletedCount = dailyTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced').length;
-  const dailyInTransitCount = dailyTrips.filter(t => t.status === 'InTransit').length;
-  const dailyQueueCount = dailyTrips.filter(t => t.status === 'Draft').length;
+  const periodTrips = periodTripsRes?.data || [];
+  const periodCount = periodTripsRes?.meta?.total || periodTrips.length;
+  const periodCompletedCount = periodTrips.filter(t => t.status === 'Completed' || t.status === 'Invoiced').length;
+  const periodInTransitCount = periodTrips.filter(t => t.status === 'InTransit').length;
+  const periodQueueCount = periodTrips.filter(t => t.status === 'Draft' || t.status === 'Dispatched' || t.status === 'AtPickup').length;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['trips'] }),
       queryClient.invalidateQueries({ queryKey: ['trips-kpi-summary'] }),
+      queryClient.invalidateQueries({ queryKey: ['trips-kpi-period'] }),
     ]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
@@ -1177,26 +1192,61 @@ export default function TripListPage() {
         {/* ── 2. Instrument-Panel KPI Cards ───────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 shrink-0">
           <KpiCard
-            title="TODAY'S TRIPS"
+            title={kpiTitle}
+            headerAction={
+              <div className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200/80 dark:border-slate-700/80">
+                {(
+                  [
+                    { label: 'T', value: 'Today', title: 'Today' },
+                    { label: 'W', value: 'ThisWeek', title: 'This Week' },
+                    { label: 'M', value: 'ThisMonth', title: 'This Month' },
+                  ] as const
+                ).map((period) => {
+                  const active = kpiPeriod === period.value;
+                  return (
+                    <button
+                      key={period.value}
+                      type="button"
+                      title={period.title}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setKpiPeriod(period.value);
+                        setDateFilter(period.value);
+                        setCurrentPage(1);
+                      }}
+                      className={cn(
+                        "h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-extrabold rounded transition-all",
+                        active
+                          ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-2xs font-black"
+                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                      )}
+                    >
+                      {period.label}
+                    </button>
+                  );
+                })}
+              </div>
+            }
             value={
               <span>
-                {dailyCount}
+                {periodCount}
                 <span className="text-[16px] font-semibold ml-1.5 opacity-85">Trips</span>
               </span>
             }
             variant="slate"
-            description="Scheduled or created today"
+            description={kpiDescription}
             icon={TruckMotion}
             semiCircleGauge={{
               segments: [
-                { label: "Completed", count: dailyCompletedCount, color: "#10B981" },
-                { label: "In Transit", count: dailyInTransitCount, color: "#3B82F6" },
-                { label: "Queue", count: dailyQueueCount, color: "#F59E0B" },
+                { label: "Completed", count: periodCompletedCount, color: "#10B981" },
+                { label: "In Transit", count: periodInTransitCount, color: "#3B82F6" },
+                { label: "Queue", count: periodQueueCount, color: "#F59E0B" },
               ]
             }}
+            isActive={dateFilter === kpiPeriod}
             onClick={() => {
               setSelectedStatus('All');
-              setDateFilter('Today');
+              setDateFilter(kpiPeriod);
               setCurrentPage(1);
             }}
           />
