@@ -49,6 +49,34 @@ export const RATE_CATEGORIES = [
 export type RateCategory = (typeof RATE_CATEGORIES)[number];
 
 /**
+ * Suggested SurchargeRule.charge_type values — names only, no rates. Not a
+ * Postgres enum (the column is free text, same reasoning as VEHICLE_TYPES),
+ * and NOT seeded into the database: these exist purely so the charge-type
+ * combobox has something to offer before any real SurchargeRule has been
+ * saved, without inventing priced data. Taken from the fee types actually
+ * named across the real customer quotation workbooks (AKS, HORIZON, etc.) —
+ * every customer's real rate for each of these is still pending confirmation.
+ */
+export const SUGGESTED_CHARGE_TYPES = [
+  'Additional Stop',
+  'Waiting / Labor',
+  'Labour Charge',
+  'Offloading Charge',
+  'Same-Day Delivery',
+  'Trolley Fee',
+] as const;
+
+/** Suggested SurchargeRule.unit values — display labels only, same reasoning as above. */
+export const SUGGESTED_CHARGE_UNITS = [
+  'per stop',
+  'per hour',
+  'per person',
+  'per delivery',
+  'per vehicle',
+  'flat',
+] as const;
+
+/**
  * Suggested Expense.category values. Not a Postgres enum — the column stays a
  * free-text String so a category typed once outside this list never breaks a
  * deploy — but this is the list the create/edit form offers by default.

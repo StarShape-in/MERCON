@@ -4,6 +4,7 @@ import { Edit3, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SUGGESTED_CHARGE_TYPES } from '@mercon/shared-types';
 import { surchargeRuleService } from '@/services/rateCardService';
 import { cn } from '@/lib/utils';
 
@@ -25,12 +26,20 @@ interface ChargeTypeComboboxProps {
  * with a live query instead of a fixed constant array: a newly typed value
  * needs nothing extra to "save" — it becomes a suggestion the moment the
  * SurchargeRule holding it exists.
+ *
+ * Before any real SurchargeRule exists, the live query has nothing to offer,
+ * which would force everyone into Custom mode for the very first rule ever
+ * saved. SUGGESTED_CHARGE_TYPES (names only, no rates — see shared-types)
+ * fills that gap with the fee types real customer quotations actually use,
+ * without inventing priced data the way seeding a real SurchargeRule would.
  */
 export function ChargeTypeCombobox({ value, onChange, customerId, className, placeholder }: ChargeTypeComboboxProps) {
-  const { data: knownTypes = [] } = useQuery({
+  const { data: savedTypes = [] } = useQuery({
     queryKey: ['surcharge-charge-types', customerId],
     queryFn: () => surchargeRuleService.getDistinctChargeTypes(customerId),
   });
+
+  const knownTypes = [...savedTypes, ...SUGGESTED_CHARGE_TYPES.filter((t) => !savedTypes.includes(t))];
 
   // Start in Custom mode until there's something to pick from, or the current
   // value isn't one of the known ones (e.g. editing a rule with an old type).
