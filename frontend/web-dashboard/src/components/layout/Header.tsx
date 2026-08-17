@@ -25,7 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import CreateTripModal from '@/components/trips/CreateTripModal';
 
 interface HeaderProps {
   title?: string;
@@ -41,7 +40,6 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
   const user = authStore.getUser();
   const isAdmin = user?.role === 'Admin';
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isDashboard = location.pathname === '/' || title === 'Dashboard' || !!hideBackButton;
@@ -65,7 +63,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         const key = e.key.toLowerCase();
         if (key === 't' || key === 'n' || e.code === 'KeyT' || e.code === 'KeyN') {
           e.preventDefault();
-          setIsCreateTripOpen(true);
+          navigate('/trips/new');
         }
       }
     };
@@ -135,7 +133,7 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
 
         {/* Primary Action Button: Create New Trip (MERCON Brand Orange #E8450F) */}
         <button
-          onClick={() => setIsCreateTripOpen(true)}
+          onClick={() => navigate('/trips/new')}
           title="Create New Trip (Shortcut: Alt + T or Alt + N)"
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-brand hover:bg-brand-hover text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
         >
@@ -254,10 +252,6 @@ export default function Header({ title, breadcrumb, hideBackButton, onMenuClick 
         </div>
       </div>
 
-      <CreateTripModal
-        isOpen={isCreateTripOpen}
-        onClose={() => setIsCreateTripOpen(false)}
-      />
     </div>
   );
 }

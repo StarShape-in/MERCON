@@ -27,6 +27,7 @@ export const getCustomers = async (req: Request, res: Response) => {
         skip,
         take: limit,
         orderBy: { name: 'asc' },
+        include: { _count: { select: { trips: true } } },
       }),
       prisma.customer.count({ where: whereClause })
     ]);

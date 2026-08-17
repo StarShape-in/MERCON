@@ -13,7 +13,6 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
-import CreateTripModal from '@/components/trips/CreateTripModal';
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -81,7 +80,6 @@ export default function DriverDetailsPage() {
   const queryClient = useQueryClient();
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isCreateTripOpen, setIsCreateTripOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -340,7 +338,7 @@ export default function DriverDetailsPage() {
 
               <Button
                 size="sm"
-                onClick={() => setIsCreateTripOpen(true)}
+                onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
                 className="h-9 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-sm rounded-lg px-3.5"
               >
                 <Plus className="w-4 h-4" />
@@ -463,7 +461,7 @@ export default function DriverDetailsPage() {
                     </p>
                     <Button
                       size="sm"
-                      onClick={() => setIsCreateTripOpen(true)}
+                      onClick={() => navigate(`/trips/new?driverId=${driver.id}`)}
                       className="mt-3 h-8 gap-1.5 text-xs font-bold bg-brand hover:bg-brand-hover text-white shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" /> Schedule a Trip
@@ -774,11 +772,6 @@ export default function DriverDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      <CreateTripModal
-        isOpen={isCreateTripOpen}
-        onClose={() => setIsCreateTripOpen(false)}
-        initialDriverId={id}
-      />
     </DashboardLayout>
   );
 }
