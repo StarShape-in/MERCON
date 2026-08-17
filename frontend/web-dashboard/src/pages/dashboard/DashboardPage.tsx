@@ -27,8 +27,9 @@ import { reportsService } from '@/services/reportsService';
 import { tripService } from '@/services/tripService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { exportToCSV } from '@/utils/exportUtils';
+import { cn } from '@/lib/utils';
 
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -44,6 +45,15 @@ function MapResizer({ isCollapsed, tripTab, isMapFullscreen }: { isCollapsed: bo
       clearTimeout(t2);
     };
   }, [isCollapsed, tripTab, isMapFullscreen, map]);
+  return null;
+}
+
+// ─── Leaflet Map Popup Event Listener to Auto-Hide Overlapping Badges ────────
+function MapPopupEventListener({ onPopupOpen, onPopupClose }: { onPopupOpen: () => void; onPopupClose: () => void }) {
+  useMapEvents({
+    popupopen: () => onPopupOpen(),
+    popupclose: () => onPopupClose(),
+  });
   return null;
 }
 
@@ -141,6 +151,7 @@ export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [isMapPopupOpen, setIsMapPopupOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -572,13 +583,19 @@ export default function DashboardPage() {
 
               {/* Map Canvas with Overlays */}
               <div 
+                onMouseLeave={() => setIsMapPopupOpen(false)}
                 className={isMapFullscreen 
                   ? "fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 rounded-none border-none bg-[#EAECEF]"
                   : "relative flex-1 min-h-[310px] w-full z-0 bg-[#EAECEF]"
                 }
               >
-                {/* Overlay HUD: Small Active Trips Badge & Trips Link */}
-                <div className="absolute top-3 left-3 z-[10000] flex items-center gap-2 pointer-events-auto">
+                {/* Overlay HUD: Small Active Trips Badge & Trips Link (Fades out when track popup is open) */}
+                <div 
+                  className={cn(
+                    "absolute top-3 left-3 z-[10000] flex items-center gap-2 pointer-events-auto transition-all duration-300 ease-in-out",
+                    isMapPopupOpen ? "opacity-0 pointer-events-none -translate-y-2" : "opacity-100 translate-y-0"
+                  )}
+                >
                   <button
                     type="button"
                     onClick={() => navigate('/trips')}
@@ -636,6 +653,10 @@ export default function DashboardPage() {
                   style={{ height: '100%', width: '100%', minHeight: isMapFullscreen ? '100vh' : '310px' }}
                 >
                   <MapResizer isCollapsed={isRemindersCollapsed} tripTab={tripTab} isMapFullscreen={isMapFullscreen} />
+                  <MapPopupEventListener 
+                    onPopupOpen={() => setIsMapPopupOpen(true)} 
+                    onPopupClose={() => setIsMapPopupOpen(false)} 
+                  />
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
