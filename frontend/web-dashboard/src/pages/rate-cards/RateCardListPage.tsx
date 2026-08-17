@@ -29,7 +29,7 @@ import DataTable from '@/components/ui/DataTable';
 import KpiCard from '@/components/ui/KpiCard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { RouteCorridorKpi } from '@/components/ui/CustomKpiWidgets';
-import { RevenueChart, CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
+import { CustomerBuilding, RouteLine, CheckBadge } from '@/components/ui/kpi-icons';
 import { VEHICLE_TYPES, RATE_CATEGORIES } from '@mercon/shared-types';
 import { rateCardService, RateCard } from '@/services/rateCardService';
 import RateCardFormDialog from '@/components/rate-cards/RateCardFormDialog';
@@ -125,7 +125,6 @@ export default function RateCardListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showPriceSummaryModal, setShowPriceSummaryModal] = useState(false);
   const [editTarget, setEditTarget] = useState<RateCard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -575,22 +574,6 @@ export default function RateCardListPage() {
             onClick={() => setStatusFilter(prev => prev === 'active' ? 'all' : 'active')}
           />
 
-          {/* Card 2: Avg price per trip */}
-          <KpiCard
-            title="AVERAGE PRICE"
-            value={
-              <span>
-                <span className="text-[16px] font-semibold mr-1.5 opacity-85">SAR</span>
-                {kpis.avgPrice.toLocaleString()}
-              </span>
-            }
-            variant="brand"
-            description="Mean price across all rates"
-            icon={RevenueChart}
-            chartData={[1200, 1800, 1500, 2100, 2400, kpis.avgPrice || 2500]}
-            onClick={() => setShowPriceSummaryModal(true)}
-          />
-
           {/* Card 3: Most-priced lane */}
           <KpiCard
             title="PRICED ROUTE LANES"
@@ -884,50 +867,6 @@ export default function RateCardListPage() {
           onImport={(rows) => rateCardService.importRows(rows)}
           invalidateKeys={[['rate-cards']]}
         />
-
-        {/* Pricing Summary Modal */}
-        <Dialog open={showPriceSummaryModal} onOpenChange={setShowPriceSummaryModal}>
-          <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6">
-            <DialogHeader>
-              <RevenueChart className="w-7 h-7 text-orange-500 dark:text-orange-400 mb-2" />
-              <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                Pricing Summary
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Averaged across the {kpis.total} rate{kpis.total === 1 ? '' : 's'} currently configured.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-3 my-4 text-xs">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60">
-                <div>
-                  <div className="font-bold text-indigo-900 dark:text-indigo-300">Average Price per Trip</div>
-                  <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Mean price across active lanes</div>
-                </div>
-                <span className="font-mono font-extrabold text-indigo-700 dark:text-indigo-300 text-sm">SAR {kpis.avgPrice.toLocaleString()}</span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100">Active Rate Contracts</div>
-                  <div className="text-[10px] text-slate-400">Total rate agreements in effect</div>
-                </div>
-                <Badge className="bg-brand text-white font-mono font-bold text-xs">{kpis.activeCount} Active</Badge>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs font-bold border-slate-200"
-                onClick={() => setShowPriceSummaryModal(false)}
-              >
-                Close Summary
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <ConfirmModal
           isOpen={confirmModal.isOpen}
