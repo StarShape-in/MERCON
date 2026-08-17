@@ -351,19 +351,10 @@ export default function TripListPage() {
   });
 
   const rawTrips = tripsRes?.data || [];
-  // Prioritize active/current operational statuses (InTransit, AtPickup, AtDelivery, Dispatched) at the top,
-  // followed by the rest (Draft, Completed, Invoiced, Cancelled), all ordered by sortOrder preference.
+  // Ordered purely by when the trip was created/entered, newest first by default,
+  // regardless of status — the newest entry always belongs at the top of the ledger.
   const trips = useMemo(() => {
-    const ACTIVE_STATUSES = new Set(['intransit', 'atpickup', 'atdelivery', 'dispatched', 'travelling', 'current']);
-
     return rawTrips.filter(t => matchesTripStatusFilter(t, selectedStatus)).sort((a, b) => {
-      const aActive = ACTIVE_STATUSES.has((a.status || '').toLowerCase()) ? 0 : 1;
-      const bActive = ACTIVE_STATUSES.has((b.status || '').toLowerCase()) ? 0 : 1;
-
-      if (aActive !== bActive) {
-        return aActive - bActive;
-      }
-
       const timeA = new Date(a.createdAt || (a as any).created_at || a.planned_start || 0).getTime();
       const timeB = new Date(b.createdAt || (b as any).created_at || b.planned_start || 0).getTime();
       if (timeA !== timeB) {
