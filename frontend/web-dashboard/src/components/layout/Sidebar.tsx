@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { authStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
+import { useSidebarTheme } from '@/hooks/useSidebarTheme';
+import SidebarThemeSwitcher from './SidebarThemeSwitcher';
 
 interface SidebarProps {
   active?: string;
@@ -27,6 +29,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
   const location = useLocation();
   const user = authStore.getUser();
   const isAdmin = user?.role === 'Admin';
+  const { themeId, setTheme } = useSidebarTheme();
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : (isAdmin ? 'AD' : 'OP');
 
   const isItemActive = (itemPath: string, itemEnd?: boolean) => {
@@ -126,15 +129,15 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         aria-label="Main navigation"
         className={`
           flex flex-col w-[260px] sm:w-[280px] shrink-0 h-[100dvh] lg:h-full
-          bg-[#18181B] border-r border-zinc-800 shadow-md
+          bg-[var(--sidebar-bg)] border-r border-[var(--sidebar-border)] shadow-md
           fixed inset-y-0 left-0 z-50 lg:relative lg:z-30
-          transform transition-[transform,width] duration-300 ease-in-out lg:transform-none
+          transform transition-[transform,width,background-color] duration-300 ease-in-out lg:transform-none
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${collapsed ? 'lg:w-[76px]' : 'lg:w-[220px]'}
         `}
       >
         {/* Logo */}
-        <div className={`relative flex items-center shrink-0 justify-center bg-[#18181B] border-b border-zinc-800 h-[72px] lg:h-[88px] overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
+        <div className={`relative flex items-center shrink-0 justify-center bg-[var(--sidebar-bg)] border-b border-[var(--sidebar-border)] h-[72px] lg:h-[88px] overflow-hidden ${collapsed ? 'lg:px-2' : ''}`}>
           {collapsed ? (
             <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-[#E8450F] text-white font-black text-sm shadow-md shadow-[#E8450F]/20">
               M
@@ -144,7 +147,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           <button
             onClick={onClose}
             aria-label="Close navigation menu"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors lg:hidden cursor-pointer"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-[var(--sidebar-hover)] transition-colors lg:hidden cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -163,7 +166,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
           className="
             group hidden lg:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-30
             w-7 h-7 items-center justify-center rounded-full
-            bg-[#18181B] border border-zinc-700 text-zinc-300 shadow-md shadow-black/40
+            bg-[var(--sidebar-bg)] border border-[var(--sidebar-border)] text-zinc-300 shadow-md shadow-black/40
             before:absolute before:-inset-2 before:content-['']
             hover:bg-[#E8450F] hover:border-[#E8450F] hover:text-white
             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8450F]
@@ -198,7 +201,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
                         ${collapsed ? 'lg:justify-center lg:px-2' : ''}
                         ${isActive
                           ? 'bg-gradient-to-r from-[#E8450F] to-[#FA5B25] text-white shadow-md shadow-[#E8450F]/25 font-bold border-[#FF7E52]'
-                          : 'text-zinc-300 hover:bg-zinc-800/80 hover:text-white font-medium border-transparent hover:border-[#E8450F]'
+                          : 'text-zinc-300 hover:bg-[var(--sidebar-hover)] hover:text-white font-medium border-transparent hover:border-[#E8450F]'
                         }
                       `}
                     >
@@ -226,7 +229,7 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
         </div>
 
         {/* User footer */}
-        <div className={`px-4 py-3.5 border-t border-zinc-800 flex items-center gap-2.5 bg-[#121215] shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
+        <div className={`px-4 py-3.5 border-t border-[var(--sidebar-border)] flex items-center gap-2.5 bg-[var(--sidebar-bg-alt)] shrink-0 ${collapsed ? 'lg:flex-col lg:gap-2 lg:px-2' : ''}`}>
           <div
             title={collapsed ? user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi') : undefined}
             className="w-8 h-8 rounded-full bg-[#E8450F] flex items-center justify-center text-white text-xs font-bold shrink-0 border border-black/5 shadow-sm shadow-[#E8450F]/20 select-none"
@@ -237,9 +240,10 @@ export default function Sidebar({ active, open = false, onClose, collapsed = fal
             <p className="text-xs font-semibold text-zinc-100 truncate">{user?.name || (isAdmin ? 'Admin User' : 'Mohammed Al-Harbi')}</p>
             <p className="text-[9px] text-zinc-400 truncate">{user?.email || (isAdmin ? 'admin@mercon.sa' : 'operator@mercon.sa')}</p>
           </div>
+          <SidebarThemeSwitcher themeId={themeId} onSelect={setTheme} collapsed={collapsed} />
           <button
             onClick={handleLogout}
-            className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition-colors shrink-0 cursor-pointer"
+            className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-[var(--sidebar-hover)] transition-colors shrink-0 cursor-pointer"
             title="Logout"
           >
             <LogOut size={14} />
