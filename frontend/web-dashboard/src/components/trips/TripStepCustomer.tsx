@@ -45,8 +45,10 @@ export default function TripStepCustomer({
   const custCompany = selectedCustomer ? (selectedCustomer.company_name || 'Commercial Shipper') : 'Commercial Shipper';
   const custPayment = selectedCustomer ? (selectedCustomer.payment_terms || 'Net 30') : 'Net 30';
 
-  // Top 4 quick-select customers for 1-click selection
-  const quickSelectCustomers = customers.slice(0, 4);
+  // Frequent Shippers — ranked by trip count, highest first, not list order.
+  const quickSelectCustomers = [...customers]
+    .sort((a, b) => (b._count?.trips ?? 0) - (a._count?.trips ?? 0))
+    .slice(0, 4);
 
   return (
     <div className="space-y-5 animate-in fade-in-50 duration-200">
@@ -108,7 +110,7 @@ export default function TripStepCustomer({
                     {c.name}
                   </span>
                   <span className="text-[10px] text-slate-400 block truncate font-mono mt-0.5">
-                    {c.company_name || 'Commercial'}
+                    {(c._count?.trips ?? 0) > 0 ? `${c._count!.trips} trips` : c.company_name || 'Commercial'}
                   </span>
                 </button>
               );

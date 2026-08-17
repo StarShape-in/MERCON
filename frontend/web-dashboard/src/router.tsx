@@ -128,7 +128,7 @@ export default function AppRouter() {
 
           {/* Trips */}
           <Route path="/trips"                    element={<TripListPage />} />
-          <Route path="/trips/new"                element={<Navigate to="/trips?new=true" replace />} />
+          <Route path="/trips/new"                element={<CreateTripPage />} />
           {/* Literal path before /trips/:id, which would otherwise match it. */}
           <Route path="/trips/monthly"            element={<MonthlyTripsPage />} />
           <Route path="/trips/:id"                element={<TripDetailsPage />} />

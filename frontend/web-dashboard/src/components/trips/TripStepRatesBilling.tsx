@@ -51,10 +51,10 @@ export default function TripStepRatesBilling({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-brand" /> Lane Rate Card &amp; Billing Calculation
+            <Receipt className="w-4 h-4 text-brand" /> Pricing
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Select from available contract rate cards or set custom pricing for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'}.
+            Select a contract rate card or set a custom price for {pickupLocationName || 'Origin'} → {dropoffLocationName || 'Destination'}.
           </p>
         </div>
 
@@ -239,13 +239,8 @@ export default function TripStepRatesBilling({
         <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between">
             <Label htmlFor="modal_billing_amount" className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-              <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Trip Billing Amount (SAR) <span className="text-rose-500">*</span>
+              <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Trip Rate (SAR) <span className="text-rose-500">*</span>
             </Label>
-            {billingAmount && (
-              <span className="text-xs font-mono font-extrabold text-brand">
-                Total Billed: SAR {Number(billingAmount).toLocaleString()}
-              </span>
-            )}
           </div>
 
           <div className="relative">
@@ -304,6 +299,22 @@ export default function TripStepRatesBilling({
             >
               3.5k SAR
             </button>
+          </div>
+        </div>
+
+        {/* Strong-hierarchy total summary */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3.5 flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Trip Rate</span>
+            <span className="font-bold text-sm text-slate-700 dark:text-slate-300 block">
+              {billingAmount ? `SAR ${Number(billingAmount).toLocaleString()}` : '—'}
+            </span>
+          </div>
+          <div className="space-y-0.5 text-right">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Trip Amount</span>
+            <span className="font-extrabold text-2xl text-brand block">
+              {billingAmount ? `SAR ${Number(billingAmount).toLocaleString()}` : 'SAR 0'}
+            </span>
           </div>
         </div>
       </Card>
