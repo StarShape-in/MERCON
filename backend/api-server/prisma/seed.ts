@@ -291,7 +291,7 @@ async function seedDocumentTypesAndBackfill() {
     // Net-new Mercon-mandatory types (no legacy documents to backfill).
     { code: 'IQAMA', name: 'IQAMA', ownerType: 'Driver', requirementStatus: 'MANDATORY' },
     { code: 'DriverCard', name: 'Driver Card', ownerType: 'Driver', requirementStatus: 'MANDATORY' },
-    { code: 'Passport', name: 'Passport', ownerType: 'Driver', requirementStatus: 'MANDATORY' },
+    { code: 'Passport', name: 'Passport', ownerType: 'Driver', requirementStatus: 'MANDATORY', legacyDocType: 'Passport' },
     { code: 'OperationCard', name: 'Operation Card', ownerType: 'Vehicle', requirementStatus: 'MANDATORY' },
     { code: 'SASOPlates', name: 'SASO Plates', ownerType: 'Vehicle', requirementStatus: 'MANDATORY' },
     { code: 'FAHAS', name: 'FAHAS', ownerType: 'Vehicle', requirementStatus: 'MANDATORY' },
