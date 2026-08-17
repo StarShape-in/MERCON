@@ -23,6 +23,7 @@ import TripStepRouteTiming from '@/components/trips/TripStepRouteTiming';
 import TripStepAssignments from '@/components/trips/TripStepAssignments';
 import TripStepRatesBilling from '@/components/trips/TripStepRatesBilling';
 import TripStepReview from '@/components/trips/TripStepReview';
+import TripStepSummarySidebar from '@/components/trips/TripStepSummarySidebar';
 import CreateDriverModal from '@/components/trips/CreateDriverModal';
 import CreateVehicleModal from '@/components/trips/CreateVehicleModal';
 import CreateThirdPartyModal from '@/components/third-party/CreateThirdPartyModal';
@@ -176,15 +177,6 @@ export default function CreateTripPage() {
   const selectedThirdPartyProvider = useMemo(
     () => thirdPartyProviders.find((p) => p.id === thirdPartyProviderId) || null,
     [thirdPartyProviders, thirdPartyProviderId]
-  );
-
-  const selectedPickupLocation = useMemo(
-    () => locations.find((l) => l.id === pickupLocationId) || null,
-    [locations, pickupLocationId]
-  );
-  const selectedDropoffLocation = useMemo(
-    () => locations.find((l) => l.id === dropoffLocationId) || null,
-    [locations, dropoffLocationId]
   );
 
   const driverOptions = useMemo(
@@ -832,15 +824,20 @@ export default function CreateTripPage() {
 
       {/* Scrollable content — nearly the whole viewport, laptop-first */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-        <div className="mx-auto w-full max-w-5xl space-y-3.5">
+        <div className={cn('mx-auto w-full', step < 5 ? 'max-w-6xl' : 'max-w-5xl')}>
           {error && (
-            <Alert variant="destructive" className="rounded-xl border-destructive/30">
+            <Alert variant="destructive" className="rounded-xl border-destructive/30 mb-3.5">
               <AlertCircle className="size-4" />
               <AlertTitle>Cannot proceed</AlertTitle>
               <AlertDescription className="text-xs">{error}</AlertDescription>
             </Alert>
           )}
 
+        {/* Steps 1–4: form left, persistent "Trip So Far" summary right —
+            uses the laptop's width instead of stacking everything vertically.
+            Step 5 (Review) is full width; it's the summary at that point. */}
+        <div className={cn(step < 5 && 'lg:flex lg:items-start lg:gap-5')}>
+        <div className="flex-1 min-w-0 space-y-3.5">
           {step === 1 && (
             <TripStepCustomer
               customerId={customerId}
@@ -867,8 +864,6 @@ export default function CreateTripPage() {
               dropoffName={dropoffName}
               dropoffAddress={dropoffAddress}
               locations={locations}
-              selectedPickupLocation={selectedPickupLocation}
-              selectedDropoffLocation={selectedDropoffLocation}
               onPickupLocationIdChange={(id) => { setPickupLocationId(id); setError(null); }}
               onPickupLocationNameChange={setPickupLocationName}
               onPickupCoordinatesChange={(la, ln) => { setPickupLat(la); setPickupLng(ln); setError(null); }}
@@ -983,6 +978,30 @@ export default function CreateTripPage() {
               onEditStep={(s) => goToStep(s)}
             />
           )}
+        </div>
+
+        {step < 5 && (
+          <div className="lg:w-[290px] lg:shrink-0 lg:sticky lg:top-0 mt-4 lg:mt-0">
+            <TripStepSummarySidebar
+              currentStep={step}
+              onGoToStep={goToStep}
+              selectedCustomer={selectedCustomer}
+              pickupName={pickupName || pickupLocationName}
+              dropoffName={dropoffName || dropoffLocationName}
+              truckArrivalTime={pickupTime}
+              estimatedDelivery={estimatedDelivery}
+              isThirdParty={isThirdParty}
+              selectedDriver={selectedDriver}
+              selectedVehicle={selectedVehicle}
+              assignDriverLater={assignDriverLater}
+              assignVehicleLater={assignVehicleLater}
+              thirdPartyProviderName={selectedThirdPartyProvider?.name || ''}
+              billingAmount={billingAmount}
+              matchedRateCard={matchedRateCard}
+            />
+          </div>
+        )}
+        </div>
         </div>
       </div>
 
