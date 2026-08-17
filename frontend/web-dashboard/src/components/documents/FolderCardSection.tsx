@@ -14,6 +14,7 @@ interface FolderCardSectionProps {
   rows: OwnerFoldersSummaryRow[];
   onOpenRow: (row: OwnerFoldersSummaryRow) => void;
   onPreviewDocument: (documentId: string) => void;
+  onUploadMissing?: (row: OwnerFoldersSummaryRow, slotCode: string) => void;
 }
 
 /**
@@ -22,7 +23,7 @@ interface FolderCardSectionProps {
  * Prev/Next, plus a "View all" toggle to expand the whole list inline —
  * matches the target design instead of an unbounded grid.
  */
-export default function FolderCardSection({ title, icon, noun, rows, onOpenRow, onPreviewDocument }: FolderCardSectionProps) {
+export default function FolderCardSection({ title, icon, noun, rows, onOpenRow, onPreviewDocument, onUploadMissing }: FolderCardSectionProps) {
   const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState(false);
 
@@ -90,7 +91,7 @@ export default function FolderCardSection({ title, icon, noun, rows, onOpenRow, 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {visibleRows.map((row) => (
-          <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => onOpenRow(row)} onPreviewDocument={onPreviewDocument} />
+          <OwnerFolderCard key={row.ownerId} row={row} onOpen={() => onOpenRow(row)} onPreviewDocument={onPreviewDocument} onUploadMissing={onUploadMissing} />
         ))}
       </div>
     </div>

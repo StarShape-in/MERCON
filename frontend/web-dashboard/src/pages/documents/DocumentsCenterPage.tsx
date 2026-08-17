@@ -16,7 +16,7 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import BulkActionBar from '@/components/ui/BulkActionBar';
 import { CalendarAlert as CalendarAlertIcon, DriverBadge, FleetTruck, CheckBadge } from '@/components/ui/kpi-icons';
-import { documentService, type MerconDocument, type DocType } from '@/services/documentService';
+import { documentService, type MerconDocument, type DocType, type OwnerFoldersSummaryRow } from '@/services/documentService';
 import { folderService, type MerconFolder } from '@/services/folderService';
 import { downloadCSV } from '@/utils/exportUtils';
 import { driverService } from '@/services/driverService';
@@ -144,6 +144,7 @@ export default function DocumentsCenterPage() {
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [previewDoc, setPreviewDoc] = useState<EnrichedDocument | null>(null);
   const [folderSheetDocId, setFolderSheetDocId] = useState<string | null>(null);
+  const [uploadMissingTarget, setUploadMissingTarget] = useState<{ row: OwnerFoldersSummaryRow; slotCode: string } | null>(null);
   const [docRotation, setDocRotation] = useState<number>(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isFolderChoiceOpen, setIsFolderChoiceOpen] = useState(false);
@@ -952,6 +953,7 @@ export default function DocumentsCenterPage() {
                 rows={filteredVehicleFolders}
                 onOpenRow={(row) => navigate(`/documents/vehicles/${row.ownerId}`)}
                 onPreviewDocument={setFolderSheetDocId}
+                onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
               />
             )}
 
@@ -965,6 +967,7 @@ export default function DocumentsCenterPage() {
                 rows={filteredDriverFolders}
                 onOpenRow={(row) => navigate(`/documents/drivers/${row.ownerId}`)}
                 onPreviewDocument={setFolderSheetDocId}
+                onUploadMissing={(row, slotCode) => setUploadMissingTarget({ row, slotCode })}
               />
             )}
 
@@ -1814,6 +1817,28 @@ export default function DocumentsCenterPage() {
         onClose={() => setFolderSheetDocId(null)}
         showOpenFolder
       />
+
+      {/* ── Missing-slot upload (clicking a Missing row on a Driver/Vehicle card) ─── */}
+      {uploadMissingTarget && (() => {
+        const slot = uploadMissingTarget.row.slots.find((s) => s.code === uploadMissingTarget.slotCode);
+        return (
+          <UploadDocumentModal
+            isOpen
+            onClose={() => setUploadMissingTarget(null)}
+            entityType={uploadMissingTarget.row.ownerType}
+            entityId={uploadMissingTarget.row.ownerId}
+            documentTypeId={slot?.documentTypeId}
+            documentTypeName={slot?.name}
+            lockOwner
+            ownerDisplayName={uploadMissingTarget.row.ownerName}
+            onUploadSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['documents', 'owner-folders'] });
+              queryClient.invalidateQueries({ queryKey: ['documents'] });
+              setUploadMissingTarget(null);
+            }}
+          />
+        );
+      })()}
 
       {/* ── Move to Folder Modal ────────────────────────────────────────── */}
       <MoveToFolderModal

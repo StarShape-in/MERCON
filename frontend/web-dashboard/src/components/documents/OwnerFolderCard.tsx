@@ -16,13 +16,15 @@ interface OwnerFolderCardProps {
   onOpen: () => void;
   /** Clicking a slot that already has a document previews it directly, without leaving the page. */
   onPreviewDocument?: (documentId: string) => void;
+  /** Clicking a Missing slot opens the upload flow directly, without leaving the page. */
+  onUploadMissing?: (row: OwnerFoldersSummaryRow, slotCode: string) => void;
 }
 
 /**
  * Documents dominate the card per spec — name/subtitle stay to one line,
  * the mandatory checklist is the primary visual content, not a stat pill.
  */
-export default function OwnerFolderCard({ row, onOpen, onPreviewDocument }: OwnerFolderCardProps) {
+export default function OwnerFolderCard({ row, onOpen, onPreviewDocument, onUploadMissing }: OwnerFolderCardProps) {
   const { mandatoryComplete: complete, mandatoryTotal: total, slots: mandatorySlots } = row;
   const accentColor = row.ownerType === 'Driver' ? 'blue' : 'emerald';
   const title = row.ownerName;
@@ -68,8 +70,12 @@ export default function OwnerFolderCard({ row, onOpen, onPreviewDocument }: Owne
             return (
               <div
                 key={slot.code}
-                onClick={hasDoc ? (e) => { e.stopPropagation(); onPreviewDocument?.(slot.documentId!); } : undefined}
-                className={cn('flex items-center justify-between gap-2 text-[11px] -mx-1 px-1 py-0.5 rounded-md', hasDoc && 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (hasDoc) onPreviewDocument?.(slot.documentId!);
+                  else onUploadMissing?.(row, slot.code);
+                }}
+                className="flex items-center justify-between gap-2 text-[11px] -mx-1 px-1 py-0.5 rounded-md cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60"
               >
                 <span className="flex items-center gap-1.5 min-w-0">
                   <Icon className={cn('w-3.5 h-3.5 shrink-0', cfg.className)} />
