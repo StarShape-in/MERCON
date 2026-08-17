@@ -124,7 +124,7 @@ const STATUS_STYLE: Record<string, { dot: string; badge: string; label: string }
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'recent'>('current');
+  const [tripTab, setTripTab] = useState<'current' | 'upcoming' | 'completed'>('current');
   const [tripSearch, setTripSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
@@ -155,11 +155,11 @@ export default function DashboardPage() {
 
   const rawTrips = tripsRes?.data || [];
 
-  // Categorize live trips into current, upcoming, recent
-  const { currentTrips, upcomingTrips, recentTrips } = useMemo(() => {
+  // Categorize live trips into current, upcoming, completed
+  const { currentTrips, upcomingTrips, completedTrips } = useMemo(() => {
     const current: any[] = [];
     const upcoming: any[] = [];
-    const recent: any[] = [];
+    const completed: any[] = [];
 
     rawTrips.forEach((t, idx) => {
       const driverName = t.driver
@@ -244,8 +244,8 @@ export default function DashboardPage() {
         current.push(item);
       } else if (t.status === 'Draft' || (t.planned_start && new Date(t.planned_start) > new Date())) {
         upcoming.push(item);
-      } else {
-        recent.push(item);
+      } else if (t.status === 'Completed' || t.status === 'Invoiced') {
+        completed.push(item);
       }
     });
 
@@ -262,18 +262,18 @@ export default function DashboardPage() {
       { id: 'TRP-0032', rawId: 'TRP-0032', pickup: 'Jeddah', dropoff: 'Taif', route: 'Jeddah → Taif', customerName: 'BinDawood Superstores', price: 1200, driver: 'Mohammed Faizan', initials: 'MF', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'KSA-7712', plate: 'KSA-7712', tripId: 'TRP-0032', status: 'Scheduled', rawStatus: 'Draft', startTime: 'Tomorrow', eta: '2h 30m', progress: 0, distance: '98 km', lat: 21.38, lng: 39.86 },
     ];
 
-    const fallbackRecent = [
+    const fallbackCompleted = [
       { id: 'TRP-0025', rawId: 'TRP-0025', pickup: 'Riyadh', dropoff: 'Qassim', route: 'Riyadh → Qassim', customerName: 'Al-Othaim Commercial', price: 2600, driver: 'Faizan Malik', initials: 'FM', avatarBg: 'bg-blue-100 text-blue-700', vehicle: 'DRA-9873', plate: 'DRA-9873', tripId: 'TRP-0025', status: 'Completed', rawStatus: 'Completed', startTime: 'Yesterday', eta: 'Done', progress: 100, distance: '180 km', lat: 26.32, lng: 43.97 },
     ];
 
     return {
       currentTrips: current.length ? current : fallbackCurrent,
       upcomingTrips: upcoming.length ? upcoming : fallbackUpcoming,
-      recentTrips: recent.length ? recent : fallbackRecent,
+      completedTrips: completed.length ? completed : fallbackCompleted,
     };
   }, [rawTrips]);
 
-  const activeTrips = tripTab === 'current' ? currentTrips : tripTab === 'upcoming' ? upcomingTrips : recentTrips;
+  const activeTrips = tripTab === 'current' ? currentTrips : tripTab === 'upcoming' ? upcomingTrips : completedTrips;
   const activeFleet = activeTrips;
 
   const filteredActiveTrips = useMemo(() => {
@@ -689,8 +689,8 @@ export default function DashboardPage() {
               }}
               filterElement={
                 <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-                  {(['current', 'upcoming', 'recent'] as const).map((tab) => {
-                    const count = tab === 'current' ? currentTrips.length : tab === 'upcoming' ? upcomingTrips.length : recentTrips.length;
+                  {(['current', 'upcoming', 'completed'] as const).map((tab) => {
+                    const count = tab === 'current' ? currentTrips.length : tab === 'upcoming' ? upcomingTrips.length : completedTrips.length;
                     const isActive = tripTab === tab;
                     return (
                       <button
@@ -706,7 +706,7 @@ export default function DashboardPage() {
                             : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
                         }`}
                       >
-                        <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Recent'}</span>
+                        <span>{tab === 'current' ? 'Current' : tab === 'upcoming' ? 'Upcoming' : 'Completed'}</span>
                         <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
                           {count}
                         </span>
