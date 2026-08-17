@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MerconDocument } from '@/services/documentService';
-import { docTypeLabel, getExpiryStatus, formatExpiryText, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
+import { documentDisplayName, getExpiryStatus, formatExpiryText, formatBilingualAuthority, resolveFileUrl } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 
 interface DocumentViewerModalProps {
@@ -79,7 +79,7 @@ export default function DocumentViewerModal({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                  {docTypeLabel(document.doc_type)}
+                  {documentDisplayName(document)}
                 </DialogTitle>
                 <Badge className={cn(
                   "text-[10px] font-bold px-2 py-0.5",
@@ -147,7 +147,7 @@ export default function DocumentViewerModal({
               <div className="relative w-full h-full flex items-center justify-center overflow-auto max-h-[60vh] p-2">
                 <img
                   src={resolvedUrl}
-                  alt={docTypeLabel(document.doc_type)}
+                  alt={documentDisplayName(document)}
                   onError={() => setImageError(true)}
                   style={{
                     transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
@@ -160,7 +160,7 @@ export default function DocumentViewerModal({
               <div className="w-full h-[55vh] rounded-xl overflow-hidden border border-slate-800 shadow-2xl bg-white">
                 <iframe
                   src={resolvedUrl}
-                  title={docTypeLabel(document.doc_type)}
+                  title={documentDisplayName(document)}
                   className="w-full h-full border-0"
                 />
               </div>
@@ -214,7 +214,7 @@ export default function DocumentViewerModal({
               <div className="bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 dark:text-slate-400 font-medium">Doc Type:</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">{docTypeLabel(document.doc_type)}</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{documentDisplayName(document)}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs">

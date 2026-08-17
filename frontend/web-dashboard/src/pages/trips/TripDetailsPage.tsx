@@ -38,7 +38,7 @@ import {
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { documentService, type DocType } from '@/services/documentService';
-import { docTypeLabel } from '@/lib/documents';
+import { documentDisplayName } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 
 /** Matches DELAY_THRESHOLD_MINUTES on the server. Below this, lateness is
@@ -845,7 +845,7 @@ export default function TripDetailsPage() {
                               </div>
                               <div className="min-w-0">
                                 <p className="text-xs font-bold text-[#111] dark:text-slate-100 truncate">
-                                  {docTypeLabel(doc.doc_type)}
+                                  {documentDisplayName(doc)}
                                 </p>
                                 <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#6E6E80]">
                                   <span>{new Date(doc.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>

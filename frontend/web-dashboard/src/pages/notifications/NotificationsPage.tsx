@@ -13,7 +13,7 @@ import { notificationService, type Notification } from '@/services/notificationS
 import { documentService } from '@/services/documentService';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
-import { docTypeLabel, categoryForEntity, daysUntil } from '@/lib/documents';
+import { documentDisplayName, categoryForEntity, daysUntil } from '@/lib/documents';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -160,7 +160,7 @@ export default function NotificationsPage() {
       const days = daysUntil(doc.expiry_date);
       if (days !== null && days <= 30) {
         const entityName = nameFor(doc.entity_type, doc.entity_id);
-        const typeLabel = docTypeLabel(doc.doc_type);
+        const typeLabel = documentDisplayName(doc);
         const isExpired = days <= 0;
         const isCritical = days > 0 && days <= 7;
         const reminderId = `rem-doc-${doc.id}`;

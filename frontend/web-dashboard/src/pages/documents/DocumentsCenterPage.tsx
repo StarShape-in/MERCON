@@ -23,7 +23,7 @@ import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
 import { tripService } from '@/services/tripService';
 import { customerService } from '@/services/customerService';
-import { docTypeLabel, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
+import { documentDisplayName, categoryForDocType, categoryForEntity, type DocCategory, daysUntil, getExpiryStatus, formatExpiryText, resolveFileUrl, formatBilingualAuthority } from '@/lib/documents';
 import OwnerFolderCard from '@/components/documents/OwnerFolderCard';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -392,7 +392,7 @@ export default function DocumentsCenterPage() {
             : d.expStatus === expiryFilter;
         const matchesFolder = !selectedFolderId || d.folderId === selectedFolderId;
         const matchesTerm = matchesSearch(search, [
-          docTypeLabel(d.doc_type),
+          documentDisplayName(d),
           d.entityName,
           d.issuer,
           d.id,
@@ -1003,7 +1003,7 @@ export default function DocumentsCenterPage() {
                           onClick={() => setPreviewDoc(row)}
                           className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-brand cursor-pointer block truncate max-w-[220px]"
                         >
-                          {docTypeLabel(row.doc_type)}
+                          {documentDisplayName(row)}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">#DOC-{row.id.toString().slice(0, 8)}</span>
                       </div>
@@ -1137,7 +1137,7 @@ export default function DocumentsCenterPage() {
                 accessor: (row) => (
                   <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={() => handleSingleDocAiOcr(row.id, docTypeLabel(row.doc_type))}
+                      onClick={() => handleSingleDocAiOcr(row.id, documentDisplayName(row))}
                       disabled={extractingRowId === row.id}
                       className="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors disabled:opacity-50"
                       title="AI Vision Auto-Extract Metadata (Serial #, Plate #, Issue/Expiry Date, Authority)"
@@ -1267,7 +1267,7 @@ export default function DocumentsCenterPage() {
                     )}
                     tabIndex={0}
                     role="button"
-                    aria-label={`Document: ${docTypeLabel(doc.doc_type)} for ${doc.entityName}`}
+                    aria-label={`Document: ${documentDisplayName(doc)} for ${doc.entityName}`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
@@ -1287,7 +1287,7 @@ export default function DocumentsCenterPage() {
                               toggleSelectRow(doc.id);
                             }}
                             className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                            aria-label={`Select document ${docTypeLabel(doc.doc_type)}`}
+                            aria-label={`Select document ${documentDisplayName(doc)}`}
                           />
                           <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0', catCfg.iconBg)}>
                             <DocIcon className={cn('w-4.5 h-4.5', catCfg.color)} />
@@ -1304,7 +1304,7 @@ export default function DocumentsCenterPage() {
                           onClick={() => setPreviewDoc(doc)}
                           className="font-extrabold text-sm text-slate-900 dark:text-slate-100 hover:text-brand cursor-pointer truncate"
                         >
-                          {docTypeLabel(doc.doc_type)}
+                          {documentDisplayName(doc)}
                         </h4>
                         <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{doc.entityName}</p>
                       </div>
@@ -1452,7 +1452,7 @@ export default function DocumentsCenterPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                    {previewDoc ? docTypeLabel(previewDoc.doc_type) : 'Document Details'}
+                    {previewDoc ? documentDisplayName(previewDoc) : 'Document Details'}
                   </DialogTitle>
                   {previewDoc && (
                     <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800 font-bold text-[10px] px-2.5 py-0.5 rounded-full">
@@ -1517,7 +1517,7 @@ export default function DocumentsCenterPage() {
                       <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                         <img
                           src={resolvedUrl}
-                          alt={docTypeLabel(previewDoc.doc_type)}
+                          alt={documentDisplayName(previewDoc)}
                           style={{ transform: `rotate(${docRotation}deg)` }}
                           className="max-h-full max-w-full object-contain rounded-lg transition-transform duration-300 shadow-md"
                         />
@@ -1535,7 +1535,7 @@ export default function DocumentsCenterPage() {
                         </div>
                         <div>
                           <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                            {docTypeLabel(previewDoc.doc_type)}
+                            {documentDisplayName(previewDoc)}
                           </h4>
                           <p className="text-xs text-slate-400 font-mono mt-1">
                             {previewDoc.mime_type || 'Binary Document'}
@@ -1698,7 +1698,7 @@ export default function DocumentsCenterPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleSingleDocAiOcr(previewDoc.id, docTypeLabel(previewDoc.doc_type))}
+                      onClick={() => handleSingleDocAiOcr(previewDoc.id, documentDisplayName(previewDoc))}
                       disabled={isExtractingThis}
                       className="w-full h-8.5 text-xs font-extrabold bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-800 gap-2 rounded-xl mt-1 shadow-2xs"
                     >

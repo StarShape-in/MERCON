@@ -18,6 +18,18 @@ export function docTypeLabel(t: string): string {
   return DOC_TYPE_LABELS[t as DocType] ?? t;
 }
 
+/**
+ * The label to actually show for a document. Every document still carries the
+ * legacy `doc_type` enum (kept for back-compat readers), but its configured
+ * `documentType` — e.g. "Isthimara" instead of the legacy "Vehicle
+ * Registration" — is the real, owner-facing name once one is linked. Falls
+ * back to the legacy label only for documents that predate DocumentType
+ * linking (should be none after the seed backfill, but stay defensive).
+ */
+export function documentDisplayName(doc: { doc_type: string; documentType?: { name: string } | null }): string {
+  return doc.documentType?.name || docTypeLabel(doc.doc_type);
+}
+
 export type DocCategory = 'Drivers' | 'Vehicles' | 'Company' | 'Operations';
 
 /** Map a document's owning entity_type to a UI category. */

@@ -10,7 +10,7 @@ import { documentService, type MerconDocument } from '@/services/documentService
 import { downloadCSV } from '@/utils/exportUtils';
 import { driverService } from '@/services/driverService';
 import { vehicleService } from '@/services/vehicleService';
-import { docTypeLabel, daysUntil, getExpiryStatus, formatExpiryText } from '@/lib/documents';
+import { documentDisplayName, daysUntil, getExpiryStatus, formatExpiryText } from '@/lib/documents';
 import { matchesSearch } from '@/lib/search';
 import { cn } from '@/lib/utils';
 
@@ -149,7 +149,7 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
 
       const matchesTerm = matchesSearch(search, [
         i.entityName,
-        docTypeLabel(i.doc_type),
+        documentDisplayName(i),
         i.entity_type,
         formatExpiryText(i.daysRemaining),
       ]);
@@ -186,7 +186,7 @@ export default function ExpiryRadarModal({ isOpen, onClose }: ExpiryRadarModalPr
           </div>
           <div className="flex flex-col">
             <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">
-              {docTypeLabel(row.doc_type)}
+              {documentDisplayName(row)}
             </span>
             <span className="text-[10px] text-slate-400 font-mono">
               {row.source === 'document' ? 'Uploaded Vault Record' : 'Driver Profile License'}
