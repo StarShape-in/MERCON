@@ -16,6 +16,7 @@ import DataTable, { BulkAction } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import LocationFormDialog from '@/components/locations/LocationFormDialog';
 import { locationService, Location } from '@/services/locationService';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -810,8 +811,12 @@ export default function LocationListPage() {
               {/* Map Canvas (3 columns on large screens) */}
               <div className="lg:col-span-3 relative h-[450px] lg:h-full min-h-[450px] bg-slate-100 dark:bg-slate-950 overflow-hidden">
                 <MapContainer
-                  center={selectedMapCenter || defaultCenter}
+                  center={selectedMapCenter || SAUDI_MAP_CONTAINER_PROPS.center}
                   zoom={6}
+                  minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+                  maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+                  maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+                  maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
                   scrollWheelZoom={true}
                   style={{ height: '100%', width: '100%', position: 'absolute', inset: 0, zIndex: 0 }}
                   zoomControl={true}

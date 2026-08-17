@@ -28,6 +28,7 @@ import { tripService } from '@/services/tripService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { exportToCSV } from '@/utils/exportUtils';
 import { cn } from '@/lib/utils';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -645,8 +646,12 @@ export default function DashboardPage() {
                 )}
 
                 <MapContainer
-                  center={[24.0, 45.0]}
-                  zoom={5}
+                  center={SAUDI_MAP_CONTAINER_PROPS.center}
+                  zoom={SAUDI_MAP_CONTAINER_PROPS.zoom}
+                  minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+                  maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+                  maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+                  maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
                   scrollWheelZoom={true}
                   zoomControl={false}
                   attributionControl={true}

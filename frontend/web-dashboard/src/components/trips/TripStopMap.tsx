@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapPin, Crosshair } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 // Tone pin icons
 const pickupPinIcon = L.divIcon({
@@ -79,6 +80,10 @@ export default function TripStopMap({
         <MapContainer
           center={center}
           zoom={hasPin ? 13 : 6}
+          minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+          maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+          maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+          maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
           scrollWheelZoom
           attributionControl={false}
           style={{ height: '100%', width: '100%' }}
