@@ -27,11 +27,13 @@ export interface Expense {
     first_name: string;
     last_name: string;
     ref_id: string | null;
+    deletedAt?: string | null;
   } | null;
   vehicle?: {
     id: string;
     plate_number: string;
     ref_id: string | null;
+    deletedAt?: string | null;
   } | null;
 }
 

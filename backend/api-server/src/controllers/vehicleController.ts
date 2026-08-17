@@ -6,6 +6,11 @@ import { AssetStatus, AssetType } from '@prisma/client';
 import { tripIncome, isEarned } from '../reportEngine/derived';
 import { getEnabledModules } from './settingsController';
 
+// Trip statuses that mean the trip is still in progress — mirrors the
+// active-set convention already used in thirdPartyController.ts's
+// activeTripsCount. A vehicle/driver on one of these can't be deleted.
+const ACTIVE_TRIP_STATUSES = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
+
 /** Fields the fleet ledger search bar looks at. */
 const VEHICLE_SEARCH_FIELDS = [
   'plate_number',
@@ -528,20 +533,61 @@ export const updateVehicle = async (req: Request, res: Response) => {
 
 export const deleteVehicle = async (req: Request, res: Response) => {
   try {
-    await prisma.vehicle.update({
-      where: { id: req.params.id as string },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: (req as any).user?.id
-      }
+    const id = req.params.id as string;
+
+    // A vehicle mid-trip can't be pulled out from under it — the trip would
+    // keep resolving the vehicle (soft delete), but the driver/dispatcher
+    // would have no signal the truck is gone.
+    const activeTrips = await prisma.trip.count({
+      where: { vehicleId: id, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } }
     });
+    if (activeTrips > 0) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'IN_USE',
+          message: `This vehicle has ${activeTrips} active trip${activeTrips === 1 ? '' : 's'} in progress. Reassign or complete them before deleting.`
+        }
+      });
+    }
+
+    await prisma.$transaction([
+      prisma.vehicle.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          isActive: false,
+          deleted_by: (req as any).user?.id
+        }
+      }),
+      // Free any driver still pointing at this vehicle so the assignment
+      // doesn't silently keep referencing a deleted vehicle, and so the
+      // vehicle's unique assignedVehicleId slot can be reused.
+      prisma.driver.updateMany({
+        where: { assignedVehicleId: id },
+        data: { assignedVehicleId: null }
+      })
+    ]);
     res.json({ success: true, data: { message: 'Vehicle deleted successfully' } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to delete vehicle' } });
   }
 };
 
+export const getVehicleUsage = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const [activeTrips, totalTrips, maintenanceRecords, expenses] = await Promise.all([
+      prisma.trip.count({ where: { vehicleId: id, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } } }),
+      prisma.trip.count({ where: { vehicleId: id, deletedAt: null } }),
+      prisma.maintenanceRecord.count({ where: { vehicleId: id, deletedAt: null } }),
+      prisma.expense.count({ where: { vehicleId: id, deletedAt: null } })
+    ]);
+    res.json({ success: true, data: { activeTrips, totalTrips, maintenanceRecords, expenses } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to load vehicle usage' } });
+  }
+};
 
 export const bulkDeleteVehicles = async (req: Request, res: Response) => {
   try {
@@ -552,15 +598,33 @@ export const bulkDeleteVehicles = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    await prisma.vehicle.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: userId
-      }
+    const inUse = await prisma.trip.findMany({
+      where: { vehicleId: { in: ids }, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } },
+      select: { vehicleId: true },
+      distinct: ['vehicleId']
     });
-    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} vehicles` } });
+    const inUseIds = new Set(inUse.map((t) => t.vehicleId));
+    const deletableIds = ids.filter((id: string) => !inUseIds.has(id));
+
+    if (deletableIds.length > 0) {
+      await prisma.$transaction([
+        prisma.vehicle.updateMany({
+          where: { id: { in: deletableIds } },
+          data: {
+            deletedAt: new Date(),
+            isActive: false,
+            deleted_by: userId
+          }
+        }),
+        prisma.driver.updateMany({
+          where: { assignedVehicleId: { in: deletableIds } },
+          data: { assignedVehicleId: null }
+        })
+      ]);
+    }
+
+    const skippedMessage = inUseIds.size > 0 ? ` ${inUseIds.size} skipped (active trip in progress).` : '';
+    res.json({ success: true, data: { message: `Successfully deleted ${deletableIds.length} vehicles.${skippedMessage}` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete vehicles` } });
   }

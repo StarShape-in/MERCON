@@ -41,6 +41,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import DataTable, { Column } from '@/components/ui/DataTable';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 
 /** `YYYY-MM-DD` for today — used as the `min` on scheduling date inputs. */
 const TODAY_ISO = new Date().toISOString().split('T')[0];
@@ -509,6 +510,7 @@ export default function MaintenanceListPage() {
                           <div className="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                             <Truck className="w-3.5 h-3.5 text-indigo-500" />
                             {r.vehicle?.plate_number || 'TRK-UNKNOWN'}
+                            {r.vehicle?.deletedAt && <DeletedBadge />}
                           </div>
                           <div className="text-[10px] font-mono text-slate-400 mt-0.5">
                             {r.vehicle?.ref_id || 'Ref N/A'} • {r.odometer_reading ? `${r.odometer_reading.toLocaleString()} km` : '0 km'}
@@ -731,6 +733,7 @@ export default function MaintenanceListPage() {
                         <div className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                           <Truck className="w-4 h-4 text-indigo-500" />
                           {r.vehicle?.plate_number || 'TRK-UNKNOWN'}
+                          {r.vehicle?.deletedAt && <DeletedBadge />}
                         </div>
                       </div>
                       {getStatusBadge(r.status)}

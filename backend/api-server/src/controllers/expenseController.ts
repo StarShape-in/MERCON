@@ -82,8 +82,8 @@ export const getExpenses = async (req: Request, res: Response) => {
         take: limit,
         orderBy: [{ expense_date: 'desc' }],
         include: {
-          driver: { select: { id: true, first_name: true, last_name: true, ref_id: true } },
-          vehicle: { select: { id: true, plate_number: true, ref_id: true } },
+          driver: { select: { id: true, first_name: true, last_name: true, ref_id: true, deletedAt: true } },
+          vehicle: { select: { id: true, plate_number: true, ref_id: true, deletedAt: true } },
         },
       }),
       prisma.expense.count({ where: whereClause }),
@@ -134,8 +134,8 @@ const findExpenseByIdOrRef = async (idOrRef: string) => {
       deletedAt: null,
     },
     include: {
-      driver: { select: { id: true, first_name: true, last_name: true, ref_id: true } },
-      vehicle: { select: { id: true, plate_number: true, ref_id: true } },
+      driver: { select: { id: true, first_name: true, last_name: true, ref_id: true, deletedAt: true } },
+      vehicle: { select: { id: true, plate_number: true, ref_id: true, deletedAt: true } },
     },
   });
 };
@@ -242,8 +242,8 @@ export const createExpense = async (req: Request, res: Response) => {
             created_by: (req as any).user?.id,
           },
           include: {
-            driver: { select: { id: true, first_name: true, last_name: true, ref_id: true } },
-            vehicle: { select: { id: true, plate_number: true, ref_id: true } },
+            driver: { select: { id: true, first_name: true, last_name: true, ref_id: true, deletedAt: true } },
+            vehicle: { select: { id: true, plate_number: true, ref_id: true, deletedAt: true } },
           },
         });
         break;
@@ -326,8 +326,8 @@ export const updateExpense = async (req: Request, res: Response) => {
         updated_by: (req as any).user?.id,
       },
       include: {
-        driver: { select: { id: true, first_name: true, last_name: true, ref_id: true } },
-        vehicle: { select: { id: true, plate_number: true, ref_id: true } },
+        driver: { select: { id: true, first_name: true, last_name: true, ref_id: true, deletedAt: true } },
+        vehicle: { select: { id: true, plate_number: true, ref_id: true, deletedAt: true } },
       },
     });
 

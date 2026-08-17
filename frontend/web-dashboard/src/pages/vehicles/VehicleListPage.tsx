@@ -27,6 +27,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 import { vehicleService, Vehicle, AssetStatus } from '@/services/vehicleService';
 import { reverseGeocode } from '@/services/addressSearch';
 import { getUpcomingScheduledDates } from '@/utils/scheduleUtils';
@@ -877,19 +878,32 @@ export default function VehicleListPage() {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => {
+                onClick={async () => {
+                  let message = `Are you sure you want to delete vehicle ${row.plate_number}?`;
+                  try {
+                    const usage = await vehicleService.getUsage(row.id);
+                    const parts: string[] = [];
+                    if (usage.totalTrips > 0) parts.push(`${usage.totalTrips} trip${usage.totalTrips === 1 ? '' : 's'}${usage.activeTrips > 0 ? ` (${usage.activeTrips} active)` : ''}`);
+                    if (usage.maintenanceRecords > 0) parts.push(`${usage.maintenanceRecords} maintenance record${usage.maintenanceRecords === 1 ? '' : 's'}`);
+                    if (usage.expenses > 0) parts.push(`${usage.expenses} expense${usage.expenses === 1 ? '' : 's'}`);
+                    message = parts.length > 0
+                      ? `${row.plate_number} has ${parts.join(' and ')} linked to it. Deleting archives it — history will keep showing it, marked as Deleted.`
+                      : `${row.plate_number} has no linked trips or records. This will archive it.`;
+                  } catch {
+                    // Usage lookup failed — fall back to the generic prompt below rather than blocking the delete flow.
+                  }
                   setConfirmModal({
                     isOpen: true,
                     title: 'Delete Vehicle Record',
-                    message: `Are you sure you want to delete vehicle ${row.plate_number}? This action cannot be undone.`,
+                    message,
                     isDestructive: true,
                     onConfirm: async () => {
                       try {
                         await vehicleService.bulkDelete([row.id]);
                         toast.success(`Vehicle ${row.plate_number} deleted successfully`);
                         queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-                      } catch {
-                        toast.error('Failed to delete vehicle');
+                      } catch (err: any) {
+                        toast.error(err?.response?.data?.error?.message || 'Failed to delete vehicle');
                       }
                     }
                   });
@@ -978,13 +992,14 @@ export default function VehicleListPage() {
         setConfirmModal({
           isOpen: true,
           title: 'Delete Selected Vehicles',
-          message: `Are you sure you want to delete ${selectedRows.length} vehicles? This action cannot be undone.`,
+          message: `Delete ${selectedRows.length} vehicles? Any with an active trip will be skipped — the rest will be archived, and history will keep showing them marked as Deleted.`,
           isDestructive: true,
           onConfirm: async () => {
             try {
-              await vehicleService.bulkDelete(selectedRows.map(r => r.id));
+              const res = await vehicleService.bulkDelete(selectedRows.map(r => r.id));
+              toast.success(res?.message || 'Vehicles deleted');
               queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-            } catch (e) { toast.error('Failed to delete vehicles'); }
+            } catch (e: any) { toast.error(e?.response?.data?.error?.message || 'Failed to delete vehicles'); }
           }
         });
       }
@@ -1657,8 +1672,9 @@ export default function VehicleListPage() {
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-1.5 text-[11px]">
                     <div className="flex justify-between text-slate-500">
                       <span>Assigned Driver:</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                         {v.assignedDriver ? `${v.assignedDriver.first_name} ${v.assignedDriver.last_name}` : (v.trips?.[0]?.driver ? `${v.trips[0].driver.first_name} ${v.trips[0].driver.last_name}` : 'Unassigned')}
+                        {v.assignedDriver?.deletedAt && <DeletedBadge />}
                       </span>
                     </div>
                     {v.capacity_kg ? (

@@ -11,6 +11,7 @@ import { invoiceService } from '@/services/invoiceService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 
 function statusBadge(status: string) {
   const map: Record<string, string> = {
@@ -187,13 +188,19 @@ export default function InvoiceDetailsPage() {
               {trip.driver && (
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Driver</p>
-                  <p className="text-xs text-slate-700 dark:text-slate-300">{trip.driver.first_name} {trip.driver.last_name}</p>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    {trip.driver.first_name} {trip.driver.last_name}
+                    {trip.driver.deletedAt && <DeletedBadge />}
+                  </p>
                 </div>
               )}
               {trip.vehicle && (
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Vehicle</p>
-                  <p className="text-xs text-slate-700 dark:text-slate-300">{trip.vehicle.plate_number}</p>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    {trip.vehicle.plate_number}
+                    {trip.vehicle.deletedAt && <DeletedBadge />}
+                  </p>
                 </div>
               )}
             </div>

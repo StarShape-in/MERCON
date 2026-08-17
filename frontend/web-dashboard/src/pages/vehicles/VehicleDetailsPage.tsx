@@ -97,6 +97,14 @@ export default function VehicleDetailsPage() {
     enabled: !!id,
   });
 
+  // Only fetched once the delete dialog is open — this is a confirmation
+  // detail, not something the main page view needs.
+  const { data: vehicleUsage } = useQuery({
+    queryKey: ['vehicle-usage', id],
+    queryFn: () => vehicleService.getUsage(id!),
+    enabled: !!id && isDeleteModalOpen,
+  });
+
   const maintenanceRecords = maintenanceRes?.data || [];
   const documents = docsRes?.data || [];
 
@@ -1217,6 +1225,15 @@ export default function VehicleDetailsPage() {
             </div>
             <DialogDescription className="text-xs text-slate-500 mt-1">
               Deleting vehicle <strong className="text-slate-900 dark:text-slate-100">{vehicle.plate_number}</strong> will remove it from active fleet rosters.
+              {vehicleUsage && (
+                vehicleUsage.totalTrips > 0 || vehicleUsage.maintenanceRecords > 0 || vehicleUsage.expenses > 0 ? (
+                  <>
+                    {' '}It has {vehicleUsage.totalTrips} trip{vehicleUsage.totalTrips === 1 ? '' : 's'}
+                    {vehicleUsage.activeTrips > 0 ? ` (${vehicleUsage.activeTrips} active)` : ''}, {vehicleUsage.maintenanceRecords} maintenance record{vehicleUsage.maintenanceRecords === 1 ? '' : 's'}, and {vehicleUsage.expenses} expense{vehicleUsage.expenses === 1 ? '' : 's'} linked to it.
+                    It will be archived, not erased — those records will keep showing its plate marked as Deleted.
+                  </>
+                ) : ' It has no linked trips or records.'
+              )}
             </DialogDescription>
           </DialogHeader>
 

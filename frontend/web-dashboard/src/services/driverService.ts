@@ -31,6 +31,12 @@ export interface CreateDriverPayload {
   assigned_vehicle_id?: string | null;
 }
 
+export interface DriverUsage {
+  activeTrips: number;
+  totalTrips: number;
+  expenses: number;
+}
+
 export interface DriverFilters {
   status?: DriverStatus;
   search?: string;
@@ -63,8 +69,14 @@ export const driverService = {
     await api.delete(`/drivers/${id}`, { data: { password } });
   },
 
-  async bulkDelete(ids: string[]): Promise<void> {
-    await api.post('/drivers/bulk-delete', { ids });
+  async getUsage(id: string): Promise<DriverUsage> {
+    const res = await api.get<ApiResponse<DriverUsage>>(`/drivers/${id}/usage`);
+    return res.data.data;
+  },
+
+  async bulkDelete(ids: string[]): Promise<{ message: string }> {
+    const res = await api.post<ApiResponse<{ message: string }>>('/drivers/bulk-delete', { ids });
+    return res.data.data;
   },
 
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {

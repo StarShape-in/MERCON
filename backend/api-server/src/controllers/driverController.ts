@@ -10,6 +10,11 @@ import { logger } from '../utils/logger';
  * Fields the driver roster search bar looks at. Full name has to work, so both
  * name halves are listed — searching "john smith" matches first + last name.
  */
+// Trip statuses that mean the trip is still in progress — mirrors the
+// active-set convention already used in thirdPartyController.ts's
+// activeTripsCount. A driver on one of these can't be deleted.
+const ACTIVE_TRIP_STATUSES = ['Draft', 'Dispatched', 'AtPickup', 'InTransit', 'AtDelivery'];
+
 const DRIVER_SEARCH_FIELDS = [
   'ref_id',
   'first_name',
@@ -336,15 +341,37 @@ export const deleteDriver = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: { code: 'INVALID_CREDENTIALS', message: 'Incorrect password' } });
     }
 
+    const driverId = req.params.id as string;
+
+    // A driver mid-trip can't be pulled out from under it — the trip would
+    // keep resolving the driver (soft delete), but dispatch would have no
+    // signal the driver is gone.
+    const activeTrips = await prisma.trip.count({
+      where: { driverId, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } }
+    });
+    if (activeTrips > 0) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'IN_USE',
+          message: `This driver has ${activeTrips} active trip${activeTrips === 1 ? '' : 's'} in progress. Reassign or complete them before deleting.`
+        }
+      });
+    }
+
     await prisma.driver.update({
-      where: { id: req.params.id as string },
+      where: { id: driverId },
       data: {
         deletedAt: new Date(),
         isActive: false,
         deleted_by: userId,
         // Free the unique phone number so a new driver can reuse it.
         // The record is kept (soft delete) so any trips that referenced it stay valid.
-        phone_primary: null
+        phone_primary: null,
+        // Free the assigned vehicle's unique slot so it can be reassigned to
+        // another driver — otherwise it stays permanently "taken" even
+        // though the driver holding it is gone.
+        assignedVehicleId: null
       }
     });
     res.json({ success: true, data: { message: 'Driver deleted successfully' } });
@@ -353,6 +380,19 @@ export const deleteDriver = async (req: Request, res: Response) => {
   }
 };
 
+export const getDriverUsage = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const [activeTrips, totalTrips, expenses] = await Promise.all([
+      prisma.trip.count({ where: { driverId: id, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } } }),
+      prisma.trip.count({ where: { driverId: id, deletedAt: null } }),
+      prisma.expense.count({ where: { driverId: id, deletedAt: null } })
+    ]);
+    res.json({ success: true, data: { activeTrips, totalTrips, expenses } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Failed to load driver usage' } });
+  }
+};
 
 export const bulkDeleteDrivers = async (req: Request, res: Response) => {
   try {
@@ -363,15 +403,28 @@ export const bulkDeleteDrivers = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'No IDs provided' } });
     }
 
-    await prisma.driver.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-        deleted_by: userId
-      }
+    const inUse = await prisma.trip.findMany({
+      where: { driverId: { in: ids }, deletedAt: null, status: { in: ACTIVE_TRIP_STATUSES as any } },
+      select: { driverId: true },
+      distinct: ['driverId']
     });
-    res.json({ success: true, data: { message: `Successfully deleted ${ids.length} drivers` } });
+    const inUseIds = new Set(inUse.map((t) => t.driverId));
+    const deletableIds = ids.filter((id: string) => !inUseIds.has(id));
+
+    if (deletableIds.length > 0) {
+      await prisma.driver.updateMany({
+        where: { id: { in: deletableIds } },
+        data: {
+          deletedAt: new Date(),
+          isActive: false,
+          deleted_by: userId,
+          assignedVehicleId: null
+        }
+      });
+    }
+
+    const skippedMessage = inUseIds.size > 0 ? ` ${inUseIds.size} skipped (active trip in progress).` : '';
+    res.json({ success: true, data: { message: `Successfully deleted ${deletableIds.length} drivers.${skippedMessage}` } });
   } catch (error) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: `Failed to bulk delete drivers` } });
   }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus, getVehicleFinancials, getFleetFinancials, bulkImportVehicles } from '../controllers/vehicleController';
+import { getVehicles, getVehicleById, createVehicle, updateVehicle, deleteVehicle , bulkDeleteVehicles, bulkUpdateVehicleStatus, getVehicleFinancials, getFleetFinancials, bulkImportVehicles, getVehicleUsage } from '../controllers/vehicleController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
@@ -21,6 +21,7 @@ router.post('/', validate({ body: createVehicleBody }), createVehicle);
 router.get('/financials/fleet', getFleetFinancials);
 router.get('/:id/financials', validate({ params: idParam }), getVehicleFinancials);
 router.get('/:id', validate({ params: idParam }), getVehicleById);
+router.get('/:id/usage', validate({ params: idParam }), getVehicleUsage);
 router.patch('/:id', validate({ params: idParam, body: updateVehicleBody }), updateVehicle);
 router.delete('/:id', validate({ params: idParam }), deleteVehicle);
 

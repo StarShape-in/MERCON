@@ -43,6 +43,7 @@ import { TripDateFilterPicker, DateFilterType } from '@/components/trips/TripDat
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DataTable from '@/components/ui/DataTable';
 import StatusBadge from '@/components/ui/StatusBadge';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 import Btn from '@/components/ui/Btn';
 import KpiCard from '@/components/ui/KpiCard';
 import { Badge } from '@/components/ui/badge';
@@ -724,6 +725,7 @@ export default function TripListPage() {
             <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}>
               {row.driver ? `${row.driver.first_name} ${row.driver.last_name}` : 'Unassigned'}
             </span>
+            {row.driver?.deletedAt && <DeletedBadge />}
           </div>
         );
       },
@@ -752,9 +754,12 @@ export default function TripListPage() {
           <div className="flex items-center gap-1">
             <Truck size={12} className="text-slate-400 shrink-0" />
             {row.vehicle?.plate_number ? (
-              <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate">
-                {row.vehicle.plate_number}
-              </span>
+              <>
+                <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded truncate">
+                  {row.vehicle.plate_number}
+                </span>
+                {row.vehicle?.deletedAt && <DeletedBadge />}
+              </>
             ) : (
               <span className="text-xs text-slate-400 italic">Unassigned</span>
             )}

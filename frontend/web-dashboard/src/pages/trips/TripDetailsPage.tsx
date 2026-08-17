@@ -12,6 +12,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 import Btn from '@/components/ui/Btn';
 import { Button } from '@/components/ui/button';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -595,12 +596,13 @@ export default function TripDetailsPage() {
                         </Popover>
                       )}
                     </div>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5 flex items-center gap-1.5">
                       {trip.is_third_party
                         ? trip.third_party_driver_name || trip.thirdPartyProvider?.name || 'Rented Driver'
                         : trip.driver
                         ? `${trip.driver.first_name} ${trip.driver.last_name}`
                         : 'Unassigned'}
+                      {!trip.is_third_party && trip.driver?.deletedAt && <DeletedBadge />}
                     </p>
                     {trip.is_third_party ? (
                       trip.third_party_driver_phone && <p className="text-xs text-[#6E6E80] truncate">{trip.third_party_driver_phone}</p>
@@ -618,10 +620,11 @@ export default function TripDetailsPage() {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#9898A4]">
                       {trip.is_third_party ? 'Rented Vehicle' : 'Vehicle'}
                     </p>
-                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5">
+                    <p className="text-sm font-semibold text-[#111] truncate mt-0.5 flex items-center gap-1.5">
                       {trip.is_third_party
                         ? trip.third_party_vehicle_plate || 'Rented Truck'
                         : trip.vehicle?.plate_number || 'Unassigned'}
+                      {!trip.is_third_party && trip.vehicle?.deletedAt && <DeletedBadge />}
                     </p>
                     {trip.is_third_party ? (
                       <p className="text-xs text-[#6E6E80] truncate">

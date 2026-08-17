@@ -103,8 +103,8 @@ export const getInvoiceById = async (req: Request, res: Response) => {
         customer: true,
         trip: {
           include: {
-            driver: { select: { id: true, first_name: true, last_name: true } },
-            vehicle: { select: { id: true, plate_number: true, asset_type: true } },
+            driver: { select: { id: true, first_name: true, last_name: true, deletedAt: true } },
+            vehicle: { select: { id: true, plate_number: true, asset_type: true, deletedAt: true } },
             stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } },
           }
         }
@@ -272,8 +272,8 @@ export const markTripInvoiced = async (req: Request, res: Response) => {
         data: { status: TripStatus.Invoiced, updated_by: userId ?? undefined },
         include: {
           customer: true,
-          driver: { select: { id: true, first_name: true, last_name: true } },
-          vehicle: { select: { id: true, plate_number: true } },
+          driver: { select: { id: true, first_name: true, last_name: true, deletedAt: true } },
+          vehicle: { select: { id: true, plate_number: true, deletedAt: true } },
           stops: { orderBy: { stop_sequence: 'asc' }, include: { location: true } },
           invoices: { where: { deletedAt: null } },
         }
@@ -424,8 +424,8 @@ export const getBillingLedger = async (req: Request, res: Response) => {
         orderBy: [{ planned_start: 'desc' }, { createdAt: 'desc' }],
         include: {
           customer: { select: { id: true, name: true, contact_phone: true } },
-          driver: { select: { id: true, first_name: true, last_name: true, ref_id: true } },
-          vehicle: { select: { id: true, plate_number: true, asset_type: true } },
+          driver: { select: { id: true, first_name: true, last_name: true, ref_id: true, deletedAt: true } },
+          vehicle: { select: { id: true, plate_number: true, asset_type: true, deletedAt: true } },
           stops: {
             where: { deletedAt: null },
             orderBy: { stop_sequence: 'asc' },

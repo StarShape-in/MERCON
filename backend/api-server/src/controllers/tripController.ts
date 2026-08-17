@@ -1474,8 +1474,8 @@ export const getMonthlyTripBoard = async (req: Request, res: Response) => {
       orderBy: [{ planned_start: 'asc' }, { createdAt: 'asc' }],
       include: {
         customer: { select: { id: true, name: true, contact_phone: true } },
-        driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true } },
-        vehicle: { select: { id: true, ref_id: true, plate_number: true, asset_type: true } },
+        driver: { select: { id: true, ref_id: true, first_name: true, last_name: true, phone_primary: true, deletedAt: true } },
+        vehicle: { select: { id: true, ref_id: true, plate_number: true, asset_type: true, deletedAt: true } },
         rateCard: {
           select: {
             id: true, name: true, base_price: true, currency: true,

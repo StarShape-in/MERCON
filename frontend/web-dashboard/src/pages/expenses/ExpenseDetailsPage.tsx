@@ -31,6 +31,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 import {
   Dialog,
   DialogContent,
@@ -259,6 +260,7 @@ export default function ExpenseDetailsPage() {
                       <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
                     </Link>
                   )}
+                  {record.driver?.deletedAt && <DeletedBadge />}
 
                   {record.vehicle && (
                     <Link
@@ -270,6 +272,7 @@ export default function ExpenseDetailsPage() {
                       <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
                     </Link>
                   )}
+                  {record.vehicle?.deletedAt && <DeletedBadge />}
                 </div>
               </div>
             </div>
@@ -494,8 +497,9 @@ export default function ExpenseDetailsPage() {
 
                   {record.driver ? (
                     <div className="rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 p-3">
-                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                         {record.driver.first_name} {record.driver.last_name}
+                        {record.driver.deletedAt && <DeletedBadge />}
                       </div>
                       {record.driver.ref_id && (
                         <div className="text-[10px] font-mono text-slate-400 mt-0.5">
@@ -526,8 +530,9 @@ export default function ExpenseDetailsPage() {
 
                   {record.vehicle ? (
                     <div className="rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 p-3">
-                      <div className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100">
+                      <div className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                         {record.vehicle.plate_number}
+                        {record.vehicle.deletedAt && <DeletedBadge />}
                       </div>
                       {record.vehicle.ref_id && (
                         <div className="text-[10px] font-mono text-slate-400 mt-0.5">

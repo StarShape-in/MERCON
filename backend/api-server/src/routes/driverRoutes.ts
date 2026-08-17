@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus, bulkImportDrivers} from '../controllers/driverController';
+import { getDrivers, getDriverById, createDriver, updateDriver, deleteDriver , bulkDeleteDrivers, bulkUpdateDriverStatus, bulkImportDrivers, getDriverUsage} from '../controllers/driverController';
 import { authenticateJWT } from '../middlewares/auth';
 import { authorizeRoles } from '../middlewares/rbac';
 import { validate } from '../middlewares/validate';
@@ -20,6 +20,7 @@ router.post('/import', validate({ body: bulkImportDriversBody }), bulkImportDriv
 router.get('/', validate({ query: listQuery }), getDrivers);
 router.post('/', validate({ body: createDriverBody }), createDriver);
 router.get('/:id', getDriverById);
+router.get('/:id/usage', getDriverUsage);
 router.patch('/:id', validate({ body: updateDriverBody }), updateDriver);
 router.delete('/:id', deleteDriver);
 

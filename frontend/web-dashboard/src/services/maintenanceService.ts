@@ -36,6 +36,7 @@ export interface MaintenanceRecord {
     status: string;
     current_odometer: number;
     capacity_kg?: number;
+    deletedAt?: string | null;
   };
   /** Only returned by the detail endpoint. */
   documents?: MerconDocument[];

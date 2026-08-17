@@ -10,6 +10,7 @@ import {
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 import { driverService } from '@/services/driverService';
 import { documentService } from '@/services/documentService';
 import { exportExcelTable } from '@/utils/exportUtils';
@@ -103,6 +104,14 @@ export default function DriverDetailsPage() {
     enabled: !!id,
   });
   const documents = docsRes?.data || [];
+
+  // Only fetched once the delete dialog is open — this is a confirmation
+  // detail, not something the main page view needs.
+  const { data: driverUsage } = useQuery({
+    queryKey: ['driver-usage', id],
+    queryFn: () => driverService.getUsage(id!),
+    enabled: !!id && isDeleteModalOpen,
+  });
 
   const scheduledDates = useMemo(() => getUpcomingScheduledDates(driver?.trips), [driver?.trips]);
 
@@ -609,8 +618,9 @@ export default function DriverDetailsPage() {
                 ) : (
                   <div className="rounded-xl border border-emerald-200/70 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20 p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 tracking-wide">
+                      <span className="font-mono text-sm font-black text-slate-900 dark:text-slate-100 tracking-wide flex items-center gap-1.5">
                         {assignedVehicle.plate_number}
+                        {assignedVehicle.deletedAt && <DeletedBadge />}
                       </span>
                       <StatusBadge status={assignedVehicle.status} />
                     </div>
@@ -721,6 +731,14 @@ export default function DriverDetailsPage() {
             </div>
             <DialogDescription className="text-xs text-slate-500 mt-1">
               Deleting driver <strong className="text-slate-900 dark:text-slate-100">{driver.first_name} {driver.last_name}</strong> will revoke access and archive roster records. Enter admin password to proceed.
+              {driverUsage && (
+                driverUsage.totalTrips > 0 || driverUsage.expenses > 0 ? (
+                  <>
+                    {' '}They have {driverUsage.totalTrips} trip{driverUsage.totalTrips === 1 ? '' : 's'}
+                    {driverUsage.activeTrips > 0 ? ` (${driverUsage.activeTrips} active)` : ''} and {driverUsage.expenses} expense{driverUsage.expenses === 1 ? '' : 's'} linked. Trip history will keep showing their name marked as Deleted.
+                  </>
+                ) : ' They have no linked trips or records.'
+              )}
             </DialogDescription>
           </DialogHeader>
 

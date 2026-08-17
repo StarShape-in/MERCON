@@ -19,6 +19,7 @@ import { expenseService, Expense } from '@/services/expenseService';
 import { exportToCSV } from '@/utils/exportUtils';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import DataTable from '@/components/ui/DataTable';
+import DeletedBadge from '@/components/ui/DeletedBadge';
 
 export default function ExpenseListPage() {
   const navigate = useNavigate();
@@ -316,12 +317,14 @@ export default function ExpenseListPage() {
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
                             {r.driver.first_name} {r.driver.last_name}
+                            {r.driver.deletedAt && <DeletedBadge />}
                           </span>
                         )}
                         {r.vehicle && (
                           <span className="flex items-center gap-1">
                             <Truck className="w-3 h-3" />
                             {r.vehicle.plate_number}
+                            {r.vehicle.deletedAt && <DeletedBadge />}
                           </span>
                         )}
                       </div>

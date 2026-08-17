@@ -4,6 +4,13 @@ import type { ImportSummary } from '@/components/fleet/ExcelImportDialog';
 export type AssetStatus = 'Available' | 'OnTrip' | 'Maintenance' | 'Inactive';
 export type AssetType   = 'Flatbed' | 'Reefer' | 'Box' | 'Tanker';
 
+export interface VehicleUsage {
+  activeTrips: number;
+  totalTrips: number;
+  maintenanceRecords: number;
+  expenses: number;
+}
+
 export interface ActiveMaintenance {
   id: string;
   status: string;
@@ -35,6 +42,7 @@ export interface Vehicle {
   last_status?: string | null;
   last_seen_at?: string | null;
   isActive: boolean;
+  deletedAt?: string | null;
   createdAt: string;
   documents?: import('./documentService').MerconDocument[];
   trips?: any[];
@@ -175,8 +183,14 @@ export const vehicleService = {
     await api.delete(`/vehicles/${id}`);
   },
 
-  async bulkDelete(ids: string[]): Promise<void> {
-    await api.post('/vehicles/bulk-delete', { ids });
+  async getUsage(id: string): Promise<VehicleUsage> {
+    const res = await api.get<ApiResponse<VehicleUsage>>(`/vehicles/${id}/usage`);
+    return res.data.data;
+  },
+
+  async bulkDelete(ids: string[]): Promise<{ message: string }> {
+    const res = await api.post<ApiResponse<{ message: string }>>('/vehicles/bulk-delete', { ids });
+    return res.data.data;
   },
 
   async bulkUpdateStatus(ids: string[], status: string): Promise<void> {

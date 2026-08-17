@@ -387,15 +387,33 @@ export default function DriverListPage() {
               <DropdownMenuSeparator className="my-1 border-slate-100 dark:border-slate-800" />
 
               <DropdownMenuItem
-                onClick={() => {
+                onClick={async () => {
+                  const driverName = `${row.first_name} ${row.last_name}`;
+                  let message = `Are you sure you want to delete driver ${driverName}?`;
+                  try {
+                    const usage = await driverService.getUsage(row.id);
+                    const parts: string[] = [];
+                    if (usage.totalTrips > 0) parts.push(`${usage.totalTrips} trip${usage.totalTrips === 1 ? '' : 's'}${usage.activeTrips > 0 ? ` (${usage.activeTrips} active)` : ''}`);
+                    if (usage.expenses > 0) parts.push(`${usage.expenses} expense${usage.expenses === 1 ? '' : 's'}`);
+                    message = parts.length > 0
+                      ? `${driverName} has ${parts.join(' and ')} linked to them. Deleting archives the record — history will keep showing them, marked as Deleted.`
+                      : `${driverName} has no linked trips or records. This will archive the record.`;
+                  } catch {
+                    // Usage lookup failed — fall back to the generic prompt below rather than blocking the delete flow.
+                  }
                   setConfirmModal({
                     isOpen: true,
                     title: 'Delete Driver Record',
-                    message: `Are you sure you want to delete driver ${row.first_name} ${row.last_name}? This action cannot be undone.`,
+                    message,
                     isDestructive: true,
                     onConfirm: async () => {
-                      await driverService.bulkDelete([row.id]);
-                      queryClient.invalidateQueries({ queryKey: ['drivers'] });
+                      try {
+                        await driverService.bulkDelete([row.id]);
+                        toast.success(`Driver ${driverName} deleted successfully`);
+                        queryClient.invalidateQueries({ queryKey: ['drivers'] });
+                      } catch (err: any) {
+                        toast.error(err?.response?.data?.error?.message || 'Failed to delete driver');
+                      }
                     }
                   });
                 }}
@@ -495,13 +513,14 @@ export default function DriverListPage() {
         setConfirmModal({
           isOpen: true,
           title: 'Delete Selected Drivers',
-          message: `Are you sure you want to delete ${selectedRows.length} driver records? This action cannot be undone.`,
+          message: `Delete ${selectedRows.length} driver records? Any with an active trip will be skipped — the rest will be archived, and history will keep showing them marked as Deleted.`,
           isDestructive: true,
           onConfirm: async () => {
             try {
-              await driverService.bulkDelete(selectedRows.map(r => r.id));
+              const res = await driverService.bulkDelete(selectedRows.map(r => r.id));
+              toast.success(res?.message || 'Drivers deleted');
               queryClient.invalidateQueries({ queryKey: ['drivers'] });
-            } catch (e) { toast.error('Failed to delete drivers'); }
+            } catch (e: any) { toast.error(e?.response?.data?.error?.message || 'Failed to delete drivers'); }
           }
         });
       }
