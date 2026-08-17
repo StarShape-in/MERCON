@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { locationService, Location } from '@/services/locationService';
@@ -402,6 +403,10 @@ export default function LocationFormDialog({ isOpen, onClose, location }: Locati
                   <MapContainer
                     center={mapCenter}
                     zoom={12}
+                    minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+                    maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+                    maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+                    maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
                     style={{ height: '100%', width: '100%' }}
                     zoomControl={false}
                   >

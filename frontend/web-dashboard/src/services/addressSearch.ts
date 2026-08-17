@@ -76,8 +76,9 @@ function createNominatimSession(): AddressSearchSession {
 
   return {
     async search(query) {
+      // Restrict search strictly to Saudi Arabia (countrycodes=sa & bounded viewbox)
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`
+        `https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=sa&viewbox=34.0,32.5,55.8,16.0&bounded=1&q=${encodeURIComponent(query)}`
       );
       const data: NominatimResult[] = await res.json();
       return data.map((r, i) => {
@@ -168,6 +169,7 @@ interface PlacesLibrary {
     fetchAutocompleteSuggestions(request: {
       input: string;
       sessionToken?: object;
+      includedRegionCodes?: string[];
     }): Promise<{ suggestions: Array<{ placePrediction: PlacePrediction | null }> }>;
   };
 }
@@ -279,6 +281,7 @@ function createGoogleSession(key: string): AddressSearchSession {
       const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
         input: query,
         sessionToken: token,
+        includedRegionCodes: ['sa'],
       });
 
       const rows: AddressSuggestion[] = [];

@@ -10,6 +10,7 @@ import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
 import { cn } from '@/lib/utils';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -234,6 +235,10 @@ export default function TripLiveMapCard({
           <MapContainer
             center={[currentLat, currentLng]}
             zoom={8}
+            minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+            maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+            maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+            maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
             scrollWheelZoom={true}
             zoomControl={false}
             attributionControl={false}

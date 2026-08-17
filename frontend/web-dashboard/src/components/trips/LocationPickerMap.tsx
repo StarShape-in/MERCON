@@ -9,6 +9,7 @@ import {
   type AddressSuggestion,
 } from '@/services/addressSearch';
 import { cn } from '@/lib/utils';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 const pinIcon = L.divIcon({
   html: `<div style="background-color: var(--color-brand); color: white; padding: 5px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;"></div>`,
@@ -221,7 +222,17 @@ export default function LocationPickerMap({ label, lat, lng, onChange, name, onN
       className="rounded-xl overflow-hidden border relative z-0"
       style={{ height: compact ? mapHeight : 220 }}
     >
-      <MapContainer center={center} zoom={lat != null ? 14 : 6} scrollWheelZoom attributionControl={false} style={{ height: '100%', width: '100%' }}>
+      <MapContainer 
+        center={center} 
+        zoom={lat != null ? 14 : 6} 
+        minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+        maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+        maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+        maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
+        scrollWheelZoom 
+        attributionControl={false} 
+        style={{ height: '100%', width: '100%' }}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

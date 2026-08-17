@@ -15,6 +15,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 import { downloadCSV, exportExcelTable } from '@/utils/exportUtils';
 import { VEHICLE_COLUMNS } from '@/utils/importUtils';
@@ -1732,8 +1733,12 @@ export default function VehicleListPage() {
           /* MAP VIEW MODE */
           <div className="h-[550px] rounded-[24px] overflow-hidden border border-slate-200 dark:border-slate-800 relative shadow-md" style={{ background: MAP_THEMES[mapThemeId]?.previewColor || '#F4F5F7' }}>
             <MapContainer
-              center={[24.5000, 44.5000]}
-              zoom={6}
+              center={SAUDI_MAP_CONTAINER_PROPS.center}
+              zoom={SAUDI_MAP_CONTAINER_PROPS.zoom}
+              minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+              maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+              maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+              maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
               scrollWheelZoom={true}
               style={{ height: '100%', width: '100%', zIndex: 0 }}
             >

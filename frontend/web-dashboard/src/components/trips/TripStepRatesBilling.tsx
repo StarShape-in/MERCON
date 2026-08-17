@@ -58,7 +58,7 @@ export default function TripStepRatesBilling({
         </div>
       </div>
 
-      <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-xs">
+      <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-xs !overflow-visible">
         {/* Rate cards for this lane */}
         {hasAvailableCards && (
           <div className="space-y-2">

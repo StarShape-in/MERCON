@@ -13,6 +13,7 @@ import { SimulatedTruckTelemetry } from '@/services/telemetrySimulator';
 import { useSimulatedTelemetry } from '@/hooks/useSimulatedTelemetry';
 import { MAP_THEMES } from '@/components/maps/mapThemes';
 import MapThemeSelector from '@/components/maps/MapThemeSelector';
+import { SAUDI_MAP_CONTAINER_PROPS } from '@/utils/saudiMapConfig';
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -319,8 +320,12 @@ export default function FleetLiveMap() {
             <TabsContent value="map" className="mt-0">
               <div className="h-[480px] rounded-[22px] overflow-hidden border border-black/[0.1] relative z-0 shadow-xl" style={{ background: currentTheme.previewColor }}>
                 <MapContainer
-                  center={[24.5000, 44.5000]}
-                  zoom={6}
+                  center={SAUDI_MAP_CONTAINER_PROPS.center}
+                  zoom={SAUDI_MAP_CONTAINER_PROPS.zoom}
+                  minZoom={SAUDI_MAP_CONTAINER_PROPS.minZoom}
+                  maxZoom={SAUDI_MAP_CONTAINER_PROPS.maxZoom}
+                  maxBounds={SAUDI_MAP_CONTAINER_PROPS.maxBounds}
+                  maxBoundsViscosity={SAUDI_MAP_CONTAINER_PROPS.maxBoundsViscosity}
                   scrollWheelZoom={true}
                   attributionControl={false}
                   style={{ height: '100%', width: '100%', zIndex: 0 }}
