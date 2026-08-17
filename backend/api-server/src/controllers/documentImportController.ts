@@ -56,6 +56,17 @@ async function analyzeItem(itemId: string, candidates: Awaited<ReturnType<typeof
       catalogue.map((t) => ({ code: t.code, name: t.name, ownerType: t.ownerType as string })),
     );
 
+    // An unreadable file is a different problem from an unclassifiable one:
+    // no amount of picking an owner/type makes a corrupt PDF usable, so say so
+    // plainly instead of parking it in the "needs input" queue.
+    if (ocr.extraction_error) {
+      await prisma.documentImportItem.update({
+        where: { id: itemId },
+        data: { status: ImportItemStatus.Failed, error_message: ocr.extraction_error },
+      });
+      return;
+    }
+
     const signals = {
       filename: item.original_filename,
       aiExtracted: { ...ocr, document_type_code: ocr.document_type_code },

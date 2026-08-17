@@ -22,6 +22,15 @@ export interface OcrResult {
   notes: string | null;
   raw_text?: string;
   confidence: number;
+  /**
+   * Set when the file could not be read at all (corrupt/empty PDF, unsupported
+   * image, missing on disk) as opposed to being read but not classifiable.
+   * Callers must keep these apart: an unreadable file needs replacing, while an
+   * unclassified one just needs a human to pick the type. Collapsing the two
+   * sends the user off hand-assigning an owner to a file that can never be
+   * usefully stored.
+   */
+  extraction_error?: string | null;
 }
 
 /** One entry of the live DocumentType catalogue, passed into the prompt. */
@@ -130,6 +139,7 @@ export async function analyzeDocumentWithAI(
       extra_details: null,
       notes: 'File not found on server disk',
       confidence: 0,
+      extraction_error: 'File not found on server disk',
     };
   }
 
@@ -254,6 +264,13 @@ Respond ONLY with valid JSON inside a json code block.
     };
   } catch (err: any) {
     console.error(`AI OCR extraction error for file ${filePath}:`, err.response?.data || err.message);
-    return fallback as OcrResult;
+    // Surface *why* it failed rather than quietly handing back the filename
+    // guess — "The document has no pages" (a corrupt PDF) must not reach the
+    // user as an ordinary low-confidence result they can fix by picking a type.
+    const apiMessage = err.response?.data?.error?.message;
+    return {
+      ...(fallback as OcrResult),
+      extraction_error: apiMessage || err.message || 'Could not read this file',
+    };
   }
 }
