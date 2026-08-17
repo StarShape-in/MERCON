@@ -9,6 +9,8 @@ import {
   ArrowUpRight,
   Truck,
   Building2,
+  X,
+  Navigation,
 } from 'lucide-react';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -31,7 +33,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // ─── Leaflet Map Auto-Resizer when Panels Expand/Collapse or Tab Changes ────
-function MapResizer({ isCollapsed, tripTab }: { isCollapsed: boolean; tripTab: string }) {
+function MapResizer({ isCollapsed, tripTab, isMapFullscreen }: { isCollapsed: boolean; tripTab: string; isMapFullscreen: boolean }) {
   const map = useMap();
   useEffect(() => {
     map.invalidateSize();
@@ -41,7 +43,7 @@ function MapResizer({ isCollapsed, tripTab }: { isCollapsed: boolean; tripTab: s
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [isCollapsed, tripTab, map]);
+  }, [isCollapsed, tripTab, isMapFullscreen, map]);
   return null;
 }
 
@@ -138,6 +140,17 @@ export default function DashboardPage() {
   const [tripSearch, setTripSearch] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRemindersCollapsed, setIsRemindersCollapsed] = useState(false);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMapFullscreen) {
+        setIsMapFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMapFullscreen]);
 
   const user = authStore.getUser();
   const isAdmin = user?.role === 'Admin';
@@ -558,35 +571,71 @@ export default function DashboardPage() {
             <div className="flex-1 min-w-0 flex flex-col h-[390px] max-h-[390px] bg-white rounded-[18px] border border-black/[0.06] shadow-sm overflow-hidden transition-all duration-300 ease-in-out">
 
               {/* Map Canvas with Overlays */}
-              <div className="relative flex-1 min-h-[310px] w-full z-0" style={{ background: '#EAECEF' }}>
-                {/* Overlay HUD: Active Trips Badge */}
-                <div className="absolute top-3 left-3 z-[1000] px-4 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-900 flex items-center gap-2.5 pointer-events-auto">
-                  <span className="relative flex h-3 w-3 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
-                  </span>
-                  <span className="text-xs sm:text-sm font-black tracking-wide uppercase text-slate-900">
-                    {activeFleet.length} {tripTab.toUpperCase()} TRIPS
-                  </span>
+              <div 
+                className={isMapFullscreen 
+                  ? "fixed inset-0 z-[9999] w-screen h-screen m-0 p-0 rounded-none border-none bg-[#EAECEF]"
+                  : "relative flex-1 min-h-[310px] w-full z-0 bg-[#EAECEF]"
+                }
+              >
+                {/* Overlay HUD: Small Active Trips Badge & Trips Link */}
+                <div className="absolute top-3 left-3 z-[10000] flex items-center gap-2 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/trips')}
+                    title="Click to view Trips Page"
+                    className="px-2.5 py-1 rounded-lg shadow-md border border-slate-900/15 bg-white/95 backdrop-blur-md text-slate-900 flex items-center gap-1.5 hover:bg-slate-900 hover:text-white transition-all cursor-pointer group"
+                  >
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-extrabold tracking-wide uppercase">
+                      {activeFleet.length} {tripTab.toUpperCase()} TRIPS
+                    </span>
+                  </button>
+
+                  {isMapFullscreen && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMapFullscreen(false);
+                        navigate('/trips');
+                      }}
+                      className="px-2.5 py-1 rounded-lg shadow-md border border-slate-900/15 bg-slate-900 text-white text-[10px] sm:text-xs font-bold hover:bg-black flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                    >
+                      <Navigation className="w-3 h-3 text-brand" /> Go to Trips Page
+                    </button>
+                  )}
                 </div>
 
-                {/* Overlay: Full Map Button */}
-                <button
-                  onClick={() => navigate('/vehicles')}
-                  className="absolute top-3 right-3 z-[1000] px-3 py-2 rounded-xl shadow-lg border border-slate-900/15 bg-white text-slate-800 text-xs font-extrabold hover:bg-slate-900 hover:text-white hover:border-slate-900 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" /> Full Map
-                </button>
+                {/* Overlay: Full Map / Close Map Button */}
+                {isMapFullscreen ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsMapFullscreen(false)}
+                    className="absolute top-3 right-3 z-[10000] px-3.5 py-1.5 rounded-xl shadow-2xl border border-red-500/40 bg-red-600 hover:bg-red-700 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  >
+                    <X className="w-4 h-4" /> Close Map
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsMapFullscreen(true)}
+                    className="absolute top-3 right-3 z-[10000] px-2.5 py-1 rounded-lg shadow-md border border-slate-900/15 bg-white/95 backdrop-blur-md text-slate-800 text-[10px] sm:text-xs font-extrabold hover:bg-slate-900 hover:text-white flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                  >
+                    <Maximize2 className="w-3 h-3" /> Full Map
+                  </button>
+                )}
 
                 <MapContainer
                   center={[24.0, 45.0]}
                   zoom={5}
-                  scrollWheelZoom={false}
+                  scrollWheelZoom={true}
                   zoomControl={false}
                   attributionControl={true}
-                  style={{ height: '100%', width: '100%', minHeight: '310px' }}
+                  style={{ height: '100%', width: '100%', minHeight: isMapFullscreen ? '100vh' : '310px' }}
                 >
-                  <MapResizer isCollapsed={isRemindersCollapsed} tripTab={tripTab} />
+                  <MapResizer isCollapsed={isRemindersCollapsed} tripTab={tripTab} isMapFullscreen={isMapFullscreen} />
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
