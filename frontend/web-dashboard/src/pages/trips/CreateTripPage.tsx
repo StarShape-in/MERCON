@@ -377,7 +377,13 @@ export default function CreateTripPage() {
       navigate('/trips');
     },
     onError: (err: any) => {
-      setError(err.response?.data?.error?.message || err.message || 'Could not create the trip.');
+      const apiError = err.response?.data?.error;
+      // Zod validation failures come back as a generic "Invalid request data"
+      // plus a `details` array naming the actual offending field(s) — surface
+      // those instead of the useless generic message.
+      const firstIssue = apiError?.details?.[0];
+      const detail = firstIssue ? `${firstIssue.path ? `${firstIssue.path}: ` : ''}${firstIssue.message}` : undefined;
+      setError(detail || apiError?.message || err.message || 'Could not create the trip.');
     },
   });
 
