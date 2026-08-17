@@ -28,6 +28,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          # actions/checkout normally adds this safe.directory exception itself;
+          # without it git refuses to touch a workspace it doesn't own (this
+          # runner's job dir is root-owned, the runner process usually isn't).
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           REPO_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           if [ -d .git ]; then
             git remote set-url origin "$REPO_URL"
